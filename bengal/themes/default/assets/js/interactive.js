@@ -73,6 +73,9 @@
   /**
    * Reading Progress Indicator
    * Shows a bar at the top indicating reading progress
+   *
+   * Performance: Caches document dimensions and uses transform
+   * instead of width for GPU-accelerated updates.
    */
   function setupReadingProgress() {
     // Create progress bar
@@ -85,26 +88,43 @@
 
     const progressFill = document.createElement('div');
     progressFill.className = 'reading-progress__fill';
+    // Use transform for GPU-accelerated updates (avoids reflow)
+    progressFill.style.width = '100%';
+    progressFill.style.transformOrigin = 'left';
     progressBar.appendChild(progressFill);
 
     // Add to document (at top)
     document.body.insertBefore(progressBar, document.body.firstChild);
 
-    // Update progress on scroll
+    // Cache document dimensions (avoid reading on every scroll)
+    let cachedDocHeight = document.documentElement.scrollHeight;
+    let cachedWinHeight = window.innerHeight;
+    let lastProgress = -1;
+
+    // Update cached dimensions on resize
+    const updateDimensions = () => {
+      cachedDocHeight = document.documentElement.scrollHeight;
+      cachedWinHeight = window.innerHeight;
+    };
+
+    // Update progress on scroll (uses cached dimensions)
     const updateProgress = () => {
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-      // Calculate progress (0-100)
-      const scrollableHeight = documentHeight - windowHeight;
+      // Calculate progress (0-100) using cached dimensions
+      const scrollableHeight = cachedDocHeight - cachedWinHeight;
       const progress = scrollableHeight > 0
         ? Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100))
         : 0;
 
-      // Update UI
-      progressFill.style.width = `${progress}%`;
-      progressBar.setAttribute('aria-valuenow', Math.round(progress));
+      // Only update DOM if progress changed significantly (avoid micro-updates)
+      const roundedProgress = Math.round(progress);
+      if (roundedProgress !== lastProgress) {
+        lastProgress = roundedProgress;
+        // Use transform for GPU-accelerated animation (no reflow)
+        progressFill.style.transform = `scaleX(${progress / 100})`;
+        progressBar.setAttribute('aria-valuenow', roundedProgress);
+      }
     };
 
     // Throttle scroll events
@@ -114,10 +134,14 @@
       window.removeEventListener('scroll', throttledUpdate);
     });
 
-    // Update on resize
-    window.addEventListener('resize', updateProgress, { passive: true });
+    // Update dimensions on resize (debounced)
+    const debouncedDimUpdate = debounce(() => {
+      updateDimensions();
+      updateProgress();
+    }, 100);
+    window.addEventListener('resize', debouncedDimUpdate, { passive: true });
     cleanupHandlers.resize.push(() => {
-      window.removeEventListener('resize', updateProgress);
+      window.removeEventListener('resize', debouncedDimUpdate);
     });
 
     // Initial update
@@ -140,6 +164,9 @@
    *
    * Note: Only handles docs-nav links. TOC links are handled by toc.js
    * which has more sophisticated collapse/expand behavior.
+   *
+   * Performance: Caches section offsets and batches DOM reads/writes
+   * to avoid forced reflows during scroll.
    */
   function setupScrollSpy() {
     const sections = document.querySelectorAll('h2[id], h3[id]');
@@ -150,37 +177,57 @@
     if (navLinks.length === 0) return;
 
     let currentSection = '';
+    
+    // Cache section data to avoid reading offsetTop on every scroll
+    // Structure: { id: string, element: Element, offsetTop: number }
+    let sectionData = [];
+    
+    // Build initial cache
+    const updateSectionCache = () => {
+      sectionData = Array.from(sections).map(section => ({
+        id: section.getAttribute('id'),
+        element: section,
+        offsetTop: section.offsetTop
+      }));
+    };
+    
+    // Initialize cache
+    updateSectionCache();
+    
+    // Rebuild cache on resize (layout may change)
+    const debouncedCacheUpdate = debounce(updateSectionCache, 250);
+    window.addEventListener('resize', debouncedCacheUpdate, { passive: true });
+    cleanupHandlers.resize.push(() => {
+      window.removeEventListener('resize', debouncedCacheUpdate);
+    });
 
     const highlightNavigation = () => {
       const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+      const headerOffset = 100;
 
-      // Find current section
+      // Find current section using cached offsets (no DOM reads)
       let foundSection = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop - 100; // Offset for header
-        if (scrollPosition >= sectionTop) {
-          foundSection = section.getAttribute('id');
+      for (let i = 0; i < sectionData.length; i++) {
+        if (scrollPosition >= sectionData[i].offsetTop - headerOffset) {
+          foundSection = sectionData[i].id;
         }
-      });
+      }
 
-      // Update if changed
+      // Only update DOM if changed
       if (foundSection !== currentSection) {
         currentSection = foundSection;
 
-        // Remove all active classes
+        // Batch all class changes
         navLinks.forEach(link => {
-          link.classList.remove('active');
+          const href = link.getAttribute('href');
+          const shouldBeActive = currentSection && href === `#${currentSection}`;
+          
+          if (shouldBeActive) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
         });
-
-        // Add active class to current section link
-        if (currentSection) {
-          navLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href === `#${currentSection}`) {
-              link.classList.add('active');
-            }
-          });
-        }
       }
     };
 

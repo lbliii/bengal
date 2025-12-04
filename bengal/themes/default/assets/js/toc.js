@@ -105,20 +105,33 @@
 
   /**
    * Update active TOC item based on scroll position
+   * 
+   * Performance: Batches all DOM reads before DOM writes to avoid forced reflows.
+   * This prevents the browser from recalculating layout multiple times per frame.
    */
   function updateActiveItem() {
-    const scrollTop = window.scrollY;
     const viewportOffset = 120; // Offset from top of viewport
 
-    // Find active heading (closest one above viewport)
-    // Use getBoundingClientRect() for more reliable detection with nested elements
+    // ========================================
+    // PHASE 1: Batch all DOM reads
+    // ========================================
+    
+    // Read all heading positions in one batch (avoids interleaved read/write)
+    const headingRects = headings.map(heading => ({
+      top: heading.element.getBoundingClientRect().top,
+      heading: heading
+    }));
+
+    // Read container rect once (if needed for scroll-into-view)
+    let containerRect = null;
+    if (tocScrollContainer) {
+      containerRect = tocScrollContainer.getBoundingClientRect();
+    }
+
+    // Find active heading (closest one above viewport offset)
     let activeIndex = 0;
-    for (let i = headings.length - 1; i >= 0; i--) {
-      const heading = headings[i];
-      const rect = heading.element.getBoundingClientRect();
-      // Check if heading is at or above the viewport offset point
-      // This works better for headings nested inside list items or other containers
-      if (rect.top <= viewportOffset) {
+    for (let i = headingRects.length - 1; i >= 0; i--) {
+      if (headingRects[i].top <= viewportOffset) {
         activeIndex = i;
         break;
       }
@@ -128,56 +141,61 @@
     if (activeIndex === currentActiveIndex) return;
     currentActiveIndex = activeIndex;
 
-    // Update active class on TOC links
+    // ========================================
+    // PHASE 2: Batch all DOM writes
+    // ========================================
+    
+    // Collect class changes to apply
+    const activeHeading = headings[activeIndex];
+    const activeLink = activeHeading ? activeHeading.link : null;
+    const activeParentGroup = activeLink ? activeLink.closest('.toc-group') : null;
+
+    // Remove active class from all links
     headings.forEach((heading, index) => {
       if (index === activeIndex) {
         heading.link.classList.add('active');
-
-        // Auto-expand ONLY the active parent group (collapse others)
-        const parentGroup = heading.link.closest('.toc-group');
-
-        if (parentGroup) {
-          // Active link is inside a collapsible group
-          const groupId = getGroupId(parentGroup);
-
-          // Expand the active group
-          if (parentGroup.hasAttribute('data-collapsed')) {
-            expandGroup(parentGroup, groupId);
-          }
-
-          // Collapse all other groups for minimal view
-          tocGroups.forEach(group => {
-            if (group !== parentGroup) {
-              const otherGroupId = getGroupId(group);
-              if (!group.hasAttribute('data-collapsed')) {
-                collapseGroup(group, otherGroupId);
-              }
-            }
-          });
-        } else {
-          // Active link is a standalone item (not in a group)
-          // Collapse ALL groups to keep the minimal view
-          tocGroups.forEach(group => {
-            const groupId = getGroupId(group);
-            if (!group.hasAttribute('data-collapsed')) {
-              collapseGroup(group, groupId);
-            }
-          });
-        }
-
-        // Scroll into view if needed
-        if (tocScrollContainer) {
-          const linkRect = heading.link.getBoundingClientRect();
-          const containerRect = tocScrollContainer.getBoundingClientRect();
-
-          if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
-            heading.link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
       } else {
         heading.link.classList.remove('active');
       }
     });
+
+    // Handle group expand/collapse
+    if (activeParentGroup) {
+      // Active link is inside a collapsible group
+      const groupId = getGroupId(activeParentGroup);
+
+      // Expand the active group
+      if (activeParentGroup.hasAttribute('data-collapsed')) {
+        expandGroup(activeParentGroup, groupId);
+      }
+
+      // Collapse all other groups for minimal view
+      tocGroups.forEach(group => {
+        if (group !== activeParentGroup) {
+          const otherGroupId = getGroupId(group);
+          if (!group.hasAttribute('data-collapsed')) {
+            collapseGroup(group, otherGroupId);
+          }
+        }
+      });
+    } else {
+      // Active link is a standalone item (not in a group)
+      // Collapse ALL groups to keep the minimal view
+      tocGroups.forEach(group => {
+        const groupId = getGroupId(group);
+        if (!group.hasAttribute('data-collapsed')) {
+          collapseGroup(group, groupId);
+        }
+      });
+    }
+
+    // Scroll active link into view if needed (using cached containerRect)
+    if (tocScrollContainer && activeLink && containerRect) {
+      const linkRect = activeLink.getBoundingClientRect();
+      if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
+        activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   }
 
   /**

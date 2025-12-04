@@ -591,6 +591,21 @@
   }
 }
 
+/* Spinning animation for loading state */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.action-bar-share-item svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
 /* ============================================================================
    Responsive Design
    ============================================================================ */

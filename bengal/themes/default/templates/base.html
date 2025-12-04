@@ -120,6 +120,12 @@ See: plan/active/rfc-template-performance-optimization.md
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% endif %}
 
+    {# Preconnect to CDN origins for faster resource loading #}
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://d3js.org" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://d3js.org">
+
     {# Fonts - Preload critical fonts, load CSS non-blocking #}
     {% if site.config.get('fonts') %}
     {# Preload the most critical font weight for faster LCP #}
@@ -131,7 +137,7 @@ See: plan/active/rfc-template-performance-optimization.md
     </noscript>
     {% endif %}
 
-    {# Stylesheets #}
+    {# Stylesheets - main CSS (render-blocking, but cached) #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 
     {# Theme configuration defaults from bengal.toml #}
