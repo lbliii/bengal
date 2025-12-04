@@ -81,26 +81,63 @@ class MenuItem:
     active_trail: bool = False
 
     def __post_init__(self):
-        """Set identifier from name if not provided."""
+        """
+        Set identifier from name if not provided.
+
+        Automatically generates a slug-like identifier from the menu item name
+        by lowercasing and replacing spaces/underscores with hyphens. This ensures
+        every menu item has a unique identifier for parent-child relationships.
+
+        Examples:
+            MenuItem(name="Home Page") → identifier="home-page"
+            MenuItem(name="About_Us") → identifier="about-us"
+        """
         if self.identifier is None:
             # Convert name to slug-like identifier
             self.identifier = self.name.lower().replace(" ", "-").replace("_", "-")
 
     def add_child(self, child: MenuItem) -> None:
-        """Add a child menu item and sort by weight."""
+        """
+        Add a child menu item and sort children by weight.
+
+        Adds the child to the children list and immediately sorts all children
+        by weight (ascending). Lower weights appear first in the list.
+
+        Args:
+            child: MenuItem to add as a child
+
+        Examples:
+            item = MenuItem(name="Parent", url="/parent")
+            item.add_child(MenuItem(name="Child 1", url="/child1", weight=2))
+            item.add_child(MenuItem(name="Child 2", url="/child2", weight=1))
+            # Children are sorted: Child 2 (weight=1) appears before Child 1 (weight=2)
+        """
         self.children.append(child)
         self.children.sort(key=lambda x: x.weight)
 
     def mark_active(self, current_url: str) -> bool:
         """
-        Mark this item as active if URL matches.
-        Returns True if this or any child is active.
+        Mark this item as active if URL matches current page.
+
+        Recursively checks this item and all children for URL matches. Sets
+        `active` flag if this item matches, and `active_trail` flag if any
+        child matches. URLs are normalized (trailing slashes removed) before
+        comparison.
 
         Args:
-            current_url: Current page URL to match against
+            current_url: Current page URL to match against (will be normalized)
 
         Returns:
-            True if this item or any child is active
+            True if this item or any child is active, False otherwise
+
+        Examples:
+            item = MenuItem(name="Blog", url="/blog")
+            item.mark_active("/blog")  # Returns True, sets item.active = True
+            item.mark_active("/blog/post")  # Returns False (no match)
+
+            # With children
+            item.add_child(MenuItem(name="Post", url="/blog/post"))
+            item.mark_active("/blog/post")  # Returns True, sets item.active_trail = True
         """
         # Normalize URLs for comparison
         item_url = self.url.rstrip("/")
@@ -122,14 +159,43 @@ class MenuItem:
         return child_active or self.active
 
     def reset_active(self) -> None:
-        """Reset active states (called before each page render)."""
+        """
+        Reset active states for this item and all children.
+
+        Recursively clears `active` and `active_trail` flags. Called before
+        each page render to ensure fresh state for active item detection.
+
+        Examples:
+            item.reset_active()  # Clears active flags for item and all descendants
+        """
         self.active = False
         self.active_trail = False
         for child in self.children:
             child.reset_active()
 
     def to_dict(self) -> dict:
-        """Convert to dict for template access."""
+        """
+        Convert menu item to dictionary for template access.
+
+        Creates a dictionary representation suitable for JSON serialization
+        and template rendering. Recursively converts children to dictionaries.
+
+        Returns:
+            Dictionary with name, url, active, active_trail, and children fields.
+            Children are recursively converted to dictionaries.
+
+        Examples:
+            item = MenuItem(name="Home", url="/")
+            item.add_child(MenuItem(name="About", url="/about"))
+            data = item.to_dict()
+            # Returns: {
+            #     "name": "Home",
+            #     "url": "/",
+            #     "active": False,
+            #     "active_trail": False,
+            #     "children": [{"name": "About", "url": "/about", ...}]
+            # }
+        """
         return {
             "name": self.name,
             "url": self.url,
@@ -189,13 +255,23 @@ class MenuBuilder:
         """
         Check if an item is a duplicate based on identifier, URL, or name.
 
+        Checks against previously seen identifiers, URLs, and names to prevent
+        duplicate menu items. An item is considered duplicate if any of these
+        match a previously added item.
+
         Args:
-            item_id: Item identifier (if any)
-            item_url: Item URL (normalized)
-            item_name: Item name (lowercased)
+            item_id: Item identifier (if any). None is valid (not checked).
+            item_url: Item URL (normalized, trailing slash removed).
+            item_name: Item name (lowercased for case-insensitive comparison).
 
         Returns:
-            True if duplicate found
+            True if duplicate found (identifier, URL, or name matches),
+            False otherwise
+
+        Examples:
+            builder._is_duplicate("home", "/", "Home")  # False (first item)
+            builder._is_duplicate("home", "/", "Home")  # True (duplicate identifier)
+            builder._is_duplicate(None, "/", "Home")    # True (duplicate URL)
         """
         if item_id and item_id in self._seen_identifiers:
             return True
@@ -204,7 +280,19 @@ class MenuBuilder:
         return bool(item_name and item_name in self._seen_names)
 
     def _track_item(self, item: MenuItem) -> None:
-        """Track an item to prevent future duplicates."""
+        """
+        Track an item to prevent future duplicates.
+
+        Adds the item's identifier, URL, and name to the seen sets for duplicate
+        detection. Called automatically when items are added via add_from_config(),
+        add_from_page(), or add_from_auto_nav().
+
+        Args:
+            item: MenuItem to track
+
+        See Also:
+            _is_duplicate(): Uses tracked identifiers/URLs/names for duplicate detection
+        """
         if item.identifier:
             self._seen_identifiers.add(item.identifier)
         if item.url:
@@ -214,10 +302,23 @@ class MenuBuilder:
 
     def add_from_config(self, menu_config: list[dict]) -> None:
         """
-        Add menu items from config.
+        Add menu items from configuration file.
+
+        Parses menu configuration from bengal.toml or config files and creates
+        MenuItem objects. Skips duplicates automatically and logs debug messages
+        for skipped items.
 
         Args:
-            menu_config: List of menu item dicts from config file
+            menu_config: List of menu item dictionaries from config file.
+                        Each dict should have: name, url, weight (optional),
+                        parent (optional), identifier (optional)
+
+        Examples:
+            menu_config = [
+                {"name": "Home", "url": "/", "weight": 1},
+                {"name": "About", "url": "/about", "weight": 2, "parent": "home"}
+            ]
+            builder.add_from_config(menu_config)
         """
         for item_config in menu_config:
             item_id = item_config.get("identifier")
@@ -249,12 +350,28 @@ class MenuBuilder:
 
     def add_from_page(self, page: Any, menu_name: str, menu_config: dict) -> None:
         """
-        Add a page to menu based on frontmatter.
+        Add a page to menu based on frontmatter metadata.
+
+        Creates a MenuItem from page frontmatter menu configuration. Uses page's
+        relative_url for menu item URL (baseurl applied in templates). Skips
+        duplicates automatically.
 
         Args:
-            page: Page object
-            menu_name: Name of the menu (e.g., 'main', 'footer')
-            menu_config: Menu configuration from page frontmatter
+            page: Page object with frontmatter menu configuration
+            menu_name: Name of the menu (e.g., 'main', 'footer').
+                      Currently used for logging, all menus share same builder
+            menu_config: Menu configuration dictionary from page frontmatter.
+                        Should have: name (optional, defaults to page.title),
+                        url (optional, defaults to page.relative_url),
+                        weight (optional), parent (optional), identifier (optional)
+
+        Examples:
+            # Page frontmatter:
+            # menu:
+            #   main:
+            #     name: "My Page"
+            #     weight: 5
+            builder.add_from_page(page, "main", page.metadata.get("menu", {}).get("main", {}))
         """
         item_id = menu_config.get("identifier")
         # Use relative_url for menu items (for comparison/activation)
@@ -281,13 +398,28 @@ class MenuBuilder:
         """
         Add auto-discovered sections to menu, including nested sections.
 
-        This integrates auto-nav discovery directly into MenuBuilder,
-        ensuring deduplication happens at the builder level. Recursively
-        includes all sections in the hierarchy, not just top-level ones.
+        Automatically creates menu items from section hierarchy. Recursively
+        includes all sections (not just top-level), respects section visibility
+        settings (hidden, menu: false), and uses section metadata for title/weight.
+
+        Process:
+            1. Find all top-level sections (no parent)
+            2. Recursively add sections and subsections
+            3. Skip hidden sections (hidden: true or menu: false)
+            4. Use section index page metadata for title/weight
+            5. Build parent-child relationships from section hierarchy
 
         Args:
-            site: Site instance with sections
-            exclude_sections: Set of section names to exclude (e.g., {'api', 'cli'})
+            site: Site instance with sections populated
+            exclude_sections: Set of section names to exclude from menu
+                             (e.g., {'api', 'cli'}). None means include all sections.
+
+        Examples:
+            # Add all sections to menu
+            builder.add_from_auto_nav(site)
+
+            # Exclude API and CLI sections
+            builder.add_from_auto_nav(site, exclude_sections={'api', 'cli'})
         """
         if exclude_sections is None:
             exclude_sections = set()
@@ -381,13 +513,30 @@ class MenuBuilder:
     def build_hierarchy(self) -> list[MenuItem]:
         """
         Build hierarchical tree from flat list with validation.
-        Returns list of root items (no parent).
+
+        Converts flat list of MenuItem objects into hierarchical tree structure
+        based on parent-child relationships. Validates parent references and
+        detects circular dependencies.
+
+        Process:
+            1. Create lookup map by identifier
+            2. Validate parent references (warn about orphaned items)
+            3. Build parent-child relationships
+            4. Detect cycles (raises ValueError if found)
+            5. Return root items (items with no parent)
 
         Returns:
-            List of root MenuItem objects with children populated
+            List of root MenuItem objects (no parent) with children populated.
+            Empty list if no items or all items have parents.
 
         Raises:
-            ValueError: If circular references detected
+            ValueError: If circular references detected in parent-child relationships
+
+        Examples:
+            builder.add_from_config([{"name": "Home", "url": "/"}])
+            builder.add_from_config([{"name": "About", "url": "/about", "parent": "home"}])
+            root_items = builder.build_hierarchy()
+            # Returns: [MenuItem(name="Home", children=[MenuItem(name="About")])]
         """
         logger.debug(
             "building_menu_hierarchy",
@@ -447,15 +596,29 @@ class MenuBuilder:
 
     def _has_cycle(self, item: MenuItem, visited: set, path: set) -> bool:
         """
-        Detect circular references in menu tree.
+        Detect circular references in menu tree using DFS.
+
+        Uses depth-first search to detect cycles in parent-child relationships.
+        A cycle exists if an item appears in its own descendant chain.
 
         Args:
-            item: Current menu item
-            visited: Set of all visited identifiers
-            path: Current path identifiers (for cycle detection)
+            item: Current menu item being checked
+            visited: Set of all visited identifiers (for optimization)
+            path: Current path identifiers from root to current item (for cycle detection)
 
         Returns:
-            True if cycle detected
+            True if cycle detected (item appears in its own descendant chain),
+            False otherwise
+
+        Algorithm:
+            - If item.identifier in path: cycle detected
+            - Add item to path and visited
+            - Recursively check all children
+            - Return True if any child has cycle
+
+        Examples:
+            # Cycle: A → B → C → A
+            _has_cycle(item_a, set(), set())  # Returns True
         """
         if item.identifier in path:
             return True
@@ -469,11 +632,27 @@ class MenuBuilder:
         """
         Get maximum depth of menu tree from this item.
 
+        Recursively calculates the maximum depth of the menu tree starting from
+        the given item. Used for logging and validation.
+
         Args:
-            item: Root menu item
+            item: Root menu item to calculate depth from
 
         Returns:
-            Maximum depth (1 = no children, 2 = children but no grandchildren, etc.)
+            Maximum depth as integer:
+            - 1: Item has no children
+            - 2: Item has children but no grandchildren
+            - N: Maximum depth of deepest descendant
+
+        Examples:
+            item = MenuItem(name="Root")
+            _get_depth(item)  # Returns 1 (no children)
+
+            item.add_child(MenuItem(name="Child"))
+            _get_depth(item)  # Returns 2 (has children)
+
+            item.children[0].add_child(MenuItem(name="Grandchild"))
+            _get_depth(item)  # Returns 3 (has grandchildren)
         """
         if not item.children:
             return 1
@@ -481,11 +660,27 @@ class MenuBuilder:
 
     def mark_active_items(self, current_url: str, menu_items: list[MenuItem]) -> None:
         """
-        Mark active items in menu tree.
+        Mark active items in menu tree based on current page URL.
+
+        Recursively marks menu items as active if their URL matches the current
+        page URL. Also marks items in the active trail (items with active children).
+        Resets all active states before marking to ensure clean state.
 
         Args:
-            current_url: Current page URL
-            menu_items: List of menu items to process
+            current_url: Current page URL to match against (will be normalized)
+            menu_items: List of root MenuItem objects to process (hierarchical tree)
+
+        Process:
+            1. Reset all active states (active, active_trail) for all items
+            2. Recursively call mark_active() on each root item
+            3. Items with matching URLs are marked active
+            4. Items with active children are marked active_trail
+
+        Examples:
+            menu_items = builder.build_hierarchy()
+            builder.mark_active_items("/blog/post", menu_items)
+            # Items with URL="/blog/post" are marked active
+            # Items with URL="/blog" are marked active_trail (have active child)
         """
         logger.debug(
             "marking_active_menu_items", current_url=current_url, menu_item_count=len(menu_items)

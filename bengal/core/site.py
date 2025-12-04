@@ -166,17 +166,44 @@ class Site:
 
     @property
     def title(self) -> str | None:
-        """Get site title from config."""
+        """
+        Get site title from configuration.
+
+        Returns:
+            Site title string from config, or None if not configured
+
+        Examples:
+            site.title  # Returns "My Blog" or None
+        """
         return self.config.get("title")
 
     @property
     def baseurl(self) -> str | None:
-        """Get site baseurl from config."""
+        """
+        Get site baseurl from configuration.
+
+        Baseurl is prepended to all page URLs. Can be empty, path-only (e.g., "/blog"),
+        or absolute (e.g., "https://example.com").
+
+        Returns:
+            Base URL string from config, or None if not configured
+
+        Examples:
+            site.baseurl  # Returns "/blog" or "https://example.com" or None
+        """
         return self.config.get("baseurl")
 
     @property
     def author(self) -> str | None:
-        """Get site author from config."""
+        """
+        Get site author from configuration.
+
+        Returns:
+            Author name string from config, or None if not configured
+
+        Examples:
+            site.author  # Returns "Jane Doe" or None
+        """
         return self.config.get("author")
 
     @property
@@ -201,7 +228,15 @@ class Site:
         """
         Compute and cache the configuration hash.
 
+        Calculates SHA-256 hash of resolved configuration (including env overrides
+        and build profiles) and stores it in `_config_hash`. Used for automatic
+        cache invalidation when configuration changes.
+
         Called during __post_init__ to ensure hash is available immediately.
+        Subsequent calls use cached value unless config changes.
+
+        See Also:
+            bengal.config.hash.compute_config_hash: Hash computation implementation
         """
         from bengal.config.hash import compute_config_hash
 
@@ -368,7 +403,11 @@ class Site:
         Invalidate the regular_pages cache.
 
         Call this after modifying the pages list or page metadata that affects
-        the _generated flag.
+        the _generated flag. More specific than invalidate_page_caches() if you
+        only need to invalidate regular_pages.
+
+        See Also:
+            invalidate_page_caches(): Invalidate all page caches at once
         """
         self._regular_pages_cache = None
 
@@ -561,8 +600,23 @@ class Site:
         """
         Discover all assets in the assets directory and theme assets.
 
+        Scans both theme assets (from theme inheritance chain) and site assets
+        (from assets/ directory). Theme assets are discovered first (lower priority),
+        then site assets (higher priority, can override theme assets). Assets are
+        deduplicated by output path with site assets taking precedence.
+
         Args:
-            assets_dir: Assets directory path (defaults to root_path/assets)
+            assets_dir: Assets directory path (defaults to root_path/assets).
+                       If None, uses site root_path / "assets"
+
+        Process:
+            1. Discover theme assets from inheritance chain (child → parent → default)
+            2. Discover site assets from assets_dir
+            3. Deduplicate by output path (site assets override theme assets)
+
+        Examples:
+            site.discover_assets()  # Discovers from root_path/assets
+            site.discover_assets(Path('/custom/assets'))  # Custom assets directory
         """
         from bengal.discovery.asset_discovery import AssetDiscovery
 
@@ -605,8 +659,20 @@ class Site:
         """
         Set up page references for navigation (next, prev, parent, etc.).
 
-        This method sets _site and _section references on all pages to enable
-        navigation properties (next, prev, ancestors, etc.).
+        Sets _site and _section references on all pages to enable navigation
+        properties. Must be called after content discovery and section registry
+        building, but before cascade application.
+
+        Process:
+            1. Set _site reference on all pages
+            2. Set _site reference on all sections
+            3. Set _section reference on pages based on their location
+
+        Called By:
+            discover_content() - Automatically called after content discovery
+
+        See Also:
+            _setup_section_references(): Sets up section parent-child relationships
         """
         # Set site reference on all pages
         for page in self.pages:
@@ -628,8 +694,17 @@ class Site:
         """
         Recursively set up references for a section and its subsections.
 
+        Sets _site reference on subsections and _section reference on pages
+        within subsections. Recursively processes all nested subsections.
+
         Args:
-            section: Section to set up references for
+            section: Section to set up references for (processes its subsections)
+
+        Called By:
+            _setup_page_references() - Called for each top-level section
+
+        See Also:
+            _setup_page_references(): Main entry point for reference setup
         """
         for subsection in section.subsections:
             subsection._site = self
@@ -673,8 +748,16 @@ class Site:
         """
         Get the assets directory for the current theme.
 
+        Searches for theme assets in order:
+        1. Site's themes directory (site/themes/{theme}/assets)
+        2. Bengal's bundled themes (bengal/themes/{theme}/assets)
+
         Returns:
-            Path to theme assets or None if not found
+            Path to theme assets directory, or None if theme not found or
+            assets directory doesn't exist
+
+        See Also:
+            _get_theme_assets_chain(): Gets complete inheritance chain of asset directories
         """
         if not self.theme:
             return None
@@ -696,8 +779,25 @@ class Site:
 
     def _get_theme_assets_chain(self) -> list[Path]:
         """
-        Return list of theme asset dirs from parents to child (low → high priority).
-        Site assets will still override these.
+        Return list of theme asset directories from inheritance chain.
+
+        Returns asset directories in order from parent themes to child theme
+        (low → high priority). Site assets override all theme assets.
+
+        Returns:
+            List of Path objects for theme asset directories, ordered from
+            parent (low priority) to child (high priority). Empty list if
+            no theme assets found.
+
+        Priority Order (lowest to highest):
+            1. Default theme assets (if extended)
+            2. Parent theme assets (if extended)
+            3. Child theme assets
+            4. Site assets (highest priority, handled separately)
+
+        See Also:
+            bengal.utils.theme_resolution: Theme inheritance chain resolution
+            discover_assets(): Uses this for theme asset discovery
         """
         dirs: list[Path] = []
         try:
