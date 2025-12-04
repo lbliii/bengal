@@ -29,8 +29,9 @@ Features:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {# Supports variants: editorial (default), magazine, classic #}
+    {# Page Hero: Breadcrumbs + Title + Description + Section Stats #}
+    {# List pages default to 'overview' variant (shows page count instead of read time) #}
+    {% set _list_hero_default = 'overview' %}
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}

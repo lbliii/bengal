@@ -622,3 +622,102 @@
   }
 }
 
+/* ============================================================================
+   OVERVIEW VARIANT
+   For section index pages - shows page count instead of read time.
+   Inherits editorial styling, just different metadata.
+   ============================================================================ */
+
+.page-hero--overview {
+  margin-bottom: var(--space-10);
+  max-width: var(--prose-width);
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* No pseudo-elements (no blobs) */
+.page-hero--overview::before,
+.page-hero--overview::after {
+  display: none;
+}
+
+/* Title */
+.page-hero--overview .page-hero__title {
+  font-size: var(--type-h1);
+  font-weight: var(--weight-extrabold);
+  line-height: 1.15;
+  letter-spacing: var(--letter-spacing-tighter);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+/* Description */
+.page-hero--overview .page-hero__description {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-light);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--space-3) 0;
+}
+
+/* Section stats metadata - slightly different styling */
+.page-hero--overview .page-hero__meta--section {
+  margin-top: var(--space-4);
+}
+
+.page-hero--overview .page-hero__meta-item--section {
+  font-size: 0.75rem;
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+}
+
+.page-hero--overview .page-hero__meta-item--section svg {
+  opacity: 0.6;
+}
+
+/* Share button - transparent style */
+.page-hero--overview .page-hero__share-trigger {
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.page-hero--overview .page-hero__share-trigger:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ----------------------------------------------------------------------------
+   Overview Responsive
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .page-hero--overview .page-hero__title {
+    font-size: var(--text-3xl);
+  }
+
+  .page-hero--overview .page-hero__description {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 639px) {
+  .page-hero--overview .page-hero__title {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-1);
+  }
+
+  .page-hero--overview .page-hero__description {
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2);
+  }
+}
+
+@media (max-width: 399px) {
+  .page-hero--overview .page-hero__title {
+    font-size: var(--text-xl);
+  }
+}
+
