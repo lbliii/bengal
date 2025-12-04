@@ -4,9 +4,9 @@ Page Hero - Dispatcher
 Routes to the appropriate page hero variant based on configuration.
 
 Variants:
-- classic: Traditional separate action-bar + page-header (default)
+- editorial: Clean magazine layout without container styling (default)
 - magazine: Editorial-style consolidated header with container/background
-- editorial: Clean magazine layout without container styling
+- classic: Traditional separate action-bar + page-header
 
 Configuration:
 - Site-wide: theme.hero_style in bengal.toml
@@ -16,18 +16,18 @@ Usage:
 {% include 'partials/page-hero.html' %}
 #}
 
-{# Determine hero style: page frontmatter > theme config > default (classic) #}
-{# Page frontmatter takes priority, then theme config, then default to classic #}
+{# Determine hero style: page frontmatter > theme config > default (editorial) #}
+{# Page frontmatter takes priority, then theme config, then default to editorial #}
 {% set _page_hero_style = page.metadata.get('hero_style') if (page.metadata is defined and page.metadata) else none %}
-{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and site.theme_config.hero_style is defined) else 'classic' %}
+{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and site.theme_config.hero_style is defined) else 'editorial' %}
 {% set hero_style = _page_hero_style if _page_hero_style else _theme_hero_style %}
 
 {% if hero_style == 'magazine' %}
   {% include 'partials/page-hero-magazine.html' %}
-{% elif hero_style == 'editorial' %}
-  {% include 'partials/page-hero-editorial.html' %}
-{% else %}
-  {# Default to classic #}
+{% elif hero_style == 'classic' %}
   {% include 'partials/page-hero-classic.html' %}
+{% else %}
+  {# Default to editorial #}
+  {% include 'partials/page-hero-editorial.html' %}
 {% endif %}
 
