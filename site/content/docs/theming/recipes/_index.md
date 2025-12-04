@@ -28,7 +28,6 @@ Work with pages, sections, and taxonomies.
 | [List Recent Posts](./list-recent-posts/) | `where`, `sort_by`, `limit` filters |
 | [Group by Category](./group-by-category/) | `group_by` filter, nested loops |
 | [Filter by Multiple Tags](./filter-by-tags/) | Chaining filters, `in` operator |
-| [Related Content](./related-content/) | Taxonomy queries, `intersect` |
 
 ## Page Features
 
@@ -38,17 +37,6 @@ Add features to individual pages.
 |---------|-------------------|
 | [Add Table of Contents](./table-of-contents/) | `page.toc`, scroll highlighting |
 | [Show Reading Time](./reading-time/) | `reading_time` filter |
-| [Previous/Next Navigation](./prev-next-nav/) | Page ordering, section navigation |
-
-## Site-Wide Features
-
-Features that span the entire site.
-
-| Example | What You'll Learn |
-|---------|-------------------|
-| [Build a Tag Cloud](./tag-cloud/) | Taxonomy access, counting |
-| [Create a Sitemap Page](./sitemap-page/) | Recursive section iteration |
-| [Archive by Year](./archive-by-year/) | Date grouping, `group_by` with dates |
 
 ---
 
@@ -67,9 +55,9 @@ Features that span the entire site.
 {% set latest = recent | limit(5) %}
 
 {# Or chain it all #}
-{% set latest = site.pages 
-  | where('section', 'blog') 
-  | sort_by('date', reverse=true) 
+{% set latest = site.pages
+  | where('section', 'blog')
+  | sort_by('date', reverse=true)
   | limit(5) %}
 ```
 

@@ -379,6 +379,11 @@ class MistuneParser(BaseMarkdownParser):
         current_page = context.get("page") if "page" in context else None
         self._shared_renderer._current_page = current_page
 
+        # Store site on renderer for directive access
+        # This enables directives (glossary, data_table, etc.) to access site.data and site.root_path
+        site = context.get("site")
+        self._shared_renderer._site = site
+
         # Also store content-relative path for backward compatibility
         if current_page and hasattr(current_page, "source_path"):
             page_source = current_page.source_path

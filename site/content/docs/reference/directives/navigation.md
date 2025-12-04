@@ -203,7 +203,7 @@ List pages that share tags with the current page.
 ```html
 <ul class="related">
   <li><a href="/docs/tutorials/theming/">Theming Tutorial</a></li>
-  <li><a href="/docs/guides/custom-css/">Custom CSS Guide</a></li>
+  <li><a href="/docs/theming/assets/">Custom CSS Guide</a></li>
 </ul>
 ```
 

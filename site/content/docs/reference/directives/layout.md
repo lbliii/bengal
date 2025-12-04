@@ -110,7 +110,7 @@ Footer content
 
 :::{card} Getting Started
 :icon: rocket
-:link: /docs/getting-started/
+:link: /docs/get-started/
 
 Learn the basics
 :::
@@ -122,11 +122,11 @@ Learn the basics
 Complete API docs
 :::
 
-:::{card} Guides
+:::{card} Tutorials
 :icon: book
-:link: /docs/guides/
+:link: /docs/tutorials/
 
-Step-by-step guides
+Step-by-step tutorials
 :::
 ::::
 ```

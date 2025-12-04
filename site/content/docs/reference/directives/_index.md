@@ -252,7 +252,7 @@ terms:
   - term: Directive
     definition: Extended markdown syntax using `{name}` that creates rich components.
     tags: [directives, core]
-  
+
   - term: Admonition
     definition: A styled callout box for **important** information.
     tags: [directives, admonitions]
@@ -263,5 +263,5 @@ terms:
 ## Next Steps
 
 - Browse directive categories above for detailed syntax
-- See [Content Reuse Guide](/docs/guides/content-reuse/) for include/literalinclude strategies
-- Check [Writer Quickstart](/docs/getting-started/writer-quickstart/) for markdown basics
+- See [Content Reuse](/docs/content/reuse/) for include/literalinclude strategies
+- Check [Writer Quickstart](/docs/get-started/quickstart-writer/) for markdown basics

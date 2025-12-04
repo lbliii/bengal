@@ -91,4 +91,4 @@ reading_time: 25  # Override calculated time
 ## See Also
 
 - [Template Functions](/docs/theming/templating/functions/) — All filters
-- [List Recent Posts](./list-recent-posts/) — Include reading time in post lists
+- [List Recent Posts](/docs/theming/recipes/list-recent-posts/) — Include reading time in post lists

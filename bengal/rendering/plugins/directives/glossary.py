@@ -16,8 +16,8 @@ Syntax:
     :limit: 3
     :::
 
-The directive loads terms from data/glossary.yaml and renders matching
-terms as a styled definition list.
+The directive loads terms from data/glossary.yaml (via site.data.glossary) and
+renders matching terms as a styled definition list.
 
 Options:
     - tags: Comma-separated list of tags to filter terms (required)
@@ -26,6 +26,11 @@ Options:
     - collapsed: Wrap glossary in collapsible <details> element (default: false)
     - limit: Show only first N terms, with "Show all" to expand (default: all)
     - source: Custom glossary file path (default: data/glossary.yaml)
+
+Architecture:
+    Data loading is deferred to the render phase where we have access to
+    renderer._site.data (pre-loaded by Site.__post_init__). This follows
+    the Hugo pattern where data files are accessible via site.data.*.
 """
 
 from __future__ import annotations
@@ -68,6 +73,10 @@ class GlossaryDirective(DirectivePlugin):
         - collapsed: Wrap in collapsible <details> element (default: false)
         - limit: Show only first N terms with "Show all" expansion (default: all)
         - source: Custom glossary file path (default: data/glossary.yaml)
+
+    Architecture:
+        Parse phase records options only. Data loading is deferred to render
+        phase where renderer._site provides access to site.data and site.root_path.
     """
 
     # Directive names this class registers (for health check introspection)
@@ -75,7 +84,10 @@ class GlossaryDirective(DirectivePlugin):
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
-        Parse glossary directive.
+        Parse glossary directive options.
+
+        Note: Data loading is deferred to render phase where we have access
+        to site.data via renderer._site.
 
         Args:
             block: Block parser
@@ -83,7 +95,7 @@ class GlossaryDirective(DirectivePlugin):
             state: Parser state
 
         Returns:
-            Token dict with type 'glossary'
+            Token dict with type 'glossary' containing options for render phase
         """
         # Parse options
         try:
@@ -116,119 +128,18 @@ class GlossaryDirective(DirectivePlugin):
         limit = self._parse_int(options.get("limit", "0"))  # 0 = show all
         source_path = options.get("source", DEFAULT_GLOSSARY_PATH)
 
-        # Load glossary data
-        glossary_result = self._load_glossary(source_path, state)
-
-        if "error" in glossary_result:
-            logger.error(
-                "glossary_load_error",
-                path=source_path,
-                error=glossary_result["error"],
-            )
-            return {
-                "type": "glossary",
-                "attrs": {"error": glossary_result["error"], "path": source_path},
-                "children": [],
-            }
-
-        # Filter terms by tags
-        all_terms = glossary_result.get("terms", [])
-        filtered_terms = self._filter_terms(all_terms, tags)
-
-        if not filtered_terms:
-            return {
-                "type": "glossary",
-                "attrs": {
-                    "error": f"No terms found matching tags: {', '.join(tags)}",
-                    "path": source_path,
-                },
-                "children": [],
-            }
-
-        # Sort if requested
-        if sorted_terms:
-            filtered_terms = sorted(filtered_terms, key=lambda t: t.get("term", "").lower())
-
-        # Build attributes for renderer
+        # Build attributes for renderer - data loading deferred to render phase
         attrs = {
-            "terms": filtered_terms,
             "tags": tags,
             "sorted": sorted_terms,
             "show_tags": show_tags,
             "collapsed": collapsed,
             "limit": limit,
             "source": source_path,
+            "_deferred": True,  # Signal that data loading is deferred
         }
 
         return {"type": "glossary", "attrs": attrs, "children": []}
-
-    def _load_glossary(self, path: str, state: Any) -> dict[str, Any]:
-        """
-        Load glossary from YAML file.
-
-        Args:
-            path: Relative path to glossary file
-            state: Parser state (contains site context)
-
-        Returns:
-            Dict with 'terms' key, or 'error' key on failure
-        """
-        # Try to get root_path from state (set by rendering pipeline)
-        root_path = getattr(state, "root_path", None) or Path.cwd()
-        file_path = Path(root_path) / path
-
-        # Check if file exists
-        if not file_path.exists():
-            return {"error": f"Glossary file not found: {path}"}
-
-        try:
-            data = load_data_file(file_path, on_error="raise", caller="glossary")
-
-            if not isinstance(data, dict):
-                return {"error": "Glossary file must contain a dictionary"}
-
-            if "terms" not in data:
-                return {"error": "Glossary file must contain 'terms' list"}
-
-            terms = data["terms"]
-            if not isinstance(terms, list):
-                return {"error": "'terms' must be a list"}
-
-            return {"terms": terms}
-
-        except Exception as e:
-            logger.error("glossary_parse_error", path=str(file_path), error=str(e))
-            return {"error": f"Failed to parse glossary: {e}"}
-
-    def _filter_terms(self, terms: list[dict], tags: list[str]) -> list[dict]:
-        """
-        Filter terms by tags.
-
-        A term matches if it has ANY of the requested tags (OR logic).
-
-        Args:
-            terms: List of term dicts from glossary
-            tags: List of tags to match
-
-        Returns:
-            List of matching terms
-        """
-        filtered = []
-        tags_set = set(tags)
-
-        for term in terms:
-            term_tags = term.get("tags", [])
-            if not isinstance(term_tags, list):
-                term_tags = [term_tags]
-
-            # Convert to lowercase for comparison
-            term_tags_lower = {t.lower() for t in term_tags if isinstance(t, str)}
-
-            # Match if any tag overlaps
-            if term_tags_lower & tags_set:
-                filtered.append(term)
-
-        return filtered
 
     def _parse_bool(self, value: str | bool) -> bool:
         """Parse boolean option value."""
@@ -257,19 +168,20 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render glossary to HTML as a definition list.
 
-    Supports inline markdown in definitions (backticks for code, bold, italic).
-    Can be collapsed and/or limited to first N terms.
+    Data loading happens here (deferred from parse phase) using:
+    1. renderer._site.data.glossary (pre-loaded by Site, Hugo pattern)
+    2. Fallback: file loading using renderer._site.root_path
 
     Args:
-        renderer: Mistune renderer
+        renderer: Mistune renderer (has _site attribute with site.data and root_path)
         text: Rendered children content (unused for glossary)
-        **attrs: Glossary attributes from directive
+        **attrs: Glossary attributes from directive (tags, sorted, etc.)
 
     Returns:
         HTML string for glossary definition list
     """
-    # Check for error
-    if "error" in attrs:
+    # Check for error from parse phase
+    if "error" in attrs and not attrs.get("_deferred"):
         error_msg = attrs["error"]
         path = attrs.get("path", "unknown")
         return f"""<div class="bengal-glossary-error" role="alert">
@@ -277,7 +189,43 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     <br><small>Source: {path}</small>
 </div>"""
 
-    terms = attrs["terms"]
+    # Load data if deferred (normal case now)
+    if attrs.get("_deferred"):
+        source_path = attrs.get("source", DEFAULT_GLOSSARY_PATH)
+        tags = attrs.get("tags", [])
+        sorted_terms = attrs.get("sorted", False)
+
+        # Load glossary data
+        glossary_result = _load_glossary_data(renderer, source_path)
+
+        if "error" in glossary_result:
+            logger.warning(
+                "glossary_load_error",
+                path=source_path,
+                error=glossary_result["error"],
+            )
+            return f"""<div class="bengal-glossary-error" role="alert">
+    <strong>Glossary Error:</strong> {glossary_result["error"]}
+    <br><small>Source: {source_path}</small>
+</div>"""
+
+        # Filter terms by tags
+        all_terms = glossary_result.get("terms", [])
+        terms = _filter_terms(all_terms, tags)
+
+        if not terms:
+            return f"""<div class="bengal-glossary-error" role="alert">
+    <strong>Glossary Error:</strong> No terms found matching tags: {", ".join(tags)}
+    <br><small>Source: {source_path}</small>
+</div>"""
+
+        # Sort if requested
+        if sorted_terms:
+            terms = sorted(terms, key=lambda t: t.get("term", "").lower())
+    else:
+        # Legacy: terms already loaded in parse phase
+        terms = attrs.get("terms", [])
+
     show_tags = attrs.get("show_tags", False)
     collapsed = attrs.get("collapsed", False)
     limit = attrs.get("limit", 0)
@@ -299,7 +247,7 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     if hidden_terms:
         html_parts.append(
             f'<details class="bengal-glossary-more">'
-            f'<summary>Show {len(hidden_terms)} more term{"s" if len(hidden_terms) > 1 else ""}</summary>'
+            f"<summary>Show {len(hidden_terms)} more term{'s' if len(hidden_terms) > 1 else ''}</summary>"
         )
         html_parts.append('<dl class="bengal-glossary bengal-glossary-expanded">')
         for term_data in hidden_terms:
@@ -322,6 +270,120 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     return content
 
 
+def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
+    """
+    Load glossary data from site.data or file.
+
+    Tries these sources in order:
+    1. site.data.glossary (if source is default data/glossary.yaml)
+    2. File loading using site.root_path
+
+    Args:
+        renderer: Mistune renderer with _site attribute
+        source_path: Path to glossary file (default: data/glossary.yaml)
+
+    Returns:
+        Dict with 'terms' key, or 'error' key on failure
+    """
+    site = getattr(renderer, "_site", None)
+
+    # Try site.data first (Hugo pattern - data files pre-loaded)
+    if site and hasattr(site, "data") and site.data:
+        # Convert path like "data/glossary.yaml" to data key "glossary"
+        if source_path == DEFAULT_GLOSSARY_PATH:
+            # Default path: look for site.data.glossary
+            glossary_data = getattr(site.data, "glossary", None)
+            if glossary_data and isinstance(glossary_data, dict):
+                terms = glossary_data.get("terms", [])
+                if isinstance(terms, list):
+                    return {"terms": terms}
+        else:
+            # Custom path: try to resolve from site.data hierarchy
+            # e.g., "data/team/glossary.yaml" -> site.data.team.glossary
+            parts = source_path.replace("\\", "/").split("/")
+            if parts and parts[0] == "data":
+                parts = parts[1:]  # Remove "data" prefix
+            if parts:
+                # Remove .yaml/.yml extension from last part
+                last = parts[-1]
+                if last.endswith(".yaml") or last.endswith(".yml"):
+                    parts[-1] = last.rsplit(".", 1)[0]
+
+                # Navigate site.data hierarchy
+                current = site.data
+                for part in parts:
+                    if hasattr(current, part):
+                        current = getattr(current, part)
+                    elif isinstance(current, dict) and part in current:
+                        current = current[part]
+                    else:
+                        current = None
+                        break
+
+                if current and isinstance(current, dict):
+                    terms = current.get("terms", [])
+                    if isinstance(terms, list):
+                        return {"terms": terms}
+
+    # Fallback: Load from file using site.root_path
+    root_path = site.root_path if site and hasattr(site, "root_path") else Path.cwd()
+
+    file_path = Path(root_path) / source_path
+
+    if not file_path.exists():
+        return {"error": f"Glossary file not found: {source_path}"}
+
+    try:
+        data = load_data_file(file_path, on_error="raise", caller="glossary")
+
+        if not isinstance(data, dict):
+            return {"error": "Glossary file must contain a dictionary"}
+
+        if "terms" not in data:
+            return {"error": "Glossary file must contain 'terms' list"}
+
+        terms = data["terms"]
+        if not isinstance(terms, list):
+            return {"error": "'terms' must be a list"}
+
+        return {"terms": terms}
+
+    except Exception as e:
+        logger.error("glossary_parse_error", path=str(file_path), error=str(e))
+        return {"error": f"Failed to parse glossary: {e}"}
+
+
+def _filter_terms(terms: list[dict], tags: list[str]) -> list[dict]:
+    """
+    Filter terms by tags.
+
+    A term matches if it has ANY of the requested tags (OR logic).
+
+    Args:
+        terms: List of term dicts from glossary
+        tags: List of tags to match
+
+    Returns:
+        List of matching terms
+    """
+    filtered = []
+    tags_set = set(tags)
+
+    for term in terms:
+        term_tags = term.get("tags", [])
+        if not isinstance(term_tags, list):
+            term_tags = [term_tags]
+
+        # Convert to lowercase for comparison
+        term_tags_lower = {t.lower() for t in term_tags if isinstance(t, str)}
+
+        # Match if any tag overlaps
+        if term_tags_lower & tags_set:
+            filtered.append(term)
+
+    return filtered
+
+
 def _render_term(renderer: Any, term_data: dict, show_tags: bool) -> str:
     """Render a single glossary term as dt/dd pair."""
     term = term_data.get("term", "Unknown Term")
@@ -339,8 +401,7 @@ def _render_term(renderer: Any, term_data: dict, show_tags: bool) -> str:
     # Optionally show tags
     if show_tags and term_tags:
         tag_badges = " ".join(
-            f'<span class="bengal-glossary-tag">{_escape_html(t)}</span>'
-            for t in term_tags
+            f'<span class="bengal-glossary-tag">{_escape_html(t)}</span>' for t in term_tags
         )
         dd_content += f'<div class="bengal-glossary-tags">{tag_badges}</div>'
 
@@ -400,4 +461,3 @@ def _escape_html(text: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
-

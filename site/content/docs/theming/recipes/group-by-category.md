@@ -16,7 +16,7 @@ Display content organized by category, tag, or any frontmatter field.
 ## The Pattern
 
 ```jinja2
-{% set by_category = site.pages 
+{% set by_category = site.pages
   | where('section', 'docs')
   | group_by('category') %}
 
@@ -80,7 +80,7 @@ Display content organized by category, tag, or any frontmatter field.
 
 {% for category, cat_pages in by_category.items() %}
   <h2>{{ category }}</h2>
-  
+
   {% set by_author = cat_pages | group_by('author') %}
   {% for author, author_pages in by_author.items() %}
     <h3>{{ author }}</h3>
@@ -111,6 +111,4 @@ Pages without the grouped field go into a `None` group:
 ## See Also
 
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
-- [Filter by Tags](./filter-by-tags/) — Multi-criteria filtering
-
-
+- [Filter by Tags](/docs/theming/recipes/filter-by-tags/) — Multi-criteria filtering

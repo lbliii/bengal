@@ -172,7 +172,7 @@ Jinja2 error messages can be cryptic, especially for template inheritance issues
 
 **Mitigation**:
 - Use `bengal utils theme debug` for template resolution issues
-- Check the [Troubleshooting Guide](/docs/guides/troubleshooting/)
+- Check the [Troubleshooting](https://github.com/bengal/bengal/discussions)
 - Run with `--dev` profile for verbose output
 
 ---
@@ -251,4 +251,3 @@ Bengal is for developers who write Markdown in text editors. It's not a WordPres
 - [Comparison with Other SSGs](/docs/about/comparison/)
 - [Performance Benchmarks](/docs/about/benchmarks/)
 - [FAQ](/docs/about/faq/)
-

@@ -1,15 +1,12 @@
 ---
-title: Content Mastery
-description: Take your documentation to the next level with advanced content strategies.
+title: Content Author Mastery
+description: Master advanced Markdown features, directives, and content reuse.
 layout: tracks/single
 track_id: content-mastery
 ---
 
-Documentation is more than just writing text files. In this track, we'll explore how to manage content at scale.
+Go beyond basic Markdown. This track covers directives (callouts, tabs, cards), content reuse (snippets, includes), and variable substitution.
 
-## Syllabus
-
-*   **Workflow**: Managing the content lifecycle.
-*   **Reuse**: Write once, publish everywhere.
-*   **Tracks**: Creating guided learning paths (like this one!).
-*   **Filtering**: Helping users find what they need.
+:::{tip}
+**Duration**: ~60 min | **Prerequisite**: [Zero to Deployed](/tracks/zero-to-deployed/) or equivalent
+:::

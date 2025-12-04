@@ -61,7 +61,7 @@ This includes lines 5-20 from the file.
 ### Path Resolution
 
 Paths are resolved relative to:
-1. **Current page's directory** - If you're in `content/docs/guides/`, `snippets/warning.md` looks in `content/docs/guides/snippets/`
+1. **Current page's directory** - If you're in `content/docs/content/`, `snippets/warning.md` looks in `content/docs/content/snippets/`
 2. **Site root** - Falls back to site root if not found relative to page
 
 ## Strategy 2: Include Code Files
@@ -225,5 +225,3 @@ Both directives support:
 
 - [Content Reuse Overview](/docs/content/reuse/) — DRY content strategies
 - [Filtering](/docs/content/reuse/filtering/) — Advanced content queries
-
-

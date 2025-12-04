@@ -106,7 +106,7 @@ ruff check bengal/ tests/ --fix
 git add -A && git commit -m "core: add feature description"
 ```
 
-Follow the [commit message format](/docs/about/contributing/).
+Follow the commit message format described in the project's [CONTRIBUTING guidelines](https://github.com/lbliii/bengal/blob/main/CONTRIBUTING.md).
 
 ### 6. Push and Create PR
 
@@ -137,5 +137,3 @@ Visit http://localhost:5173 to preview documentation changes.
 - **[Architecture](/docs/extending/architecture/)** — Understand Bengal's internals
 - **[Testing Patterns](/docs/extending/validation/)** — Test best practices
 - **[Contributing Guide](/docs/about/)** — Full contribution guidelines
-
-

@@ -17,7 +17,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ```jinja2
 {# Pages tagged with 'python' #}
-{% set python_posts = site.pages 
+{% set python_posts = site.pages
   | where('tags', 'python', 'in') %}
 
 {# Chain multiple filters #}
@@ -63,7 +63,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ```jinja2
 {# Everything except archived posts #}
-{% set active = site.pages 
+{% set active = site.pages
   | where('tags', 'archived', 'not_in') %}
 ```
 
@@ -71,10 +71,10 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ```jinja2
 {# Access frontmatter via metadata #}
-{% set featured = site.pages 
+{% set featured = site.pages
   | where('metadata.featured', true) %}
 
-{% set series = site.pages 
+{% set series = site.pages
   | where('metadata.series', 'getting-started') %}
 ```
 
@@ -100,6 +100,4 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 ## See Also
 
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
-- [Group by Category](./group-by-category/) — Organize filtered results
-
-
+- [Group by Category](/docs/theming/recipes/group-by-category/) — Organize filtered results

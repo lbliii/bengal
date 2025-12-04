@@ -56,5 +56,5 @@ flowchart TB
 | **Custom Theme** | High | Full control over all templates and assets |
 
 :::{tip}
-**Quick wins**: Start with [CSS Variables](./themes/customization/) to change colors and fonts without touching templates. Graduate to [Template Overrides](./templating/overrides/) when you need structural changes.
+**Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Graduate to [Template Customization](./themes/customize/) when you need structural changes.
 :::

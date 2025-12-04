@@ -57,7 +57,7 @@ bengal/
 
 ## In This Section
 
-- **[Object Model](/docs/extending/architecture/object-model/)** — Site, Page, Section, Asset
-- **[Build Pipeline](/docs/extending/architecture/build-pipeline/)** — How builds work
-- **[Plugin API](/docs/extending/architecture/plugin-api/)** — Extension points
-- **[Contributing](/docs/extending/architecture/contributing/)** — Development guide
+- **[Object Model](/docs/reference/architecture/core/object-model/)** — Site, Page, Section, Asset
+- **[Build Pipeline](/docs/reference/architecture/core/orchestration/)** — How builds work
+- **[Extension Points](/docs/reference/architecture/meta/extension-points/)** — Hooks and customization
+- **[Contributing](/docs/get-started/quickstart-contributor/)** — Development guide
