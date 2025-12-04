@@ -117,18 +117,15 @@ class IncrementalOrchestrator:
 
         from bengal.cache import BuildCache, DependencyTracker
 
-        # New cache location: .bengal/ directory in project root
         cache_dir = self.site.root_path / ".bengal"
         cache_path = cache_dir / "cache.json"
 
         if enabled:
-            # Only create cache directory if enabled
             cache_dir.mkdir(parents=True, exist_ok=True)
 
-            # Legacy cache location (for migration)
+            # Migrate legacy cache from output_dir if exists
             old_cache_path = self.site.output_dir / ".bengal-cache.json"
 
-            # Migrate old cache if exists and new doesn't
             if old_cache_path.exists() and not cache_path.exists():
                 try:
                     shutil.copy2(old_cache_path, cache_path)
@@ -182,8 +179,6 @@ class IncrementalOrchestrator:
         if not self.cache:
             return False
 
-        # Use config hash for robust config change detection
-        # This captures env vars, split configs, and profiles
         config_hash = self.site.config_hash
         is_valid = self.cache.validate_config(config_hash)
 
@@ -195,8 +190,7 @@ class IncrementalOrchestrator:
             )
             return True
 
-        # Also track individual config files for informative logging
-        # (but don't use for invalidation decision - hash is authoritative)
+        # Track config files for logging (hash is authoritative for invalidation)
         config_files = [
             self.site.root_path / "bengal.toml",
             self.site.root_path / "bengal.yaml",
@@ -205,7 +199,6 @@ class IncrementalOrchestrator:
         config_file = next((f for f in config_files if f.exists()), None)
 
         if config_file:
-            # Update file hash for tracking (informational only)
             self.cache.update_file(config_file)
 
         return False
@@ -237,9 +230,7 @@ class IncrementalOrchestrator:
             "Taxonomy changes": [],
         }
 
-        # Find changed content files (skip generated pages - they don't have real source files)
         for page in self.site.pages:
-            # Skip generated pages - they'll be handled separately
             if page.metadata.get("_generated"):
                 continue
 
@@ -247,7 +238,6 @@ class IncrementalOrchestrator:
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
                     change_summary["Modified content"].append(page.source_path)
-                # Track taxonomy changes
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
@@ -413,46 +403,36 @@ class IncrementalOrchestrator:
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
-        # Find changed assets
         for asset in self.site.assets:
             if self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
                     change_summary["Modified assets"].append(asset.source_path)
 
-        # Check template/theme directory for changes
         theme_templates_dir = self._get_theme_templates_dir()
         if theme_templates_dir and theme_templates_dir.exists():
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
                     if verbose:
                         change_summary["Modified templates"].append(template_file)
-                    # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
                         pages_to_rebuild.add(Path(page_path_str))
                 else:
-                    # Template unchanged - still update its hash in cache to avoid re-checking
                     self.cache.update_file(template_file)
 
-        # Check for SPECIFIC taxonomy changes (which exact tags were added/removed)
         # Only rebuild tag pages for tags that actually changed
         affected_tags: set[str] = set()
-        affected_sections: set[Section] = set()  # Type-safe with hashable sections
+        affected_sections: set[Section] = set()
 
-        # OPTIMIZATION: Use site.regular_pages (cached) instead of filtering all pages
         for page in self.site.regular_pages:
-            # Check if this page changed
             if page.source_path in pages_to_rebuild:
-                # Get old and new tags
                 old_tags = self.cache.get_previous_tags(page.source_path)
                 new_tags = set(page.tags) if page.tags else set()
 
-                # Find which specific tags changed
                 added_tags = new_tags - old_tags
                 removed_tags = old_tags - new_tags
 
-                # Track affected tags
                 for tag in added_tags | removed_tags:
                     affected_tags.add(tag.lower().replace(" ", "-"))
                     if verbose:
@@ -460,13 +440,8 @@ class IncrementalOrchestrator:
                             f"Tag '{tag}' changed on {page.source_path.name}"
                         )
 
-                # Check if page changed sections (affects archive pages)
-                # For now, mark section as affected if page changed
                 if hasattr(page, "section"):
                     affected_sections.add(page.section)
-
-        # Only rebuild specific tag pages that were affected
-        # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
         if affected_tags:
             for page in self.site.generated_pages:
                 if page.metadata.get("type") == "tag" or page.metadata.get("type") == "tag-index":

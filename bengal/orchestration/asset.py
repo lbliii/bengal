@@ -199,21 +199,16 @@ class AssetOrchestrator:
                     # Add bundle to processing queue
                     other_assets.append(js_bundle_asset)
 
-        # Ensure CSS entry points are rebuilt when any CSS module changes.
-        # In incremental builds, the changed set may only include modules (e.g., base/*.css),
-        # but the output actually used by templates is the bundled entry (style.css).
-        # To keep dev workflow intuitive, when modules changed and no entry is queued,
-        # pull entry points from the full site asset list so they get re-bundled.
+        # In incremental builds, if modules changed but no entry is queued, pull entries
+        # so they get re-bundled (templates use bundled entries, not raw modules)
         if css_modules and not css_entries:
             site_entries = self._get_site_css_entries_cached()
             if site_entries:
                 css_entries = site_entries
             else:
-                # Fallback: if a project truly has no entry points, treat modules as standalone
                 other_assets.extend(css_modules)
                 css_modules = []
 
-        # If pipeline is enabled, skip raw sources that should not be copied
         assets_cfg = (
             self.site.config.get("assets", {})
             if isinstance(self.site.config.get("assets"), dict)
@@ -225,7 +220,6 @@ class AssetOrchestrator:
                 a for a in other_assets if a.source_path.suffix.lower() not in skip_exts
             ]
 
-        # Report discovery (skip if using progress manager)
         total_discovered = len(assets)
         total_output = len(css_entries) + len(other_assets)
         if not progress_manager:
@@ -237,7 +231,6 @@ class AssetOrchestrator:
                 )
             print(f"   └─ Output: {total_output} files ✓")
 
-        # Get configuration
         minify = self.site.config.get("minify_assets", True)
         optimize = self.site.config.get("optimize_assets", True)
         fingerprint = self.site.config.get("fingerprint_assets", True)
