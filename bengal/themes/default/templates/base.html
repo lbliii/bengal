@@ -442,9 +442,21 @@ See: plan/active/rfc-template-performance-optimization.md
     {# All scripts use defer to avoid render-blocking. #}
     {# Heavy libraries (Mermaid, D3, Tabulator) are lazy-loaded only #}
     {# when their features are present on the page. #}
+    {# #}
+    {# When bundle_js is enabled in config, all theme JS is bundled #}
+    {# into a single file to reduce HTTP requests on mobile. #}
     {# ============================================================== #}
 
-    {# Core Scripts - Always loaded, use defer for non-blocking #}
+    {% set _bundle_js = site.config.get('assets', {}).get('bundle_js', false) %}
+
+    {% if _bundle_js %}
+    {# Bundled JS - Single file containing all theme JavaScript #}
+    {# Reduces HTTP requests from ~20 to 3 for better mobile performance #}
+    <script defer src="{{ asset_url('js/bundle.js') }}"></script>
+    {# Third-party libraries (not bundled - already optimized) #}
+    <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
+    {% else %}
+    {# Individual Scripts - Better for development/debugging #}
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
     <script defer src="{{ asset_url('js/theme-toggle.js') }}"></script>
     <script defer src="{{ asset_url('js/mobile-nav.js') }}"></script>
@@ -484,6 +496,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Smart search index preloading #}
     <script defer src="{{ asset_url('js/search-preload.js') }}"></script>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 

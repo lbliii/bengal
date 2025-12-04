@@ -134,6 +134,31 @@ class AssetOrchestrator:
         css_modules = [a for a in assets if a.is_css_module()]
         other_assets = [a for a in assets if a.asset_type != "css"]
 
+        # Check if JS bundling is enabled
+        assets_cfg = (
+            self.site.config.get("assets", {})
+            if isinstance(self.site.config.get("assets"), dict)
+            else {}
+        )
+        bundle_js = assets_cfg.get("bundle_js", False)
+
+        # Handle JS bundling if enabled
+        js_bundle_asset = None
+        js_modules: list[Asset] = []
+        if bundle_js:
+            from bengal.core.asset import Asset
+
+            # Separate JS modules from other assets
+            js_modules = [a for a in other_assets if a.is_js_module()]
+            other_assets = [a for a in other_assets if not a.is_js_module()]
+
+            # Generate bundle.js if there are modules to bundle
+            if js_modules:
+                js_bundle_asset = self._create_js_bundle(js_modules, assets_cfg)
+                if js_bundle_asset:
+                    # Add bundle to processing queue
+                    other_assets.append(js_bundle_asset)
+
         # Ensure CSS entry points are rebuilt when any CSS module changes.
         # In incremental builds, the changed set may only include modules (e.g., base/*.css),
         # but the output actually used by templates is the bundled entry (style.css).
@@ -381,6 +406,91 @@ class AssetOrchestrator:
         # Process others
         for asset in other_assets:
             process_one(asset, False)
+
+    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict) -> Asset | None:
+        """
+        Create a bundled JavaScript file from individual JS modules.
+
+        Uses pure Python bundler (no Node.js dependency) to concatenate
+        theme JavaScript files in the correct load order.
+
+        Args:
+            js_modules: List of JS module assets to bundle
+            assets_cfg: Assets configuration dict
+
+        Returns:
+            Asset representing the bundle.js file, or None if bundling fails
+        """
+        from bengal.core.asset import Asset
+        from bengal.utils.js_bundler import bundle_js_files, get_theme_js_bundle_order, get_theme_js_excluded
+
+        try:
+            # Get configuration
+            minify = assets_cfg.get("minify", True)
+
+            # Determine bundle order and exclusions
+            bundle_order = get_theme_js_bundle_order()
+            excluded = get_theme_js_excluded()
+
+            # Build file path map from modules
+            module_map = {a.source_path.name: a.source_path for a in js_modules}
+
+            # Order files according to bundle order
+            ordered_files: list[Path] = []
+            for name in bundle_order:
+                if name in module_map and name not in excluded:
+                    ordered_files.append(module_map[name])
+
+            # Add any remaining files not in explicit order
+            remaining = sorted(
+                f for name, f in module_map.items()
+                if name not in excluded and f not in ordered_files
+            )
+            ordered_files.extend(remaining)
+
+            if not ordered_files:
+                self.logger.warning("js_bundle_no_files_to_bundle")
+                return None
+
+            # Bundle the files
+            bundled_content = bundle_js_files(
+                ordered_files,
+                minify=minify,
+                add_source_comments=not minify,
+            )
+
+            if not bundled_content:
+                return None
+
+            # Write bundle to temp location
+            bundle_dir = self.site.root_path / ".bengal" / "js_bundle"
+            bundle_dir.mkdir(parents=True, exist_ok=True)
+            bundle_path = bundle_dir / "bundle.js"
+            bundle_path.write_text(bundled_content, encoding="utf-8")
+
+            self.logger.info(
+                "js_bundle_created",
+                files_bundled=len(ordered_files),
+                size_kb=len(bundled_content) / 1024,
+                output=str(bundle_path),
+            )
+
+            # Create Asset for the bundle (already minified if minify=True)
+            bundle_asset = Asset(
+                source_path=bundle_path,
+                output_path=Path("js/bundle.js"),
+                asset_type="javascript",
+            )
+            # Mark as already minified to avoid double-minification
+            if minify:
+                bundle_asset._minified_content = bundled_content
+                bundle_asset.minified = True
+
+            return bundle_asset
+
+        except Exception as e:
+            self.logger.error("js_bundle_failed", error=str(e))
+            return None
 
     def _process_css_entry(
         self, css_entry: Asset, minify: bool, optimize: bool, fingerprint: bool

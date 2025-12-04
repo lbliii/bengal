@@ -319,6 +319,47 @@ class Asset:
         """
         return self.asset_type == "css" and not self.is_css_entry_point()
 
+    def is_js_entry_point(self) -> bool:
+        """
+        Check if this asset is a JS entry point for bundling.
+
+        The JS bundle entry point is named 'bundle.js' and contains
+        all theme JavaScript concatenated together.
+
+        Returns:
+            True if this is a JS bundle entry point
+        """
+        return self.asset_type == "javascript" and self.source_path.name == "bundle.js"
+
+    def is_js_module(self) -> bool:
+        """
+        Check if this asset is a JS module (should be bundled, not copied separately).
+
+        JS modules are individual JS files that will be bundled into bundle.js.
+        They should not be copied separately when bundling is enabled.
+
+        Excludes:
+        - Third-party libraries (*.min.js) - copied separately for caching
+        - The bundle entry point itself
+
+        Returns:
+            True if this is a JS module that should be bundled
+        """
+        if self.asset_type != "javascript":
+            return False
+
+        name = self.source_path.name
+
+        # Not a module if it's the bundle entry point
+        if name == "bundle.js":
+            return False
+
+        # Third-party minified libraries should be copied separately
+        if name.endswith(".min.js"):
+            return False
+
+        return True
+
     def minify(self) -> Asset:
         """
         Minify the asset (for CSS and JS).
