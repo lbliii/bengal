@@ -9,7 +9,7 @@ description: "Page Metadata Mixin - Basic properties and type checking."
 
 # metadata
 **Type:** Module
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/core/page/metadata.py#L1)
+**Source:** [View source](bengal/bengal/core/page/metadata.py#L1)
 
 
 
@@ -164,6 +164,91 @@ Check if page is marked as draft.
 def keywords(self) -> list[str]
 ```
 Get page keywords from metadata.
+
+#### `hidden` @property
+
+```python
+def hidden(self) -> bool
+```
+Check if page is hidden (unlisted).
+
+Hidden pages:
+- Are excluded from navigation menus
+- Are excluded from site.pages queries (listings)
+- Are excluded from sitemap.xml
+- Get noindex,nofollow robots meta
+- Still render and are accessible via direct URL
+
+#### `visibility` @property
+
+```python
+def visibility(self) -> dict[str, Any]
+```
+Get visibility settings with defaults.
+
+The visibility object provides granular control over page visibility:
+- menu: Include in navigation menus (default: True)
+- listings: Include in site.pages queries (default: True)
+- sitemap: Include in sitemap.xml (default: True)
+- robots: Robots meta directive (default: "index, follow")
+- render: When to render - "always", "local", "never" (default: "always")
+- search: Include in search index (default: True)
+- rss: Include in RSS feeds (default: True)
+
+If `hidden: true` is set, it expands to restrictive defaults.
+
+#### `in_listings` @property
+
+```python
+def in_listings(self) -> bool
+```
+Check if page should appear in listings/queries.
+
+Excludes drafts and pages with visibility.listings=False.
+
+#### `in_sitemap` @property
+
+```python
+def in_sitemap(self) -> bool
+```
+Check if page should appear in sitemap.
+
+Excludes drafts and pages with visibility.sitemap=False.
+
+#### `in_search` @property
+
+```python
+def in_search(self) -> bool
+```
+Check if page should appear in search index.
+
+Excludes drafts and pages with visibility.search=False.
+
+#### `in_rss` @property
+
+```python
+def in_rss(self) -> bool
+```
+Check if page should appear in RSS feeds.
+
+Excludes drafts and pages with visibility.rss=False.
+
+#### `robots_meta` @property
+
+```python
+def robots_meta(self) -> str
+```
+Get robots meta content for this page.
+
+#### `should_render` @property
+
+```python
+def should_render(self) -> bool
+```
+Check if page should be rendered based on visibility.render setting.
+
+Note: This checks the render setting but doesn't know about environment.
+Use should_render_in_environment() for environment-aware checks.
 
 
 
@@ -489,6 +574,243 @@ Get page keywords from metadata.
 
 
 
+#### `hidden`
+```python
+def hidden(self) -> bool
+```
+
+
+Check if page is hidden (unlisted).
+
+Hidden pages:
+- Are excluded from navigation menus
+- Are excluded from site.pages queries (listings)
+- Are excluded from sitemap.xml
+- Get noindex,nofollow robots meta
+- Still render and are accessible via direct URL
+
+
+
+**Returns**
+
+
+`bool` - True if page is hidden
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+```yaml
+    ---
+    title: Secret Page
+    hidden: true
+    ---
+    ```
+```
+
+
+
+
+#### `visibility`
+```python
+def visibility(self) -> dict[str, Any]
+```
+
+
+Get visibility settings with defaults.
+
+The visibility object provides granular control over page visibility:
+- menu: Include in navigation menus (default: True)
+- listings: Include in site.pages queries (default: True)
+- sitemap: Include in sitemap.xml (default: True)
+- robots: Robots meta directive (default: "index, follow")
+- render: When to render - "always", "local", "never" (default: "always")
+- search: Include in search index (default: True)
+- rss: Include in RSS feeds (default: True)
+
+If `hidden: true` is set, it expands to restrictive defaults.
+
+
+
+**Returns**
+
+
+`dict[str, Any]` - Dict with visibility settings
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+```yaml
+    ---
+    title: Partially Hidden
+    visibility:
+      menu: false
+      listings: true
+      sitemap: true
+    ---
+    ```
+```
+
+
+
+
+#### `in_listings`
+```python
+def in_listings(self) -> bool
+```
+
+
+Check if page should appear in listings/queries.
+
+Excludes drafts and pages with visibility.listings=False.
+
+
+
+**Returns**
+
+
+`bool` - True if page should appear in site.pages queries
+
+
+
+#### `in_sitemap`
+```python
+def in_sitemap(self) -> bool
+```
+
+
+Check if page should appear in sitemap.
+
+Excludes drafts and pages with visibility.sitemap=False.
+
+
+
+**Returns**
+
+
+`bool` - True if page should appear in sitemap.xml
+
+
+
+#### `in_search`
+```python
+def in_search(self) -> bool
+```
+
+
+Check if page should appear in search index.
+
+Excludes drafts and pages with visibility.search=False.
+
+
+
+**Returns**
+
+
+`bool` - True if page should appear in search index
+
+
+
+#### `in_rss`
+```python
+def in_rss(self) -> bool
+```
+
+
+Check if page should appear in RSS feeds.
+
+Excludes drafts and pages with visibility.rss=False.
+
+
+
+**Returns**
+
+
+`bool` - True if page should appear in RSS feeds
+
+
+
+#### `robots_meta`
+```python
+def robots_meta(self) -> str
+```
+
+
+Get robots meta content for this page.
+
+
+
+**Returns**
+
+
+`str` - Robots directive string (e.g., "index, follow" or "noindex, nofollow")
+
+
+
+#### `should_render`
+```python
+def should_render(self) -> bool
+```
+
+
+Check if page should be rendered based on visibility.render setting.
+
+Note: This checks the render setting but doesn't know about environment.
+Use should_render_in_environment() for environment-aware checks.
+
+
+
+**Returns**
+
+
+`bool` - True if render is not "never"
+
+
+
+
+#### `should_render_in_environment`
+```python
+def should_render_in_environment(self, is_production: bool = False) -> bool
+```
+
+
+Check if page should be rendered in the given environment.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `is_production` | `bool` | `False` | True if building for production |
+
+
+
+
+
+
+
+**Returns**
+
+
+`bool` - True if page should be rendered in this environment
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+```yaml
+    ---
+    visibility:
+      render: local  # Only in dev server
+    ---
+    ```
+```
+
+
+
 ---
 *Generated by Bengal autodoc from `bengal/bengal/core/page/metadata.py`*
-

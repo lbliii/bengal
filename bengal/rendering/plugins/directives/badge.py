@@ -39,6 +39,9 @@ class BadgeDirective(DirectivePlugin):
         Maps to Bengal's badge CSS classes.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["badge", "bdg"]
+
     def parse(self, block, m, state):
         """
         Parse badge directive.

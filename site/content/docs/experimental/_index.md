@@ -3,6 +3,7 @@ title: "Experimental"
 description: "Experimental components and features for Bengal"
 layout: doc
 toc: false
+hidden: true
 ---
 
 # 🧪 Experimental Features

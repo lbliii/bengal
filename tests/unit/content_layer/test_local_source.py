@@ -188,3 +188,4 @@ class TestLocalSource:
 
         entry = await source.fetch_one("_drafts/draft.md")
         assert entry is None
+

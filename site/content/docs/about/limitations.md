@@ -172,7 +172,7 @@ Jinja2 error messages can be cryptic, especially for template inheritance issues
 
 **Mitigation**:
 - Use `bengal utils theme debug` for template resolution issues
-- Check the [Troubleshooting Guide](/docs/guides/troubleshooting/)
+- Check the [Troubleshooting](https://github.com/bengal/bengal/discussions)
 - Run with `--dev` profile for verbose output
 
 ---

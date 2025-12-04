@@ -9,7 +9,7 @@ description: "Site Object - Represents the entire website and orchestrates the b
 
 # site
 **Type:** Module
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/core/site.py#L1)
+**Source:** [View source](bengal/bengal/core/site.py#L1)
 
 
 
@@ -67,9 +67,11 @@ This is a dataclass.
 | `data` | - | *No description provided.* |
 | `_regular_pages_cache` | - | *No description provided.* |
 | `_generated_pages_cache` | - | *No description provided.* |
+| `_listable_pages_cache` | - | *No description provided.* |
 | `_theme_obj` | - | *No description provided.* |
 | `_query_registry` | - | *No description provided.* |
 | `_section_registry` | - | *No description provided.* |
+| `_config_hash` | - | *No description provided.* |
 
 
 
@@ -100,6 +102,19 @@ Get site baseurl from config.
 def author(self) -> str | None
 ```
 Get site author from config.
+
+#### `config_hash` @property
+
+```python
+def config_hash(self) -> str
+```
+Get deterministic hash of the resolved configuration.
+
+Used for automatic cache invalidation when configuration changes.
+The hash captures the effective config state including:
+- Base config from files
+- Environment variable overrides
+- Build profile settings
 
 #### `theme_config` @property
 
@@ -146,6 +161,30 @@ The cache is automatically invalidated when pages are modified.
 def generated_pages(self) -> list[Page]
 ```
 Get only generated pages (taxonomy, archive, pagination pages).
+
+PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+The cache is automatically invalidated when pages are modified.
+
+#### `listable_pages` @property
+
+```python
+def listable_pages(self) -> list[Page]
+```
+Get pages that should appear in listings (excludes hidden pages).
+
+This property respects the visibility system:
+- Excludes pages with `hidden: true`
+- Excludes pages with `visibility.listings: false`
+- Excludes draft pages
+
+Use this for:
+- "Recent posts" sections
+- Archive pages
+- Category/tag listings
+- Any public-facing page list
+
+Use `site.pages` when you need ALL pages including hidden ones
+(e.g., for sitemap generation where you filter separately).
 
 PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
 The cache is automatically invalidated when pages are modified.
@@ -205,6 +244,29 @@ Get site author from config.
 
 
 `str | None`
+
+
+
+#### `config_hash`
+```python
+def config_hash(self) -> str
+```
+
+
+Get deterministic hash of the resolved configuration.
+
+Used for automatic cache invalidation when configuration changes.
+The hash captures the effective config state including:
+- Base config from files
+- Environment variable overrides
+- Build profile settings
+
+
+
+**Returns**
+
+
+`str` - 16-character hex string (truncated SHA-256)
 
 
 
@@ -326,6 +388,51 @@ The cache is automatically invalidated when pages are modified.
 
 
 
+#### `listable_pages`
+```python
+def listable_pages(self) -> list[Page]
+```
+
+
+Get pages that should appear in listings (excludes hidden pages).
+
+This property respects the visibility system:
+- Excludes pages with `hidden: true`
+- Excludes pages with `visibility.listings: false`
+- Excludes draft pages
+
+Use this for:
+- "Recent posts" sections
+- Archive pages
+- Category/tag listings
+- Any public-facing page list
+
+Use `site.pages` when you need ALL pages including hidden ones
+(e.g., for sitemap generation where you filter separately).
+
+PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+The cache is automatically invalidated when pages are modified.
+
+
+
+**Returns**
+
+
+`list[Page]` - List of Page objects that should appear in public listings
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% for post in site.listable_pages | where('section', 'blog') | sort_by('date', reverse=true) | limit(5) %}
+        <article>{{ post.title }}</article>
+    {% endfor %}
+```
+
+
+
+
 #### `__post_init__`
 ```python
 def __post_init__(self) -> None
@@ -343,6 +450,7 @@ Initialize site from configuration.
 
 
 
+
 #### `invalidate_page_caches`
 ```python
 def invalidate_page_caches(self) -> None
@@ -353,11 +461,11 @@ Invalidate cached page lists when pages are modified.
 
 Call this after:
 - Adding/removing pages
-- Modifying page metadata (especially _generated flag)
+- Modifying page metadata (especially _generated flag or visibility)
 - Any operation that changes the pages list
 
-This ensures cached properties (regular_pages, generated_pages) will
-recompute on next access.
+This ensures cached properties (regular_pages, generated_pages, listable_pages)
+will recompute on next access.
 
 
 
@@ -604,13 +712,14 @@ Discover all assets in the assets directory and theme assets.
 
 #### `build`
 ```python
-def build(self, parallel: bool = True, incremental: bool | None = None, verbose: bool = False, quiet: bool = False, profile: BuildProfile = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats
+def build(self, parallel: bool = True, incremental: bool | None = None, verbose: bool = False, quiet: bool = False, profile: BuildProfile = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False, profile_templates: bool = False, use_pipeline: bool = False) -> BuildStats
 ```
 
 
 Build the entire site.
 
-Delegates to BuildOrchestrator for actual build process.
+Delegates to BuildOrchestrator for actual build process, or uses
+the reactive dataflow pipeline if use_pipeline is True.
 
 
 **Parameters:**
@@ -625,6 +734,8 @@ Delegates to BuildOrchestrator for actual build process.
 | `memory_optimized` | `bool` | `False` | Use streaming build for memory efficiency (best for 5K+ pages) |
 | `strict` | `bool` | `False` | Whether to fail on warnings |
 | `full_output` | `bool` | `False` | Show full traditional output instead of live progress |
+| `profile_templates` | `bool` | `False` | Enable template profiling for performance analysis |
+| `use_pipeline` | `bool` | `False` | Use reactive dataflow pipeline (experimental) |
 
 
 
@@ -639,9 +750,10 @@ Delegates to BuildOrchestrator for actual build process.
 
 
 
+
 #### `serve`
 ```python
-def serve(self, host: str = 'localhost', port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None
+def serve(self, host: str = 'localhost', port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False, use_pipeline: bool = False) -> None
 ```
 
 
@@ -657,6 +769,7 @@ Start a development server.
 | `watch` | `bool` | `True` | Whether to watch for file changes and rebuild |
 | `auto_port` | `bool` | `True` | Whether to automatically find an available port if the specified one is in use |
 | `open_browser` | `bool` | `False` | Whether to automatically open the browser |
+| `use_pipeline` | `bool` | `False` | Whether to use reactive dataflow pipeline for builds |
 
 
 
@@ -839,4 +952,3 @@ Performance:
 
 ---
 *Generated by Bengal autodoc from `bengal/bengal/core/site.py`*
-

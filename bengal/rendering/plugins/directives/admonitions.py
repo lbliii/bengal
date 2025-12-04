@@ -31,7 +31,7 @@ class AdmonitionDirective(DirectivePlugin):
         Content with **markdown** support.
         :::
 
-    Supported types: note, tip, warning, danger, error, info, example, success, caution
+    Supported types: note, tip, warning, danger, error, info, example, success, caution, seealso
     """
 
     ADMONITION_TYPES = [
@@ -44,7 +44,11 @@ class AdmonitionDirective(DirectivePlugin):
         "example",
         "success",
         "caution",
+        "seealso",
     ]
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ADMONITION_TYPES
 
     def parse(self, block, m, state):
         """Parse admonition directive."""
@@ -95,6 +99,7 @@ def render_admonition(
         "info": "info",
         "example": "example",
         "success": "success",
+        "seealso": "seealso",
     }
 
     css_class = type_map.get(admon_type, "note")

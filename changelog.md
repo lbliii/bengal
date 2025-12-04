@@ -1,5 +1,38 @@
 ## Unreleased
 
+### Directive Registry - Single Source of Truth ✅
+- **rendering(directives)**: add `DIRECTIVE_NAMES` class attribute to all 27 directive classes
+- **rendering(directives)**: add `DIRECTIVE_CLASSES` registry and `get_known_directive_names()` function
+- **rendering(directives)**: replace manual `KNOWN_DIRECTIVE_NAMES` with computed version from class attributes
+- **tests**: add `test_directive_registry.py` with 47 tests for registry consistency and registration verification
+- **health**: health check now uses single source of truth from rendering package (no more drift)
+
+### Page Visibility System ✅
+- **core(page)**: add `hidden` frontmatter shorthand for unlisted pages (excludes from nav, listings, sitemap, search, RSS)
+- **core(page)**: add `visibility` object for granular control (menu, listings, sitemap, robots, render, search, rss)
+- **core(page)**: add `in_listings`, `in_sitemap`, `in_search`, `in_rss`, `robots_meta` properties
+- **core(page)**: add `should_render_in_environment()` for environment-aware rendering (local vs production)
+- **core(site)**: add `listable_pages` property that respects visibility settings
+- **postprocess(sitemap)**: exclude hidden pages from sitemap.xml
+- **postprocess(rss)**: exclude hidden pages from RSS feeds
+- **postprocess(search)**: exclude hidden pages from search index
+- **rendering(navigation)**: integrate visibility.menu with auto-nav discovery
+- **themes(default)**: add robots meta tag injection for hidden pages (noindex, nofollow)
+- **themes(default)**: add visual indicator banner for hidden pages in dev server
+- **pipeline(build)**: add visibility-based filtering for render: local/never pages
+
+### Documentation Information Architecture Overhaul
+- **docs(ia)**: reorganize documentation by feature dimensions (content, theming, building, extending) instead of Diataxis types
+- **docs(tutorials)**: create dedicated tutorials section for guided learning journeys
+- **docs(content)**: add content dimension with organization, authoring, collections, sources, and reuse sections
+- **docs(theming)**: add theming dimension with templating, assets, and themes sections
+- **docs(building)**: add building dimension with configuration, commands, performance, and deployment sections
+- **docs(extending)**: add extending dimension with autodoc, analysis, validation, and architecture sections
+- **docs(recipes)**: expand recipes with dark-mode, rss-feed, reading-time, table-of-contents, syntax-highlighting
+- **docs(snippets)**: add `_snippets/` directory for reusable content fragments (install, prerequisites, warnings)
+- **docs(navigation)**: add URL aliases for backward compatibility with previous structure
+- **docs(get-started)**: rename getting-started/ to get-started/ with streamlined quickstarts
+
 ### Reactive Dataflow Pipeline ✅
 - **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
 - **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`

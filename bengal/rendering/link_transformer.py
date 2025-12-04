@@ -31,7 +31,7 @@ def transform_internal_links(html: str, baseurl: str) -> str:
     """
     Transform internal links to include baseurl prefix.
 
-    This function finds all <a href="/..."> and <img src="/..."> tags
+    This function finds all ``<a href="/...">`` and ``<img src="/...">`` tags
     where the path starts with "/" and prepends the baseurl.
 
     Args:

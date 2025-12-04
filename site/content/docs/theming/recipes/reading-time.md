@@ -1,0 +1,94 @@
+---
+title: Show Reading Time
+description: Display estimated reading time using Bengal's reading_time filter
+weight: 40
+draft: false
+lang: en
+tags: [cookbook, filters, reading-time]
+keywords: [reading time, word count, estimate]
+category: cookbook
+---
+
+# Show Reading Time
+
+Display estimated reading time using Bengal's `reading_time` filter.
+
+## The Pattern
+
+```jinja2
+<span class="reading-time">
+  {{ page.content | reading_time }} min read
+</span>
+```
+
+That's it. Bengal's `reading_time` filter calculates based on word count (200 wpm default).
+
+## What's Happening
+
+| Component | Purpose |
+|-----------|---------|
+| `page.content` | Raw content of the page |
+| `reading_time` | Bengal filter: counts words, divides by 200 |
+
+## Variations
+
+### With Word Count
+
+```jinja2
+{% set words = page.content | striptags | wordcount %}
+{% set minutes = page.content | reading_time %}
+
+<span>{{ words }} words · {{ minutes }} min read</span>
+```
+
+### Custom Calculation
+
+```jinja2
+{# 250 words per minute instead of 200 #}
+{% set words = page.content | striptags | wordcount %}
+{% set minutes = (words / 250) | round(0, 'ceil') | int %}
+
+<span>{{ minutes }} min read</span>
+```
+
+### Handle Short Content
+
+```jinja2
+{% set minutes = page.content | reading_time %}
+
+<span class="reading-time">
+{% if minutes < 1 %}
+  Quick read
+{% elif minutes == 1 %}
+  1 min read
+{% else %}
+  {{ minutes }} min read
+{% endif %}
+</span>
+```
+
+### Frontmatter Override
+
+Allow manual override for complex content:
+
+```jinja2
+{% if page.metadata.reading_time %}
+  {% set minutes = page.metadata.reading_time %}
+{% else %}
+  {% set minutes = page.content | reading_time %}
+{% endif %}
+```
+
+Then in frontmatter:
+
+```yaml
+---
+title: Complex Technical Guide
+reading_time: 25  # Override calculated time
+---
+```
+
+## See Also
+
+- [Template Functions](/docs/theming/templating/functions/) — All filters
+- [List Recent Posts](/docs/theming/recipes/list-recent-posts/) — Include reading time in post lists

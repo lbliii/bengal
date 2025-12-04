@@ -62,6 +62,9 @@ class TabsDirective(DirectivePlugin):
     For new code, prefer the modern {tab-set}/{tab-item} syntax.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["tabs"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse legacy tabs directive."""
         options = dict(self.parse_options(m))
@@ -130,6 +133,9 @@ class TabSetDirective(DirectivePlugin):
     This is cleaner and more consistent with MyST Markdown.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["tab-set"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse tab-set directive."""
         options = dict(self.parse_options(m))
@@ -165,6 +171,9 @@ class TabItemDirective(DirectivePlugin):
 
     Supports all markdown features including nested directives.
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["tab-item"]
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse tab-item directive."""

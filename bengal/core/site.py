@@ -98,6 +98,7 @@ class Site:
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _generated_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
+    _listable_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: Any = field(default=None, repr=False, init=False)
 
@@ -281,20 +282,60 @@ class Site:
         self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
         return self._generated_pages_cache
 
+    @property
+    def listable_pages(self) -> list[Page]:
+        """
+        Get pages that should appear in listings (excludes hidden pages).
+
+        This property respects the visibility system:
+        - Excludes pages with `hidden: true`
+        - Excludes pages with `visibility.listings: false`
+        - Excludes draft pages
+
+        Use this for:
+        - "Recent posts" sections
+        - Archive pages
+        - Category/tag listings
+        - Any public-facing page list
+
+        Use `site.pages` when you need ALL pages including hidden ones
+        (e.g., for sitemap generation where you filter separately).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of Page objects that should appear in public listings
+
+        Example:
+            {% for post in site.listable_pages | where('section', 'blog') | sort_by('date', reverse=true) | limit(5) %}
+                <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        # Return cached value if available (O(1))
+        if self._listable_pages_cache is not None:
+            return self._listable_pages_cache
+
+        # Compute and cache (O(n), only happens once)
+        # Use in_listings which checks visibility.listings AND draft status
+        self._listable_pages_cache = [p for p in self.pages if p.in_listings]
+        return self._listable_pages_cache
+
     def invalidate_page_caches(self) -> None:
         """
         Invalidate cached page lists when pages are modified.
 
         Call this after:
         - Adding/removing pages
-        - Modifying page metadata (especially _generated flag)
+        - Modifying page metadata (especially _generated flag or visibility)
         - Any operation that changes the pages list
 
-        This ensures cached properties (regular_pages, generated_pages) will
-        recompute on next access.
+        This ensures cached properties (regular_pages, generated_pages, listable_pages)
+        will recompute on next access.
         """
         self._regular_pages_cache = None
         self._generated_pages_cache = None
+        self._listable_pages_cache = None
 
     def invalidate_regular_pages_cache(self) -> None:
         """
@@ -800,6 +841,24 @@ class Site:
         assets_start = time.time()
         assets = AssetOrchestrator(self)
         assets.process(self.assets, parallel=parallel, progress_manager=None)
+
+        # Rewrite fonts.css to use fingerprinted font filenames
+        # This must happen after asset fingerprinting is complete
+        if "fonts" in self.config:
+            from bengal.fonts import rewrite_font_urls_with_fingerprints
+
+            fonts_css_path = self.output_dir / "assets" / "fonts.css"
+            manifest_path = self.output_dir / "asset-manifest.json"
+
+            if fonts_css_path.exists() and manifest_path.exists():
+                try:
+                    import json
+
+                    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    rewrite_font_urls_with_fingerprints(fonts_css_path, manifest_data)
+                except Exception as e:
+                    logger.warning("fonts_css_rewrite_failed", error=str(e))
+
         assets_time_ms = (time.time() - assets_start) * 1000
 
         # Phase 6: Render ALL pages using pipeline (including generated pages)

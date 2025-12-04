@@ -12,20 +12,10 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 
 ## Key Terms
 
-Directive
-:   Extended markdown syntax that creates rich components. Bengal supports two syntax styles: fenced (` ```{name} `) and MyST (`:::{name}`).
-
-Fenced Syntax
-:   Directives using triple backticks (e.g., ` ```{note} `). Used for admonitions, dropdowns, badges, checklists, and include directives.
-
-MyST Syntax
-:   Directives using triple colons (e.g., `:::{card}`). Used for cards, tabs, buttons, steps, and list tables. Named after the MyST Markdown specification.
-
-Container Directive
-:   A directive that contains other directives (e.g., `{cards}`, `{steps}`, `{tab-set}`). Requires 4 fences minimum (`::::`) and increments for deeper nesting.
-
-Nesting
-:   Placing directives inside other directives. Each nesting level requires incrementing the fence count (container: 4 fences, nested item: 4 fences, deeper nesting: 5+ fences).
+:::{glossary}
+:tags: directives, core
+:limit: 3
+:::
 
 ## Quick Reference
 
@@ -51,6 +41,12 @@ Nesting
 | `{literalinclude}` | ` ```{literalinclude} ` | Include code file | Content Reuse |
 | `{list-table}` | ` :::{list-table} ` | Table from lists | Formatting |
 | `{data-table}` | ` :::{data-table} ` | Interactive data table | Interactive |
+| `{child-cards}` | ` :::{child-cards} ` | Auto-generate cards from children | Navigation |
+| `{breadcrumbs}` | ` :::{breadcrumbs} ` | Breadcrumb navigation | Navigation |
+| `{siblings}` | ` :::{siblings} ` | Sibling page list | Navigation |
+| `{prev-next}` | ` :::{prev-next} ` | Prev/next links | Navigation |
+| `{related}` | ` :::{related} ` | Related pages by tags | Navigation |
+| `{glossary}` | ` :::{glossary} ` | Render terms from glossary data | Data |
 
 ## Directive Syntax
 
@@ -121,55 +117,11 @@ More content
 
 ## Categories
 
-### [Admonitions](/docs/reference/directives/admonitions/)
-
-Callout boxes for notes, warnings, tips, and more.
-
-- `{note}` - General information
-- `{tip}` - Helpful tips
-- `{warning}` - Warnings
-- `{danger}` - Critical warnings
-- `{error}` - Error messages
-- `{info}` - Informational content
-- `{example}` - Examples
-- `{success}` - Success messages
-- `{caution}` - Cautions
-
-### [Layout Directives](/docs/reference/directives/layout/)
-
-Components for organizing content layout.
-
-- `{cards}` / `{card}` - Card grid layouts
-- `{tab-set}` / `{tab-item}` - Tabbed content
-- `{dropdown}` - Collapsible sections
-- `{grid}` / `{grid-item-card}` - Sphinx-Design compatibility
-
-### [Formatting Directives](/docs/reference/directives/formatting/)
-
-Styling and formatting components.
-
-- `{badge}` - Styled badges
-- `{button}` - Link buttons
-- `{steps}` / `{step}` - Step-by-step guides
-- `{checklist}` - Styled checklists
-- `{rubric}` - Pseudo-headings (not in TOC)
-- `{list-table}` - Tables from nested lists
-
-### [Interactive Directives](/docs/reference/directives/interactive/)
-
-Interactive components with JavaScript.
-
-- `{code-tabs}` - Multi-language code examples
-- `{data-table}` - Interactive data tables with sorting/filtering
-
-### [Content Reuse](/docs/reference/directives/content-reuse/)
-
-Include external files in your content.
-
-- `{include}` - Include markdown files
-- `{literalinclude}` - Include code files as code blocks
-
-**See also**: [Content Reuse Guide](/docs/guides/content-reuse/) for detailed strategies and best practices.
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description
+:::
 
 ## Common Options
 
@@ -227,8 +179,89 @@ console.log("Hello");
 ::::
 ```
 
+## Glossary Directive
+
+The `{glossary}` directive renders terms from a centralized glossary data file (`data/glossary.yaml`) as a styled definition list. Filter terms by tags to show relevant definitions for each page.
+
+### Syntax
+
+```markdown
+:::{glossary}
+:tags: directives, core
+:sorted: true
+:collapsed: true
+:limit: 3
+:::
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:tags:` | (required) | Comma-separated tags to filter terms (OR logic) |
+| `:sorted:` | `false` | Sort terms alphabetically |
+| `:show-tags:` | `false` | Display tag badges under each term |
+| `:collapsed:` | `false` | Wrap in collapsible `<details>` element |
+| `:limit:` | (all) | Show only first N terms; remaining in expandable section |
+| `:source:` | `data/glossary.yaml` | Custom glossary file path |
+
+### Examples
+
+**Basic Usage** - Show terms tagged with "directives":
+
+```markdown
+:::{glossary}
+:tags: directives
+:::
+```
+
+**Progressive Disclosure** - Show first 3 terms, rest expandable:
+
+```markdown
+:::{glossary}
+:tags: directives, core
+:limit: 3
+:::
+```
+
+**Fully Collapsed** - Entire glossary in collapsible section:
+
+```markdown
+:::{glossary}
+:tags: formatting
+:collapsed: true
+:::
+```
+
+**Both Options** - Collapsed, with limited terms when expanded:
+
+```markdown
+:::{glossary}
+:tags: layout
+:collapsed: true
+:limit: 2
+:::
+```
+
+### Glossary Data Format
+
+Terms are defined in `data/glossary.yaml`:
+
+```yaml
+terms:
+  - term: Directive
+    definition: Extended markdown syntax using `{name}` that creates rich components.
+    tags: [directives, core]
+
+  - term: Admonition
+    definition: A styled callout box for **important** information.
+    tags: [directives, admonitions]
+```
+
+**Note**: Definitions support inline markdown: backticks for `code`, `**bold**`, and `*italic*`.
+
 ## Next Steps
 
 - Browse directive categories above for detailed syntax
-- See [Content Reuse Guide](/docs/guides/content-reuse/) for include/literalinclude strategies
-- Check [Writer Quickstart](/docs/getting-started/writer-quickstart/) for markdown basics
+- See [Content Reuse](/docs/content/reuse/) for include/literalinclude strategies
+- Check [Writer Quickstart](/docs/get-started/quickstart-writer/) for markdown basics

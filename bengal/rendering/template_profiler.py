@@ -435,3 +435,4 @@ def disable_profiling() -> None:
     global _global_profiler
     if _global_profiler is not None:
         _global_profiler.disable()
+

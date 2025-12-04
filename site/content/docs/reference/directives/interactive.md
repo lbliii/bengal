@@ -12,11 +12,9 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 ## Key Terms
 
-Code Tabs
-:   An interactive tabbed interface (`{code-tabs}`) for displaying code examples in multiple languages. Users can switch between languages with tab navigation.
-
-Data Table
-:   An interactive table directive (`{data-table}`) with JavaScript-enhanced features like sorting, filtering, and pagination. Requires Tabulator.js in your theme.
+:::{glossary}
+:tags: interactive
+:::
 
 ## Code Tabs
 

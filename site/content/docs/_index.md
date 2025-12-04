@@ -16,19 +16,38 @@ menu:
 
 # Documentation
 
-Bengal documentation includes guides, concepts, and technical reference.
+Bengal documentation organized by what you want to accomplish.
 
-## Documentation Sections
+## Get Started
 
-- **[Getting Started](/docs/getting-started/)** - Installation and quickstart guides
-- **[Guides](/docs/guides/)** - Step-by-step tutorials and how-tos
-- **[Concepts](/docs/about/concepts/)** - Core concepts and architecture
-- **[Reference](/docs/reference/)** - Technical reference documentation
+New to Bengal? Start here:
+
+- **[Get Started](/docs/get-started/)** — Installation and quickstart guides
+- **[Tutorials](/docs/tutorials/)** — Hands-on learning journeys
+
+## Feature Dimensions
+
+Learn about specific capabilities:
+
+| Dimension | What You'll Learn |
+|-----------|-------------------|
+| **[Content](/docs/content/)** | Content authoring, collections, sources, reuse |
+| **[Theming](/docs/theming/)** | Templates, assets, theme customization |
+| **[Building](/docs/building/)** | Configuration, CLI, performance, deployment |
+| **[Extending](/docs/extending/)** | Autodoc, analysis, validation, architecture |
+
+## Reference
+
+- **[About](/docs/about/)** — Philosophy, concepts, FAQ
+- **[API Reference](/api/)** — Complete API documentation
+- **[CLI Reference](/cli/)** — Command-line interface reference
 
 ## Quick Links
 
-- **[Installation](/docs/getting-started/installation/)** - Get Bengal installed
-- **[Writer Quickstart](/docs/getting-started/writer-quickstart/)** - Start creating content
-- **[Themer Quickstart](/docs/getting-started/themer-quickstart/)** - Customize themes
-- **[API Reference](/api/)** - Complete API documentation
-- **[CLI Reference](/cli/)** - Command-line interface reference
+| I want to... | Go to... |
+|--------------|----------|
+| Install Bengal | [Installation](/docs/get-started/installation/) |
+| Start writing content | [Writer Quickstart](/docs/get-started/quickstart-writer/) |
+| Customize themes | [Themer Quickstart](/docs/get-started/quickstart-themer/) |
+| Build a blog | [Build a Blog Tutorial](/docs/tutorials/build-a-blog/) |
+| Deploy my site | [Deployment](/docs/building/deployment/) |

@@ -265,3 +265,4 @@
   document.addEventListener('pjax:end', initAllCards);
 
 })();
+

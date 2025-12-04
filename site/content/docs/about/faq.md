@@ -17,7 +17,7 @@ tags: [faq, help, support]
 :::{dropdown} What Python version does Bengal require?
 **Python 3.14 or later** (3.14t free-threaded build recommended for best performance).
 
-See the [Installation Guide](/docs/getting-started/installation/) for why and how to set it up.
+See the [Installation Guide](/docs/get-started/installation/) for why and how to set it up.
 :::
 
 ## Technical
@@ -47,5 +47,5 @@ No database or Python server is required for hosting.
 
 :::{dropdown} How do I add a new theme?
 You can install themes via `pip` or clone them into your `themes/` directory.
-See the [Themer Quickstart](/docs/getting-started/themer-quickstart/) for details.
+See the [Themer Quickstart](/docs/get-started/quickstart-themer/) for details.
 :::

@@ -1,81 +1,23 @@
 """
 Directive validation constants and configuration.
 
-Defines known directive types, performance thresholds, and validation settings.
+Imports directive type definitions from the rendering package (single source of truth)
+and adds health-check-specific thresholds and configuration.
 """
 
 from __future__ import annotations
 
-# Directive types we know about
-# This should match all directive types registered in bengal/rendering/plugins/directives/
-KNOWN_DIRECTIVES = {
-    # Admonitions
-    "admonition",  # Generic admonition directive
-    "note",
-    "tip",
-    "warning",
-    "danger",
-    "error",
-    "info",
-    "example",
-    "success",
-    "caution",
-    # Badges
-    "badge",
-    "bdg",  # Alias for badge (Sphinx-Design compatibility)
-    # Buttons
-    "button",
-    # Cards
-    "card",
-    "cards",
-    "grid",  # Sphinx-Design compatibility
-    # Tabs
-    "tabs",
-    "tab-set",
-    "tab-item",
-    # Code tabs
-    "code-tabs",
-    "code_tabs",
-    # Dropdowns
-    "dropdown",
-    "details",
-    # Tables
-    "list-table",
-    "data-table",
-    "data_table",  # Alternative naming
-    # Checklists
-    "checklist",
-    # Steps
-    "steps",
-    "step",
-    # Rubric
-    "rubric",
-    # Includes
-    "include",
-    "literalinclude",
-    # Marimo (if installed)
-    "marimo",
-}
+# Import from the single source of truth (rendering/plugins/directives/__init__.py)
+# This ensures the health check stays in sync with actually registered directives.
+from bengal.rendering.plugins.directives import (
+    ADMONITION_TYPES,
+    CODE_BLOCK_DIRECTIVES,
+    KNOWN_DIRECTIVE_NAMES,
+)
 
-# Admonition types (should use colon fences)
-ADMONITION_TYPES = {
-    "note",
-    "tip",
-    "warning",
-    "danger",
-    "error",
-    "info",
-    "example",
-    "success",
-    "caution",
-}
-
-# Directives that are code-related and can reasonably use backtick fences
-CODE_BLOCK_DIRECTIVES = {
-    "code-tabs",
-    "code_tabs",
-    "literalinclude",
-}
+# Re-export for backward compatibility with existing imports
+# These are now imported from the rendering package
+KNOWN_DIRECTIVES = KNOWN_DIRECTIVE_NAMES
 
 # Performance thresholds
 MAX_DIRECTIVES_PER_PAGE = 10  # Warn if page has more than this

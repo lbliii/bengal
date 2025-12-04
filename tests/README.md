@@ -1,6 +1,6 @@
 # Bengal Test Suite Guide
 
-Bengal's test suite emphasizes high coverage on the critical path (76-96%) with 2,297 tests, including 115 property-based (Hypothesis) tests generating 11,600+ examples. The suite runs in ~40s total but can be optimized to <20s for local development via parallelism, markers, and shared fixtures.
+Bengal's test suite emphasizes high coverage on the critical path (75-100%) with 4,150+ tests, including 116 property-based (Hypothesis) tests generating 11,600+ examples. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed coverage breakdown. The suite runs in ~40s total but can be optimized to <20s for local development via parallelism, markers, and shared fixtures.
 
 ## Quick Runs (~20s)
 Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), quiet output (`-q`), and profiling of top 10 slowest tests (`--durations=10`).
@@ -144,4 +144,4 @@ See `tests/performance/README.md` for details (e.g., 18-42x incremental speedup 
 
 For issues, check `tests/performance/PROFILING_GUIDE.md` or run `pytest --help`.
 
-Last Updated: October 14, 2025
+Last Updated: December 3, 2025

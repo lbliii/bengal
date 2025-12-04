@@ -1,17 +1,78 @@
-getting-started:
-  title: "Bengal Essentials"
-  description: "Master the basics of Bengal, from installation to creating your first theme."
+# Learning Tracks
+# Each track is a curated journey through Bengal documentation.
+# Keys must match track_id in the corresponding content/tracks/*.md page.
+
+zero-to-deployed:
+  title: "Zero to Deployed"
+  description: "Build and deploy your first Bengal site in under an hour."
+  duration: "45 min"
+  audience: "Complete beginners"
   items:
-    - docs/getting-started/installation.md
-    - docs/getting-started/writer-quickstart.md
-    - docs/getting-started/themer-quickstart.md
-    - docs/getting-started/contributor-quickstart.md
+    - docs/get-started/installation
+    - docs/get-started/quickstart-writer
+    - docs/tutorials/build-a-blog
+    - docs/building/deployment/_index
+    - docs/tutorials/automate-with-github-actions
 
 content-mastery:
-  title: "Content Mastery"
-  description: "Advanced techniques for organizing and managing documentation at scale."
+  title: "Content Author Mastery"
+  description: "Master advanced Markdown features, directives, and content reuse."
+  duration: "60 min"
+  audience: "Writers who completed quickstart"
   items:
-    - docs/guides/content-workflow.md
-    - docs/guides/content-reuse.md
-    - docs/guides/curated-tracks.md
-    - docs/guides/advanced-filtering.md
+    - docs/content/authoring/_index
+    - docs/reference/directives/_index
+    - docs/reference/directives/admonitions
+    - docs/reference/directives/layout
+    - docs/content/reuse/_index
+    - docs/content/reuse/snippets
+
+theme-developer:
+  title: "Theme Developer Journey"
+  description: "From CSS tweaks to building complete custom themes."
+  duration: "90 min"
+  audience: "Designers and frontend developers"
+  items:
+    - docs/get-started/quickstart-themer
+    - docs/theming/themes/customize
+    - docs/theming/recipes/_index
+    - docs/theming/recipes/reading-time
+    - docs/theming/recipes/list-recent-posts
+    - docs/theming/templating/_index
+    - docs/theming/templating/functions
+    - docs/theming/variables
+
+team-lead:
+  title: "Documentation Team Lead"
+  description: "Set up scalable documentation workflows with validation and CI/CD."
+  duration: "75 min"
+  audience: "Tech writers, doc managers, lead engineers"
+  items:
+    - docs/content/collections/_index
+    - docs/content/sources/_index
+    - docs/extending/validation/_index
+    - docs/building/configuration/_index
+    - docs/building/deployment/_index
+    - docs/tutorials/automate-with-github-actions
+
+migration-express:
+  title: "Migration Express"
+  description: "Migrate your existing static site to Bengal while preserving URLs."
+  duration: "60 min"
+  audience: "Hugo, Jekyll, Gatsby users"
+  items:
+    - docs/about/comparison
+    - docs/tutorials/migrate-from-hugo
+    - docs/content/organization/_index
+    - docs/content/organization/frontmatter
+    - docs/building/configuration/_index
+
+api-docs-specialist:
+  title: "API Documentation Specialist"
+  description: "Auto-generate API documentation from source code and specs."
+  duration: "60 min"
+  audience: "Developer advocates, API teams, SDK maintainers"
+  items:
+    - docs/extending/autodoc/_index
+    - docs/content/collections/_index
+    - docs/building/deployment/_index

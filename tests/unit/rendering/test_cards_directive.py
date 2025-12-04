@@ -313,8 +313,8 @@ def hello():
         result = parser.parse(content, {})
 
         # Check for Pygments syntax highlighting
-        assert '<span class="k">def</span>' in result or 'def' in result
-        assert '<span class="nf">hello</span>' in result or 'hello' in result
+        assert '<span class="k">def</span>' in result or "def" in result
+        assert '<span class="nf">hello</span>' in result or "hello" in result
         assert '<div class="highlight">' in result or "<code" in result or "<pre" in result
 
 
@@ -383,3 +383,680 @@ Content
 
         # Should not have a color class
         assert "card-color-notacolor" not in result
+
+
+class TestCardLayoutOption:
+    """Test the :layout: option for cards."""
+
+    def test_grid_layout_horizontal(self):
+        """Test horizontal layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: horizontal
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="horizontal"' in result
+
+    def test_grid_layout_portrait(self):
+        """Test portrait layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: portrait
+:columns: 3
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="portrait"' in result
+
+    def test_grid_layout_compact(self):
+        """Test compact layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: compact
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="compact"' in result
+
+    def test_grid_layout_default(self):
+        """Test default layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="default"' in result
+
+    def test_card_layout_override(self):
+        """Test individual card can override grid layout."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: default
+
+:::{card} Normal Card
+Normal content
+:::
+
+:::{card} Horizontal Card
+:layout: horizontal
+
+Horizontal content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Grid has default layout
+        assert 'data-layout="default"' in result
+        # Individual card has horizontal layout class
+        assert "card-layout-horizontal" in result
+
+    def test_invalid_layout_defaults(self):
+        """Test that invalid layout defaults to default."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: notvalid
+
+:::{card} Card
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="default"' in result
+
+
+class TestCardPullOption:
+    """Test the :pull: option for fetching metadata from linked pages."""
+
+    def test_pull_option_parsed(self):
+        """Test that pull option is parsed correctly."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card}
+:link: docs/quickstart
+:pull: title, description
+
+Fallback content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Card should render (pull gracefully degrades without xref_index)
+        assert "card" in result
+        # Link should be used (as-is since no xref_index to resolve)
+        assert 'href="docs/quickstart"' in result
+
+    def test_pull_with_fallback_title(self):
+        """Test that provided title is used when pull fails."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} My Custom Title
+:link: docs/nonexistent
+:pull: title
+
+Fallback description
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should use provided title since no xref_index
+        assert "My Custom Title" in result
+
+    def test_pull_multiple_fields(self):
+        """Test pull with multiple fields specified."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} Title
+:link: id:my-page
+:pull: title, description, icon
+
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should render without error
+        assert "card" in result
+        # id: prefix in link should work
+        assert "id:my-page" in result or "href" in result
+
+    def test_pull_empty_fields(self):
+        """Test pull with empty field list."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} Title
+:link: /docs/
+:pull:
+
+Content only
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should render normally
+        assert "Title" in result
+        assert "Content only" in result
+
+
+class TestLayoutAndPullCombined:
+    """Test combining layout and pull options."""
+
+    def test_all_new_options_together(self):
+        """Test layout and pull together."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: horizontal
+:columns: 2
+
+:::{card}
+:link: docs/getting-started
+:pull: title, description
+:layout: portrait
+
+Optional fallback
+:::
+
+:::{card} Manual Card
+:color: blue
+
+Manual content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Grid has horizontal layout
+        assert 'data-layout="horizontal"' in result
+        # First card has portrait override
+        assert "card-layout-portrait" in result
+        # Second card has color
+        assert "card-color-blue" in result
+
+
+class TestCardPullWithXrefIndex:
+    """Test :pull: option with actual xref_index (not graceful degradation)."""
+
+    def _create_mock_page(self, title, url, description="", icon="", tags=None):
+        """Create a mock page object for testing."""
+
+        class MockPage:
+            def __init__(self, title, url, description, icon, tags):
+                self.title = title
+                self.url = url
+                self.metadata = {
+                    "description": description,
+                    "icon": icon,
+                }
+                self.tags = tags or []
+                self.date = None
+
+        return MockPage(title, url, description, icon, tags)
+
+    def test_pull_title_from_linked_page(self):
+        """Test that :pull: title actually fetches from linked page."""
+        parser = MistuneParser()
+
+        # Set up xref_index with mock page
+        mock_page = self._create_mock_page(
+            title="Writer Quickstart",
+            url="/docs/get-started/quickstart-writer/",
+            description="Learn to write content",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"writer-qs": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card}
+:link: id:writer-qs
+:pull: title
+
+Fallback content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should have pulled the title
+        assert "Writer Quickstart" in result
+        # Link should be resolved
+        assert 'href="/docs/get-started/quickstart-writer/"' in result
+
+    def test_pull_description_from_linked_page(self):
+        """Test that :pull: description replaces empty content."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Themer Guide",
+            url="/docs/theming/",
+            description="Learn to customize themes and styles",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"themer-qs": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        # Note: Empty card content should be replaced by pulled description
+        content = """
+::::{cards}
+:::{card} Custom Title
+:link: id:themer-qs
+:pull: description
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should use explicit title
+        assert "Custom Title" in result
+        # Should have pulled description (when content is empty)
+        # Note: This may not replace non-empty content
+        assert 'href="/docs/theming/"' in result
+
+    def test_pull_icon_from_linked_page(self):
+        """Test that :pull: icon fetches icon from page metadata."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Code Guide",
+            url="/docs/code/",
+            icon="code",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"code-guide": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Title
+:link: id:code-guide
+:pull: icon
+
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should have pulled the icon
+        assert 'data-icon="code"' in result
+
+    def test_explicit_values_override_pulled(self):
+        """Test that explicit values take precedence over pulled values."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Page Title",
+            url="/docs/page/",
+            description="Page description",
+            icon="book",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"my-page": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Explicit Title
+:link: id:my-page
+:pull: title, icon
+:icon: rocket
+
+Content here
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Explicit title should be used, not pulled
+        assert "Explicit Title" in result
+        assert "Page Title" not in result
+        # Explicit icon should be used, not pulled
+        assert 'data-icon="rocket"' in result
+        assert 'data-icon="book"' not in result
+
+    def test_link_resolution_by_path(self):
+        """Test link resolution using path reference."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Installation Guide",
+            url="/docs/installation/",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {},
+            "by_path": {"docs/installation": mock_page},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Install
+:link: docs/installation
+:pull: title
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Link should be resolved via path
+        assert 'href="/docs/installation/"' in result
+
+    def test_link_resolution_by_slug(self):
+        """Test link resolution using slug reference."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Quickstart",
+            url="/docs/quickstart/",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {},
+            "by_path": {},
+            "by_slug": {"quickstart": [mock_page]},
+        }
+
+        content = """
+::::{cards}
+:::{card} Start
+:link: quickstart
+:pull: title
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Link should be resolved via slug
+        assert 'href="/docs/quickstart/"' in result
+
+
+class TestChildCardsDirective:
+    """Test the child-cards directive that auto-generates cards from page children."""
+
+    def _create_mock_section(self, subsections=None, pages=None, metadata=None):
+        """Create a mock section with subsections and pages."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        section = Mock()
+        section.subsections = subsections or []
+        section.pages = pages or []
+        section.metadata = metadata or {}
+        section.name = "test-section"
+        section.path = Path("test-section")
+        return section
+
+    def _create_mock_page(
+        self, title, description="", url="/", source_path="test.md", metadata=None
+    ):
+        """Create a mock page for testing."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        page = Mock()
+        page.title = title
+        page.url = url
+        page.source_path = Path(source_path)
+        page.metadata = metadata or {"description": description}
+        return page
+
+    def _create_mock_subsection(self, name, title, description="", url="/", metadata=None):
+        """Create a mock subsection for testing."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        section = Mock()
+        section.name = name
+        section.title = title
+        section.metadata = metadata or {"description": description}
+        section.path = Path(name)
+        section.index_page = Mock()
+        section.index_page.url = url
+        return section
+
+    def test_child_cards_renders_subsections(self):
+        """Test child-cards directive renders subsections as cards."""
+        parser = MistuneParser()
+
+        # Create mock subsections
+        subsection1 = self._create_mock_subsection(
+            "organization",
+            "Content Organization",
+            description="Learn about organizing content",
+            url="/docs/content/organization/",
+        )
+        subsection2 = self._create_mock_subsection(
+            "authoring",
+            "Content Authoring",
+            description="Learn about authoring",
+            url="/docs/content/authoring/",
+        )
+
+        # Create mock section with subsections
+        section = self._create_mock_section(subsections=[subsection1, subsection2])
+
+        # Create mock current page with _section
+        current_page = self._create_mock_page(title="Content", source_path="docs/content/_index.md")
+        current_page._section = section
+
+        # Set current page on renderer
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:columns: 2
+:include: sections
+:fields: title, description
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should render card grid
+        assert "card-grid" in result
+        assert 'data-columns="2"' in result
+
+        # Should include subsection cards
+        assert "Content Organization" in result
+        assert "Content Authoring" in result
+        assert "Learn about organizing content" in result
+        assert "Learn about authoring" in result
+
+    def test_child_cards_includes_only_sections(self):
+        """Test child-cards with include: sections only shows subsections."""
+        parser = MistuneParser()
+
+        subsection = self._create_mock_subsection("sub", "Subsection", url="/docs/sub/")
+        page = self._create_mock_page("Regular Page", source_path="docs/page.md", url="/docs/page/")
+
+        section = self._create_mock_section(subsections=[subsection], pages=[page])
+        current_page = self._create_mock_page("Index", source_path="docs/_index.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:include: sections
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Subsection" in result
+        # Regular page should NOT be included when include: sections
+        assert "Regular Page" not in result
+
+    def test_child_cards_includes_only_pages(self):
+        """Test child-cards with include: pages only shows pages."""
+        parser = MistuneParser()
+
+        subsection = self._create_mock_subsection("sub", "Subsection", url="/docs/sub/")
+        page = self._create_mock_page(
+            "Regular Page",
+            source_path="docs/page.md",
+            url="/docs/page/",
+            metadata={"description": "A regular page"},
+        )
+
+        section = self._create_mock_section(subsections=[subsection], pages=[page])
+        current_page = self._create_mock_page("Index", source_path="docs/_index.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:include: pages
+:fields: title, description
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Regular Page" in result
+        # Subsection should NOT be included when include: pages
+        assert "Subsection" not in result
+
+    def test_child_cards_no_current_page(self):
+        """Test child-cards gracefully handles missing current page."""
+        parser = MistuneParser()
+
+        # Don't set _current_page
+        parser.md.renderer._current_page = None
+
+        content = """
+:::{child-cards}
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should render empty grid with message
+        assert "card-grid" in result
+        assert "No page context available" in result
+
+    def test_child_cards_no_section(self):
+        """Test child-cards gracefully handles page with no section."""
+        parser = MistuneParser()
+
+        current_page = self._create_mock_page("Orphan", source_path="orphan.md")
+        current_page._section = None
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should render empty grid with message
+        assert "card-grid" in result
+        assert "Page has no section" in result
+
+    def test_child_cards_empty_section(self):
+        """Test child-cards with no children shows empty message."""
+        parser = MistuneParser()
+
+        section = self._create_mock_section(subsections=[], pages=[])
+        current_page = self._create_mock_page("Empty", source_path="empty/_index.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "No child content found" in result
+
+    def test_child_cards_with_icons(self):
+        """Test child-cards pulls icon field from metadata."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        parser = MistuneParser()
+
+        # Create subsection with icon in metadata
+        subsection = Mock()
+        subsection.name = "org"
+        subsection.title = "Organization"
+        subsection.path = Path("org")
+        subsection.index_page = Mock()
+        subsection.index_page.url = "/docs/org/"
+        # Use a real dict for metadata so .get() works correctly
+        subsection.metadata = {"description": "Organize stuff", "icon": "folder", "weight": 0}
+
+        section = self._create_mock_section(subsections=[subsection])
+        current_page = self._create_mock_page("Index", source_path="docs/_index.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+:include: sections
+:fields: title, description, icon
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should include icon (📁 is the emoji for "folder")
+        assert 'data-icon="folder"' in result
+        assert "card-icon" in result

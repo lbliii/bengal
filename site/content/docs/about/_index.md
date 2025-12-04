@@ -1,9 +1,9 @@
 ---
 title: About Bengal
-description: Why we built Bengal, how it compares to others, and core concepts.
+description: Philosophy, concepts, and comparisons
 weight: 5
 cascade:
-    type: doc
+  type: doc
 layout: list
 menu:
   main:
@@ -12,22 +12,17 @@ menu:
 
 # About Bengal
 
-Bengal is a static site generator for developers who want simplicity and performance.
+A Python-native static site generator built for simplicity and performance.
 
-It uses Python and Jinja2 templates with minimal configuration.
+## Why Bengal?
 
-## Core Concepts
+- **Python-native** — Use the tools you know (pip, venv, Jinja2)
+- **Parallel builds** — Free-threaded Python support for large sites
+- **Incremental builds** — Only rebuild what changed
+- **Zero JavaScript required** — Unless you want it
 
-Understand the architecture behind Bengal:
-
-- **[Configuration](concepts/configuration/)**: Learn how Bengal's configuration system works.
-- **[Assets](concepts/assets/)**: Understand the asset pipeline and optimization.
-- **[Content Organization](concepts/content-organization/)**: How pages, sections, and resources are structured.
-- **[Templating](concepts/templating/)**: Using Jinja2, shortcodes, and filters.
-- **[Output Formats](concepts/output-formats/)**: JSON, LLM-ready text, and other output formats.
-- **[Build Pipeline](concepts/build-pipeline/)**: How Bengal processes your site from start to finish.
-
-## FAQ & Comparison
-
-- **[Comparison](comparison/)**: How Bengal compares to Hugo, Jekyll, and others.
-- **[FAQ](faq/)**: Frequently asked questions.
+:::{child-cards}
+:columns: 2
+:include: all
+:fields: title, description, icon
+:::

@@ -245,3 +245,4 @@ class GitHubSource(ContentSource):
                 return current_sha != cached_checksum
 
         return True
+

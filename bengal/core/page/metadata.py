@@ -313,3 +313,183 @@ class PageMetadataMixin:
             # Split comma-separated keywords
             return [k.strip() for k in keywords.split(",")]
         return keywords if isinstance(keywords, list) else []
+
+    # =========================================================================
+    # Visibility System
+    # =========================================================================
+
+    @property
+    def hidden(self) -> bool:
+        """
+        Check if page is hidden (unlisted).
+
+        Hidden pages:
+        - Are excluded from navigation menus
+        - Are excluded from site.pages queries (listings)
+        - Are excluded from sitemap.xml
+        - Get noindex,nofollow robots meta
+        - Still render and are accessible via direct URL
+
+        Returns:
+            True if page is hidden
+
+        Example:
+            ```yaml
+            ---
+            title: Secret Page
+            hidden: true
+            ---
+            ```
+        """
+        return self.metadata.get("hidden", False)
+
+    @property
+    def visibility(self) -> dict[str, Any]:
+        """
+        Get visibility settings with defaults.
+
+        The visibility object provides granular control over page visibility:
+        - menu: Include in navigation menus (default: True)
+        - listings: Include in site.pages queries (default: True)
+        - sitemap: Include in sitemap.xml (default: True)
+        - robots: Robots meta directive (default: "index, follow")
+        - render: When to render - "always", "local", "never" (default: "always")
+        - search: Include in search index (default: True)
+        - rss: Include in RSS feeds (default: True)
+
+        If `hidden: true` is set, it expands to restrictive defaults.
+
+        Returns:
+            Dict with visibility settings
+
+        Example:
+            ```yaml
+            ---
+            title: Partially Hidden
+            visibility:
+              menu: false
+              listings: true
+              sitemap: true
+            ---
+            ```
+        """
+        # If hidden shorthand is used, return restrictive defaults
+        if self.metadata.get("hidden", False):
+            return {
+                "menu": False,
+                "listings": False,
+                "sitemap": False,
+                "robots": "noindex, nofollow",
+                "render": "always",
+                "search": False,
+                "rss": False,
+            }
+
+        # Otherwise, get visibility object with permissive defaults
+        vis = self.metadata.get("visibility", {})
+        return {
+            "menu": vis.get("menu", True),
+            "listings": vis.get("listings", True),
+            "sitemap": vis.get("sitemap", True),
+            "robots": vis.get("robots", "index, follow"),
+            "render": vis.get("render", "always"),
+            "search": vis.get("search", True),
+            "rss": vis.get("rss", True),
+        }
+
+    @property
+    def in_listings(self) -> bool:
+        """
+        Check if page should appear in listings/queries.
+
+        Excludes drafts and pages with visibility.listings=False.
+
+        Returns:
+            True if page should appear in site.pages queries
+        """
+        return self.visibility["listings"] and not self.draft
+
+    @property
+    def in_sitemap(self) -> bool:
+        """
+        Check if page should appear in sitemap.
+
+        Excludes drafts and pages with visibility.sitemap=False.
+
+        Returns:
+            True if page should appear in sitemap.xml
+        """
+        return self.visibility["sitemap"] and not self.draft
+
+    @property
+    def in_search(self) -> bool:
+        """
+        Check if page should appear in search index.
+
+        Excludes drafts and pages with visibility.search=False.
+
+        Returns:
+            True if page should appear in search index
+        """
+        return self.visibility["search"] and not self.draft
+
+    @property
+    def in_rss(self) -> bool:
+        """
+        Check if page should appear in RSS feeds.
+
+        Excludes drafts and pages with visibility.rss=False.
+
+        Returns:
+            True if page should appear in RSS feeds
+        """
+        return self.visibility["rss"] and not self.draft
+
+    @property
+    def robots_meta(self) -> str:
+        """
+        Get robots meta content for this page.
+
+        Returns:
+            Robots directive string (e.g., "index, follow" or "noindex, nofollow")
+        """
+        return self.visibility["robots"]
+
+    @property
+    def should_render(self) -> bool:
+        """
+        Check if page should be rendered based on visibility.render setting.
+
+        Note: This checks the render setting but doesn't know about environment.
+        Use should_render_in_environment() for environment-aware checks.
+
+        Returns:
+            True if render is not "never"
+        """
+        return self.visibility["render"] != "never"
+
+    def should_render_in_environment(self, is_production: bool = False) -> bool:
+        """
+        Check if page should be rendered in the given environment.
+
+        Args:
+            is_production: True if building for production
+
+        Returns:
+            True if page should be rendered in this environment
+
+        Example:
+            ```yaml
+            ---
+            visibility:
+              render: local  # Only in dev server
+            ---
+            ```
+        """
+        render = self.visibility["render"]
+
+        if render == "never":
+            return False
+        if render == "local" and is_production:
+            return False
+        return True

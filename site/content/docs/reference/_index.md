@@ -1,9 +1,9 @@
 ---
 title: Reference
-description: Technical reference documentation for Bengal.
-weight: 30
+description: Technical specifications, directives, and architecture
+weight: 40
 cascade:
-    type: doc
+  type: doc
 menu:
   main:
     weight: 30
@@ -11,10 +11,25 @@ menu:
 
 # Reference
 
-Detailed technical documentation for Bengal's APIs, configuration, and variables.
+Complete technical documentation for Bengal's APIs, syntax, and internals.
 
-## Documentation Sections
+## What Do You Need?
 
-- **[Directives](/docs/reference/directives/)** - Complete reference for all markdown directives
-- **[Architecture](/docs/reference/architecture/)** - Technical architecture documentation
-- **[Theme Variables](/docs/reference/theme-variables/)** - Available theme variables
+:::{child-cards}
+:columns: 2
+:include: sections
+:fields: title, description, icon
+:::
+
+## Reference vs Guides
+
+| Looking for... | Go to... |
+|----------------|----------|
+| "How do I use tabs?" | [Directives Reference](./directives/) |
+| "How do I build a tabbed interface?" | [Theming → Templating](/docs/theming/templating/) |
+| "What's the build pipeline?" | [Architecture](./architecture/) |
+| "How do I speed up builds?" | [Building → Performance](/docs/building/performance/) |
+
+:::{note}
+**Reference** documents *what* is available (exhaustive, lookup-oriented). **Guides** explain *how* to accomplish tasks (goal-oriented). Use reference when you know what you're looking for.
+:::

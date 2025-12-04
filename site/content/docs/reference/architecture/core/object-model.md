@@ -281,3 +281,75 @@ classDiagram
         +subsections: List~Section~
     }
 ```
+
+## Object Tree Access in Directives
+
+As of v0.1.5, the object tree is directly accessible to MyST directives during markdown parsing. This enables powerful navigation directives like `{child-cards}`, `{breadcrumbs}`, `{siblings}`, and `{prev-next}`.
+
+### How It Works
+
+During markdown rendering, the `MistuneParser` sets `renderer._current_page` to the page being rendered:
+
+```python
+# In MistuneParser.parse_with_context
+self._shared_renderer._current_page = current_page
+```
+
+Directives can then access the full object tree:
+
+```python
+# In a directive
+current_page = getattr(renderer, "_current_page", None)
+if current_page:
+    section = current_page._section  # Parent section
+    subsections = section.subsections  # Child sections
+    pages = section.pages  # Sibling pages
+```
+
+### Performance Characteristics
+
+| Access Pattern | Complexity | Notes |
+|---------------|------------|-------|
+| `page._section` | O(1) | Direct reference |
+| `section.subsections` | O(1) | Pre-computed list |
+| `section.pages` | O(1) | Pre-computed list |
+| `page.ancestors` | O(depth) | Walks up tree |
+| `page.related_posts` | O(n) | Tag matching |
+
+### Available on Page Object
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `_section` | Section | Parent section |
+| `metadata` | dict | Frontmatter values |
+| `title` | str | Page title |
+| `url` | str | Page URL |
+| `ancestors` | list | Parent sections to root |
+| `prev_in_section` | Page | Previous page |
+| `next_in_section` | Page | Next page |
+| `related_posts` | list | Pages with matching tags |
+
+### Available on Section Object
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | str | Section name |
+| `index_page` | Page | Section's `_index.md` |
+| `pages` | list | Direct child pages |
+| `subsections` | list | Child sections |
+| `sorted_pages` | list | Pages sorted by weight/date |
+
+### Writer Usage
+
+Writers use navigation directives in markdown without knowing the implementation:
+
+```markdown
+:::{child-cards}
+:columns: 2
+:include: sections
+:::
+```
+
+The directive walks `page._section.subsections` to generate cards automatically.
+
+See [Navigation Directives](/docs/reference/directives/navigation/) for full reference.

@@ -461,3 +461,4 @@ class NotionSource(ContentSource):
         slug = re.sub(r"[^\w\s-]", "", slug)
         slug = re.sub(r"[-\s]+", "-", slug)
         return slug.strip("-")
+

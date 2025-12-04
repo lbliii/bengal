@@ -166,6 +166,80 @@ class RenderingPipeline:
         # Optional build context for future DI (e.g., caches, reporters)
         self.build_context = build_context
 
+    def _build_variable_context(self, page: Page) -> dict:
+        """
+        Build Hugo-style variable context for {{ variable }} substitution.
+
+        This creates a rich context that allows writers to access data in multiple ways:
+
+        Hugo-style shortcuts:
+            {{ product_name }}     - Direct from frontmatter (most ergonomic!)
+            {{ params.version }}   - Hugo .Params style access
+            {{ meta.beta }}        - Short alias for page.metadata
+
+        Full path access:
+            {{ page.title }}       - Page properties
+            {{ page.metadata.x }}  - Explicit frontmatter access
+            {{ site.config.x }}    - Site configuration
+            {{ config.baseurl }}   - Config shortcut
+
+        Section access:
+            {{ section.title }}    - Parent section title
+            {{ section.params.x }} - Section metadata (for cascaded values)
+
+        Example markdown:
+            Welcome to {{ product_name }}!
+            Version: {{ version }}
+            Beta: {{ beta }}
+
+            Site: {{ site.config.title }}
+            Section: {{ section.title }}
+
+        Args:
+            page: Page being rendered
+
+        Returns:
+            Context dict with all variable shortcuts
+        """
+        context: dict = {}
+
+        # Core objects (always available)
+        context["page"] = page
+        context["site"] = self.site
+        context["config"] = self.site.config
+
+        # Hugo-style shortcuts
+        # params → page.metadata (like Hugo .Params)
+        context["params"] = page.metadata if hasattr(page, "metadata") else {}
+        # meta → shorter alias
+        context["meta"] = context["params"]
+
+        # Direct frontmatter access (most Hugo-like!)
+        # {{ product_name }} instead of {{ page.metadata.product_name }}
+        if hasattr(page, "metadata") and page.metadata:
+            for key, value in page.metadata.items():
+                # Don't override core objects or private keys
+                if key not in context and not key.startswith("_"):
+                    context[key] = value
+
+        # Section access (for cascaded values)
+        section = getattr(page, "_section", None)
+        if section:
+            section_context = {
+                "title": getattr(section, "title", ""),
+                "name": getattr(section, "name", ""),
+                "path": str(getattr(section, "path", "")),
+                "params": section.metadata if hasattr(section, "metadata") else {},
+            }
+            context["section"] = type("Section", (), section_context)()
+        else:
+            # Empty section context for pages without section
+            context["section"] = type(
+                "Section", (), {"title": "", "name": "", "path": "", "params": {}}
+            )()
+
+        return context
+
     def process_page(self, page: Page) -> None:
         """
         Process a single page through the entire pipeline.
@@ -299,7 +373,8 @@ class RenderingPipeline:
                     toc = ""
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
-                context = {"page": page, "site": self.site, "config": self.site.config}
+                # Build rich context for Hugo-style variable access
+                context = self._build_variable_context(page)
 
                 if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(

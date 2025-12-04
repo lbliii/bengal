@@ -27,7 +27,8 @@ See: plan/active/rfc-template-performance-optimization.md
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     {# Title - uses cached variables #}
-    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% endif %}{% endblock %}
+    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{%
+        endif %}{% endblock %}
     </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
@@ -43,10 +44,14 @@ See: plan/active/rfc-template-performance-optimization.md
     <meta name="keywords" content="{{ _page.tags | meta_keywords(10) }}">
     {% endif %}
 
+    {# Robots directive for hidden/unlisted pages #}
+    {% if _has_page and _page.robots_meta is defined and _page.robots_meta != 'index, follow' %}
+    <meta name="robots" content="{{ _page.robots_meta }}">
+    {% endif %}
+
     {# Open Graph / Facebook #}
     <meta property="og:type" content="{% if _has_page %}article{% else %}website{% endif %}">
-    <meta property="og:title"
-        content="{{ _page_title if _page_title else _site_title }}">
+    <meta property="og:title" content="{{ _page_title if _page_title else _site_title }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
@@ -174,7 +179,7 @@ See: plan/active/rfc-template-performance-optimization.md
 </head>
 
 <body
-    class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
+    class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in site.theme_config.features %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -460,14 +465,14 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Lazy-loaded Libraries - URLs injected here, logic in external file #}
     <script>
-    window.BENGAL_LAZY_ASSETS={
-        tabulator:'{{ asset_url("js/tabulator.min.js") }}',
-        dataTable:'{{ asset_url("js/data-table.js") }}',
-        mermaidToolbar:'{{ asset_url("js/mermaid-toolbar.js") }}',
-        mermaidTheme:'{{ asset_url("js/mermaid-theme.js") }}',
-        graphMinimap:'{{ asset_url("js/graph-minimap.js") }}',
-        graphContextual:'{{ asset_url("js/graph-contextual.js") }}'
-    };
+        window.BENGAL_LAZY_ASSETS = {
+            tabulator: '{{ asset_url("js/tabulator.min.js") }}',
+            dataTable: '{{ asset_url("js/data-table.js") }}',
+            mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
+            mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}',
+            graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
+            graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
+        };
     </script>
     <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
 

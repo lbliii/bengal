@@ -47,8 +47,9 @@ class RSSGenerator:
         Raises:
             Exception: If RSS generation or file writing fails
         """
-        # Check for any pages with dates first
-        pages_with_dates = [p for p in self.site.pages if p.date]
+        # Check for any pages with dates first (also filter by visibility)
+        # in_rss checks visibility.rss AND not draft
+        pages_with_dates = [p for p in self.site.pages if p.date and p.in_rss]
         if not pages_with_dates:
             self.logger.info(
                 "rss_skipped",
@@ -80,7 +81,7 @@ class RSSGenerator:
             pages_with_dates = [
                 p
                 for p in self.site.pages
-                if p.date and (strategy == "none" or getattr(p, "lang", default_lang) == code)
+                if p.date and p.in_rss and (strategy == "none" or getattr(p, "lang", default_lang) == code)
             ]
             sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
 

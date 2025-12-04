@@ -9,7 +9,7 @@ description: "Link Transformer - Prepends baseurl to internal links in rendered 
 
 # link_transformer
 **Type:** Module
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/rendering/link_transformer.py#L1)
+**Source:** [View source](bengal/bengal/rendering/link_transformer.py#L1)
 
 
 
@@ -45,7 +45,7 @@ def transform_internal_links(html: str, baseurl: str) -> str
 
 Transform internal links to include baseurl prefix.
 
-This function finds all <a href="/..."> and <img src="/..."> tags
+This function finds all ``<a href="/...">`` and ``<img src="/...">`` tags
 where the path starts with "/" and prepends the baseurl.
 
 

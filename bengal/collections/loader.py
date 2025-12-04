@@ -195,3 +195,4 @@ def validate_collections_config(
             warnings.append(f"Collection '{name}' path is not a directory: {collection_dir}")
 
     return warnings
+

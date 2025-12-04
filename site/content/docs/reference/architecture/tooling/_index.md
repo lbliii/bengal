@@ -1,22 +1,64 @@
 ---
 title: Tooling & CLI
-description: Developer tools, CLI, server, and configuration.
+description: Developer tools, CLI, server, and configuration
 weight: 40
-type: doc
-category: tooling
-tags: [tooling, cli, server, config, utils, developer-tools]
-keywords: [tooling, CLI, server, configuration, utilities, developer tools]
 cascade:
   type: doc
 ---
 
 # Tooling & CLI
 
-The interfaces and tools for developers using Bengal.
+Developer interfaces for working with Bengal.
 
-## In This Section
+## Tool Architecture
 
-- **[CLI](cli/)**: Command-line interface structure and commands.
-- **[Development Server](server/)**: Live-reloading dev server.
-- **[Configuration](config/)**: Configuration loading and environment handling.
-- **[Utilities](utils/)**: Shared utility modules.
+```mermaid
+flowchart TB
+    subgraph "User Interface"
+        CLI[CLI Commands]
+        Server[Dev Server]
+    end
+    
+    subgraph "Configuration"
+        Config[Config Loader]
+        Env[Environment]
+    end
+    
+    subgraph "Core"
+        Site[Site]
+        Build[Build System]
+    end
+    
+    CLI --> Config
+    Server --> Config
+    Config --> Site
+    Site --> Build
+    Server -.->|watches| Build
+```
+
+## Component Overview
+
+| Component | Purpose | Key Features |
+|-----------|---------|--------------|
+| **CLI** | Command interface | Typer-based, auto-generated help |
+| **Dev Server** | Local development | Live reload, WebSocket updates |
+| **Config** | Settings loader | TOML/YAML, environment merging |
+| **Utils** | Shared utilities | Progress reporting, file handling |
+
+## CLI Architecture
+
+The CLI uses [Typer](https://typer.tiangolo.com/) with command groups:
+
+```
+bengal
+├── build      # Build site
+├── serve      # Dev server
+├── new        # Scaffolding
+├── validate   # Health checks
+├── autodoc    # Documentation generation
+└── analyze    # Site analysis
+```
+
+:::{tip}
+The CLI is fully documented via autodoc. See [CLI Reference](/cli/) for complete command documentation.
+:::

@@ -32,6 +32,10 @@ class DropdownDirective(DirectivePlugin):
         ````
     """
 
+    # Directive names this class registers (for health check introspection)
+    # "details" is an alias for Sphinx-Design compatibility
+    DIRECTIVE_NAMES = ["dropdown", "details"]
+
     def parse(self, block, m, state):
         """Parse dropdown directive with nested content support."""
         title = self.parse_title(m)

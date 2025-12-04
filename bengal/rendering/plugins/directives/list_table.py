@@ -46,6 +46,9 @@ class ListTableDirective(DirectivePlugin):
     - :class: CSS class for the table
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["list-table"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse list-table directive.

@@ -67,6 +67,9 @@ class IncludeDirective(DirectivePlugin):
     Security: Only allows paths within the site root to prevent path traversal.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["include"]
+
     def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
         """
         Parse include directive.

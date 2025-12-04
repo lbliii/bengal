@@ -125,6 +125,13 @@ def create_build_pipeline(
             _site=site,
         )
 
+    # Determine if this is a production build for visibility filtering
+    is_production = not site.config.get("dev_server", False)
+
+    def should_render_page(page: Page) -> bool:
+        """Check if page should be rendered based on visibility settings."""
+        return page.should_render_in_environment(is_production=is_production)
+
     def render_page(page: Page) -> RenderedPage:
         """Render page using Bengal's renderer."""
         renderer = get_renderer()
@@ -151,6 +158,7 @@ def create_build_pipeline(
         Pipeline("bengal-build")
         .source("discover", discover_and_parse)
         .map("create_page", create_page)
+        .filter("visibility_filter", should_render_page)
         .map("render", render_page)
         .for_each("write", write_page)
     )
@@ -304,7 +312,26 @@ def create_simple_pipeline(
 
     from bengal.rendering.pipeline import RenderingPipeline
 
-    pages_to_render = pages if pages is not None else list(site.pages)
+    all_pages = pages if pages is not None else list(site.pages)
+
+    # Filter pages based on visibility.render setting
+    # In dev server (dev_server=True), render "always" and "local" pages
+    # In production (dev_server=False), only render "always" pages
+    is_production = not site.config.get("dev_server", False)
+    pages_to_render = [
+        p for p in all_pages
+        if p.should_render_in_environment(is_production=is_production)
+    ]
+
+    if len(pages_to_render) < len(all_pages):
+        skipped = len(all_pages) - len(pages_to_render)
+        logger.info(
+            "pages_filtered_by_visibility",
+            total=len(all_pages),
+            rendering=len(pages_to_render),
+            skipped=skipped,
+            is_production=is_production,
+        )
 
     # Thread-local storage for pipeline instances (same pattern as RenderOrchestrator)
     _thread_local = threading.local()

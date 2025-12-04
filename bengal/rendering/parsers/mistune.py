@@ -6,6 +6,8 @@ import html as html_module
 import re
 from typing import Any, override
 
+from mistune.renderers.html import HTMLRenderer
+
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.utils.logger import get_logger
 
@@ -106,13 +108,26 @@ class MistuneParser(BaseMarkdownParser):
         if self.enable_highlighting:
             plugins.append(self._create_syntax_highlighting_plugin())
 
+        # ARCHITECTURE: Shared Renderer Pattern
+        # ======================================
+        # We create a SINGLE HTMLRenderer instance that is shared across all
+        # Markdown parser instances (self.md, self._md_with_vars, etc.).
+        #
+        # This ensures that renderer-level state (like _xref_index for the cards
+        # :pull: directive) is automatically available to ALL parsing operations,
+        # regardless of which internal Markdown instance is used.
+        #
+        # Previously, each Markdown instance created its own renderer, requiring
+        # manual state synchronization that was error-prone and easy to forget.
+        self._shared_renderer = HTMLRenderer()
+
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
         # Note: Cross-references added via enable_cross_references() when xref_index available
         # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
         self.md = mistune.create_markdown(
             plugins=plugins,
-            renderer="html",
+            renderer=self._shared_renderer,  # Use shared renderer
         )
 
         # Cache for mistune library (import on first use)
@@ -348,13 +363,41 @@ class MistuneParser(BaseMarkdownParser):
             if self.enable_highlighting:
                 var_plugins.append(self._create_syntax_highlighting_plugin())
 
+            # Use the SAME shared renderer as self.md
+            # This ensures xref_index and other renderer state is automatically shared
             self._md_with_vars = self._mistune.create_markdown(
                 plugins=var_plugins,
-                renderer="html",
+                renderer=self._shared_renderer,
             )
         else:
             # Just update the context on existing plugin (fast!)
             self._var_plugin.update_context(context)
+
+        # Store current page on renderer for directive access
+        # This enables directives (cards, etc.) to access page._section.subsections directly
+        # Much cleaner than xref_index lookups!
+        current_page = context.get("page") if "page" in context else None
+        self._shared_renderer._current_page = current_page
+
+        # Store site on renderer for directive access
+        # This enables directives (glossary, data_table, etc.) to access site.data and site.root_path
+        site = context.get("site")
+        self._shared_renderer._site = site
+
+        # Also store content-relative path for backward compatibility
+        if current_page and hasattr(current_page, "source_path"):
+            page_source = current_page.source_path
+            source_str = str(page_source)
+            if source_str.endswith("/_index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-10]
+            elif source_str.endswith("/index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-9]
+            elif "/" in source_str:
+                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]
+            else:
+                self._shared_renderer._current_page_dir = ""
+        else:
+            self._shared_renderer._current_page_dir = None
 
         try:
             # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
@@ -462,6 +505,8 @@ class MistuneParser(BaseMarkdownParser):
         Should be called after content discovery when xref_index is built.
         Creates CrossReferencePlugin for post-processing HTML output.
 
+        Also stores xref_index on the renderer for directive access (e.g., cards :pull:).
+
         Performance: O(1) - just stores reference to index
         Thread-safe: Each thread-local parser instance needs this called once
 
@@ -483,6 +528,8 @@ class MistuneParser(BaseMarkdownParser):
             # Already enabled, just update index
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
+            # Update shared renderer (automatically available to all Markdown instances)
+            self._shared_renderer._xref_index = xref_index
             return
 
         from bengal.rendering.plugins import CrossReferencePlugin
@@ -490,6 +537,11 @@ class MistuneParser(BaseMarkdownParser):
         # Create plugin instance (for post-processing HTML)
         self._xref_plugin = CrossReferencePlugin(xref_index)
         self._xref_enabled = True
+
+        # Store xref_index on shared renderer for directive access (e.g., cards :pull: option)
+        # Because we use a shared renderer, this is automatically available to ALL
+        # Markdown instances (self.md, self._md_with_vars, etc.)
+        self._shared_renderer._xref_index = xref_index
 
     # =========================================================================
     # AST Support (Phase 3 of RFC)

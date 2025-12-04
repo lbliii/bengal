@@ -12,11 +12,9 @@ Admonitions create styled callout boxes for notes, warnings, tips, and other imp
 
 ## Key Terms
 
-Admonition
-:   A styled callout box that draws attention to important information. Available in multiple types (note, warning, tip, danger, etc.) with distinct visual styling.
-
-Callout
-:   Another name for an admonition - a visual box that highlights important content separate from the main text flow.
+:::{glossary}
+:tags: admonitions
+:::
 
 ## Syntax
 

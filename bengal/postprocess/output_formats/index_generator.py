@@ -278,6 +278,14 @@ class SiteIndexGenerator:
         if metadata.get("search_exclude"):
             summary["search_exclude"] = True
 
+        # Visibility system integration
+        # Check hidden frontmatter or visibility.search setting
+        if metadata.get("hidden", False):
+            summary["search_exclude"] = True
+        elif isinstance(metadata.get("visibility"), dict):
+            if not metadata["visibility"].get("search", True):
+                summary["search_exclude"] = True
+
         # API/CLI specific
         if metadata.get("cli_name"):
             summary["cli_name"] = metadata["cli_name"]

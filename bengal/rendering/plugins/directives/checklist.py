@@ -32,6 +32,9 @@ class ChecklistDirective(DirectivePlugin):
     The directive wraps the list in a styled container for visual emphasis.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["checklist"]
+
     def parse(self, block, m, state):
         """Parse checklist directive."""
         title = self.parse_title(m)

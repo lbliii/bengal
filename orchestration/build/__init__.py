@@ -445,3 +445,4 @@ class BuildOrchestrator:
     def _phase_finalize(self, verbose: bool, collector) -> None:
         """Phase 21: Finalize Build."""
         finalization.phase_finalize(self, verbose, collector)
+

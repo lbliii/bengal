@@ -12,26 +12,9 @@ Formatting directives provide styled components for badges, buttons, step-by-ste
 
 ## Key Terms
 
-Badge
-:   A small styled label for tags, status indicators, or labels. Renders as an inline element with customizable CSS classes.
-
-Button
-:   A styled link element that appears as a button. Supports colors, sizes, icons, and link targets for calls-to-action.
-
-Steps Container
-:   A container directive (`{steps}`) that groups multiple step directives together. Requires 4 fences minimum (`::::`).
-
-Step
-:   An individual step directive (`{step}`) within a steps container. Contains content for one step in a sequential guide.
-
-Checklist
-:   A styled container for bullet lists and task lists. Provides visual styling for prerequisites, requirements, or task tracking.
-
-Rubric
-:   A pseudo-heading that looks like a heading but doesn't appear in the table of contents. Perfect for API documentation section labels.
-
-List Table
-:   A table created from nested lists, avoiding pipe character conflicts in type annotations. Useful for Python type hints and complex data structures.
+:::{glossary}
+:tags: formatting
+:::
 
 ## Badge
 

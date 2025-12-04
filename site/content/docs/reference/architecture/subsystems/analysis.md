@@ -324,5 +324,5 @@ All commands support multiple output formats:
 - **Autodoc Filtering**: API reference pages are excluded by default for cleaner analysis
 - **Multiple Export Formats**: Export results for further analysis or reporting
 
-See [Graph Analysis Guide](/docs/guides/graph-analysis/) for detailed usage examples and workflows.
+See [Graph Analysis](/docs/extending/analysis/graph/) for detailed usage examples and workflows.
 See [CLI Commands](/cli/utils/graph/) section for complete command reference.

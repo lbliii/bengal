@@ -1142,3 +1142,153 @@ html:not([data-devtools-open]) .feature-cards > * {
   margin-bottom: var(--space-2);
   font-size: var(--text-base);
 }
+
+/* ============================================
+   LAYOUT VARIANTS
+   Controlled via :layout: option on cards/card
+   ============================================ */
+
+/* --------------------------------------------
+   HORIZONTAL LAYOUT
+   Image left, content right (landscape cards)
+   -------------------------------------------- */
+
+.card-grid[data-layout="horizontal"] .card,
+.card.card-layout-horizontal {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.card-grid[data-layout="horizontal"] .card-image,
+.card.card-layout-horizontal .card-image {
+  width: 180px;
+  min-width: 180px;
+  height: auto;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+}
+
+.card-grid[data-layout="horizontal"] .card-header,
+.card.card-layout-horizontal .card-header {
+  border-bottom: none;
+  padding-bottom: var(--space-2);
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 639px) {
+  .card-grid[data-layout="horizontal"] .card,
+  .card.card-layout-horizontal {
+    flex-direction: column;
+  }
+
+  .card-grid[data-layout="horizontal"] .card-image,
+  .card.card-layout-horizontal .card-image {
+    width: 100%;
+    min-width: unset;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}
+
+/* --------------------------------------------
+   PORTRAIT LAYOUT
+   Tall aspect ratio (TCG/phone style cards)
+   -------------------------------------------- */
+
+.card-grid[data-layout="portrait"] {
+  /* Adjust grid for portrait cards */
+  justify-items: center;
+}
+
+.card-grid[data-layout="portrait"] .card,
+.card.card-layout-portrait {
+  aspect-ratio: 2 / 3;
+  max-width: 280px;
+  width: 100%;
+}
+
+.card-grid[data-layout="portrait"] .card-image,
+.card.card-layout-portrait .card-image {
+  aspect-ratio: 4 / 3;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.card-grid[data-layout="portrait"] .card-content,
+.card.card-layout-portrait .card-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.card-grid[data-layout="portrait"] .card-content p,
+.card.card-layout-portrait .card-content p {
+  /* Limit text in portrait cards */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Portrait cards on mobile: slightly smaller */
+@media (max-width: 639px) {
+  .card-grid[data-layout="portrait"] .card,
+  .card.card-layout-portrait {
+    max-width: 240px;
+  }
+}
+
+/* --------------------------------------------
+   COMPACT LAYOUT
+   Dense, minimal padding for reference lists
+   -------------------------------------------- */
+
+.card-grid[data-layout="compact"] .card,
+.card.card-layout-compact {
+  /* Tighter overall */
+}
+
+.card-grid[data-layout="compact"] .card-header,
+.card.card-layout-compact .card-header {
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+}
+
+.card-grid[data-layout="compact"] .card-content,
+.card.card-layout-compact .card-content {
+  padding: var(--space-3) var(--space-4);
+}
+
+.card-grid[data-layout="compact"] .card-footer,
+.card.card-layout-compact .card-footer {
+  padding: var(--space-2) var(--space-4);
+}
+
+.card-grid[data-layout="compact"] .card-title,
+.card.card-layout-compact .card-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.card-grid[data-layout="compact"] .card-content p,
+.card.card-layout-compact .card-content p {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.card-grid[data-layout="compact"] .card-icon,
+.card.card-layout-compact .card-icon {
+  font-size: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.card-grid[data-layout="compact"] .card-image,
+.card.card-layout-compact .card-image {
+  aspect-ratio: 2 / 1;
+}
+
+/* Compact layout gap reduction */
+.card-grid[data-layout="compact"] {
+  gap: var(--space-3);
+}
