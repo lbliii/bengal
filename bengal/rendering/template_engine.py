@@ -52,14 +52,47 @@ class TemplateEngine:
     """
     Template engine for rendering pages with Jinja2 templates.
 
+    Provides Jinja2 template rendering with theme inheritance, template function
+    registration, asset manifest access, and optional template profiling. Manages
+    template discovery through theme chains and provides cache-busting via asset manifest.
+
+    Creation:
+        Direct instantiation: TemplateEngine(site, profile_templates=False)
+            - Created by RenderingPipeline for template rendering
+            - Requires Site instance with theme configuration
+            - Optional profiling enabled via profile_templates flag
+
+    Attributes:
+        site: Site instance with theme and configuration
+        template_dirs: List of template directories (populated during init)
+        env: Jinja2 Environment instance
+        _profile_templates: Whether template profiling is enabled
+        _profiler: Optional TemplateProfiler for performance analysis
+        _dependency_tracker: Optional DependencyTracker (set by RenderingPipeline)
+        _asset_manifest_cache: Cached asset manifest entries
+
+    Relationships:
+        - Uses: Theme resolution for template directory discovery
+        - Uses: Template functions for template function registration
+        - Uses: AssetManifest for cache-busting asset URLs
+        - Used by: RenderingPipeline for template rendering
+        - Used by: Renderer for page rendering
+
     Notes:
-    - Bytecode cache: When enabled via config, compiled templates are cached under
-      `output/.bengal-cache/templates` using a stable filename pattern. Jinja2 invalidates
-      entries when source templates change.
-    - Strict mode and auto reload: `strict_mode` enables `StrictUndefined`; `dev_server`
-      enables `auto_reload` for faster iteration.
-    - Include/extends cycles: Cycle detection is delegated to Jinja2. Recursive includes or
-      self-extends surface as `TemplateError` or `RecursionError` from Jinja2 during render.
+        - Bytecode cache: When enabled via config, compiled templates are cached under
+          `output/.bengal-cache/templates` using a stable filename pattern. Jinja2 invalidates
+          entries when source templates change.
+        - Strict mode and auto reload: `strict_mode` enables `StrictUndefined`; `dev_server`
+          enables `auto_reload` for faster iteration.
+        - Include/extends cycles: Cycle detection is delegated to Jinja2. Recursive includes or
+          self-extends surface as `TemplateError` or `RecursionError` from Jinja2 during render.
+
+    Thread Safety:
+        Thread-safe. Each thread should have its own TemplateEngine instance.
+
+    Examples:
+        engine = TemplateEngine(site, profile_templates=True)
+        html = engine.render_template("page.html", {"page": page})
     """
 
     def __init__(self, site: Any, profile_templates: bool = False) -> None:

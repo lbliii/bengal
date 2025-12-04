@@ -76,12 +76,34 @@ _thread_local = threading.local()
 
 class RenderOrchestrator:
     """
-    Handles page rendering.
+    Orchestrates page rendering in sequential or parallel modes.
 
-    Responsibilities:
-        - Sequential page rendering
-        - Parallel page rendering with thread-local pipelines
-        - Pipeline creation and management
+    Handles page rendering with support for free-threaded Python for true
+    parallelism. Manages thread-local rendering pipelines and integrates
+    with dependency tracking for incremental builds.
+
+    Creation:
+        Direct instantiation: RenderOrchestrator(site)
+            - Created by BuildOrchestrator during build
+            - Requires Site instance with pages populated
+
+    Attributes:
+        site: Site instance containing pages and configuration
+        _free_threaded: Whether running on free-threaded Python (GIL disabled)
+
+    Relationships:
+        - Uses: RenderingPipeline for individual page rendering
+        - Uses: DependencyTracker for dependency tracking
+        - Uses: BuildStats for build statistics collection
+        - Used by: BuildOrchestrator for rendering phase
+
+    Thread Safety:
+        Thread-safe for parallel rendering. Uses thread-local pipelines
+        to avoid contention. Detects free-threaded Python automatically.
+
+    Examples:
+        orchestrator = RenderOrchestrator(site)
+        orchestrator.process(pages, parallel=True, tracker=tracker, stats=stats)
     """
 
     def __init__(self, site: Site):

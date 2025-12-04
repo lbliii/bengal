@@ -93,14 +93,45 @@ def _get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
 
 class RenderingPipeline:
     """
-    Coordinates the entire rendering process for content.
+    Coordinates the entire rendering process for content pages.
 
-    Pipeline stages:
-    1. Parse source content (Markdown, etc.)
-    2. Build Abstract Syntax Tree (AST)
-    3. Apply templates
-    4. Render output (HTML)
-    5. Write to output directory
+    Orchestrates the complete rendering pipeline from markdown parsing through
+    template rendering to final HTML output. Manages thread-local parser instances
+    for performance and integrates with dependency tracking for incremental builds.
+
+    Creation:
+        Direct instantiation: RenderingPipeline(site, dependency_tracker=None, ...)
+            - Created by RenderOrchestrator for page rendering
+            - One instance per worker thread (thread-local)
+            - Requires Site instance with config
+
+    Attributes:
+        site: Site instance with config and xref_index
+        parser: Thread-local markdown parser (cached per thread)
+        dependency_tracker: Optional DependencyTracker for incremental builds
+        quiet: Whether to suppress per-page output
+        build_stats: Optional BuildStats for error collection
+
+    Pipeline Stages:
+        1. Parse source content (Markdown, etc.)
+        2. Build Abstract Syntax Tree (AST)
+        3. Apply templates (Jinja2)
+        4. Render output (HTML)
+        5. Write to output directory
+
+    Relationships:
+        - Uses: TemplateEngine for template rendering
+        - Uses: Renderer for individual page rendering
+        - Uses: DependencyTracker for dependency tracking
+        - Used by: RenderOrchestrator for page rendering
+
+    Thread Safety:
+        Thread-safe. Uses thread-local parser instances. Each thread should
+        have its own RenderingPipeline instance.
+
+    Examples:
+        pipeline = RenderingPipeline(site, dependency_tracker=tracker)
+        pipeline.render_page(page)
     """
 
     def __init__(

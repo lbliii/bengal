@@ -31,15 +31,34 @@ from bengal.utils.logger import get_logger
 
 class SitemapGenerator:
     """
-    Generates XML sitemap for SEO.
+    Generates XML sitemap for SEO and search engine discovery.
 
-    Creates a sitemap.xml file listing all pages with metadata like:
-    - URL location
-    - Last modified date
-    - Change frequency
-    - Priority
+    Creates sitemap.xml files listing all pages with metadata for search engines.
+    Supports sitemap index files for large sites and i18n alternate language links.
 
-    The sitemap helps search engines discover and index site content.
+    Creation:
+        Direct instantiation: SitemapGenerator(site)
+            - Created by PostprocessOrchestrator for sitemap generation
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with pages and configuration
+        logger: Logger instance for sitemap generation events
+
+    Relationships:
+        - Used by: PostprocessOrchestrator for sitemap generation
+        - Uses: Site for page access and configuration
+
+    Features:
+        - URL location with baseurl support
+        - Last modified dates from page metadata
+        - Change frequency and priority metadata
+        - i18n alternate language links (hreflang)
+        - Sitemap index support for large sites
+
+    Examples:
+        generator = SitemapGenerator(site)
+        generator.generate()  # Writes sitemap.xml to output directory
     """
 
     def __init__(self, site: Any) -> None:

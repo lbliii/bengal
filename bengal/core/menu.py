@@ -37,10 +37,36 @@ class MenuItem:
     """
     Represents a single menu item with optional hierarchy.
 
-    Can be created from:
-    1. Config file (explicit definition)
-    2. Page frontmatter (page registers itself in menu)
-    3. Section structure (auto-generated)
+    Menu items form hierarchical navigation structures with parent-child
+    relationships. Items can be marked as active based on current page URL,
+    and support weight-based sorting for display order.
+
+    Creation:
+        Config file: Explicit menu definitions in bengal.toml
+        Page frontmatter: Pages register themselves via menu metadata
+        Section structure: Auto-generated from section hierarchy
+
+    Attributes:
+        name: Display name for the menu item
+        url: URL path for the menu item
+        weight: Sort weight (lower values appear first)
+        parent: Parent menu identifier (for hierarchical menus)
+        identifier: Unique identifier (auto-generated from name if not provided)
+        children: Child menu items (populated during menu building)
+        active: Whether this item matches the current page URL
+        active_trail: Whether this item is in the active path (has active child)
+
+    Relationships:
+        - Used by: MenuBuilder for menu construction
+        - Used by: MenuOrchestrator for menu building
+        - Used in: Templates via site.menu for navigation rendering
+
+    Examples:
+        # From config
+        menu_item = MenuItem(name="Home", url="/", weight=1)
+
+        # From page frontmatter
+        menu_item = MenuItem(name=page.title, url=page.url, weight=page.metadata.get("weight", 0))
     """
 
     name: str
@@ -117,13 +143,39 @@ class MenuBuilder:
     """
     Builds hierarchical menu structures from various sources.
 
-    Behavior notes:
-    - Identifiers: Each `MenuItem` has an `identifier` (slug from name by default). Parent
-      references use identifiers.
-    - Cycle detection: `build_hierarchy()` detects circular references in the built tree
-      and raises `ValueError` when a cycle is found. Consumers should surface this early
-      as a configuration error.
-    - Deduplication: Automatically prevents duplicate items by identifier, URL, and name
+    Constructs menu hierarchies from config definitions, page frontmatter, and
+    section structure. Handles deduplication, cycle detection, and hierarchy
+    building with parent-child relationships.
+
+    Creation:
+        Direct instantiation: MenuBuilder()
+            - Created by MenuOrchestrator for menu building
+            - Fresh instance created for each menu build
+
+    Attributes:
+        items: List of MenuItem objects (flat list before hierarchy building)
+        _seen_identifiers: Set of seen identifiers for deduplication
+        _seen_urls: Set of seen URLs for deduplication
+        _seen_names: Set of seen names for deduplication
+
+    Behavior Notes:
+        - Identifiers: Each MenuItem has an identifier (slug from name by default).
+          Parent references use identifiers.
+        - Cycle detection: build_hierarchy() detects circular references and raises
+          ValueError when a cycle is found. Consumers should surface this early as
+          a configuration error.
+        - Deduplication: Automatically prevents duplicate items by identifier, URL, and name.
+
+    Relationships:
+        - Uses: MenuItem for menu item representation
+        - Used by: MenuOrchestrator for menu building
+        - Used in: Menu building during content discovery phase
+
+    Examples:
+        builder = MenuBuilder()
+        builder.add_from_config(menu_config)
+        builder.add_from_page(page, "main", page.metadata.get("menu", {}))
+        menu_items = builder.build_hierarchy()
     """
 
     def __init__(self):

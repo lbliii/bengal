@@ -47,13 +47,34 @@ _print_lock = Lock()
 
 class PostprocessOrchestrator:
     """
-    Handles post-processing tasks.
+    Orchestrates post-processing tasks after page rendering.
 
-    Responsibilities:
-        - Sitemap generation
-        - RSS feed generation
-        - Link validation
-        - Parallel/sequential execution of tasks
+    Handles sitemap generation, RSS feeds, link validation, special pages,
+    and output format generation. Supports parallel execution for performance
+    and incremental build optimization.
+
+    Creation:
+        Direct instantiation: PostprocessOrchestrator(site)
+            - Created by BuildOrchestrator during build
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with rendered pages and configuration
+
+    Relationships:
+        - Uses: SitemapGenerator for sitemap generation
+        - Uses: RSSGenerator for RSS feed generation
+        - Uses: OutputFormatsGenerator for JSON/TXT/LLM output
+        - Uses: SpecialPagesGenerator for 404 and other special pages
+        - Used by: BuildOrchestrator for post-processing phase
+
+    Thread Safety:
+        Thread-safe for parallel task execution. Uses thread-safe locks
+        for output operations.
+
+    Examples:
+        orchestrator = PostprocessOrchestrator(site)
+        orchestrator.run(parallel=True, incremental=False)
     """
 
     def __init__(self, site: Site):

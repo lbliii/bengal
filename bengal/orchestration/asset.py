@@ -43,14 +43,37 @@ _print_lock = Lock()
 
 class AssetOrchestrator:
     """
-    Handles asset processing.
+    Orchestrates asset processing for static files.
 
-    Responsibilities:
-        - Copy assets to output directory
-        - Minify CSS/JavaScript
-        - Optimize images
-        - Add fingerprints to filenames
-        - Parallel/sequential processing
+    Handles asset copying, minification, optimization, and fingerprinting.
+    Supports parallel processing for performance and maintains CSS entry point
+    cache for efficient incremental builds.
+
+    Creation:
+        Direct instantiation: AssetOrchestrator(site)
+            - Created by BuildOrchestrator during build
+            - Requires Site instance with assets populated
+
+    Attributes:
+        site: Site instance containing assets and configuration
+        logger: Logger instance for asset processing events
+        _cached_css_entry_points: Cached CSS entry points (invalidated on asset changes)
+        _cached_assets_id: Asset list identity for cache invalidation
+        _cached_assets_len: Asset list length for cache invalidation
+
+    Relationships:
+        - Uses: Asset class for asset representation and processing
+        - Uses: AssetManifest for cache-busting manifest generation
+        - Used by: BuildOrchestrator for asset processing phase
+        - Uses: ThreadPoolExecutor for parallel asset processing
+
+    Thread Safety:
+        Thread-safe for parallel asset processing. Uses thread-safe locks
+        for output operations and maintains thread-local state where needed.
+
+    Examples:
+        orchestrator = AssetOrchestrator(site)
+        orchestrator.process(site.assets, parallel=True, progress_manager=progress)
     """
 
     def __init__(self, site: Site):

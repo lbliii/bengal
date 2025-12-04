@@ -41,14 +41,37 @@ if TYPE_CHECKING:
 
 class IncrementalOrchestrator:
     """
-    Handles incremental build logic.
+    Orchestrates incremental build logic for efficient rebuilds.
 
-    Responsibilities:
-        - Cache initialization and management
-        - Change detection (content, assets, templates)
-        - Dependency tracking
-        - Taxonomy change detection
-        - Determining what needs rebuilding
+    Handles cache initialization, change detection, dependency tracking, and
+    selective rebuilding. Uses file hashes, dependency graphs, and taxonomy
+    indexes to minimize rebuild work by only rebuilding changed content.
+
+    Creation:
+        Direct instantiation: IncrementalOrchestrator(site)
+            - Created by BuildOrchestrator when incremental builds enabled
+            - Requires Site instance with content populated
+
+    Attributes:
+        site: Site instance for incremental builds
+        cache: BuildCache instance for build state persistence
+        tracker: DependencyTracker instance for dependency graph construction
+        logger: Logger instance for incremental build events
+
+    Relationships:
+        - Uses: BuildCache for build state persistence
+        - Uses: DependencyTracker for dependency graph construction
+        - Used by: BuildOrchestrator for incremental build coordination
+        - Uses: Site for content access and change detection
+
+    Thread Safety:
+        Not thread-safe. Should be used from single thread during build.
+        Cache and tracker operations are thread-safe internally.
+
+    Examples:
+        orchestrator = IncrementalOrchestrator(site)
+        cache, tracker = orchestrator.initialize(enabled=True)
+        changed_pages = orchestrator.detect_changes(cache)
     """
 
     def __init__(self, site: Site):

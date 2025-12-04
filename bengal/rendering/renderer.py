@@ -36,7 +36,33 @@ logger = get_logger(__name__)
 
 class Renderer:
     """
-    Renders pages using templates.
+    Renders individual pages using templates and content processing.
+
+    Handles template rendering, content processing (H1 stripping), and error
+    collection. Integrates with template engine for Jinja2 rendering and
+    provides graceful error handling.
+
+    Creation:
+        Direct instantiation: Renderer(template_engine, build_stats=None)
+            - Created by RenderingPipeline for page rendering
+            - Requires TemplateEngine instance
+
+    Attributes:
+        template_engine: TemplateEngine instance for Jinja2 rendering
+        site: Site instance (accessed via template_engine.site)
+        build_stats: Optional BuildStats for error collection
+
+    Relationships:
+        - Uses: TemplateEngine for template rendering
+        - Uses: BuildStats for error collection
+        - Used by: RenderingPipeline for page rendering
+
+    Thread Safety:
+        Thread-safe. Each thread should have its own Renderer instance.
+
+    Examples:
+        renderer = Renderer(template_engine, build_stats=stats)
+        html = renderer.render_page(page)
     """
 
     def __init__(self, template_engine: Any, build_stats: Any = None) -> None:

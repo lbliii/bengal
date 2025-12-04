@@ -42,7 +42,37 @@ LARGE_STATIC_WARNING_BYTES = 50 * 1024 * 1024
 
 
 class StaticOrchestrator:
-    """Copies static files to output directory without processing."""
+    """
+    Orchestrates static file copying to output directory.
+
+    Copies files from static/ directory to output directory verbatim without
+    any processing. Preserves directory structure and warns about large static
+    folders that might impact build performance.
+
+    Creation:
+        Direct instantiation: StaticOrchestrator(site)
+            - Created by BuildOrchestrator during build
+            - Requires Site instance with root_path and output_dir
+
+    Attributes:
+        site: Site instance with root_path and output_dir
+        logger: Logger instance for static file operations
+        static_dir: Path to static/ directory (from config or default)
+        output_dir: Output directory path
+        enabled: Whether static file copying is enabled
+
+    Relationships:
+        - Used by: BuildOrchestrator for static file copying phase
+        - Uses: Site for directory paths and configuration
+
+    Thread Safety:
+        Thread-safe for parallel file copying operations.
+
+    Examples:
+        orchestrator = StaticOrchestrator(site)
+        if orchestrator.is_enabled():
+            count = orchestrator.copy()
+    """
 
     def __init__(self, site: Site) -> None:
         self.site = site
