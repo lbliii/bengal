@@ -31,7 +31,31 @@ from bengal.utils.logger import get_logger
 
 
 class CacheInvalidator:
-    """Long-term: Explicit invalidation for incremental builds."""
+    """
+    Cache invalidation logic for incremental builds.
+
+    Tracks invalidated paths based on content, template, and config changes.
+    Provides methods for selective invalidation and full cache invalidation.
+
+    Creation:
+        Direct instantiation: CacheInvalidator(config_hash, content_paths, template_paths)
+            - Created by DependencyTracker for cache invalidation
+            - Requires config hash and path lists
+
+    Attributes:
+        config_hash: Hash of configuration for config change detection
+        content_paths: List of content file paths
+        template_paths: List of template file paths
+        invalidated: Set of invalidated paths
+
+    Relationships:
+        - Used by: DependencyTracker for cache invalidation
+        - Uses: Path sets for invalidation tracking
+
+    Examples:
+        invalidator = CacheInvalidator(config_hash, content_paths, template_paths)
+        invalidated = invalidator.invalidate_content(changed_paths)
+    """
 
     def __init__(self, config_hash: str, content_paths: list[Path], template_paths: list[Path]):
         self.config_hash = config_hash
@@ -65,10 +89,39 @@ class DependencyTracker:
     """
     Tracks dependencies between pages and their templates, partials, and config files.
 
-    This is used during the build process to populate the BuildCache with dependency
-    information, which is then used for incremental builds.
+    Records template and data file dependencies during rendering to enable incremental
+    builds. Uses thread-local storage for thread-safe parallel rendering and maintains
+    dependency graphs for change detection.
 
-    Thread-safe: Uses thread-local storage to track current page per thread.
+    Creation:
+        Direct instantiation: DependencyTracker(cache, site=None)
+            - Created by IncrementalOrchestrator for dependency tracking
+            - Requires BuildCache instance for dependency storage
+
+    Attributes:
+        cache: BuildCache instance for dependency storage
+        site: Optional Site instance for config path access
+        logger: Logger instance for dependency tracking events
+        tracked_files: Mapping of file paths to page paths
+        dependencies: Forward dependency graph (page → dependencies)
+        reverse_dependencies: Reverse dependency graph (dependency → pages)
+        current_page: Thread-local current page being processed
+        invalidator: CacheInvalidator for cache invalidation
+
+    Relationships:
+        - Uses: BuildCache for dependency persistence
+        - Used by: RenderingPipeline for dependency tracking during rendering
+        - Used by: IncrementalOrchestrator for change detection
+
+    Thread Safety:
+        Thread-safe. Uses thread-local storage for current page tracking and
+        thread-safe locks for dependency graph updates.
+
+    Examples:
+        tracker = DependencyTracker(cache, site)
+        tracker.start_page(page.source_path)
+        tracker.record_dependency(template_path)
+        tracker.end_page()
     """
 
     def __init__(self, cache: BuildCache, site=None):

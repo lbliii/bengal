@@ -29,9 +29,29 @@ from typing import Any, Protocol
 
 class ProgressReporter(Protocol):
     """
-    Contract for reporting build progress and user-facing messages.
+    Protocol for reporting build progress and user-facing messages.
 
-    Implementations: CLI, server, noop (tests), rich, etc.
+    Defines interface for progress reporting implementations. Used throughout
+    the build system for consistent progress reporting across CLI, server, and
+    test contexts.
+
+    Creation:
+        Protocol - not instantiated directly. Implementations include:
+        - NoopReporter: No-op implementation for tests
+        - LiveProgressReporterAdapter: Adapter for LiveProgressManager
+        - CLI implementations: Rich progress bars for CLI
+
+    Relationships:
+        - Implemented by: NoopReporter, LiveProgressReporterAdapter, CLI reporters
+        - Used by: BuildOrchestrator for build progress reporting
+        - Used by: All orchestrators for phase progress updates
+
+    Examples:
+        # Protocol usage (type checking)
+        def report_progress(reporter: ProgressReporter):
+            reporter.start_phase("rendering")
+            reporter.update_phase("rendering", current=5, total=10)
+            reporter.complete_phase("rendering")
     """
 
     def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None: ...
@@ -48,7 +68,27 @@ class ProgressReporter(Protocol):
 
 
 class NoopReporter:
-    """Default reporter that does nothing (safe for tests and quiet modes)."""
+    """
+    No-op progress reporter implementation.
+
+    Provides safe default implementation that does nothing, suitable for tests
+    and quiet modes. All methods are no-ops that return immediately.
+
+    Creation:
+        Direct instantiation: NoopReporter()
+            - Created as default reporter when no progress reporting needed
+            - Safe for tests and quiet build modes
+
+    Relationships:
+        - Implements: ProgressReporter protocol
+        - Used by: BuildOrchestrator as default reporter
+        - Used in: Tests and quiet build modes
+
+    Examples:
+        reporter = NoopReporter()
+        reporter.start_phase("rendering")  # No-op
+        reporter.update_phase("rendering", current=5)  # No-op
+    """
 
     def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None:
         return None
@@ -69,9 +109,29 @@ class NoopReporter:
 
 
 class LiveProgressReporterAdapter:
-    """Adapter to bridge LiveProgressManager to ProgressReporter.
+    """
+    Adapter to bridge LiveProgressManager to ProgressReporter protocol.
 
-    Delegates phase methods directly and prints simple lines for log().
+    Provides adapter pattern implementation that bridges LiveProgressManager
+    to the ProgressReporter protocol. Delegates phase methods directly and
+    prints simple lines for log() messages.
+
+    Creation:
+        Direct instantiation: LiveProgressReporterAdapter(live_progress_manager)
+            - Created by BuildOrchestrator when using LiveProgressManager
+            - Requires LiveProgressManager instance
+
+    Attributes:
+        _pm: LiveProgressManager instance being adapted
+
+    Relationships:
+        - Implements: ProgressReporter protocol
+        - Uses: LiveProgressManager for actual progress reporting
+        - Used by: BuildOrchestrator for progress reporting
+
+    Examples:
+        adapter = LiveProgressReporterAdapter(live_progress_manager)
+        adapter.start_phase("rendering")  # Delegates to _pm.start_phase()
     """
 
     def __init__(self, live_progress_manager: Any):

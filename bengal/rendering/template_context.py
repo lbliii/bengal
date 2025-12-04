@@ -30,17 +30,31 @@ class TemplatePageWrapper:
     """
     Wraps Page objects to auto-apply baseurl to .url in templates.
 
-    This makes templates ergonomic: always use `page.url` for display URLs.
-    The wrapper automatically applies baseurl, so theme developers don't need
-    to remember to use `page.permalink` or filters.
+    Provides transparent wrapper that automatically applies baseurl to page URLs,
+    making templates ergonomic. All other page properties delegate to the wrapped
+    page object, maintaining full compatibility.
 
-    Works with all baseurl formats:
-    - Path-only: `/bengal` → `/bengal/docs/page/`
-    - Absolute: `https://example.com` → `https://example.com/docs/page/`
-    - File protocol: `file:///path/to/site` → `file:///path/to/site/docs/page/`
-    - S3: `s3://bucket/path` → `s3://bucket/path/docs/page/`
+    Creation:
+        Direct instantiation: TemplatePageWrapper(page, baseurl="")
+            - Created by TemplateEngine for template context
+            - Requires Page instance and optional baseurl
 
-    Usage:
+    Attributes:
+        _page: Wrapped Page object
+        _baseurl: Base URL from site config (can be empty, path-only, or absolute)
+
+    Relationships:
+        - Uses: Page for wrapped page object
+        - Used by: TemplateEngine for template context
+        - Used in: Templates via template context
+
+    Baseurl Formats Supported:
+        - Path-only: `/bengal` → `/bengal/docs/page/`
+        - Absolute: `https://example.com` → `https://example.com/docs/page/`
+        - File protocol: `file:///path/to/site` → `file:///path/to/site/docs/page/`
+        - S3: `s3://bucket/path` → `s3://bucket/path/docs/page/`
+
+    Examples:
         wrapped = TemplatePageWrapper(page, baseurl="/bengal")
         wrapped.url  # Returns "/bengal/docs/page/" (with baseurl)
         wrapped.title  # Delegates to page.title
