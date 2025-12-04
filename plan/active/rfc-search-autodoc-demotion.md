@@ -411,3 +411,4 @@ def test_autodoc_flag_not_added_for_regular_pages():
 - `bengal/themes/default/assets/js/search-modal.js` - Search modal UI
 - `plan/implemented/rfc-search-experience-v2.md` - Previous search improvements
 
+

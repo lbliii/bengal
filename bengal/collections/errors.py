@@ -149,3 +149,4 @@ class SchemaError(Exception):
         self.schema_name = schema_name
         super().__init__(f"Invalid schema '{schema_name}': {message}")
 
+

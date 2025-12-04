@@ -268,3 +268,4 @@ class TestGracefulDegradation:
         # Should pass because can't resolve
         assert validator._is_valid_link("/anything/", page) is True
 
+

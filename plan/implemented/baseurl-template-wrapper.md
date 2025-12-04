@@ -52,3 +52,4 @@ Implemented `TemplatePageWrapper` to auto-apply baseurl in templates, making `pa
 
 - Original: `plan/active/rfc-baseurl-pattern-improvement.md` (deleted)
 
+

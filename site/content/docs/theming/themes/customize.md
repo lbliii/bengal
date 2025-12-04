@@ -266,3 +266,4 @@ bengal new theme my-theme
 - [Variables Reference](/docs/theming/variables/) — Available template variables
 
 
+

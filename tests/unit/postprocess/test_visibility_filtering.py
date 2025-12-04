@@ -171,3 +171,4 @@ class TestNavigationVisibilityFiltering:
 
         assert len(in_menu_pages) == 1
 
+

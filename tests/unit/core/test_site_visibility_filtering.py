@@ -195,3 +195,4 @@ class TestPageVisibilityInCollections:
         assert hidden.in_rss is False
         assert no_rss.in_rss is False
 
+

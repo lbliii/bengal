@@ -226,3 +226,4 @@ class RedirectGenerator:
                 count=len(lines),
             )
 
+
