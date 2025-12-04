@@ -334,17 +334,7 @@ body.search-modal-open {
   position: relative;
 }
 
-/* Prevent blob leakage from any source */
-.search-modal__container,
-.search-modal__results,
-.search-modal__result-section,
-.search-modal__section-header,
-.search-modal__section-items,
-.search-modal__results-list {
-  position: relative;
-  overflow: hidden;
-}
-
+/* Prevent blob pseudo-elements - without clipping content */
 .search-modal__container::before,
 .search-modal__container::after,
 .search-modal__results::before,
@@ -359,7 +349,6 @@ body.search-modal-open {
 .search-modal__results-list::after {
   display: none !important;
   content: none !important;
-  background: none !important;
 }
 
 .search-modal__results-list {
