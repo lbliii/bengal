@@ -15,7 +15,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Standard Badge Colors (Sphinx-Design compatible) */
+/* Standard Badge Colors */
 
 .badge-primary {
   background-color: var(--color-primary);

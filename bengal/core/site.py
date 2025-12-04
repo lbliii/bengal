@@ -689,8 +689,9 @@ class Site:
         """
         Apply cascading metadata from sections to their child pages and subsections.
 
-        This implements Hugo-style cascade functionality where section _index.md files
-        can define metadata that automatically applies to all descendant pages.
+        Section _index.md files can define metadata that automatically applies to all
+        descendant pages. This allows setting common metadata (like type, version, or
+        visibility) at the section level rather than repeating it on every page.
 
         Cascade metadata is defined in a section's _index.md frontmatter:
 

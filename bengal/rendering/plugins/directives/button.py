@@ -11,9 +11,8 @@ Provides clean button syntax for CTAs and navigation:
     Get Started
     :::
 
-Replaces Sphinx-Design's complex button-ref syntax with a simpler approach.
+Provides a simple button directive for creating styled button links.
 """
-
 
 from __future__ import annotations
 

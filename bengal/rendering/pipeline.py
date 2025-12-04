@@ -219,13 +219,13 @@ class RenderingPipeline:
 
     def _build_variable_context(self, page: Page) -> dict:
         """
-        Build Hugo-style variable context for {{ variable }} substitution.
+        Build variable context for {{ variable }} substitution in markdown.
 
-        This creates a rich context that allows writers to access data in multiple ways:
+        Creates a rich context that allows writers to access data in multiple ways:
 
-        Hugo-style shortcuts:
+        Direct shortcuts:
             {{ product_name }}     - Direct from frontmatter (most ergonomic!)
-            {{ params.version }}   - Hugo .Params style access
+            {{ params.version }}   - Via params namespace (page.metadata)
             {{ meta.beta }}        - Short alias for page.metadata
 
         Full path access:
@@ -259,13 +259,13 @@ class RenderingPipeline:
         context["site"] = self.site
         context["config"] = self.site.config
 
-        # Hugo-style shortcuts
-        # params → page.metadata (like Hugo .Params)
+        # Shortcuts for ergonomic access
+        # params → page.metadata (namespace for frontmatter)
         context["params"] = page.metadata if hasattr(page, "metadata") else {}
         # meta → shorter alias
         context["meta"] = context["params"]
 
-        # Direct frontmatter access (most Hugo-like!)
+        # Direct frontmatter access (most ergonomic)
         # {{ product_name }} instead of {{ page.metadata.product_name }}
         if hasattr(page, "metadata") and page.metadata:
             for key, value in page.metadata.items():
@@ -425,7 +425,6 @@ class RenderingPipeline:
                     toc = ""
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
-                # Build rich context for Hugo-style variable access
                 context = self._build_variable_context(page)
 
                 if need_toc:

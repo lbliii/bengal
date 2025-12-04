@@ -148,7 +148,6 @@ class PostprocessOrchestrator:
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
 
-            # Generate redirect pages for page aliases (Hugo compatibility)
             redirects_config = self.site.config.get("redirects", {})
             if redirects_config.get("generate_html", True):
                 tasks.append(("redirects", self._generate_redirects))
@@ -287,7 +286,7 @@ class PostprocessOrchestrator:
 
     def _generate_redirects(self) -> None:
         """
-        Generate redirect pages for page aliases (Hugo compatibility).
+        Generate redirect pages for page aliases.
 
         Creates lightweight HTML redirect pages at each alias URL that
         redirect to the canonical page location.

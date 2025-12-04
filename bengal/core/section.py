@@ -397,7 +397,7 @@ class Section:
                     suggestion="Remove one of the index files - only _index.md or index.md should exist",
                 )
 
-                # Prefer _index.md over index.md (Hugo convention)
+                # Prefer _index.md over index.md (section index convention)
                 if new_name == "_index":
                     self.index_page = page
                 # else: keep existing _index.md

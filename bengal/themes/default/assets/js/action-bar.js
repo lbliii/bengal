@@ -162,7 +162,7 @@
 
       // Build a prompt with the full URL for reference
       const fullUrl = toAbsoluteUrl(llmTxtUrl);
-      const aiPrompt = `I have documentation content from ${fullUrl} copied to my clipboard. Please help me understand it.`;
+      const aiPrompt = 'I have documentation content from ' + fullUrl + ' copied to my clipboard. Please help me understand it.';
 
       // Build the AI-specific URL with the instruction prompt
       const aiUrl = buildAIUrl(aiName, aiPrompt);

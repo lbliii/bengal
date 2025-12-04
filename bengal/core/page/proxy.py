@@ -181,7 +181,7 @@ class PageProxy:
 
     @property
     def aliases(self) -> list[str]:
-        """Get redirect aliases from cached metadata (Hugo compatibility)."""
+        """Get redirect aliases from cached metadata."""
         return self.core.aliases or []
 
     def _parse_date(self, date_str: str) -> datetime | None:

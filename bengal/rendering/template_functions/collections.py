@@ -2,7 +2,7 @@
 Collection manipulation functions for templates.
 
 Provides 15+ functions for filtering, sorting, and transforming lists and dicts.
-Includes Hugo-like functions for advanced page querying and manipulation.
+Includes advanced page querying and manipulation functions.
 """
 
 from __future__ import annotations
@@ -67,8 +67,7 @@ def where(
     """
     Filter items where key matches value using specified operator.
 
-    Supports nested attribute access (e.g., 'metadata.track_id') and comparison operators
-    for Hugo-like behavior.
+    Supports nested attribute access (e.g., 'metadata.track_id') and comparison operators.
 
     Args:
         items: List of dictionaries or objects to filter
@@ -150,7 +149,7 @@ def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[st
     """
     Filter items where key does not equal value.
 
-    Supports nested attribute access (e.g., 'metadata.track_id') for Hugo-like behavior.
+    Supports nested attribute access (e.g., 'metadata.track_id').
 
     Args:
         items: List of dictionaries or objects to filter

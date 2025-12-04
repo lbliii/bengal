@@ -143,7 +143,7 @@ class MistuneParser(BaseMarkdownParser):
         self._xref_plugin = None
         self._xref_enabled = False
 
-        # Badge plugin (always enabled for Sphinx-Design compatibility)
+        # Badge plugin (always enabled)
         self._badge_plugin = BadgePlugin()
 
         # AST parser instance (created lazily for parse_to_ast)
@@ -240,7 +240,7 @@ class MistuneParser(BaseMarkdownParser):
 
         try:
             html = self.md(content)
-            # Post-process for badges (Sphinx-Design compatibility)
+            # Post-process for badges
             html = self._badge_plugin._substitute_badges(html)
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
@@ -413,7 +413,7 @@ class MistuneParser(BaseMarkdownParser):
             # HTML entities as the expected characters for documentation.
             html = self._escape_jinja_blocks(html)
 
-            # Post-process for badges (Sphinx-Design compatibility)
+            # Post-process for badges
             html = self._badge_plugin._substitute_badges(html)
 
             # Post-process for cross-references if enabled
@@ -475,7 +475,7 @@ class MistuneParser(BaseMarkdownParser):
 
         This design:
         - Keeps parsing simple and fast (single pass)
-        - Follows Hugo's architecture (content vs logic separation)
+        - Separates content parsing from template logic
         - Maintains performance (no preprocessing overhead)
         - Makes code blocks work naturally
 

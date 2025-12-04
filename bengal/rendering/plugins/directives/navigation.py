@@ -1,7 +1,7 @@
 """
 Navigation directives for Bengal SSG.
 
-Provides Hugo-style directives that leverage the pre-computed site tree:
+Provides directives that leverage the pre-computed site tree:
 - breadcrumbs: Auto-generate breadcrumb navigation from page.ancestors
 - siblings: Show other pages in the same section
 - prev-next: Section-aware previous/next navigation

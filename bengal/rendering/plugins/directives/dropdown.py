@@ -5,7 +5,6 @@ Provides collapsible sections with markdown support including
 nested directives and code blocks.
 """
 
-
 from __future__ import annotations
 
 from mistune.directives import DirectivePlugin
@@ -33,7 +32,7 @@ class DropdownDirective(DirectivePlugin):
     """
 
     # Directive names this class registers (for health check introspection)
-    # "details" is an alias for Sphinx-Design compatibility
+    # "details" is an alias for compatibility
     DIRECTIVE_NAMES = ["dropdown", "details"]
 
     def parse(self, block, m, state):

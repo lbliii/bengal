@@ -43,7 +43,7 @@ class VariableSubstitutionPlugin:
 
         Connect to {{ page.metadata.api_url }}/users
 
-    Example - Escaping Syntax (Hugo-style):
+    Example - Escaping Syntax:
         Use {{/* page.title */}} to display the page title.
 
         This renders as: Use {{ page.title }} to display the page title.
@@ -243,9 +243,7 @@ class VariableSubstitutionPlugin:
         for part in parts:
             # SECURITY: Double-check dunder blocking on actual attribute access
             if part.startswith("_"):
-                raise ValueError(
-                    f"Access to private/protected attributes denied: '{part}'"
-                )
+                raise ValueError(f"Access to private/protected attributes denied: '{part}'")
 
             if hasattr(result, part):
                 result = getattr(result, part)

@@ -1,7 +1,7 @@
 """
 Cross-reference functions for templates.
 
-Provides 4 functions for Sphinx-style cross-referencing with O(1) performance.
+Provides 4 functions for cross-referencing pages and headings with O(1) performance.
 """
 
 from __future__ import annotations
@@ -43,14 +43,14 @@ def register(env: Environment, site: Site) -> None:
             "doc": doc_with_site,  # Get page by path
             "anchor": anchor_with_site,  # Link to heading
             "xref": ref_with_site,  # Alias for compatibility
-            "relref": relref_with_site,  # Get relative URL (Hugo-style)
+            "relref": relref_with_site,  # Get relative URL
         }
     )
 
 
 def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> Markup:
     """
-    Generate cross-reference link (like Sphinx :doc: or :ref:).
+    Generate cross-reference link to a page or heading.
 
     O(1) lookup - zero performance impact!
 
@@ -151,7 +151,7 @@ def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> M
 
 def doc(path: str, index: dict) -> Page | None:
     """
-    Get page object by path (like Hugo's .GetPage).
+    Get page object by path.
 
     O(1) lookup - zero performance impact!
     Useful for accessing page metadata in templates.
@@ -286,7 +286,7 @@ def anchor(heading: str, index: dict, baseurl: str = "", page_path: str | None =
 
 def relref(path: str, index: dict, baseurl: str = "") -> str:
     """
-    Get relative URL for a page (Hugo-style relref).
+    Get relative URL for a page.
 
     Returns just the URL without generating a full link.
     Useful for custom link generation.

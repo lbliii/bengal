@@ -204,7 +204,7 @@ class CardDirective(DirectivePlugin):
     Creates a single card with optional icon, link, color, image, and footer.
     Supports full markdown in content.
 
-    Supports footer separator (Sphinx-Design convention):
+    Supports footer separator:
         :::{card} Title
         Body content
         +++
@@ -236,8 +236,7 @@ class CardDirective(DirectivePlugin):
         # Parse card content (full markdown support)
         raw_content = self.parse_content(m)
 
-        # Check for +++ footer separator (Sphinx-Design convention)
-        # Can use either :footer: option or +++ separator
+        # Check for +++ footer separator (can use either :footer: option or +++ separator)
         footer = options.get("footer", "").strip()
         if not footer and ("+++" in raw_content):
             parts = raw_content.split("+++", 1)
@@ -303,9 +302,9 @@ class CardDirective(DirectivePlugin):
 
 class GridDirective(DirectivePlugin):
     """
-    Sphinx-Design grid compatibility layer.
+    Grid layout compatibility layer.
 
-    Accepts old Sphinx-Design syntax and converts to modern cards syntax.
+    Accepts legacy grid syntax and converts to modern cards syntax.
 
     Old syntax:
         ::::{grid} 1 2 2 2
@@ -338,11 +337,11 @@ class GridDirective(DirectivePlugin):
         title = self.parse_title(m)
         options = dict(self.parse_options(m))
 
-        # Convert Sphinx breakpoints to our responsive format
-        columns = self._convert_sphinx_columns(title)
+        # Convert legacy breakpoints to our responsive format
+        columns = self._convert_legacy_columns(title)
 
         # Convert gutter to gap
-        gap = self._convert_sphinx_gutter(options.get("gutter", ""))
+        gap = self._convert_legacy_gutter(options.get("gutter", ""))
 
         # Parse content
         content = self.parse_content(m)
@@ -358,16 +357,16 @@ class GridDirective(DirectivePlugin):
             "children": children,
         }
 
-    def _convert_sphinx_columns(self, title: str) -> str:
+    def _convert_legacy_columns(self, title: str) -> str:
         """
-        Convert Sphinx column breakpoints to our format.
+        Convert legacy column breakpoints to our format.
 
         "1 2 2 2" -> "1-2-2-2"
         "2" -> "2"
         "" -> "auto"
 
         Args:
-            title: Sphinx breakpoint string
+            title: Legacy breakpoint string (e.g., "1 2 2 2")
 
         Returns:
             Normalized column string
@@ -390,15 +389,15 @@ class GridDirective(DirectivePlugin):
 
         return "auto"
 
-    def _convert_sphinx_gutter(self, gutter: str) -> str:
+    def _convert_legacy_gutter(self, gutter: str) -> str:
         """
-        Convert Sphinx gutter to our gap format.
+        Convert legacy gutter to our gap format.
 
-        Sphinx uses numbers like "1", "2", "3" or "1 1 1 2"
+        Legacy format uses numbers like "1", "2", "3" or "1 1 1 2"
         We use "small", "medium", "large"
 
         Args:
-            gutter: Sphinx gutter value
+            gutter: Legacy gutter value
 
         Returns:
             Gap value (small/medium/large)
@@ -428,7 +427,7 @@ class GridDirective(DirectivePlugin):
 
 class GridItemCardDirective(DirectivePlugin):
     """
-    Sphinx-Design grid-item-card compatibility layer.
+    Grid item card compatibility layer.
 
     Converts old syntax to modern card syntax.
 
@@ -454,7 +453,7 @@ class GridItemCardDirective(DirectivePlugin):
         """
         Parse grid-item-card directive (compatibility mode).
 
-        Supports Sphinx-Design footer separator:
+        Supports footer separator:
             :::{grid-item-card} Title
             Body content
             +++
@@ -474,7 +473,7 @@ class GridItemCardDirective(DirectivePlugin):
         options = dict(self.parse_options(m))
         raw_content = self.parse_content(m)
 
-        # Check for +++ footer separator (Sphinx-Design convention)
+        # Check for +++ footer separator
         footer_text = ""
         if "\n+++\n" in raw_content or "\n+++" in raw_content:
             parts = raw_content.split("+++", 1)
@@ -501,8 +500,7 @@ class GridItemCardDirective(DirectivePlugin):
         # Convert options
         link = options.get("link", "").strip()
 
-        # Ignore link-type (not needed in our implementation)
-        # Sphinx uses :link-type: doc|url|ref, we auto-detect
+        # Ignore link-type (not needed in our implementation - we auto-detect)
 
         return {
             "type": "card",
@@ -1002,7 +1000,7 @@ class ChildCardsDirective(DirectivePlugin):
     """
     Auto-generate cards from current page's child sections/pages.
 
-    Hugo-style shortcode that walks the object tree directly!
+    Automatically generates cards by walking the page/section tree.
     No manual card definitions needed.
 
     Syntax:

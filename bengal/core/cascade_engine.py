@@ -1,5 +1,5 @@
 """
-Isolated cascade engine for applying Hugo-style metadata cascades.
+Isolated cascade engine for applying metadata cascades.
 
 This module provides the CascadeEngine class which handles all cascade
 application logic independently from Site and ContentOrchestrator.
@@ -7,7 +7,6 @@ application logic independently from Site and ContentOrchestrator.
 The engine pre-computes page-section relationships for O(1) top-level
 page detection, improving performance from O(n²) to O(n).
 """
-
 
 from __future__ import annotations
 
@@ -22,8 +21,10 @@ class CascadeEngine:
     """
     Isolated cascade application logic with pre-computed O(1) lookups.
 
-    Handles Hugo-style metadata cascading where section _index.md files
-    can define cascade metadata that propagates to descendant pages.
+    Handles metadata cascading where section _index.md files can define
+    cascade metadata that propagates to descendant pages. This allows
+    setting common metadata at the section level rather than repeating
+    it on every page.
 
     Pre-computes page-section relationships to avoid O(n²) lookups
     when determining if a page is top-level (not in any section).
@@ -106,33 +107,28 @@ class CascadeEngine:
         # First, collect root-level cascade from top-level pages
         root_cascade = None
         for page in self.pages:
-            if self.is_top_level_page(page):
-                if "cascade" in page.metadata:
-                    # Found root-level cascade - merge it
-                    if root_cascade is None:
-                        root_cascade = {}
-                    root_cascade.update(page.metadata["cascade"])
+            if self.is_top_level_page(page) and "cascade" in page.metadata:
+                # Found root-level cascade - merge it
+                if root_cascade is None:
+                    root_cascade = {}
+                root_cascade.update(page.metadata["cascade"])
 
         # Process all top-level sections with root cascade
         # (they will recurse to subsections)
         for section in self.sections:
-            self._apply_section_cascade(
-                section, parent_cascade=root_cascade, stats=stats
-            )
+            self._apply_section_cascade(section, parent_cascade=root_cascade, stats=stats)
 
         # Also apply root cascade to other top-level pages
         if root_cascade:
             for page in self.pages:
-                if self.is_top_level_page(page):
-                    # Skip the page that defined the cascade itself
-                    if "cascade" not in page.metadata:
-                        for key, value in root_cascade.items():
-                            if key not in page.metadata:
-                                page.metadata[key] = value
-                                stats["root_cascade_pages"] += 1
-                                stats["cascade_keys_applied"][key] = (
-                                    stats["cascade_keys_applied"].get(key, 0) + 1
-                                )
+                if self.is_top_level_page(page) and "cascade" not in page.metadata:
+                    for key, value in root_cascade.items():
+                        if key not in page.metadata:
+                            page.metadata[key] = value
+                            stats["root_cascade_pages"] += 1
+                            stats["cascade_keys_applied"][key] = (
+                                stats["cascade_keys_applied"].get(key, 0) + 1
+                            )
 
         return stats
 
@@ -174,9 +170,7 @@ class CascadeEngine:
                     # Page metadata takes precedence over cascade
                     if key not in page.metadata:
                         page.metadata[key] = value
-                        stats["pages_with_cascade"] = (
-                            stats.get("pages_with_cascade", 0) + 1
-                        )
+                        stats["pages_with_cascade"] = stats.get("pages_with_cascade", 0) + 1
                         stats["cascade_keys_applied"][key] = (
                             stats["cascade_keys_applied"].get(key, 0) + 1
                         )

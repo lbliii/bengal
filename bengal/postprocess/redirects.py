@@ -1,9 +1,9 @@
 """
-Redirect page generation for Hugo-style aliases.
+Redirect page generation for page aliases.
 
 Generates redirect HTML pages for each page alias, allowing old URLs
-to redirect to new canonical locations. This preserves SEO, maintains
-link stability during content reorganization, and provides Hugo compatibility.
+to redirect to new canonical locations. This preserves SEO and maintains
+link stability during content reorganization.
 
 Usage:
     from bengal.postprocess.redirects import RedirectGenerator
@@ -14,8 +14,7 @@ Usage:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
@@ -225,5 +224,3 @@ class RedirectGenerator:
                 path=str(redirects_path),
                 count=len(lines),
             )
-
-

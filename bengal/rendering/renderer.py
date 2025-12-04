@@ -582,7 +582,8 @@ class Renderer:
         3. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
         4. Default fallback (`page.html` or `index.html`)
 
-        Note: We intentionally avoid Hugo's confusing type/kind/layout hierarchy.
+        Note: We use a simple, explicit template selection strategy without
+        complex type/kind/layout hierarchies.
 
         Args:
             page: Page to get template for
@@ -630,7 +631,7 @@ class Renderer:
             if is_section_index:
                 # Try section index templates in order of specificity
                 templates_to_try = [
-                    f"{section_name}/list.html",  # Hugo-style directory
+                    f"{section_name}/list.html",  # Section directory structure
                     f"{section_name}/index.html",  # Alternative directory
                     f"{section_name}-list.html",  # Flat with suffix
                     f"{section_name}.html",  # Flat simple
@@ -638,7 +639,7 @@ class Renderer:
             else:
                 # Try section page templates in order of specificity
                 templates_to_try = [
-                    f"{section_name}/single.html",  # Hugo-style directory
+                    f"{section_name}/single.html",  # Section directory structure
                     f"{section_name}/page.html",  # Alternative directory
                     f"{section_name}.html",  # Flat
                 ]

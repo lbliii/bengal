@@ -3,7 +3,7 @@ Badge directive for Mistune.
 
 Provides MyST-style badge directive: ```{badge} Text :class: badge-class```
 
-Supports Sphinx-Design compatible badge syntax with custom CSS classes.
+Supports badge syntax with custom CSS classes.
 """
 
 from __future__ import annotations
@@ -107,7 +107,7 @@ class BadgeDirective(DirectivePlugin):
             md: Markdown instance
         """
         directive.register("badge", self.parse)
-        directive.register("bdg", self.parse)  # Alias for Sphinx-Design compatibility
+        directive.register("bdg", self.parse)  # Alias for compatibility
 
         if md.renderer and md.renderer.NAME == "html":
             md.renderer.register("badge", render_badge)
@@ -141,4 +141,3 @@ def render_badge(renderer, text, **attrs) -> str:
     )
 
     return f'<span class="{badge_class}">{escaped_text}</span>'
-

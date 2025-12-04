@@ -30,7 +30,7 @@ Options:
 Architecture:
     Data loading is deferred to the render phase where we have access to
     renderer._site.data (pre-loaded by Site.__post_init__). This follows
-    the Hugo pattern where data files are accessible via site.data.*.
+    where data files are accessible via site.data.*.
 """
 
 from __future__ import annotations
@@ -169,7 +169,7 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     Render glossary to HTML as a definition list.
 
     Data loading happens here (deferred from parse phase) using:
-    1. renderer._site.data.glossary (pre-loaded by Site, Hugo pattern)
+    1. renderer._site.data.glossary (pre-loaded by Site from data/ directory)
     2. Fallback: file loading using renderer._site.root_path
 
     Args:
@@ -287,7 +287,7 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
     """
     site = getattr(renderer, "_site", None)
 
-    # Try site.data first (Hugo pattern - data files pre-loaded)
+    # Try site.data first (data files pre-loaded from data/ directory)
     if site and hasattr(site, "data") and site.data:
         # Convert path like "data/glossary.yaml" to data key "glossary"
         if source_path == DEFAULT_GLOSSARY_PATH:

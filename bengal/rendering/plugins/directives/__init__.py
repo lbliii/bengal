@@ -146,15 +146,28 @@ def get_known_directive_names() -> frozenset[str]:
 KNOWN_DIRECTIVE_NAMES: frozenset[str] = get_known_directive_names()
 
 # Admonition types subset (for type-specific validation)
-ADMONITION_TYPES: frozenset[str] = frozenset({
-    "note", "tip", "warning", "danger", "error",
-    "info", "example", "success", "caution", "seealso",
-})
+ADMONITION_TYPES: frozenset[str] = frozenset(
+    {
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
+        "seealso",
+    }
+)
 
 # Code-related directives (can use backtick fences)
-CODE_BLOCK_DIRECTIVES: frozenset[str] = frozenset({
-    "code-tabs", "literalinclude",
-})
+CODE_BLOCK_DIRECTIVES: frozenset[str] = frozenset(
+    {
+        "code-tabs",
+        "literalinclude",
+    }
+)
 
 __all__ = [
     # Registry constants and functions (single source of truth)
@@ -231,15 +244,15 @@ def create_documentation_directives():
                 CardsDirective(),  # Modern card grid system
                 CardDirective(),  # Individual cards
                 ChildCardsDirective(),  # Auto-generate cards from children
-                GridDirective(),  # Sphinx-Design compatibility
-                GridItemCardDirective(),  # Sphinx-Design compatibility
+                GridDirective(),  # Grid layout compatibility
+                GridItemCardDirective(),  # Grid item compatibility
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
                 StepsDirective(),  # Visual step-by-step guides
                 StepDirective(),  # Individual step (nested in steps)
                 IncludeDirective(),  # Include markdown files
                 LiteralIncludeDirective(),  # Include code files as code blocks
-                # Navigation directives (Hugo-style site tree access)
+                # Navigation directives (site tree access)
                 BreadcrumbsDirective(),  # Auto-generate breadcrumb navigation
                 SiblingsDirective(),  # Show other pages in same section
                 PrevNextDirective(),  # Section-aware prev/next navigation
