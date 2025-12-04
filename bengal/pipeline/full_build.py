@@ -220,11 +220,12 @@ def create_full_build_pipeline(
         # Iterate to build menus (menus are side-effect on site)
         list(menu_stream.iterate())
 
-        # Phase 5: Assets
-        from bengal.orchestration.asset import AssetOrchestrator
+        # Phase 5: Assets (now using streams!)
+        from bengal.pipeline.assets import create_assets_stream
 
-        assets = AssetOrchestrator(site)
-        assets.process(site.assets, parallel=parallel, progress_manager=None)
+        assets_stream = create_assets_stream(site.assets, site, parallel=parallel)
+        # Process assets (assets are processed as side-effect)
+        list(assets_stream.iterate())
 
         # Return all pages (including generated taxonomy pages)
         return list(site.pages)
