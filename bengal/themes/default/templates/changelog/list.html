@@ -25,14 +25,14 @@ Supports two modes:
 {% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
 
 <div class="changelog-container">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
-    {# For section pages (like changelog list), we might need to ensure 'page' refers to the section #}
+    {# For section pages (like changelog list), ensure 'page' refers to the section #}
     {# The action-bar partial expects 'page' variable. In list templates, 'section' is the main object #}
-    {# We'll let the partial handle it if page is defined, or we might need to alias section to page #}
     {% if not page is defined and section is defined %}
     {% set page = section %}
     {% endif %}
+
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
     <header class="page-header page-header--centered">
         <h1>📋 {{ section.title if section else title | default('Changelog') }}</h1>

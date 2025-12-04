@@ -186,22 +186,20 @@
 
   /**
    * Build AI-specific chat URL with prompt
+   * Note: Using string concatenation instead of template literals to avoid
+   * minifier bug where // in URLs is treated as comment start
    */
   function buildAIUrl(aiName, prompt) {
     const encodedPrompt = encodeURIComponent(prompt);
+    const baseUrls = {
+      'claude': 'https:' + '//claude.ai/new?q=',
+      'chatgpt': 'https:' + '//chatgpt.com/?q=',
+      'gemini': 'https:' + '//gemini.google.com/app?q=',
+      'copilot': 'https:' + '//copilot.microsoft.com/?q='
+    };
 
-    switch(aiName) {
-      case 'claude':
-        return `https://claude.ai/new?q=${encodedPrompt}`;
-      case 'chatgpt':
-        return `https://chatgpt.com/?q=${encodedPrompt}`;
-      case 'gemini':
-        return `https://gemini.google.com/app?q=${encodedPrompt}`;
-      case 'copilot':
-        return `https://copilot.microsoft.com/?q=${encodedPrompt}`;
-      default:
-        return `https://claude.ai/new?q=${encodedPrompt}`;
-    }
+    const baseUrl = baseUrls[aiName] || baseUrls['claude'];
+    return baseUrl + encodedPrompt;
   }
 
   /**
