@@ -28,12 +28,19 @@
   width: 100%;
   height: 100%;
   overflow: visible;
+  /* Create stacking context to isolate from page blobs */
+  isolation: isolate;
 }
 
 .search-modal::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Ensure the modal backdrop div also blocks blobs */
+.search-modal__backdrop {
+  background: transparent;
 }
 
 .search-modal:not([open]) {
@@ -327,13 +334,16 @@ body.search-modal-open {
   position: relative;
 }
 
-/* Prevent any blobs from parent elements */
+/* NUCLEAR: Kill ALL pseudo-elements to prevent blob leakage */
+.search-modal *::before,
+.search-modal *::after,
 .search-modal__container::before,
-.search-modal__container::after,
-.search-modal__results::before,
-.search-modal__results::after {
+.search-modal__container::after {
   display: none !important;
   content: none !important;
+  background: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .search-modal__results-list {
