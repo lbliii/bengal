@@ -22,7 +22,7 @@ The orchestration subsystem (`bengal/orchestration/`) implements the **delegatio
 
 ## Build Pipeline
 
-The build process follows a structured sequence organized into **21 phases**, each implemented as a dedicated `_phase_*` method in `BuildOrchestrator`. This modular design improves maintainability and testability.
+The build process follows a structured sequence organized into **21 phases**, each implemented as a focused function in dedicated modules. Phase functions are organized into four modules: `initialization.py`, `content.py`, `rendering.py`, and `finalization.py`. This modular design improves maintainability and testability.
 
 ```mermaid
 sequenceDiagram
@@ -120,13 +120,18 @@ The build pipeline consists of **21 phases**, each extracted into a focused meth
 | 20 | `_phase_health_check` | Runs validators based on build profile |
 | 21 | `_phase_finalize` | Final cleanup and logging |
 
-### Phase Method Pattern
+### Phase Function Pattern
 
-Each phase is a self-contained method with a clear signature:
+Each phase is implemented as a self-contained function in a dedicated module. Functions are called from `BuildOrchestrator.build()` and receive the orchestrator instance as their first parameter:
 
 ```python
-def _phase_taxonomies(
-    self, cache, incremental: bool, parallel: bool, pages_to_build: list
+# In content.py
+def phase_taxonomies(
+    orchestrator: BuildOrchestrator,
+    cache,
+    incremental: bool,
+    parallel: bool,
+    pages_to_build: list
 ) -> set:
     """
     Phase 7: Taxonomies & Dynamic Pages.
@@ -135,6 +140,7 @@ def _phase_taxonomies(
     Optimized for incremental builds - only processes changed pages.
 
     Args:
+        orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
         parallel: Whether to use parallel processing
@@ -144,18 +150,36 @@ def _phase_taxonomies(
         Set of affected tag slugs
 
     Side effects:
-        - Populates self.site.taxonomies
-        - Creates taxonomy pages in self.site.pages
-        - Updates self.stats.taxonomy_time_ms
+        - Populates orchestrator.site.taxonomies
+        - Creates taxonomy pages in orchestrator.site.pages
+        - Updates orchestrator.stats.taxonomy_time_ms
     """
     # ... implementation
 ```
 
+**Module Organization**:
+- `initialization.py`: Phases 1-5 (fonts, discovery, cache, config, filtering)
+- `content.py`: Phases 6-12 (sections, taxonomies, menus, indexes)
+- `rendering.py`: Phases 13-16 (assets, render, update pages, track assets)
+- `finalization.py`: Phases 17-21 (postprocess, cache save, stats, health, finalize)
+
+**Usage in BuildOrchestrator**:
+```python
+# In BuildOrchestrator.build()
+from . import content, rendering, finalization, initialization
+
+# Phase 7: Taxonomies
+affected_tags = content.phase_taxonomies(
+    self, cache, incremental, parallel, pages_to_build
+)
+```
+
 This pattern provides:
 - **Testability**: Each phase can be tested in isolation
-- **Readability**: `build()` is now ~75 lines of phase calls
-- **Maintainability**: Changes are scoped to specific phases
+- **Readability**: `build()` is now ~100 lines of phase calls
+- **Maintainability**: Changes are scoped to specific modules
 - **Documentation**: Docstrings explain purpose and side effects
+- **Modularity**: Related phases grouped in logical modules
 
 ## Orchestrator Reference
 
@@ -163,14 +187,14 @@ This pattern provides:
 :::{tab-item} Build
 **BuildOrchestrator** (`build/` package)
 
-The main conductor. The `build()` method is a clean sequence of phase calls that delegates to focused modules.
-- **21 phase methods** (`_phase_*`) implemented via delegation to focused modules:
+The main conductor. The `build()` method is a clean sequence of phase function calls organized into focused modules.
+- **21 phase functions** organized into four modules:
   - `initialization.py`: Phases 1-5 (fonts, discovery, cache, config, filtering)
-  - `content.py`: Phases 6-11 (sections, taxonomies, menus, indexes)
+  - `content.py`: Phases 6-12 (sections, taxonomies, menus, indexes)
   - `rendering.py`: Phases 13-16 (assets, render, update pages, track assets)
   - `finalization.py`: Phases 17-21 (postprocess, cache save, stats, health, finalize)
 - **Coordinates** all other orchestrators
-- **Manages** `BuildContext` threading
+- **Creates** `BuildContext` during rendering phase (Phase 14)
 - **Handles** parallel vs sequential execution
 - **Collects** build statistics
 :::
@@ -243,7 +267,7 @@ Generates sitemap, RSS, and runs link validation after rendering.
 
 ### 1. BuildContext Threading
 
-To avoid global state, we pass a `BuildContext` dataclass through the pipeline. This enables clean phase method signatures and explicit dependency passing.
+To avoid global state, we pass a `BuildContext` dataclass through the rendering and post-processing phases. This enables clean function signatures and explicit dependency passing.
 
 ```python
 @dataclass
@@ -268,26 +292,37 @@ class BuildContext:
     cache: Any = None
     incremental: bool = False
     config_changed: bool = False
-    pages_to_build: list[Page] = field(default_factory=list)
-    assets_to_process: list[Asset] = field(default_factory=list)
+    pages_to_build: list[Page] | None = None
+    assets_to_process: list[Asset] | None = None
     affected_tags: set[str] = field(default_factory=set)
     changed_page_paths: set[Path] = field(default_factory=set)
     affected_sections: set[str] | None = None
+    profile_templates: bool = False
 ```
 
-**Usage**: BuildContext is initialized at the start of `build()` and threaded through phase methods and sub-orchestrators:
+**Usage**: BuildContext is created during Phase 14 (`phase_render`) and passed to rendering and post-processing orchestrators:
 
 ```python
-# In BuildOrchestrator.build()
-ctx = BuildContext(site=self.site, stats=self.stats, ...)
+# In rendering.phase_render() (Phase 14)
+ctx = BuildContext(
+    site=orchestrator.site,
+    pages=pages_to_build,
+    tracker=tracker,
+    stats=orchestrator.stats,
+    profile=profile,
+    progress_manager=progress_manager,
+    reporter=reporter,
+    profile_templates=profile_templates,
+)
 
-# Phase methods receive what they need
-self._phase_render(ctx.cli, ctx.parallel, ..., ctx.pages_to_build, ...)
+# Rendering orchestrator receives full context
+RenderOrchestrator.process(pages_to_build, build_context=ctx)
 
-# Sub-orchestrators receive full context
-RenderOrchestrator.process(pages, build_context=ctx)
-PostprocessOrchestrator.run(build_context=ctx)
+# Post-processing receives context from rendering phase
+finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
 ```
+
+**Lifecycle**: BuildContext is created once during the rendering phase and reused for post-processing, avoiding the need to pass many individual parameters through the pipeline.
 
 ### 2. Smart Parallelization
 

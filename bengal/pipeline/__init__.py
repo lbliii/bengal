@@ -70,6 +70,7 @@ from bengal.pipeline.core import (
     StreamItem,
     StreamKey,
 )
+from bengal.pipeline.full_build import create_full_build_pipeline
 from bengal.pipeline.streams import (
     CachedStream,
     CollectStream,

@@ -842,12 +842,11 @@ class Site:
         verbose: bool = False,
     ) -> BuildStats:
         """
-        Build site using the reactive dataflow pipeline for rendering.
+        Build site using the full reactive dataflow pipeline.
 
-        This hybrid approach:
-        1. Uses orchestrators for discovery, taxonomies, menus (complex logic)
-        2. Uses pipeline for parallel rendering (where it shines)
-        3. Uses orchestrators for postprocessing (sitemap, RSS, etc.)
+        This replaces the hybrid orchestrator+pipeline approach with a pure
+        stream-based architecture where content flows through declarative
+        transformations.
 
         Args:
             parallel: Whether to use parallel processing
@@ -859,15 +858,10 @@ class Site:
         import shutil
         import time
 
-        from bengal.orchestration import (
-            AssetOrchestrator,
-            ContentOrchestrator,
-            MenuOrchestrator,
-            PostprocessOrchestrator,
-            TaxonomyOrchestrator,
-        )
-        from bengal.orchestration.section import SectionOrchestrator
-        from bengal.pipeline import create_simple_pipeline
+        from bengal.orchestration.postprocess import PostprocessOrchestrator
+        from bengal.orchestration.static import StaticOrchestrator
+        from bengal.pipeline import create_full_build_pipeline
+        from bengal.utils.build_stats import BuildStats
 
         logger.info("pipeline_build_starting", parallel=parallel)
         start_time = time.time()
@@ -875,8 +869,6 @@ class Site:
         # Phase 0a: Static files (copy FIRST, before everything else)
         # Static files are copied verbatim to output root, allowing raw HTML
         # pages to access theme assets via /assets/css/style.css
-        from bengal.orchestration.static import StaticOrchestrator
-
         static_start = time.time()
         static = StaticOrchestrator(self)
         static_count = static.copy()
@@ -910,34 +902,21 @@ class Site:
             except Exception as e:
                 logger.warning("fonts_processing_failed", error=str(e))
 
-        # Phase 1: Discovery (use existing orchestrators - they handle all the edge cases)
-        discovery_start = time.time()
-        content = ContentOrchestrator(self)
-        content.discover_content()
-        content.discover_assets()
-        discovery_time_ms = (time.time() - discovery_start) * 1000
+        # Phase 1-6: Full pipeline (discovery → sections → taxonomies → menus → assets → render)
+        pipeline_start = time.time()
+        pipeline = create_full_build_pipeline(self, parallel=parallel, use_cache=True)
+        result = pipeline.run()
+        pipeline_time_ms = (time.time() - pipeline_start) * 1000
 
-        # Phase 2: Sections (finalize hierarchy, create missing index pages)
-        sections = SectionOrchestrator(self)
-        sections.finalize_sections()
-
-        # Phase 3: Taxonomies (collects tags and generates tag pages)
-        taxonomy_start = time.time()
-        taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
-        taxonomy.collect_and_generate(parallel=parallel)
-        taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
-
-        # Phase 4: Menus
-        menu = MenuOrchestrator(self)
-        menu.build()
-
-        # Phase 5: Assets (copy/process BEFORE rendering so asset_url() works)
-        assets_start = time.time()
-        assets = AssetOrchestrator(self)
-        assets.process(self.assets, parallel=parallel, progress_manager=None)
+        # Save build cache after pipeline completes
+        if hasattr(self, "_build_cache") and self._build_cache:
+            cache_dir = self.root_path / ".bengal" / "cache"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            cache_path = cache_dir / "cache.json"
+            self._build_cache.save(cache_path)
 
         # Rewrite fonts.css to use fingerprinted font filenames
-        # This must happen after asset fingerprinting is complete
+        # This must happen after asset fingerprinting is complete (done in pipeline)
         if "fonts" in self.config:
             from bengal.fonts import rewrite_font_urls_with_fingerprints
 
@@ -952,14 +931,6 @@ class Site:
                     rewrite_font_urls_with_fingerprints(fonts_css_path, manifest_data)
                 except Exception as e:
                     logger.warning("fonts_css_rewrite_failed", error=str(e))
-
-        assets_time_ms = (time.time() - assets_start) * 1000
-
-        # Phase 6: Render ALL pages using pipeline (including generated pages)
-        rendering_start = time.time()
-        pipeline = create_simple_pipeline(self, pages=list(self.pages))
-        result = pipeline.run()
-        rendering_time_ms = (time.time() - rendering_start) * 1000
 
         # Phase 7: Postprocessing (sitemap, RSS, JSON, llms.txt)
         postprocess_start = time.time()
@@ -1006,11 +977,11 @@ class Site:
             build_time_ms=elapsed * 1000,
             parallel=parallel,
             incremental=False,
-            # Phase timings
-            discovery_time_ms=discovery_time_ms,
-            taxonomy_time_ms=taxonomy_time_ms,
-            rendering_time_ms=rendering_time_ms,
-            assets_time_ms=assets_time_ms,
+            # Phase timings (pipeline doesn't track individual phases yet)
+            discovery_time_ms=0,
+            taxonomy_time_ms=0,
+            rendering_time_ms=pipeline_time_ms,
+            assets_time_ms=0,
             postprocess_time_ms=postprocess_time_ms,
         )
 
