@@ -16,8 +16,10 @@ Usage:
 #}
 
 {# Determine hero style: page frontmatter > theme config > default (classic) #}
-{% set hero_style = page.metadata.get('hero_style') 
-   or site.theme_config.get('hero_style', 'classic') %}
+{# Page frontmatter takes priority, then theme config, then default to classic #}
+{% set _page_hero_style = page.metadata.get('hero_style') if (page.metadata is defined and page.metadata) else none %}
+{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and site.theme_config.hero_style is defined) else 'classic' %}
+{% set hero_style = _page_hero_style if _page_hero_style else _theme_hero_style %}
 
 {% if hero_style == 'magazine' %}
   {% include 'partials/page-hero-magazine.html' %}

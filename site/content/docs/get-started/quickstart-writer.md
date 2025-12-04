@@ -12,6 +12,7 @@ keywords: [writing, content, markdown, frontmatter]
 category: onboarding
 aliases:
   - /docs/getting-started/writer-quickstart/
+hero_style: magazine
 ---
 
 # Writer Quickstart
