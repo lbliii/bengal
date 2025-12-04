@@ -1,3 +1,22 @@
+"""
+File utility functions for common file operations.
+
+Provides file hashing and other file manipulation utilities used throughout
+the codebase. Focuses on efficient file operations with chunked reading.
+
+Key Concepts:
+    - File hashing: SHA256 hash computation for change detection
+    - Chunked reading: Efficient file reading in chunks for large files
+    - Path handling: Path-based file operations
+
+Related Modules:
+    - bengal.cache.build_cache: Uses file hashing for change detection
+    - bengal.core.asset: Asset fingerprinting using file hashes
+
+See Also:
+    - bengal/utils/file_utils.py:hash_file() for file hashing
+"""
+
 from __future__ import annotations
 
 from hashlib import sha256

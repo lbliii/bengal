@@ -1,3 +1,26 @@
+"""
+Build context for sharing state across build phases.
+
+Provides BuildContext dataclass for passing shared state between build phases,
+replacing scattered local variables. Created at build start and populated
+incrementally as phases execute.
+
+Key Concepts:
+    - Shared context: Single context object passed to all build phases
+    - Phase coordination: Enables phase-to-phase communication
+    - State management: Centralized build state management
+    - Lifecycle: Created at build start, populated during phases
+
+Related Modules:
+    - bengal.orchestration.build: Build orchestration using BuildContext
+    - bengal.utils.build_stats: Build statistics collection
+    - bengal.utils.progress: Progress reporting
+
+See Also:
+    - bengal/utils/build_context.py:BuildContext for context structure
+    - plan/active/rfc-build-pipeline.md: Build pipeline design
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

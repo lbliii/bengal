@@ -1,3 +1,24 @@
+"""
+HTML output processing and minification utilities.
+
+Provides HTML minification with whitespace preservation for sensitive tags.
+Handles HTML minification while preserving whitespace in code blocks, scripts,
+and other whitespace-sensitive content.
+
+Key Concepts:
+    - HTML minification: Remove unnecessary whitespace and comments
+    - Whitespace preservation: Preserve whitespace in sensitive tags
+    - Protected regions: Code blocks, scripts, styles protected from minification
+    - Void tags: Self-closing tags that don't need closing tags
+
+Related Modules:
+    - bengal.postprocess: Post-processing orchestration
+    - bengal.config.defaults: HTML output configuration
+
+See Also:
+    - bengal/postprocess/html_output.py:minify_html() for HTML minification
+"""
+
 from __future__ import annotations
 
 import re

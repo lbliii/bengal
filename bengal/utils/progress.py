@@ -1,3 +1,26 @@
+"""
+Progress reporting system for build progress tracking.
+
+Provides protocol-based progress reporting with multiple implementations
+(CLI, server, noop for tests). Enables consistent progress reporting across
+different execution contexts.
+
+Key Concepts:
+    - Progress protocol: Protocol-based interface for progress reporting
+    - Phase tracking: Build phase tracking with progress updates
+    - Multiple implementations: CLI, server, noop, rich reporters
+    - Adapter pattern: LiveProgressManager adapter for compatibility
+
+Related Modules:
+    - bengal.utils.live_progress: Live progress manager implementation
+    - bengal.orchestration.build: Build orchestration using progress reporting
+    - bengal.cli.commands.build: CLI build command using progress reporting
+
+See Also:
+    - bengal/utils/progress.py:ProgressReporter for progress protocol
+    - bengal/utils/progress.py:NoopReporter for test-friendly implementation
+"""
+
 from __future__ import annotations
 
 from contextlib import suppress

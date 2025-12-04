@@ -1,3 +1,25 @@
+"""
+Metadata utilities for build information and template metadata.
+
+Provides functions for generating build metadata including version information,
+markdown engine details, syntax highlighter versions, and theme information.
+Used for template metadata generation and build information reporting.
+
+Key Concepts:
+    - Build metadata: Version information for Bengal and dependencies
+    - Markdown engine detection: Resolves configured markdown parser and version
+    - Syntax highlighter detection: Pygments version detection
+    - Theme information: Theme name and version from theme packages
+
+Related Modules:
+    - bengal.utils.theme_registry: Theme package lookup
+    - bengal.rendering.template_engine: Template engine using metadata
+    - bengal.utils.build_stats: Build statistics collection
+
+See Also:
+    - bengal/utils/metadata.py:build_template_metadata() for metadata generation
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
