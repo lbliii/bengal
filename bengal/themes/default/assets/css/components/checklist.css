@@ -36,7 +36,7 @@
   height: 1.125rem;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: var(--color-bg);
+  color: var(--color-text-inverse);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   flex-shrink: 0;
