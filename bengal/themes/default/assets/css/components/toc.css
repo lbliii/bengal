@@ -341,12 +341,19 @@
 .toc-link-h2 {
     flex: 1;
     font-weight: var(--weight-medium);
-    font-size: var(--text-sm);
+    font-size: var(--text-xxs, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-tertiary);
     min-inline-size: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+}
+
+.toc-link-h2:hover {
+    color: var(--color-text-secondary);
 }
 
 .toc-count {
@@ -401,18 +408,17 @@
 
 .toc-link {
     display: block;
-    padding: 0.25rem 0.5rem;
-    font-size: var(--text-sm);
-    line-height: 1.5;
-    color: var(--color-text-secondary);
+    padding: 0.2rem 0.5rem;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-regular, 400);
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    color: var(--color-text-tertiary);
     text-decoration: none;
-    border-inline-start: 2px solid transparent;
-    margin-inline-start: -2px;
+    border-inline-start: 1px solid transparent;
+    margin-inline-start: -1px;
     border-radius: var(--border-radius-small);
     transition: all var(--transition-fast);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     /* Truncate long titles (especially those with code) */
@@ -423,12 +429,11 @@
 }
 
 .toc-link:hover {
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
 }
 
 .toc-link.active {
     color: var(--color-primary);
-    font-weight: var(--weight-medium);
     border-inline-start-color: var(--color-primary);
 }
 
@@ -438,26 +443,22 @@
    ============================================================================ */
 
 .toc-level-2 .toc-link {
-    padding-left: 1rem;
-    font-size: var(--text-sm);
+    padding-left: 0.75rem;
 }
 
 .toc-level-3 .toc-link {
-    padding-left: 1.75rem;
-    font-size: var(--text-xs);
-    opacity: 0.9;
-}
-
-.toc-level-4 .toc-link {
-    padding-left: 2.5rem;
-    font-size: var(--text-xs);
+    padding-left: 1.25rem;
     opacity: 0.85;
 }
 
+.toc-level-4 .toc-link {
+    padding-left: 1.75rem;
+    opacity: 0.75;
+}
+
 .toc-level-5 .toc-link {
-    padding-left: 3.25rem;
-    font-size: var(--text-xs);
-    opacity: 0.8;
+    padding-left: 2.25rem;
+    opacity: 0.7;
 }
 
 /* ============================================================================
