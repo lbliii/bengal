@@ -334,16 +334,32 @@ body.search-modal-open {
   position: relative;
 }
 
-/* NUCLEAR: Kill ALL pseudo-elements to prevent blob leakage */
-.search-modal *::before,
-.search-modal *::after,
+/* Prevent blob leakage from any source */
+.search-modal__container,
+.search-modal__results,
+.search-modal__result-section,
+.search-modal__section-header,
+.search-modal__section-items,
+.search-modal__results-list {
+  position: relative;
+  overflow: hidden;
+}
+
 .search-modal__container::before,
-.search-modal__container::after {
+.search-modal__container::after,
+.search-modal__results::before,
+.search-modal__results::after,
+.search-modal__result-section::before,
+.search-modal__result-section::after,
+.search-modal__section-header::before,
+.search-modal__section-header::after,
+.search-modal__section-items::before,
+.search-modal__section-items::after,
+.search-modal__results-list::before,
+.search-modal__results-list::after {
   display: none !important;
   content: none !important;
   background: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 .search-modal__results-list {

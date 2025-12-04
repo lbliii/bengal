@@ -40,7 +40,7 @@
   }
 
   function getPalette() {
-    return localStorage.getItem(PALETTE_KEY) || '';
+    return localStorage.getItem(PALETTE_KEY) || 'snow-lynx';
   }
 
   function setPalette(palette) {

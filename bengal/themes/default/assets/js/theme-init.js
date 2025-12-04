@@ -1,7 +1,7 @@
 (function () {
     try {
         // Get config defaults from bengal.toml (if set)
-        const defaults = window.BENGAL_THEME_DEFAULTS || { appearance: 'system', palette: '' };
+        const defaults = window.BENGAL_THEME_DEFAULTS || { appearance: 'system', palette: 'snow-lynx' };
 
         // Resolve default appearance ('system' → actual light/dark)
         let defaultAppearance = defaults.appearance;

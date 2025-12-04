@@ -114,7 +114,7 @@ DEFAULTS: dict[str, Any] = {
     "theme": {
         "name": "default",
         "default_appearance": "system",  # light | dark | system
-        "default_palette": "",
+        "default_palette": "snow-lynx",
         "features": [],
         "show_reading_time": True,
         "show_author": True,
