@@ -207,5 +207,3 @@ def phase_finalize(orchestrator: BuildOrchestrator, verbose: bool, collector) ->
         log_cache_stats()
     except ImportError:
         pass  # Cache not used
-
-

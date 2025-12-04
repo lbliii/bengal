@@ -10,8 +10,6 @@ Tests the hidden/visibility frontmatter and related properties:
 
 from pathlib import Path
 
-import pytest
-
 from bengal.core.page import Page
 
 
@@ -399,5 +397,3 @@ class TestVisibilityWithDraft:
         assert page.in_sitemap is False
         assert page.in_search is False
         assert page.in_rss is False
-
-

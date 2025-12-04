@@ -4,10 +4,7 @@ Tests that sitemap, RSS, and index generators correctly exclude
 hidden/visibility-filtered pages.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock
-
-import pytest
+from unittest.mock import MagicMock
 
 
 class TestSitemapVisibilityFiltering:
@@ -170,5 +167,3 @@ class TestNavigationVisibilityFiltering:
         in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
 
         assert len(in_menu_pages) == 1
-
-

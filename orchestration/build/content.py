@@ -400,5 +400,3 @@ def phase_update_pages_list(
 
     # Convert back to list for rendering (preserves compatibility)
     return list(pages_to_build_set)
-
-

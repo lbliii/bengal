@@ -24,6 +24,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from bengal.pipeline.core import Stream, StreamItem, StreamKey
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SourceStream[T](Stream[T]):
@@ -355,6 +358,7 @@ class ParallelStream[T](Stream[T]):
             futures = {executor.submit(fn, item.value): item for item in source_items}
 
             # Collect results as they complete
+            errors: list[tuple[str, Exception]] = []
             for future in as_completed(futures):
                 source_item = futures[future]
                 try:
@@ -366,10 +370,19 @@ class ParallelStream[T](Stream[T]):
                     )
                     results[source_item.key.id] = result_item
                 except Exception as e:
-                    # Re-raise with context
-                    raise RuntimeError(
-                        f"Parallel execution failed for {source_item.key}: {e}"
-                    ) from e
+                    # Log error but continue processing other items
+                    errors.append((str(source_item.key), e))
+                    logger.error(
+                        f"Parallel execution failed for {source_item.key}: {e}",
+                        exc_info=True,
+                    )
+
+            # If any errors occurred, raise a summary error after processing completes
+            if errors:
+                error_summary = "\n".join(f"  - {key}: {str(e)}" for key, e in errors)
+                raise RuntimeError(
+                    f"Parallel execution failed for {len(errors)} item(s):\n{error_summary}"
+                )
 
         # Yield in original order (for deterministic output)
         for item in source_items:

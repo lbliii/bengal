@@ -171,5 +171,3 @@ class ContentSource(ABC):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r}, type={self.source_type!r})"
-
-

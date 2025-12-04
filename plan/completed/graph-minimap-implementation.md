@@ -193,5 +193,3 @@ Implemented interactive graph visualizations for Bengal sites:
 - Graph analysis system (`bengal/analysis/knowledge_graph.py`)
 - Graph visualization (`bengal/analysis/graph_visualizer.py`)
 - Output formats (`bengal/postprocess/output_formats.py`)
-
-

@@ -39,7 +39,9 @@ Supports two modes:
 
         {% if section and section.metadata.get('description', '') %}
         <p class="changelog-description">{{ section.metadata.get('description', '') }}</p>
-        {% elif description %}
+        {% elif page and page.metadata.get('description', '') %}
+        <p class="changelog-description">{{ page.metadata.get('description', '') }}</p>
+        {% elif description is defined %}
         <p class="changelog-description">{{ description }}</p>
         {% endif %}
     </header>

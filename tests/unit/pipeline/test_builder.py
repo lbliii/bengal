@@ -355,5 +355,3 @@ class TestPipelineIntegration:
         assert result.success
         assert len(outputs) == 1
         assert outputs[0] == {"sum": 15, "count": 5, "avg": 3.0}
-
-
