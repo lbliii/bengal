@@ -56,13 +56,15 @@ class ContentDiscoveryStream(Stream[ParsedContent]):
     """
     Stream that discovers and parses content files.
 
-    Wraps bengal.discovery.ContentDiscovery to emit ParsedContent items
-    that can flow through the pipeline.
+    Also discovers sections from directory structure during the walk.
+    Sections are tracked and can be accessed via the `sections` property
+    after iteration completes.
 
     Example:
         >>> stream = ContentDiscoveryStream(content_dir)
         >>> for item in stream.iterate():
         ...     print(item.value.source_path)
+        >>> sections = stream.sections  # Access discovered sections
     """
 
     def __init__(
@@ -84,6 +86,8 @@ class ContentDiscoveryStream(Stream[ParsedContent]):
         self._content_dir = content_dir
         self._include_hidden = include_hidden
         self._extensions = extensions
+        self._sections: list[Any] = []  # Will be populated during discovery
+        self._sections_by_path: dict[Path, Any] = {}  # For quick lookup
 
     def _produce(self) -> Iterator[StreamItem[ParsedContent]]:
         """Discover and parse content files."""
@@ -142,10 +146,39 @@ class ContentDiscoveryStream(Stream[ParsedContent]):
                 continue
 
     def _discover_files(self) -> Iterator[Path]:
-        """Walk content directory and yield matching files."""
-        seen_inodes: set[int] = set()
+        """Walk content directory and yield matching files, also discovering sections."""
+        from bengal.core.section import Section
 
-        def walk(directory: Path) -> Iterator[Path]:
+        seen_inodes: set[tuple[int, int]] = set()
+
+        def walk(directory: Path, parent_section: Section | None = None) -> Iterator[Path]:
+            """Walk directory, creating sections and yielding files."""
+            if not directory.exists():
+                return
+
+            # Check for symlink loops
+            try:
+                stat = directory.stat()
+                inode_key = (stat.st_dev, stat.st_ino)
+                if inode_key in seen_inodes:
+                    logger.debug("symlink_loop_detected", path=str(directory))
+                    return
+                seen_inodes.add(inode_key)
+            except (OSError, PermissionError) as e:
+                logger.debug("directory_stat_failed", path=str(directory), error=str(e))
+                return
+
+            # Create section for this directory
+            section = Section(name=directory.name, path=directory)
+            self._sections_by_path[directory] = section
+
+            # Add to parent section if exists
+            if parent_section:
+                parent_section.add_subsection(section)
+            elif directory != self._content_dir:
+                # Top-level section
+                self._sections.append(section)
+
             try:
                 entries = sorted(directory.iterdir())
             except PermissionError:
@@ -158,26 +191,84 @@ class ContentDiscoveryStream(Stream[ParsedContent]):
                     continue
 
                 # Skip _index.md's parent check but include _index.md itself
-                if entry.name.startswith("_") and entry.name != "_index.md":
+                if entry.name.startswith("_") and entry.name not in (
+                    "_index.md",
+                    "_index.markdown",
+                ):
                     continue
 
                 if entry.is_symlink():
                     # Check for symlink loops
                     try:
-                        inode = entry.stat().st_ino
-                        if inode in seen_inodes:
+                        stat = entry.stat()
+                        inode_key = (stat.st_dev, stat.st_ino)
+                        if inode_key in seen_inodes:
                             logger.debug("symlink_loop_detected", path=str(entry))
                             continue
-                        seen_inodes.add(inode)
+                        seen_inodes.add(inode_key)
                     except OSError:
                         continue
 
                 if entry.is_dir():
-                    yield from walk(entry)
+                    yield from walk(entry, section)
                 elif entry.is_file() and entry.suffix in self._extensions:
                     yield entry
 
-        yield from walk(self._content_dir)
+            # Only keep section if it has content (will be populated later)
+            # We'll filter empty sections after pages are assigned
+
+        # Walk top-level directories
+        try:
+            for item in sorted(self._content_dir.iterdir()):
+                # Skip hidden unless explicitly included
+                if not self._include_hidden and item.name.startswith("."):
+                    continue
+
+                # Skip _index.md's parent check but include _index.md itself
+                if item.name.startswith("_") and item.name not in (
+                    "_index.md",
+                    "_index.markdown",
+                ):
+                    continue
+
+                if item.is_dir():
+                    yield from walk(item)
+                elif item.is_file() and item.suffix in self._extensions:
+                    yield item
+        except PermissionError as e:
+            logger.debug("content_dir_permission_denied", path=str(self._content_dir), error=str(e))
+
+    @property
+    def sections(self) -> list[Any]:
+        """
+        Get discovered sections.
+
+        Sections are populated during file discovery. After iterating the stream,
+        call this property to get all discovered sections.
+
+        Returns:
+            List of Section objects
+        """
+        from bengal.core.section import Section
+
+        # Filter out empty sections
+        return [
+            section
+            for section in self._sections
+            if isinstance(section, Section) and (section.pages or section.subsections)
+        ]
+
+    def get_section_by_path(self, path: Path) -> Any | None:
+        """
+        Get section by directory path.
+
+        Args:
+            path: Directory path
+
+        Returns:
+            Section object or None if not found
+        """
+        return self._sections_by_path.get(path)
 
 
 def create_content_stream(

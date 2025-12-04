@@ -69,118 +69,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def _discover_sections_only(content_dir: Path, site: Site, pages: list[Page]) -> None:
-    """
-    Discover sections from directory structure and assign pages to them.
-
-    This is an optimization: we already have pages from ContentDiscoveryStream,
-    so we only need to discover sections and assign pages to them, rather than
-    re-discovering everything.
-
-    Args:
-        content_dir: Content directory to scan
-        site: Site instance to populate with sections
-        pages: Already-discovered pages to assign to sections
-    """
-    from bengal.core.section import Section
-
-    # Build a map of pages by their parent directory
-    pages_by_dir: dict[Path, list[Page]] = {}
-    for page in pages:
-        parent_dir = page.source_path.parent
-        if parent_dir not in pages_by_dir:
-            pages_by_dir[parent_dir] = []
-        pages_by_dir[parent_dir].append(page)
-
-    # Track visited directories to detect symlink loops
-    visited_inodes: set[tuple[int, int]] = set()
-
-    def walk_directory(directory: Path, parent_section: Section | None = None) -> Section | None:
-        """Recursively walk directory to create sections."""
-        if not directory.exists():
-            return None
-
-        # Check for symlink loops
-        try:
-            stat = directory.stat()
-            inode_key = (stat.st_dev, stat.st_ino)
-            if inode_key in visited_inodes:
-                logger.warning(
-                    "symlink_loop_detected",
-                    path=str(directory),
-                    action="skipping_to_prevent_infinite_recursion",
-                )
-                return None
-            visited_inodes.add(inode_key)
-        except (OSError, PermissionError) as e:
-            logger.warning(
-                "directory_stat_failed",
-                path=str(directory),
-                error=str(e),
-                action="skipping",
-            )
-            return None
-
-        # Create section for this directory
-        section = Section(name=directory.name, path=directory)
-        section._site = site
-
-        # Assign pages in this directory to the section
-        if directory in pages_by_dir:
-            for page in pages_by_dir[directory]:
-                page._section = section
-                section.add_page(page)
-
-        # Walk subdirectories
-        try:
-            for item in sorted(directory.iterdir()):
-                # Skip hidden files and directories
-                if item.name.startswith((".", "_")) and item.name not in (
-                    "_index.md",
-                    "_index.markdown",
-                ):
-                    continue
-
-                if item.is_dir():
-                    subsection = walk_directory(item, section)
-                    if subsection and (subsection.pages or subsection.subsections):
-                        section.add_subsection(subsection)
-        except PermissionError as e:
-            logger.warning(
-                "directory_permission_denied",
-                path=str(directory),
-                error=str(e),
-                action="skipping",
-            )
-
-        # Only return section if it has content
-        if section.pages or section.subsections:
-            return section
-        return None
-
-    # Walk top-level directories
-    try:
-        for item in sorted(content_dir.iterdir()):
-            # Skip hidden files and directories
-            if item.name.startswith((".", "_")) and item.name not in (
-                "_index.md",
-                "_index.markdown",
-            ):
-                continue
-
-            if item.is_dir():
-                section = walk_directory(item)
-                if section:
-                    site.sections.append(section)
-    except PermissionError as e:
-        logger.warning(
-            "content_dir_permission_denied",
-            path=str(content_dir),
-            error=str(e),
-            action="skipping",
-        )
-
-
 def create_full_build_pipeline(
     site: Site,
     *,
@@ -224,13 +112,14 @@ def create_full_build_pipeline(
     # Phase 1: Content Discovery & Parsing
     # ========================================================================
     # Discover and parse all content files
-    content_stream = ContentDiscoveryStream(content_dir)
+    original_content_stream = ContentDiscoveryStream(content_dir)
+    content_stream = original_content_stream
 
     # Apply disk caching if enabled
     if cache:
         from bengal.pipeline.cache import DiskCachedStream
 
-        content_stream = DiskCachedStream(content_stream, cache)
+        content_stream = DiskCachedStream(original_content_stream, cache)
 
     # Transform ParsedContent → Page
     def create_page(parsed: ParsedContent) -> Page:
@@ -250,6 +139,12 @@ def create_full_build_pipeline(
 
         page_stream = DiskCachedStream(page_stream, cache)
 
+    # Extract sections from content stream (populated during discovery)
+    # We need to iterate the stream to populate sections, but we'll do that in the pipeline
+    from typing import Any
+
+    discovered_sections: list[Any] = []
+
     # ========================================================================
     # Phase 2-5: Sections, Taxonomies, Menus, Assets
     # ========================================================================
@@ -268,18 +163,34 @@ def create_full_build_pipeline(
         site.pages = pages
 
         # CRITICAL: We need to discover sections and enrich pages before processing
-        # The ContentDiscoveryStream only discovers pages, not sections
-        # We discover sections separately and then enrich existing pages
         from bengal.orchestration.content import ContentOrchestrator
 
         content = ContentOrchestrator(site)
         content_dir = site.root_path / "content"
 
         if content_dir.exists():
-            # Discover sections from directory structure (without re-discovering pages)
-            # This is much faster than full discovery
-            site.sections = []
-            _discover_sections_only(content_dir, site, pages)
+            # Use sections from ContentDiscoveryStream if available
+            if discovered_sections:
+                site.sections = discovered_sections
+                # Assign pages to sections based on their source_path
+                for page in pages:
+                    page_dir = page.source_path.parent
+                    section = (
+                        original_content_stream.get_section_by_path(page_dir)
+                        if hasattr(original_content_stream, "get_section_by_path")
+                        else None
+                    )
+                    if section:
+                        page._section = section
+                        if page not in section.pages:
+                            section.add_page(page)
+            else:
+                # Fallback: should not happen - ContentDiscoveryStream should always discover sections
+                logger.warning(
+                    "sections_not_discovered",
+                    action="using_empty_sections_list",
+                )
+                site.sections = []
 
             # Register sections for path-based lookups
             site.register_sections()
@@ -459,8 +370,13 @@ def create_full_build_pipeline(
     # Build pipeline using Pipeline builder API
     # The builder expects functions, not streams, so we wrap stream iteration
     def get_content_items():
-        """Get items from content stream."""
-        yield from (item.value for item in content_stream.iterate())
+        """Get items from content stream and populate sections."""
+        # Iterate stream to populate sections
+        for item in content_stream.iterate():
+            yield item.value
+        # Extract sections after iteration completes (use original stream, not wrapped)
+        discovered_sections.clear()
+        discovered_sections.extend(original_content_stream.sections)
 
     pipeline = (
         Pipeline("bengal-full-build")
