@@ -323,21 +323,16 @@
             // Ensure proper spacing in viewBox string - explicitly format with spaces
             const viewBoxValue = '0 0 ' + width + ' ' + height;
 
-            // Ensure wrapper is visible (override any CSS that might hide it)
-            wrapper.style.display = 'block';
-            wrapper.style.opacity = '1';
-            wrapper.style.visibility = 'visible';
-            // Add class to mark graph as loaded (for CSS targeting)
-            wrapper.classList.add('graph-loaded');
+            // Use CSS class instead of inline styles (reduces CSSStyleDeclaration churn)
+            wrapper.classList.remove('graph-loading');
+            wrapper.classList.add('graph-loaded', 'graph-visible');
 
             this.svg = d3.select(wrapper)
                 .append('svg')
                 .attr('width', width)
                 .attr('height', height)
                 .attr('viewBox', viewBoxValue)
-                .style('display', 'block')
-                .style('opacity', '1')
-                .style('visibility', 'visible');
+                .attr('class', 'graph-svg-visible');
 
             // Create group for panning
             this.g = this.svg.append('g');
@@ -395,10 +390,11 @@
             const width = Number(this.options.width) || 200;
             const height = Number(this.options.height) || 200;
 
-            // Create force simulation with faster cooling to stop sooner
+            // Create force simulation with faster cooling for better performance
             this.simulation = d3.forceSimulation(this.filteredData.nodes)
-                .alphaDecay(0.1) // Faster decay (default 0.0228) - stops animation sooner
-                .velocityDecay(0.4) // More friction (default 0.4) - reduces jitter
+                .alphaDecay(0.15) // Faster decay (default 0.0228) - stops animation sooner
+                .alphaMin(0.05)   // Stop earlier when nearly stable
+                .velocityDecay(0.5) // More friction - reduces jitter
                 .force('link', d3.forceLink(preparedEdges)
                     .id(d => d.id)
                     .distance(20))
@@ -515,15 +511,13 @@
             // Add expand button
             this.addExpandButton();
 
-            // Ensure graph remains visible after rendering (fix for production fade-out issue)
+            // Ensure graph remains visible after rendering (use CSS classes instead of inline styles)
             const wrapper = this.container.querySelector('.graph-contextual-container');
             if (wrapper) {
-                wrapper.style.display = 'block';
-                wrapper.style.opacity = '1';
-                wrapper.style.visibility = 'visible';
+                wrapper.classList.add('graph-visible');
             }
             if (this.svg) {
-                this.svg.style('opacity', '1').style('visibility', 'visible');
+                this.svg.attr('class', 'graph-svg-visible');
             }
 
             // Stop simulation after initial layout (shorter timeout to prevent jitter)
@@ -533,10 +527,9 @@
                     clearTimeout(this._simulationTimeout);
                     this._simulationTimeout = null;
                 }
-                // Ensure visibility is maintained after simulation ends
+                // Ensure visibility is maintained after simulation ends (use CSS class)
                 if (wrapper) {
-                    wrapper.style.opacity = '1';
-                    wrapper.style.visibility = 'visible';
+                    wrapper.classList.add('graph-visible');
                 }
             });
 
@@ -545,12 +538,11 @@
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
-                // Ensure visibility is maintained after timeout
+                // Ensure visibility is maintained after timeout (use CSS class)
                 if (wrapper) {
-                    wrapper.style.opacity = '1';
-                    wrapper.style.visibility = 'visible';
+                    wrapper.classList.add('graph-visible');
                 }
-            }, 1000); // Reduced from 1500ms to stop sooner
+            }, 500); // Reduced from 1000ms to stop sooner
         }
 
         highlightConnections(d) {
@@ -650,11 +642,13 @@
         }
 
         resolveNodeColors() {
-            // Helper function to resolve CSS variables
+            // Cache getComputedStyle once for all nodes (prevents CSSStyleDeclaration object churn)
+            const computedStyles = getComputedStyle(document.documentElement);
+
+            // Helper function to resolve CSS variables using cached styles
             const resolveCSSVariable = (varName) => {
                 const cleanVar = varName.replace(/var\(|\s|\)/g, '');
-                const root = document.documentElement;
-                const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
+                const value = computedStyles.getPropertyValue(cleanVar).trim();
                 return value || '#9e9e9e';
             };
 
@@ -737,13 +731,37 @@
 
     // Store instance for cleanup
     let contextualGraphInstance = null;
+    let intersectionObserver = null;
 
-    // Auto-initialize if container exists
+    // Auto-initialize if container exists - with IntersectionObserver for lazy loading
     function initContextualGraph() {
         const contextualContainer = document.querySelector('.graph-contextual');
         if (!contextualContainer) return;
 
-        // Wait for D3.js to be available (with timeout)
+        // Use IntersectionObserver for lazy initialization (only load when visible)
+        // This reduces memory/CPU usage for pages where graph isn't scrolled into view
+        if ('IntersectionObserver' in window) {
+            intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Disconnect observer - only initialize once
+                        intersectionObserver.disconnect();
+                        intersectionObserver = null;
+                        // Initialize the graph
+                        initGraphWhenD3Ready(contextualContainer);
+                    }
+                });
+            }, { rootMargin: '100px' }); // Start loading 100px before visible
+
+            intersectionObserver.observe(contextualContainer);
+        } else {
+            // Fallback for browsers without IntersectionObserver
+            initGraphWhenD3Ready(contextualContainer);
+        }
+    }
+
+    // Wait for D3.js and initialize graph
+    function initGraphWhenD3Ready(contextualContainer) {
         let retries = 0;
         const maxRetries = 50; // 5 seconds max wait
 
@@ -759,9 +777,9 @@
                     // Hide container on initialization error - fail silently
                     const container = contextualContainer.querySelector('.graph-contextual-container');
                     if (container) {
-                        container.style.display = 'none';
+                        container.classList.add('graph-hidden');
                     }
-                    contextualContainer.style.display = 'none';
+                    contextualContainer.classList.add('graph-hidden');
                 }
             } else if (retries < maxRetries) {
                 retries++;
@@ -770,9 +788,9 @@
                 // Hide container if D3.js fails to load - fail silently
                 const container = contextualContainer.querySelector('.graph-contextual-container');
                 if (container) {
-                    container.style.display = 'none';
+                    container.classList.add('graph-hidden');
                 }
-                contextualContainer.style.display = 'none';
+                contextualContainer.classList.add('graph-hidden');
             }
         }
 
@@ -781,9 +799,22 @@
 
     // Cleanup function for memory leak prevention
     function cleanup() {
+        // Disconnect IntersectionObserver if still active
+        if (intersectionObserver) {
+            intersectionObserver.disconnect();
+            intersectionObserver = null;
+        }
+
         if (contextualGraphInstance && typeof contextualGraphInstance.cleanup === 'function') {
             contextualGraphInstance.cleanup();
             contextualGraphInstance = null;
+        }
+    }
+
+    // Pause simulation when tab is hidden (reduces CPU usage)
+    function handleVisibilityChange() {
+        if (document.hidden && contextualGraphInstance && contextualGraphInstance.simulation) {
+            contextualGraphInstance.simulation.stop();
         }
     }
 
@@ -798,8 +829,13 @@
     // Also listen for d3:ready event (fired when D3 is lazy-loaded)
     window.addEventListener('d3:ready', initContextualGraph);
 
-    // Cleanup on page unload to prevent memory leaks
+    // Cleanup on various navigation events to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
+    window.addEventListener('pagehide', cleanup);  // For bfcache
+    window.addEventListener('popstate', cleanup);  // For SPA-like navigation
+
+    // Pause simulation when tab is hidden
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Export for manual initialization and cleanup
     if (typeof window !== 'undefined') {

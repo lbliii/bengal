@@ -19,10 +19,13 @@
 
     /**
      * Get CSS variable value with fallback
+     * @param {string} variable - CSS variable name (e.g., '--color-primary')
+     * @param {string} fallback - Fallback value if variable is not set
+     * @param {CSSStyleDeclaration} [cachedStyles] - Optional cached getComputedStyle result
      */
-    function getCSSVariable(variable, fallback = '#000000') {
-        const root = getComputedStyle(document.documentElement);
-        const value = root.getPropertyValue(variable).trim();
+    function getCSSVariable(variable, fallback = '#000000', cachedStyles = null) {
+        const styles = cachedStyles || getComputedStyle(document.documentElement);
+        const value = styles.getPropertyValue(variable).trim();
         return value || fallback;
     }
 
@@ -47,30 +50,34 @@
     function getMermaidThemeConfig() {
         const darkMode = isDarkMode();
 
-        // Read Bengal CSS variables
-        const primaryColorRaw = getCSSVariable('--color-primary', '#4FA8A0');
-        const primaryHover = getCSSVariable('--color-primary-hover', '#3D9287');
-        const primaryDark = getCSSVariable('--color-primary-dark', '#236962');
-        const primaryTextColor = getCSSVariable('--color-text-inverse', '#FFFFFF');
-        const textColor = getCSSVariable('--color-text-primary', '#252525');
-        const secondaryTextColor = getCSSVariable('--color-text-secondary', '#5F5B56');
-        const bgPrimary = getCSSVariable('--color-bg-primary', '#FDFCF9');
-        const bgSecondary = getCSSVariable('--color-bg-secondary', '#F9F6F0');
-        const bgTertiary = getCSSVariable('--color-bg-tertiary', '#F2EDE3');
-        const borderColor = getCSSVariable('--color-border', '#E5DFD6');
-        const borderStrong = getCSSVariable('--color-border-strong', '#CFC7BC');
-        const accentColorRaw = getCSSVariable('--color-accent', '#5BB8AF');
-        const accentHover = getCSSVariable('--color-accent-hover', '#4FA8A0');
+        // Cache getComputedStyle once for all variable reads (prevents CSSStyleDeclaration object churn)
+        // This reduces ~50+ getComputedStyle calls to just 1
+        const cachedStyles = getComputedStyle(document.documentElement);
+
+        // Read Bengal CSS variables using cached styles
+        const primaryColorRaw = getCSSVariable('--color-primary', '#4FA8A0', cachedStyles);
+        const primaryHover = getCSSVariable('--color-primary-hover', '#3D9287', cachedStyles);
+        const primaryDark = getCSSVariable('--color-primary-dark', '#236962', cachedStyles);
+        const primaryTextColor = getCSSVariable('--color-text-inverse', '#FFFFFF', cachedStyles);
+        const textColor = getCSSVariable('--color-text-primary', '#252525', cachedStyles);
+        const secondaryTextColor = getCSSVariable('--color-text-secondary', '#5F5B56', cachedStyles);
+        const bgPrimary = getCSSVariable('--color-bg-primary', '#FDFCF9', cachedStyles);
+        const bgSecondary = getCSSVariable('--color-bg-secondary', '#F9F6F0', cachedStyles);
+        const bgTertiary = getCSSVariable('--color-bg-tertiary', '#F2EDE3', cachedStyles);
+        const borderColor = getCSSVariable('--color-border', '#E5DFD6', cachedStyles);
+        const borderStrong = getCSSVariable('--color-border-strong', '#CFC7BC', cachedStyles);
+        const accentColorRaw = getCSSVariable('--color-accent', '#5BB8AF', cachedStyles);
+        const accentHover = getCSSVariable('--color-accent-hover', '#4FA8A0', cachedStyles);
 
         // Semantic colors - use darker variants in light mode for better contrast
-        const successColorRaw = getCSSVariable('--color-success', '#2E7D5A');
-        const successDark = getCSSVariable('--color-success-text', '#1B5E42'); // Darker variant
-        const warningColorRaw = getCSSVariable('--color-warning', '#D97706');
-        const warningDark = getCSSVariable('--color-warning-text', '#7C3E03'); // Darker variant
-        const errorColorRaw = getCSSVariable('--color-error', '#C62828');
-        const errorDark = getCSSVariable('--color-error-text', '#7F1D1D'); // Darker variant
-        const infoColorRaw = getCSSVariable('--color-info', '#3D9DAF');
-        const infoDark = getCSSVariable('--color-info-text', '#1E5C6B'); // Darker variant
+        const successColorRaw = getCSSVariable('--color-success', '#2E7D5A', cachedStyles);
+        const successDark = getCSSVariable('--color-success-text', '#1B5E42', cachedStyles); // Darker variant
+        const warningColorRaw = getCSSVariable('--color-warning', '#D97706', cachedStyles);
+        const warningDark = getCSSVariable('--color-warning-text', '#7C3E03', cachedStyles); // Darker variant
+        const errorColorRaw = getCSSVariable('--color-error', '#C62828', cachedStyles);
+        const errorDark = getCSSVariable('--color-error-text', '#7F1D1D', cachedStyles); // Darker variant
+        const infoColorRaw = getCSSVariable('--color-info', '#3D9DAF', cachedStyles);
+        const infoDark = getCSSVariable('--color-info-text', '#1E5C6B', cachedStyles); // Darker variant
 
         // Use darker, more saturated colors in light mode for better contrast
         // In dark mode, use the lighter variants
@@ -83,10 +90,10 @@
 
         // Semantic text colors (designed for text on colored backgrounds)
         // These automatically adapt to light/dark mode and palettes via CSS variables
-        const successTextColor = getCSSVariable('--color-success-text');
-        const warningTextColor = getCSSVariable('--color-warning-text');
-        const errorTextColor = getCSSVariable('--color-error-text');
-        const infoTextColor = getCSSVariable('--color-info-text');
+        const successTextColor = getCSSVariable('--color-success-text', '#000000', cachedStyles);
+        const warningTextColor = getCSSVariable('--color-warning-text', '#000000', cachedStyles);
+        const errorTextColor = getCSSVariable('--color-error-text', '#000000', cachedStyles);
+        const infoTextColor = getCSSVariable('--color-info-text', '#000000', cachedStyles);
 
         // Text on colored backgrounds - use semantic text colors which handle contrast
         // Note: primaryTextColor in Mermaid is used for ALL node text, not just colored nodes

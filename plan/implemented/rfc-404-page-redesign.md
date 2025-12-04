@@ -86,7 +86,7 @@ Quick navigation:
     </li>
     {% endfor %}
   </ul>
-  
+
   {# Search hint instead of button #}
   <p class="empty-state__search-hint">
     <kbd>⌘</kbd><kbd>K</kbd> to search
@@ -153,4 +153,3 @@ Quick navigation:
 
 1. Should we show a random "featured" page as a suggestion?
 2. Add a "Report broken link" option?
-
