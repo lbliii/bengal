@@ -1,0 +1,28 @@
+{#
+Page Hero - Dispatcher
+
+Routes to the appropriate page hero variant based on configuration.
+
+Variants:
+- classic: Traditional separate action-bar + page-header (default)
+- magazine: Editorial-style consolidated header
+
+Configuration:
+- Site-wide: theme.hero_style in bengal.toml
+- Per-page: hero_style in frontmatter (overrides site-wide)
+
+Usage:
+{% include 'partials/page-hero.html' %}
+#}
+
+{# Determine hero style: page frontmatter > theme config > default (classic) #}
+{% set hero_style = page.metadata.get('hero_style') 
+   or site.theme_config.get('hero_style', 'classic') %}
+
+{% if hero_style == 'magazine' %}
+  {% include 'partials/page-hero-magazine.html' %}
+{% else %}
+  {# Default to classic #}
+  {% include 'partials/page-hero-classic.html' %}
+{% endif %}
+

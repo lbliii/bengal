@@ -203,6 +203,10 @@
 }
 
 @layer components {
+  @import url('components/page-hero.css');
+}
+
+@layer components {
   @import url('components/interactive.css');
 }
 

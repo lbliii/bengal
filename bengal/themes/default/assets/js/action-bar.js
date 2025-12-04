@@ -5,6 +5,8 @@
  * - Expandable metadata toggle
  * - Share dropdown interactions
  * - Copy functionality for URLs and LLM text
+ *
+ * Supports both action-bar (classic) and page-hero (magazine) variants.
  */
 
 (function() {
@@ -22,7 +24,7 @@
 
   function init() {
     initMetadataToggle();
-    initShareDropdown();
+    initShareDropdowns();
   }
 
   /**
@@ -44,14 +46,27 @@
   }
 
   /**
-   * Initialize share dropdown functionality
+   * Initialize share dropdown functionality for all variants
+   * Supports both action-bar-share and page-hero__share components
    */
-  function initShareDropdown() {
-    const trigger = document.querySelector('.action-bar-share-trigger');
-    const dropdown = document.querySelector('.action-bar-share-dropdown');
+  function initShareDropdowns() {
+    // Support both action-bar and page-hero variants
+    const shareContainers = document.querySelectorAll('.action-bar-share, .page-hero__share');
 
-    if (!trigger || !dropdown) return;
+    shareContainers.forEach(container => {
+      const trigger = container.querySelector('[class$="-trigger"], [class*="__share-trigger"]');
+      const dropdown = container.querySelector('[class$="-dropdown"], [class*="__share-dropdown"]');
 
+      if (!trigger || !dropdown) return;
+
+      initShareDropdown(container, trigger, dropdown);
+    });
+  }
+
+  /**
+   * Initialize a single share dropdown
+   */
+  function initShareDropdown(container, trigger, dropdown) {
     // Toggle dropdown
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -69,8 +84,7 @@
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      const shareWrapper = trigger.closest('.action-bar-share');
-      if (!shareWrapper || !shareWrapper.contains(e.target)) {
+      if (!container.contains(e.target)) {
         closeDropdown(trigger, dropdown);
       }
     });
@@ -84,7 +98,7 @@
     });
 
     // AI assistant links - fetch content, copy to clipboard, then navigate
-    const aiLinks = dropdown.querySelectorAll('.action-bar-share-ai');
+    const aiLinks = dropdown.querySelectorAll('[class*="share-ai"], [class*="__share-ai"]');
     aiLinks.forEach(link => {
       link.addEventListener('click', async (e) => {
         e.preventDefault();
