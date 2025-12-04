@@ -1,5 +1,24 @@
 """
-Section Object - Represents a folder or logical grouping of pages.
+Section representation for organizing pages into hierarchical groups.
+
+Sections represent directories in the content tree and provide navigation,
+sorting, and hierarchical query interfaces. Sections can be nested and
+maintain parent-child relationships. Each section can have an index page
+and contains both regular pages and subsections.
+
+Key Concepts:
+    - Hierarchy: Sections form a tree structure with parent-child relationships
+    - Index pages: Special pages (_index.md or index.md) that represent the section
+    - Weight-based sorting: Pages and subsections sorted by weight metadata
+    - Hashability: Sections are hashable by path for set operations
+
+Related Modules:
+    - bengal.core.page: Page objects contained within sections
+    - bengal.core.site: Site container that manages all sections
+    - bengal.orchestration.content: Content discovery that builds section hierarchy
+
+See Also:
+    - bengal/core/section.py:Section class for section representation
 """
 
 from __future__ import annotations

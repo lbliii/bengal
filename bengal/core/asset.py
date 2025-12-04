@@ -1,5 +1,24 @@
 """
-Asset Object - Handles images, CSS, JS, and other static files.
+Asset handling for static files (images, CSS, JS, fonts, etc.).
+
+Provides asset discovery, processing (minification, optimization, bundling),
+fingerprinting for cache-busting, and atomic output writing. Handles CSS
+nesting transformation, CSS bundling via @import resolution, and image
+optimization.
+
+Key Concepts:
+    - Entry points: CSS/JS files that serve as bundle roots (style.css, bundle.js)
+    - Modules: CSS/JS files imported by entry points (bundled, not copied separately)
+    - Fingerprinting: Hash-based cache-busting via filename suffixes
+    - Atomic writes: Crash-safe file writing using temporary files
+
+Related Modules:
+    - bengal.orchestration.asset: Asset discovery and orchestration
+    - bengal.utils.css_minifier: CSS minification implementation
+    - bengal.utils.atomic_write: Atomic file writing utilities
+
+See Also:
+    - bengal/core/asset.py:Asset class for asset representation
 """
 
 from __future__ import annotations
@@ -355,10 +374,7 @@ class Asset:
             return False
 
         # Third-party minified libraries should be copied separately
-        if name.endswith(".min.js"):
-            return False
-
-        return True
+        return not name.endswith(".min.js")
 
     def minify(self) -> Asset:
         """

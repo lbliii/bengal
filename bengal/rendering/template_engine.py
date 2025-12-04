@@ -1,13 +1,24 @@
 """
-Template engine using Jinja2.
+Template engine using Jinja2 for page rendering.
 
-Supports optional template profiling via --profile-templates flag.
-When enabled, collects timing data for template renders and template
-function calls to identify performance bottlenecks.
+Provides template rendering, template function registration, and optional
+template profiling for performance analysis. Integrates with theme system
+for template discovery and asset manifest for cache-busting.
+
+Key Concepts:
+    - Template inheritance: Child themes inherit parent templates
+    - Bytecode caching: Compiled templates cached for faster subsequent renders
+    - Template profiling: Optional timing data collection via --profile-templates
+    - Strict mode: StrictUndefined enabled for better error detection
+
+Related Modules:
+    - bengal.rendering.template_profiler: Profiling implementation
+    - bengal.rendering.template_functions: Template function registry
+    - bengal.utils.theme_registry: Theme resolution and discovery
 
 See Also:
-    - bengal/rendering/template_profiler.py
-    - plan/active/rfc-template-performance-optimization.md
+    - bengal/rendering/template_profiler.py: Profiling implementation
+    - plan/active/rfc-template-performance-optimization.md: Performance RFC
 """
 
 from __future__ import annotations

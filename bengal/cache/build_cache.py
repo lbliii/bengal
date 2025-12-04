@@ -1,5 +1,25 @@
 """
-Build Cache - Tracks file changes and dependencies for incremental builds.
+Build cache for tracking file changes and dependencies in incremental builds.
+
+Maintains file hashes, dependency graphs, taxonomy indexes, and validation
+results across builds. Uses JSON serialization for persistence and provides
+tolerant loading for version migrations.
+
+Key Concepts:
+    - File hashes: SHA256 hashes for detecting content changes
+    - Dependency tracking: Templates, partials, and data files used by pages
+    - Taxonomy indexes: Tag/category mappings for fast reconstruction
+    - Config hash: Auto-invalidation when configuration changes
+    - Version tolerance: Accepts missing/older cache versions gracefully
+
+Related Modules:
+    - bengal.orchestration.incremental: Incremental build logic using cache
+    - bengal.cache.dependency_tracker: Dependency graph construction
+    - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
+
+See Also:
+    - bengal/cache/build_cache.py:BuildCache class for cache structure
+    - plan/active/rfc-incremental-builds.md: Incremental build design
 """
 
 from __future__ import annotations

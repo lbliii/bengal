@@ -1,8 +1,9 @@
 # RFC — Pristine HTML Output in Bengal
 
-Status: Draft  
-Owner: @llane  
-Last-Updated: 2025-10-24
+**Status**: ✅ Implemented  
+**Owner**: @llane  
+**Created**: 2025-10-24  
+**Implemented**: 2025-11-25 (v0.1.4)
 
 Problem Statement
 

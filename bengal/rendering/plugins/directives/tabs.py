@@ -15,7 +15,6 @@ Modern MyST syntax:
     ::::
 """
 
-
 from __future__ import annotations
 
 import re
@@ -239,10 +238,10 @@ def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
         depth = 1
         i = start
         while i < len(text) and depth > 0:
-            if text[i:i+5] == '<div ' or text[i:i+5] == '<div>':
+            if text[i : i + 5] == "<div " or text[i : i + 5] == "<div>":
                 depth += 1
                 i += 5
-            elif text[i:i+6] == '</div>':
+            elif text[i : i + 6] == "</div>":
                 depth -= 1
                 if depth == 0:
                     content = text[start:i]
@@ -290,10 +289,10 @@ def _extract_legacy_tab_items(text: str) -> list[tuple[str, str, str]]:
         depth = 1
         i = start
         while i < len(text) and depth > 0:
-            if text[i:i+5] == '<div ' or text[i:i+5] == '<div>':
+            if text[i : i + 5] == "<div " or text[i : i + 5] == "<div>":
                 depth += 1
                 i += 5
-            elif text[i:i+6] == '</div>':
+            elif text[i : i + 6] == "</div>":
                 depth -= 1
                 if depth == 0:
                     content = text[start:i]
@@ -330,7 +329,8 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
 
     # Extract tab items from rendered HTML
     # Pattern: <div class="tab-item" data-title="..." data-selected="...">content</div>
-    # NOTE: Cannot use simple regex because content may contain nested divs
+    # NOTE: Cannot use simple regex because content may contain nested divs.
+    #       Use proper HTML parsing via _extract_tab_items() to handle nesting correctly.
     matches = _extract_tab_items(text)
 
     if not matches:
@@ -440,7 +440,8 @@ def render_tabs(renderer, text: str, **attrs) -> str:
 
     # Extract tab items from rendered HTML
     # Pattern: <div class="legacy-tab-item" data-title="..." data-selected="...">content</div>
-    # NOTE: Cannot use simple regex because content may contain nested divs
+    # NOTE: Cannot use simple regex because content may contain nested divs.
+    #       Use proper HTML parsing via _extract_legacy_tab_items() to handle nesting correctly.
     matches = _extract_legacy_tab_items(text)
 
     if not matches:

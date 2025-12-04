@@ -25,11 +25,14 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Thread-local storage for pipelines (reuse per thread, not per page!)
+# Thread-local storage for rendering pipelines.
+# NOTE: Pipelines are reused per thread (not per page) for performance.
+#       Each thread gets its own pipeline instance to avoid contention.
 _thread_local = threading.local()
 
 
-# Thread-safe output lock for parallel processing
+# Thread-safe output lock for parallel processing.
+# NOTE: Used to serialize print/log output when multiple threads render pages concurrently.
 _print_lock = Lock()
 
 
@@ -87,12 +90,15 @@ class Site:
     taxonomies: dict[str, dict[str, list[Page]]] = field(default_factory=dict)
     menu: dict[str, list[MenuItem]] = field(default_factory=dict)
     menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
-    # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}
+    # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}.
+    # NOTE: Populated by MenuBuilder when i18n is configured. See: bengal/core/menu.py
     menu_localized: dict[str, dict[str, list[MenuItem]]] = field(default_factory=dict)
     menu_builders_localized: dict[str, dict[str, MenuBuilder]] = field(default_factory=dict)
-    # Current language context for rendering (set per page during rendering)
+    # Current language context for rendering (set per page during rendering).
+    # NOTE: Used by template functions to return localized content. Set by RenderingPipeline.
     current_language: str | None = None
-    # Global data from data/ directory (YAML, JSON, TOML files)
+    # Global data from data/ directory (YAML, JSON, TOML files).
+    # NOTE: Loaded from site root data/ directory. Accessible in templates as site.data.
     data: Any = field(default_factory=dict)
 
     # Private caches for expensive properties (invalidated when pages change)

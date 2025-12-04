@@ -214,8 +214,9 @@ def build(
         cli.warning("   Streaming build processes pages in batches, limiting incremental benefits.")
         cli.blank()
 
-    # Determine build profile with proper precedence
-    # NOTE: --verbose is NOT passed here - it only controls output verbosity, not profile
+    # Determine build profile with proper precedence.
+    # NOTE: --verbose is NOT passed here - it only controls output verbosity, not profile.
+    #       Build profiles (dev, theme_dev, debug) are separate from verbosity settings.
     build_profile = BuildProfile.from_cli_args(
         profile=profile, dev=use_dev, theme_dev=use_theme_dev, debug=debug
     )
