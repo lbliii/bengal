@@ -1,7 +1,25 @@
 """
 Sitemap generation for SEO.
-"""
 
+Generates XML sitemap files for search engine discovery and indexing. Creates
+sitemap.xml with page URLs, modification dates, change frequencies, and priorities.
+Supports sitemap index files for large sites.
+
+Key Concepts:
+    - XML sitemap: Standard XML format for search engine discovery
+    - Page metadata: Last modified dates, change frequencies, priorities
+    - Sitemap index: Index file for multiple sitemap files (large sites)
+    - SEO optimization: Helps search engines discover and index content
+
+Related Modules:
+    - bengal.orchestration.postprocess: Post-processing orchestration
+    - bengal.core.site: Site container with pages
+    - bengal.core.page: Page objects with metadata
+
+See Also:
+    - bengal/postprocess/sitemap.py:SitemapGenerator for sitemap generation
+    - https://www.sitemaps.org/: Sitemap protocol specification
+"""
 
 from __future__ import annotations
 

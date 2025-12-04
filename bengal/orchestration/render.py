@@ -1,7 +1,25 @@
 """
 Rendering orchestration for Bengal SSG.
 
-Handles page rendering in both sequential and parallel modes.
+Handles page rendering in both sequential and parallel modes. Supports
+free-threaded Python for true parallelism and falls back to sequential
+rendering on standard Python. Integrates with dependency tracking for
+incremental builds.
+
+Key Concepts:
+    - Parallel rendering: ThreadPoolExecutor for concurrent page rendering
+    - Free-threaded detection: Automatic detection of GIL-disabled Python
+    - Dependency tracking: Template dependency tracking for incremental builds
+    - Error handling: Graceful error handling with page-level isolation
+
+Related Modules:
+    - bengal.rendering.template_engine: Template rendering implementation
+    - bengal.rendering.renderer: Individual page rendering logic
+    - bengal.cache.dependency_tracker: Dependency graph construction
+
+See Also:
+    - bengal/orchestration/render.py:render_pages() for rendering entry point
+    - plan/active/rfc-template-performance-optimization.md: Performance RFC
 """
 
 from __future__ import annotations
@@ -304,7 +322,9 @@ class RenderOrchestrator:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Map futures to pages for error reporting
-            future_to_page = {executor.submit(process_page_with_pipeline, page): page for page in pages}
+            future_to_page = {
+                executor.submit(process_page_with_pipeline, page): page for page in pages
+            }
 
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):
@@ -433,7 +453,9 @@ class RenderOrchestrator:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Map futures to pages for error reporting
-            future_to_page = {executor.submit(process_page_with_pipeline, page): page for page in pages}
+            future_to_page = {
+                executor.submit(process_page_with_pipeline, page): page for page in pages
+            }
 
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):

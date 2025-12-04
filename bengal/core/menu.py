@@ -1,5 +1,25 @@
 """
-Menu system for navigation.
+Menu system for navigation and site structure.
+
+Provides menu building from configuration, page frontmatter, and section
+hierarchy. Supports hierarchical menus, active state tracking, and i18n
+localization. Menus are built during content discovery and cached for
+template access.
+
+Key Concepts:
+    - Menu sources: Config files, page frontmatter, section structure
+    - Hierarchical menus: Parent-child relationships with weight-based sorting
+    - Active state: Current page and active trail tracking
+    - i18n menus: Localized menu variants per language
+
+Related Modules:
+    - bengal.orchestration.menu: Menu building orchestration
+    - bengal.core.site: Site container that holds menus
+    - bengal.rendering.template_functions.navigation: Template access to menus
+
+See Also:
+    - bengal/core/menu.py:MenuItem class for menu item representation
+    - bengal/core/menu.py:MenuBuilder class for menu construction
 """
 
 from __future__ import annotations

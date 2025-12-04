@@ -1,7 +1,25 @@
 """
 Post-processing orchestration for Bengal SSG.
 
-Handles post-build tasks like sitemap generation, RSS feeds, and link validation.
+Handles post-build tasks like sitemap generation, RSS feeds, link validation,
+and special page generation. Runs after all pages are rendered and coordinates
+parallel post-processing tasks.
+
+Key Concepts:
+    - Sitemap generation: XML sitemap for search engines
+    - RSS feeds: RSS/Atom feed generation for blog content
+    - Link validation: Broken link detection and reporting
+    - Special pages: 404, robots.txt, and other generated pages
+    - Output formats: JSON, TXT, LLM-friendly output generation
+
+Related Modules:
+    - bengal.postprocess.sitemap: Sitemap generation
+    - bengal.postprocess.rss: RSS feed generation
+    - bengal.postprocess.output_formats: Output format generators
+    - bengal.health.validators: Link validation
+
+See Also:
+    - bengal/orchestration/postprocess.py:PostprocessOrchestrator for orchestration logic
 """
 
 from __future__ import annotations

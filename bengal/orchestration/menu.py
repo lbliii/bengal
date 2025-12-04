@@ -1,7 +1,23 @@
 """
 Menu orchestration for Bengal SSG.
 
-Handles navigation menu building from config and page frontmatter.
+Handles navigation menu building from config and page frontmatter. Supports
+incremental menu building with caching, i18n localization, and active state
+tracking. Menus are built during content discovery and cached for template access.
+
+Key Concepts:
+    - Menu sources: Config definitions, page frontmatter, section structure
+    - Incremental caching: Menu cache invalidation on content changes
+    - i18n menus: Localized menu variants per language
+    - Active state: Current page and active trail tracking
+
+Related Modules:
+    - bengal.core.menu: Menu data structures (MenuItem, MenuBuilder)
+    - bengal.core.site: Site container that holds menus
+    - bengal.rendering.template_functions.navigation: Template access to menus
+
+See Also:
+    - bengal/orchestration/menu.py:MenuOrchestrator for menu building logic
 """
 
 from __future__ import annotations

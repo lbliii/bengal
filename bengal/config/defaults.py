@@ -2,9 +2,23 @@
 Single source of truth for all Bengal configuration defaults.
 
 All config access should use these defaults via get_default() or
-specialized helpers like get_max_workers().
+specialized helpers like get_max_workers(). Provides centralized
+default values for all configuration options.
 
-This module avoids importing heavy dependencies to stay fast at import time.
+Key Concepts:
+    - Default values: Centralized default configuration values
+    - Worker configuration: Auto-detection of optimal worker count
+    - Fast imports: Avoids heavy dependencies for fast import time
+    - Specialized helpers: get_max_workers(), etc. for common config access
+
+Related Modules:
+    - bengal.config.loader: Configuration loading from files
+    - bengal.config.env_overrides: Environment variable overrides
+    - bengal.orchestration.build: Build orchestration using config
+
+See Also:
+    - bengal/config/defaults.py:get_default() for default value access
+    - bengal/config/defaults.py:get_max_workers() for worker configuration
 """
 
 from __future__ import annotations

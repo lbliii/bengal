@@ -5,10 +5,23 @@ This enables raw HTML pages, downloadable files, and other assets
 that need to bypass the content pipeline while still having access
 to theme assets via /assets/css/style.css.
 
+Key Concepts:
+    - Verbatim copying: Files copied as-is without processing
+    - Directory preservation: Maintains directory structure from static/
+    - Size warnings: Warns when static folder exceeds size threshold
+    - Theme asset access: Static files can reference theme assets
+
+Related Modules:
+    - bengal.orchestration.asset: Asset processing (for theme assets)
+    - bengal.core.site: Site container with static directory
+
 Usage:
     static/demos/holo.html  → public/demos/holo.html
     static/downloads/app.pdf → public/downloads/app.pdf
     static/robots.txt        → public/robots.txt
+
+See Also:
+    - bengal/orchestration/static.py:process_static_files() for processing logic
 """
 
 from __future__ import annotations

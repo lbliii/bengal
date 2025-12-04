@@ -2,6 +2,23 @@
 Asset processing orchestration for Bengal SSG.
 
 Handles asset copying, minification, optimization, and fingerprinting.
+Coordinates parallel asset processing, generates asset manifest for
+cache-busting, and manages fingerprint cleanup.
+
+Key Concepts:
+    - Parallel processing: Concurrent asset processing for performance
+    - Asset manifest: JSON manifest mapping logical paths to fingerprinted files
+    - Fingerprinting: Hash-based cache-busting via filename suffixes
+    - Cleanup: Removal of stale fingerprinted files
+
+Related Modules:
+    - bengal.core.asset: Asset representation and processing
+    - bengal.assets.manifest: Asset manifest generation
+    - bengal.rendering.template_engine: Template access to asset manifest
+
+See Also:
+    - bengal/orchestration/asset.py:AssetOrchestrator for orchestration logic
+    - plan/active/rfc-asset-fingerprinting.md: Asset fingerprinting design
 """
 
 from __future__ import annotations
@@ -225,7 +242,8 @@ class AssetOrchestrator:
         MIN_ITEMS_FOR_PARALLEL = 5
 
         should_run_parallel = parallel and (
-            total_items >= MIN_ITEMS_FOR_PARALLEL or (len(css_entries) > 0 and len(other_assets) > 0)
+            total_items >= MIN_ITEMS_FOR_PARALLEL
+            or (len(css_entries) > 0 and len(other_assets) > 0)
         )
 
         if should_run_parallel:
@@ -236,7 +254,7 @@ class AssetOrchestrator:
                 optimize,
                 fingerprint,
                 progress_manager,
-                css_modules_count=len(css_modules)
+                css_modules_count=len(css_modules),
             )
         else:
             # Sequential fallback
@@ -247,7 +265,7 @@ class AssetOrchestrator:
                 optimize,
                 fingerprint,
                 progress_manager,
-                css_modules_count=len(css_modules)
+                css_modules_count=len(css_modules),
             )
 
         # Log completion metrics
@@ -278,7 +296,11 @@ class AssetOrchestrator:
         total_assets = len(css_entries) + len(other_assets)
         # Use configured max_workers, or auto-detect with asset-aware bound
         config_workers = self.site.config.get("max_workers")
-        max_workers = get_max_workers(config_workers) if config_workers else min(8, max(1, (total_assets + 3) // 4))
+        max_workers = (
+            get_max_workers(config_workers)
+            if config_workers
+            else min(8, max(1, (total_assets + 3) // 4))
+        )
 
         errors = []
         completed_count = 0
@@ -293,15 +315,17 @@ class AssetOrchestrator:
 
             # Submit CSS entries
             for entry in css_entries:
-                future = executor.submit(self._process_css_entry, entry, minify, optimize, fingerprint)
-                futures.append((future, entry, True)) # True = is_css_entry
+                future = executor.submit(
+                    self._process_css_entry, entry, minify, optimize, fingerprint
+                )
+                futures.append((future, entry, True))  # True = is_css_entry
 
             # Submit other assets
             for asset in other_assets:
                 future = executor.submit(
                     self._process_single_asset, asset, assets_output, minify, optimize, fingerprint
                 )
-                futures.append((future, asset, False)) # False = not css_entry
+                futures.append((future, asset, False))  # False = not css_entry
 
             # Collect results as they complete
             for future, asset, is_css_entry in futures:
@@ -329,7 +353,7 @@ class AssetOrchestrator:
                                 current=completed_count,
                                 current_item=item_name,
                                 minified=minify if is_css_entry else None,
-                                bundled_modules=css_modules_count if is_css_entry else None
+                                bundled_modules=css_modules_count if is_css_entry else None,
                             )
                             pending_updates = 0
                             last_update_time = now
@@ -339,7 +363,7 @@ class AssetOrchestrator:
 
         # Final progress update for any remaining pending updates
         if progress_manager and pending_updates > 0:
-             with lock:
+            with lock:
                 completed_count += pending_updates
                 progress_manager.update_phase("assets", current=completed_count)
 
@@ -388,10 +412,10 @@ class AssetOrchestrator:
                         current=completed,
                         current_item=item_name,
                         minified=minify if is_css_entry else None,
-                        bundled_modules=css_modules_count if is_css_entry else None
+                        bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
-                 self.logger.error(
+                self.logger.error(
                     "asset_processing_failed",
                     asset_path=str(asset.source_path),
                     error=str(e),
@@ -422,7 +446,11 @@ class AssetOrchestrator:
             Asset representing the bundle.js file, or None if bundling fails
         """
         from bengal.core.asset import Asset
-        from bengal.utils.js_bundler import bundle_js_files, get_theme_js_bundle_order, get_theme_js_excluded
+        from bengal.utils.js_bundler import (
+            bundle_js_files,
+            get_theme_js_bundle_order,
+            get_theme_js_excluded,
+        )
 
         try:
             # Get configuration
@@ -443,7 +471,8 @@ class AssetOrchestrator:
 
             # Add any remaining files not in explicit order
             remaining = sorted(
-                f for name, f in module_map.items()
+                f
+                for name, f in module_map.items()
                 if name not in excluded and f not in ordered_files
             )
             ordered_files.extend(remaining)
@@ -533,9 +562,7 @@ class AssetOrchestrator:
 
         except Exception as e:
             # Re-raise with context so caller can handle logging/error collection
-            raise Exception(
-                f"Failed to process CSS entry {css_entry.source_path.name}: {e}"
-            ) from e
+            raise Exception(f"Failed to process CSS entry {css_entry.source_path.name}: {e}") from e
 
     def _process_single_asset(
         self, asset: Asset, assets_output: Path, minify: bool, optimize: bool, fingerprint: bool

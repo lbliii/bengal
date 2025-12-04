@@ -1,5 +1,25 @@
 """
-Site Object - Represents the entire website and orchestrates the build.
+Site container and build orchestrator for Bengal SSG.
+
+The Site object is the central container for all content (pages, sections,
+assets) and coordinates discovery, rendering, and output generation. It
+maintains caches for expensive operations and provides query interfaces
+for templates.
+
+Key Concepts:
+    - Content organization: Pages, sections, and assets organized hierarchically
+    - Caching: Expensive property caches invalidated when content changes
+    - Theme integration: Theme resolution and template/asset discovery
+    - Query interfaces: Taxonomy, menu, and page query APIs for templates
+
+Related Modules:
+    - bengal.orchestration.build: Build orchestration using Site
+    - bengal.rendering.template_engine: Template rendering with Site context
+    - bengal.cache.build_cache: Build state persistence
+
+See Also:
+    - bengal/core/site.py:Site class for site representation
+    - plan/active/rfc-incremental-builds.md: Incremental build design
 """
 
 from __future__ import annotations

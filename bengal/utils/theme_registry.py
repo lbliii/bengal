@@ -2,10 +2,26 @@
 Installed theme discovery and utilities.
 
 Discovers uv/pip-installed themes via entry points (group: "bengal.themes").
+Provides theme package lookup and resource access for installed themes.
+
+Key Concepts:
+    - Entry points: Python package entry points for theme discovery
+    - Package naming: Prefer "bengal-theme-<slug>" format
+    - Resource access: PackageLoader for template/asset access
+    - Theme packages: ThemePackage dataclass for theme metadata
 
 Conventions:
-- Package name: prefer "bengal-theme-<slug>"; accept "<slug>-bengal-theme".
-- Entry point name: slug (e.g., "acme") → value: import path (e.g., "bengal_themes.acme").
+    - Package name: prefer "bengal-theme-<slug>"; accept "<slug>-bengal-theme".
+    - Entry point name: slug (e.g., "acme") → value: import path (e.g., "bengal_themes.acme").
+
+Related Modules:
+    - bengal.utils.theme_resolution: Theme inheritance chain resolution
+    - bengal.rendering.template_engine: Template engine using theme packages
+    - bengal.core.theme: Theme configuration object
+
+See Also:
+    - bengal/utils/theme_registry.py:get_theme_package() for theme lookup
+    - bengal/utils/theme_registry.py:ThemePackage for theme representation
 """
 
 from __future__ import annotations

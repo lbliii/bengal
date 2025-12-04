@@ -1,5 +1,25 @@
 """
-Rendering Pipeline - Orchestrates the parsing, AST building, templating, and output rendering.
+Rendering pipeline for orchestrating page rendering workflow.
+
+Orchestrates the parsing, AST building, templating, and output rendering phases
+for individual pages. Manages thread-local parser instances for performance
+and provides dependency tracking for incremental builds.
+
+Key Concepts:
+    - Thread-local parsers: Parser instances reused per thread for performance
+    - AST-based processing: Content represented as AST for efficient transformation
+    - Template rendering: Jinja2 template rendering with page context
+    - Dependency tracking: Template and asset dependency tracking
+
+Related Modules:
+    - bengal.rendering.parsers.mistune: Markdown parser implementation
+    - bengal.rendering.template_engine: Template engine for Jinja2 rendering
+    - bengal.rendering.renderer: Individual page rendering logic
+    - bengal.cache.dependency_tracker: Dependency graph construction
+
+See Also:
+    - bengal/rendering/pipeline.py:RenderingPipeline for pipeline logic
+    - plan/active/rfc-content-ast-architecture.md: AST architecture RFC
 """
 
 from __future__ import annotations

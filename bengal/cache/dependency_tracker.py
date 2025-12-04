@@ -1,7 +1,25 @@
 """
-Dependency Tracker - Tracks dependencies during the build process.
-"""
+Dependency tracker for build process dependency management.
 
+Tracks template, partial, and data file dependencies during rendering to enable
+incremental builds. Records dependencies in BuildCache for change detection
+and selective rebuilding.
+
+Key Concepts:
+    - Dependency tracking: Template and data file dependencies per page
+    - Thread-safe tracking: Thread-local storage for parallel rendering
+    - Cache integration: Dependencies stored in BuildCache
+    - Incremental builds: Dependency changes trigger selective rebuilds
+
+Related Modules:
+    - bengal.cache.build_cache: Build cache persistence
+    - bengal.orchestration.incremental: Incremental build logic
+    - bengal.rendering.pipeline: Rendering pipeline using dependency tracking
+
+See Also:
+    - bengal/cache/dependency_tracker.py:DependencyTracker for tracking logic
+    - plan/active/rfc-incremental-builds.md: Incremental build design
+"""
 
 from __future__ import annotations
 

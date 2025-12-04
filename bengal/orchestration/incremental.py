@@ -2,8 +2,24 @@
 Incremental build orchestration for Bengal SSG.
 
 Handles cache management, change detection, and determining what needs rebuilding.
-"""
+Uses file hashes, dependency graphs, and taxonomy indexes to identify changed
+content and minimize rebuild work. Supports both full and incremental builds.
 
+Key Concepts:
+    - Change detection: File hash comparison for content changes
+    - Dependency tracking: Template and data file dependencies
+    - Taxonomy invalidation: Tag/category change detection
+    - Selective rebuilding: Only rebuild changed pages and dependencies
+
+Related Modules:
+    - bengal.cache.build_cache: Build cache persistence
+    - bengal.cache.dependency_tracker: Dependency graph construction
+    - bengal.orchestration.build: Build orchestration entry point
+
+See Also:
+    - bengal/orchestration/incremental.py:IncrementalOrchestrator for incremental logic
+    - plan/active/rfc-incremental-builds.md: Incremental build design
+"""
 
 from __future__ import annotations
 
@@ -236,9 +252,7 @@ class IncrementalOrchestrator:
         navigation_affected_count = 0
         for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
             # Find the Page object for this changed file
-            changed_page = next(
-                (p for p in self.site.pages if p.source_path == changed_path), None
-            )
+            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
             if changed_page and not changed_page.metadata.get("_generated"):
                 # Find pages that have this page as next or prev
                 # Check prev page (it has this page as 'next')
@@ -322,9 +336,7 @@ class IncrementalOrchestrator:
 
         return pages_to_build_list, assets_to_process, change_summary
 
-    def find_work(
-        self, verbose: bool = False
-    ) -> tuple[list[Page], list[Asset], dict[str, list]]:
+    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -535,7 +547,9 @@ class IncrementalOrchestrator:
 
         # Write diagnostic placeholder with timestamp and path for debugging
         timestamp = datetime.datetime.now().isoformat()
-        diagnostic_content = f"[TEST BRIDGE] Updated at {timestamp}\nSource: {path}\nOutput: {rel_html}"
+        diagnostic_content = (
+            f"[TEST BRIDGE] Updated at {timestamp}\nSource: {path}\nOutput: {rel_html}"
+        )
         output_path.write_text(diagnostic_content)
 
     def full_rebuild(self, pages: list, context: BuildContext):

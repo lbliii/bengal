@@ -3,6 +3,22 @@ Template context wrappers for ergonomic URL handling.
 
 Wraps Page and Section objects so that .url automatically includes baseurl
 in templates, making it impossible to forget baseurl in href/src attributes.
+Provides transparent delegation to wrapped objects while adding baseurl handling.
+
+Key Concepts:
+    - Auto-baseurl: Automatically applies baseurl to .url property
+    - Transparent delegation: All other properties delegate to wrapped object
+    - Multiple baseurl formats: Supports path, absolute, file, and S3 URLs
+    - Template ergonomics: Simplifies template code by removing baseurl handling
+
+Related Modules:
+    - bengal.rendering.template_engine: Template engine that uses wrappers
+    - bengal.core.page: Page objects being wrapped
+    - bengal.core.section: Section objects being wrapped
+
+See Also:
+    - bengal/rendering/template_context.py:TemplatePageWrapper for page wrapper
+    - bengal/rendering/template_context.py:TemplateSectionWrapper for section wrapper
 """
 
 from __future__ import annotations

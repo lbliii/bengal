@@ -1,8 +1,26 @@
 """
-Page Object - Represents a single content page.
+Page representation for content pages in Bengal SSG.
 
 This module provides the main Page class, which combines multiple mixins
 to provide a complete page interface while maintaining separation of concerns.
+Pages represent markdown content files and provide metadata, navigation,
+content processing, and template rendering capabilities.
+
+Key Concepts:
+    - Mixin architecture: Separated concerns via mixins (metadata, content, navigation)
+    - Hashability: Pages hashable by source_path for set operations
+    - AST-based content: Content represented as AST for efficient processing
+    - Cacheable metadata: PageCore provides cacheable page metadata
+
+Related Modules:
+    - bengal.core.page.page_core: Cacheable page metadata
+    - bengal.core.page.proxy: Lazy-loaded page placeholder
+    - bengal.rendering.renderer: Page rendering logic
+    - bengal.orchestration.content: Content discovery and page creation
+
+See Also:
+    - bengal/core/page/__init__.py:Page class for page representation
+    - plan/active/rfc-content-ast-architecture.md: AST architecture RFC
 """
 
 from __future__ import annotations

@@ -1,5 +1,24 @@
 """
 Renderer for converting pages to final HTML output.
+
+Handles individual page rendering using templates, markdown processing, and
+content transformation. Integrates with template engine for Jinja2 rendering
+and provides error handling with graceful degradation.
+
+Key Concepts:
+    - Template rendering: Jinja2 template rendering with page context
+    - Markdown processing: Markdown to HTML conversion
+    - Content transformation: Link rewriting, image processing, etc.
+    - Error handling: Graceful error handling with error pages
+
+Related Modules:
+    - bengal.rendering.template_engine: Template engine for Jinja2 rendering
+    - bengal.rendering.parsers.mistune: Markdown parser
+    - bengal.rendering.link_transformer: Link transformation logic
+
+See Also:
+    - bengal/rendering/renderer.py:Renderer class for rendering logic
+    - plan/active/rfc-template-performance-optimization.md: Performance RFC
 """
 
 from __future__ import annotations

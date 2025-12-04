@@ -1,3 +1,26 @@
+"""
+Theme resolution and inheritance chain building.
+
+Resolves theme inheritance chains by reading theme.toml files and following
+extends relationships. Supports site themes, installed themes, and bundled themes.
+Builds complete inheritance chains for template and asset discovery.
+
+Key Concepts:
+    - Theme inheritance: Child themes extend parent themes
+    - Resolution order: Site themes → installed themes → bundled themes
+    - Chain building: Recursive resolution of extends relationships
+    - Template discovery: Uses inheritance chain for template lookup
+
+Related Modules:
+    - bengal.utils.theme_registry: Installed theme discovery
+    - bengal.rendering.template_engine: Template engine using inheritance chains
+    - bengal.core.theme: Theme configuration object
+
+See Also:
+    - bengal/utils/theme_resolution.py:resolve_theme_chain() for chain resolution
+    - plan/active/rfc-theme-inheritance.md: Theme inheritance design
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable

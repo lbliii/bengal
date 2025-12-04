@@ -1,7 +1,24 @@
 """
-RSS feed generation.
-"""
+RSS feed generation for content syndication.
 
+Generates RSS/Atom feeds for blog content, enabling readers to subscribe to
+site updates via RSS readers. Creates rss.xml with recent pages sorted by date.
+
+Key Concepts:
+    - RSS format: Standard RSS 2.0 format for content syndication
+    - Recent pages: Limited to 20 most recent pages with dates
+    - Date sorting: Pages sorted by date (newest first)
+    - RFC 822 dates: Standard date formatting for RSS feeds
+
+Related Modules:
+    - bengal.orchestration.postprocess: Post-processing orchestration
+    - bengal.core.site: Site container with pages
+    - bengal.core.page: Page objects with dates
+
+See Also:
+    - bengal/postprocess/rss.py:RSSGenerator for RSS generation
+    - https://www.rssboard.org/rss-specification: RSS 2.0 specification
+"""
 
 from __future__ import annotations
 
@@ -81,7 +98,9 @@ class RSSGenerator:
             pages_with_dates = [
                 p
                 for p in self.site.pages
-                if p.date and p.in_rss and (strategy == "none" or getattr(p, "lang", default_lang) == code)
+                if p.date
+                and p.in_rss
+                and (strategy == "none" or getattr(p, "lang", default_lang) == code)
             ]
             sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
 

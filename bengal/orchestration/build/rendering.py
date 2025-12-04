@@ -2,6 +2,23 @@
 Rendering phases for build orchestration.
 
 Phases 13-16: Asset processing, page rendering, update site pages, track asset dependencies.
+Handles the rendering phase of the build pipeline, including asset fingerprinting,
+page rendering, and dependency tracking for incremental builds.
+
+Key Concepts:
+    - Asset fingerprinting: Hash-based cache-busting for assets
+    - Font URL rewriting: Update font references after fingerprinting
+    - Page rendering: Template rendering for all pages
+    - Dependency tracking: Track template and asset dependencies
+
+Related Modules:
+    - bengal.orchestration.render: Page rendering orchestration
+    - bengal.orchestration.asset: Asset processing orchestration
+    - bengal.cache.dependency_tracker: Dependency graph construction
+
+See Also:
+    - bengal/orchestration/build/rendering.py: Rendering phase functions
+    - plan/active/rfc-build-pipeline.md: Build pipeline design
 """
 
 from __future__ import annotations
