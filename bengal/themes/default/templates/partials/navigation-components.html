@@ -281,16 +281,6 @@ Example:
 #}
 {% macro toc(toc_items=None, toc=None, page=None) %}
 <div class="toc-sidebar">
-  {# TOC Toggle - Direct expand/collapse all (editorial style) #}
-  <button class="toc-toggle-all" data-toc-action="toggle-all" title="Expand/collapse all sections" 
-    aria-label="Expand all sections" aria-expanded="false">
-    <svg class="toc-toggle-icon toc-toggle-icon--expand" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <polyline points="6 9 12 15 18 9"></polyline>
-    </svg>
-    <svg class="toc-toggle-icon toc-toggle-icon--collapse" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <polyline points="18 15 12 9 6 15"></polyline>
-    </svg>
-  </button>
 
   {# Scroll Progress Indicator - Subtle #}
   <div class="toc-progress" aria-hidden="true">
