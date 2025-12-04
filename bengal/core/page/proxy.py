@@ -179,6 +179,11 @@ class PageProxy:
         """Get relative path string (alias for source_path as string)."""
         return str(self.source_path)
 
+    @property
+    def aliases(self) -> list[str]:
+        """Get redirect aliases from cached metadata (Hugo compatibility)."""
+        return self.core.aliases or []
+
     def _parse_date(self, date_str: str) -> datetime | None:
         """Parse ISO date string to datetime (deprecated, use date property)."""
         if not date_str:

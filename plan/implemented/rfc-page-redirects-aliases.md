@@ -1,5 +1,7 @@
 # RFC: Page Redirects and Aliases
 
+**Status**: Implemented ✅
+
 ## Summary
 
 Add Hugo-style `aliases` support to Bengal, allowing pages to specify alternative URLs that redirect to their canonical location. This preserves SEO, maintains link stability during content reorganization, and provides a familiar pattern for writers migrating from Hugo.
@@ -365,13 +367,13 @@ Only generate `_redirects` file, no HTML fallback.
 
 ## Success Criteria
 
-- [ ] `aliases` field parsed from frontmatter
-- [ ] Redirect HTML generated at each alias path
-- [ ] Redirect HTML includes canonical link and noindex
-- [ ] No redirects appear in sitemap.xml
-- [ ] Build logs redirect count
-- [ ] Conflicts logged as warnings
-- [ ] Tests cover happy path and edge cases
+- [x] `aliases` field parsed from frontmatter
+- [x] Redirect HTML generated at each alias path
+- [x] Redirect HTML includes canonical link and noindex
+- [x] No redirects appear in sitemap.xml (they're not real content)
+- [x] Build logs redirect count
+- [x] Conflicts logged as warnings
+- [x] Tests cover happy path and edge cases
 - [ ] Documentation updated
 - [ ] Hugo migration guide accurate
 
