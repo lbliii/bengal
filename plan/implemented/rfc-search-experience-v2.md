@@ -462,7 +462,7 @@ Using the `lunr` PyPI package keeps the build step fully Python-native. It can l
 ### Implementation Phases
 
 **Phase 1: Pre-built Lunr Index (1-2 hours)**
-1. Add `LunrIndexGenerator` 
+1. Add `LunrIndexGenerator`
 2. Integrate into build pipeline
 3. Update `search.js` to use pre-built index
 4. Config option: `search.lunr.prebuilt: true`
@@ -553,4 +553,3 @@ def test_build_without_prebuilt_flag():
 1. Review RFC with stakeholders
 2. Resolve open questions
 3. Run `::plan` to generate implementation tasks
-

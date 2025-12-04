@@ -114,10 +114,18 @@
 }
 
 /* Ensure container is visible when graph is loaded (override any lazy-loading CSS) */
-.graph-contextual-container.graph-loaded {
+.graph-contextual-container.graph-loaded,
+.graph-contextual-container.graph-visible {
     opacity: 1 !important;
     visibility: visible !important;
     display: block !important;
+}
+
+/* Ensure SVG is visible (class-based approach to reduce inline style churn) */
+.graph-contextual-container svg.graph-svg-visible {
+    display: block;
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Fallback: ensure visibility when SVG exists (for browsers that support :has) */
@@ -245,8 +253,10 @@
     }
 }
 
-/* Hide if no connections */
+/* Hide if no connections or explicitly hidden */
 .graph-contextual:empty,
-.graph-contextual[style*="display: none"] {
+.graph-contextual[style*="display: none"],
+.graph-contextual.graph-hidden,
+.graph-contextual-container.graph-hidden {
     display: none !important;
 }

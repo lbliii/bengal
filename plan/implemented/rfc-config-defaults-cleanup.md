@@ -129,7 +129,7 @@ DEFAULTS: dict[str, Any] = {
     "description": "",
     "author": "",
     "language": "en",
-    
+
     # Build
     "output_dir": "public",
     "content_dir": "content",
@@ -149,14 +149,14 @@ DEFAULTS: dict[str, Any] = {
     "fast_writes": False,
     "stable_section_references": True,
     "min_page_size": 1000,
-    
+
     # HTML Output
     "html_output": {
         "mode": "minify",
         "remove_comments": True,
         "collapse_blank_lines": True,
     },
-    
+
     # Assets
     "assets": {
         "minify": True,
@@ -164,7 +164,7 @@ DEFAULTS: dict[str, Any] = {
         "fingerprint": True,
         "pipeline": False,
     },
-    
+
     # Theme
     "theme": {
         "name": "default",
@@ -179,7 +179,7 @@ DEFAULTS: dict[str, Any] = {
         "max_tags_display": 10,
         "popular_tags_count": 20,
     },
-    
+
     # Content
     "content": {
         "default_type": "doc",
@@ -194,7 +194,7 @@ DEFAULTS: dict[str, Any] = {
         "sort_pages_by": "weight",
         "sort_order": "asc",
     },
-    
+
     # Search
     "search": {
         "enabled": True,
@@ -214,12 +214,12 @@ DEFAULTS: dict[str, Any] = {
             "event_endpoint": None,
         },
     },
-    
+
     # Pagination
     "pagination": {
         "per_page": 10,
     },
-    
+
     # Health Check
     "health_check": {
         "enabled": True,
@@ -228,7 +228,7 @@ DEFAULTS: dict[str, Any] = {
         "orphan_threshold": 5,
         "super_hub_threshold": 50,
     },
-    
+
     # Features
     "features": {
         "rss": True,
@@ -238,20 +238,20 @@ DEFAULTS: dict[str, Any] = {
         "llm_txt": True,
         "syntax_highlighting": True,
     },
-    
+
     # Graph
     "graph": {
         "enabled": True,
         "path": "/graph/",
     },
-    
+
     # i18n
     "i18n": {
         "strategy": None,
         "default_language": "en",
         "default_in_subdir": False,
     },
-    
+
     # Output Formats
     "output_formats": {
         "enabled": True,
@@ -266,7 +266,7 @@ DEFAULTS: dict[str, Any] = {
             "exclude_patterns": ["404.html", "search.html"],
         },
     },
-    
+
     # Markdown
     "markdown": {
         "parser": "mistune",
@@ -278,14 +278,14 @@ DEFAULTS: dict[str, Any] = {
 def get_default(key: str, nested_key: str | None = None) -> Any:
     """
     Get default value for a config key.
-    
+
     Args:
         key: Top-level config key
         nested_key: Optional nested key (dot-separated)
-    
+
     Returns:
         Default value or None if not found
-    
+
     Example:
         >>> get_default("max_workers")
         None  # Auto-detect
@@ -295,30 +295,30 @@ def get_default(key: str, nested_key: str | None = None) -> Any:
         True
     """
     value = DEFAULTS.get(key)
-    
+
     if nested_key is None:
         return value
-    
+
     if not isinstance(value, dict):
         return None
-    
+
     # Handle dot-separated nested keys
     parts = nested_key.split(".")
     for part in parts:
         if not isinstance(value, dict):
             return None
         value = value.get(part)
-    
+
     return value
 
 
 def get_max_workers(config_value: int | None = None) -> int:
     """
     Resolve max_workers with auto-detection.
-    
+
     Args:
         config_value: User-configured value (None = auto-detect)
-    
+
     Returns:
         Resolved worker count
     """
@@ -351,29 +351,29 @@ KNOWN_SECTIONS = {
     "build",
     "theme",
     "params",
-    
+
     # Content
     "content",
     "markdown",
     "taxonomies",
-    
+
     # Features
     "features",
     "search",
     "graph",
-    
+
     # Navigation
     "menu",
     "pagination",
-    
+
     # Output
     "output_formats",
     "assets",
-    
+
     # Development
     "dev",
     "health_check",
-    
+
     # Integrations
     "fonts",
     "autodoc",
@@ -420,7 +420,7 @@ def check_deprecated_keys(config: dict[str, Any]) -> None:
 def normalize_bool_or_dict(value: bool | dict, key: str) -> dict:
     """
     Normalize config that can be bool or dict.
-    
+
     bool → {"enabled": bool}
     dict → dict (with "enabled" default True if missing)
     """
@@ -463,7 +463,7 @@ def from_cli_args(
     """
     Returns:
         (profile, output_flags)
-        
+
         output_flags = {
             "verbose_output": bool,  # Show detailed progress
             "debug_logging": bool,   # Enable debug logs
@@ -473,14 +473,14 @@ def from_cli_args(
         "verbose_output": verbose,
         "debug_logging": debug_log,
     }
-    
+
     if dev:
         return cls.DEVELOPER, output_flags
     if theme_dev:
         return cls.THEME_DEV, output_flags
     if profile:
         return cls.from_string(profile), output_flags
-    
+
     return cls.WRITER, output_flags
 ```
 

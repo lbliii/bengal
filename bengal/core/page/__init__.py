@@ -115,6 +115,11 @@ class Page(
     # Stable key used to link translations across locales (e.g., 'docs/getting-started').
     translation_key: str | None = None
 
+    # Redirect aliases (Hugo compatibility) - alternative URLs that redirect to this page
+    # Aliases are stored in PageCore for caching, but we also keep them here for easy access
+    # and for frontmatter parsing before core is initialized
+    aliases: list[str] = field(default_factory=list)
+
     # References for navigation (set during site building)
     _site: Any | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
@@ -134,6 +139,8 @@ class Page(
         if self.metadata:
             self.tags = self.metadata.get("tags", [])
             self.version = self.metadata.get("version")
+            # Extract aliases from frontmatter (Hugo compatibility)
+            self.aliases = self.metadata.get("aliases", [])
 
         # Auto-create PageCore from Page fields
         # This provides backward compatibility until all instantiation updated
@@ -161,6 +168,7 @@ class Page(
             type=self.metadata.get("type"),
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
+            aliases=self.aliases or [],  # Redirect aliases (Hugo compatibility)
         )
 
     def normalize_core_paths(self) -> None:

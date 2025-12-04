@@ -335,6 +335,35 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* ============================================================================
+   Leaf Sections (sections with no navigable children)
+   Renders as a simple link instead of an expandable group.
+   Styled like regular child page links since they behave as leaf pages.
+   ============================================================================ */
+
+.docs-nav-group--leaf {
+  /* Inherit base group styles but render flat */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Section link styled like regular nav links (not bold like parent sections) */
+.docs-nav-link--section {
+  /* Inherit from .docs-nav-link - same visual treatment as child pages */
+  font-weight: inherit;
+  color: var(--color-text-secondary);
+}
+
+.docs-nav-link--section:hover {
+  color: var(--color-text-primary);
+}
+
+.docs-nav-link--section.active,
+.docs-nav-link--section[aria-current="page"] {
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* ============================================================================
    Dark Mode - Docs Nav
    ============================================================================ */
 
@@ -473,7 +502,9 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 [data-palette$="-bengal"] .docs-nav-link.active,
 [data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
 [data-palette$="-bengal"] .docs-nav-group-link.active,
-[data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"] {
+[data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"],
+[data-palette$="-bengal"] .docs-nav-link--section.active,
+[data-palette$="-bengal"] .docs-nav-link--section[aria-current="page"] {
   background: var(--color-primary-light);
 }
 
@@ -481,7 +512,9 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link.active,
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"] {
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"],
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-link--section.active,
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-link--section[aria-current="page"] {
   background: var(--color-primary-light);
 }
 

@@ -82,10 +82,8 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'graph-minimap-container';
 
-            // Ensure wrapper is visible (fix for production fade-out issue)
-            wrapper.style.display = 'block';
-            wrapper.style.opacity = '1';
-            wrapper.style.visibility = 'visible';
+            // Use CSS class instead of inline styles (reduces CSSStyleDeclaration churn)
+            wrapper.classList.add('graph-visible');
 
             this.container.appendChild(wrapper);
 
@@ -94,9 +92,7 @@
                 .append('svg')
                 .attr('width', this.options.width)
                 .attr('height', this.options.height)
-                .style('display', 'block')
-                .style('opacity', '1')
-                .style('visibility', 'visible');
+                .attr('class', 'graph-svg-visible');
 
             // Create group for zoom/pan
             this.g = this.svg.append('g');
@@ -127,8 +123,11 @@
         render() {
             if (!this.data || !this.g) return;
 
-            // Create force simulation (simplified for minimap)
+            // Create force simulation with faster cooling for better performance
             this.simulation = d3.forceSimulation(this.data.nodes)
+                .alphaDecay(0.15) // Faster decay (default 0.0228) - stops animation sooner
+                .alphaMin(0.05)   // Stop earlier when nearly stable
+                .velocityDecay(0.5) // More friction - reduces jitter
                 .force('link', d3.forceLink(this.data.edges)
                     .id(d => d.id)
                     .distance(30))
@@ -148,14 +147,6 @@
                 .attr('class', 'graph-minimap-link')
                 .attr('stroke', 'var(--color-border-light, rgba(0, 0, 0, 0.1))')
                 .attr('stroke-width', 0.5);
-
-            // Helper function to resolve CSS variables
-            const resolveCSSVariable = (varName) => {
-                const cleanVar = varName.replace(/var\(|\s|\)/g, '');
-                const root = document.documentElement;
-                const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
-                return value || '#9e9e9e';
-            };
 
             // Resolve CSS variables in node colors
             this.resolveNodeColors();
@@ -207,19 +198,19 @@
             });
 
             // Stop simulation after a short time (minimap doesn't need continuous animation)
+            // Reduced from 2000ms to 500ms for better performance
             this._simulationTimeout = setTimeout(() => {
                 if (this.simulation) {
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
 
-                // Ensure visibility is maintained after simulation ends
+                // Ensure visibility is maintained after simulation ends (use CSS class)
                 const wrapper = this.container.querySelector('.graph-minimap-container');
                 if (wrapper) {
-                    wrapper.style.opacity = '1';
-                    wrapper.style.visibility = 'visible';
+                    wrapper.classList.add('graph-visible');
                 }
-            }, 2000);
+            }, 500);
         }
 
         highlightConnections(d) {
@@ -311,11 +302,13 @@
         }
 
         resolveNodeColors() {
-            // Helper function to resolve CSS variables
+            // Cache getComputedStyle once for all nodes (prevents CSSStyleDeclaration object churn)
+            const computedStyles = getComputedStyle(document.documentElement);
+
+            // Helper function to resolve CSS variables using cached styles
             const resolveCSSVariable = (varName) => {
                 const cleanVar = varName.replace(/var\(|\s|\)/g, '');
-                const root = document.documentElement;
-                const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
+                const value = computedStyles.getPropertyValue(cleanVar).trim();
                 return value || '#9e9e9e';
             };
 
@@ -398,24 +391,70 @@
 
     // Store instance for cleanup
     let minimapInstance = null;
+    let intersectionObserver = null;
 
-    // Auto-initialize if container exists
+    // Auto-initialize if container exists - with IntersectionObserver for lazy loading
     function initMinimap() {
         const minimapContainer = document.querySelector('.graph-minimap');
-        if (minimapContainer && typeof d3 !== 'undefined') {
+        if (!minimapContainer) return;
+
+        // Use IntersectionObserver for lazy initialization (only load when visible)
+        if ('IntersectionObserver' in window) {
+            intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Disconnect observer - only initialize once
+                        intersectionObserver.disconnect();
+                        intersectionObserver = null;
+                        // Initialize when D3 is ready
+                        initMinimapWhenD3Ready(minimapContainer);
+                    }
+                });
+            }, { rootMargin: '100px' }); // Start loading 100px before visible
+
+            intersectionObserver.observe(minimapContainer);
+        } else {
+            // Fallback for browsers without IntersectionObserver
+            initMinimapWhenD3Ready(minimapContainer);
+        }
+    }
+
+    // Wait for D3.js and initialize minimap
+    function initMinimapWhenD3Ready(minimapContainer) {
+        if (typeof d3 !== 'undefined') {
             minimapInstance = new GraphMinimap(minimapContainer);
+        } else {
+            // Wait for D3 to load
+            window.addEventListener('d3:ready', () => {
+                if (!minimapInstance && typeof d3 !== 'undefined') {
+                    minimapInstance = new GraphMinimap(minimapContainer);
+                }
+            }, { once: true });
         }
     }
 
     // Cleanup function for memory leak prevention
     function cleanup() {
+        // Disconnect IntersectionObserver if still active
+        if (intersectionObserver) {
+            intersectionObserver.disconnect();
+            intersectionObserver = null;
+        }
+
         if (minimapInstance && typeof minimapInstance.cleanup === 'function') {
             minimapInstance.cleanup();
             minimapInstance = null;
         }
     }
 
-    // Initialize when DOM is ready OR when D3 becomes available (lazy-loaded)
+    // Pause simulation when tab is hidden (reduces CPU usage)
+    function handleVisibilityChange() {
+        if (document.hidden && minimapInstance && minimapInstance.simulation) {
+            minimapInstance.simulation.stop();
+        }
+    }
+
+    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initMinimap);
     } else {
@@ -425,8 +464,13 @@
     // Also listen for d3:ready event (fired when D3 is lazy-loaded)
     window.addEventListener('d3:ready', initMinimap);
 
-    // Cleanup on page unload to prevent memory leaks
+    // Cleanup on various navigation events to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
+    window.addEventListener('pagehide', cleanup);  // For bfcache
+    window.addEventListener('popstate', cleanup);  // For SPA-like navigation
+
+    // Pause simulation when tab is hidden
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Export for manual initialization and cleanup
     if (typeof window !== 'undefined') {

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -83,7 +82,7 @@ class TestGlossaryDirective:
         assert directive is not None
 
     def test_parse_with_tags_filter(self, glossary_file, mock_state):
-        """Test parsing glossary with tag filter."""
+        """Test parsing glossary stores tags for deferred loading."""
         directive = GlossaryDirective()
 
         # Mock the match object
@@ -97,11 +96,12 @@ class TestGlossaryDirective:
 
         assert result["type"] == "glossary"
         assert "error" not in result["attrs"]
-        assert len(result["attrs"]["terms"]) == 1
-        assert result["attrs"]["terms"][0]["term"] == "Admonition"
+        # Parse phase now defers data loading - verify options are stored
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["tags"] == ["admonitions"]
 
     def test_parse_with_multiple_tags(self, glossary_file, mock_state):
-        """Test filtering with multiple tags (OR logic)."""
+        """Test parsing with multiple tags stores them for deferred loading."""
         directive = GlossaryDirective()
 
         match = MagicMock()
@@ -114,14 +114,12 @@ class TestGlossaryDirective:
 
         assert result["type"] == "glossary"
         assert "error" not in result["attrs"]
-        # Should match Admonition (admonitions) and Card Grid (layout)
-        assert len(result["attrs"]["terms"]) == 2
-        term_names = [t["term"] for t in result["attrs"]["terms"]]
-        assert "Admonition" in term_names
-        assert "Card Grid" in term_names
+        # Parse phase now defers data loading - verify tags are stored
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["tags"] == ["admonitions", "layout"]
 
     def test_parse_with_core_tag_matches_multiple(self, glossary_file, mock_state):
-        """Test that 'core' tag matches the Directive term."""
+        """Test that 'core' tag is stored for deferred loading."""
         directive = GlossaryDirective()
 
         match = MagicMock()
@@ -133,11 +131,12 @@ class TestGlossaryDirective:
 
         assert result["type"] == "glossary"
         assert "error" not in result["attrs"]
-        assert len(result["attrs"]["terms"]) == 1
-        assert result["attrs"]["terms"][0]["term"] == "Directive"
+        # Parse phase now defers data loading - verify tag is stored
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["tags"] == ["core"]
 
     def test_parse_sorted_option(self, glossary_file, mock_state):
-        """Test sorted option orders terms alphabetically."""
+        """Test sorted option is stored for deferred sorting."""
         directive = GlossaryDirective()
 
         match = MagicMock()
@@ -151,11 +150,10 @@ class TestGlossaryDirective:
         result = directive.parse(MagicMock(), match, mock_state)
 
         assert result["type"] == "glossary"
-        terms = result["attrs"]["terms"]
-        term_names = [t["term"] for t in terms]
-
-        # Should be alphabetically sorted
-        assert term_names == sorted(term_names, key=str.lower)
+        # Parse phase now defers data loading - verify sorted flag is stored
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["sorted"] is True
+        assert result["attrs"]["tags"] == ["directives"]
 
     def test_parse_no_tags_error(self, glossary_file, mock_state):
         """Test error when no tags specified."""
@@ -173,7 +171,7 @@ class TestGlossaryDirective:
         assert "No tags specified" in result["attrs"]["error"]
 
     def test_parse_no_matching_terms(self, glossary_file, mock_state):
-        """Test error when no terms match tags."""
+        """Test parse stores nonexistent tags (error surfaces in render phase)."""
         directive = GlossaryDirective()
 
         match = MagicMock()
@@ -184,11 +182,12 @@ class TestGlossaryDirective:
         result = directive.parse(MagicMock(), match, mock_state)
 
         assert result["type"] == "glossary"
-        assert "error" in result["attrs"]
-        assert "No terms found" in result["attrs"]["error"]
+        # Parse phase doesn't validate tags - it defers to render
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["tags"] == ["nonexistent"]
 
     def test_parse_missing_file(self, mock_state):
-        """Test error when glossary file not found."""
+        """Test parse stores options (file errors surface in render phase)."""
         directive = GlossaryDirective()
 
         match = MagicMock()
@@ -199,8 +198,9 @@ class TestGlossaryDirective:
         result = directive.parse(MagicMock(), match, mock_state)
 
         assert result["type"] == "glossary"
-        assert "error" in result["attrs"]
-        assert "not found" in result["attrs"]["error"]
+        # Parse phase doesn't validate files - it defers to render
+        assert result["attrs"]["_deferred"] is True
+        assert result["attrs"]["tags"] == ["test"]
 
     def test_parse_collapsed_option(self, glossary_file, mock_state):
         """Test parsing collapsed option."""
@@ -209,9 +209,7 @@ class TestGlossaryDirective:
         match = MagicMock()
         match.group.return_value = ""
 
-        directive.parse_options = MagicMock(
-            return_value=[("tags", "core"), ("collapsed", "true")]
-        )
+        directive.parse_options = MagicMock(return_value=[("tags", "core"), ("collapsed", "true")])
 
         result = directive.parse(MagicMock(), match, mock_state)
 
@@ -225,9 +223,7 @@ class TestGlossaryDirective:
         match = MagicMock()
         match.group.return_value = ""
 
-        directive.parse_options = MagicMock(
-            return_value=[("tags", "directives"), ("limit", "3")]
-        )
+        directive.parse_options = MagicMock(return_value=[("tags", "directives"), ("limit", "3")])
 
         result = directive.parse(MagicMock(), match, mock_state)
 
@@ -241,9 +237,7 @@ class TestGlossaryDirective:
         match = MagicMock()
         match.group.return_value = ""
 
-        directive.parse_options = MagicMock(
-            return_value=[("tags", "core"), ("limit", "invalid")]
-        )
+        directive.parse_options = MagicMock(return_value=[("tags", "core"), ("limit", "invalid")])
 
         result = directive.parse(MagicMock(), match, mock_state)
 
@@ -296,9 +290,7 @@ class TestGlossaryRenderer:
     def test_render_with_tags_shown(self):
         """Test rendering with tag badges."""
         attrs = {
-            "terms": [
-                {"term": "Test", "definition": "A test term.", "tags": ["foo", "bar"]}
-            ],
+            "terms": [{"term": "Test", "definition": "A test term.", "tags": ["foo", "bar"]}],
             "tags": ["foo"],
             "show_tags": True,
         }
@@ -511,3 +503,105 @@ class TestGlossaryRenderer:
         # Italic should become <em> tags
         assert "<em>emphasized</em>" in html
 
+    def test_render_deferred_no_matching_terms(self, temp_data_dir, glossary_file):
+        """Test deferred render error when no terms match tags."""
+        # Create mock renderer with _site attribute
+        mock_renderer = MagicMock()
+        mock_site = MagicMock()
+        mock_site.root_path = temp_data_dir.parent
+        mock_site.data = None  # Force file-based loading
+        mock_renderer._site = mock_site
+
+        attrs = {
+            "_deferred": True,
+            "tags": ["nonexistent"],
+            "sorted": False,
+            "show_tags": False,
+            "collapsed": False,
+            "limit": 0,
+            "source": "data/glossary.yaml",
+        }
+
+        html = render_glossary(mock_renderer, "", **attrs)
+
+        assert "bengal-glossary-error" in html
+        assert "No terms found" in html
+
+    def test_render_deferred_missing_file(self, temp_data_dir):
+        """Test deferred render error when glossary file not found."""
+        # Create mock renderer with _site attribute
+        mock_renderer = MagicMock()
+        mock_site = MagicMock()
+        mock_site.root_path = temp_data_dir.parent
+        mock_site.data = None  # Force file-based loading
+        mock_renderer._site = mock_site
+
+        attrs = {
+            "_deferred": True,
+            "tags": ["test"],
+            "sorted": False,
+            "show_tags": False,
+            "collapsed": False,
+            "limit": 0,
+            "source": "data/nonexistent.yaml",
+        }
+
+        html = render_glossary(mock_renderer, "", **attrs)
+
+        assert "bengal-glossary-error" in html
+        assert "not found" in html
+
+    def test_render_deferred_with_filtering(self, temp_data_dir, glossary_file):
+        """Test deferred render correctly filters terms by tags."""
+        # Create mock renderer with _site attribute
+        mock_renderer = MagicMock()
+        mock_site = MagicMock()
+        mock_site.root_path = temp_data_dir.parent
+        mock_site.data = None  # Force file-based loading
+        mock_renderer._site = mock_site
+
+        attrs = {
+            "_deferred": True,
+            "tags": ["admonitions"],
+            "sorted": False,
+            "show_tags": False,
+            "collapsed": False,
+            "limit": 0,
+            "source": "data/glossary.yaml",
+        }
+
+        html = render_glossary(mock_renderer, "", **attrs)
+
+        # Should only include Admonition term (the only one with 'admonitions' tag)
+        assert "<dt>Admonition</dt>" in html
+        assert "<dd>" in html
+        # Should NOT include other terms
+        assert "<dt>Card Grid</dt>" not in html
+
+    def test_render_deferred_sorted(self, temp_data_dir, glossary_file):
+        """Test deferred render correctly sorts terms alphabetically."""
+        # Create mock renderer with _site attribute
+        mock_renderer = MagicMock()
+        mock_site = MagicMock()
+        mock_site.root_path = temp_data_dir.parent
+        mock_site.data = None  # Force file-based loading
+        mock_renderer._site = mock_site
+
+        attrs = {
+            "_deferred": True,
+            "tags": ["directives"],  # All terms have this tag
+            "sorted": True,
+            "show_tags": False,
+            "collapsed": False,
+            "limit": 0,
+            "source": "data/glossary.yaml",
+        }
+
+        html = render_glossary(mock_renderer, "", **attrs)
+
+        # All 5 terms should be present and alphabetically sorted
+        # Find the order of dt tags in the HTML
+        import re
+
+        dt_matches = re.findall(r"<dt>([^<]+)</dt>", html)
+        assert dt_matches == sorted(dt_matches, key=str.lower)

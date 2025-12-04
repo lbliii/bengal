@@ -214,6 +214,9 @@ class PageCore(Cacheable):
     # Validation
     file_hash: str | None = None  # SHA256 of source file for cache validation
 
+    # Redirect aliases (Hugo compatibility)
+    aliases: list[str] = field(default_factory=list)  # Alternative URLs that redirect here
+
     def __post_init__(self):
         """
         Validate and normalize fields after initialization.
@@ -249,6 +252,7 @@ class PageCore(Cacheable):
             "type": self.type,
             "section": self.section,
             "file_hash": self.file_hash,
+            "aliases": self.aliases,
         }
 
     @classmethod
@@ -275,4 +279,5 @@ class PageCore(Cacheable):
             type=data.get("type"),
             section=data.get("section"),
             file_hash=data.get("file_hash"),
+            aliases=data.get("aliases", []),
         )

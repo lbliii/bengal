@@ -64,7 +64,7 @@ Each `DirectivePlugin` subclass declares a `DIRECTIVE_NAMES` class attribute. Th
 class CardsDirective(DirectivePlugin):
     """Cards grid container."""
     DIRECTIVE_NAMES = ["cards"]  # ← Single source of truth
-    
+
     def __call__(self, directive, md):
         # Dynamic registration ensures implementation matches declaration
         for name in self.DIRECTIVE_NAMES:
@@ -73,7 +73,7 @@ class CardsDirective(DirectivePlugin):
 class ChildCardsDirective(DirectivePlugin):
     """Auto-generate cards from children."""
     DIRECTIVE_NAMES = ["child-cards"]
-    
+
     def __call__(self, directive, md):
         for name in self.DIRECTIVE_NAMES:
             directive.register(name, self.parse)
@@ -85,7 +85,7 @@ class AdmonitionDirective(DirectivePlugin):
         "note", "tip", "warning", "danger", "error",
         "info", "example", "success", "caution", "seealso",
     ]
-    
+
     def __call__(self, directive, md):
         for name in self.DIRECTIVE_NAMES:
             directive.register(name, self.parse)
@@ -110,7 +110,7 @@ DIRECTIVE_CLASSES = [
 def get_known_directive_names() -> frozenset[str]:
     """
     Derive known directive names from actual directive classes.
-    
+
     This is the SINGLE SOURCE OF TRUTH. Do not maintain a separate list.
     """
     names = set()
@@ -147,10 +147,10 @@ Instantiate directives with a mock `FencedDirective` that captures registrations
 
 class DirectiveNameCollector:
     """Mock directive that collects registered names."""
-    
+
     def __init__(self):
         self.names: set[str] = set()
-    
+
     def register(self, name: str, parse_fn) -> None:
         self.names.add(name)
 
@@ -161,24 +161,24 @@ class MockMarkdown:
 def get_known_directive_names() -> frozenset[str]:
     """
     Derive known directive names by introspecting actual registrations.
-    
+
     Instantiates each directive and captures what names it registers.
     """
     collector = DirectiveNameCollector()
     mock_md = MockMarkdown()
-    
+
     directives = [
         AdmonitionDirective(),
         BadgeDirective(),
         # ... all directives
     ]
-    
+
     for directive in directives:
         try:
             directive(collector, mock_md)
         except Exception:
             pass  # Some may fail without real md instance
-    
+
     return frozenset(collector.names)
 ```
 
@@ -248,11 +248,11 @@ from typing import Protocol
 
 class DirectiveProtocol(Protocol):
     """Protocol for Bengal directives."""
-    
+
     def get_names(self) -> list[str]:
         """Return directive names this class registers."""
         ...
-    
+
     def __call__(self, directive, md) -> None:
         """Register with mistune."""
         ...
@@ -261,7 +261,7 @@ class DirectiveProtocol(Protocol):
 class CardsDirective(DirectivePlugin):
     def get_names(self) -> list[str]:
         return ["cards"]
-    
+
     def __call__(self, directive, md):
         for name in self.get_names():
             directive.register(name, self.parse)
@@ -346,7 +346,7 @@ DIRECTIVE_CLASSES = [
 def get_known_directive_names() -> frozenset[str]:
     """
     Single source of truth for all registered directive names.
-    
+
     Collects DIRECTIVE_NAMES from all directive classes.
     """
     names: set[str] = set()
@@ -371,22 +371,22 @@ def test_directive_names_consistency():
         KNOWN_DIRECTIVE_NAMES,
         get_known_directive_names,
     )
-    
+
     # Test 1: All classes have DIRECTIVE_NAMES
     for cls in DIRECTIVE_CLASSES:
         assert hasattr(cls, 'DIRECTIVE_NAMES'), \
             f"{cls.__name__} missing DIRECTIVE_NAMES attribute"
         assert len(cls.DIRECTIVE_NAMES) > 0, \
             f"{cls.__name__}.DIRECTIVE_NAMES is empty"
-    
+
     # Test 2: Cached set matches function
     assert KNOWN_DIRECTIVE_NAMES == get_known_directive_names()
-    
+
     # Test 3: No duplicates across classes (except intentional aliases)
     all_names = []
     for cls in DIRECTIVE_CLASSES:
         all_names.extend(cls.DIRECTIVE_NAMES)
-    
+
     # Check for unintentional duplicates
     # (some duplicates are OK, like 'dropdown' and 'details' being aliases)
     duplicates = [n for n in all_names if all_names.count(n) > 1]
@@ -404,12 +404,12 @@ def test_directive_names_match_registration():
             self.registered = set()
         def register(self, name, fn):
             self.registered.add(name)
-    
+
     class MockMd:
         renderer = None
-    
+
     from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
-    
+
     for cls in DIRECTIVE_CLASSES:
         mock = MockDirective()
         instance = cls()
@@ -417,10 +417,10 @@ def test_directive_names_match_registration():
             instance(mock, MockMd())
         except Exception:
             continue  # Some may need real md instance
-        
+
         declared = set(cls.DIRECTIVE_NAMES)
         registered = mock.registered
-        
+
         assert declared == registered, \
             f"{cls.__name__}: DIRECTIVE_NAMES {declared} != registered {registered}"
 ```

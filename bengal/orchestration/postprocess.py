@@ -12,6 +12,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
+from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.special_pages import SpecialPagesGenerator
@@ -98,6 +99,7 @@ class PostprocessOrchestrator:
         # This is safe because:
         # - Sitemaps update on full builds (periodic refresh)
         # - RSS regenerated on content rebuild (not layout changes)
+        # - Redirects regenerated on full builds (aliases rarely change)
         # - Link validation now runs via the health check system (LinkValidatorWrapper)
         if not incremental:
             # Full build: run all tasks
@@ -106,6 +108,11 @@ class PostprocessOrchestrator:
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
+
+            # Generate redirect pages for page aliases (Hugo compatibility)
+            redirects_config = self.site.config.get("redirects", {})
+            if redirects_config.get("generate_html", True):
+                tasks.append(("redirects", self._generate_redirects))
         else:
             # Incremental: only regenerate sitemap/RSS/validation if explicitly requested
             # (Most users don't need updated sitemaps/RSS for every content change)
@@ -237,6 +244,19 @@ class PostprocessOrchestrator:
             Exception: If RSS generation fails
         """
         generator = RSSGenerator(self.site)
+        generator.generate()
+
+    def _generate_redirects(self) -> None:
+        """
+        Generate redirect pages for page aliases (Hugo compatibility).
+
+        Creates lightweight HTML redirect pages at each alias URL that
+        redirect to the canonical page location.
+
+        Raises:
+            Exception: If redirect generation fails
+        """
+        generator = RedirectGenerator(self.site)
         generator.generate()
 
     def _build_graph_data(self) -> dict[str, Any] | None:

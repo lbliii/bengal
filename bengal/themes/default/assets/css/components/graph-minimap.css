@@ -34,6 +34,20 @@
     display: block;
 }
 
+/* Ensure container is visible (class-based approach to reduce inline style churn) */
+.graph-minimap-container.graph-visible {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Ensure SVG is visible (class-based approach) */
+.graph-minimap-container svg.graph-svg-visible {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+
 /* Minimap Links */
 .graph-minimap-link {
     stroke: var(--color-border-light, rgba(0, 0, 0, 0.1));
