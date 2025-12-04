@@ -7,8 +7,6 @@ lang: en
 tags: [reference, templates, filters, jinja2]
 keywords: [template functions, filters, where, sort, collections]
 category: reference
-aliases:
-  - /docs/reference/template-functions/
 ---
 
 # Template Functions Reference

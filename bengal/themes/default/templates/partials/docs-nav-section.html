@@ -10,11 +10,13 @@ Variables:
 - section.index_page: Section index page (optional)
 - section.sorted_pages: Pages in section (pre-sorted by weight)
 - section.sorted_subsections: Subsections (pre-sorted by weight)
+- section.has_nav_children: Whether section has navigable children
 - depth: Current nesting depth for styling (required)
 - page: Current page object (for active highlighting)
 
 Features:
-- Collapsible section with toggle button
+- Collapsible section with toggle button (only when has children)
+- Simple link rendering for leaf sections (no children)
 - Clickable section header (links to index page)
 - Active page highlighting
 - Recursive rendering of subsections
@@ -29,6 +31,14 @@ Usage:
 {% include 'partials/docs-nav-section.html' %}
 #}
 
+{# Normalize current page URL once for all comparisons #}
+{% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
+{% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
+{% set section_url_normalized = section.index_page.relative_url.rstrip('/') if (section.index_page and section.index_page.relative_url) else '' %}
+{% set is_active = (page is defined and page and current_url == section_url_normalized) %}
+
+{% if section.has_nav_children %}
+{# ===== EXPANDABLE SECTION (has children) ===== #}
 <div class="docs-nav-group" data-depth="{{ depth }}">
   {# Section Toggle Button - with link functionality #}
   <div class="docs-nav-group-toggle-wrapper">
@@ -37,35 +47,27 @@ Usage:
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
     </button>
-    {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
     {% if section.index_page %}
-    {% set section_url_normalized = section.index_page.relative_url.rstrip('/') if section.index_page.relative_url else '' %}
-    {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
     <a href="{{ section.index_page.url }}"
-      class="docs-nav-group-link {% if (page is defined and page and current_url == section_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == section_url_normalized) %}aria-current="page"{% endif %}>
+      class="docs-nav-group-link {% if is_active %}active{% endif %}"
+      {% if is_active %}aria-current="page"{% endif %}>
       {{ section_title }}
     </a>
     {% else %}
-    {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
     <span class="docs-nav-group-link">{{ section_title }}</span>
     {% endif %}
   </div>
 
-  {# Section Items #}
+  {# Section Items (collapsible children) #}
   <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">
     {# Cache sorted lists for O(1) access - computed once per section #}
     {% set section_sorted_pages = section.sorted_pages %}
     {% set section_sorted_subsections = section.sorted_subsections %}
-    {# Use relative_url for comparisons (without baseurl) #}
     {% set section_index_url = section.index_page.relative_url if section.index_page else none %}
 
     {# Regular pages in this section (excluding index page) - sorted by weight #}
     {% for p in section_sorted_pages %}
-    {# Use relative_url for comparisons (without baseurl) #}
     {% if p.relative_url != section_index_url and p.title %}
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
@@ -86,3 +88,18 @@ Usage:
     {% endfor %}
   </div>
 </div>
+
+{% else %}
+{# ===== LEAF SECTION (no children) - render as simple link ===== #}
+<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
+  {% if section.index_page %}
+  <a href="{{ section.index_page.url }}"
+    class="docs-nav-link docs-nav-link--section {% if is_active %}active{% endif %}"
+    {% if is_active %}aria-current="page"{% endif %}>
+    {{ section_title }}
+  </a>
+  {% else %}
+  <span class="docs-nav-link docs-nav-link--section">{{ section_title }}</span>
+  {% endif %}
+</div>
+{% endif %}

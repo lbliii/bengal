@@ -228,6 +228,36 @@ class Section:
             if subsection.index_page
         }
 
+    @cached_property
+    def has_nav_children(self) -> bool:
+        """
+        Check if this section has navigable children (CACHED).
+
+        A section has navigable children if it contains either:
+        - Regular pages (excluding the index page itself)
+        - Subsections
+
+        This property is used by navigation templates to determine whether
+        to render a section as an expandable group (with toggle button) or
+        as a simple link. Sections without children should not show an
+        expand/collapse toggle since there's nothing to expand.
+
+        Performance:
+            - First access: O(1) - uses cached sorted_pages/sorted_subsections
+            - Subsequent accesses: O(1) cached lookup
+
+        Returns:
+            True if section has pages or subsections to display in nav
+
+        Example:
+            {% if section.has_nav_children %}
+              {# Render as expandable group with toggle #}
+            {% else %}
+              {# Render as simple link #}
+            {% endif %}
+        """
+        return bool(self.sorted_pages or self.sorted_subsections)
+
     @property
     def regular_pages_recursive(self) -> list[Page]:
         """

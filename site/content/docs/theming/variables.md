@@ -7,8 +7,6 @@ lang: en
 tags: [reference, templates, variables, jinja2]
 keywords: [theme variables, templates, jinja2, site, page]
 category: reference
-aliases:
-  - /docs/reference/theme-variables/
 ---
 
 # Theme Variables Reference
