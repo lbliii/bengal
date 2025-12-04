@@ -25,7 +25,7 @@ def _convert_sphinx_roles(text: str) -> str:
     - :exc:`ExceptionName` → `ExceptionName`
 
     Args:
-        text: Text containing Sphinx roles
+        text: Text containing reStructuredText roles
 
     Returns:
         Text with roles converted to inline code

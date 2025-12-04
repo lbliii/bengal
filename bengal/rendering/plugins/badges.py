@@ -1,7 +1,7 @@
 """
 Badge plugin for Mistune.
 
-Provides Sphinx-Design badge syntax: {bdg-color}`text`
+Provides badge syntax: {bdg-color}`text`
 
 Supports badge colors that map to Bengal's design system.
 """
