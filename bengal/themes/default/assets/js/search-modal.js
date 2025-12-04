@@ -353,7 +353,7 @@
      */
     function createResultSection(title, items, query, collapsed, startIndex) {
         const section = document.createElement('div');
-        section.className = 'search-modal__result-section';
+        section.className = 'search-modal__results-group';
 
         // Section header
         const header = document.createElement('div');
