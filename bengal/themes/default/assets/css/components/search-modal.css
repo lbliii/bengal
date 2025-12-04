@@ -73,6 +73,9 @@ body.search-modal-open {
     0 0 0 1px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   animation: search-modal-enter 0.15s ease-out;
+  /* Ensure isolation from any parent blob effects */
+  isolation: isolate;
+  position: relative;
 }
 
 @keyframes search-modal-enter {
@@ -321,6 +324,16 @@ body.search-modal-open {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+  position: relative;
+}
+
+/* Prevent any blobs from parent elements */
+.search-modal__container::before,
+.search-modal__container::after,
+.search-modal__results::before,
+.search-modal__results::after {
+  display: none !important;
+  content: none !important;
 }
 
 .search-modal__results-list {
