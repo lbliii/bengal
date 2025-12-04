@@ -14,9 +14,9 @@ from typing import Any
 
 def _convert_sphinx_roles(text: str) -> str:
     """
-    Convert Sphinx-style cross-reference roles to inline code.
+    Convert reStructuredText-style cross-reference roles to inline code.
 
-    Handles common Sphinx roles:
+    Handles common reStructuredText roles:
     - :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
     - :func:`function_name` → `function_name()`
     - :meth:`method_name` → `method_name()`
@@ -106,7 +106,7 @@ def sanitize_text(text: str | None) -> str:
     # Normalize line endings (Windows → Unix)
     text = text.replace("\r\n", "\n")
 
-    # Convert Sphinx-style cross-references to inline code
+    # Convert reStructuredText-style cross-references to inline code
     # :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
     # :func:`function_name` → `function_name()`
     # :meth:`method_name` → `method_name()`

@@ -1,5 +1,5 @@
 """
-Safe template rendering system with Hugo-style error boundaries.
+Safe template rendering system with error boundaries.
 
 This module provides error-safe template rendering that prevents silent failures
 and provides graceful fallbacks when templates encounter errors.
@@ -30,7 +30,7 @@ class TemplateRenderingError(Exception):
 
 
 class SafeTemplateRenderer:
-    """Hugo-style safe template rendering with error boundaries and fallbacks."""
+    """Safe template rendering with error boundaries and fallbacks."""
 
     def __init__(self, environment: Environment):
         """
@@ -419,7 +419,7 @@ def _get_safe_filters() -> dict[str, Any]:
                             return str(path_obj.relative_to(parent))
                         except ValueError:
                             break
-                
+
                 # Fallback: look for common project directory markers
                 parts = path_str.split("/")
                 for i, part in enumerate(parts):

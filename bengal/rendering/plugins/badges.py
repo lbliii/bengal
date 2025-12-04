@@ -6,7 +6,6 @@ Provides Sphinx-Design badge syntax: {bdg-color}`text`
 Supports badge colors that map to Bengal's design system.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -42,10 +41,10 @@ class BadgePlugin:
         bdg-light     -> badge-light (light gray)
         bdg-dark      -> badge-dark (dark gray)
 
-    Sphinx-Design compatibility: Full support for bdg-* roles.
+    Compatibility: Full support for bdg-* roles.
     """
 
-    # Badge color mapping (Sphinx-Design -> Bengal CSS classes)
+    # Badge color mapping (legacy -> Bengal CSS classes)
     COLOR_MAP = {
         "primary": "primary",
         "secondary": "secondary",
