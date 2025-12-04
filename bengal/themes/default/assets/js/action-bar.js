@@ -145,10 +145,11 @@
       // Copy content to clipboard
       await copyToClipboard(content);
 
-      // Build a simple prompt instructing the user
-      const aiPrompt = `I have documentation content copied to my clipboard. Please help me understand it.`;
+      // Build a prompt with the full URL for reference
+      const fullUrl = toAbsoluteUrl(llmTxtUrl);
+      const aiPrompt = `I have documentation content from ${fullUrl} copied to my clipboard. Please help me understand it.`;
 
-      // Build the AI-specific URL with just the instruction prompt
+      // Build the AI-specific URL with the instruction prompt
       const aiUrl = buildAIUrl(aiName, aiPrompt);
 
       // Show success briefly then navigate
@@ -232,6 +233,16 @@
   }
 
   /**
+   * Convert relative URL to absolute URL using current origin
+   */
+  function toAbsoluteUrl(relativeUrl) {
+    if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
+      return relativeUrl;
+    }
+    return window.location.origin + relativeUrl;
+  }
+
+  /**
    * Handle copy actions
    */
   async function handleCopyAction(button) {
@@ -243,7 +254,8 @@
 
       switch(action) {
         case 'copy-url':
-          textToCopy = url;
+          // Copy full absolute URL for external sharing
+          textToCopy = toAbsoluteUrl(url);
           await copyToClipboard(textToCopy);
           showSuccess(button, 'URL copied!');
           break;
