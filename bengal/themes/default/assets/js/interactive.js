@@ -17,7 +17,7 @@
     return;
   }
 
-  const { log, throttleScroll, ready } = window.BengalUtils;
+  const { log, throttleScroll, debounce, ready } = window.BengalUtils;
 
   // Store references for cleanup to prevent memory leaks
   const cleanupHandlers = {
