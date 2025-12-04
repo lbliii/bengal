@@ -56,6 +56,7 @@ from bengal.pipeline.bengal_streams import (
 )
 from bengal.pipeline.builder import Pipeline
 from bengal.pipeline.cache import StreamCache
+from bengal.pipeline.menu import create_menu_stream
 from bengal.pipeline.taxonomy import create_taxonomy_stream
 from bengal.utils.logger import get_logger
 
@@ -185,11 +186,21 @@ def create_full_build_pipeline(
         # Update site.pages with taxonomy pages
         site.pages = all_pages_with_taxonomies
 
-        # Phase 4: Menus
-        from bengal.orchestration.menu import MenuOrchestrator
+        # Phase 4: Menus (now using streams!)
+        # Create a stream from pages, build menus, collect results
+        def pages_for_menu_producer():
+            """Produce StreamItems from pages list for menu building."""
+            for i, page in enumerate(site.pages):
+                yield StreamItem.create(
+                    source="pages_for_menu",
+                    id=str(i),
+                    value=page,
+                )
 
-        menu = MenuOrchestrator(site)
-        menu.build()
+        pages_for_menu_stream = SourceStream(pages_for_menu_producer, name="pages_for_menu")
+        menu_stream = create_menu_stream(pages_for_menu_stream, site)
+        # Iterate to build menus (menus are side-effect on site)
+        list(menu_stream.iterate())
 
         # Phase 5: Assets
         from bengal.orchestration.asset import AssetOrchestrator
