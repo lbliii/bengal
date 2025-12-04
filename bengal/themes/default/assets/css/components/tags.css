@@ -4,6 +4,26 @@
  */
 
 /* ============================================
+   ARTICLE FOOTER (Tags Section)
+   ============================================ */
+
+.docs-footer {
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.docs-footer-label {
+  display: block;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================
    TAGS
    ============================================ */
 

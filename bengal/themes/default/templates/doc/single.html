@@ -43,6 +43,7 @@ Or set `type: doc` to auto-select this template
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
         {{ tag_list(page.tags) }}
       </footer>
       {% endif %}

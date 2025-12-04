@@ -349,11 +349,11 @@
                     this.g.attr('transform', d3.zoomIdentity.translate(tx, ty).scale(k));
                 });
 
-            // Set initial zoom to be closer (1.2x = zoomed in)
+            // Set initial zoom to be closer (1.5x = zoomed in more)
             // Reuse width/height from above
-            const initialZoom = d3.zoomIdentity.scale(1.2).translate(
-                width * 0.1, // Slight offset to center better
-                height * 0.1
+            const initialZoom = d3.zoomIdentity.scale(1.5).translate(
+                width * 0.15, // Slight offset to center better
+                height * 0.15
             );
             this.svg.call(zoom.transform, initialZoom);
 

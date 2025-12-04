@@ -43,7 +43,7 @@ a.card:hover {
   color: inherit;
 }
 
-/* Motion gradient background on hover - Palette-aware blob colors */
+/* Motion gradient background on hover */
 .card::before {
   content: '';
   position: absolute;
@@ -52,15 +52,14 @@ a.card:hover {
   width: 150%;
   height: 150%;
   background: radial-gradient(circle at 40% 40%,
-      color-mix(in srgb, var(--blob-color-1) 8%, transparent) 0%,
-      color-mix(in srgb, var(--blob-color-2) 6%, transparent) 25%,
-      color-mix(in srgb, var(--blob-color-3) 4%, transparent) 45%,
-      transparent 60%);
+      color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+      transparent 50%);
   border-radius: 50%;
   animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.5;
+  opacity: 0;
   transition: opacity 0.3s ease;
 }
 
@@ -73,14 +72,13 @@ a.card:hover {
   z-index: 1;
 }
 
-/* Fallback for browsers without color-mix - uses palette colors via CSS variables */
+/* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
   .card::before {
     background: radial-gradient(circle at 40% 40%,
-        rgba(59, 130, 246, 0.08) 0%,
-        rgba(76, 175, 80, 0.06) 25%,
-        rgba(255, 152, 0, 0.04) 45%,
-        transparent 60%);
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(139, 92, 246, 0.04) 25%,
+        transparent 50%);
   }
 }
 
@@ -145,9 +143,9 @@ a.card:hover {
 
 /* Text styling in card content */
 .card-content p {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   line-height: var(--leading-normal);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -769,17 +767,17 @@ a.card:hover {
  * - gray → neutral border
  */
 
-/* Blue - Maps to info/primary (informational, primary brand color) */
+/* Blue - Maps to primary brand color (matches palette) */
 .card-color-blue {
   border-left-width: 4px;
-  border-left-color: var(--color-info-border);
+  border-left-color: var(--color-primary);
   background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-info-border) 3%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary) 3%, transparent) 0%,
       transparent 4px);
 }
 
 .card-color-blue:hover {
-  border-left-color: var(--color-info);
+  border-left-color: var(--color-primary-hover);
 }
 
 /* Green - Maps to success/secondary (success state, secondary brand) */
@@ -911,8 +909,8 @@ a.card:hover {
 /* Card Title Styling */
 .card-title {
   margin: 0;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-snug);
   color: var(--color-text-primary);
   flex: 1;
@@ -937,12 +935,13 @@ a.card:hover {
   margin: 2rem 0;
 }
 
-/* Virtualize large card grids unless DevTools are open */
-html:not([data-devtools-open]) .cards-grid > *,
-html:not([data-devtools-open]) .feature-cards > * {
+/* Performance optimization: Content visibility removed due to DevTools crash
+.cards-grid > *,
+.feature-cards > * {
   content-visibility: auto;
   contain-intrinsic-size: 300px;
 }
+*/
 
 .cards-grid--2 {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -1143,154 +1142,4 @@ html:not([data-devtools-open]) .feature-cards > * {
   margin-top: var(--space-3);
   margin-bottom: var(--space-2);
   font-size: var(--text-base);
-}
-
-/* ============================================
-   LAYOUT VARIANTS
-   Controlled via :layout: option on cards/card
-   ============================================ */
-
-/* --------------------------------------------
-   HORIZONTAL LAYOUT
-   Image left, content right (landscape cards)
-   -------------------------------------------- */
-
-.card-grid[data-layout="horizontal"] .card,
-.card.card-layout-horizontal {
-  flex-direction: row;
-  align-items: stretch;
-}
-
-.card-grid[data-layout="horizontal"] .card-image,
-.card.card-layout-horizontal .card-image {
-  width: 180px;
-  min-width: 180px;
-  height: auto;
-  aspect-ratio: 1;
-  flex-shrink: 0;
-  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
-}
-
-.card-grid[data-layout="horizontal"] .card-header,
-.card.card-layout-horizontal .card-header {
-  border-bottom: none;
-  padding-bottom: var(--space-2);
-}
-
-/* Responsive: Stack on mobile */
-@media (max-width: 639px) {
-  .card-grid[data-layout="horizontal"] .card,
-  .card.card-layout-horizontal {
-    flex-direction: column;
-  }
-
-  .card-grid[data-layout="horizontal"] .card-image,
-  .card.card-layout-horizontal .card-image {
-    width: 100%;
-    min-width: unset;
-    aspect-ratio: 16 / 9;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  }
-}
-
-/* --------------------------------------------
-   PORTRAIT LAYOUT
-   Tall aspect ratio (TCG/phone style cards)
-   -------------------------------------------- */
-
-.card-grid[data-layout="portrait"] {
-  /* Adjust grid for portrait cards */
-  justify-items: center;
-}
-
-.card-grid[data-layout="portrait"] .card,
-.card.card-layout-portrait {
-  aspect-ratio: 2 / 3;
-  max-width: 280px;
-  width: 100%;
-}
-
-.card-grid[data-layout="portrait"] .card-image,
-.card.card-layout-portrait .card-image {
-  aspect-ratio: 4 / 3;
-  height: auto;
-  flex-shrink: 0;
-}
-
-.card-grid[data-layout="portrait"] .card-content,
-.card.card-layout-portrait .card-content {
-  flex: 1;
-  overflow: hidden;
-}
-
-.card-grid[data-layout="portrait"] .card-content p,
-.card.card-layout-portrait .card-content p {
-  /* Limit text in portrait cards */
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Portrait cards on mobile: slightly smaller */
-@media (max-width: 639px) {
-  .card-grid[data-layout="portrait"] .card,
-  .card.card-layout-portrait {
-    max-width: 240px;
-  }
-}
-
-/* --------------------------------------------
-   COMPACT LAYOUT
-   Dense, minimal padding for reference lists
-   -------------------------------------------- */
-
-.card-grid[data-layout="compact"] .card,
-.card.card-layout-compact {
-  /* Tighter overall */
-}
-
-.card-grid[data-layout="compact"] .card-header,
-.card.card-layout-compact .card-header {
-  padding: var(--space-3) var(--space-4);
-  gap: var(--space-2);
-}
-
-.card-grid[data-layout="compact"] .card-content,
-.card.card-layout-compact .card-content {
-  padding: var(--space-3) var(--space-4);
-}
-
-.card-grid[data-layout="compact"] .card-footer,
-.card.card-layout-compact .card-footer {
-  padding: var(--space-2) var(--space-4);
-}
-
-.card-grid[data-layout="compact"] .card-title,
-.card.card-layout-compact .card-title {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-}
-
-.card-grid[data-layout="compact"] .card-content p,
-.card.card-layout-compact .card-content p {
-  font-size: var(--text-xs);
-  line-height: var(--leading-normal);
-}
-
-.card-grid[data-layout="compact"] .card-icon,
-.card.card-layout-compact .card-icon {
-  font-size: 1.25rem;
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.card-grid[data-layout="compact"] .card-image,
-.card.card-layout-compact .card-image {
-  aspect-ratio: 2 / 1;
-}
-
-/* Compact layout gap reduction */
-.card-grid[data-layout="compact"] {
-  gap: var(--space-3);
 }

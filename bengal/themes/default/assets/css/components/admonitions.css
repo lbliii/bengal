@@ -88,8 +88,7 @@
 }
 
 .admonition:hover {
-  box-shadow: var(--elevation-card-hover);
-  transform: translate3d(0, -1px, 0);
+  /* Editorial: no lift or shadow change on hover */
 }
 
 /* Admonitions with icons */
@@ -99,32 +98,35 @@
 
 /* Admonition Title */
 .admonition-title {
-  margin: 0 0 0.75rem 0;
-  font-size: var(--text-body);
+  margin: 0 0 0.5rem 0;
+  font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  letter-spacing: var(--letter-spacing-normal);
-
+  gap: 0.375rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-/* Admonition Title */
+/* Admonition Title Icon */
 .admonition-title::before {
   content: '';
   display: inline-block;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   flex-shrink: 0;
 }
 
-/* Admonition Content */
+/* Admonition Content - visually distinct from body */
 .admonition>p {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
 }
 
 .admonition>p:first-of-type {
@@ -226,7 +228,7 @@
 .admonition.note .admonition-title::before,
 .admonition.info .admonition-title::before {
   content: 'ℹ️';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 [data-theme="dark"] .admonition.note,
@@ -254,12 +256,12 @@
 
 .admonition.tip .admonition-title::before {
   content: '💡';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 .admonition.success .admonition-title::before {
   content: '✅';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 [data-theme="dark"] .admonition.tip,
@@ -288,7 +290,7 @@
 .admonition.warning .admonition-title::before,
 .admonition.caution .admonition-title::before {
   content: '⚠️';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 [data-theme="dark"] .admonition.warning,
@@ -317,7 +319,7 @@
 .admonition.danger .admonition-title::before,
 .admonition.error .admonition-title::before {
   content: '🛑';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 [data-theme="dark"] .admonition.danger,
@@ -346,7 +348,7 @@
 
 .admonition.example .admonition-title::before {
   content: '📝';
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
 }
 
 [data-theme="dark"] .admonition.example {
