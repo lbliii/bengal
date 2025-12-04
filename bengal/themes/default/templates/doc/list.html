@@ -29,18 +29,13 @@ Features:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
+    {# Page Hero: Breadcrumbs + Title + Description + Section Stats #}
+    {# List pages default to 'overview' variant (shows page count instead of read time) #}
+    {% set _list_hero_default = 'overview' %}
+    {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      <header class="page-header">
-        <h1>{{ page.title }}</h1>
-
-        {% if page.metadata.get('description', '') %}
-        <p class="lead">{{ page.metadata.get('description', '') }}</p>
-        {% endif %}
-      </header>
 
       {# Main content #}
       <div class="docs-content">

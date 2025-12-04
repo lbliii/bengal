@@ -288,3 +288,4 @@ class TestThemeToDict:
         assert result["features"] == original.features
         assert result["config"] == original.config
 
+

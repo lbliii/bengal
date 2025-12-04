@@ -291,7 +291,34 @@
    * Initialize control buttons and settings menu
    */
   function initControlButtons() {
-    // Settings menu toggle
+    // Direct toggle-all button (new editorial style)
+    const toggleAllBtn = document.querySelector('[data-toc-action="toggle-all"]');
+    if (toggleAllBtn) {
+      toggleAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = toggleAllBtn.getAttribute('aria-expanded') === 'true';
+        
+        if (isExpanded) {
+          // Collapse all
+          tocGroups.forEach(group => {
+            const groupId = getGroupId(group);
+            collapseGroup(group, groupId);
+          });
+          toggleAllBtn.setAttribute('aria-expanded', 'false');
+          toggleAllBtn.setAttribute('aria-label', 'Expand all sections');
+        } else {
+          // Expand all
+          tocGroups.forEach(group => {
+            const groupId = getGroupId(group);
+            expandGroup(group, groupId);
+          });
+          toggleAllBtn.setAttribute('aria-expanded', 'true');
+          toggleAllBtn.setAttribute('aria-label', 'Collapse all sections');
+        }
+      });
+    }
+
+    // Legacy: Settings menu toggle
     const settingsBtn = document.querySelector('[data-toc-action="toggle-settings"]');
     const settingsMenu = document.querySelector('.toc-settings-menu');
 
@@ -318,7 +345,7 @@
       });
     }
 
-    // Expand all sections
+    // Legacy: Expand all sections
     const expandAllBtn = document.querySelector('[data-toc-action="expand-all"]');
     if (expandAllBtn) {
       expandAllBtn.addEventListener('click', () => {
@@ -330,7 +357,7 @@
       });
     }
 
-    // Collapse all sections
+    // Legacy: Collapse all sections
     const collapseAllBtn = document.querySelector('[data-toc-action="collapse-all"]');
     if (collapseAllBtn) {
       collapseAllBtn.addEventListener('click', () => {

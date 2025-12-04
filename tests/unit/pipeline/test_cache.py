@@ -393,3 +393,4 @@ class TestDiskCachedStreamIntegration:
 
         assert result == [20, 30]
 
+

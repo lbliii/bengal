@@ -530,3 +530,4 @@ class TestBlogPostSchema:
         assert result.data.title == "Getting Started with Bengal"
         assert result.data.date.year == 2025
 
+

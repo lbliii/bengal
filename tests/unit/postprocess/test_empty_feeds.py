@@ -159,3 +159,4 @@ class TestEmptyRSS:
         content = rss_path.read_text()
         assert "Test Post" in content
 
+

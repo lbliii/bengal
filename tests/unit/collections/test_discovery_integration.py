@@ -511,3 +511,4 @@ Doc content.
         # One validation error
         assert len(discovery._validation_errors) == 1
 
+

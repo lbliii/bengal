@@ -38,3 +38,4 @@ For now, reliability > performance optimization.
 - Commit `23051d2` - Reverted dynamic to static loading
 - Original RFC: `plan/active/rfc-js-loading-strategy.md` (deleted)
 
+

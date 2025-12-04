@@ -229,3 +229,4 @@ The template already uses `data-collapsed="true"` on inactive sections. Need to 
 2. `bengal/themes/default/templates/tracks/single.html` - TOC logic, pagination
 3. `bengal/themes/default/static/js/toc.js` - Scroll-based section expansion
 4. `site/data/tracks.yaml` - Add `display` option (future)
+

@@ -185,3 +185,4 @@ class TestConfigHashIntegration:
 
         assert site1.config_hash != site2.config_hash
 
+

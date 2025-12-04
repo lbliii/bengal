@@ -281,23 +281,6 @@ Example:
 #}
 {% macro toc(toc_items=None, toc=None, page=None) %}
 <div class="toc-sidebar">
-  {# TOC Header - Minimal #}
-  <div class="toc-header">
-    <h3 class="toc-title">On This Page</h3>
-    <button class="toc-settings-btn" data-toc-action="toggle-settings" title="TOC settings" aria-label="TOC settings"
-      aria-expanded="false">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="1"></circle>
-        <circle cx="12" cy="5" r="1"></circle>
-        <circle cx="12" cy="19" r="1"></circle>
-      </svg>
-    </button>
-    {# Settings dropdown (hidden by default) #}
-    <div class="toc-settings-menu" hidden>
-      <button data-toc-action="expand-all">Expand all</button>
-      <button data-toc-action="collapse-all">Collapse all</button>
-    </div>
-  </div>
 
   {# Scroll Progress Indicator - Subtle #}
   <div class="toc-progress" aria-hidden="true">

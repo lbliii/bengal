@@ -159,3 +159,4 @@ class TestGetBaseurl:
         config = {"baseurl": None}
         assert get_baseurl(config) == ""
 
+

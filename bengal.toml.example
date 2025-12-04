@@ -145,7 +145,7 @@ name = "default"  # Which theme to use (default, or name of custom theme in them
 
 # Appearance (Implemented in Default Theme)
 default_appearance = "system"  # Options: "light", "dark", "system" (follows OS preference)
-default_palette = ""  # Options: "" (default), "snow-lynx", "brown-bengal", "silver-bengal", "charcoal-bengal", "blue-bengal"
+default_palette = "snow-lynx"  # Options: "snow-lynx", "brown-bengal", "silver-bengal", "charcoal-bengal", "blue-bengal"
 
 # Custom theme settings (accessible via site.theme_config.config in templates)
 # Any additional keys here can be used by custom themes to control their behavior

@@ -308,12 +308,118 @@
         resultsList.innerHTML = '';
         selectedIndex = -1;
 
-        results.forEach((result, index) => {
-            const item = createResultItem(result, index, query);
-            resultsList.appendChild(item);
-        });
+        // Group results by autodoc status
+        const { docs, api } = groupByAutodoc(results);
+
+        // Track global index for keyboard navigation
+        let globalIndex = 0;
+
+        // Documentation section (always expanded, shown first)
+        if (docs.length > 0) {
+            const docsSection = createResultSection('Documentation', docs, query, false, globalIndex);
+            resultsList.appendChild(docsSection);
+            globalIndex += docs.length;
+        }
+
+        // API Reference section (collapsed by default)
+        if (api.length > 0) {
+            const apiSection = createResultSection(`API Reference (${api.length})`, api, query, true, globalIndex);
+            resultsList.appendChild(apiSection);
+        }
 
         resultsList.parentElement.style.display = 'block';
+    }
+
+    /**
+     * Group results by autodoc status
+     */
+    function groupByAutodoc(results) {
+        const docs = [];
+        const api = [];
+
+        results.forEach(result => {
+            if (result.isAutodoc) {
+                api.push(result);
+            } else {
+                docs.push(result);
+            }
+        });
+
+        return { docs, api };
+    }
+
+    /**
+     * Create a result section with optional collapse
+     */
+    function createResultSection(title, items, query, collapsed, startIndex) {
+        const section = document.createElement('div');
+        section.className = 'search-modal__results-group';
+
+        // Section header
+        const header = document.createElement('div');
+        header.className = 'search-modal__section-header';
+        if (collapsed) {
+            header.classList.add('search-modal__section-header--collapsible');
+        }
+        header.innerHTML = `
+            <span class="search-modal__section-title">${title}</span>
+            ${collapsed ? '<span class="search-modal__section-toggle" aria-hidden="true">▶</span>' : ''}
+        `;
+
+        // Items container
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'search-modal__section-items';
+        if (collapsed) {
+            itemsContainer.style.display = 'none';
+            itemsContainer.setAttribute('aria-hidden', 'true');
+        }
+
+        // Render items with global index for keyboard nav
+        items.forEach((result, localIndex) => {
+            const globalIdx = startIndex + localIndex;
+            const item = createResultItem(result, globalIdx, query);
+
+            // Add API badge for autodoc items
+            if (result.isAutodoc) {
+                const badge = document.createElement('span');
+                badge.className = 'search-modal__autodoc-badge';
+                badge.textContent = 'API';
+                const contentEl = item.querySelector('.search-modal__result-content');
+                if (contentEl) {
+                    contentEl.appendChild(badge);
+                }
+            }
+
+            itemsContainer.appendChild(item);
+        });
+
+        // Toggle behavior for collapsed sections
+        if (collapsed) {
+            header.style.cursor = 'pointer';
+            header.setAttribute('role', 'button');
+            header.setAttribute('aria-expanded', 'false');
+            header.setAttribute('tabindex', '0');
+
+            const toggleSection = () => {
+                const isHidden = itemsContainer.style.display === 'none';
+                itemsContainer.style.display = isHidden ? 'block' : 'none';
+                itemsContainer.setAttribute('aria-hidden', !isHidden);
+                header.querySelector('.search-modal__section-toggle').textContent = isHidden ? '▼' : '▶';
+                header.setAttribute('aria-expanded', isHidden);
+            };
+
+            header.addEventListener('click', toggleSection);
+            header.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection();
+                }
+            });
+        }
+
+        section.appendChild(header);
+        section.appendChild(itemsContainer);
+        return section;
     }
 
     function createResultItem(result, index, query) {

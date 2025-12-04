@@ -196,3 +196,4 @@ def validate_collections_config(
 
     return warnings
 
+

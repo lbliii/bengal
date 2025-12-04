@@ -17,6 +17,7 @@ from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
 )
 from bengal.utils.atomic_write import AtomicFile
+from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -239,6 +240,11 @@ class SiteIndexGenerator:
         # Content type alias
         if result_type := summary.get("type"):
             summary["kind"] = result_type
+
+        # Autodoc flag for search result grouping
+        # Only set when True to keep index.json smaller
+        if is_autodoc_page(page):
+            summary["isAutodoc"] = True
 
         return summary
 

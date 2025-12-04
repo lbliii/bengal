@@ -399,3 +399,4 @@ class TestRelatedDirective:
 
         # Should return empty string
         assert result.strip() == ""
+
