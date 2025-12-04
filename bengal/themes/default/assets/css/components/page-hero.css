@@ -523,3 +523,103 @@
   outline-offset: 2px;
 }
 
+/* ============================================================================
+   EDITORIAL VARIANT
+   Clean magazine layout without container styling.
+   Same tight typography as magazine, no border/background/blobs.
+   ============================================================================ */
+
+.page-hero--editorial {
+  margin-bottom: var(--space-6);
+  max-width: var(--prose-width);
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* No pseudo-elements (no blobs) */
+.page-hero--editorial::before,
+.page-hero--editorial::after {
+  display: none;
+}
+
+/* Top row inherits from magazine - no changes needed */
+
+/* Title - same tight spacing */
+.page-hero--editorial .page-hero__title {
+  font-size: var(--type-h1);
+  font-weight: var(--weight-extrabold);
+  line-height: 1.15;
+  letter-spacing: var(--letter-spacing-tighter);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+/* Description */
+.page-hero--editorial .page-hero__description {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-light);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--space-3) 0;
+}
+
+/* Metadata - subtle top border for separation */
+.page-hero--editorial .page-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Share button - slightly different style for clean look */
+.page-hero--editorial .page-hero__share-trigger {
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.page-hero--editorial .page-hero__share-trigger:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ----------------------------------------------------------------------------
+   Editorial Responsive
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .page-hero--editorial .page-hero__title {
+    font-size: var(--text-3xl);
+  }
+
+  .page-hero--editorial .page-hero__description {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 639px) {
+  .page-hero--editorial .page-hero__title {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-1);
+  }
+
+  .page-hero--editorial .page-hero__description {
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2);
+  }
+
+  .page-hero--editorial .page-hero__meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 399px) {
+  .page-hero--editorial .page-hero__title {
+    font-size: var(--text-xl);
+  }
+}
+

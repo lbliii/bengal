@@ -9,6 +9,7 @@ keywords: [documentation, docs, guides, reference]
 category: documentation
 cascade:
   type: doc
+  hero_style: editorial
 menu:
   main:
     weight: 10

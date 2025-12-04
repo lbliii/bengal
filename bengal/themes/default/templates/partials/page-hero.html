@@ -5,7 +5,8 @@ Routes to the appropriate page hero variant based on configuration.
 
 Variants:
 - classic: Traditional separate action-bar + page-header (default)
-- magazine: Editorial-style consolidated header
+- magazine: Editorial-style consolidated header with container/background
+- editorial: Clean magazine layout without container styling
 
 Configuration:
 - Site-wide: theme.hero_style in bengal.toml
@@ -23,6 +24,8 @@ Usage:
 
 {% if hero_style == 'magazine' %}
   {% include 'partials/page-hero-magazine.html' %}
+{% elif hero_style == 'editorial' %}
+  {% include 'partials/page-hero-editorial.html' %}
 {% else %}
   {# Default to classic #}
   {% include 'partials/page-hero-classic.html' %}

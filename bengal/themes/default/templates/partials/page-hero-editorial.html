@@ -1,0 +1,176 @@
+{#
+Page Hero - Editorial Variant
+
+Clean magazine-style layout without container styling:
+- Breadcrumbs as eyebrow (trimmed, no current page)
+- LLM share button aligned right
+- Large H1 title tight below breadcrumbs
+- Description
+- Inline metadata (read time, word count, updated)
+
+No border, background, or blob animations - just clean typography.
+
+Usage: Included via page-hero.html dispatcher
+Set hero_style: editorial in frontmatter or theme config
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+
+{# Macro: Get page URL with fallback chain for robustness #}
+{% macro get_page_url(page) -%}
+    {{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
+{% if page %}
+<div class="page-hero page-hero--editorial">
+  {# Top row: Breadcrumbs (left) + Actions (right) #}
+  <div class="page-hero__top">
+    {# Breadcrumbs as eyebrow - trimmed (excludes current page) #}
+    <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+      {% set breadcrumb_items = get_breadcrumbs(page) %}
+      {% if breadcrumb_items and breadcrumb_items | length > 1 %}
+      <ol class="page-hero__breadcrumbs">
+        {# Skip the last item (current page) - it's the H1 #}
+        {% for item in breadcrumb_items[:-1] %}
+        <li>
+          <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </nav>
+
+    {# Actions: LLM Share Button #}
+    <div class="page-hero__actions">
+      {% set page_url = canonical_url(get_page_url(page)) %}
+      {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+      {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+
+      <div class="page-hero__share">
+        <button class="page-hero__share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
+          aria-controls="page-hero-share-dropdown" title="Share with AI assistants">
+          <span>ᗢ</span>
+          <svg class="page-hero__share-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
+          <div class="page-hero__share-content">
+            {# Quick Actions #}
+            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span>Copy URL</span>
+            </button>
+
+            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item" role="menuitem">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <span>Open LLM text</span>
+            </a>
+
+            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" role="menuitem">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>Copy LLM text</span>
+            </button>
+
+            <hr class="page-hero__share-separator">
+
+            {# AI Assistant Links #}
+            <div class="page-hero__share-section-header">Share with AI</div>
+
+            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="claude" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Ask Claude</span>
+            </a>
+
+            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
+              </svg>
+              <span>Ask ChatGPT</span>
+            </a>
+
+            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="gemini" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              <span>Ask Gemini</span>
+            </a>
+
+            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="copilot" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+              <span>Ask Copilot</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Title - tight below breadcrumbs #}
+  <h1 class="page-hero__title">{{ page.title }}</h1>
+
+  {# Description #}
+  {% if page.metadata.get('description', '') %}
+  <p class="page-hero__description">{{ page.metadata.get('description', '') }}</p>
+  {% endif %}
+
+  {# Inline Metadata #}
+  {% set has_metadata = page.content or page.date or page.metadata.get('lastmod') %}
+  {% if has_metadata %}
+  <div class="page-hero__meta">
+    {% if page.content and 'content.reading_time' in site.theme_config.features %}
+    <span class="page-hero__meta-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>{{ page.content | reading_time }} min read</span>
+    </span>
+    {% endif %}
+
+    {% if page.content %}
+    <span class="page-hero__meta-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      <span>{{ page.content | wordcount }} words</span>
+    </span>
+    {% endif %}
+
+    {% if page.metadata.get('lastmod') or page.date %}
+    <span class="page-hero__meta-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+        <path d="M3 3v5h5"></path>
+        <path d="M12 7v5l4 2"></path>
+      </svg>
+      <span>{{ (page.metadata.get('lastmod') or page.date) | time_ago }}</span>
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
