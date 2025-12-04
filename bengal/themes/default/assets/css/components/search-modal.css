@@ -334,21 +334,11 @@ body.search-modal-open {
   position: relative;
 }
 
-/* Prevent blob pseudo-elements - without clipping content */
-.search-modal__container::before,
-.search-modal__container::after,
-.search-modal__results::before,
-.search-modal__results::after,
-.search-modal__result-section::before,
-.search-modal__result-section::after,
-.search-modal__section-header::before,
-.search-modal__section-header::after,
-.search-modal__section-items::before,
-.search-modal__section-items::after,
-.search-modal__results-list::before,
-.search-modal__results-list::after {
-  display: none !important;
-  content: none !important;
+/* Kill ALL blob pseudo-elements inside the modal */
+.search-modal *::before,
+.search-modal *::after {
+  background-image: none !important;
+  animation: none !important;
 }
 
 .search-modal__results-list {
