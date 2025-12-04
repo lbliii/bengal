@@ -1,0 +1,280 @@
+
+---
+title: "navigation"
+type: "python-module"
+source_file: "bengal/bengal/core/page/navigation.py"
+line_number: 1
+description: "Page Navigation Mixin - Navigation and hierarchy relationships."
+---
+
+# navigation
+**Type:** Module
+**Source:** [View source](bengal/bengal/core/page/navigation.py#L1)
+
+
+
+**Navigation:**
+[bengal](/api/bengal/) ›[core](/api/bengal/core/) ›[page](/api/bengal/core/page/) ›navigation
+
+Page Navigation Mixin - Navigation and hierarchy relationships.
+
+## Classes
+
+
+
+
+### `PageNavigationMixin`
+
+
+Mixin providing navigation capabilities for pages.
+
+This mixin handles:
+- Site-level navigation: next, prev
+- Section-level navigation: next_in_section, prev_in_section
+- Hierarchy: parent, ancestors
+
+
+
+
+
+
+:::{rubric} Properties
+:class: rubric-properties
+:::
+
+
+
+#### `next` @property
+
+```python
+def next(self) -> Page | None
+```
+Get the next page in the site's collection of pages.
+
+#### `prev` @property
+
+```python
+def prev(self) -> Page | None
+```
+Get the previous page in the site's collection of pages.
+
+#### `next_in_section` @property
+
+```python
+def next_in_section(self) -> Page | None
+```
+Get the next page within the same section, respecting weight order.
+
+Pages are ordered by weight (ascending), then alphabetically by title.
+Pages without weight are treated as weight=999999 (appear at end).
+Index pages (_index.md, index.md) are skipped in navigation.
+
+#### `prev_in_section` @property
+
+```python
+def prev_in_section(self) -> Page | None
+```
+Get the previous page within the same section, respecting weight order.
+
+Pages are ordered by weight (ascending), then alphabetically by title.
+Pages without weight are treated as weight=999999 (appear at end).
+Index pages (_index.md, index.md) are skipped in navigation.
+
+#### `parent` @property
+
+```python
+def parent(self) -> Any | None
+```
+Get the parent section of this page.
+
+#### `ancestors` @property
+
+```python
+def ancestors(self) -> list[Any]
+```
+Get all ancestor sections of this page.
+
+
+
+
+## Methods
+
+
+
+#### `next`
+```python
+def next(self) -> Page | None
+```
+
+
+Get the next page in the site's collection of pages.
+
+
+
+**Returns**
+
+
+`Page | None` - Next page or None if this is the last page
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% if page.next %}
+      <a href="{{ url_for(page.next) }}">{{ page.next.title }} →</a>
+    {% endif %}
+```
+
+
+
+
+#### `prev`
+```python
+def prev(self) -> Page | None
+```
+
+
+Get the previous page in the site's collection of pages.
+
+
+
+**Returns**
+
+
+`Page | None` - Previous page or None if this is the first page
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% if page.prev %}
+      <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
+    {% endif %}
+```
+
+
+
+
+#### `next_in_section`
+```python
+def next_in_section(self) -> Page | None
+```
+
+
+Get the next page within the same section, respecting weight order.
+
+Pages are ordered by weight (ascending), then alphabetically by title.
+Pages without weight are treated as weight=999999 (appear at end).
+Index pages (_index.md, index.md) are skipped in navigation.
+
+
+
+**Returns**
+
+
+`Page | None` - Next page in section or None if this is the last page
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% if page.next_in_section %}
+      <a href="{{ url_for(page.next_in_section) }}">Next in section →</a>
+    {% endif %}
+```
+
+
+
+
+#### `prev_in_section`
+```python
+def prev_in_section(self) -> Page | None
+```
+
+
+Get the previous page within the same section, respecting weight order.
+
+Pages are ordered by weight (ascending), then alphabetically by title.
+Pages without weight are treated as weight=999999 (appear at end).
+Index pages (_index.md, index.md) are skipped in navigation.
+
+
+
+**Returns**
+
+
+`Page | None` - Previous page in section or None if this is the first page
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% if page.prev_in_section %}
+      <a href="{{ url_for(page.prev_in_section) }}">← Prev in section</a>
+    {% endif %}
+```
+
+
+
+
+#### `parent`
+```python
+def parent(self) -> Any | None
+```
+
+
+Get the parent section of this page.
+
+
+
+**Returns**
+
+
+`Any | None` - Parent section or None
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% if page.parent %}
+      <a href="{{ url_for(page.parent) }}">{{ page.parent.title }}</a>
+    {% endif %}
+```
+
+
+
+
+#### `ancestors`
+```python
+def ancestors(self) -> list[Any]
+```
+
+
+Get all ancestor sections of this page.
+
+
+
+**Returns**
+
+
+`list[Any]` - List of ancestor sections from immediate parent to root
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% for ancestor in page.ancestors | reverse %}
+      <a href="{{ url_for(ancestor) }}">{{ ancestor.title }}</a> /
+    {% endfor %}
+```
+
+
+
+---
+*Generated by Bengal autodoc from `bengal/bengal/core/page/navigation.py`*

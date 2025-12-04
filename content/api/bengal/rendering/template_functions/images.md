@@ -1,0 +1,325 @@
+
+---
+title: "images"
+type: "python-module"
+source_file: "bengal/bengal/rendering/template_functions/images.py"
+line_number: 1
+description: "Image processing functions for templates. Provides 6 functions for working with images in templates. Note: Some functions are stubs for future PIL/Pillow integration."
+---
+
+# images
+**Type:** Module
+**Source:** [View source](bengal/bengal/rendering/template_functions/images.py#L1)
+
+
+
+**Navigation:**
+[bengal](/api/bengal/) ›[rendering](/api/bengal/rendering/) ›[template_functions](/api/bengal/rendering/template_functions/) ›images
+
+Image processing functions for templates.
+
+Provides 6 functions for working with images in templates.
+Note: Some functions are stubs for future PIL/Pillow integration.
+
+## Functions
+
+
+
+### `register`
+
+
+```python
+def register(env: Environment, site: Site) -> None
+```
+
+
+
+Register image processing functions with Jinja2 environment.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `env` | `Environment` | - | *No description provided.* |
+| `site` | `Site` | - | *No description provided.* |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `image_url`
+
+
+```python
+def image_url(path: str, base_url: str, width: int | None = None, height: int | None = None, quality: int | None = None) -> str
+```
+
+
+
+Generate image URL with optional parameters.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `path` | `str` | - | Image path |
+| `base_url` | `str` | - | Base URL for site |
+| `width` | `int \| None` | - | Target width (optional) |
+| `height` | `int \| None` | - | Target height (optional) |
+| `quality` | `int \| None` | - | JPEG quality (optional) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - Image URL with query parameters
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{{ image_url('photos/hero.jpg', width=800) }}
+    # /assets/photos/hero.jpg?w=800
+```
+
+
+
+
+
+### `image_dimensions`
+
+
+```python
+def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None
+```
+
+
+
+Get image dimensions (width, height).
+
+Requires Pillow (PIL) library. Returns None if not available or file not found.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `path` | `str` | - | Image path |
+| `root_path` | `Path` | - | Site root path |
+
+
+
+
+
+
+
+**Returns**
+
+
+`tuple[int, int] | None` - Tuple of (width, height) or None
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{% set width, height = image_dimensions('photo.jpg') %}
+    <img width="{{ width }}" height="{{ height }}" src="..." alt="...">
+```
+
+
+
+
+
+### `image_srcset`
+
+
+```python
+def image_srcset(image_path: str, sizes: list[int]) -> str
+```
+
+
+
+Generate srcset attribute for responsive images.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `image_path` | `str` | - | Base image path |
+| `sizes` | `list[int]` | - | List of widths (e.g., [400, 800, 1200]) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - srcset attribute value
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+<img srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}" />
+    # hero.jpg?w=400 400w, hero.jpg?w=800 800w, hero.jpg?w=1200 1200w
+```
+
+
+
+
+
+### `image_srcset_gen`
+
+
+```python
+def image_srcset_gen(image_path: str, sizes: list[int] | None = None) -> str
+```
+
+
+
+Generate srcset attribute with default sizes.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `image_path` | `str` | - | Base image path |
+| `sizes` | `list[int] \| None` | - | List of widths (default: [400, 800, 1200, 1600]) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - srcset attribute value
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+<img srcset="{{ image_srcset_gen('hero.jpg') }}" />
+```
+
+
+
+
+
+### `image_alt`
+
+
+```python
+def image_alt(filename: str) -> str
+```
+
+
+
+Generate alt text from filename.
+
+Converts filename to human-readable alt text by:
+- Removing extension
+- Replacing hyphens/underscores with spaces
+- Capitalizing words
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `filename` | `str` | - | Image filename |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - Alt text suggestion
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+{{ 'mountain-sunset.jpg' | image_alt }}
+    # "Mountain Sunset"
+```
+
+
+
+
+
+### `image_data_uri`
+
+
+```python
+def image_data_uri(path: str, root_path: Path) -> str
+```
+
+
+
+Convert image to data URI for inline embedding.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `path` | `str` | - | Image path |
+| `root_path` | `Path` | - | Site root path |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - Data URI string
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+<img src="{{ image_data_uri('icons/logo.svg') }}" alt="Logo">
+```
+
+
+
+---
+*Generated by Bengal autodoc from `bengal/bengal/rendering/template_functions/images.py`*

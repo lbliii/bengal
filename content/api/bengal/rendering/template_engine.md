@@ -1,0 +1,206 @@
+
+---
+title: "template_engine"
+type: "python-module"
+source_file: "bengal/bengal/rendering/template_engine.py"
+line_number: 1
+description: "Template engine using Jinja2 for page rendering. Provides template rendering, template function registration, and optional template profiling for performance analysis. Integrates with theme system for..."
+---
+
+# template_engine
+**Type:** Module
+**Source:** [View source](bengal/bengal/rendering/template_engine.py#L1)
+
+
+
+**Navigation:**
+[bengal](/api/bengal/) ›[rendering](/api/bengal/rendering/) ›template_engine
+
+Template engine using Jinja2 for page rendering.
+
+Provides template rendering, template function registration, and optional
+template profiling for performance analysis. Integrates with theme system
+for template discovery and asset manifest for cache-busting.
+
+Key Concepts:
+    - Template inheritance: Child themes inherit parent templates
+    - Bytecode caching: Compiled templates cached for faster subsequent renders
+    - Template profiling: Optional timing data collection via --profile-templates
+    - Strict mode: StrictUndefined enabled for better error detection
+
+Related Modules:
+    - bengal.rendering.template_profiler: Profiling implementation
+    - bengal.rendering.template_functions: Template function registry
+    - bengal.utils.theme_registry: Theme resolution and discovery
+
+See Also:
+    - bengal/rendering/template_profiler.py: Profiling implementation
+    - plan/active/rfc-template-performance-optimization.md: Performance RFC
+
+## Classes
+
+
+
+
+### `TemplateEngine`
+
+
+Template engine for rendering pages with Jinja2 templates.
+
+Provides Jinja2 template rendering with theme inheritance, template function
+registration, asset manifest access, and optional template profiling. Manages
+template discovery through theme chains and provides cache-busting via asset manifest.
+
+Creation:
+    Direct instantiation: TemplateEngine(site, profile_templates=False)
+        - Created by RenderingPipeline for template rendering
+        - Requires Site instance with theme configuration
+        - Optional profiling enabled via profile_templates flag
+
+
+
+**Attributes:**
+
+| Name | Type | Description |
+|:-----|:-----|:------------|
+| `site` | - | Site instance with theme and configuration |
+| `template_dirs` | - | List of template directories (populated during init) |
+| `env` | - | Jinja2 Environment instance |
+| `_profile_templates` | - | Whether template profiling is enabled |
+| `_profiler` | - | Optional TemplateProfiler for performance analysis |
+| `_dependency_tracker` | - | Optional DependencyTracker (set by RenderingPipeline) |
+| `_asset_manifest_cache` | - | Cached asset manifest entries |
+| `Relationships` | - | - Uses: Theme resolution for template directory discovery - Uses: Template functions for template function registration - Uses: AssetManifest for cache-busting asset URLs - Used by: RenderingPipeline for template rendering - Used by: Renderer for page rendering |
+
+
+
+
+
+
+
+## Methods
+
+
+
+#### `__init__`
+```python
+def __init__(self, site: Any, profile_templates: bool = False) -> None
+```
+
+
+Initialize the template engine.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `site` | `Any` | - | Site instance |
+| `profile_templates` | `bool` | `False` | Enable template profiling for performance analysis |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+
+
+#### `render`
+```python
+def render(self, template_name: str, context: dict[str, Any]) -> str
+```
+
+
+Render a template with the given context.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `template_name` | `str` | - | Name of the template file |
+| `context` | `dict[str, Any]` | - | Template context variables |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - Rendered HTML
+
+
+
+#### `get_template_profile`
+```python
+def get_template_profile(self) -> dict[str, Any] | None
+```
+
+
+Get template profiling report.
+
+
+
+**Returns**
+
+
+`dict[str, Any] | None` - Dictionary with template and function timing statistics,
+    or None if profiling is not enabled.
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+
+```python
+report = engine.get_template_profile()
+    if report:
+        for name, stats in report['templates'].items():
+            print(f"{name}: {stats['count']} renders, {stats['total_ms']:.2f}ms")
+```
+
+
+
+
+#### `render_string`
+```python
+def render_string(self, template_string: str, context: dict[str, Any]) -> str
+```
+
+
+Render a template string with the given context.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `template_string` | `str` | - | Template content as string |
+| `context` | `dict[str, Any]` | - | Template context variables |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str` - Rendered HTML
+
+
+
+---
+*Generated by Bengal autodoc from `bengal/bengal/rendering/template_engine.py`*
