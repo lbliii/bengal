@@ -136,11 +136,9 @@ class Site:
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
-        # Ensure root_path is a Path object
         if isinstance(self.root_path, str):
             self.root_path = Path(self.root_path)
 
-        # Get theme NAME from [theme] section
         theme_section = self.config.get("theme", {})
         if isinstance(theme_section, dict):
             self.theme = theme_section.get("name", "default")
@@ -148,20 +146,15 @@ class Site:
             # Fallback for legacy config where theme was a string
             self.theme = theme_section if isinstance(theme_section, str) else "default"
 
-        # Initialize Theme object
         self._theme_obj = Theme.from_config(self.config)
 
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])
 
-        # Make output_dir absolute relative to root_path
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir
 
-        # Load data from data/ directory
         self.data = self._load_data_directory()
-
-        # Compute config hash for cache invalidation
         self._compute_config_hash()
 
     @property
@@ -310,11 +303,9 @@ class Site:
                 <article>{{ page.title }}</article>
             {% endfor %}
         """
-        # Return cached value if available (O(1))
         if self._regular_pages_cache is not None:
             return self._regular_pages_cache
 
-        # Compute and cache (O(n), only happens once)
         self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
         return self._regular_pages_cache
 
@@ -335,11 +326,9 @@ class Site:
                 if page.metadata.get("type") == "tag":
                     # ... process tag page
         """
-        # Return cached value if available (O(1))
         if self._generated_pages_cache is not None:
             return self._generated_pages_cache
 
-        # Compute and cache (O(n), only happens once)
         self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
         return self._generated_pages_cache
 
@@ -373,12 +362,9 @@ class Site:
                 <article>{{ post.title }}</article>
             {% endfor %}
         """
-        # Return cached value if available (O(1))
         if self._listable_pages_cache is not None:
             return self._listable_pages_cache
 
-        # Compute and cache (O(n), only happens once)
-        # Use in_listings which checks visibility.listings AND draft status
         self._listable_pages_cache = [p for p in self.pages if p.in_listings]
         return self._listable_pages_cache
 
@@ -491,14 +477,13 @@ class Site:
         """
         config_dir = root_path / "config"
 
-        # Check if config directory exists (new system)
         if config_dir.exists() and config_dir.is_dir():
             from bengal.config.directory_loader import ConfigDirectoryLoader
 
             loader = ConfigDirectoryLoader()
             config = loader.load(config_dir, environment=environment, profile=profile)
         else:
-            # Fall back to single-file config (old system)
+            # Fall back to single-file config (legacy)
             from bengal.config.loader import ConfigLoader
 
             loader = ConfigLoader(root_path)
@@ -572,10 +557,8 @@ class Site:
         from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
-        # Load collection schemas from project root (if collections.py exists)
         collections = load_collections(self.root_path)
 
-        # Check if strict validation is enabled (default: False for backward compatibility)
         build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
         strict_validation = build_config.get("strict_collections", False)
 
@@ -587,13 +570,9 @@ class Site:
         )
         self.sections, self.pages = discovery.discover()
 
-        # Build section registry for path-based lookups (MUST come before _setup_page_references)
+        # MUST come before _setup_page_references (registry needed for lookups)
         self.register_sections()
-
-        # Set up page references for navigation
         self._setup_page_references()
-
-        # Apply cascading frontmatter from sections to pages
         self._apply_cascades()
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
@@ -622,14 +601,13 @@ class Site:
 
         self.assets = []
 
-        # Discover theme assets first (lower priority), support inheritance chain
+        # Theme assets first (lower priority), then site assets (higher priority)
         if self.theme:
             for theme_dir in self._get_theme_assets_chain():
                 if theme_dir and theme_dir.exists():
                     theme_discovery = AssetDiscovery(theme_dir)
                     self.assets.extend(theme_discovery.discover())
 
-        # Discover site assets (higher priority, can override theme assets)
         if assets_dir is None:
             assets_dir = self.root_path / "assets"
 
@@ -638,16 +616,14 @@ class Site:
             site_discovery = AssetDiscovery(assets_dir)
             self.assets.extend(site_discovery.discover())
         elif not self.assets:
-            # Only warn if we have no theme assets either
             logger.warning("assets_dir_not_found", path=str(assets_dir))
 
-        # Deduplicate by relative output path with precedence: site > child theme > parents
+        # Deduplicate by output path: later entries override earlier (site > child theme > parents)
         if self.assets:
             dedup: dict[str, Asset] = {}
             order: list[str] = []
             for asset in self.assets:
                 key = str(asset.output_path) if asset.output_path else str(asset.source_path.name)
-                # Keep the latest occurrence (later entries override earlier)
                 if key in dedup:
                     dedup[key] = asset
                 else:
@@ -674,20 +650,13 @@ class Site:
         See Also:
             _setup_section_references(): Sets up section parent-child relationships
         """
-        # Set site reference on all pages
         for page in self.pages:
             page._site = self
 
-        # Set section references
         for section in self.sections:
-            # Set site reference on section
             section._site = self
-
-            # Set section reference on all pages in this section
             for page in section.pages:
                 page._section = section
-
-            # Recursively set for subsections
             self._setup_section_references(section)
 
     def _setup_section_references(self, section: Section) -> None:
@@ -807,11 +776,9 @@ class Site:
         except Exception:
             chain = [self.theme] if self.theme else []
 
-        # Build list from parents to child
         for theme_name in reversed(chain):
             from bengal.utils.theme_resolution import iter_theme_asset_dirs
 
-            # iter_theme_asset_dirs returns parent→child; we just consume one theme at a time
             for d in iter_theme_asset_dirs(self.root_path, [theme_name]):
                 dirs.append(d)
         return dirs

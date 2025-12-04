@@ -325,7 +325,6 @@ class MenuBuilder:
             item_url = item_config.get("url", "").rstrip("/")
             item_name = item_config.get("name", "").lower()
 
-            # Skip if duplicate
             if self._is_duplicate(item_id, item_url, item_name):
                 logger.debug(
                     "menu_duplicate_skipped",
@@ -446,7 +445,6 @@ class MenuBuilder:
                 index_page = section.index_page
                 metadata = getattr(index_page, "metadata", {})
 
-                # Check if hidden from menu
                 # Supports: hidden: true, menu: false, menu.main: false
                 if metadata.get("hidden", False) is True:
                     section_hidden = True
@@ -457,30 +455,24 @@ class MenuBuilder:
                     ):
                         section_hidden = True
 
-                # Get title and weight from frontmatter
                 if hasattr(index_page, "title") and index_page.title:
                     section_title = index_page.title
                 if "weight" in metadata:
                     section_weight = metadata["weight"]
 
-            # Skip hidden sections
             if section_hidden:
                 return
 
-            # Build section relative URL (for menu items - templates apply baseurl via filter)
             section_url = getattr(section, "relative_url", f"/{section.name}/")
             section_id = section.name
 
-            # Determine parent identifier from section.parent if not provided
             if parent_id is None and hasattr(section, "parent") and section.parent:
                 parent_id = section.parent.name
 
-            # Check for duplicates before adding
             if self._is_duplicate(section_id, section_url.rstrip("/"), section_title.lower()):
                 logger.debug("menu_duplicate_skipped", item=section_title, reason="auto_nav")
                 return
 
-            # Create and add menu item
             item = MenuItem(
                 name=section_title,
                 url=section_url,
@@ -491,22 +483,18 @@ class MenuBuilder:
             self.items.append(item)
             self._track_item(item)
 
-            # Recursively add subsections
             if hasattr(section, "subsections"):
                 for subsection in section.subsections:
                     _add_section_recursive(subsection, section_id)
 
-        # Find all top-level sections (those with no parent)
         top_level_sections = []
         for section in site.sections:
             if not hasattr(section, "path") or not section.path:
                 continue
 
-            # Check if section has a parent - if not, it's top-level
             if not hasattr(section, "parent") or section.parent is None:
                 top_level_sections.append(section)
 
-        # Recursively build menu from all top-level sections
         for section in top_level_sections:
             _add_section_recursive(section, None)
 

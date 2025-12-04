@@ -320,16 +320,12 @@ class RenderingPipeline:
             pipeline.process_page(page)
             # Page is now fully rendered with rendered_html populated
         """
-        # Track this page if we have a dependency tracker
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.start_page(page.source_path)
 
-        # Stage 0: Determine output path early so page.url works correctly
         if not page.output_path:
             page.output_path = self._determine_output_path(page)
 
-        # OPTIMIZATION #2: Try parsed content cache first
-        # Skip markdown parsing if we have cached HTML and only template changed
         template = self._determine_template(page)
         parser_version = self._get_parser_version()
 
@@ -341,34 +337,25 @@ class RenderingPipeline:
                 )
 
                 if cached:
-                    # Cache HIT - skip markdown parsing!
                     page.parsed_ast = cached["html"]
                     page.toc = cached["toc"]
                     page._toc_items_cache = cached.get("toc_items", [])
 
-                    # Phase 3: Restore AST from cache for page.ast/plain_text properties
                     if cached.get("ast"):
                         page._ast_cache = cached["ast"]
 
-                    # Track cache hit for statistics
                     if self.build_stats:
                         if not hasattr(self.build_stats, "parsed_cache_hits"):
                             self.build_stats.parsed_cache_hits = 0
                         self.build_stats.parsed_cache_hits += 1
 
-                    # Continue to template rendering (skipped parsing, will apply current template)
-                    # Note: We don't return early - we need to apply the template
                     parsed_content = cached["html"]
-
-                    # Transform internal links to include baseurl (for GitHub Pages, etc.)
                     parsed_content = self._transform_internal_links(parsed_content)
 
-                    # Skip to stage 3 (template rendering)
                     page.extract_links()
                     html_content = self.renderer.render_content(parsed_content)
                     page.rendered_html = self.renderer.render_page(page, html_content)
 
-                    # HTML formatting on cache-hit path as well
                     try:
                         from bengal.postprocess.html_output import format_html_output
 
@@ -398,19 +385,11 @@ class RenderingPipeline:
                     if self.dependency_tracker and not page.metadata.get("_generated"):
                         self.dependency_tracker.end_page()
 
-                    return  # EARLY RETURN - parsing skipped, template applied!
+                    return
 
-        # Stage 1 & 2: Parse content with variable substitution
-        #
-        # ARCHITECTURE: Clean separation of concerns
-        # - Mistune parser: Handles {{ vars }} via VariableSubstitutionPlugin
-        # - Templates: Handle {% if %}, {% for %}, complex logic
-        # - Code blocks: Naturally stay literal (AST-level operation)
-        #
-        # Pages can disable preprocessing by setting `preprocess: false` in frontmatter.
-        # This is useful for documentation pages that show template syntax examples.
-        #
-        # Decide whether TOC is needed. Skip TOC path if disabled or no headings present.
+        # Parse content with variable substitution
+        # Architecture: Mistune handles {{ vars }}, templates handle {% logic %}, code blocks stay literal
+        # Pages can disable preprocessing via `preprocess: false` in frontmatter
         need_toc = True
         if page.metadata.get("toc") is False:
             need_toc = False
