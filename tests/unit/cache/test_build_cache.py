@@ -413,3 +413,230 @@ class TestBuildCacheConfigHash:
         cache.clear()
 
         assert cache.config_hash is None
+
+
+class TestRenderedOutputCache:
+    """Test suite for rendered output caching (Optimization #3)."""
+
+    def test_store_and_get_rendered_output(self, tmp_path):
+        """Test storing and retrieving rendered HTML output."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        metadata = {"title": "Test Page", "date": "2025-01-01"}
+        cache.store_rendered_output(
+            test_file,
+            "<html><body>Rendered content</body></html>",
+            "default.html",
+            metadata,
+            dependencies=[str(tmp_path / "templates" / "default.html")],
+        )
+
+        # Get it back
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+
+        assert result is not None
+        assert "Rendered content" in result
+
+    def test_rendered_output_invalid_on_content_change(self, tmp_path):
+        """Rendered output cache is invalidated when content file changes."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Original Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        metadata = {"title": "Test Page"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Original</html>",
+            "default.html",
+            metadata,
+        )
+
+        # Modify the file
+        test_file.write_text("# Modified Content")
+
+        # Cache should be invalid
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+        assert result is None
+
+    def test_rendered_output_invalid_on_metadata_change(self, tmp_path):
+        """Rendered output cache is invalidated when metadata changes."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output with initial metadata
+        metadata_v1 = {"title": "Original Title"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Original</html>",
+            "default.html",
+            metadata_v1,
+        )
+
+        # Try to get with different metadata
+        metadata_v2 = {"title": "Modified Title"}
+        result = cache.get_rendered_output(test_file, "default.html", metadata_v2)
+        assert result is None
+
+    def test_rendered_output_invalid_on_template_change(self, tmp_path):
+        """Rendered output cache is invalidated when template name changes."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output with initial template
+        metadata = {"title": "Test Page"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Original</html>",
+            "default.html",
+            metadata,
+        )
+
+        # Try to get with different template
+        result = cache.get_rendered_output(test_file, "custom.html", metadata)
+        assert result is None
+
+    def test_rendered_output_invalid_on_dependency_change(self, tmp_path):
+        """Rendered output cache is invalidated when a dependency file changes."""
+        cache = BuildCache()
+
+        # Create files
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        template_file = tmp_path / "templates" / "base.html"
+        template_file.parent.mkdir(parents=True, exist_ok=True)
+        template_file.write_text("<html>{% block content %}{% endblock %}</html>")
+        cache.update_file(template_file)
+
+        # Store rendered output with dependency
+        metadata = {"title": "Test Page"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            metadata,
+            dependencies=[str(template_file)],
+        )
+
+        # Verify cache hit before change
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+        assert result is not None
+
+        # Modify the dependency
+        template_file.write_text("<html>Modified template</html>")
+
+        # Cache should be invalid
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+        assert result is None
+
+    def test_invalidate_rendered_output(self, tmp_path):
+        """Test explicit invalidation of rendered output."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        metadata = {"title": "Test Page"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            metadata,
+        )
+
+        # Explicitly invalidate
+        cache.invalidate_rendered_output(test_file)
+
+        # Cache should be invalid
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+        assert result is None
+
+    def test_rendered_output_stats(self, tmp_path):
+        """Test rendered output cache statistics."""
+        cache = BuildCache()
+
+        # Initially empty
+        stats = cache.get_rendered_output_stats()
+        assert stats["cached_pages"] == 0
+
+        # Add some entries
+        for i in range(3):
+            test_file = tmp_path / f"page{i}.md"
+            test_file.write_text(f"# Page {i}")
+            cache.update_file(test_file)
+            cache.store_rendered_output(
+                test_file,
+                f"<html>Page {i}</html>",
+                "default.html",
+                {"title": f"Page {i}"},
+            )
+
+        stats = cache.get_rendered_output_stats()
+        assert stats["cached_pages"] == 3
+        assert stats["total_size_mb"] > 0
+
+    def test_clear_also_clears_rendered_output(self, tmp_path):
+        """Clear method also clears rendered output cache."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            {"title": "Test"},
+        )
+
+        # Clear and check
+        cache.clear()
+        assert len(cache.rendered_output) == 0
+
+    def test_invalidate_file_clears_rendered_output(self, tmp_path):
+        """invalidate_file also clears rendered output for that file."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            {"title": "Test"},
+        )
+
+        # Invalidate the file
+        cache.invalidate_file(test_file)
+
+        # Rendered output should be gone
+        assert str(test_file) not in cache.rendered_output
