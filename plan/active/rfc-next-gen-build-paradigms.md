@@ -442,20 +442,42 @@ with handle(cached_read, parallel_render):
 
 ### For Bengal's Next Evolution
 
-**Primary**: **Dataflow Graph with Lazy Materialization**
+**Selected Paradigm**: **Dataflow Graph with Lazy Materialization**
 
-Why:
-1. **Automatic parallelism** - Framework determines what's safe to parallelize
-2. **Perfect incrementality** - Content-addressable caching is proven
-3. **Declarative** - Users describe transformations, not execution order
-4. **3.14t leverage** - Graph nodes execute on real parallel threads
-5. **Precedent** - Bazel/Buck prove this works at massive scale
+This paradigm offers the best balance of automatic parallelism, correctness, and leverage of Python 3.13t+'s free-threaded capabilities. However, adoption requires navigating two critical architectural hurdles:
 
-**Secondary elements to incorporate**:
-- **Structured concurrency** for I/O operations within nodes
-- **ECS-inspired queries** for selecting pages by component
+1.  **The "God Object" Problem**: The current `Site` object is mutable (`self.pages.append(...)`). In a free-threaded environment, mutable shared state requires locking, which negates performance gains.
+2.  **Graph Granularity**: A node-per-page graph for a 10k page site creates excessive scheduling overhead.
 
-### Implementation Sketch
+### Revised Implementation Strategy
+
+We recommend a **Phased Migration** rather than a "Big Bang" rewrite.
+
+#### Phase 1: Coarse-Grained Graph (The "Phased" Approach)
+Replace the imperative `BuildOrchestrator` with a graph where nodes represent entire build phases or large batches. This validates the infrastructure without requiring deep changes to `Site`.
+
+- **Nodes**: `Discovery`, `Taxonomy`, `AssetProcessing`, `RenderBatch_A` (pages 1-1000), `RenderBatch_B` (pages 1001-2000).
+- **Data Flow**: Nodes still mutate `Site`, but only in disjoint phases or thread-safe batches.
+- **Benefit**: Enables parallel asset processing and grouped rendering immediately.
+
+#### Phase 2: Immutable Data Flow (The "Pure" Approach)
+Refactor core architecture to separate data definition from execution. Move from `Site` mutation to a functional pipeline:
+
+```python
+RawContent -> [DiscoveryNode] -> ContentTree
+ContentTree -> [TaxonomyNode] -> EnrichedContent
+EnrichedContent -> [RendererNode] -> HTML
+```
+
+- **Immutability**: Nodes receive data, compute, and return *new* data structures.
+- **Lazy Materialization**: `Site` becomes a read-only facade over the graph results.
+
+### Handling Python < 3.13 (Legacy Support)
+The graph executor must support a fallback strategy:
+- **Python 3.13t+**: `ThreadPoolExecutor` (True Parallelism)
+- **Python < 3.13**: `ProcessPoolExecutor` (Multiprocessing, high overhead) or `ThreadPoolExecutor` (Concurrency, I/O bound only)
+
+### Refined Implementation Sketch
 
 ```python
 # bengal/next/graph.py
@@ -534,14 +556,17 @@ class BuildGraph:
    As of late 2024, it's experimental. Target 3.15/3.16 for stability?
 
 2. **How to handle mutable state (Site object)?**  
-   Option A: Make Site immutable, return new Site from builds  
-   Option B: Use fine-grained locks/atomics for shared state
+   Addressed in Phase 2 via immutable data flow. Intermediate solution uses coarse locking.
 
-3. **Backward compatibility?**  
+3. **Granularity vs. Scheduler Overhead?**  
+   Does managing a dependency graph for 10,000+ tiny nodes cost more CPU than we save?
+   *Mitigation*: Use batching (coarse-grained nodes) to amortize scheduling costs.
+
+4. **Backward compatibility?**  
    Option A: New API alongside existing orchestrator  
    Option B: Orchestrator becomes a "compatibility layer" over graph
 
-4. **What about Windows/macOS thread performance?**  
+5. **What about Windows/macOS thread performance?**  
    Need benchmarks; thread overhead varies by OS.
 
 ---

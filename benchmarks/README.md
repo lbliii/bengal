@@ -30,7 +30,6 @@ This will run the benchmarks for all the scenarios defined in the `scenarios` di
 
 ### Full Build Performance
 - **Baseline builds**: Standard builds for small/large sites
-- **Pipeline mode**: Reactive dataflow pipeline (`--pipeline` flag)
 - **Fast mode**: Quiet output + guaranteed parallel (`--fast` flag)
 
 ### Incremental Builds
@@ -89,18 +88,15 @@ pytest test_cold_build_permutations.py -k "fast_mode" -v
 **Build Modes**:
 - Standard (default parallel)
 - Fast mode (`--fast`)
-- Pipeline mode (`--pipeline`)
 - Memory-optimized (`--memory-optimized`)
 - Sequential (`--no-parallel`)
-- Fast + Pipeline (`--fast --pipeline`)
 - Fast + Memory-optimized (`--fast --memory-optimized`) - 500+ pages only
 
-**Total Tests**: 20 permutations (7 modes × 3 sizes, minus 1 mode that only runs on 500+ pages)
+**Total Tests**: 14 permutations (5 modes × 3 sizes, minus 1 mode that only runs on 500+ pages)
 
 ### Expected Insights
 
 - **Fast mode impact**: Measures logging overhead reduction
-- **Pipeline vs Standard**: Compares reactive dataflow vs batch orchestrator
 - **Memory-optimized tradeoffs**: Speed vs memory usage for large sites
 - **Parallel speedup**: Validates 2-4x improvement on multi-core systems
 - **Scaling characteristics**: How each mode performs as site size increases
@@ -120,7 +116,6 @@ pytest test_cold_build_permutations.py --benchmark-compare=baseline
 
 Look for:
 - **Fast mode**: Should be similar or slightly faster than standard (reduced logging)
-- **Pipeline**: May be faster or slower depending on site characteristics
 - **Memory-optimized**: May be slightly slower but uses constant memory
 - **Sequential**: Should be 2-4x slower than parallel on multi-core systems
 
@@ -140,4 +135,3 @@ pytest benchmarks/test_build.py::test_pipeline_build -v
 
 - **Full Build**: Standard build with parallel processing enabled (default).
 - **Incremental**: Tests single-page edits, batch edits, and config changes.
-- **Pipeline**: Tests the experimental `--pipeline` reactive dataflow mode.

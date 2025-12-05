@@ -6,11 +6,16 @@ results across builds. Uses JSON serialization for persistence and provides
 tolerant loading for version migrations.
 
 Key Concepts:
-    - File hashes: SHA256 hashes for detecting content changes
+    - File fingerprints: mtime + size for fast change detection, hash for verification
     - Dependency tracking: Templates, partials, and data files used by pages
     - Taxonomy indexes: Tag/category mappings for fast reconstruction
     - Config hash: Auto-invalidation when configuration changes
     - Version tolerance: Accepts missing/older cache versions gracefully
+
+Performance Optimization (RFC: orchestrator-performance-improvements):
+    - Fast path: mtime + size check (no I/O beyond stat)
+    - Slow path: SHA256 hash only when mtime/size mismatch suggests change
+    - Expected improvement: 10-30% faster incremental build detection
 
 Related Modules:
     - bengal.orchestration.incremental: Incremental build logic using cache
@@ -20,13 +25,14 @@ Related Modules:
 See Also:
     - bengal/cache/build_cache.py:BuildCache class for cache structure
     - plan/active/rfc-incremental-builds.md: Incremental build design
+    - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -34,6 +40,82 @@ from typing import Any
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class FileFingerprint:
+    """
+    Fast file change detection using mtime + size, with optional hash verification.
+
+    Performance Optimization:
+        - mtime + size comparison is O(1) stat call (no file read)
+        - Hash computed lazily only when mtime/size mismatch detected
+        - Handles edge cases like touch/rsync that change mtime but not content
+
+    Attributes:
+        mtime: File modification time (seconds since epoch)
+        size: File size in bytes
+        hash: SHA256 hash (computed lazily, may be None for fast path)
+
+    Thread Safety:
+        Immutable after creation. Thread-safe for read operations.
+    """
+
+    mtime: float
+    size: int
+    hash: str | None = None
+
+    def matches_stat(self, stat_result) -> bool:
+        """
+        Fast path check: does mtime + size match?
+
+        Args:
+            stat_result: Result from Path.stat()
+
+        Returns:
+            True if mtime and size both match (definitely unchanged)
+        """
+        return self.mtime == stat_result.st_mtime and self.size == stat_result.st_size
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to JSON-compatible dict."""
+        return {"mtime": self.mtime, "size": self.size, "hash": self.hash}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> FileFingerprint:
+        """Deserialize from JSON dict."""
+        return cls(
+            mtime=data.get("mtime", 0.0),
+            size=data.get("size", 0),
+            hash=data.get("hash"),
+        )
+
+    @classmethod
+    def from_path(cls, file_path: Path, compute_hash: bool = True) -> FileFingerprint:
+        """
+        Create fingerprint from file path.
+
+        Args:
+            file_path: Path to file
+            compute_hash: Whether to compute SHA256 hash (slower but more reliable)
+
+        Returns:
+            FileFingerprint with mtime, size, and optionally hash
+        """
+        stat = file_path.stat()
+        file_hash = None
+
+        if compute_hash:
+            hasher = hashlib.sha256()
+            try:
+                with open(file_path, "rb") as f:
+                    while chunk := f.read(8192):
+                        hasher.update(chunk)
+                file_hash = hasher.hexdigest()
+            except Exception:
+                pass  # Hash will be None, rely on mtime/size
+
+        return cls(mtime=stat.st_mtime, size=stat.st_size, hash=file_hash)
 
 
 @dataclass
@@ -72,12 +154,17 @@ class BuildCache:
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 4  # Bumped for AST caching (Phase 3 of RFC-content-ast-architecture)
+    VERSION: int = 5  # Bumped for FileFingerprint (RFC: orchestrator-performance-improvements)
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
 
+    # Legacy: file_hashes for backward compatibility (migrated to file_fingerprints)
     file_hashes: dict[str, str] = field(default_factory=dict)
+
+    # New: file_fingerprints for fast mtime+size change detection
+    # Structure: {path: {mtime: float, size: int, hash: str | None}}
+    file_fingerprints: dict[str, dict[str, Any]] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
     output_sources: dict[str, str] = field(default_factory=dict)
     taxonomy_deps: dict[str, set[str]] = field(default_factory=dict)
@@ -126,6 +213,16 @@ class BuildCache:
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
         # Validation results are already in dict format (no conversion needed)
+
+        # Migrate legacy file_hashes to file_fingerprints (VERSION < 5 compatibility)
+        # Legacy hashes become fingerprints with hash only (mtime/size will be updated on next check)
+        if self.file_hashes and not self.file_fingerprints:
+            logger.debug(
+                "migrating_file_hashes_to_fingerprints",
+                file_count=len(self.file_hashes),
+            )
+            for path, hash_value in self.file_hashes.items():
+                self.file_fingerprints[path] = {"mtime": 0.0, "size": 0, "hash": hash_value}
 
     @classmethod
     def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache:
@@ -220,6 +317,10 @@ class BuildCache:
             if "config_hash" not in data:
                 data["config_hash"] = None
 
+            # File fingerprints (new in VERSION 5, tolerate missing)
+            if "file_fingerprints" not in data:
+                data["file_fingerprints"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -286,7 +387,8 @@ class BuildCache:
         # Convert sets to lists for JSON serialization
         data = {
             "version": self.VERSION,
-            "file_hashes": self.file_hashes,
+            "file_hashes": self.file_hashes,  # Keep for backward compatibility
+            "file_fingerprints": self.file_fingerprints,  # New: mtime+size+hash
             "dependencies": {k: list(v) for k, v in self.dependencies.items()},
             "output_sources": self.output_sources,
             "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
@@ -344,6 +446,11 @@ class BuildCache:
         """
         Check if a file has changed since last build.
 
+        Performance Optimization (RFC: orchestrator-performance-improvements):
+            - Fast path: mtime + size check (single stat call, no file read)
+            - Slow path: SHA256 hash only when mtime/size mismatch detected
+            - Handles edge cases: touch/rsync may change mtime but not content
+
         Args:
             file_path: Path to file
 
@@ -355,24 +462,81 @@ class BuildCache:
             return True
 
         file_key = str(file_path)
-        current_hash = self.hash_file(file_path)
 
-        if file_key not in self.file_hashes:
-            # New file
-            return True
+        # Check fingerprint first (fast path)
+        if file_key in self.file_fingerprints:
+            cached = self.file_fingerprints[file_key]
+            try:
+                stat = file_path.stat()
 
-        # Check if hash changed
-        return self.file_hashes[file_key] != current_hash
+                # Fast path: mtime + size unchanged = definitely no change
+                if cached.get("mtime") == stat.st_mtime and cached.get("size") == stat.st_size:
+                    return False
+
+                # mtime or size changed - verify with hash (handles touch/rsync)
+                cached_hash = cached.get("hash")
+                if cached_hash:
+                    current_hash = self.hash_file(file_path)
+                    if current_hash == cached_hash:
+                        # Content unchanged despite mtime change (e.g., touch)
+                        # Update mtime/size in fingerprint for future fast path
+                        self.file_fingerprints[file_key] = {
+                            "mtime": stat.st_mtime,
+                            "size": stat.st_size,
+                            "hash": cached_hash,
+                        }
+                        return False
+                    return True  # Hash differs, file changed
+
+                # No cached hash, fall through to treat as changed
+                return True
+
+            except OSError:
+                # Can't stat file, treat as changed
+                return True
+
+        # Fallback: check legacy file_hashes (VERSION < 5 compatibility)
+        if file_key in self.file_hashes:
+            current_hash = self.hash_file(file_path)
+            return self.file_hashes[file_key] != current_hash
+
+        # New file (not in any cache)
+        return True
 
     def update_file(self, file_path: Path) -> None:
         """
-        Update the hash for a file.
+        Update the fingerprint for a file (mtime + size + hash).
+
+        Performance Optimization:
+            Stores full fingerprint for fast change detection on subsequent builds.
+            Uses mtime + size for fast path, hash for verification.
 
         Args:
             file_path: Path to file
         """
         file_key = str(file_path)
-        self.file_hashes[file_key] = self.hash_file(file_path)
+
+        try:
+            stat = file_path.stat()
+            file_hash = self.hash_file(file_path)
+
+            # Store full fingerprint
+            self.file_fingerprints[file_key] = {
+                "mtime": stat.st_mtime,
+                "size": stat.st_size,
+                "hash": file_hash,
+            }
+
+            # Also update legacy file_hashes for backward compatibility
+            self.file_hashes[file_key] = file_hash
+
+        except OSError as e:
+            logger.warning(
+                "file_update_failed",
+                file_path=str(file_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
     def get_cached_validation_results(
         self, file_path: Path, validator_name: str
@@ -624,6 +788,7 @@ class BuildCache:
     def clear(self) -> None:
         """Clear all cache data."""
         self.file_hashes.clear()
+        self.file_fingerprints.clear()
         self.dependencies.clear()
         self.output_sources.clear()
         self.taxonomy_deps.clear()
@@ -693,6 +858,7 @@ class BuildCache:
         """
         file_key = str(file_path)
         self.file_hashes.pop(file_key, None)
+        self.file_fingerprints.pop(file_key, None)  # Also remove fingerprint
         self.dependencies.pop(file_key, None)
 
         # Remove as a dependency from other files

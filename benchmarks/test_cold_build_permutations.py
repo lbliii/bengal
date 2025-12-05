@@ -8,11 +8,9 @@ Build Modes Tested:
 ===================
 1. Standard (default parallel)
 2. Fast mode (--fast)
-3. Pipeline mode (--pipeline)
-4. Memory-optimized (--memory-optimized)
-5. Sequential (--no-parallel)
-6. Fast + Pipeline (--fast --pipeline)
-7. Fast + Memory-optimized (--fast --memory-optimized)
+3. Memory-optimized (--memory-optimized)
+4. Sequential (--no-parallel)
+5. Fast + Memory-optimized (--fast --memory-optimized)
 
 Site Sizes:
 ===========
@@ -23,7 +21,6 @@ Site Sizes:
 Expected Insights:
 ==================
 - Fast mode impact (logging overhead reduction)
-- Pipeline vs standard orchestrator performance
 - Memory-optimized tradeoffs (speed vs memory)
 - Parallel vs sequential speedup (2-4x expected)
 - Scaling characteristics across site sizes
@@ -221,35 +218,6 @@ def test_fast_mode(benchmark, request, site_fixture, page_count):
         ("site_1000_pages", 1000),
     ],
 )
-def test_pipeline_mode(benchmark, request, site_fixture, page_count):
-    """Pipeline mode build (--pipeline: reactive dataflow)."""
-    site_path = request.getfixturevalue(site_fixture)
-
-    def build():
-        output_dir = site_path / "output"
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
-
-        subprocess.run(
-            ["bengal", "build", "--pipeline"],
-            cwd=site_path,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
-    benchmark(build)
-
-
-@pytest.mark.benchmark
-@pytest.mark.parametrize(
-    "site_fixture,page_count",
-    [
-        ("site_100_pages", 100),
-        ("site_500_pages", 500),
-        ("site_1000_pages", 1000),
-    ],
-)
 def test_memory_optimized(benchmark, request, site_fixture, page_count):
     """Memory-optimized build (--memory-optimized: streaming for large sites)."""
     site_path = request.getfixturevalue(site_fixture)
@@ -290,35 +258,6 @@ def test_sequential_build(benchmark, request, site_fixture, page_count):
 
         subprocess.run(
             ["bengal", "build", "--no-parallel"],
-            cwd=site_path,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
-    benchmark(build)
-
-
-@pytest.mark.benchmark
-@pytest.mark.parametrize(
-    "site_fixture,page_count",
-    [
-        ("site_100_pages", 100),
-        ("site_500_pages", 500),
-        ("site_1000_pages", 1000),
-    ],
-)
-def test_fast_pipeline(benchmark, request, site_fixture, page_count):
-    """Fast mode + Pipeline (--fast --pipeline: combines both optimizations)."""
-    site_path = request.getfixturevalue(site_fixture)
-
-    def build():
-        output_dir = site_path / "output"
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
-
-        subprocess.run(
-            ["bengal", "build", "--fast", "--pipeline"],
             cwd=site_path,
             check=True,
             stdout=subprocess.DEVNULL,

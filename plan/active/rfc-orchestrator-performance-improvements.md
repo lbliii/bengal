@@ -3,8 +3,19 @@
 ## Status
 - **Owner**: AI Assistant
 - **Created**: 2024-12-05
-- **State**: Draft
-- **Confidence**: 85% 🟢
+- **State**: In Progress
+- **Confidence**: 92% 🟢
+
+### Validation Results (2024-12-05)
+
+| Item | Claim | Status | Evidence |
+|------|-------|--------|----------|
+| 1.1 Render cache | Valid | ✅ Implement | `parsed_content` caches markdown, not template output |
+| 1.2 mtime+size | Valid | ✅ Implement | `is_changed()` uses SHA256 only (`build_cache.py:343`) |
+| 1.3 Lazy templates | ❌ Already Done | Skip | Jinja2 `FileSystemBytecodeCache` (`template_engine.py:227`) |
+| 2.1 Parallel discovery | ❌ Already Done | Skip | `ThreadPoolExecutor` in `content_discovery.py:218` |
+| 2.2 Dependency tracking | Partial | ⚠️ Improve | `dependency_tracker.py` exists, needs improvement |
+| 2.3 Section-level | Valid | ✅ Implement | Not implemented, iterates all pages |
 
 ## Executive Summary
 
@@ -50,7 +61,7 @@ While Bengal's orchestrator is solid, there are measurable opportunities for imp
 
 **Current**: Rendered HTML is not cached; re-renders on every build.
 
-**Proposed**: Cache rendered HTML keyed by content hash + template hash.
+**Proposed**: Cache rendered HTML keyed by content hash + template hash + **global config hash**.
 
 ```python
 # bengal/cache/render_cache.py
@@ -58,25 +69,23 @@ While Bengal's orchestrator is solid, there are measurable opportunities for imp
 class RenderCacheEntry:
     content_hash: str
     template_hash: str
+    config_hash: str  # New: Invalidate on global config/data changes
     output_html: str
     dependencies: list[str]  # Template includes, assets
 
 class RenderCache:
-    def get(self, page: Page) -> str | None:
-        """Return cached HTML if content and templates unchanged."""
+    def get(self, page: Page, site_config_hash: str) -> str | None:
+        """Return cached HTML if content, templates, and global config unchanged."""
         key = self._cache_key(page)
         entry = self._entries.get(key)
-        if entry and self._is_valid(entry, page):
+        if entry and self._is_valid(entry, page, site_config_hash):
             return entry.output_html
         return None
-    
-    def _cache_key(self, page: Page) -> str:
-        return f"{page.source_path}:{page.content_hash}"
 ```
 
 **Impact**: Skip rendering for unchanged pages even in "full" builds.  
 **Effort**: Low (2-3 days)  
-**Risk**: Low
+**Risk**: Low (must ensure config_hash captures all global state)
 
 #### 1.2 Fast Cache Invalidation with mtime + size
 
@@ -113,63 +122,47 @@ def needs_rebuild(cached: FileFingerprint, current: Path) -> bool:
 **Effort**: Low (1-2 days)  
 **Risk**: Low (mtime is reliable on modern filesystems)
 
-#### 1.3 Lazy Template Compilation
+#### 1.3 Lazy Template Compilation ✅ ALREADY IMPLEMENTED
 
-**Current**: All templates compiled on `TemplateEngine` initialization.
+**Status**: Already implemented via Jinja2's `FileSystemBytecodeCache`.
 
-**Proposed**: Compile templates on first use, cache compiled versions.
-
+**Evidence**: `bengal/rendering/template_engine.py:215-230`
 ```python
-# bengal/rendering/template_engine.py
-class LazyTemplateEngine:
-    def __init__(self, ...):
-        self._env = self._create_env()
-        self._compiled_cache: dict[str, Template] = {}
-    
-    def get_template(self, name: str) -> Template:
-        if name not in self._compiled_cache:
-            self._compiled_cache[name] = self._env.get_template(name)
-        return self._compiled_cache[name]
+# Existing implementation
+bytecode_cache = FileSystemBytecodeCache(
+    directory=str(cache_dir), pattern="__bengal_template_%s.cache"
+)
 ```
 
-**Impact**: Faster startup for incremental builds (only compile used templates).  
-**Effort**: Low (1 day)  
-**Risk**: Very low
+**No action needed** - Jinja2 already provides:
+- Lazy compilation on first use
+- Bytecode caching to disk
+- Automatic invalidation when templates change
 
 ---
 
 ### Phase 2: Medium Effort Improvements
 
-#### 2.1 Async File Discovery
+#### 2.1 Parallel File Discovery ✅ ALREADY IMPLEMENTED
 
-**Current**: Synchronous file walking and reading during discovery.
+**Status**: Already implemented via `ThreadPoolExecutor`.
 
-**Proposed**: Use `asyncio` + `aiofiles` for parallel file operations.
-
+**Evidence**: `bengal/discovery/content_discovery.py:218-219`
 ```python
-# bengal/discovery/async_content.py
-import asyncio
-import aiofiles
-
-async def discover_content_async(content_dir: Path) -> list[Page]:
-    """Discover and parse content files in parallel."""
-    files = list(content_dir.rglob("*.md"))
-    
-    async def parse_file(path: Path) -> Page:
-        async with aiofiles.open(path, 'r') as f:
-            content = await f.read()
-        return parse_frontmatter_and_content(path, content)
-    
-    # Parse all files concurrently (I/O bound, not CPU bound)
-    pages = await asyncio.gather(*[parse_file(f) for f in files])
-    return pages
+# Existing implementation
+max_workers = min(8, get_max_workers())
+self._executor = ThreadPoolExecutor(max_workers=max_workers)
 ```
 
-**Integration**: Orchestrator calls `asyncio.run(discover_content_async(...))`.
+**No action needed** - ContentDiscovery already:
+- Uses `ThreadPoolExecutor` for parallel file parsing
+- Caps at 8 workers for I/O-bound discovery
+- Submits file parsing tasks via `executor.submit()`
 
-**Impact**: 15-25% faster discovery phase (especially on NVMe/SSD).  
-**Effort**: Medium (3-5 days)  
-**Risk**: Medium (async introduces complexity, need to maintain sync fallback)
+**Note**: Threading is preferred over asyncio (see Alternatives Considered) for:
+- Simpler codebase (no async/await coloring)
+- Forward-compatible with Python 3.13t (free-threading)
+- Already achieving parallelism benefits
 
 #### 2.2 Dependency-Aware Incremental Builds
 
@@ -296,14 +289,14 @@ class ASTCacheEntry:
 ### Sprint 1: Quick Wins (Week 1-2)
 - [ ] 1.1 Granular page output caching
 - [ ] 1.2 Fast mtime+size invalidation
-- [ ] 1.3 Lazy template compilation
+- [x] ~~1.3 Lazy template compilation~~ (Already done via Jinja2 bytecode cache)
 
 **Expected Result**: 20-30% faster incremental builds
 
 ### Sprint 2: Medium Improvements (Week 3-5)
-- [ ] 2.1 Async file discovery
-- [ ] 2.2 Dependency-aware incremental builds
-- [ ] 2.3 Section-level incremental builds
+- [x] ~~2.1 Parallel threaded discovery~~ (Already done via ThreadPoolExecutor)
+- [ ] 2.2 Dependency-aware incremental builds (improve existing)
+- [ ] 2.3 Section-level incremental builds (scoped)
 
 **Expected Result**: 40-50% faster incremental builds, 15-20% faster cold builds
 
@@ -313,6 +306,31 @@ class ASTCacheEntry:
 - [ ] 3.3 Content AST caching
 
 **Expected Result**: Best-in-class Python SSG performance
+
+---
+
+## Implementation Progress
+
+### Phase 1: In Progress
+
+**1.2 Fast mtime+size Invalidation** ✅ COMPLETED
+
+- Target file: `bengal/cache/build_cache.py`
+- Implementation:
+  - Added `FileFingerprint` dataclass (`build_cache.py:43-99`)
+  - Added `file_fingerprints` field to `BuildCache` (`build_cache.py:107-109`)
+  - Updated `is_changed()` to use fast mtime+size check first (`build_cache.py:387-436`)
+  - Updated `update_file()` to store full fingerprint (`build_cache.py:438-470`)
+  - Cache VERSION bumped to 5 for new schema
+  - Backward compatible with VERSION 4 caches (migration in `__post_init__`)
+- Tests: All 26 cache tests + 17 incremental orchestrator tests pass
+- Status: ✅ Complete
+
+**Expected improvement**: 10-30% faster incremental build detection (avoids SHA256 hash I/O when mtime+size unchanged)
+
+**1.1 Granular Page Output Caching** (Next)
+- Target: New `RenderCache` class
+- Status: 🔲 Pending
 
 ---
 
@@ -326,9 +344,9 @@ class ASTCacheEntry:
 
 **Deferred**: Would provide significant performance gains but requires major investment. Could revisit if Python optimizations hit ceiling.
 
-### Alternative C: PyPy Runtime
+### Alternative C: AsyncIO for I/O
 
-**Deferred**: Could provide 2-5x speedup but adds deployment complexity and dependency issues. Worth benchmarking but not prioritizing.
+**Rejected**: Using `asyncio` forces a "colored function" architecture (sync vs async) which complicates the entire codebase. We prefer **Threading** which is forward-compatible with Python 3.13t (free-threading) and keeps the codebase synchronous and simpler while still achieving I/O parallelism.
 
 ---
 
@@ -349,16 +367,17 @@ class ASTCacheEntry:
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Async complexity | Bugs, harder debugging | Maintain sync fallback, comprehensive tests |
+| Thread safety | Race conditions, corruption | Use thread-local storage, minimizing shared mutable state |
 | Cache invalidation bugs | Stale content served | Conservative invalidation, cache versioning |
 | Breaking changes | User frustration | Feature flags, gradual rollout |
+| Dependency complexity | Performance regression | Limit scope of dependency tracking to direct imports |
 
 ---
 
 ## Open Questions
 
-1. **Should async discovery be opt-in or default?**  
-   Recommendation: Default on Python 3.11+, opt-in on older versions.
+1. **Should threaded discovery be opt-in or default?**  
+   Recommendation: Default (threading is standard in Python standard library).
 
 2. **Should we expose cache internals for debugging?**  
    Recommendation: Yes, via `bengal cache inspect` command.
@@ -373,7 +392,7 @@ class ASTCacheEntry:
 - Hugo's caching strategy: https://gohugo.io/troubleshooting/build-performance/
 - Astro's lazy hydration: https://docs.astro.build/en/concepts/islands/
 - Eleventy's incremental builds: https://www.11ty.dev/docs/usage/#incremental-for-partial-builds
-- Python asyncio best practices: https://docs.python.org/3/library/asyncio.html
+- Python concurrent.futures: https://docs.python.org/3/library/concurrent.futures.html
 
 ---
 

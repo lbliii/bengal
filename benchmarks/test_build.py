@@ -10,7 +10,6 @@ Benchmark Categories:
 1. Full Build Performance
    - test_build_performance: Baseline builds for small/large sites
    - test_full_build_baseline: Full build without cache (baseline for comparisons)
-   - test_pipeline_build: Reactive dataflow pipeline mode (--pipeline)
 
 2. Fast Mode Benchmarks
    - test_fast_mode_cli_flag: Build with --fast flag (quiet + guaranteed parallel)
@@ -331,28 +330,6 @@ def test_full_build_baseline(benchmark, fresh_scenario):
         )
 
     benchmark(full_build)
-
-
-@pytest.mark.benchmark
-def test_pipeline_build(benchmark, fresh_scenario):
-    """
-    Measure build performance with the new --pipeline flag (reactive dataflow).
-
-    Pipeline mode uses lazy stream evaluation with automatic caching at each
-    transformation stage, potentially reducing redundant computation compared
-    to the standard orchestrator's batch approach.
-    """
-
-    def pipeline_build():
-        subprocess.run(
-            ["bengal", "build", "--pipeline"],
-            cwd=fresh_scenario,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
-    benchmark(pipeline_build)
 
 
 @pytest.fixture
