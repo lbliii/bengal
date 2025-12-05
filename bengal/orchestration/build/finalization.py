@@ -154,6 +154,20 @@ def run_health_check(
     # Show phase completion timing (before report)
     cli.phase("Health check", duration_ms=health_time_ms)
 
+    # Show parallel execution stats if available (always useful for diagnosing slow builds)
+    if health_check.last_stats:
+        stats = health_check.last_stats
+        if stats.execution_mode == "parallel":
+            cli.info(
+                f"   ⚡ {stats.validator_count} validators, {stats.worker_count} workers, "
+                f"{stats.speedup:.1f}x speedup"
+            )
+        # Show slowest validators if health check took > 1 second
+        if health_time_ms > 1000 and report.validator_reports:
+            slowest = sorted(report.validator_reports, key=lambda r: r.duration_ms, reverse=True)[:3]
+            slow_info = ", ".join(f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in slowest)
+            cli.info(f"   🐌 Slowest: {slow_info}")
+
     if health_config.get("verbose", False):
         cli.info(report.format_console(verbose=True))
     # Only print if there are issues
