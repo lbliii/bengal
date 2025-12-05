@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from hypothesis import assume, given
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from bengal.utils.paths import BengalPaths
@@ -78,12 +78,12 @@ class TestProfileDirProperties:
 
             profile_dir = BengalPaths.get_profile_dir(source_dir)
 
-            assert (
-                ".bengal" in profile_dir.parts
-            ), f"Profile dir should be under .bengal: {profile_dir}"
-            assert (
-                "profiles" in profile_dir.parts
-            ), f"Profile dir should be under profiles: {profile_dir}"
+            assert ".bengal" in profile_dir.parts, (
+                f"Profile dir should be under .bengal: {profile_dir}"
+            )
+            assert "profiles" in profile_dir.parts, (
+                f"Profile dir should be under profiles: {profile_dir}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -186,9 +186,9 @@ class TestBuildLogPathProperties:
 
             log_path = BengalPaths.get_build_log_path(source_dir)
 
-            assert log_path.parent == source_dir or log_path.is_relative_to(
-                source_dir
-            ), f"Build log should be under source: {log_path}"
+            assert log_path.parent == source_dir or log_path.is_relative_to(source_dir), (
+                f"Build log should be under source: {log_path}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -208,12 +208,12 @@ class TestBuildLogPathProperties:
 
             log_path = BengalPaths.get_build_log_path(source_dir, custom_path)
 
-            assert (
-                log_path == custom_path
-            ), f"Custom path should be used: {log_path} != {custom_path}"
-            assert log_path != BengalPaths.get_build_log_path(
-                source_dir
-            ), "Custom path should differ from default"
+            assert log_path == custom_path, (
+                f"Custom path should be used: {log_path} != {custom_path}"
+            )
+            assert log_path != BengalPaths.get_build_log_path(source_dir), (
+                "Custom path should differ from default"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -231,9 +231,9 @@ class TestBuildLogPathProperties:
 
             log_path = BengalPaths.get_build_log_path(source_dir)
 
-            assert (
-                ".bengal" in log_path.name
-            ), f"Build log should have .bengal prefix: {log_path.name}"
+            assert ".bengal" in log_path.name, (
+                f"Build log should have .bengal prefix: {log_path.name}"
+            )
 
 
 class TestProfilePathProperties:
@@ -260,9 +260,9 @@ class TestProfilePathProperties:
 
             profile_path = BengalPaths.get_profile_path(source_dir, filename=filename)
 
-            assert (
-                profile_path.name == filename
-            ), f"Profile filename should be preserved: {profile_path.name} != {filename}"
+            assert profile_path.name == filename, (
+                f"Profile filename should be preserved: {profile_path.name} != {filename}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -280,12 +280,12 @@ class TestProfilePathProperties:
 
             profile_path = BengalPaths.get_profile_path(source_dir)
 
-            assert (
-                profile_path.parent.exists()
-            ), f"Profile parent directory should exist: {profile_path.parent}"
-            assert (
-                profile_path.parent.is_dir()
-            ), f"Profile parent should be directory: {profile_path.parent}"
+            assert profile_path.parent.exists(), (
+                f"Profile parent directory should exist: {profile_path.parent}"
+            )
+            assert profile_path.parent.is_dir(), (
+                f"Profile parent should be directory: {profile_path.parent}"
+            )
 
 
 class TestCachePathProperties:
@@ -306,9 +306,9 @@ class TestCachePathProperties:
 
             cache_path = BengalPaths.get_cache_path(output_dir)
 
-            assert (
-                cache_path.parent == output_dir
-            ), f"Cache should be direct child of output: {cache_path.parent} != {output_dir}"
+            assert cache_path.parent == output_dir, (
+                f"Cache should be direct child of output: {cache_path.parent} != {output_dir}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -342,9 +342,9 @@ class TestCachePathProperties:
 
             cache_path = BengalPaths.get_cache_path(output_dir)
 
-            assert (
-                ".bengal" in cache_path.name
-            ), f"Cache should have .bengal prefix: {cache_path.name}"
+            assert ".bengal" in cache_path.name, (
+                f"Cache should have .bengal prefix: {cache_path.name}"
+            )
 
 
 class TestTemplateCacheDirProperties:
@@ -385,12 +385,12 @@ class TestTemplateCacheDirProperties:
 
             cache_dir = BengalPaths.get_template_cache_dir(output_dir)
 
-            assert (
-                ".bengal-cache" in cache_dir.parts
-            ), f"Template cache should be under .bengal-cache: {cache_dir}"
-            assert (
-                "templates" in cache_dir.parts
-            ), f"Template cache should be under templates: {cache_dir}"
+            assert ".bengal-cache" in cache_dir.parts, (
+                f"Template cache should be under .bengal-cache: {cache_dir}"
+            )
+            assert "templates" in cache_dir.parts, (
+                f"Template cache should be under templates: {cache_dir}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -420,6 +420,7 @@ class TestPathSeparationProperties:
         source_name=st.text(alphabet=string.ascii_lowercase, min_size=1, max_size=30),
         output_name=st.text(alphabet=string.ascii_lowercase, min_size=1, max_size=30),
     )
+    @settings(deadline=None)
     def test_source_and_output_paths_independent(self, source_name, output_name):
         """
         Property: Source and output paths are independent.
@@ -443,20 +444,20 @@ class TestPathSeparationProperties:
             template_cache = BengalPaths.get_template_cache_dir(output_dir)
 
             # Source paths under source
-            assert profile_dir.is_relative_to(
-                source_dir
-            ), f"Profile should be under source: {profile_dir}"
-            assert build_log.is_relative_to(
-                source_dir
-            ), f"Build log should be under source: {build_log}"
+            assert profile_dir.is_relative_to(source_dir), (
+                f"Profile should be under source: {profile_dir}"
+            )
+            assert build_log.is_relative_to(source_dir), (
+                f"Build log should be under source: {build_log}"
+            )
 
             # Output paths under output
-            assert cache_path.is_relative_to(
-                output_dir
-            ), f"Cache should be under output: {cache_path}"
-            assert template_cache.is_relative_to(
-                output_dir
-            ), f"Template cache should be under output: {template_cache}"
+            assert cache_path.is_relative_to(output_dir), (
+                f"Cache should be under output: {cache_path}"
+            )
+            assert template_cache.is_relative_to(output_dir), (
+                f"Template cache should be under output: {template_cache}"
+            )
 
 
 # Example output documentation

@@ -59,6 +59,7 @@ class BuildStats:
     rendering_time_ms: float = 0
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
+    health_check_time_ms: float = 0
 
     # Memory metrics (Phase 1 - Performance Tracking)
     memory_rss_mb: float = 0  # Process RSS (Resident Set Size) memory
@@ -448,7 +449,11 @@ def display_build_stats(
             )
         if stats.postprocess_time_ms > 0:
             cli.console.print(
-                f"   [info]└─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}"
+                f"   [info]├─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}"
+            )
+        if stats.health_check_time_ms > 0:
+            cli.console.print(
+                f"   [info]└─[/info] Health:      {format_time(stats.health_check_time_ms)}"
             )
     else:
         cli.info("⏱️  Performance:")
@@ -463,7 +468,9 @@ def display_build_stats(
         if stats.assets_time_ms > 0:
             cli.info(f"   ├─ Assets:      {format_time(stats.assets_time_ms)}")
         if stats.postprocess_time_ms > 0:
-            cli.info(f"   └─ Postprocess: {format_time(stats.postprocess_time_ms)}")
+            cli.info(f"   ├─ Postprocess: {format_time(stats.postprocess_time_ms)}")
+        if stats.health_check_time_ms > 0:
+            cli.info(f"   └─ Health:      {format_time(stats.health_check_time_ms)}")
 
     # Fun stats
     if stats.build_time_ms > 0:

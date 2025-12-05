@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from hypothesis import given
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from bengal.core.section import Section
@@ -35,6 +35,7 @@ class TestUrlFromOutputPathProperties:
             max_size=5,
         )
     )
+    @settings(suppress_health_check=[HealthCheck.too_slow])
     def test_urls_always_start_with_slash(self, parts):
         """
         Property: URLs always start with / (absolute path).

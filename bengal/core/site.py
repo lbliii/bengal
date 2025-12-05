@@ -795,13 +795,11 @@ class Site:
         strict: bool = False,
         full_output: bool = False,
         profile_templates: bool = False,
-        use_pipeline: bool = False,
     ) -> BuildStats:
         """
         Build the entire site.
 
-        Delegates to BuildOrchestrator for actual build process, or uses
-        the reactive dataflow pipeline if use_pipeline is True.
+        Delegates to BuildOrchestrator for actual build process.
 
         Args:
             parallel: Whether to use parallel processing
@@ -813,14 +811,10 @@ class Site:
             strict: Whether to fail on warnings
             full_output: Show full traditional output instead of live progress
             profile_templates: Enable template profiling for performance analysis
-            use_pipeline: Use reactive dataflow pipeline (experimental)
 
         Returns:
             BuildStats object with build statistics
         """
-        if use_pipeline:
-            return self._build_with_pipeline(parallel=parallel, verbose=verbose)
-
         from bengal.orchestration import BuildOrchestrator
 
         orchestrator = BuildOrchestrator(self)
@@ -836,184 +830,6 @@ class Site:
             profile_templates=profile_templates,
         )
 
-    def _build_with_pipeline(
-        self,
-        parallel: bool = True,
-        verbose: bool = False,
-    ) -> BuildStats:
-        """
-        Build site using the reactive dataflow pipeline for rendering.
-
-        This hybrid approach:
-        1. Uses orchestrators for discovery, taxonomies, menus (complex logic)
-        2. Uses pipeline for parallel rendering (where it shines)
-        3. Uses orchestrators for postprocessing (sitemap, RSS, etc.)
-
-        Args:
-            parallel: Whether to use parallel processing
-            verbose: Whether to show detailed build information
-
-        Returns:
-            BuildStats object with build statistics
-        """
-        import shutil
-        import time
-
-        from bengal.orchestration import (
-            AssetOrchestrator,
-            ContentOrchestrator,
-            MenuOrchestrator,
-            PostprocessOrchestrator,
-            TaxonomyOrchestrator,
-        )
-        from bengal.orchestration.section import SectionOrchestrator
-        from bengal.pipeline import create_simple_pipeline
-
-        logger.info("pipeline_build_starting", parallel=parallel)
-        start_time = time.time()
-
-        # Phase 0a: Static files (copy FIRST, before everything else)
-        # Static files are copied verbatim to output root, allowing raw HTML
-        # pages to access theme assets via /assets/css/style.css
-        from bengal.orchestration.static import StaticOrchestrator
-
-        static_start = time.time()
-        static = StaticOrchestrator(self)
-        static_count = static.copy()
-        static_time_ms = (time.time() - static_start) * 1000
-        if static_count > 0:
-            logger.debug(
-                "static_phase_complete", files=static_count, time_ms=f"{static_time_ms:.1f}"
-            )
-
-        # Phase 0b: Font Processing (generate fonts.css if fonts configured)
-        if "fonts" in self.config:
-            try:
-                from bengal.fonts import FontHelper
-
-                assets_dir = self.root_path / "assets"
-                assets_dir.mkdir(parents=True, exist_ok=True)
-
-                font_helper = FontHelper(self.config["fonts"])
-                css_path = font_helper.process(assets_dir)
-
-                # Copy fonts.css to output directory
-                if css_path and css_path.exists():
-                    output_assets = self.output_dir / "assets"
-                    output_assets.mkdir(parents=True, exist_ok=True)
-                    output_css = output_assets / "fonts.css"
-                    if (
-                        not output_css.exists()
-                        or css_path.stat().st_mtime > output_css.stat().st_mtime
-                    ):
-                        shutil.copy2(css_path, output_css)
-            except Exception as e:
-                logger.warning("fonts_processing_failed", error=str(e))
-
-        # Phase 1: Discovery (use existing orchestrators - they handle all the edge cases)
-        discovery_start = time.time()
-        content = ContentOrchestrator(self)
-        content.discover_content()
-        content.discover_assets()
-        discovery_time_ms = (time.time() - discovery_start) * 1000
-
-        # Phase 2: Sections (finalize hierarchy, create missing index pages)
-        sections = SectionOrchestrator(self)
-        sections.finalize_sections()
-
-        # Phase 3: Taxonomies (collects tags and generates tag pages)
-        taxonomy_start = time.time()
-        taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
-        taxonomy.collect_and_generate(parallel=parallel)
-        taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
-
-        # Phase 4: Menus
-        menu = MenuOrchestrator(self)
-        menu.build()
-
-        # Phase 5: Assets (copy/process BEFORE rendering so asset_url() works)
-        assets_start = time.time()
-        assets = AssetOrchestrator(self)
-        assets.process(self.assets, parallel=parallel, progress_manager=None)
-
-        # Rewrite fonts.css to use fingerprinted font filenames
-        # This must happen after asset fingerprinting is complete
-        if "fonts" in self.config:
-            from bengal.fonts import rewrite_font_urls_with_fingerprints
-
-            fonts_css_path = self.output_dir / "assets" / "fonts.css"
-            manifest_path = self.output_dir / "asset-manifest.json"
-
-            if fonts_css_path.exists() and manifest_path.exists():
-                try:
-                    import json
-
-                    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-                    rewrite_font_urls_with_fingerprints(fonts_css_path, manifest_data)
-                except Exception as e:
-                    logger.warning("fonts_css_rewrite_failed", error=str(e))
-
-        assets_time_ms = (time.time() - assets_start) * 1000
-
-        # Phase 6: Render ALL pages using pipeline (including generated pages)
-        rendering_start = time.time()
-        pipeline = create_simple_pipeline(self, pages=list(self.pages))
-        result = pipeline.run()
-        rendering_time_ms = (time.time() - rendering_start) * 1000
-
-        # Phase 7: Postprocessing (sitemap, RSS, JSON, llms.txt)
-        postprocess_start = time.time()
-        postprocess = PostprocessOrchestrator(self)
-        postprocess.run(parallel=parallel, incremental=False)
-        postprocess_time_ms = (time.time() - postprocess_start) * 1000
-
-        elapsed = time.time() - start_time
-
-        # Count page types
-        regular_count = len(self.regular_pages)
-        generated_count = len(self.generated_pages)
-
-        # Count sections
-        section_count = len(self.sections) if hasattr(self, "sections") else 0
-
-        # Count assets
-        asset_count = len(self.assets) if hasattr(self, "assets") else 0
-
-        # Count taxonomies (sum of all terms across all taxonomy types)
-        taxonomies_count = (
-            sum(len(terms) for terms in self.taxonomies.values())
-            if hasattr(self, "taxonomies") and self.taxonomies
-            else 0
-        )
-
-        logger.info(
-            "pipeline_build_complete",
-            total_pages=result.items_processed,
-            regular_pages=regular_count,
-            generated_pages=generated_count,
-            elapsed_seconds=round(elapsed, 2),
-            success=result.success,
-            errors=len(result.errors),
-        )
-
-        return BuildStats(
-            total_pages=result.items_processed,
-            regular_pages=regular_count,
-            generated_pages=generated_count,
-            total_sections=section_count,
-            total_assets=asset_count,
-            taxonomies_count=taxonomies_count,
-            build_time_ms=elapsed * 1000,
-            parallel=parallel,
-            incremental=False,
-            # Phase timings
-            discovery_time_ms=discovery_time_ms,
-            taxonomy_time_ms=taxonomy_time_ms,
-            rendering_time_ms=rendering_time_ms,
-            assets_time_ms=assets_time_ms,
-            postprocess_time_ms=postprocess_time_ms,
-        )
-
     def serve(
         self,
         host: str = "localhost",
@@ -1021,7 +837,6 @@ class Site:
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
-        use_pipeline: bool = False,
     ) -> None:
         """
         Start a development server.
@@ -1032,7 +847,6 @@ class Site:
             watch: Whether to watch for file changes and rebuild
             auto_port: Whether to automatically find an available port if the specified one is in use
             open_browser: Whether to automatically open the browser
-            use_pipeline: Whether to use reactive dataflow pipeline for builds
         """
         from bengal.server.dev_server import DevServer
 
@@ -1043,7 +857,6 @@ class Site:
             watch=watch,
             auto_port=auto_port,
             open_browser=open_browser,
-            use_pipeline=use_pipeline,
         )
         server.start()
 

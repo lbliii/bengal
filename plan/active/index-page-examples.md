@@ -127,17 +127,17 @@ flowchart LR
         B[GitHub]
         C[Notion]
     end
-    
+
     subgraph "Processing"
         D[Discovery]
         E[Validation]
         F[Rendering]
     end
-    
+
     subgraph "Output"
         G[HTML Pages]
     end
-    
+
     A --> D
     B --> D
     C --> D
@@ -259,7 +259,7 @@ graph TB
         B["📁 Section<br/><code>folder/_index.md</code>"]
         C["📦 Bundle<br/><code>folder/index.md</code>"]
     end
-    
+
     A --> |"standalone"| D[HTML Page]
     B --> |"with children"| E[List Page + Children]
     C --> |"with assets"| F[Page + Assets]
@@ -410,7 +410,7 @@ graph TB
         CLI[CLI<br/>bengal/cli/]
         Server[Dev Server<br/>bengal/server/]
     end
-    
+
     [... full diagram ...]
 ```
 ```
@@ -484,18 +484,18 @@ flowchart LR
         B[Assets]
         C[Config]
     end
-    
+
     subgraph "Build"
         D[Discovery]
         E[Render]
         F[Optimize]
     end
-    
+
     subgraph "Output"
         G[HTML]
         H[CSS/JS]
     end
-    
+
     A --> D
     B --> D
     C --> D
@@ -531,5 +531,3 @@ journey
 | Extending Hub | 55 | 40 | 27% |
 
 **Key metric**: Not just shorter, but **more scannable** and **less redundant**.
-
-

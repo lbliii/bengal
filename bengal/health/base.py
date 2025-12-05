@@ -7,11 +7,12 @@ All validators should inherit from BaseValidator and implement the validate() me
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.health.report import CheckResult
+    from bengal.utils.build_context import BuildContext
 
 
 class BaseValidator(ABC):
@@ -51,12 +52,16 @@ class BaseValidator(ABC):
     enabled_by_default: bool = True
 
     @abstractmethod
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """
         Run validation checks and return results.
 
         Args:
             site: The Site object being validated
+            build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph).
+                          Use Any in type hint to avoid circular imports at runtime.
 
         Returns:
             List of CheckResult objects (errors, warnings, info, or success)
@@ -77,6 +82,16 @@ class BaseValidator(ABC):
             # No success message - if no problems, silence is golden
 
             return results
+
+        Note:
+            Validators that need expensive artifacts like the knowledge graph
+            should check build_context first before building their own:
+
+            if build_context and getattr(build_context, "knowledge_graph", None):
+                graph = build_context.knowledge_graph
+            else:
+                graph = KnowledgeGraph(site)
+                graph.build()
         """
         pass
 

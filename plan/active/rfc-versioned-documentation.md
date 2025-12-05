@@ -428,11 +428,11 @@ site/content/
 # bengal.yaml
 versioning:
   enabled: true
-  
+
   # What sections are versioned
   sections:
     - docs
-  
+
   # Version definitions
   versions:
     - id: v3
@@ -448,13 +448,13 @@ versioning:
       banner:
         type: warning
         message: "You're viewing docs for an older version."
-  
+
   # Aliases
   aliases:
     latest: v3
     stable: v3
     lts: v1
-  
+
   # Shared content (included in all versions)
   shared:
     - _shared/
@@ -582,5 +582,3 @@ This feature was added in v2.1.
 - [Mike (MkDocs versioning)](https://github.com/jimporter/mike)
 - [Read the Docs Versioning](https://docs.readthedocs.io/en/stable/versions.html)
 - [Starlight Versioning](https://starlight.astro.build/guides/versioning/)
-
-

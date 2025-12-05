@@ -268,5 +268,3 @@ def create_js_bundle(
         )
 
     return bundled
-
-

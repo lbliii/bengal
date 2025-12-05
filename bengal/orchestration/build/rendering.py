@@ -144,6 +144,7 @@ def phase_render(
     progress_manager,
     reporter,
     profile_templates: bool = False,
+    early_context=None,
 ):
     """
     Phase 14: Render Pages.
@@ -164,6 +165,9 @@ def phase_render(
         progress_manager: Progress manager
         reporter: Progress reporter
         profile_templates: Whether template profiling is enabled
+        early_context: Optional BuildContext created during discovery phase with
+                      cached content. If provided, its cached content is preserved
+                      in the final context for use by validators.
 
     Returns:
         BuildContext used for rendering (needed by postprocess)
@@ -198,6 +202,9 @@ def phase_render(
                 reporter=reporter,
                 profile_templates=profile_templates,
             )
+            # Transfer cached content from early context (build-integrated validation)
+            if early_context and early_context.has_cached_content:
+                ctx._page_contents = early_context._page_contents
             streaming_render.process(
                 pages_to_build,
                 parallel=parallel,
@@ -221,6 +228,9 @@ def phase_render(
                 reporter=reporter,
                 profile_templates=profile_templates,
             )
+            # Transfer cached content from early context (build-integrated validation)
+            if early_context and early_context.has_cached_content:
+                ctx._page_contents = early_context._page_contents
             orchestrator.render.process(
                 pages_to_build,
                 parallel=parallel,

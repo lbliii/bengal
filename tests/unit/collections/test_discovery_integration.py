@@ -510,5 +510,3 @@ Doc content.
         assert len(pages) == 2
         # One validation error
         assert len(discovery._validation_errors) == 1
-
-

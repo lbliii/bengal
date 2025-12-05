@@ -4,8 +4,6 @@ Unit tests for RedirectGenerator (Hugo-style aliases).
 
 from pathlib import Path
 
-import pytest
-
 from bengal.postprocess.redirects import RedirectGenerator
 
 
@@ -45,7 +43,7 @@ def test_redirect_html_has_meta_refresh(tmp_path):
     html = gen._render_redirect_html("/old/", "/new/")
 
     assert '<meta http-equiv="refresh"' in html
-    assert 'url=/new/' in html
+    assert "url=/new/" in html
 
 
 def test_redirect_html_has_canonical_link(tmp_path):
@@ -306,5 +304,3 @@ def test_page_proxy_exposes_aliases():
     )
 
     assert proxy.aliases == ["/old/path/"]
-
-

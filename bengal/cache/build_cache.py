@@ -2,24 +2,34 @@
 Build cache for tracking file changes and dependencies in incremental builds.
 
 Maintains file hashes, dependency graphs, taxonomy indexes, and validation
-results across builds. Uses JSON serialization for persistence and provides
-tolerant loading for version migrations.
+results across builds. Uses Zstandard-compressed JSON for persistence and
+provides tolerant loading for version migrations.
 
 Key Concepts:
-    - File hashes: SHA256 hashes for detecting content changes
+    - File fingerprints: mtime + size for fast change detection, hash for verification
     - Dependency tracking: Templates, partials, and data files used by pages
     - Taxonomy indexes: Tag/category mappings for fast reconstruction
     - Config hash: Auto-invalidation when configuration changes
     - Version tolerance: Accepts missing/older cache versions gracefully
+    - Zstandard compression: 92-93% size reduction, <1ms overhead
+
+Performance Optimization (RFC: orchestrator-performance-improvements):
+    - Fast path: mtime + size check (no I/O beyond stat)
+    - Slow path: SHA256 hash only when mtime/size mismatch suggests change
+    - Expected improvement: 10-30% faster incremental build detection
+    - Compression: 12-14x smaller cache files, faster I/O
 
 Related Modules:
     - bengal.orchestration.incremental: Incremental build logic using cache
     - bengal.cache.dependency_tracker: Dependency graph construction
     - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
+    - bengal.cache.compression: Zstandard compression utilities
 
 See Also:
     - bengal/cache/build_cache.py:BuildCache class for cache structure
     - plan/active/rfc-incremental-builds.md: Incremental build design
+    - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+    - plan/active/rfc-zstd-cache-compression.md: Compression RFC
 """
 
 from __future__ import annotations
@@ -34,6 +44,82 @@ from typing import Any
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class FileFingerprint:
+    """
+    Fast file change detection using mtime + size, with optional hash verification.
+
+    Performance Optimization:
+        - mtime + size comparison is O(1) stat call (no file read)
+        - Hash computed lazily only when mtime/size mismatch detected
+        - Handles edge cases like touch/rsync that change mtime but not content
+
+    Attributes:
+        mtime: File modification time (seconds since epoch)
+        size: File size in bytes
+        hash: SHA256 hash (computed lazily, may be None for fast path)
+
+    Thread Safety:
+        Immutable after creation. Thread-safe for read operations.
+    """
+
+    mtime: float
+    size: int
+    hash: str | None = None
+
+    def matches_stat(self, stat_result) -> bool:
+        """
+        Fast path check: does mtime + size match?
+
+        Args:
+            stat_result: Result from Path.stat()
+
+        Returns:
+            True if mtime and size both match (definitely unchanged)
+        """
+        return self.mtime == stat_result.st_mtime and self.size == stat_result.st_size
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to JSON-compatible dict."""
+        return {"mtime": self.mtime, "size": self.size, "hash": self.hash}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> FileFingerprint:
+        """Deserialize from JSON dict."""
+        return cls(
+            mtime=data.get("mtime", 0.0),
+            size=data.get("size", 0),
+            hash=data.get("hash"),
+        )
+
+    @classmethod
+    def from_path(cls, file_path: Path, compute_hash: bool = True) -> FileFingerprint:
+        """
+        Create fingerprint from file path.
+
+        Args:
+            file_path: Path to file
+            compute_hash: Whether to compute SHA256 hash (slower but more reliable)
+
+        Returns:
+            FileFingerprint with mtime, size, and optionally hash
+        """
+        stat = file_path.stat()
+        file_hash = None
+
+        if compute_hash:
+            hasher = hashlib.sha256()
+            try:
+                with open(file_path, "rb") as f:
+                    while chunk := f.read(8192):
+                        hasher.update(chunk)
+                file_hash = hasher.hexdigest()
+            except Exception:
+                pass  # Hash will be None, rely on mtime/size
+
+        return cls(mtime=stat.st_mtime, size=stat.st_size, hash=file_hash)
 
 
 @dataclass
@@ -72,12 +158,17 @@ class BuildCache:
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 4  # Bumped for AST caching (Phase 3 of RFC-content-ast-architecture)
+    VERSION: int = 5  # Bumped for FileFingerprint (RFC: orchestrator-performance-improvements)
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
 
+    # Legacy: file_hashes for backward compatibility (migrated to file_fingerprints)
     file_hashes: dict[str, str] = field(default_factory=dict)
+
+    # New: file_fingerprints for fast mtime+size change detection
+    # Structure: {path: {mtime: float, size: int, hash: str | None}}
+    file_fingerprints: dict[str, dict[str, Any]] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
     output_sources: dict[str, str] = field(default_factory=dict)
     taxonomy_deps: dict[str, set[str]] = field(default_factory=dict)
@@ -88,6 +179,11 @@ class BuildCache:
     known_tags: set[str] = field(default_factory=set)
 
     parsed_content: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Rendered output cache: fully rendered HTML (after template rendering)
+    # Allows skipping both parsing AND template rendering for unchanged pages
+    # Key: source_path, Value: {html, content_hash, template_hash, metadata_hash, timestamp}
+    rendered_output: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     # Synthetic page cache (for autodoc, etc.)
     synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -127,6 +223,16 @@ class BuildCache:
         # Synthetic pages is already in dict format (no conversion needed)
         # Validation results are already in dict format (no conversion needed)
 
+        # Migrate legacy file_hashes to file_fingerprints (VERSION < 5 compatibility)
+        # Legacy hashes become fingerprints with hash only (mtime/size will be updated on next check)
+        if self.file_hashes and not self.file_fingerprints:
+            logger.debug(
+                "migrating_file_hashes_to_fingerprints",
+                file_count=len(self.file_hashes),
+            )
+            for path, hash_value in self.file_hashes.items():
+                self.file_fingerprints[path] = {"mtime": 0.0, "size": 0, "hash": hash_value}
+
     @classmethod
     def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache:
         """
@@ -145,7 +251,9 @@ class BuildCache:
         Returns:
             BuildCache instance (empty if file doesn't exist or is invalid)
         """
-        if not cache_path.exists():
+        # Check both uncompressed and compressed paths
+        compressed_path = cache_path.with_suffix(".json.zst")
+        if not cache_path.exists() and not compressed_path.exists():
             return cls()
 
         try:
@@ -173,15 +281,20 @@ class BuildCache:
         """
         Internal method to load cache from file (assumes lock is held if needed).
 
+        Auto-detects format: tries compressed (.json.zst) first, falls back to
+        uncompressed (.json). This enables seamless migration.
+
         Args:
-            cache_path: Path to cache file
+            cache_path: Path to cache file (base path, without .zst extension)
 
         Returns:
             BuildCache instance
         """
         try:
-            with open(cache_path, encoding="utf-8") as f:
-                data = json.load(f)
+            # Try to load data (auto-detect format)
+            data = cls._load_data_auto(cache_path)
+            if data is None:
+                return cls()
 
             # Tolerant versioning: accept missing version (pre-versioned files)
             found_version = data.get("version")
@@ -220,6 +333,10 @@ class BuildCache:
             if "config_hash" not in data:
                 data["config_hash"] = None
 
+            # File fingerprints (new in VERSION 5, tolerate missing)
+            if "file_fingerprints" not in data:
+                data["file_fingerprints"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -234,6 +351,44 @@ class BuildCache:
                 action="using_fresh_cache",
             )
             return cls()
+
+    @classmethod
+    def _load_data_auto(cls, cache_path: Path) -> dict | None:
+        """
+        Load raw data with auto-detection of format.
+
+        Tries compressed format first (.json.zst), falls back to uncompressed (.json).
+
+        Args:
+            cache_path: Base path to cache file
+
+        Returns:
+            Parsed data dict, or None if load failed
+        """
+        from compression import zstd
+
+        # Try compressed first
+        compressed_path = cache_path.with_suffix(".json.zst")
+        if compressed_path.exists():
+            try:
+                from bengal.cache.compression import load_compressed
+
+                logger.debug("cache_loading_compressed", path=str(compressed_path))
+                return load_compressed(compressed_path)
+            except (zstd.ZstdError, json.JSONDecodeError, OSError) as e:
+                logger.warning(
+                    "cache_compressed_load_failed",
+                    path=str(compressed_path),
+                    error=str(e),
+                    action="trying_uncompressed",
+                )
+
+        # Fall back to uncompressed
+        if cache_path.exists():
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+
+        return None
 
     def save(self, cache_path: Path, use_lock: bool = True) -> None:
         """
@@ -276,17 +431,21 @@ class BuildCache:
                 impact="incremental_builds_disabled",
             )
 
-    def _save_to_file(self, cache_path: Path) -> None:
+    def _save_to_file(self, cache_path: Path, compress: bool = True) -> None:
         """
         Internal method to save cache to file (assumes lock is held if needed).
 
+        Uses Zstandard compression by default for 92-93% size reduction.
+
         Args:
-            cache_path: Path to cache file
+            cache_path: Path to cache file (base path, will save as .json.zst)
+            compress: Whether to use compression (default: True)
         """
         # Convert sets to lists for JSON serialization
         data = {
             "version": self.VERSION,
-            "file_hashes": self.file_hashes,
+            "file_hashes": self.file_hashes,  # Keep for backward compatibility
+            "file_fingerprints": self.file_fingerprints,  # New: mtime+size+hash
             "dependencies": {k: list(v) for k, v in self.dependencies.items()},
             "output_sources": self.output_sources,
             "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
@@ -299,19 +458,34 @@ class BuildCache:
             "last_build": datetime.now().isoformat(),
         }
 
-        # Write cache atomically (crash-safe)
-        from bengal.utils.atomic_write import AtomicFile
+        if compress:
+            # Save compressed (92-93% size reduction)
+            from bengal.cache.compression import save_compressed
 
-        with AtomicFile(cache_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            compressed_path = cache_path.with_suffix(".json.zst")
+            save_compressed(data, compressed_path)
 
-        logger.debug(
-            "cache_saved",
-            cache_path=str(cache_path),
-            tracked_files=len(self.file_hashes),
-            dependencies=len(self.dependencies),
-            cached_content=len(self.parsed_content),
-        )
+            logger.debug(
+                "cache_saved_compressed",
+                cache_path=str(compressed_path),
+                tracked_files=len(self.file_hashes),
+                dependencies=len(self.dependencies),
+                cached_content=len(self.parsed_content),
+            )
+        else:
+            # Write uncompressed (for debugging)
+            from bengal.utils.atomic_write import AtomicFile
+
+            with AtomicFile(cache_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            logger.debug(
+                "cache_saved",
+                cache_path=str(cache_path),
+                tracked_files=len(self.file_hashes),
+                dependencies=len(self.dependencies),
+                cached_content=len(self.parsed_content),
+            )
 
     def hash_file(self, file_path: Path) -> str:
         """
@@ -344,6 +518,11 @@ class BuildCache:
         """
         Check if a file has changed since last build.
 
+        Performance Optimization (RFC: orchestrator-performance-improvements):
+            - Fast path: mtime + size check (single stat call, no file read)
+            - Slow path: SHA256 hash only when mtime/size mismatch detected
+            - Handles edge cases: touch/rsync may change mtime but not content
+
         Args:
             file_path: Path to file
 
@@ -355,24 +534,81 @@ class BuildCache:
             return True
 
         file_key = str(file_path)
-        current_hash = self.hash_file(file_path)
 
-        if file_key not in self.file_hashes:
-            # New file
-            return True
+        # Check fingerprint first (fast path)
+        if file_key in self.file_fingerprints:
+            cached = self.file_fingerprints[file_key]
+            try:
+                stat = file_path.stat()
 
-        # Check if hash changed
-        return self.file_hashes[file_key] != current_hash
+                # Fast path: mtime + size unchanged = definitely no change
+                if cached.get("mtime") == stat.st_mtime and cached.get("size") == stat.st_size:
+                    return False
+
+                # mtime or size changed - verify with hash (handles touch/rsync)
+                cached_hash = cached.get("hash")
+                if cached_hash:
+                    current_hash = self.hash_file(file_path)
+                    if current_hash == cached_hash:
+                        # Content unchanged despite mtime change (e.g., touch)
+                        # Update mtime/size in fingerprint for future fast path
+                        self.file_fingerprints[file_key] = {
+                            "mtime": stat.st_mtime,
+                            "size": stat.st_size,
+                            "hash": cached_hash,
+                        }
+                        return False
+                    return True  # Hash differs, file changed
+
+                # No cached hash, fall through to treat as changed
+                return True
+
+            except OSError:
+                # Can't stat file, treat as changed
+                return True
+
+        # Fallback: check legacy file_hashes (VERSION < 5 compatibility)
+        if file_key in self.file_hashes:
+            current_hash = self.hash_file(file_path)
+            return self.file_hashes[file_key] != current_hash
+
+        # New file (not in any cache)
+        return True
 
     def update_file(self, file_path: Path) -> None:
         """
-        Update the hash for a file.
+        Update the fingerprint for a file (mtime + size + hash).
+
+        Performance Optimization:
+            Stores full fingerprint for fast change detection on subsequent builds.
+            Uses mtime + size for fast path, hash for verification.
 
         Args:
             file_path: Path to file
         """
         file_key = str(file_path)
-        self.file_hashes[file_key] = self.hash_file(file_path)
+
+        try:
+            stat = file_path.stat()
+            file_hash = self.hash_file(file_path)
+
+            # Store full fingerprint
+            self.file_fingerprints[file_key] = {
+                "mtime": stat.st_mtime,
+                "size": stat.st_size,
+                "hash": file_hash,
+            }
+
+            # Also update legacy file_hashes for backward compatibility
+            self.file_hashes[file_key] = file_hash
+
+        except OSError as e:
+            logger.warning(
+                "file_update_failed",
+                file_path=str(file_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
     def get_cached_validation_results(
         self, file_path: Path, validator_name: str
@@ -624,12 +860,15 @@ class BuildCache:
     def clear(self) -> None:
         """Clear all cache data."""
         self.file_hashes.clear()
+        self.file_fingerprints.clear()
         self.dependencies.clear()
         self.output_sources.clear()
         self.taxonomy_deps.clear()
         self.page_tags.clear()
         self.tag_to_pages.clear()
         self.known_tags.clear()
+        self.parsed_content.clear()
+        self.rendered_output.clear()
         self.synthetic_pages.clear()
         self.config_hash = None
         self.last_build = None
@@ -693,6 +932,7 @@ class BuildCache:
         """
         file_key = str(file_path)
         self.file_hashes.pop(file_key, None)
+        self.file_fingerprints.pop(file_key, None)  # Also remove fingerprint
         self.dependencies.pop(file_key, None)
 
         # Remove as a dependency from other files
@@ -705,6 +945,12 @@ class BuildCache:
 
         # Remove page tags
         self.page_tags.pop(file_key, None)
+
+        # Remove parsed content cache
+        self.parsed_content.pop(file_key, None)
+
+        # Remove rendered output cache
+        self.rendered_output.pop(file_key, None)
 
         # Remove synthetic page cache
         self.synthetic_pages.pop(file_key, None)
@@ -721,6 +967,7 @@ class BuildCache:
             "dependencies": sum(len(deps) for deps in self.dependencies.values()),
             "taxonomy_terms": len(self.taxonomy_deps),
             "cached_content_pages": len(self.parsed_content),
+            "cached_rendered_pages": len(self.rendered_output),
         }
 
         logger.debug("cache_stats", **stats)
@@ -908,5 +1155,128 @@ class BuildCache:
             "total_size_mb": total_size / 1024 / 1024,
             "avg_size_kb": (total_size / len(self.parsed_content) / 1024)
             if self.parsed_content
+            else 0,
+        }
+
+    # ========================================================================
+    # OPTIMIZATION #3: Rendered Output Caching (RFC: orchestrator-performance)
+    # ========================================================================
+
+    def store_rendered_output(
+        self,
+        file_path: Path,
+        html: str,
+        template: str,
+        metadata: dict[str, Any],
+        dependencies: list[str] | None = None,
+    ) -> None:
+        """
+        Store fully rendered HTML output in cache.
+
+        This allows skipping BOTH markdown parsing AND template rendering for
+        pages where content, template, and metadata are unchanged. Expected
+        to provide 20-40% faster incremental builds.
+
+        Args:
+            file_path: Path to source file
+            html: Fully rendered HTML (post-template, ready to write)
+            template: Template name used for rendering
+            metadata: Page metadata (frontmatter)
+            dependencies: List of template/partial paths this page depends on
+        """
+        # Hash metadata to detect changes
+        metadata_str = json.dumps(metadata, sort_keys=True, default=str)
+        metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
+
+        # Calculate size for cache management
+        size_bytes = len(html.encode("utf-8"))
+
+        # Store as dict (will be serialized to JSON)
+        self.rendered_output[str(file_path)] = {
+            "html": html,
+            "template": template,
+            "metadata_hash": metadata_hash,
+            "dependencies": dependencies or [],
+            "timestamp": datetime.now().isoformat(),
+            "size_bytes": size_bytes,
+        }
+
+    def get_rendered_output(
+        self, file_path: Path, template: str, metadata: dict[str, Any]
+    ) -> str | None:
+        """
+        Get cached rendered HTML if still valid.
+
+        Validates that:
+        1. Content file hasn't changed (via file_fingerprints)
+        2. Metadata hasn't changed (via metadata_hash)
+        3. Template name matches
+        4. Template files haven't changed (via dependencies)
+        5. Config hasn't changed (caller should validate config_hash)
+
+        Args:
+            file_path: Path to source file
+            template: Current template name
+            metadata: Current page metadata
+
+        Returns:
+            Cached HTML string if valid, None if invalid or not found
+        """
+        key = str(file_path)
+
+        # Check if cached
+        if key not in self.rendered_output:
+            return None
+
+        cached = self.rendered_output[key]
+
+        # Validate file hasn't changed (uses fast mtime+size first)
+        if self.is_changed(file_path):
+            return None
+
+        # Validate metadata hasn't changed
+        metadata_str = json.dumps(metadata, sort_keys=True, default=str)
+        metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
+        if cached.get("metadata_hash") != metadata_hash:
+            return None
+
+        # Validate template name matches
+        if cached.get("template") != template:
+            return None
+
+        # Validate dependencies haven't changed (templates, partials)
+        for dep_path in cached.get("dependencies", []):
+            dep = Path(dep_path)
+            if dep.exists() and self.is_changed(dep):
+                # A dependency changed - invalidate cache
+                return None
+
+        return cached.get("html")
+
+    def invalidate_rendered_output(self, file_path: Path) -> None:
+        """
+        Remove cached rendered output for a file.
+
+        Args:
+            file_path: Path to file
+        """
+        self.rendered_output.pop(str(file_path), None)
+
+    def get_rendered_output_stats(self) -> dict[str, Any]:
+        """
+        Get rendered output cache statistics.
+
+        Returns:
+            Dictionary with cache stats
+        """
+        if not self.rendered_output:
+            return {"cached_pages": 0, "total_size_mb": 0, "avg_size_kb": 0}
+
+        total_size = sum(c.get("size_bytes", 0) for c in self.rendered_output.values())
+        return {
+            "cached_pages": len(self.rendered_output),
+            "total_size_mb": total_size / 1024 / 1024,
+            "avg_size_kb": (total_size / len(self.rendered_output) / 1024)
+            if self.rendered_output
             else 0,
         }

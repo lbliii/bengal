@@ -122,7 +122,7 @@ class PostprocessOrchestrator:
         tasks = []
 
         # Always generate special pages (404, etc.) - important for deployment
-        tasks.append(("special pages", self._generate_special_pages))
+        tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
 
         # CRITICAL: Always generate output formats (index.json, llm-full.txt)
         # These are essential for search functionality and must reflect current site state
@@ -131,7 +131,7 @@ class PostprocessOrchestrator:
             # Build graph first if we want to include graph data in page JSON
             graph_data = None
             if output_formats_config.get("options", {}).get("include_graph_connections", True):
-                graph_data = self._build_graph_data()
+                graph_data = self._build_graph_data(build_context)
             tasks.append(("output formats", lambda: self._generate_output_formats(graph_data)))
 
         # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
@@ -254,15 +254,18 @@ class PostprocessOrchestrator:
                     for task_name, error in errors:
                         print(f"    • {task_name}: {error}")
 
-    def _generate_special_pages(self) -> None:
+    def _generate_special_pages(self, build_context=None) -> None:
         """
         Generate special pages like 404 (extracted for parallel execution).
+
+        Args:
+            build_context: Optional BuildContext with cached knowledge graph
 
         Raises:
             Exception: If special page generation fails
         """
         generator = SpecialPagesGenerator(self.site)
-        generator.generate()
+        generator.generate(build_context=build_context)
 
     def _generate_sitemap(self) -> None:
         """
@@ -297,26 +300,41 @@ class PostprocessOrchestrator:
         generator = RedirectGenerator(self.site)
         generator.generate()
 
-    def _build_graph_data(self) -> dict[str, Any] | None:
+    def _build_graph_data(self, build_context=None) -> dict[str, Any] | None:
         """
         Build knowledge graph and return graph data for inclusion in page JSON.
+
+        Uses build_context.knowledge_graph if available to avoid rebuilding
+        the graph multiple times per build.
+
+        Args:
+            build_context: Optional BuildContext with cached knowledge graph
 
         Returns:
             Graph data dictionary or None if graph building fails or is disabled
         """
         try:
             from bengal.analysis.graph_visualizer import GraphVisualizer
-            from bengal.analysis.knowledge_graph import KnowledgeGraph
             from bengal.config.defaults import is_feature_enabled
 
             # Check if graph is enabled (handles both bool and dict)
             if not is_feature_enabled(self.site.config, "graph"):
                 return None
 
-            # Build knowledge graph
-            logger.debug("building_knowledge_graph_for_output_formats")
-            graph = KnowledgeGraph(self.site)
-            graph.build()
+            # Try to get cached graph from build context first
+            graph = None
+            if build_context is not None:
+                graph = getattr(build_context, "knowledge_graph", None)
+
+            # Fallback: build our own (for standalone usage)
+            if graph is None:
+                from bengal.analysis.knowledge_graph import KnowledgeGraph
+
+                logger.debug("building_knowledge_graph_for_output_formats")
+                graph = KnowledgeGraph(self.site)
+                graph.build()
+            else:
+                logger.debug("using_cached_knowledge_graph_for_output_formats")
 
             # Generate graph data
             visualizer = GraphVisualizer(self.site, graph)

@@ -97,11 +97,11 @@ from bengal.utils.autodoc import is_autodoc_page
 
 def page_to_summary(self, page: Page) -> dict[str, Any]:
     # ... existing code ...
-    
+
     # NEW: Add autodoc flag
     if is_autodoc_page(page):
         summary["isAutodoc"] = True
-    
+
     return summary
 ```
 
@@ -121,7 +121,7 @@ Update `groupResults()` to create two buckets:
 function groupByAutodoc(results) {
   const docs = [];
   const api = [];
-  
+
   results.forEach(result => {
     if (result.isAutodoc) {
       api.push(result);
@@ -129,7 +129,7 @@ function groupByAutodoc(results) {
       docs.push(result);
     }
   });
-  
+
   return { docs, api };
 }
 ```
@@ -143,34 +143,34 @@ Render grouped results with collapsible API section:
 
 function displayResults(results, query) {
   const { docs, api } = groupByAutodoc(results);
-  
+
   // Clear existing
   resultsList.innerHTML = '';
-  
+
   // Documentation section (always expanded)
   if (docs.length > 0) {
     const docsSection = createResultSection('Documentation', docs, query, false);
     resultsList.appendChild(docsSection);
   }
-  
+
   // API Reference section (collapsed by default)
   if (api.length > 0) {
     const apiSection = createResultSection(
-      `API Reference (${api.length})`, 
-      api, 
-      query, 
+      `API Reference (${api.length})`,
+      api,
+      query,
       true  // collapsed
     );
     resultsList.appendChild(apiSection);
   }
-  
+
   // Empty state handling...
 }
 
 function createResultSection(title, items, query, collapsed) {
   const section = document.createElement('div');
   section.className = 'search-modal__result-section';
-  
+
   // Section header (clickable for API section)
   const header = document.createElement('div');
   header.className = 'search-modal__section-header';
@@ -178,14 +178,14 @@ function createResultSection(title, items, query, collapsed) {
     <span class="search-modal__section-title">${title}</span>
     ${collapsed ? '<span class="search-modal__section-toggle">▶</span>' : ''}
   `;
-  
+
   // Items container
   const itemsContainer = document.createElement('div');
   itemsContainer.className = 'search-modal__section-items';
   if (collapsed) {
     itemsContainer.style.display = 'none';
   }
-  
+
   // Render items
   items.forEach((result, index) => {
     const item = createResultItem(result, index, query);
@@ -198,7 +198,7 @@ function createResultSection(title, items, query, collapsed) {
     }
     itemsContainer.appendChild(item);
   });
-  
+
   // Toggle behavior for collapsed sections
   if (collapsed) {
     header.style.cursor = 'pointer';
@@ -208,7 +208,7 @@ function createResultSection(title, items, query, collapsed) {
       header.querySelector('.search-modal__section-toggle').textContent = isHidden ? '▼' : '▶';
     });
   }
-  
+
   section.appendChild(header);
   section.appendChild(itemsContainer);
   return section;
@@ -273,13 +273,13 @@ Add optional configuration in `search.yaml`:
 autodoc:
   # Group autodoc results separately (default: true)
   group_separately: true
-  
+
   # Collapse API section by default (default: true)
   collapse_by_default: true
-  
+
   # Label shown on autodoc results (default: "API")
   badge_label: "API"
-  
+
   # Section header for autodoc results (default: "API Reference")
   section_title: "API Reference"
 ```
@@ -410,5 +410,3 @@ def test_autodoc_flag_not_added_for_regular_pages():
 - `bengal/themes/default/assets/js/search.js` - Search core
 - `bengal/themes/default/assets/js/search-modal.js` - Search modal UI
 - `plan/implemented/rfc-search-experience-v2.md` - Previous search improvements
-
-

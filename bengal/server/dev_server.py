@@ -63,7 +63,6 @@ class DevServer:
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
-        use_pipeline: bool = False,
     ) -> None:
         """
         Initialize the dev server.
@@ -76,7 +75,6 @@ class DevServer:
             auto_port: Whether to automatically find an available port if the
                 specified one is in use
             open_browser: Whether to automatically open the browser
-            use_pipeline: Whether to use reactive dataflow pipeline for builds
         """
         self.site = site
         self.host = host
@@ -84,7 +82,6 @@ class DevServer:
         self.watch = watch
         self.auto_port = auto_port
         self.open_browser = open_browser
-        self.use_pipeline = use_pipeline
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
@@ -140,7 +137,6 @@ class DevServer:
             stats = self.site.build(
                 profile=BuildProfile.WRITER,
                 incremental=not baseurl_was_cleared,
-                use_pipeline=self.use_pipeline,
             )
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
@@ -382,9 +378,7 @@ class DevServer:
         # Import BuildHandler only after GIL check (avoids loading native watchdog at import time)
         from bengal.server.build_handler import BuildHandler
 
-        event_handler = BuildHandler(
-            self.site, self.host, actual_port, use_pipeline=self.use_pipeline
-        )
+        event_handler = BuildHandler(self.site, self.host, actual_port)
 
         ObserverClass = None
         if backend == "polling":

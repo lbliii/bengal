@@ -14,6 +14,7 @@ from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.build_context import BuildContext
 
 
 def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
@@ -70,22 +71,34 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
             orchestrator.logger.warning("fonts_failed", error=str(e))
 
 
-def phase_discovery(orchestrator: BuildOrchestrator, cli, incremental: bool) -> None:
+def phase_discovery(
+    orchestrator: BuildOrchestrator,
+    cli,
+    incremental: bool,
+    build_context: BuildContext | None = None,
+) -> None:
     """
     Phase 2: Content Discovery.
 
     Discovers all content files in the content/ directory and creates Page objects.
     For incremental builds, uses cached page metadata for lazy loading.
 
+    When build_context is provided, raw file content is cached during discovery
+    for later use by validators (build-integrated validation), eliminating
+    ~4 seconds of redundant disk I/O during health checks.
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         incremental: Whether this is an incremental build
+        build_context: Optional BuildContext for caching content during discovery.
+                      When provided, enables build-integrated validation optimization.
 
     Side effects:
         - Populates orchestrator.site.pages with discovered pages
         - Populates orchestrator.site.sections with discovered sections
         - Updates orchestrator.stats.discovery_time_ms
+        - Caches file content in build_context (if provided)
     """
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
@@ -107,8 +120,19 @@ def phase_discovery(orchestrator: BuildOrchestrator, cli, incremental: bool) -> 
                 )
                 # Continue without cache - will do full discovery
 
-        # Discover with optional lazy loading
-        orchestrator.content.discover(incremental=incremental, cache=page_discovery_cache)
+        # Discover with optional lazy loading and content caching
+        orchestrator.content.discover(
+            incremental=incremental,
+            cache=page_discovery_cache,
+            build_context=build_context,
+        )
+
+        # Log content cache stats if enabled
+        if build_context and build_context.has_cached_content:
+            orchestrator.logger.debug(
+                "content_cache_populated",
+                cached_pages=build_context.content_cache_size,
+            )
 
         orchestrator.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 

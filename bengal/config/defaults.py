@@ -184,12 +184,42 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     # Health Check
     # -------------------------------------------------------------------------
+    # Tiered validation system:
+    # - Tier 1 (build): Fast validators, always run (<100ms)
+    # - Tier 2 (full): + Knowledge graph (~500ms, --full flag)
+    # - Tier 3 (ci): + External link checking (~30s, --ci flag or CI env)
+    # See: plan/active/rfc-build-integrated-validation.md
     "health_check": {
         "enabled": True,
         "verbose": False,
         "strict_mode": False,
         "orphan_threshold": 5,
         "super_hub_threshold": 50,
+        # Tier 1: Always run (fast, <100ms)
+        "build_validators": [
+            "config",
+            "output",
+            "directives",
+            "links",
+            "rendering",
+            "navigation",
+            "menu",
+            "taxonomy",
+            "tracks",
+        ],
+        # Tier 2: Run with --full flag (~500ms)
+        "full_validators": [
+            "connectivity",
+            "performance",
+            "cache",
+        ],
+        # Tier 3: Run with --ci flag or in CI environment (~30s)
+        "ci_validators": [
+            "rss",
+            "sitemap",
+            "fonts",
+            "assets",
+        ],
     },
     # -------------------------------------------------------------------------
     # Features (Output Generation)

@@ -22,6 +22,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
+    from bengal.utils.build_context import BuildContext
 
 
 class ContentDiscovery:
@@ -49,6 +50,7 @@ class ContentDiscovery:
         *,
         collections: dict[str, CollectionConfig] | None = None,
         strict_validation: bool = True,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Initialize content discovery.
@@ -59,6 +61,9 @@ class ContentDiscovery:
             collections: Optional dict of collection configs for schema validation
             strict_validation: If True, raise errors on validation failure;
                 if False, log warnings and continue
+            build_context: Optional BuildContext for caching content during discovery.
+                          When provided, raw file content is cached for later use by
+                          validators, eliminating redundant disk I/O during health checks.
         """
         self.content_dir = content_dir
         self.site = site  # Optional reference for accessing configuration (i18n, etc.)
@@ -74,6 +79,8 @@ class ContentDiscovery:
         self._strict_validation = strict_validation
         # Track validation errors for reporting
         self._validation_errors: list[tuple[Path, str, list[Any]]] = []
+        # BuildContext for content caching (build-integrated validation)
+        self._build_context = build_context
 
     def discover(
         self,
@@ -736,6 +743,9 @@ class ContentDiscovery:
         """
         Parse content file with robust error handling.
 
+        Caches raw content in BuildContext for later use by validators,
+        eliminating redundant disk I/O during health checks.
+
         Args:
             file_path: Path to content file
 
@@ -753,6 +763,11 @@ class ContentDiscovery:
         file_content = read_text_file(
             file_path, fallback_encoding="latin-1", on_error="raise", caller="content_discovery"
         )
+
+        # Cache raw content for validators (build-integrated validation)
+        # This eliminates 4+ seconds of redundant disk I/O during health checks
+        if self._build_context is not None:
+            self._build_context.cache_content(file_path, file_content)
 
         # Parse frontmatter
         try:

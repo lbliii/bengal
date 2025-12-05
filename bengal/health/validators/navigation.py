@@ -35,7 +35,7 @@ class NavigationValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []
 

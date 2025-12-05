@@ -7,7 +7,7 @@ and provides insights for better content structure.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -15,6 +15,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 logger = get_logger(__name__)
 
@@ -40,12 +41,15 @@ class ConnectivityValidator(BaseValidator):
     enabled_by_default = True  # Enabled in dev profile
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """
         Validate site connectivity.
 
         Args:
             site: The Site object being validated
+            build_context: Optional BuildContext with cached knowledge graph
 
         Returns:
             List of CheckResult objects with connectivity issues and recommendations
@@ -79,22 +83,32 @@ class ConnectivityValidator(BaseValidator):
             return results
 
         try:
-            # Build knowledge graph
-            logger.debug("connectivity_validator_start", total_pages=len(site.pages))
-
-            try:
-                graph = KnowledgeGraph(site)  # type: ignore[operator]
-            except ImportError as e:  # Align behavior with import-path failure for tests
-                msg = "Knowledge graph analysis unavailable"
-                results.append(
-                    CheckResult.error(
-                        msg,
-                        recommendation="Ensure bengal.analysis module is properly installed",
-                        details=[str(e)],
+            # Try to get cached graph from build context first
+            graph = None
+            if build_context is not None:
+                graph = getattr(build_context, "knowledge_graph", None)
+                if graph is not None:
+                    logger.debug(
+                        "connectivity_validator_using_cached_graph",
+                        total_pages=len(site.pages),
                     )
-                )
-                return results
-            graph.build()
+
+            # Fallback: build our own (for standalone health check)
+            if graph is None:
+                logger.debug("connectivity_validator_start", total_pages=len(site.pages))
+                try:
+                    graph = KnowledgeGraph(site)  # type: ignore[operator]
+                except ImportError as e:  # Align behavior with import-path failure for tests
+                    msg = "Knowledge graph analysis unavailable"
+                    results.append(
+                        CheckResult.error(
+                            msg,
+                            recommendation="Ensure bengal.analysis module is properly installed",
+                            details=[str(e)],
+                        )
+                    )
+                    return results
+                graph.build()
 
             # Normalize helpers to be robust to mocks
             def _normalize_hubs(h):

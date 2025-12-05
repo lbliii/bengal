@@ -177,6 +177,110 @@ class CheckResult:
 
 
 @dataclass
+class ValidatorStats:
+    """
+    Observability metrics for a validator run.
+
+    These stats help diagnose performance issues and validate
+    that optimizations (like caching) are working correctly.
+
+    This class follows the ComponentStats pattern from bengal.utils.observability
+    but maintains page-specific naming for validator contexts.
+
+    Attributes:
+        pages_total: Total pages in site
+        pages_processed: Pages actually validated
+        pages_skipped: Dict of skip reasons and counts
+        cache_hits: Number of cache hits (if applicable)
+        cache_misses: Number of cache misses (if applicable)
+        sub_timings: Dict of sub-operation names to duration_ms
+        metrics: Custom metrics (component-specific)
+
+    See Also:
+        bengal.utils.observability.ComponentStats for the generic pattern
+    """
+
+    pages_total: int = 0
+    pages_processed: int = 0
+    pages_skipped: dict[str, int] = field(default_factory=dict)
+    cache_hits: int = 0
+    cache_misses: int = 0
+    sub_timings: dict[str, float] = field(default_factory=dict)
+    metrics: dict[str, int | float | str] = field(default_factory=dict)
+
+    @property
+    def cache_hit_rate(self) -> float:
+        """Cache hit rate as percentage (0-100)."""
+        total = self.cache_hits + self.cache_misses
+        return (self.cache_hits / total * 100) if total > 0 else 0.0
+
+    @property
+    def skip_rate(self) -> float:
+        """Skip rate as percentage (0-100)."""
+        if self.pages_total == 0:
+            return 0.0
+        skipped = sum(self.pages_skipped.values())
+        return skipped / self.pages_total * 100
+
+    @property
+    def total_skipped(self) -> int:
+        """Total number of skipped items across all reasons."""
+        return sum(self.pages_skipped.values())
+
+    def format_summary(self) -> str:
+        """Format stats for debug output."""
+        parts = [f"processed={self.pages_processed}/{self.pages_total}"]
+
+        if self.pages_skipped:
+            skip_str = ", ".join(f"{k}={v}" for k, v in self.pages_skipped.items())
+            parts.append(f"skipped=[{skip_str}]")
+
+        if self.cache_hits or self.cache_misses:
+            total = self.cache_hits + self.cache_misses
+            parts.append(f"cache={self.cache_hits}/{total} ({self.cache_hit_rate:.0f}%)")
+
+        if self.sub_timings:
+            timing_str = ", ".join(f"{k}={v:.0f}ms" for k, v in self.sub_timings.items())
+            parts.append(f"timings=[{timing_str}]")
+
+        if self.metrics:
+            metrics_str = ", ".join(f"{k}={v}" for k, v in self.metrics.items())
+            parts.append(f"metrics=[{metrics_str}]")
+
+        return " | ".join(parts)
+
+    def to_log_context(self) -> dict[str, int | float | str]:
+        """
+        Convert to flat dict for structured logging.
+
+        Returns:
+            Flat dictionary suitable for structured logging kwargs.
+        """
+        ctx: dict[str, int | float | str] = {
+            "pages_total": self.pages_total,
+            "pages_processed": self.pages_processed,
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "cache_hit_rate": self.cache_hit_rate,
+            "skip_rate": self.skip_rate,
+        }
+
+        # Flatten sub-timings
+        for k, v in self.sub_timings.items():
+            ctx[f"timing_{k}_ms"] = v
+
+        # Flatten skip reasons
+        for k, v in self.pages_skipped.items():
+            ctx[f"skipped_{k}"] = v
+
+        # Flatten metrics
+        for k, v in self.metrics.items():
+            ctx[f"metric_{k}"] = v
+
+        return ctx
+
+
+@dataclass
 class ValidatorReport:
     """
     Report for a single validator's checks.
@@ -185,11 +289,13 @@ class ValidatorReport:
         validator_name: Name of the validator
         results: List of check results from this validator
         duration_ms: How long the validator took to run
+        stats: Optional observability metrics
     """
 
     validator_name: str
     results: list[CheckResult] = field(default_factory=list)
     duration_ms: float = 0.0
+    stats: ValidatorStats | None = None
 
     @property
     def passed_count(self) -> int:

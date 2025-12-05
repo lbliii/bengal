@@ -95,7 +95,10 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
 
 
 def run_health_check(
-    orchestrator: BuildOrchestrator, profile: BuildProfile = None, incremental: bool = False
+    orchestrator: BuildOrchestrator,
+    profile: BuildProfile = None,
+    incremental: bool = False,
+    build_context=None,
 ) -> None:
     """
     Run health check system with profile-based filtering.
@@ -109,6 +112,7 @@ def run_health_check(
         orchestrator: Build orchestrator instance
         profile: Build profile to use for filtering validators
         incremental: Whether this is an incremental build (enables incremental validation)
+        build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph)
 
     Raises:
         Exception: If strict_mode is enabled and health checks fail
@@ -119,8 +123,15 @@ def run_health_check(
     # Get normalized health_check config (handles bool or dict)
     health_config = get_feature_config(orchestrator.site.config, "health_check")
 
+    # Get CLI output early for timing display
+    from bengal.utils.cli_output import get_cli_output
+
+    cli = get_cli_output()
+
     if not health_config.get("enabled", True):
         return
+
+    health_start = time.time()
 
     # Run health checks with profile filtering
     health_check = HealthCheck(orchestrator.site)
@@ -134,12 +145,37 @@ def run_health_check(
         profile=profile,
         incremental=incremental,
         cache=cache,
+        build_context=build_context,
     )
 
-    # Print report using CLI output
-    from bengal.utils.cli_output import get_cli_output
+    health_time_ms = (time.time() - health_start) * 1000
+    orchestrator.stats.health_check_time_ms = health_time_ms
 
-    cli = get_cli_output()
+    # Show phase completion timing (before report)
+    cli.phase("Health check", duration_ms=health_time_ms)
+
+    # Show parallel execution stats if available (always useful for diagnosing slow builds)
+    if health_check.last_stats:
+        stats = health_check.last_stats
+        if stats.execution_mode == "parallel":
+            cli.info(
+                f"   ⚡ {stats.validator_count} validators, {stats.worker_count} workers, "
+                f"{stats.speedup:.1f}x speedup"
+            )
+        # Show slowest validators if health check took > 1 second
+        if health_time_ms > 1000 and report.validator_reports:
+            slowest = sorted(report.validator_reports, key=lambda r: r.duration_ms, reverse=True)[
+                :3
+            ]
+            slow_info = ", ".join(f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in slowest)
+            cli.info(f"   🐌 Slowest: {slow_info}")
+
+            # Show detailed stats for ALL slow validators (helps diagnose perf issues)
+            for slow_report in slowest:
+                if slow_report.stats and slow_report.duration_ms > 500:
+                    cli.info(
+                        f"   📊 {slow_report.validator_name}: {slow_report.stats.format_summary()}"
+                    )
 
     if health_config.get("verbose", False):
         cli.info(report.format_console(verbose=True))

@@ -3,8 +3,8 @@ title: Build Cache
 description: How Bengal caches builds for incremental rebuilds
 weight: 20
 category: core
-tags: [core, caching, incremental-builds, performance, dependency-tracking, cache]
-keywords: [cache, caching, incremental builds, dependency tracking, file hashing, performance]
+tags: [core, caching, incremental-builds, performance, dependency-tracking, cache, compression, zstandard]
+keywords: [cache, caching, incremental builds, dependency tracking, file hashing, performance, compression, zstd]
 ---
 
 # Cache System
@@ -13,7 +13,7 @@ Bengal implements an intelligent caching system that enables sub-second incremen
 
 ## How It Works
 
-The build cache (`.bengal-cache.json`) tracks the state of your project to determine exactly what needs to be rebuilt.
+The build cache (`.bengal/cache.json.zst`) tracks the state of your project to determine exactly what needs to be rebuilt. Cache files are compressed with **Zstandard** for 92-93% size reduction.
 
 ```mermaid
 flowchart TD
@@ -63,6 +63,70 @@ We store an inverted index of tags to avoid parsing all pages.
 - **Benefit**: O(1) lookup for taxonomy page generation.
 :::
 ::::
+
+## Zstandard Compression
+
+Bengal uses **Zstandard (zstd)** compression for all cache files, leveraging Python 3.14's new `compression.zstd` module (PEP 784).
+
+### Performance Benefits
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Cache size (773 pages) | 1.64 MB | 99 KB | **94% smaller** |
+| Compression ratio | 1x | 12-14x | **12-14x** |
+| Cache load time | ~5ms | ~0.5ms | **10x faster** |
+| Cache save time | ~3ms | ~1ms | **3x faster** |
+
+### How It Works
+
+```mermaid
+flowchart LR
+    Data[Cache Data] --> JSON[JSON Serialize]
+    JSON --> Zstd[Zstd Compress]
+    Zstd --> File[.json.zst File]
+    
+    File2[.json.zst File] --> Decomp[Zstd Decompress]
+    Decomp --> Parse[JSON Parse]
+    Parse --> Data2[Cache Data]
+```
+
+### File Format
+
+Cache files use the `.json.zst` extension:
+
+```
+.bengal/
+├── cache.json.zst          # Main build cache (compressed)
+├── taxonomy_index.json.zst # Tag/category index (compressed)
+├── asset_deps.json.zst     # Asset dependencies (compressed)
+└── page_metadata.json.zst  # Page metadata (compressed)
+```
+
+### Backward Compatibility
+
+Bengal automatically handles migration:
+
+1. **Read**: Tries `.json.zst` first, falls back to `.json`
+2. **Write**: Always writes compressed `.json.zst`
+3. **Migration**: Old uncompressed caches are read and re-saved as compressed
+
+This means existing projects upgrade seamlessly—no manual migration needed.
+
+### CI/CD Benefits
+
+Compressed caches significantly improve CI/CD workflows:
+
+```yaml
+# GitHub Actions - cache is 16x smaller to transfer
+- uses: actions/cache@v4
+  with:
+    path: .bengal/
+    key: bengal-${{ hashFiles('content/**') }}
+```
+
+- **Faster cache upload/download** (100KB vs 1.6MB)
+- **Lower storage costs**
+- **Faster build times** in CI pipelines
 
 ## The "No Object References" Rule
 

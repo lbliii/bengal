@@ -2,6 +2,13 @@
 Directive analysis module.
 
 Extracts and analyzes directive blocks from markdown content.
+
+Build-Integrated Validation:
+    When a BuildContext with cached content is provided, the analyzer uses
+    cached content instead of re-reading files from disk. This eliminates
+    ~4 seconds of redundant disk I/O during health checks (773 files).
+
+    See: plan/active/rfc-build-integrated-validation.md
 """
 
 from __future__ import annotations
@@ -22,6 +29,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class DirectiveAnalyzer:
@@ -30,14 +38,26 @@ class DirectiveAnalyzer:
 
     Extracts directives from markdown content, validates their structure,
     and collects statistics for reporting.
+
+    Build-Integrated Validation:
+        When analyze_from_context() is used with cached content, the analyzer
+        avoids disk I/O entirely, reducing health check time from ~4.6s to <100ms.
     """
 
-    def analyze(self, site: Site) -> dict[str, Any]:
+    def analyze(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> dict[str, Any]:
         """
         Analyze all directives in site source files.
 
+        Uses cached content from build_context when available to avoid
+        redundant disk I/O (~4 seconds saved for 773-page sites).
+
         Args:
             site: Site instance to analyze
+            build_context: Optional BuildContext with cached page contents.
+                          When provided, uses cached content instead of
+                          reading from disk (build-integrated validation).
 
         Returns:
             Dictionary with directive statistics and issues
@@ -52,21 +72,53 @@ class DirectiveAnalyzer:
             "fence_nesting_warnings": [],
         }
 
+        # Use cached content if available (build-integrated validation)
+        use_cache = (
+            build_context is not None
+            and hasattr(build_context, "has_cached_content")
+            and build_context.has_cached_content
+        )
+
+        # Observability: Track processing stats
+        pages_total = len(site.pages)
+        pages_processed = 0
+        skip_no_path = 0
+        skip_generated = 0
+        skip_autodoc = 0
+        cache_hits = 0
+        disk_reads = 0
+
         # Analyze each page's source content
         for page in site.pages:
             if not page.source_path or not page.source_path.exists():
+                skip_no_path += 1
                 continue
 
             # Skip generated pages (they don't have markdown source)
             if page.metadata.get("_generated"):
+                skip_generated += 1
                 continue
 
             # Skip autodoc-generated pages (API/CLI docs)
             if is_autodoc_page(page):
+                skip_autodoc += 1
                 continue
 
+            pages_processed += 1
+
             try:
-                content = page.source_path.read_text(encoding="utf-8")
+                # Use cached content if available (eliminates disk I/O)
+                if use_cache:
+                    content = build_context.get_content(page.source_path)
+                    if content is None:
+                        # Fallback to disk if not cached (shouldn't happen normally)
+                        content = page.source_path.read_text(encoding="utf-8")
+                        disk_reads += 1
+                    else:
+                        cache_hits += 1
+                else:
+                    content = page.source_path.read_text(encoding="utf-8")
+                    disk_reads += 1
 
                 # Check for fence nesting structure using the shared validator
                 fence_errors = DirectiveSyntaxValidator.validate_nested_fences(
@@ -177,6 +229,19 @@ class DirectiveAnalyzer:
                         }
                     )
 
+        # Store observability stats in data for the validator
+        data["_stats"] = {
+            "pages_total": pages_total,
+            "pages_processed": pages_processed,
+            "pages_skipped": {
+                "no_path": skip_no_path,
+                "generated": skip_generated,
+                "autodoc": skip_autodoc,
+            },
+            "cache_hits": cache_hits,
+            "cache_misses": disk_reads,
+        }
+
         return data
 
     def _is_inside_code_block(self, content: str, position: int) -> bool:
@@ -220,9 +285,14 @@ class DirectiveAnalyzer:
                 stripped = line.lstrip()
                 indent = len(line) - len(stripped)
                 if indent >= 4 and stripped:
-                    if i == 0 or (
-                        lines[i - 1].strip() and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
-                    ) or in_indented_block:
+                    if (
+                        i == 0
+                        or (
+                            lines[i - 1].strip()
+                            and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
+                        )
+                        or in_indented_block
+                    ):
                         in_indented_block = True
                     else:
                         in_indented_block = False
@@ -514,4 +584,3 @@ class DirectiveAnalyzer:
                     f"Directive content appears incomplete ({content_lines} lines, {tab_count} tabs). "
                     f"If tabs contain code blocks, use 4+ backticks (````) for the directive fence."
                 )
-

@@ -48,7 +48,7 @@ class TestDirectiveNamesConsistency:
         )
 
         computed = get_known_directive_names()
-        assert KNOWN_DIRECTIVE_NAMES == computed, (
+        assert computed == KNOWN_DIRECTIVE_NAMES, (
             f"Cached KNOWN_DIRECTIVE_NAMES differs from computed:\n"
             f"  Cached: {sorted(KNOWN_DIRECTIVE_NAMES)}\n"
             f"  Computed: {sorted(computed)}"
@@ -85,8 +85,7 @@ class TestDirectiveNamesConsistency:
         }
 
         assert not unexpected_dups, (
-            f"Unexpected directive name duplicates across classes:\n"
-            f"  {unexpected_dups}"
+            f"Unexpected directive name duplicates across classes:\n  {unexpected_dups}"
         )
 
     def test_directive_names_lowercase_hyphenated(self):
@@ -151,13 +150,9 @@ class TestDirectiveRegistration:
             registered = mock.registered
 
             if declared != registered:
-                mismatches.append(
-                    f"{cls.__name__}: declared {declared} != registered {registered}"
-                )
+                mismatches.append(f"{cls.__name__}: declared {declared} != registered {registered}")
 
-        assert not mismatches, f"DIRECTIVE_NAMES mismatches:\n  " + "\n  ".join(
-            mismatches
-        )
+        assert not mismatches, "DIRECTIVE_NAMES mismatches:\n  " + "\n  ".join(mismatches)
 
 
 class TestDirectiveClassesCompleteness:
@@ -292,5 +287,3 @@ class TestKnownDirectiveNamesContent:
             f"expected {expected_count}\n"
             f"Names: {sorted(KNOWN_DIRECTIVE_NAMES)}"
         )
-
-

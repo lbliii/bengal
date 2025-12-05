@@ -231,7 +231,7 @@ class TestAutodocFiltering:
         )
 
         api_path = Page(
-            source_path=tmp_path / "api" / "test.md",
+            source_path=tmp_path / "content" / "api" / "test.md",
             content="",
             metadata={},
         )

@@ -5,8 +5,7 @@ Benchmark different Bengal build modes for cold builds.
 Compares:
 1. Standard build (parallel)
 2. Standard build (sequential / --no-parallel)
-3. Pipeline build (--pipeline)
-4. Fast mode (--fast)
+3. Fast mode (--fast)
 
 Each run:
 - Cleans cache completely (ensures cold build)
@@ -118,7 +117,6 @@ def run_benchmarks(site_dir: Path, iterations: int = 1) -> list[BuildResult]:
     configs = [
         ("Standard (parallel)", []),
         ("Standard (no-parallel)", ["--no-parallel"]),
-        ("Pipeline (--pipeline)", ["--pipeline"]),
         ("Fast mode (--fast)", ["--fast"]),
     ]
 
@@ -214,26 +212,13 @@ def print_summary(results: list[BuildResult]) -> None:
     if winner["success"]:
         print(f"\n🏆 FASTEST: {winner['mode']} at {winner['avg']:.2f}s ({winner['pages']} pages)")
 
-        if len(stats) > 1:
-            standard = next((s for s in stats if "Standard (parallel)" in s["mode"]), None)
-            pipeline = next((s for s in stats if "Pipeline" in s["mode"]), None)
-
-            if standard and pipeline and standard["success"] and pipeline["success"]:
-                diff = standard["avg"] - pipeline["avg"]
-                pct = (diff / standard["avg"]) * 100
-                print(f"\n📈 Pipeline vs Standard: {diff:.2f}s faster ({pct:.1f}% improvement)")
-
     print("\n")
     print("📋 Build Mode Descriptions:")
     print("─" * 70)
     print("• Standard (parallel)   : Default orchestrator with ThreadPoolExecutor")
     print("• Standard (no-parallel): Sequential processing, single-threaded")
-    print("• Pipeline (--pipeline) : Reactive dataflow with streaming transforms")
     print("• Fast mode (--fast)    : Quiet output + guaranteed parallel")
     print("─" * 70)
-    print("\n🔍 Key Insight: The pipeline approach uses lazy stream evaluation")
-    print("   with automatic caching at each transformation stage, reducing")
-    print("   redundant computation compared to the orchestrator's batch approach.")
     print()
 
 

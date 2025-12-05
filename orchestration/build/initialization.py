@@ -359,5 +359,3 @@ def phase_incremental_filter(
             changed_page_paths,
             affected_sections,
         )
-
-

@@ -43,7 +43,8 @@ keywords: [design principles, architecture patterns, best practices, performance
 - **Custom Content Types**: Multiple markdown parsers supported (mistune, python-markdown)
 - **Template Flexibility**: Custom templates override defaults
 - **Theme System**: Self-contained themes with templates and assets
-- **Plugin System**: 📋 Planned for v0.4.0 - hooks for pre/post build events
+- **Directives System**: Extensible MyST directives for custom markdown components
+- **Plugin System**: 📋 Future consideration - hooks for pre/post build events
 
 ## 5. Data Flow Principles
 
