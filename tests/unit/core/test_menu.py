@@ -2,7 +2,10 @@
 Tests for the menu system.
 """
 
+from __future__ import annotations
+
 from bengal.core.menu import MenuBuilder, MenuItem
+from tests._testing.mocks import MockPage
 
 
 class TestMenuItem:
@@ -147,15 +150,8 @@ class TestMenuBuilder:
 
     def test_add_from_page(self):
         """Test adding menu items from page frontmatter."""
-
-        # Create a mock page
-        class MockPage:
-            title = "Contact Page"
-            url = "/contact/"
-            relative_url = "/contact/"
-
         builder = MenuBuilder()
-        page = MockPage()
+        page = MockPage(title="Contact Page", url="/contact/", relative_url="/contact/")
 
         # Test with explicit name
         menu_data = {"name": "Contact", "weight": 5}
@@ -169,14 +165,8 @@ class TestMenuBuilder:
 
     def test_add_from_page_uses_title_fallback(self):
         """Test that page title is used if name not provided."""
-
-        class MockPage:
-            title = "My Page Title"
-            url = "/my-page/"
-            relative_url = "/my-page/"
-
         builder = MenuBuilder()
-        page = MockPage()
+        page = MockPage(title="My Page Title", url="/my-page/", relative_url="/my-page/")
         menu_data = {"weight": 10}  # No name provided
 
         builder.add_from_page(page, "main", menu_data)

@@ -1,4 +1,5 @@
 """
+from __future__ import annotations
 Tests for Mistune parser and plugins.
 """
 
@@ -18,7 +19,7 @@ except ImportError:
 class TestParserFactory:
     """Test the parser factory function."""
 
-    def test_create_mistune_parser(self):
+    def test_create_mistune_parser(self, parser):
         """Test creating a Mistune parser."""
         parser = create_markdown_parser("mistune")
         assert isinstance(parser, MistuneParser)
@@ -27,17 +28,17 @@ class TestParserFactory:
     @pytest.mark.skipif(
         not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)"
     )
-    def test_create_python_markdown_parser(self):
+    def test_create_python_markdown_parser(self, parser):
         """Test creating a python-markdown parser."""
         parser = create_markdown_parser("python-markdown")
         assert isinstance(parser, BaseMarkdownParser)
 
-    def test_create_default_parser(self):
+    def test_create_default_parser(self, parser):
         """Test creating a parser with default engine."""
         parser = create_markdown_parser(None)
         assert isinstance(parser, BaseMarkdownParser)
 
-    def test_invalid_engine_raises_error(self):
+    def test_invalid_engine_raises_error(self, parser):
         """Test that invalid engine raises ValueError."""
         with pytest.raises(ValueError, match="Unsupported markdown engine"):
             create_markdown_parser("invalid-engine")
@@ -291,23 +292,20 @@ Content in second tab.
 class TestErrorHandling:
     """Test error handling in parser."""
 
-    def test_empty_content(self):
+    def test_empty_content(self, parser):
         """Test parsing empty content."""
-        parser = MistuneParser()
         result = parser.parse("", {})
         assert result == "" or result.strip() == ""
 
-    def test_invalid_markdown(self):
+    def test_invalid_markdown(self, parser):
         """Test parsing malformed markdown."""
-        parser = MistuneParser()
         # Should not raise, just render as best as possible
         content = "# Heading\n\n[invalid link syntax"
         result = parser.parse(content, {})
         assert "<h1" in result
 
-    def test_parser_reuse(self):
+    def test_parser_reuse(self, parser):
         """Test that parser can be reused multiple times."""
-        parser = MistuneParser()
 
         content1 = "# First"
         content2 = "# Second"
@@ -340,9 +338,8 @@ class TestErrorHandling:
 class TestPerformance:
     """Test performance characteristics."""
 
-    def test_large_document(self):
+    def test_large_document(self, parser):
         """Test parsing a large document."""
-        parser = MistuneParser()
 
         # Create a document with many headings and paragraphs
         content = "\n\n".join(
@@ -355,9 +352,8 @@ class TestPerformance:
         assert "<h2" in result
         assert "Section 99" in result
 
-    def test_toc_extraction_large_doc(self):
+    def test_toc_extraction_large_doc(self, parser):
         """Test TOC extraction from large document."""
-        parser = MistuneParser()
 
         content = "\n\n".join([f"## Heading {i}" for i in range(50)])
 

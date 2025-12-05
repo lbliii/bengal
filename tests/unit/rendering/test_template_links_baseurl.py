@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
 
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
+from tests._testing.mocks import MockPage
 
 
 def test_baseurl_meta_and_nav_links(tmp_path: Path):
@@ -67,13 +70,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    # Create a mock page object
-    class MockPage:
-        def __init__(self, url):
-            self.url = url
-            self.slug = "module"
-
-    page = MockPage("/api/module/")
+    page = MockPage(title="Module", url="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should prepend the base URL
@@ -108,13 +105,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    # Create a mock page object
-    class MockPage:
-        def __init__(self, url):
-            self.url = url
-            self.slug = "module"
-
-    page = MockPage("/api/module/")
+    page = MockPage(title="Module", url="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should prepend the absolute base URL
@@ -156,13 +147,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    # Create a mock page object
-    class MockPage:
-        def __init__(self, url):
-            self.url = url
-            self.slug = "module"
-
-    page = MockPage("/api/module/")
+    page = MockPage(title="Module", url="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should return the URL as-is
