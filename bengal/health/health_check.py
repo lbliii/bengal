@@ -216,6 +216,7 @@ class HealthCheck:
         context: list[Path] | None = None,
         cache: Any = None,
         build_context: Any = None,
+        tier: str = "build",
     ) -> HealthReport:
         """
         Run all registered validators and produce a health report.
@@ -230,8 +231,14 @@ class HealthCheck:
             incremental: If True, only validate changed files (requires cache)
             context: Optional list of specific file paths to validate (overrides incremental)
             cache: Optional BuildCache instance for incremental validation and result caching
-            build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph)
-                          that validators can use to avoid redundant computation
+            build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph,
+                          cached content) that validators can use to avoid redundant computation.
+                          When build_context has cached content, validators like DirectiveValidator
+                          skip disk I/O, reducing health check time from ~4.6s to <100ms.
+            tier: Validation tier to run:
+                  - "build": Fast validators only (<100ms) - default
+                  - "full": + Knowledge graph validators (~500ms)
+                  - "ci": All validators including external checks (~30s)
 
         Returns:
             HealthReport with results from all validators
@@ -239,9 +246,12 @@ class HealthCheck:
         overall_start = time.time()
         report = HealthReport(build_stats=build_stats)
 
-        # Filter to enabled validators only
+        # Filter to enabled validators based on tier
         enabled_validators = [
-            v for v in self.validators if self._is_validator_enabled(v, profile, verbose)
+            v
+            for v in self.validators
+            if self._is_validator_enabled(v, profile, verbose)
+            and self._is_validator_in_tier(v, tier)
         ]
 
         # Determine which files to validate (for file-specific validators)

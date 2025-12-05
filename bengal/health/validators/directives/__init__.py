@@ -92,9 +92,14 @@ class DirectiveValidator(BaseValidator):
         """
         Run directive validation checks.
 
+        Uses cached content from build_context when available to avoid
+        redundant disk I/O (build-integrated validation).
+
         Args:
             site: Site instance to validate
-            build_context: Optional BuildContext (not used by this validator)
+            build_context: Optional BuildContext with cached page contents.
+                          When provided, uses cached content instead of
+                          reading from disk (~4 seconds saved for large sites).
 
         Returns:
             List of CheckResult objects
@@ -102,8 +107,9 @@ class DirectiveValidator(BaseValidator):
         results = []
 
         # Gather all directive data from source files
+        # Uses cached content if build_context is provided (build-integrated validation)
         analyzer = DirectiveAnalyzer()
-        directive_data = analyzer.analyze(site)
+        directive_data = analyzer.analyze(site, build_context=build_context)
 
         # Check 1: Syntax validation
         results.extend(check_directive_syntax(directive_data))

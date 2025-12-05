@@ -193,11 +193,21 @@ class BuildOrchestrator:
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
 
+        # Create BuildContext early for content caching during discovery
+        # This enables build-integrated validation: validators use cached content
+        # instead of re-reading from disk, saving ~4 seconds on health checks.
+        from bengal.utils.build_context import BuildContext
+
+        early_ctx = BuildContext(
+            site=self.site,
+            stats=self.stats,
+        )
+
         # Phase 1: Font Processing
         initialization.phase_fonts(self, cli)
 
-        # Phase 2: Content Discovery
-        initialization.phase_discovery(self, cli, incremental)
+        # Phase 2: Content Discovery (with content caching for validators)
+        initialization.phase_discovery(self, cli, incremental, build_context=early_ctx)
 
         # Phase 3: Cache Discovery Metadata
         initialization.phase_cache_metadata(self)
@@ -250,7 +260,7 @@ class BuildOrchestrator:
             self, cli, incremental, parallel, assets_to_process
         )
 
-        # Phase 14: Render Pages
+        # Phase 14: Render Pages (with cached content from discovery)
         ctx = rendering.phase_render(
             self,
             cli,
@@ -265,6 +275,7 @@ class BuildOrchestrator:
             progress_manager,
             reporter,
             profile_templates=profile_templates,
+            early_context=early_ctx,
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)

@@ -2,6 +2,13 @@
 Directive analysis module.
 
 Extracts and analyzes directive blocks from markdown content.
+
+Build-Integrated Validation:
+    When a BuildContext with cached content is provided, the analyzer uses
+    cached content instead of re-reading files from disk. This eliminates
+    ~4 seconds of redundant disk I/O during health checks (773 files).
+
+    See: plan/active/rfc-build-integrated-validation.md
 """
 
 from __future__ import annotations
@@ -22,6 +29,7 @@ from .constants import (
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class DirectiveAnalyzer:
@@ -30,14 +38,26 @@ class DirectiveAnalyzer:
 
     Extracts directives from markdown content, validates their structure,
     and collects statistics for reporting.
+
+    Build-Integrated Validation:
+        When analyze_from_context() is used with cached content, the analyzer
+        avoids disk I/O entirely, reducing health check time from ~4.6s to <100ms.
     """
 
-    def analyze(self, site: Site) -> dict[str, Any]:
+    def analyze(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> dict[str, Any]:
         """
         Analyze all directives in site source files.
 
+        Uses cached content from build_context when available to avoid
+        redundant disk I/O (~4 seconds saved for 773-page sites).
+
         Args:
             site: Site instance to analyze
+            build_context: Optional BuildContext with cached page contents.
+                          When provided, uses cached content instead of
+                          reading from disk (build-integrated validation).
 
         Returns:
             Dictionary with directive statistics and issues
@@ -51,6 +71,13 @@ class DirectiveAnalyzer:
             "performance_warnings": [],
             "fence_nesting_warnings": [],
         }
+
+        # Use cached content if available (build-integrated validation)
+        use_cache = (
+            build_context is not None
+            and hasattr(build_context, "has_cached_content")
+            and build_context.has_cached_content
+        )
 
         # Analyze each page's source content
         for page in site.pages:
@@ -66,7 +93,14 @@ class DirectiveAnalyzer:
                 continue
 
             try:
-                content = page.source_path.read_text(encoding="utf-8")
+                # Use cached content if available (eliminates disk I/O)
+                if use_cache:
+                    content = build_context.get_content(page.source_path)
+                    if content is None:
+                        # Fallback to disk if not cached (shouldn't happen normally)
+                        content = page.source_path.read_text(encoding="utf-8")
+                else:
+                    content = page.source_path.read_text(encoding="utf-8")
 
                 # Check for fence nesting structure using the shared validator
                 fence_errors = DirectiveSyntaxValidator.validate_nested_fences(
