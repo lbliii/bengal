@@ -119,8 +119,15 @@ def run_health_check(
     # Get normalized health_check config (handles bool or dict)
     health_config = get_feature_config(orchestrator.site.config, "health_check")
 
+    # Get CLI output early for timing display
+    from bengal.utils.cli_output import get_cli_output
+
+    cli = get_cli_output()
+
     if not health_config.get("enabled", True):
         return
+
+    health_start = time.time()
 
     # Run health checks with profile filtering
     health_check = HealthCheck(orchestrator.site)
@@ -136,10 +143,11 @@ def run_health_check(
         cache=cache,
     )
 
-    # Print report using CLI output
-    from bengal.utils.cli_output import get_cli_output
+    health_time_ms = (time.time() - health_start) * 1000
+    orchestrator.stats.health_check_time_ms = health_time_ms
 
-    cli = get_cli_output()
+    # Show phase completion timing (before report)
+    cli.phase("Health check", duration_ms=health_time_ms)
 
     if health_config.get("verbose", False):
         cli.info(report.format_console(verbose=True))
