@@ -112,7 +112,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
             metadata_warnings.append(w_copy)
 
         details = []
-        for file_path_str, warnings in list(file_groups.items())[:3]:
+        for _file_path_str, warnings in list(file_groups.items())[:3]:
             first_warning = warnings[0]
             file_path = first_warning["page"]
             outer_line = first_warning["line"]
@@ -271,10 +271,17 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
     results = []
     issues: list[dict[str, Any]] = []
 
+    # Only check pages that have directives (optimization: skip pages without directives)
+    # This uses the directive_data from analysis to avoid reading HTML files unnecessarily
+    pages_with_directives = set(data.get("by_page", {}).keys())
+
     pages_to_check = [
         p
         for p in site.pages
-        if p.output_path and p.output_path.exists() and not p.metadata.get("_generated")
+        if p.output_path
+        and p.output_path.exists()
+        and not p.metadata.get("_generated")
+        and (str(p.source_path) in pages_with_directives if p.source_path else False)
     ]
 
     for page in pages_to_check:
@@ -282,20 +289,24 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
             content = page.output_path.read_text(encoding="utf-8")
 
             if _has_unrendered_directives(content):
-                issues.append({
-                    "file": page.output_path.name,
-                    "source": str(page.source_path),
-                    "type": "unrendered",
-                    "message": "Directive not rendered (unclosed fence or invalid syntax)",
-                })
+                issues.append(
+                    {
+                        "file": page.output_path.name,
+                        "source": str(page.source_path),
+                        "type": "unrendered",
+                        "message": "Directive not rendered (unclosed fence or invalid syntax)",
+                    }
+                )
 
             if 'class="markdown-error"' in content:
-                issues.append({
-                    "file": page.output_path.name,
-                    "source": str(page.source_path),
-                    "type": "parse_error",
-                    "message": "Markdown parsing error in output",
-                })
+                issues.append(
+                    {
+                        "file": page.output_path.name,
+                        "source": str(page.source_path),
+                        "type": "parse_error",
+                        "message": "Markdown parsing error in output",
+                    }
+                )
 
         except Exception:
             # Gracefully skip pages that can't be read (permissions, encoding issues)
@@ -321,8 +332,7 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
 
             # Build detailed message
             type_desc = ", ".join(
-                f"{count} {_issue_type_label(itype)}"
-                for itype, count in type_counts.items()
+                f"{count} {_issue_type_label(itype)}" for itype, count in type_counts.items()
             )
             source_hint = file_issue_list[0].get("source", "")
             source_suffix = f" (source: {Path(source_hint).name})" if source_hint else ""

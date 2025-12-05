@@ -79,6 +79,12 @@ class DirectiveAnalyzer:
             and build_context.has_cached_content
         )
 
+        # Debug: Track cache usage
+        cache_hits = 0
+        disk_reads = 0
+
+        # Track cache usage
+
         # Analyze each page's source content
         for page in site.pages:
             if not page.source_path or not page.source_path.exists():
@@ -99,8 +105,12 @@ class DirectiveAnalyzer:
                     if content is None:
                         # Fallback to disk if not cached (shouldn't happen normally)
                         content = page.source_path.read_text(encoding="utf-8")
+                        disk_reads += 1
+                    else:
+                        cache_hits += 1
                 else:
                     content = page.source_path.read_text(encoding="utf-8")
+                    disk_reads += 1
 
                 # Check for fence nesting structure using the shared validator
                 fence_errors = DirectiveSyntaxValidator.validate_nested_fences(
@@ -254,9 +264,14 @@ class DirectiveAnalyzer:
                 stripped = line.lstrip()
                 indent = len(line) - len(stripped)
                 if indent >= 4 and stripped:
-                    if i == 0 or (
-                        lines[i - 1].strip() and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
-                    ) or in_indented_block:
+                    if (
+                        i == 0
+                        or (
+                            lines[i - 1].strip()
+                            and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
+                        )
+                        or in_indented_block
+                    ):
                         in_indented_block = True
                     else:
                         in_indented_block = False
@@ -548,4 +563,3 @@ class DirectiveAnalyzer:
                     f"Directive content appears incomplete ({content_lines} lines, {tab_count} tabs). "
                     f"If tabs contain code blocks, use 4+ backticks (````) for the directive fence."
                 )
-
