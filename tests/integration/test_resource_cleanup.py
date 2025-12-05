@@ -7,6 +7,7 @@ across all termination scenarios.
 
 import os
 import subprocess
+import sys
 
 import pytest
 
@@ -176,7 +177,7 @@ class TestSignalHandling:
     def test_cleanup_command_help(self):
         """Test that cleanup command is accessible."""
         result = subprocess.run(
-            ["python", "-m", "bengal.cli", "site", "clean", "--help"],
+            [sys.executable, "-m", "bengal.cli", "site", "clean", "--help"],
             capture_output=True,
             text=True,
             timeout=5,

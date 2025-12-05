@@ -177,6 +177,50 @@ class CheckResult:
 
 
 @dataclass
+class ValidatorStats:
+    """
+    Observability metrics for a validator run.
+
+    These stats help diagnose performance issues and validate
+    that optimizations (like caching) are working correctly.
+
+    Attributes:
+        pages_total: Total pages in site
+        pages_processed: Pages actually validated
+        pages_skipped: Dict of skip reasons and counts
+        cache_hits: Number of cache hits (if applicable)
+        cache_misses: Number of cache misses (if applicable)
+        sub_timings: Dict of sub-operation names to duration_ms
+    """
+
+    pages_total: int = 0
+    pages_processed: int = 0
+    pages_skipped: dict[str, int] = field(default_factory=dict)
+    cache_hits: int = 0
+    cache_misses: int = 0
+    sub_timings: dict[str, float] = field(default_factory=dict)
+
+    def format_summary(self) -> str:
+        """Format stats for debug output."""
+        parts = [f"processed={self.pages_processed}/{self.pages_total}"]
+
+        if self.pages_skipped:
+            skip_str = ", ".join(f"{k}={v}" for k, v in self.pages_skipped.items())
+            parts.append(f"skipped=[{skip_str}]")
+
+        if self.cache_hits or self.cache_misses:
+            total = self.cache_hits + self.cache_misses
+            rate = (self.cache_hits / total * 100) if total > 0 else 0
+            parts.append(f"cache={self.cache_hits}/{total} ({rate:.0f}%)")
+
+        if self.sub_timings:
+            timing_str = ", ".join(f"{k}={v:.0f}ms" for k, v in self.sub_timings.items())
+            parts.append(f"timings=[{timing_str}]")
+
+        return " | ".join(parts)
+
+
+@dataclass
 class ValidatorReport:
     """
     Report for a single validator's checks.
@@ -185,11 +229,13 @@ class ValidatorReport:
         validator_name: Name of the validator
         results: List of check results from this validator
         duration_ms: How long the validator took to run
+        stats: Optional observability metrics
     """
 
     validator_name: str
     results: list[CheckResult] = field(default_factory=list)
     duration_ms: float = 0.0
+    stats: ValidatorStats | None = None
 
     @property
     def passed_count(self) -> int:

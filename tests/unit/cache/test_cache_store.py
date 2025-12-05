@@ -68,7 +68,7 @@ class TestCacheStoreSave:
     def test_save_empty_list(self, tmp_path):
         """Save empty list should create valid cache file."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         store.save([], version=1)
 
@@ -80,7 +80,7 @@ class TestCacheStoreSave:
     def test_save_single_entry(self, tmp_path):
         """Save single entry should serialize correctly."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         entries = [SimpleEntry(key="test", value=42)]
         store.save(entries, version=1)
@@ -96,7 +96,7 @@ class TestCacheStoreSave:
     def test_save_multiple_entries(self, tmp_path):
         """Save multiple entries should serialize all entries."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         entries = [
             SimpleEntry(key="first", value=1),
@@ -115,7 +115,7 @@ class TestCacheStoreSave:
     def test_save_creates_parent_directory(self, tmp_path):
         """Save should create parent directory if missing."""
         cache_path = tmp_path / "nested" / "dir" / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         entries = [SimpleEntry(key="test", value=1)]
         store.save(entries, version=1)
@@ -126,7 +126,7 @@ class TestCacheStoreSave:
     def test_save_with_version(self, tmp_path):
         """Save should store specified version."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         store.save([], version=5)
 
@@ -137,7 +137,7 @@ class TestCacheStoreSave:
     def test_save_complex_entry(self, tmp_path):
         """Save should handle complex entries with datetime, lists, etc."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         entries = [
             ComplexEntry(
@@ -401,7 +401,7 @@ class TestCacheStoreUtilities:
     def test_clear_deletes_file(self, tmp_path):
         """clear() should delete cache file."""
         cache_path = tmp_path / "test.json"
-        store = CacheStore(cache_path)
+        store = CacheStore(cache_path, compress=False)
 
         store.save([], version=1)
         assert cache_path.exists()

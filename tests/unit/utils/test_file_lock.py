@@ -239,10 +239,11 @@ class TestBuildCacheWithLocking:
         cache_path = tmp_path / ".bengal" / "cache.json"
         cache.save(cache_path, use_lock=True)
 
-        # Verify cache was saved
-        assert cache_path.exists()
+        # Verify cache was saved (compressed by default as .json.zst)
+        compressed_path = cache_path.with_suffix(".json.zst")
+        assert compressed_path.exists()
 
-        # Verify lock file was created
+        # Verify lock file was created for the base path
         lock_file = cache_path.with_suffix(".json.lock")
         assert lock_file.exists()
 

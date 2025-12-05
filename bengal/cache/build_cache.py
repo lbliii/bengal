@@ -251,7 +251,9 @@ class BuildCache:
         Returns:
             BuildCache instance (empty if file doesn't exist or is invalid)
         """
-        if not cache_path.exists():
+        # Check both uncompressed and compressed paths
+        compressed_path = cache_path.with_suffix(".json.zst")
+        if not cache_path.exists() and not compressed_path.exists():
             return cls()
 
         try:

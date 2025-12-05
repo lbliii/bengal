@@ -85,8 +85,9 @@ class TestBuildCache:
         # Add to cache
         cache.update_file(test_file)
 
-        # Modify file
-        test_file.write_text("Modified content")
+        # Modify file with different content AND different size
+        # (ensures detection even if mtime precision is low on some systems)
+        test_file.write_text("This is modified content with a different length!")
 
         # Should be detected as changed
         assert cache.is_changed(test_file) is True
@@ -224,11 +225,13 @@ class TestBuildCache:
         cache.add_dependency(page, template)
         cache.add_taxonomy_dependency("tag:python", page)
 
-        # Save cache
+        # Save cache (compressed by default - .json.zst)
         cache_file = tmp_path / ".bengal-cache.json"
         cache.save(cache_file)
 
-        assert cache_file.exists()
+        # With compression enabled, the file is saved as .json.zst
+        compressed_file = cache_file.with_suffix(".json.zst")
+        assert compressed_file.exists()
 
         # Load cache
         loaded_cache = BuildCache.load(cache_file)
@@ -370,11 +373,11 @@ class TestBuildCacheConfigHash:
         cache = BuildCache()
         cache.config_hash = "test_hash_abc"
 
-        # Save cache
+        # Save cache (compressed by default - .json.zst)
         cache_file = tmp_path / "cache.json"
         cache.save(cache_file)
 
-        # Load cache
+        # Load cache (auto-detects format)
         loaded_cache = BuildCache.load(cache_file)
 
         assert loaded_cache.config_hash == "test_hash_abc"
@@ -461,8 +464,9 @@ class TestRenderedOutputCache:
             metadata,
         )
 
-        # Modify the file
-        test_file.write_text("# Modified Content")
+        # Modify the file with different content AND different size
+        # (ensures detection even if mtime precision is low on some systems)
+        test_file.write_text("# Modified Content with additional text to change size!")
 
         # Cache should be invalid
         result = cache.get_rendered_output(test_file, "default.html", metadata)

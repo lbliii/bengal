@@ -30,7 +30,7 @@ class TestConfigFuzzing:
 
     @pytest.mark.skipif(not _HYPOTHESIS_AVAILABLE, reason="hypothesis not installed")
     def test_config_validator_fuzz(self):
-        from hypothesis import given
+        from hypothesis import HealthCheck, given, settings
         from hypothesis import strategies as st
 
         from bengal.config.validators import ConfigValidator
@@ -42,6 +42,7 @@ class TestConfigFuzzing:
                 max_size=20,
             )
         )
+        @settings(suppress_health_check=[HealthCheck.too_slow])
         def run_fuzz(config):
             validator = ConfigValidator()
             try:

@@ -503,8 +503,14 @@ class HealthCheck:
 
         duration_ms = (time.time() - start_time) * 1000
 
+        # Capture stats from validator if available (observability)
+        validator_stats = getattr(validator, "last_stats", None)
+
         return ValidatorReport(
-            validator_name=validator.name, results=results, duration_ms=duration_ms
+            validator_name=validator.name,
+            results=results,
+            duration_ms=duration_ms,
+            stats=validator_stats,
         )
 
     def _run_validators_sequential(

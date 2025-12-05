@@ -79,24 +79,32 @@ class DirectiveAnalyzer:
             and build_context.has_cached_content
         )
 
-        # Debug: Track cache usage
+        # Observability: Track processing stats
+        pages_total = len(site.pages)
+        pages_processed = 0
+        skip_no_path = 0
+        skip_generated = 0
+        skip_autodoc = 0
         cache_hits = 0
         disk_reads = 0
-
-        # Track cache usage
 
         # Analyze each page's source content
         for page in site.pages:
             if not page.source_path or not page.source_path.exists():
+                skip_no_path += 1
                 continue
 
             # Skip generated pages (they don't have markdown source)
             if page.metadata.get("_generated"):
+                skip_generated += 1
                 continue
 
             # Skip autodoc-generated pages (API/CLI docs)
             if is_autodoc_page(page):
+                skip_autodoc += 1
                 continue
+
+            pages_processed += 1
 
             try:
                 # Use cached content if available (eliminates disk I/O)
@@ -220,6 +228,19 @@ class DirectiveAnalyzer:
                             "message": f"Tabs block has {directive['tab_count']} tabs (>{MAX_TABS_PER_BLOCK})",
                         }
                     )
+
+        # Store observability stats in data for the validator
+        data["_stats"] = {
+            "pages_total": pages_total,
+            "pages_processed": pages_processed,
+            "pages_skipped": {
+                "no_path": skip_no_path,
+                "generated": skip_generated,
+                "autodoc": skip_autodoc,
+            },
+            "cache_hits": cache_hits,
+            "cache_misses": disk_reads,
+        }
 
         return data
 
