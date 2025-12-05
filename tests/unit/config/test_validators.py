@@ -257,7 +257,12 @@ class TestConfigValidatorErrorPrinting:
         validator = ConfigValidator()
         errors = ["Error 1", "Error 2"]
         output = StringIO()
-        with patch("builtins.print", lambda *args: output.write(str(args[0]) + "\n")):
+
+        def capture_print(*args):
+            if args:
+                output.write(str(args[0]) + "\n")
+
+        with patch("builtins.print", capture_print):
             validator._print_errors(errors)
         result = output.getvalue()
         assert "❌" in result
@@ -269,7 +274,12 @@ class TestConfigValidatorErrorPrinting:
         validator = ConfigValidator()
         errors = ["Error 1"]
         output = StringIO()
-        with patch("builtins.print", lambda *args: output.write(str(args[0]) + "\n")):
+
+        def capture_print(*args):
+            if args:
+                output.write(str(args[0]) + "\n")
+
+        with patch("builtins.print", capture_print):
             validator._print_errors(errors, source_file=Path("bengal.toml"))
         result = output.getvalue()
         assert "bengal.toml" in result
