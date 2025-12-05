@@ -1,7 +1,8 @@
 # RFC: Test Suite Scaling Refactor
 
-**Status**: Draft  
+**Status**: Draft (Updated)  
 **Created**: 2025-12-03  
+**Last Revised**: 2025-12-05  
 **Author**: AI-assisted  
 **Priority**: Medium  
 **Estimated Effort**: 2-3 PRs  
@@ -16,45 +17,46 @@ Bengal's test suite has doubled from ~2,000 to 4,150+ tests since October 2025 w
 
 ## Problem Statement
 
-### Current State
+### Current State (Verified Dec 5, 2025)
 
 | Metric | Value | Issue |
 |--------|-------|-------|
-| Total tests | 4,150+ | ✅ Good coverage |
+| Total test functions | ~4,065 | ✅ Good coverage |
 | Test roots | 7 | ❌ Underutilized |
-| `@pytest.mark.bengal` usage | 48 (11 files) | ❌ Great pattern, rarely used |
-| Ad-hoc fixture creation | 2,395 occurrences | ❌ Massive duplication |
+| `@pytest.mark.bengal` usage | 32 (9 files) | ❌ Great pattern, rarely used |
+| Ad-hoc fixture creation | ~2,313 occurrences | ❌ Massive duplication |
 | `MistuneParser()` instantiations | 106 in rendering | ❌ Repeated expensive setup |
 | `Site.from_config/Site(` in unit | 242 | ❌ Repeated expensive setup |
-| Rendering tests | 789 (19% of suite) | ⚠️ Largest test mass |
+| Unit test files in rendering/ | 56 | ⚠️ Largest test mass |
+| MockPage class duplications | 6+ files | ❌ Repeated mock patterns |
 
 ### Key Pain Points
 
-1. **Test roots are underutilized** - Only 7 roots for 4,150+ tests; most tests create fixtures from scratch
+1. **Test roots are underutilized** - Only 7 roots for ~4,065 test functions; most tests create fixtures from scratch
 
 2. **Rendering tests repeat parser setup** - 106 `MistuneParser()` instantiations; each test creates its own
 
-3. **Mock patterns duplicated** - Same mock page/section creation code copied across 15+ directive test files
+3. **Mock patterns duplicated** - Same mock page/section creation code found in 6+ files (test_menu.py, test_taxonomies.py, test_directive_validator.py, test_template_links_baseurl.py, test_xref_bug.py, etc.)
 
-4. **Site creation is expensive** - 242 site creations in unit tests; `shared_site_class` exists but underused
+4. **Site creation is expensive** - 242 site creations in unit tests; `shared_site_class` fixture exists but underused
 
-5. **Documentation** - README updated to 4,150+ tests (Dec 2025); fixture patterns need better documentation
+5. **`@pytest.mark.bengal` underadopted** - Only 32 usages across 9 files despite being an excellent declarative pattern
 
 ---
 
 ## Evidence
 
-### Test Root Usage Analysis
+### Test Root Usage Analysis (Verified Dec 5)
 
 ```
 tests/roots/
 ├── test-basic/        # 1 page - smoke tests
 ├── test-baseurl/      # 2 pages - URL handling
 ├── test-taxonomy/     # 3 pages with tags
-├── test-cascade/      # Nested sections
-├── test-assets/       # Custom assets
+├── test-cascade/      # Nested sections (4 pages)
+├── test-assets/       # Custom assets (image + content)
 ├── test-templates/    # Template escaping
-└── autodoc-grouping/  # OpenAPI grouping
+└── autodoc-grouping/  # OpenAPI grouping (Python package)
 ```
 
 **Missing scenarios**:
@@ -63,16 +65,16 @@ tests/roots/
 - Large site (100+ pages for perf tests)
 - Incremental builds (pre-built cache state)
 
-### Fixture Pattern Distribution
+### Fixture Pattern Distribution (Verified Dec 5)
 
 ```bash
-# Ad-hoc fixture creation (2,395 occurrences)
+# Ad-hoc fixture creation (~2,313 occurrences)
 grep -r "tmp_path\|site_factory\|shared_site" tests/unit --include="*.py" | wc -l
-# → 2395
+# → 2313
 
-# Declarative root usage (48 occurrences)
+# Declarative root usage (32 occurrences)
 grep -r "@pytest\.mark\.bengal" tests --include="*.py" | wc -l
-# → 48 (across 11 files)
+# → 32 (across 9 files)
 ```
 
 ### Rendering Test Structure
@@ -88,20 +90,49 @@ def test_simple_card_grid(self):
     assert "card-grid" in result
 ```
 
-From multiple directive test files:
+From multiple test files (verified Dec 5):
 
 ```python
-# Mock page creation duplicated in 15+ files:
-def _create_mock_page(self, title, url, description="", icon="", tags=None):
-    class MockPage:
-        def __init__(self, title, url, description, icon, tags):
-            self.title = title
-            self.url = url
-            self.metadata = {"description": description, "icon": icon}
-            self.tags = tags or []
-            self.date = None
-    return MockPage(title, url, description, icon, tags)
+# MockPage class defined in 6+ separate files:
+# - tests/unit/core/test_menu.py (2 definitions)
+# - tests/unit/template_functions/test_taxonomies.py
+# - tests/unit/health/test_directive_validator_fences.py
+# - tests/unit/health/test_directive_validator.py
+# - tests/unit/rendering/test_template_links_baseurl.py (3 definitions)
+# - tests/unit/rendering/test_template_tests.py
+# - tests/unit/rendering/test_xref_bug.py
+
+class MockPage:
+    def __init__(self, title, url, description, icon, tags):
+        self.title = title
+        self.url = url
+        self.metadata = {"description": description, "icon": icon}
+        self.tags = tags or []
+        self.date = None
 ```
+
+---
+
+## Existing Infrastructure to Leverage
+
+Before adding new infrastructure, we should maximize use of existing patterns:
+
+### Already Available ✅
+
+| Component | Location | Current Usage |
+|-----------|----------|---------------|
+| `site_factory` fixture | `tests/_testing/fixtures.py:32-90` | Widely used; copies roots to tmp_path |
+| `shared_site_class` fixture | `tests/conftest.py:312-376` | Class-scoped; creates 10-page site |
+| `@pytest.mark.bengal` marker | `tests/_testing/markers.py` | Only 32 usages (underadopted) |
+| `reset_bengal_state` autouse | `tests/conftest.py:266-309` | Resets console, logger, theme cache |
+| Test progress reporter | `tests/conftest.py:53-96` | Available for long tests |
+
+### Patterns from Production Code
+
+| Pattern | Production Location | Test Opportunity |
+|---------|---------------------|------------------|
+| Thread-local parser caching | `bengal/rendering/pipeline.py:43-91` | Model for module-scoped parser fixture |
+| Parallel executor with workers | `bengal/health/health_check.py` | Reference for test parallelism |
 
 ---
 
@@ -385,12 +416,56 @@ def test_with_mock_page(self, parser):
 
 ### PR 4: Documentation
 
-1. Update `tests/README.md` with current counts and patterns
-2. Update `tests/_testing/README.md` with migration guide
-3. Update `tests/TEST_COVERAGE.md` (already done as of 2025-12-03)
+1. Update `tests/README.md` with:
+   - Current test count (~4,065 test functions)
+   - Fixture usage guidelines (when to use `site_factory` vs `shared_site_class` vs test roots)
+   - `@pytest.mark.bengal` adoption guide
+2. Update `tests/_testing/README.md` with:
+   - New mock utilities documentation
+   - Migration guide for existing tests
+   - Scoped fixture best practices
+3. Update `tests/roots/README.md` with new root documentation
 
 **Files Changed**: ~3  
 **Estimated Time**: 1-2 hours
+
+---
+
+## Quick Wins (Can Implement Immediately)
+
+These changes require no new infrastructure and can be done now:
+
+1. **Consolidate MockPage** - Create `tests/_testing/mocks.py` and replace 10+ duplicate class definitions
+2. **Add rendering conftest** - Create `tests/unit/rendering/conftest.py` with module-scoped parser
+3. **Document existing patterns** - Update READMEs to promote `shared_site_class` and `@pytest.mark.bengal`
+
+### Immediate Action: MockPage Consolidation
+
+```python
+# tests/_testing/mocks.py
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+@dataclass
+class MockPage:
+    """Canonical mock page for testing."""
+    title: str
+    url: str = "/"
+    source_path: Path = field(default_factory=lambda: Path("test.md"))
+    metadata: dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    date: Any = None
+    _section: Any = None
+```
+
+Then update imports in:
+- `tests/unit/core/test_menu.py`
+- `tests/unit/template_functions/test_taxonomies.py`
+- `tests/unit/health/test_directive_validator*.py`
+- `tests/unit/rendering/test_template_links_baseurl.py`
+- `tests/unit/rendering/test_template_tests.py`
+- `tests/unit/rendering/test_xref_bug.py`
 
 ---
 
@@ -402,15 +477,16 @@ def test_with_mock_page(self, parser):
 |--------|--------|-------|-------------|
 | Test execution time | ~60-90s | ~40-60s | ~30% faster |
 | Parser instantiations | 106 | ~20 | 5x reduction |
-| Site creations (unit) | 229 | ~50 | 4-5x reduction |
+| Site creations (unit) | 242 | ~50 | 4-5x reduction |
 
 ### Maintainability
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Mock class definitions | 15+ duplicated | 1 canonical |
-| Fixture setup code | 2,395 ad-hoc | Mostly reused |
-| New test creation | Slow (copy/paste setup) | Fast (use fixtures) |
+| MockPage class definitions | 10+ duplicated | 1 canonical |
+| Ad-hoc fixture setup | ~2,313 occurrences | Mostly reused via roots |
+| New test creation | Slow (copy/paste setup) | Fast (use fixtures + roots) |
+| `@pytest.mark.bengal` usage | 32 | 100+ |
 
 ### Scalability
 
@@ -454,7 +530,8 @@ def test_with_mock_page(self, parser):
 - [ ] Mock page/section classes consolidated to `_testing/mocks.py`
 - [ ] Test execution time reduced by 20%+
 - [ ] `tests/README.md` accurate and comprehensive
-- [ ] No test regressions (all 4,150+ tests pass)
+- [ ] No test regressions (all ~4,065 test functions pass)
+- [ ] `@pytest.mark.bengal` adoption increased from 32 to 100+ usages
 
 ---
 
@@ -469,17 +546,30 @@ def test_with_mock_page(self, parser):
 
 ## Validation Notes
 
-**Validated**: 2025-12-03  
+**Validated**: 2025-12-05 (Refreshed)  
 **Confidence**: 88% 🟢 (High)
 
-### Verified Claims ✅
+### Verified Claims ✅ (Dec 5, 2025)
 
-- **Test metrics**: All metrics verified against codebase
-  - `@pytest.mark.bengal`: 48 occurrences across 11 files ✅
-  - `MistuneParser()` instantiations: 106 in rendering tests ✅
-  - `Site.from_config/Site(`: 242 in unit tests (RFC claimed 229, verified 242) ✅
-  - Test roots: 7 existing roots confirmed ✅
-  - Mock pattern duplication: Found in 6+ files, pattern matches RFC description ✅
+- **Test metrics**: All metrics re-verified against codebase
+  - `@pytest.mark.bengal`: 32 occurrences across 9 files ✅ (decreased from 48/11 - likely test consolidation)
+  - `MistuneParser()` instantiations: 106 in rendering tests ✅ (unchanged)
+  - `Site.from_config/Site(`: 242 in unit tests ✅ (unchanged)
+  - Test roots: 7 existing roots confirmed ✅ (unchanged)
+  - Ad-hoc fixture usage: ~2,313 occurrences ✅ (slight improvement from 2,395)
+  - MockPage duplication: Found in 6+ files with 10+ class definitions ✅
+  - Unit test files in rendering/: 56 files ✅
+
+### Recent Changes Since Initial Draft (Dec 3-5)
+
+- Added build-integrated validation tests (`test_phase2b_cache_integration.py`)
+- Fixed Python 3.14 compatibility issues in tests
+- Added observability module tests
+- Added compression (Zstandard) tests
+- Added parallel health validator tests
+- No new test roots created
+- No `_testing/mocks.py` created yet (still needed)
+- No `tests/unit/rendering/conftest.py` created yet (still needed)
 
 ### Safety Concerns Addressed ⚠️
 
@@ -488,22 +578,34 @@ def test_with_mock_page(self, parser):
   - **Mitigation**: Added `reset_parser_state` autouse fixture to Phase 2.1
   - **Risk level**: Medium → Low (with mitigation)
 
-- **Documentation staleness**: RFC claimed README references outdated stats
-  - **Reality**: README already updated to 4,150+ tests (Dec 2025)
-  - **Action**: Updated RFC to reflect current state
+- **Fixture infrastructure**: `shared_site_class` exists in `conftest.py:312-376` and is proven safe
+  - Creates 10-page site once per class
+  - Properly handles modifiable copies via `request.param`
 
 ### Architecture Alignment ✅
 
-- **Parser reuse pattern**: Production code already uses thread-local parser caching (`bengal/rendering/pipeline.py:43-91`)
+- **Parser reuse pattern**: Production code uses thread-local parser caching (`bengal/rendering/pipeline.py:43-91`)
 - **Test root pattern**: Proposed roots follow existing conventions
-- **Fixture patterns**: `shared_site_class` already exists and is class-scoped (proven safe)
+- **Fixture patterns**: `site_factory` in `tests/_testing/fixtures.py` already copies roots to tmp_path
 
-### Evidence Trail
+### Evidence Trail (Updated Dec 5)
 
-- Parser instantiations: `grep -r "MistuneParser()" tests/unit/rendering` → 106 matches
-- Mock patterns: `test_cards_directive.py:806-873` shows duplication pattern
-- Fixture usage: `grep -r "tmp_path|site_factory|shared_site" tests/unit` → 2,424 matches
-- Parser architecture: `bengal/rendering/pipeline.py:43-91`, `bengal/rendering/parsers/mistune.py:46-125`
+```bash
+# Parser instantiations
+grep -r "MistuneParser()" tests/unit/rendering | wc -l  # → 106
+
+# MockPage class definitions  
+grep -r "class MockPage" tests --include="*.py" | wc -l  # → 10
+
+# Ad-hoc fixture usage
+grep -r "tmp_path\|site_factory\|shared_site" tests/unit | wc -l  # → 2313
+
+# @pytest.mark.bengal usage
+grep -r "@pytest\.mark\.bengal" tests | wc -l  # → 32
+
+# Test function count
+grep -r "def test_" tests --include="*.py" | wc -l  # → ~4065
+```
 
 ---
 

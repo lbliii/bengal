@@ -1,11 +1,17 @@
 """
 Testing utilities for Bengal test suite.
 
-This package provides shared fixtures, markers, and utilities to make
+This package provides shared fixtures, markers, mocks, and utilities to make
 writing tests easier and more consistent.
 
 Usage in conftest.py:
     pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
+
+Mock Objects:
+    from tests._testing.mocks import MockPage, MockSection, MockSite
+
+    page = MockPage(title="Test", url="/test/")
+    site = MockSite(pages=[page])
 
 Progress Reporting:
     For long-running tests, use the test_progress fixture:
@@ -17,6 +23,12 @@ Progress Reporting:
                     update(i + 1)
 """
 
+from tests._testing.mocks import (
+    MockPage,
+    MockSection,
+    MockSite,
+    create_mock_xref_index,
+)
 from tests._testing.progress import (
     TestProgressReporter,
     create_test_progress,
@@ -24,9 +36,15 @@ from tests._testing.progress import (
     test_status,  # Deprecated, kept for backward compatibility
 )
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
+    # Mock objects
+    "MockPage",
+    "MockSection",
+    "MockSite",
+    "create_mock_xref_index",
+    # Progress reporting
     "TestProgressReporter",
     "create_test_progress",
     "progress_status",

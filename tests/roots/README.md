@@ -115,6 +115,72 @@ def test_incremental_build(site, build_site):
     build_site(incremental=True)  # Incremental
 ```
 
+### test-directives
+**Purpose**: Tests directive parsing and rendering  
+**Structure**: 4+ pages with cards, admonitions, and nested content  
+**Use for**: Card directives, admonitions, glossary, cross-references, child-cards
+
+```python
+@pytest.mark.bengal(testroot="test-directives")
+def test_card_directive(site, build_site):
+    build_site()
+    html = (site.output_dir / "cards/index.html").read_text()
+    assert "card-grid" in html
+```
+
+**Structure**:
+- `_index.md` → Home with child-cards directive
+- `cards.md` → Card grid examples
+- `admonitions.md` → Note, warning, tip, important directives
+- `sections/_index.md` → Section index
+- `sections/page.md` → Nested page with cross-references
+- `data/glossary.yaml` → Glossary terms
+
+### test-navigation
+**Purpose**: Tests navigation hierarchies and menu building  
+**Structure**: Multi-level hierarchy (3 levels deep)  
+**Use for**: Menu building, breadcrumbs, section navigation
+
+```python
+@pytest.mark.bengal(testroot="test-navigation")
+def test_breadcrumbs(site, build_site):
+    build_site()
+    html = (site.output_dir / "docs/getting-started/quickstart/index.html").read_text()
+    # Should have breadcrumb: Home > Docs > Getting Started > Quickstart
+    assert "breadcrumb" in html.lower() or "nav" in html.lower()
+```
+
+**Structure**:
+- `_index.md` → Home
+- `docs/_index.md` → Docs section
+- `docs/getting-started/_index.md` → Getting Started subsection
+- `docs/getting-started/quickstart.md` → Deeply nested page
+- `docs/reference/_index.md` → Reference subsection
+- `docs/reference/api.md` → Reference page
+- `blog/_index.md` → Flat blog section
+
+### test-large
+**Purpose**: Performance testing with 100+ pages  
+**Structure**: 100+ generated pages in 5 sections  
+**Use for**: Performance benchmarks, parallel rendering, memory usage
+
+```python
+@pytest.mark.bengal(testroot="test-large")
+@pytest.mark.slow
+def test_parallel_build_performance(site, build_site, benchmark):
+    result = benchmark(lambda: build_site(parallel=True))
+    assert result < 5.0  # Should complete in <5 seconds
+```
+
+**Generation**: Run `python tests/roots/test-large/generate.py` to (re)generate content.
+
+**Structure**:
+- `_index.md` → Home
+- `docs/`, `guides/`, `tutorials/`, `reference/`, `api/` → 5 sections
+- 20 pages per section → 100 total pages with cross-links
+
+---
+
 ## Maintenance
 
 - Keep roots minimal (resist adding more files)

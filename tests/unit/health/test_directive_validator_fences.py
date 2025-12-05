@@ -2,22 +2,11 @@
 Tests for DirectiveValidator fence nesting checks.
 """
 
-from pathlib import Path
+from __future__ import annotations
 
 from bengal.health.report import CheckStatus
 from bengal.health.validators.directives import DirectiveValidator
-
-
-class MockPage:
-    def __init__(self, source_path, metadata=None):
-        self.source_path = source_path
-        self.metadata = metadata or {}
-        self.output_path = Path("output.html")
-
-
-class MockSite:
-    def __init__(self, pages):
-        self.pages = pages
+from tests._testing.mocks import MockPage, MockSite
 
 
 class TestDirectiveValidatorFences:
@@ -32,8 +21,8 @@ Content
         source_file = tmp_path / "ambiguous.md"
         source_file.write_text(content)
 
-        page = MockPage(source_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -54,8 +43,8 @@ Unclosed
         source_file = tmp_path / "unclosed.md"
         source_file.write_text(content)
 
-        page = MockPage(source_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -95,8 +84,8 @@ Unclosed
         source_file = tmp_path / "sequential.md"
         source_file.write_text(content)
 
-        page = MockPage(source_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -126,8 +115,8 @@ print("hello")
         source_file = tmp_path / "nested.md"
         source_file.write_text(content)
 
-        page = MockPage(source_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
