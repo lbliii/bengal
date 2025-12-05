@@ -19,7 +19,6 @@ from bengal.postprocess.output_formats.utils import (
     get_page_json_path,
     get_page_url,
     normalize_url,
-    strip_html,
 )
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
@@ -138,8 +137,8 @@ class PageJSONGenerator:
         if include_html and page.parsed_ast:
             data["content"] = page.parsed_ast
 
-        # Plain text
-        content_text = strip_html(page.parsed_ast or page.content)
+        # Plain text - use page.plain_text which is pre-cached during rendering
+        content_text = page.plain_text
         if include_text:
             data["plain_text"] = content_text
 
