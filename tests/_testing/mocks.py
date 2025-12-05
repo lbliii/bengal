@@ -13,11 +13,16 @@ Usage:
         section = MockSection(name="docs", title="Documentation")
         xref_index = create_mock_xref_index([page])
 
+    # For analysis/graph tests:
+    from tests._testing.mocks import MockAnalysisPage
+    page = MockAnalysisPage(source_path=Path("test.md"), tags=["python"])
+
 Patterns:
     - MockPage: Lightweight page mock for directive/rendering tests
     - MockSection: Lightweight section mock for navigation tests
     - create_mock_xref_index: Build xref_index from mock pages
     - MockSite: Lightweight site mock for validator tests
+    - MockAnalysisPage: Page mock for analysis tests (no `categories` attr)
 """
 
 from __future__ import annotations

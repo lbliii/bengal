@@ -68,6 +68,7 @@ Canonical mock objects for testing. **Use these instead of defining inline mocks
 - `MockPage` - Mock page with common attributes (title, url, metadata, tags, etc.)
 - `MockSection` - Mock section for navigation tests
 - `MockSite` - Mock site for validator tests
+- `MockAnalysisPage` - Mock page for analysis/graph tests (no `categories` attr)
 - `create_mock_xref_index(pages)` - Build xref_index from mock pages
 - `create_mock_page_hierarchy(structure)` - Generate hierarchies from dict spec
 
@@ -94,6 +95,17 @@ site = MockSite(pages=[page])
 # Build xref_index for cross-reference tests
 from tests._testing.mocks import create_mock_xref_index
 xref_index = create_mock_xref_index([page1, page2, page3])
+
+# For analysis/graph tests (link suggestions, PageRank, etc.)
+from tests._testing.mocks import MockAnalysisPage
+page = MockAnalysisPage(
+    source_path=Path("docs/guide.md"),
+    title="User Guide",
+    tags=["python", "tutorial"],
+    category="guides"
+)
+# Note: MockAnalysisPage deliberately has no `categories` attribute
+# to match the Page interface used by LinkSuggestionEngine
 ```
 
 ### `fixtures.py`
