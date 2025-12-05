@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Build-Integrated Validation ✅
+- **health**: add tiered validation with `build`, `full`, and `ci` tiers for configurable health check granularity
+- **health**: add `_is_validator_in_tier()` method for tier-based validator filtering
+- **config**: add `build_validators`, `full_validators`, `ci_validators` to health_check defaults
+- **tests**: add `test_build_integrated_validation.py` with 19 tests covering content caching, tiered validation, and analyzer integration
+- **docs**: RFC moved to implemented
+
 ### Zstandard Cache Compression (PEP 784) ✅
 - **cache**: add `compression.py` module with Zstd utilities using Python 3.14's `compression.zstd` (PEP 784)
 - **cache(CacheStore)**: save cache files as `.json.zst` with 92-93% size reduction (12-14x compression)
