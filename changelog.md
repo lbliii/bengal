@@ -1,5 +1,18 @@
 ## Unreleased
 
+### Systematic Observability Improvements ✅
+- **utils**: add `observability.py` module with `ComponentStats` dataclass and `HasStats` protocol for standardized stats collection
+- **utils(observability)**: `ComponentStats` provides uniform interface for counts, cache metrics, sub-timings, and custom metrics
+- **utils(observability)**: `format_summary()` produces compact CLI output with processing/skip/cache/timing stats
+- **utils(observability)**: `to_log_context()` flattens stats to dict for structured logging integration
+- **utils(observability)**: add `format_phase_stats()` helper for displaying slow phase diagnostics
+- **health(report)**: enhance `ValidatorStats` with `cache_hit_rate`, `skip_rate`, `metrics`, and `to_log_context()` methods
+- **health(links)**: add stats tracking to `LinkValidatorWrapper` with link counts and validation timings
+- **health(output)**: add stats tracking to `OutputValidator` with HTML file counts and asset metrics
+- **orchestration(finalization)**: show detailed stats for ALL slow validators (>500ms) instead of just the slowest
+- **tests**: add `test_observability.py` with 29 tests covering ComponentStats formatting and HasStats protocol
+- **docs**: RFC moved to implemented
+
 ### Build-Integrated Validation ✅
 - **health**: add tiered validation with `build`, `full`, and `ci` tiers for configurable health check granularity
 - **health**: add `_is_validator_in_tier()` method for tier-based validator filtering

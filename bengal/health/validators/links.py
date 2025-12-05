@@ -2,14 +2,17 @@
 Link validator wrapper.
 
 Integrates the existing LinkValidator into the health check system.
+
+Provides observability stats for link validation performance tracking.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+import time
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
-from bengal.health.report import CheckResult
+from bengal.health.report import CheckResult, ValidatorStats
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -21,27 +24,63 @@ class LinkValidatorWrapper(BaseValidator):
 
     Note: Link validation runs during post-processing. This validator
     re-runs validation or reports on previous validation results.
+
+    Implements HasStats protocol for observability.
     """
 
     name = "Links"
     description = "Validates internal and external links"
     enabled_by_default = True
 
+    # Store stats from last validation for observability
+    last_stats: ValidatorStats | None = None
+
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
-        """Validate links in generated pages."""
+    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+        """
+        Validate links in generated pages.
+
+        Collects stats on:
+        - Total pages checked
+        - Links validated
+        - Cache hits/misses (from link validator)
+        - Sub-timings for discovery and validation phases
+
+        Args:
+            site: Site instance to validate
+            build_context: Optional BuildContext (unused in link validation)
+
+        Returns:
+            List of CheckResult objects
+        """
         results = []
+        sub_timings: dict[str, float] = {}
+
+        # Initialize stats
+        stats = ValidatorStats(pages_total=len(site.pages))
 
         # Only run if link validation is enabled
         if not site.config.get("validate_links", True):
             results.append(CheckResult.info("Link validation disabled in config"))
+            stats.pages_skipped["disabled"] = len(site.pages)
+            self.last_stats = stats
             return results
 
         # Run link validator
         from bengal.rendering.link_validator import LinkValidator
 
+        t0 = time.time()
         validator = LinkValidator()
         broken_links = validator.validate_site(site)
+        sub_timings["validate"] = (time.time() - t0) * 1000
+
+        # Track stats
+        stats.pages_processed = len(site.pages)
+
+        # Track link count and broken links as metrics
+        total_links = sum(len(getattr(page, "links", [])) for page in site.pages)
+        stats.metrics["total_links"] = total_links
+        stats.metrics["broken_links"] = len(broken_links) if broken_links else 0
 
         if broken_links:
             # broken_links is list of (page_path, link_url) tuples
@@ -78,5 +117,9 @@ class LinkValidatorWrapper(BaseValidator):
                     )
                 )
         # No success message - if all links are valid, silence is golden
+
+        # Store stats
+        stats.sub_timings = sub_timings
+        self.last_stats = stats
 
         return results

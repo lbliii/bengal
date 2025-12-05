@@ -53,7 +53,7 @@ This took ~30 minutes of manual debugging that could have been seconds with prop
 | `ContentDiscovery` | Partial | ❌ | ❌ | ❌ | ❌ |
 | `AssetPipeline` | Partial | Partial | ❌ | ❌ | ❌ |
 | `RenderOrchestrator` | Partial | ✅ | ❌ | ❌ | ❌ |
-| `BuildCache` | ❌ | ❌ | ❌ | N/A | ❌ |
+| `BuildCache` | ❌ | ❌ | Partial (Counts only) | N/A | ❌ |
 
 ---
 
@@ -61,7 +61,7 @@ This took ~30 minutes of manual debugging that could have been seconds with prop
 
 ### 1. Standardized Stats Protocol
 
-Create a `Stats` protocol that components can implement:
+Create a `Stats` protocol that components can implement. This will integrate with the existing `BuildStats` (bengal/utils/build_stats.py) which currently tracks global metrics but lacks granular component-level visibility:
 
 ```python
 # bengal/utils/observability.py
@@ -419,7 +419,7 @@ def export_build_metrics(stats: BuildStats, output_path: Path):
 
 ### Phase 4: Cache Layer (1-2 hours)
 
-1. Add stats to `BuildCache`
+1. Add stats to `BuildCache` (update `get_stats()` to return `ComponentStats`)
 2. Add stats to `CacheStore`
 3. Track compression stats
 4. Log cache effectiveness

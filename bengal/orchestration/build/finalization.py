@@ -170,12 +170,12 @@ def run_health_check(
             slow_info = ", ".join(f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in slowest)
             cli.info(f"   🐌 Slowest: {slow_info}")
 
-            # Show detailed stats for slowest validator if available (helps diagnose perf issues)
-            slowest_report = slowest[0]
-            if slowest_report.stats:
-                cli.info(
-                    f"   📊 {slowest_report.validator_name}: {slowest_report.stats.format_summary()}"
-                )
+            # Show detailed stats for ALL slow validators (helps diagnose perf issues)
+            for slow_report in slowest:
+                if slow_report.stats and slow_report.duration_ms > 500:
+                    cli.info(
+                        f"   📊 {slow_report.validator_name}: {slow_report.stats.format_summary()}"
+                    )
 
     if health_config.get("verbose", False):
         cli.info(report.format_console(verbose=True))

@@ -2,14 +2,17 @@
 Output validator - checks generated pages and assets.
 
 Migrated from Site._validate_build_health() with improvements.
+
+Provides observability stats for output validation performance tracking.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+import time
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
-from bengal.health.report import CheckResult
+from bengal.health.report import CheckResult, ValidatorStats
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -23,6 +26,8 @@ class OutputValidator(BaseValidator):
     - Page sizes (detect suspiciously small pages)
     - Asset presence (CSS/JS files)
     - Output directory structure
+
+    Implements HasStats protocol for observability.
     """
 
     name = "Output"
@@ -31,19 +36,62 @@ class OutputValidator(BaseValidator):
 
     MIN_SIZE = 1000  # Configurable via site.config
 
+    # Store stats from last validation for observability
+    last_stats: ValidatorStats | None = None
+
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
-        """Run output validation checks."""
+    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+        """
+        Run output validation checks.
+
+        Collects stats on:
+        - Total HTML files checked
+        - Files validated
+        - Sub-timings for page size, asset, and directory checks
+
+        Args:
+            site: Site instance to validate
+            build_context: Optional BuildContext (unused)
+
+        Returns:
+            List of CheckResult objects
+        """
         results = []
+        sub_timings: dict[str, float] = {}
+
+        # Count HTML files for stats
+        html_files = list(site.output_dir.rglob("*.html")) if site.output_dir.exists() else []
+        stats = ValidatorStats(pages_total=len(html_files))
 
         # Check 1: Page sizes
+        t0 = time.time()
         results.extend(self._check_page_sizes(site))
+        sub_timings["page_sizes"] = (time.time() - t0) * 1000
 
         # Check 2: Asset presence
+        t1 = time.time()
         results.extend(self._check_assets(site))
+        sub_timings["assets"] = (time.time() - t1) * 1000
 
         # Check 3: Output directory exists
+        t2 = time.time()
         results.extend(self._check_output_directory(site))
+        sub_timings["directory"] = (time.time() - t2) * 1000
+
+        # Update stats
+        stats.pages_processed = len(html_files)
+        stats.sub_timings = sub_timings
+
+        # Track asset counts as metrics
+        if site.output_dir.exists():
+            assets_dir = site.output_dir / "assets"
+            if assets_dir.exists():
+                css_count = len(list(assets_dir.glob("css/*.css")))
+                js_count = len(list(assets_dir.glob("js/*.js")))
+                stats.metrics["css_files"] = css_count
+                stats.metrics["js_files"] = js_count
+
+        self.last_stats = stats
 
         return results
 
