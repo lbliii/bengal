@@ -232,7 +232,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   display: none;
   flex-direction: column;
   gap: 0.125rem;
-  padding-left: 0.875rem;
+  padding-left: 0.5rem;
   margin-top: 0.25rem;
   opacity: 0;
   transform: translate3d(0, -8px, 0);
@@ -333,7 +333,31 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 /* Nested sections */
 .docs-nav-group .docs-nav-group {
-  margin-left: 0.375rem;
+  margin-left: 0.25rem;
+}
+
+/* ============================================================================
+   ALIGNED TEXT - Single pages and leaf sections align with directory text
+
+   Directory text position from container edge:
+     nested-margin (0.25rem) + toggle (1.875rem) + gap (0.25rem) + link-padding (0.25rem) = 2.625rem
+
+   Single pages have padding-left: 0.5rem (from .docs-nav-link)
+   Leaf sections have padding-left: 0.5rem + nested-margin: 0.25rem
+
+   For text alignment at 2.625rem:
+   - Single pages: margin = 2.625 - 0.5 = 2.125rem
+   - Leaf sections: margin = 2.625 - 0.25 - 0.5 = 1.875rem
+   ============================================================================ */
+
+/* Single pages (direct children of group-items) - align with directory text */
+.docs-nav-group-items > .docs-nav-link {
+  margin-left: 2.125rem;
+}
+
+/* Leaf section links align with directory text at same level */
+.docs-nav-group--leaf > .docs-nav-link {
+  margin-left: 1.875rem;
 }
 
 /* ============================================================================
