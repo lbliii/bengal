@@ -77,12 +77,6 @@ from bengal.utils.traceback_config import TracebackStyle
 @click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
-@click.option(
-    "--pipeline",
-    "use_pipeline",
-    is_flag=True,
-    help="Use reactive dataflow pipeline for builds (experimental)",
-)
 @click.argument("source", type=click.Path(exists=True), default=".")
 @handle_cli_errors(show_art=True)
 def serve(
@@ -97,7 +91,6 @@ def serve(
     debug: bool,
     traceback: str | None,
     config: str,
-    use_pipeline: bool,
     source: str,
 ) -> None:
     """
@@ -162,5 +155,4 @@ def serve(
         watch=watch,
         auto_port=auto_port,
         open_browser=open_browser,
-        use_pipeline=use_pipeline,
     )

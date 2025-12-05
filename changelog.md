@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Remove Experimental Reactive Dataflow Pipeline ❌
+- **pipeline**: remove `bengal/pipeline/` module (15 files) - experimental reactive dataflow system had fundamental architectural gaps
+- **cli(build)**: remove `--pipeline` flag from build command
+- **cli(serve)**: remove `--pipeline` flag from serve command
+- **core(site)**: remove `_build_with_pipeline()` method and `use_pipeline` parameter from `build()` and `serve()`
+- **server**: remove `use_pipeline` propagation from `DevServer` and `BuildHandler`
+- **tests**: remove `tests/unit/pipeline/` (9 files) and `tests/integration/test_pipeline_build.py`
+- **docs**: move pipeline planning docs to `plan/completed/` (4 files archived)
+- **Note**: `RenderingPipeline` (page rendering) and `assets.pipeline` (SCSS/PostCSS) are unrelated and retained
+
 ### Directive Registry - Single Source of Truth ✅
 - **rendering(directives)**: add `DIRECTIVE_NAMES` class attribute to all 27 directive classes
 - **rendering(directives)**: add `DIRECTIVE_CLASSES` registry and `get_known_directive_names()` function
@@ -19,7 +29,6 @@
 - **rendering(navigation)**: integrate visibility.menu with auto-nav discovery
 - **themes(default)**: add robots meta tag injection for hidden pages (noindex, nofollow)
 - **themes(default)**: add visual indicator banner for hidden pages in dev server
-- **pipeline(build)**: add visibility-based filtering for render: local/never pages
 
 ### Documentation Information Architecture Overhaul
 - **docs(ia)**: reorganize documentation by feature dimensions (content, theming, building, extending) instead of Diataxis types
@@ -33,21 +42,6 @@
 - **docs(navigation)**: add URL aliases for backward compatibility with previous structure
 - **docs(get-started)**: rename getting-started/ to get-started/ with streamlined quickstarts
 
-### Reactive Dataflow Pipeline ✅
-- **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
-- **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
-- **pipeline(builder)**: add `Pipeline` fluent builder API and `PipelineResult` metrics dataclass
-- **pipeline**: support declarative build pipelines with lazy evaluation and automatic caching
-- **pipeline(bengal_streams)**: add Bengal-specific streams: `ContentDiscoveryStream`, `FileChangeStream`, `ParsedContent`, `RenderedPage`
-- **pipeline(build)**: add factory functions `create_build_pipeline()`, `create_incremental_pipeline()`, `create_simple_pipeline()`
-- **pipeline**: integrate with discovery system for content parsing and frontmatter extraction
-- **pipeline(cache)**: add `StreamCache` for disk-backed persistent caching, `DiskCachedStream` wrapper
-- **pipeline(cache)**: add `disk_cache()` method to `Stream` class for fluent cache integration
-- **pipeline(cache)**: implement version-based cache invalidation with `StreamCacheEntry`
-- **pipeline(watcher)**: add `FileWatcher` for file change detection with debouncing
-- **pipeline(watcher)**: add `WatchEvent`, `WatchBatch`, `ChangeType` for change batching
-- **pipeline(watcher)**: add `PipelineWatcher` for pipeline-based incremental rebuilds in watch mode
-- **docs**: add reactive dataflow pipeline architecture documentation
 - **docs**: update build pipeline concepts with reactive pipeline section
 
 ### Content Layer API (Remote Content Sources)

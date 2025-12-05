@@ -146,12 +146,6 @@ from bengal.utils.traceback_config import TracebackStyle
 @click.option(
     "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal-build.log)"
 )
-@click.option(
-    "--pipeline",
-    "use_pipeline",
-    is_flag=True,
-    help="Use reactive dataflow pipeline (experimental, may improve build times)",
-)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
     parallel: bool,
@@ -176,7 +170,6 @@ def build(
     fast: bool,
     full_output: bool,
     log_file: str,
-    use_pipeline: bool,
     source: str,
 ) -> None:
     """
@@ -364,7 +357,6 @@ def build(
                 memory_optimized=memory_optimized,
                 strict=strict,
                 full_output=full_output,
-                use_pipeline=use_pipeline,
             )
 
             profiler.disable()
@@ -412,7 +404,6 @@ def build(
                 strict=strict,
                 full_output=full_output,
                 profile_templates=profile_templates,
-                use_pipeline=use_pipeline,
             )
 
             # Display template profiling report if enabled
