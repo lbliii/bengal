@@ -329,9 +329,31 @@ class RenderingPipeline:
         template = self._determine_template(page)
         parser_version = self._get_parser_version()
 
+        # OPTIMIZATION #3: Try rendered output cache first (skips parsing AND template rendering)
+        # Generated pages are excluded - they depend on site structure that may have changed
         if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
             cache = self.dependency_tracker.cache
             if cache and not page.metadata.get("_generated"):
+                # Try fully rendered output cache first (most aggressive caching)
+                rendered_html = cache.get_rendered_output(
+                    page.source_path, template, page.metadata
+                )
+                if rendered_html:
+                    page.rendered_html = rendered_html
+
+                    if self.build_stats:
+                        if not hasattr(self.build_stats, "rendered_cache_hits"):
+                            self.build_stats.rendered_cache_hits = 0
+                        self.build_stats.rendered_cache_hits += 1
+
+                    self._write_output(page)
+
+                    if self.dependency_tracker and not page.metadata.get("_generated"):
+                        self.dependency_tracker.end_page()
+
+                    return
+
+                # Fall back to parsed content cache (skips parsing, still does template rendering)
                 cached = cache.get_parsed_content(
                     page.source_path, page.metadata, template, parser_version
                 )
@@ -351,6 +373,10 @@ class RenderingPipeline:
 
                     parsed_content = cached["html"]
                     parsed_content = self._transform_internal_links(parsed_content)
+
+                    # OPTIMIZATION: Pre-compute plain_text cache for post-processing
+                    # This runs strip_html() now (parallelized) instead of later (sequential)
+                    _ = page.plain_text
 
                     page.extract_links()
                     html_content = self.renderer.render_content(parsed_content)
@@ -524,6 +550,11 @@ class RenderingPipeline:
         # ============================================================================
         page.toc = toc
 
+        # OPTIMIZATION: Pre-compute plain_text cache for post-processing
+        # This runs strip_html() now (parallelized) instead of later (sequential)
+        # Saves ~400-600ms on post-processing for large sites
+        _ = page.plain_text
+
         # OPTIMIZATION #2 + Phase 3: Store parsed content and AST in cache for next build
         if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
             cache = self.dependency_tracker._cache
@@ -577,6 +608,23 @@ class RenderingPipeline:
         except Exception:
             # Never fail the build on formatter errors; fall back to raw HTML
             pass
+
+        # OPTIMIZATION #3: Store rendered output in cache for next build
+        # Excludes generated pages (depend on site structure)
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
+            cache = self.dependency_tracker._cache
+            if cache and not page.metadata.get("_generated"):
+                # Get template dependencies for this page
+                page_key = str(page.source_path)
+                deps = list(cache.dependencies.get(page_key, []))
+
+                cache.store_rendered_output(
+                    page.source_path,
+                    page.rendered_html,
+                    template,
+                    page.metadata,
+                    dependencies=deps,
+                )
 
         # Stage 7: Write output
         self._write_output(page)
