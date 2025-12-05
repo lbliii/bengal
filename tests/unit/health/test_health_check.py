@@ -1,7 +1,7 @@
 """
 Tests for health check orchestrator.
 
-Tests parallel execution, error isolation, and threshold behavior.
+Tests parallel execution, error isolation, threshold behavior, and observability.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.health.base import BaseValidator
-from bengal.health.health_check import HealthCheck
+from bengal.health.health_check import HealthCheck, HealthCheckStats
 from bengal.health.report import CheckResult, CheckStatus
 
 
@@ -297,6 +297,143 @@ class TestHealthCheckHelperMethods:
         assert len(report.results) == 1
         assert report.results[0].status == CheckStatus.ERROR
         assert "crashed" in report.results[0].message.lower()
+
+
+class TestHealthCheckStats:
+    """Test HealthCheckStats observability."""
+
+    def test_stats_speedup_calculation(self):
+        """Test speedup calculation."""
+        stats = HealthCheckStats(
+            total_duration_ms=100,
+            execution_mode="parallel",
+            validator_count=4,
+            worker_count=4,
+            cpu_count=8,
+            sum_validator_duration_ms=400,  # 4 validators * 100ms each
+        )
+
+        # Speedup = 400 / 100 = 4x
+        assert stats.speedup == 4.0
+
+    def test_stats_efficiency_calculation(self):
+        """Test parallel efficiency calculation."""
+        stats = HealthCheckStats(
+            total_duration_ms=100,
+            execution_mode="parallel",
+            validator_count=4,
+            worker_count=4,
+            cpu_count=8,
+            sum_validator_duration_ms=400,
+        )
+
+        # Efficiency = 4.0 / 4 = 1.0 (100%)
+        assert stats.efficiency == 1.0
+
+    def test_stats_format_summary_parallel(self):
+        """Test format_summary for parallel mode."""
+        stats = HealthCheckStats(
+            total_duration_ms=100,
+            execution_mode="parallel",
+            validator_count=4,
+            worker_count=4,
+            cpu_count=8,
+            sum_validator_duration_ms=400,
+        )
+
+        summary = stats.format_summary()
+        assert "⚡" in summary
+        assert "parallel" in summary
+        assert "4 validators" in summary
+        assert "Workers:" in summary
+        assert "Speedup:" in summary
+
+    def test_stats_format_summary_sequential(self):
+        """Test format_summary for sequential mode."""
+        stats = HealthCheckStats(
+            total_duration_ms=100,
+            execution_mode="sequential",
+            validator_count=2,
+            worker_count=1,
+            cpu_count=8,
+            sum_validator_duration_ms=100,
+        )
+
+        summary = stats.format_summary()
+        assert "📝" in summary
+        assert "sequential" in summary
+        assert "2 validators" in summary
+        # Sequential mode doesn't show worker stats
+        assert "Workers:" not in summary
+
+
+class TestHealthCheckAutoScaling:
+    """Test auto-scaling of worker count."""
+
+    @pytest.fixture
+    def mock_site(self):
+        """Create a mock site."""
+        site = MagicMock()
+        site.config = {}
+        site.pages = []
+        return site
+
+    def test_get_optimal_workers_scales_with_cpu(self, mock_site):
+        """Test that worker count scales with CPU cores."""
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        with patch("os.cpu_count", return_value=8):
+            # 8 cores -> 4 workers (50%)
+            workers = health_check._get_optimal_workers(10)
+            assert workers == 4
+
+        with patch("os.cpu_count", return_value=16):
+            # 16 cores -> 8 workers (50%, capped at 8)
+            workers = health_check._get_optimal_workers(10)
+            assert workers == 8
+
+        with patch("os.cpu_count", return_value=2):
+            # 2 cores -> 2 workers (minimum)
+            workers = health_check._get_optimal_workers(10)
+            assert workers == 2
+
+    def test_get_optimal_workers_limited_by_validator_count(self, mock_site):
+        """Test that workers don't exceed validator count."""
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        with patch("os.cpu_count", return_value=16):
+            # 16 cores -> 8 workers, but only 3 validators
+            workers = health_check._get_optimal_workers(3)
+            assert workers == 3
+
+    def test_last_stats_populated_after_run(self, mock_site):
+        """Test that last_stats is populated after run()."""
+        validators = [MockValidator(f"V{i}") for i in range(4)]
+        health_check = HealthCheck(mock_site, auto_register=False)
+        for v in validators:
+            health_check.register(v)
+
+        assert health_check.last_stats is None
+
+        health_check.run()
+
+        assert health_check.last_stats is not None
+        assert health_check.last_stats.validator_count == 4
+        assert health_check.last_stats.execution_mode == "parallel"
+        assert health_check.last_stats.total_duration_ms > 0
+
+    def test_last_stats_sequential_mode(self, mock_site):
+        """Test last_stats for sequential execution."""
+        validators = [MockValidator(f"V{i}") for i in range(2)]
+        health_check = HealthCheck(mock_site, auto_register=False)
+        for v in validators:
+            health_check.register(v)
+
+        health_check.run()
+
+        assert health_check.last_stats is not None
+        assert health_check.last_stats.execution_mode == "sequential"
+        assert health_check.last_stats.worker_count == 1
 
 
 class TestHealthCheckIntegration:

@@ -2,13 +2,17 @@
 
 ### Parallel Health Check Validators ✅
 - **health**: run validators in parallel using `ThreadPoolExecutor` for 50-70% faster health checks
-- **health**: add `_run_validators_parallel()` method with 4 worker threads
+- **health**: add `_run_validators_parallel()` method with auto-scaling worker count
 - **health**: add `_run_validators_sequential()` method for workloads below threshold
+- **health**: add `_get_optimal_workers()` for CPU-aware auto-scaling (50% of cores, 2-8 range)
 - **health**: add `PARALLEL_THRESHOLD` (3 validators) to avoid thread overhead for small workloads
 - **health**: add `_is_validator_enabled()` helper method for cleaner profile/config filtering
 - **health**: add `_run_single_validator()` helper for isolated validator execution with error handling
 - **health**: error isolation ensures one validator crash doesn't affect others
-- **tests**: add `test_health_check.py` with 13 tests for parallel execution and error handling
+- **health**: add `HealthCheckStats` dataclass with speedup/efficiency metrics
+- **health**: add `last_stats` property for observability (total_duration_ms, speedup, efficiency)
+- **health**: verbose mode shows execution mode, worker count, and performance metrics
+- **tests**: add `test_health_check.py` with 21 tests for parallel execution, auto-scaling, and observability
 
 ### Remove Experimental Reactive Dataflow Pipeline ❌
 - **pipeline**: remove `bengal/pipeline/` module (15 files) - experimental reactive dataflow system had fundamental architectural gaps

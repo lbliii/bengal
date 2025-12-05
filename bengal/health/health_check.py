@@ -7,8 +7,10 @@ Supports parallel execution of validators for improved performance.
 
 from __future__ import annotations
 
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +21,71 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
     from bengal.utils.profile import BuildProfile
+
+
+@dataclass
+class HealthCheckStats:
+    """
+    Statistics about health check execution.
+
+    Provides observability into parallel execution performance.
+    """
+
+    total_duration_ms: float
+    """Total wall-clock time for all validators."""
+
+    execution_mode: str
+    """'parallel' or 'sequential'."""
+
+    validator_count: int
+    """Number of validators that ran."""
+
+    worker_count: int
+    """Number of worker threads used (1 for sequential)."""
+
+    cpu_count: int
+    """Available CPU cores on system."""
+
+    sum_validator_duration_ms: float
+    """Sum of individual validator durations (useful for speedup calculation)."""
+
+    @property
+    def speedup(self) -> float:
+        """
+        Calculate speedup from parallel execution.
+
+        Returns ratio of sum(individual durations) / total duration.
+        A speedup of 2.0 means parallel was 2x faster than sequential would be.
+        """
+        if self.total_duration_ms == 0:
+            return 1.0
+        return self.sum_validator_duration_ms / self.total_duration_ms
+
+    @property
+    def efficiency(self) -> float:
+        """
+        Calculate parallel efficiency (0.0 to 1.0).
+
+        efficiency = speedup / worker_count
+        1.0 = perfect scaling, 0.5 = 50% efficiency
+        """
+        if self.worker_count == 0:
+            return 0.0
+        return self.speedup / self.worker_count
+
+    def format_summary(self) -> str:
+        """Format a human-readable summary."""
+        mode_emoji = "⚡" if self.execution_mode == "parallel" else "📝"
+        lines = [
+            f"{mode_emoji} Health check: {self.total_duration_ms:.1f}ms "
+            f"({self.execution_mode}, {self.validator_count} validators)",
+        ]
+        if self.execution_mode == "parallel":
+            lines.append(
+                f"   Workers: {self.worker_count}/{self.cpu_count} cores, "
+                f"Speedup: {self.speedup:.1f}x, Efficiency: {self.efficiency:.0%}"
+            )
+        return "\n".join(lines)
 
 
 class HealthCheck:
@@ -114,8 +181,31 @@ class HealthCheck:
 
     # Threshold for parallel execution - avoid thread overhead for small workloads
     PARALLEL_THRESHOLD = 3
-    # Maximum worker threads for parallel execution
-    MAX_WORKERS = 4
+
+    # Last execution statistics (for observability)
+    last_stats: HealthCheckStats | None = None
+
+    def _get_optimal_workers(self, validator_count: int) -> int:
+        """
+        Calculate optimal worker count based on system resources and workload.
+
+        Auto-scales based on:
+        - Available CPU cores (uses ~50% to leave headroom)
+        - Number of validators (no point having more workers than tasks)
+        - Minimum of 2 workers (for any parallelism benefit)
+        - Maximum of 8 workers (diminishing returns beyond this)
+
+        Args:
+            validator_count: Number of validators to run
+
+        Returns:
+            Optimal number of worker threads
+        """
+        cpu_count = os.cpu_count() or 4
+        # Use ~50% of cores, minimum 2, maximum 8
+        optimal = max(2, min(8, cpu_count // 2))
+        # Don't use more workers than validators
+        return min(optimal, validator_count)
 
     def run(
         self,
@@ -146,6 +236,7 @@ class HealthCheck:
         Returns:
             HealthReport with results from all validators
         """
+        overall_start = time.time()
         report = HealthReport(build_stats=build_stats)
 
         # Filter to enabled validators only
@@ -156,15 +247,44 @@ class HealthCheck:
         # Determine which files to validate (for file-specific validators)
         files_to_validate = self._get_files_to_validate(context, incremental, cache)
 
+        # Track execution mode and workers for stats
+        cpu_count = os.cpu_count() or 4
+        execution_mode: str
+        worker_count: int
+
         # Choose execution strategy based on validator count
         if len(enabled_validators) >= self.PARALLEL_THRESHOLD:
+            worker_count = self._get_optimal_workers(len(enabled_validators))
+            execution_mode = "parallel"
+            if verbose:
+                print(f"  ⚡ Running {len(enabled_validators)} validators in parallel ({worker_count} workers)")
             self._run_validators_parallel(
-                enabled_validators, report, build_context, verbose, cache, files_to_validate
+                enabled_validators, report, build_context, verbose, cache, files_to_validate, worker_count
             )
         else:
+            worker_count = 1
+            execution_mode = "sequential"
+            if verbose and len(enabled_validators) > 0:
+                print(f"  📝 Running {len(enabled_validators)} validators sequentially")
             self._run_validators_sequential(
                 enabled_validators, report, build_context, verbose, cache, files_to_validate
             )
+
+        # Calculate and store stats
+        total_duration_ms = (time.time() - overall_start) * 1000
+        sum_validator_duration = sum(vr.duration_ms for vr in report.validator_reports)
+
+        self.last_stats = HealthCheckStats(
+            total_duration_ms=total_duration_ms,
+            execution_mode=execution_mode,
+            validator_count=len(enabled_validators),
+            worker_count=worker_count,
+            cpu_count=cpu_count,
+            sum_validator_duration_ms=sum_validator_duration,
+        )
+
+        if verbose:
+            print(self.last_stats.format_summary())
 
         return report
 
@@ -362,6 +482,7 @@ class HealthCheck:
         verbose: bool,
         cache: Any,
         files_to_validate: set[Path] | None,
+        worker_count: int | None = None,
     ) -> None:
         """
         Run validators in parallel using ThreadPoolExecutor.
@@ -377,9 +498,10 @@ class HealthCheck:
             verbose: Whether to show per-validator output
             cache: Optional BuildCache for result caching
             files_to_validate: Set of files to validate (for incremental mode)
+            worker_count: Number of worker threads (auto-detected if None)
         """
-        # Use up to MAX_WORKERS threads (balance parallelism vs overhead)
-        max_workers = min(self.MAX_WORKERS, len(validators))
+        # Use provided worker count or auto-detect
+        max_workers = worker_count or self._get_optimal_workers(len(validators))
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all validators for parallel execution
