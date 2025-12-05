@@ -1,6 +1,6 @@
 # RFC: Build-Integrated Validation Architecture
 
-**Status**: Review
+**Status**: Implemented
 **Created**: 2025-12-05
 **Author**: AI Pair
 **Depends On**: `rfc-lazy-build-artifacts.md` (implemented)
@@ -27,7 +27,7 @@ BUILD PHASE                          HEALTH CHECK PHASE
 2. Parse markdown                    2. Parse directive patterns AGAIN
 3. Render HTML                       3. Scan for issues
 4. Write output                      4. Build knowledge graph
-                                     
+
 Total: 3.1s                          Total: 4.6s (mostly disk I/O!)
 ```
 
@@ -100,21 +100,21 @@ from threading import Lock
 @dataclass
 class BuildContext:
     site: Site
-    
+
     # Content cache - populated during discovery, shared by validators
     _page_contents: dict[str, str] = field(default_factory=dict)
     _cache_lock: Lock = field(default_factory=Lock, repr=False)
-    
+
     def cache_content(self, source_path: Path, content: str) -> None:
         """Cache raw content during discovery phase (thread-safe)."""
         with self._cache_lock:
             self._page_contents[str(source_path)] = content
-    
+
     def get_content(self, source_path: Path) -> str | None:
         """Get cached content without disk I/O."""
         with self._cache_lock:
             return self._page_contents.get(str(source_path))
-    
+
     @cached_property
     def directive_analysis(self) -> dict[str, DirectiveData]:
         """Analyze all directives once using cached content."""
@@ -135,11 +135,11 @@ class ContentDiscovery:
     def _parse_content_file(self, file_path: Path) -> tuple:
         # Existing file read logic using utils.file_io
         file_content = read_text_file(file_path, ...)
-        
+
         # Cache for validators (single read, shared by all)
         if self.build_context:
             self.build_context.cache_content(file_path, file_content)
-        
+
         # Existing parsing logic...
         try:
             post = frontmatter.loads(file_content)
@@ -366,4 +366,3 @@ if cached_hash == current_hash:
 1. Should we clear the content cache immediately after validation, or keep it for dev server reloads?
 2. Should tier 1 validators be hardcoded or configurable?
 3. Should we add a `--quick` flag that skips all validation (for rapid iteration)?
-

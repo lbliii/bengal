@@ -267,9 +267,17 @@ class HealthCheck:
             worker_count = self._get_optimal_workers(len(enabled_validators))
             execution_mode = "parallel"
             if verbose:
-                print(f"  ⚡ Running {len(enabled_validators)} validators in parallel ({worker_count} workers)")
+                print(
+                    f"  ⚡ Running {len(enabled_validators)} validators in parallel ({worker_count} workers)"
+                )
             self._run_validators_parallel(
-                enabled_validators, report, build_context, verbose, cache, files_to_validate, worker_count
+                enabled_validators,
+                report,
+                build_context,
+                verbose,
+                cache,
+                files_to_validate,
+                worker_count,
             )
         else:
             worker_count = 1
@@ -297,6 +305,54 @@ class HealthCheck:
             print(self.last_stats.format_summary())
 
         return report
+
+    def _is_validator_in_tier(self, validator: BaseValidator, tier: str) -> bool:
+        """
+        Check if a validator should run based on the validation tier.
+
+        Tiered validation allows fast builds by default with thorough checks
+        available when needed.
+
+        Tiers (cumulative):
+            - "build": Fast validators only (<100ms)
+            - "full": + Knowledge graph validators (~500ms)
+            - "ci": All validators including external checks (~30s)
+
+        Args:
+            validator: The validator to check
+            tier: One of "build", "full", or "ci"
+
+        Returns:
+            True if validator should run for this tier
+        """
+        from bengal.config.defaults import get_feature_config
+
+        health_config = get_feature_config(self.site.config, "health_check")
+
+        # Get tier validator lists
+        build_validators = health_config.get("build_validators", [])
+        full_validators = health_config.get("full_validators", [])
+        ci_validators = health_config.get("ci_validators", [])
+
+        # Normalize validator name for comparison
+        validator_key = validator.name.lower().replace(" ", "_")
+
+        # Determine which tiers this validator belongs to
+        in_build = validator_key in [v.lower() for v in build_validators]
+        in_full = validator_key in [v.lower() for v in full_validators]
+        in_ci = validator_key in [v.lower() for v in ci_validators]
+
+        # If validator is not in any tier list, include it by default (backward compat)
+        if not in_build and not in_full and not in_ci:
+            return True
+
+        # Check if validator should run for requested tier (dict lookup avoids consecutive if)
+        tier_checks = {
+            "build": in_build,
+            "full": in_build or in_full,
+            "ci": True,  # All validators run in CI tier
+        }
+        return tier_checks.get(tier, in_build)  # Unknown tier defaults to build
 
     def _is_validator_enabled(
         self, validator: BaseValidator, profile: BuildProfile | None, verbose: bool
