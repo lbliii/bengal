@@ -9,8 +9,6 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
-
 from bengal.config.env_overrides import apply_env_overrides
 
 
@@ -93,8 +91,13 @@ class TestApplyEnvOverridesNetlify:
     def test_netlify_not_detected_without_flag(self):
         """Netlify not detected without NETLIFY=true."""
         config = {"baseurl": ""}
-        env = {"URL": "https://mysite.netlify.app"}  # Missing NETLIFY=true
-        with patch.dict(os.environ, env, clear=False):
+        # Clear platform env vars that might be set in CI
+        clean_env = {
+            "URL": "https://mysite.netlify.app",  # Missing NETLIFY=true
+            "GITHUB_ACTIONS": "",  # Clear in case running in GitHub Actions CI
+            "VERCEL": "",
+        }
+        with patch.dict(os.environ, clean_env, clear=False):
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""
 
@@ -188,7 +191,13 @@ class TestApplyEnvOverridesGitHub:
     def test_github_not_detected_without_flag(self):
         """GitHub not detected without GITHUB_ACTIONS=true."""
         config = {"baseurl": ""}
-        env = {"GITHUB_REPOSITORY": "owner/myrepo"}  # Missing GITHUB_ACTIONS
+        # Clear platform env vars that might be set in CI
+        env = {
+            "GITHUB_REPOSITORY": "owner/myrepo",  # Missing GITHUB_ACTIONS
+            "GITHUB_ACTIONS": "",  # Explicitly clear (might be set in CI)
+            "NETLIFY": "",
+            "VERCEL": "",
+        }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""
@@ -247,7 +256,13 @@ class TestApplyEnvOverridesEdgeCases:
     def test_empty_env_vars_ignored(self):
         """Empty environment variables are ignored."""
         config = {"baseurl": ""}
-        env = {"BENGAL_BASEURL": ""}  # Empty string
+        # Clear platform env vars that might be set in CI
+        env = {
+            "BENGAL_BASEURL": "",  # Empty string should be ignored
+            "GITHUB_ACTIONS": "",  # Clear in case running in GitHub Actions CI
+            "NETLIFY": "",
+            "VERCEL": "",
+        }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""
@@ -267,4 +282,3 @@ class TestApplyEnvOverridesEdgeCases:
         with patch.dict(os.environ, {"BENGAL_BASEURL": "https://test.com"}, clear=False):
             result = apply_env_overrides(config)
         assert result is config
-

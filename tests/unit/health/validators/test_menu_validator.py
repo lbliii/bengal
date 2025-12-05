@@ -263,4 +263,3 @@ class TestMenuValidatorMenuBuilder:
         # Should still get success with item count
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         assert len(success_results) >= 1
-
