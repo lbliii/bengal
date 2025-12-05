@@ -1,6 +1,6 @@
 # RFC: Test Coverage Gap Analysis and Remediation
 
-**Status**: Draft  
+**Status**: Review  
 **Created**: 2025-12-05  
 **Author**: AI Assistant  
 **Scope**: Test Suite Completeness
@@ -9,7 +9,9 @@
 
 ## Executive Summary
 
-Bengal has excellent test coverage on critical paths (75-100%) with 4,000+ tests. However, a systematic analysis reveals **45+ source files lacking any test coverage**, particularly in utils, config, health validators, and orchestration phases.
+Bengal has excellent test coverage on critical paths (75-100%) with 4,000+ tests. However, a systematic analysis reveals **45+ source files lacking any direct unit test coverage**, particularly in utils, config, health validators, and orchestration phases.
+
+Crucially, the current build orchestration tests rely heavily on mocking phase execution, leaving the actual logic within build phases (`content.py`, `rendering.py`, etc.) effectively untested at the unit level.
 
 **Recommendation**: Add ~25-30 new test files over 3 phases, prioritizing modules that affect build correctness.
 
@@ -44,12 +46,15 @@ A file-by-file comparison of `bengal/` against `tests/unit/` reveals:
 
 ### Risk Assessment
 
+**Critical Risk** (Hidden Gaps):
+- **Orchestration Phases**: `test_build_orchestrator.py` uses `unittest.mock` to patch out all build phases. While this verifies the *orchestrator's* flow, it leaves the *phases themselves* (`build/content.py`, `build/rendering.py`, etc.) without unit tests.
+
 **High Risk** (affects build correctness):
 - `services/validation.py` - Validation protocol with no tests
 - `utils/build_context.py` - Build state management
 - `utils/metadata.py` - Metadata extraction
 - `utils/theme_resolution.py` - Theme chain resolution
-- `orchestration/build/*.py` - Build phases
+- `orchestration/build/*.py` - Build phases logic
 
 **Medium Risk** (affects specific features):
 - Config validators and defaults
@@ -69,12 +74,12 @@ A file-by-file comparison of `bengal/` against `tests/unit/` reveals:
 1. Test coverage for all `services/` modules
 2. Test coverage for high-risk `utils/` modules
 3. Test coverage for `config/` validators and defaults
-4. Test coverage for `orchestration/build/` phases
+4. **Direct unit tests** for `orchestration/build/` phases (unmocked logic)
 
 ### Should Have
 5. Test coverage for health validators
 6. Test coverage for postprocess generators
-7. Mock-based tests for content layer sources
+7. Mock-based tests for content layer sources (using `@pytest.mark.network` where appropriate)
 
 ### Won't Have (By Design)
 - Interactive CLI wizard tests (require terminal interaction)
@@ -256,10 +261,10 @@ class DefaultTemplateValidationService:
 
 ### Rationale
 
-1. **Immediate value**: Phase 1 addresses highest-risk gaps
-2. **Flexibility**: Can adjust scope after Phase 1
-3. **Clear deliverables**: Each phase is independently mergeable
-4. **Matches existing patterns**: Bengal already uses phased approaches
+1.  **Immediate value**: Phase 1 addresses highest-risk gaps
+2.  **Flexibility**: Can adjust scope after Phase 1
+3.  **Clear deliverables**: Each phase is independently mergeable
+4.  **Matches existing patterns**: Bengal already uses phased approaches
 
 ### Implementation Plan
 
@@ -272,10 +277,13 @@ class DefaultTemplateValidationService:
 | `tests/unit/utils/test_metadata.py` | `utils/metadata.py` | Metadata extraction tests |
 | `tests/unit/utils/test_theme_resolution.py` | `utils/theme_resolution.py` | Theme chain tests |
 | `tests/unit/utils/test_sections_utils.py` | `utils/sections.py` | Section utility tests |
-| `tests/unit/orchestration/build/test_phases.py` | `build/*.py` | Phase transition tests |
+| `tests/unit/orchestration/build/test_initialization.py` | `build/initialization.py` | Context setup tests |
+| `tests/unit/orchestration/build/test_content.py` | `build/content.py` | Discovery logic tests |
+| `tests/unit/orchestration/build/test_rendering.py` | `build/rendering.py` | Rendering loop tests |
+| `tests/unit/orchestration/build/test_finalization.py` | `build/finalization.py` | Cleanup tests |
 
 **Estimated effort**: 1 day  
-**Expected test count**: ~50-80 new tests
+**Expected test count**: ~60-90 new tests
 
 #### Phase 2: Config & Health (Priority: 🟡 Medium)
 
@@ -367,19 +375,32 @@ class TestThemeResolution:
         assert chain == ["child", "default"]
 ```
 
+### Property-Based Tests (for utils)
+
+```python
+"""Property tests for metadata utilities."""
+from hypothesis import given, strategies as st
+from bengal.utils.metadata import extract_title
+
+class TestMetadataProperties:
+    @given(st.text())
+    def test_title_extraction_never_crashes(self, content):
+        """Title extraction should handle any string input."""
+        try:
+            title = extract_title(content)
+            assert isinstance(title, str | None)
+        except Exception as e:
+            pytest.fail(f"Crashed on input {content!r}: {e}")
+```
+
 ### Integration Tests (for orchestration phases)
 
 ```python
 """Tests for build phase orchestration."""
-from bengal.orchestration.build import (
-    ContentPhase,
-    FinalizationPhase,
-    InitializationPhase,
-    RenderingPhase,
-)
+from bengal.orchestration.build import InitializationPhase
 
-class TestBuildPhases:
-    """Test build phase transitions."""
+class TestInitializationPhase:
+    """Test initialization logic directly."""
 
     def test_initialization_sets_up_context(self, tmp_site):
         """InitializationPhase sets up build context."""
@@ -388,10 +409,11 @@ class TestBuildPhases:
         assert context.site is not None
         assert context.cache is not None
 
-    def test_phases_execute_in_order(self, tmp_site):
-        """Phases execute in correct order."""
-        # Test phase dependencies
-        pass
+    def test_initialization_creates_output_dirs(self, tmp_site):
+        """Output directories are created."""
+        phase = InitializationPhase(tmp_site)
+        phase.execute()
+        assert tmp_site.output_dir.exists()
 ```
 
 ---
@@ -399,7 +421,7 @@ class TestBuildPhases:
 ## 7. Success Criteria
 
 ### Phase 1 Complete When:
-- [ ] All 6 high-priority test files created
+- [ ] All 9 high-priority test files created (including separated build phase tests)
 - [ ] 50+ new tests pass
 - [ ] No regressions in existing tests
 - [ ] Coverage report shows improvement in critical modules
@@ -419,11 +441,9 @@ class TestBuildPhases:
 ## 8. Architecture Impact
 
 ### Changes Required
-
 **None** - This RFC adds tests only, no source changes needed.
 
 ### Test Infrastructure
-
 May benefit from:
 1. Additional mock fixtures for `Site`, `Page`, `Section`
 2. Shared test utilities for phase testing
@@ -441,19 +461,16 @@ May benefit from:
 
 ---
 
-## 10. Open Questions
+## 10. Open Questions & Resolutions
 
 1. **Should content layer sources have mock tests?**
-   - `github.py`, `notion.py`, `rest.py` are network-dependent
-   - Could add mock-based tests or mark as intentionally untested
+   - **Resolution**: Yes, but marked with `@pytest.mark.network` if they hit real APIs. Prefer `unittest.mock` to simulate responses for basic unit tests.
 
 2. **What coverage target for validators?**
-   - 80%? 90%? 100%?
-   - Some validators may have edge cases not worth testing
+   - **Resolution**: Aim for **90%** for logic that stops builds (Errors) and **70%** for Warnings.
 
 3. **Should we add property-based tests for new modules?**
-   - Could add Hypothesis tests for `theme_resolution`, `metadata`
-   - Adds ~100 examples per property test
+   - **Resolution**: Yes, specifically for `utils/metadata.py` (parsing safety) and `utils/theme_resolution.py` (graph logic).
 
 ---
 
@@ -462,81 +479,4 @@ May benefit from:
 - `tests/TEST_COVERAGE.md` - Current coverage documentation
 - `tests/_testing/mocks.py` - Existing mock infrastructure
 - `tests/_testing/fixtures.py` - Existing test fixtures
-- `architecture/testing.md` - Testing architecture (if exists)
-
----
-
-## Appendix: Full Gap List
-
-<details>
-<summary>Click to expand full file list</summary>
-
-### Utils (14 files)
-1. `bengal/utils/build_context.py` - ❌ No tests
-2. `bengal/utils/build_stats.py` - ❌ No tests
-3. `bengal/utils/build_summary.py` - ❌ No tests
-4. `bengal/utils/css_minifier.py` - ❌ No tests
-5. `bengal/utils/file_utils.py` - ❌ No tests
-6. `bengal/utils/js_bundler.py` - ❌ No tests
-7. `bengal/utils/live_progress.py` - ❌ No tests
-8. `bengal/utils/metadata.py` - ❌ No tests
-9. `bengal/utils/performance_collector.py` - ❌ No tests
-10. `bengal/utils/performance_report.py` - ❌ No tests
-11. `bengal/utils/progress.py` - ❌ No tests
-12. `bengal/utils/sections.py` - ❌ No tests
-13. `bengal/utils/theme_resolution.py` - ❌ No tests
-14. `bengal/utils/autodoc.py` - ❌ No tests
-
-### Services (1 file)
-1. `bengal/services/validation.py` - ❌ No tests
-
-### Config (4 files)
-1. `bengal/config/defaults.py` - ❌ No tests
-2. `bengal/config/deprecation.py` - ❌ No tests
-3. `bengal/config/validators.py` - ❌ No tests
-4. `bengal/config/env_overrides.py` - ❌ No tests
-
-### Orchestration/Build (4 files)
-1. `bengal/orchestration/build/content.py` - ❌ No tests
-2. `bengal/orchestration/build/finalization.py` - ❌ No tests
-3. `bengal/orchestration/build/initialization.py` - ❌ No tests
-4. `bengal/orchestration/build/rendering.py` - ❌ No tests
-
-### Orchestration (2 additional files)
-1. `bengal/orchestration/asset.py` - ❌ No tests
-2. `bengal/orchestration/autodoc.py` - ❌ No tests
-
-### Health Validators (11 files)
-1. `bengal/health/validators/cache.py` - ❌ No tests
-2. `bengal/health/validators/config.py` - ❌ No tests
-3. `bengal/health/validators/links.py` - ❌ No tests
-4. `bengal/health/validators/menu.py` - ❌ No tests
-5. `bengal/health/validators/output.py` - ❌ No tests
-6. `bengal/health/validators/performance.py` - ❌ No tests
-7. `bengal/health/validators/rendering.py` - ❌ No tests
-8. `bengal/health/validators/tracks.py` - ❌ No tests
-9. `bengal/health/validators/directives/analysis.py` - ❌ No tests
-10. `bengal/health/validators/directives/checkers.py` - ❌ No tests
-11. `bengal/health/validators/directives/constants.py` - ❌ No tests
-
-### Postprocess (7 files)
-1. `bengal/postprocess/rss.py` - ❌ No tests (only validator)
-2. `bengal/postprocess/sitemap.py` - ❌ No tests (only validator)
-3. `bengal/postprocess/html_output.py` - ❌ No tests
-4. `bengal/postprocess/output_formats/txt_generator.py` - ❌ No tests
-5. `bengal/postprocess/output_formats/json_generator.py` - ❌ No tests
-6. `bengal/postprocess/output_formats/lunr_index_generator.py` - ❌ No tests
-7. `bengal/postprocess/output_formats/utils.py` - ❌ No tests
-
-### Content Layer Sources (3 files)
-1. `bengal/content_layer/sources/github.py` - ❌ No tests
-2. `bengal/content_layer/sources/notion.py` - ❌ No tests
-3. `bengal/content_layer/sources/rest.py` - ❌ No tests
-
-</details>
-
----
-
-**Total Gap**: 45+ source files without tests  
-**Recommended Action**: Implement Phase 1 immediately, Phase 2-3 as follow-up
-
+- `bengal/.cursor/rules/testing-patterns.mdc` - Bengal testing standards
