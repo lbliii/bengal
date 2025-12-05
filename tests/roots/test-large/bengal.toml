@@ -1,0 +1,13 @@
+[site]
+title = "Large Test Site"
+baseurl = "/"
+description = "Site with 100+ pages for performance testing"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
+

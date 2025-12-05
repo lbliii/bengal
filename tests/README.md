@@ -1,6 +1,16 @@
 # Bengal Test Suite Guide
 
-Bengal's test suite emphasizes high coverage on the critical path (75-100%) with 4,150+ tests, including 116 property-based (Hypothesis) tests generating 11,600+ examples. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed coverage breakdown. The suite runs in ~40s total but can be optimized to <20s for local development via parallelism, markers, and shared fixtures.
+Bengal's test suite emphasizes high coverage on the critical path (75-100%) with 4,065+ test functions, including 116 property-based (Hypothesis) tests generating 11,600+ examples. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed coverage breakdown. The suite runs in ~40s total but can be optimized to <20s for local development via parallelism, markers, and shared fixtures.
+
+## Test Infrastructure
+
+- **10 test roots** in `tests/roots/` - Minimal, reusable site structures
+- **Canonical mocks** in `tests/_testing/mocks.py` - `MockPage`, `MockSection`, `MockSite`
+- **Module-scoped fixtures** in `tests/unit/rendering/conftest.py` - Efficient parser reuse
+- **CLI testing utilities** in `tests/_testing/cli.py`
+- **Output normalization** in `tests/_testing/normalize.py`
+
+See `tests/_testing/README.md` for detailed usage.
 
 ## Quick Runs (~20s)
 Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), quiet output (`-q`), and profiling of top 10 slowest tests (`--durations=10`).
@@ -92,18 +102,52 @@ With `@pytest.mark.parallel_unsafe`:
 ## Fixtures for Efficiency
 Fixtures reduce redundant setups like site builds (1-2s each).
 
-- **`shared_site_class`** (class-scoped, new in recent updates): Builds a 10-page site once per class (discovery + build). Ideal for read-only tests (URLs, navigation).  
-  Example in a test class:  
+### Site Fixtures
+
+- **`@pytest.mark.bengal(testroot="...")`**: Declarative test root usage (RECOMMENDED)
+  ```python
+  @pytest.mark.bengal(testroot="test-directives")
+  def test_card_directive(site, build_site):
+      build_site()
+      assert "card-grid" in (site.output_dir / "cards/index.html").read_text()
+  ```
+
+- **`site_factory`**: Function-scoped factory for custom setup
+  ```python
+  def test_custom(site_factory):
+      site = site_factory("test-basic", confoverrides={"site.title": "Custom"})
+  ```
+
+- **`shared_site_class`** (class-scoped): Builds a 10-page site once per class. Ideal for read-only tests.
   ```python
   class TestURLs:
       def test_url_generation(self, shared_site_class):
           site = shared_site_class
           assert len(site.pages) == 10  # Pre-built
-          page = site.pages[0]
-          assert page.url == "/"  # Test without re-building
-  ```  
-  - Modifiable copy: `pytest test_file.py::TestClass::test --fixture-param=shared_site_class=modifiable` (duplicates for changes).  
-  - Prefer over `tmp_site` (function-scoped, fresh each test) for shared reads.
+  ```
+
+### Rendering Fixtures (in `tests/unit/rendering/`)
+
+- **`parser`**: Module-scoped MistuneParser (5x reduction in parser instantiations)
+  ```python
+  def test_markdown(parser):
+      result = parser.parse("# Hello", {})
+      assert "<h1>" in result
+  ```
+
+- **`parser_with_site`**: Parser with xref_index from test-directives root
+
+### Mock Objects (in `tests/_testing/mocks.py`)
+
+Use canonical mocks instead of inline class definitions:
+```python
+from tests._testing.mocks import MockPage, MockSection, MockSite
+
+page = MockPage(title="Test", url="/test/", tags=["python"])
+site = MockSite(pages=[page])
+```
+
+### Other Fixtures
 
 - **`tmp_site(tmp_path)`**: Function-scoped temp dir—use for modifications (e.g., file changes in integrations).
 
@@ -144,4 +188,22 @@ See `tests/performance/README.md` for details (e.g., 18-42x incremental speedup 
 
 For issues, check `tests/performance/PROFILING_GUIDE.md` or run `pytest --help`.
 
-Last Updated: December 3, 2025
+## Test Roots
+
+Available test roots in `tests/roots/`:
+
+| Root | Purpose | Pages |
+|------|---------|-------|
+| `test-basic` | Minimal smoke test | 1 |
+| `test-baseurl` | URL handling | 2 |
+| `test-taxonomy` | Tags/taxonomy | 3 |
+| `test-templates` | Template escaping | 1 |
+| `test-assets` | Asset discovery | 1 |
+| `test-cascade` | Cascade inheritance | 4 |
+| `test-directives` | Card, admonition, glossary | 4+ |
+| `test-navigation` | Multi-level hierarchy | 8 |
+| `test-large` | Performance (100+ pages) | 100+ |
+
+See `tests/roots/README.md` for detailed documentation.
+
+Last Updated: December 5, 2025

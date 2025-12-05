@@ -1,29 +1,35 @@
+"""
+Tests for cross-reference bug fixes.
+
+Verifies that cross-references are NOT substituted inside code blocks.
+"""
+
+
 import pytest
 
-from bengal.rendering.parsers.mistune import MistuneParser
-
-
-class MockPage:
-    url = "/test-url/"
-    title = "Test Page"
-    slug = "test-page"
+from tests._testing.mocks import MockPage
 
 
 class TestCrossReferenceBug:
-    def test_xref_in_code_block_is_ignored(self):
+    def test_xref_in_code_block_is_ignored(self, parser):
         """
         Test that cross-references [[...]] inside code blocks are NOT substituted.
         Current suspected behavior: They are substituted because the plugin regex runs on raw HTML.
         """
-        # Mock xref index
+        # Create mock page and xref index
+        mock_page = MockPage(
+            title="Test Page",
+            url="/test-url/",
+            slug="test-page",
+        )
+
         xref_index = {
-            "by_path": {"doc/link": MockPage()},
+            "by_path": {"doc/link": mock_page},
             "by_slug": {},
             "by_id": {},
             "by_heading": {},
         }
 
-        parser = MistuneParser()
         parser.enable_cross_references(xref_index)
 
         # Markdown with a code block containing a cross-reference

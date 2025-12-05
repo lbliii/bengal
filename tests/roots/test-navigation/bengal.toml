@@ -1,0 +1,27 @@
+[site]
+title = "Navigation Test Site"
+baseurl = "/"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
+
+[[menus.main]]
+name = "Home"
+url = "/"
+weight = 1
+
+[[menus.main]]
+name = "Docs"
+url = "/docs/"
+weight = 2
+
+[[menus.main]]
+name = "Blog"
+url = "/blog/"
+weight = 3
+

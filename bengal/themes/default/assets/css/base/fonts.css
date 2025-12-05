@@ -1,0 +1,70 @@
+/**
+ * Bengal SSG - Font Loading
+ * 
+ * Default display font: Instrument Serif
+ * Uses font-display: swap to prevent FOIT (Flash of Invisible Text)
+ * 
+ * Override via bengal.toml:
+ *   [fonts]
+ *   display = "Your Font:400,700"
+ */
+
+/* ===========================================
+   GOOGLE FONTS IMPORT
+   Instrument Serif - elegant, modern serif
+   Subset: Latin only (~25KB)
+   =========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+/* ===========================================
+   FONT VARIABLES
+   Applied to :root for global access
+   =========================================== */
+
+:root {
+  /* 
+   * Default display font - Instrument Serif
+   * This can be overridden by:
+   * 1. --font-display from bengal.toml [fonts] config
+   * 2. Custom CSS override
+   */
+  --font-display-default: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+}
+
+/* ===========================================
+   FONT FEATURE SETTINGS
+   Optimize for readability
+   =========================================== */
+
+/* Enable common ligatures and old-style figures for display text */
+h1, h2, .display-text, .hero-title {
+  font-feature-settings: 
+    'liga' 1,    /* Standard ligatures */
+    'calt' 1;    /* Contextual alternates */
+}
+
+/* ===========================================
+   FONT LOADING OPTIMIZATION
+   =========================================== */
+
+/* Preload hint class - add to critical text elements */
+.font-display {
+  font-family: var(--font-family-display);
+}
+
+/* Fallback while font loads */
+.fonts-loading h1,
+.fonts-loading h2,
+.fonts-loading .display-text {
+  /* Slightly adjust metrics to reduce layout shift */
+  letter-spacing: -0.02em;
+}
+
+/* After fonts loaded */
+.fonts-loaded h1,
+.fonts-loaded h2,
+.fonts-loaded .display-text {
+  letter-spacing: var(--tracking-display);
+}
+

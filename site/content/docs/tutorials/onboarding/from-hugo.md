@@ -1,0 +1,574 @@
+---
+title: From Hugo
+description: Onboarding guide for Hugo users migrating to Bengal
+weight: 20
+tags: [tutorial, migration, hugo, shortcodes]
+keywords: [hugo, shortcodes, go templates, migration]
+---
+
+# Bengal for Hugo Users
+
+Good news: Bengal's content model is almost identical to Hugo's. The main difference? Shortcodes become directives.
+
+## Quick Wins (5 Minutes)
+
+### What Works The Same
+
+| Hugo | Bengal | Status |
+|------|--------|--------|
+| `content/` structure | `content/` | ✅ Identical |
+| `_index.md` for sections | `_index.md` | ✅ Identical |
+| YAML/TOML frontmatter | YAML frontmatter | ✅ Identical |
+| `{{ .Params.x }}` | `{{ page.metadata.x }}` | ✅ Similar |
+| `{{ .Site.Title }}` | `{{ site.config.title }}` | ✅ Similar |
+| `config.toml` | `bengal.toml` | ✅ Similar |
+
+### The Key Difference
+
+Hugo shortcodes → Bengal directives:
+
+```markdown
+<!-- Hugo -->
+{{</* notice warning */>}}
+This is a warning
+{{</* /notice */>}}
+
+<!-- Bengal -->
+:::{warning}
+This is a warning
+:::
+```
+
+---
+
+## Shortcode → Directive Translation
+
+### Callout Boxes
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```markdown
+{{</* notice note */>}}
+This is a note with **bold** text.
+{{</* /notice */>}}
+
+{{</* notice warning */>}}
+Be careful!
+{{</* /notice */>}}
+
+{{</* notice tip */>}}
+Pro tip here.
+{{</* /notice */>}}
+```
+:::
+
+:::{tab-item} Bengal
+```markdown
+:::{note}
+This is a note with **bold** text.
+:::
+
+:::{warning}
+Be careful!
+:::
+
+:::{tip}
+Pro tip here.
+:::
+```
+:::
+
+::::
+
+### Tabs
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```markdown
+{{</* tabs */>}}
+{{</* tab "Python" */>}}
+```python
+print("Hello")
+```
+{{</* /tab */>}}
+{{</* tab "JavaScript" */>}}
+```javascript
+console.log("Hello");
+```
+{{</* /tab */>}}
+{{</* /tabs */>}}
+```
+:::
+
+:::{tab-item} Bengal
+```markdown
+::::{tab-set}
+
+:::{tab-item} Python
+```python
+print("Hello")
+```
+:::
+
+:::{tab-item} JavaScript
+```javascript
+console.log("Hello");
+```
+:::
+
+::::
+```
+:::
+
+::::
+
+### Code Highlighting
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```markdown
+{{</* highlight python "linenos=table,hl_lines=2" */>}}
+def hello():
+    print("Hello!")  # highlighted
+    return True
+{{</* /highlight */>}}
+```
+:::
+
+:::{tab-item} Bengal
+```markdown
+```python
+def hello():
+    print("Hello!")  # use comments to draw attention
+    return True
+```
+:::
+
+::::
+
+### Figure / Image
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```markdown
+{{</* figure src="/images/photo.jpg" title="My Photo" caption="A description" */>}}
+```
+:::
+
+:::{tab-item} Bengal
+```markdown
+![My Photo](/images/photo.jpg)
+
+*A description*
+
+<!-- Or use a card for more styling -->
+:::{card} My Photo
+:img-top: /images/photo.jpg
+
+A description
+:::
+```
+:::
+
+::::
+
+### YouTube Embed
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```markdown
+{{</* youtube dQw4w9WgXcQ */>}}
+```
+:::
+
+:::{tab-item} Bengal
+```markdown
+<iframe 
+  width="560" 
+  height="315" 
+  src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+  frameborder="0" 
+  allowfullscreen>
+</iframe>
+```
+:::
+
+::::
+
+:::{note}
+Bengal doesn't have a built-in YouTube shortcode. Use standard HTML embeds or create a custom template partial.
+:::
+
+---
+
+## Template Variable Mapping
+
+### Page Variables
+
+| Hugo | Bengal | Notes |
+|------|--------|-------|
+| `{{ .Title }}` | `{{ page.title }}` | Page title |
+| `{{ .Content }}` | `{{ content }}` | Rendered content |
+| `{{ .Date }}` | `{{ page.date }}` | Publication date |
+| `{{ .Params.x }}` | `{{ page.metadata.x }}` | Custom frontmatter |
+| `{{ .Summary }}` | `{{ page.excerpt }}` | Auto-generated |
+| `{{ .WordCount }}` | `{{ page.word_count }}` | Word count |
+| `{{ .ReadingTime }}` | `{{ page.reading_time }}` | Minutes to read |
+| `{{ .Permalink }}` | `{{ page.url }}` | Full URL |
+| `{{ .RelPermalink }}` | `{{ page.path }}` | Relative path |
+
+### Site Variables
+
+| Hugo | Bengal | Notes |
+|------|--------|-------|
+| `{{ .Site.Title }}` | `{{ site.config.title }}` | Site title |
+| `{{ .Site.BaseURL }}` | `{{ site.config.baseurl }}` | Base URL |
+| `{{ .Site.Params.x }}` | `{{ site.config.params.x }}` | Custom params |
+| `{{ .Site.Pages }}` | `{{ site.pages }}` | All pages |
+| `{{ .Site.Menus }}` | `{{ site.menus }}` | Menu data |
+
+### Variable Substitution in Content
+
+Bengal supports variable substitution directly in markdown (not just templates):
+
+```markdown
+---
+title: Release Notes
+version: "2.5.0"
+release_date: "2025-01-15"
+---
+
+# {{ page.title }}
+
+**Version {{ page.metadata.version }}** released on {{ page.metadata.release_date }}.
+
+Current site: {{ site.config.title }}
+```
+
+:::{tip}
+This is unique to Bengal—Hugo only supports variables in templates, not content files.
+:::
+
+---
+
+## Configuration Mapping
+
+### Basic Site Config
+
+::::{tab-set}
+
+:::{tab-item} Hugo (config.toml)
+```toml
+baseURL = "https://example.com"
+title = "My Site"
+languageCode = "en-us"
+theme = "docsy"
+
+[params]
+  description = "My awesome site"
+  github_repo = "https://github.com/user/repo"
+```
+:::
+
+:::{tab-item} Bengal (bengal.toml)
+```toml
+[site]
+baseurl = "https://example.com"
+title = "My Site"
+language = "en"
+theme = "bengal"
+
+[site.params]
+description = "My awesome site"
+github_repo = "https://github.com/user/repo"
+```
+:::
+
+::::
+
+### Menu Configuration
+
+::::{tab-set}
+
+:::{tab-item} Hugo
+```toml
+[[menu.main]]
+  name = "Docs"
+  url = "/docs/"
+  weight = 10
+
+[[menu.main]]
+  name = "Blog"
+  url = "/blog/"
+  weight = 20
+```
+:::
+
+:::{tab-item} Bengal
+```toml
+[[site.menu.main]]
+name = "Docs"
+url = "/docs/"
+weight = 10
+
+[[site.menu.main]]
+name = "Blog"
+url = "/blog/"
+weight = 20
+```
+:::
+
+::::
+
+---
+
+## Directory Structure Comparison
+
+| Hugo | Bengal | Notes |
+|------|--------|-------|
+| `content/` | `content/` | ✅ Same |
+| `static/` | `assets/` | Different name |
+| `layouts/` | `themes/[name]/templates/` | Template location |
+| `themes/` | `themes/` | ✅ Same |
+| `data/` | `data/` | ✅ Same |
+| `config.toml` | `bengal.toml` | Different name |
+| `archetypes/` | Not used | Use templates |
+| `resources/` | Auto-managed | No equivalent |
+
+---
+
+## What Bengal Adds (Hugo Doesn't Have Built-in)
+
+### Cards Grid
+
+```markdown
+::::{cards}
+:columns: 3
+
+:::{card} Feature 1
+:icon: 🚀
+:link: /docs/feature1/
+
+Quick description
+:::
+
+:::{card} Feature 2
+:icon: 📦
+:link: /docs/feature2/
+
+Another feature
+:::
+
+::::
+```
+
+### Visual Steps
+
+```markdown
+:::::{steps}
+
+::::{step} Install
+```bash
+pip install bengal
+```
+::::
+
+::::{step} Create Site
+```bash
+bengal new site mysite
+```
+::::
+
+::::{step} Start Server
+```bash
+bengal site serve
+```
+::::
+
+:::::
+```
+
+### Interactive Data Tables
+
+```markdown
+:::{data-table}
+:source: data/products.yaml
+:columns: name, price, stock
+:sortable: true
+:filterable: true
+:::
+```
+
+### Centralized Glossary
+
+```markdown
+<!-- Define in data/glossary.yaml -->
+<!-- Use in any page: -->
+:::{glossary}
+:tags: api, authentication
+:::
+```
+
+### Navigation Directives
+
+```markdown
+<!-- Auto-generate from section children -->
+:::{child-cards}
+:columns: 2
+:::
+
+<!-- Show sibling pages -->
+:::{siblings}
+:::
+
+<!-- Prev/Next navigation -->
+:::{prev-next}
+:::
+```
+
+---
+
+## What's Different (Honest Gaps)
+
+| Hugo Feature | Bengal Status | Workaround |
+|--------------|---------------|------------|
+| Custom shortcodes | Use directives | Built-in directives cover most cases |
+| Go templates | Jinja2 templates | Similar concepts, different syntax |
+| Hugo Modules | Local themes only | Copy theme files |
+| `.GetPage` function | Template functions | Different API |
+| Image processing | Not built-in | External tools |
+| Multilingual i18n | `lang` frontmatter | Simpler approach |
+
+### Template Syntax Differences
+
+| Hugo (Go) | Bengal (Jinja2) |
+|-----------|-----------------|
+| `{{ if .Params.x }}` | `{% if page.metadata.x %}` |
+| `{{ range .Pages }}` | `{% for page in pages %}` |
+| `{{ .Title \| upper }}` | `{{ page.title \| upper }}` |
+| `{{ with .Params.x }}` | `{% if page.metadata.x %}` |
+| `{{ partial "name" . }}` | `{% include "partials/name.html" %}` |
+
+---
+
+## Migration Steps
+
+### Step 1: Copy Content
+
+```bash
+# Copy your Hugo content
+cp -r /path/to/hugo/content/* content/
+
+# Content structure is compatible
+```
+
+### Step 2: Convert Frontmatter
+
+The only change: `categories` (plural) → `category` (singular)
+
+```yaml
+# Hugo
+categories: [tutorial, python]
+
+# Bengal
+category: tutorial
+tags: [python]  # Use tags for multiple
+```
+
+### Step 3: Convert Shortcodes
+
+Search for `{{<` and replace with directives:
+
+```bash
+# Find all shortcode usages
+grep -r "{{<" content/
+```
+
+Common conversions:
+
+| Find | Replace With |
+|------|--------------|
+| `{{</* notice note */>}}...{{</* /notice */>}}` | `:::{note}...:::` |
+| `{{</* highlight python */>}}...{{</* /highlight */>}}` | ` ```python...``` ` |
+| `{{</* tabs */>}}...{{</* /tabs */>}}` | `::::{tab-set}...::::` |
+
+### Step 4: Update Config
+
+```bash
+# Rename config
+mv config.toml bengal.toml
+
+# Update format (see config mapping above)
+```
+
+### Step 5: Test
+
+```bash
+bengal site build
+bengal health check
+bengal site serve
+```
+
+---
+
+## Migration Checklist
+
+:::{checklist} Before You Start
+- [ ] Install Bengal: `pip install bengal`
+- [ ] Backup your Hugo site
+- [ ] Create new Bengal site: `bengal new site mysite`
+:::
+
+:::{checklist} Content Migration
+- [ ] Copy `content/` directory
+- [ ] Convert shortcodes to directives
+- [ ] Update `categories` → `category` in frontmatter
+- [ ] Check variable syntax in templates
+:::
+
+:::{checklist} Assets Migration
+- [ ] Copy `static/` to `assets/`
+- [ ] Update asset paths in content if needed
+:::
+
+:::{checklist} Config Migration
+- [ ] Convert `config.toml` to `bengal.toml`
+- [ ] Update menu configuration
+- [ ] Set theme and other options
+:::
+
+:::{checklist} Verify
+- [ ] Build: `bengal site build`
+- [ ] Check: `bengal health check`
+- [ ] Preview: `bengal site serve`
+:::
+
+---
+
+## Quick Reference Card
+
+| Task | Hugo | Bengal |
+|------|------|--------|
+| New site | `hugo new site` | `bengal new site` |
+| Build | `hugo` | `bengal site build` |
+| Serve | `hugo server` | `bengal site serve` |
+| New content | `hugo new docs/page.md` | Create file directly |
+| Check links | External tool | `bengal health check` |
+| Note callout | `{{</* notice note */>}}` | `:::{note}` |
+| Warning | `{{</* notice warning */>}}` | `:::{warning}` |
+| Tabs | `{{</* tabs */>}}` | `::::{tab-set}` |
+| Code | `{{</* highlight */>}}` | ` ```lang ` |
+
+---
+
+## Next Steps
+
+- [Migrate from Hugo](/docs/tutorials/migrate-from-hugo/) - Detailed migration guide
+- [Directives Reference](/docs/reference/directives/) - All available directives
+- [Configuration](/docs/about/concepts/configuration/) - Full config reference
+

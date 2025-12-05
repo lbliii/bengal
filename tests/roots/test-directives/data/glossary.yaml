@@ -1,0 +1,15 @@
+# Glossary data for testing glossary directives
+
+terms:
+  - term: "Directive"
+    definition: "A special syntax extension that enables additional functionality in markdown content."
+
+  - term: "Admonition"
+    definition: "A visually distinct block used to call attention to important information."
+
+  - term: "Card"
+    definition: "A visual component that displays content in a bordered, clickable container."
+
+  - term: "Test Root"
+    definition: "A minimal site structure used for testing specific Bengal features."
+

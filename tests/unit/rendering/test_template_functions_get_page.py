@@ -1,6 +1,5 @@
 """Tests for get_page template function used by tracks feature."""
 
-from __future__ import annotations
 
 from pathlib import Path
 

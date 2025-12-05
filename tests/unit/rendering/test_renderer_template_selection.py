@@ -2,11 +2,16 @@
 Unit tests for Renderer template selection logic.
 """
 
+from __future__ import annotations
+
+
+
 from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.core.page import Page
 from bengal.rendering.renderer import Renderer
+from tests._testing.mocks import MockSection
 
 
 class MockTemplateEngine:
@@ -27,16 +32,6 @@ class MockTemplateEngine:
         self.env.get_template = mock_get_template
 
 
-class MockSection:
-    """Mock section for testing."""
-
-    def __init__(self, name):
-        from pathlib import Path
-
-        self.name = name
-        self.path = Path(f"/content/{name}")  # Add required path attribute
-
-
 class TestTemplateSelection:
     """Tests for Renderer._get_template_name() logic."""
 
@@ -45,7 +40,7 @@ class TestTemplateSelection:
         from bengal.core.site import Site
 
         page = Page(source_path=source_path, metadata=metadata)
-        section = MockSection(section_name)
+        section = MockSection(name=section_name, title=section_name, path=Path(f"/content/{section_name}"))
 
         # Create minimal mock site with section registry
         site = Site(root_path=Path("/site"), config={})
@@ -364,7 +359,7 @@ class TestTemplateMocking:
 
     def test_mock_section(self):
         """Test mock section setup."""
-        section = MockSection("docs")
+        section = MockSection(name="docs", title="Docs")
         assert section.name == "docs"
 
     def test_page_creation(self):

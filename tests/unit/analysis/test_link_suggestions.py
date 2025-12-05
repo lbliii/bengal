@@ -4,7 +4,6 @@ Unit tests for link suggestion engine.
 
 from collections import defaultdict
 from pathlib import Path
-from unittest.mock import Mock
 
 from bengal.analysis.link_suggestions import (
     LinkSuggestion,
@@ -12,6 +11,18 @@ from bengal.analysis.link_suggestions import (
     LinkSuggestionResults,
     suggest_links,
 )
+from tests._testing.mocks import MockAnalysisPage
+
+
+def _create_mock_graph(pages: list[MockAnalysisPage]):
+    """Create a mock graph with the given pages."""
+    from unittest.mock import Mock
+
+    graph = Mock()
+    graph.get_analysis_pages.return_value = pages
+    graph.outgoing_refs = defaultdict(set)
+    graph.incoming_refs = defaultdict(int)
+    return graph
 
 
 class TestLinkSuggestion:
@@ -19,8 +30,8 @@ class TestLinkSuggestion:
 
     def test_link_suggestion_creation(self):
         """Test creating a link suggestion."""
-        source = Mock(title="Source Page", source_path=Path("source.md"))
-        target = Mock(title="Target Page", source_path=Path("target.md"))
+        source = MockAnalysisPage(source_path=Path("source.md"), title="Source Page")
+        target = MockAnalysisPage(source_path=Path("target.md"), title="Target Page")
 
         suggestion = LinkSuggestion(
             source=source, target=target, score=0.75, reasons=["Shared tags: python, testing"]
@@ -33,8 +44,8 @@ class TestLinkSuggestion:
 
     def test_link_suggestion_repr(self):
         """Test string representation."""
-        source = Mock(title="Source", source_path=Path("source.md"))
-        target = Mock(title="Target", source_path=Path("target.md"))
+        source = MockAnalysisPage(source_path=Path("source.md"), title="Source")
+        target = MockAnalysisPage(source_path=Path("target.md"), title="Target")
 
         suggestion = LinkSuggestion(source=source, target=target, score=0.5, reasons=[])
 
@@ -48,10 +59,10 @@ class TestLinkSuggestionResults:
 
     def test_get_suggestions_for_page(self):
         """Test getting suggestions for specific page."""
-        source1 = Mock(source_path=Path("source1.md"))
-        source2 = Mock(source_path=Path("source2.md"))
-        target1 = Mock(source_path=Path("target1.md"))
-        target2 = Mock(source_path=Path("target2.md"))
+        source1 = MockAnalysisPage(source_path=Path("source1.md"))
+        source2 = MockAnalysisPage(source_path=Path("source2.md"))
+        target1 = MockAnalysisPage(source_path=Path("target1.md"))
+        target2 = MockAnalysisPage(source_path=Path("target2.md"))
 
         suggestions = [
             LinkSuggestion(source1, target1, 0.8, ["reason1"]),
@@ -72,9 +83,24 @@ class TestLinkSuggestionResults:
     def test_get_top_suggestions(self):
         """Test getting top suggestions across all pages."""
         suggestions = [
-            LinkSuggestion(Mock(), Mock(), 0.9, []),
-            LinkSuggestion(Mock(), Mock(), 0.5, []),
-            LinkSuggestion(Mock(), Mock(), 0.7, []),
+            LinkSuggestion(
+                MockAnalysisPage(source_path=Path("a.md")),
+                MockAnalysisPage(source_path=Path("b.md")),
+                0.9,
+                [],
+            ),
+            LinkSuggestion(
+                MockAnalysisPage(source_path=Path("c.md")),
+                MockAnalysisPage(source_path=Path("d.md")),
+                0.5,
+                [],
+            ),
+            LinkSuggestion(
+                MockAnalysisPage(source_path=Path("e.md")),
+                MockAnalysisPage(source_path=Path("f.md")),
+                0.7,
+                [],
+            ),
         ]
 
         results = LinkSuggestionResults(suggestions, 3, 2)
@@ -87,13 +113,13 @@ class TestLinkSuggestionResults:
 
     def test_get_suggestions_by_target(self):
         """Test getting suggestions pointing to specific target."""
-        target = Mock(source_path=Path("target.md"))
-        other = Mock(source_path=Path("other.md"))
+        target = MockAnalysisPage(source_path=Path("target.md"))
+        other = MockAnalysisPage(source_path=Path("other.md"))
 
         suggestions = [
-            LinkSuggestion(Mock(), target, 0.8, []),
-            LinkSuggestion(Mock(), other, 0.6, []),
-            LinkSuggestion(Mock(), target, 0.7, []),
+            LinkSuggestion(MockAnalysisPage(source_path=Path("a.md")), target, 0.8, []),
+            LinkSuggestion(MockAnalysisPage(source_path=Path("b.md")), other, 0.6, []),
+            LinkSuggestion(MockAnalysisPage(source_path=Path("c.md")), target, 0.7, []),
         ]
 
         results = LinkSuggestionResults(suggestions, 3, 2)
@@ -109,10 +135,7 @@ class TestLinkSuggestionEngine:
 
     def test_empty_graph(self):
         """Test with empty graph."""
-        graph = Mock()
-        graph.get_analysis_pages.return_value = []
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([])
 
         engine = LinkSuggestionEngine(graph)
         results = engine.generate_suggestions()
@@ -122,15 +145,8 @@ class TestLinkSuggestionEngine:
 
     def test_single_page(self):
         """Test with single page."""
-        page = Mock(source_path=Path("page.md"), metadata={})
-        page.tags = []
-        page.category = None
-        del page.categories  # Remove the categories attribute
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        page = MockAnalysisPage(source_path=Path("page.md"))
+        graph = _create_mock_graph([page])
 
         engine = LinkSuggestionEngine(graph)
         results = engine.generate_suggestions()
@@ -140,25 +156,15 @@ class TestLinkSuggestionEngine:
 
     def test_shared_tags_scoring(self):
         """Test that pages with shared tags get higher scores."""
-        page1 = Mock(source_path=Path("page1.md"), metadata={})
-        page1.tags = ["python", "testing"]
-        page1.category = None
-        del page1.categories
+        page1 = MockAnalysisPage(
+            source_path=Path("page1.md"), tags=["python", "testing"]
+        )
+        page2 = MockAnalysisPage(
+            source_path=Path("page2.md"), tags=["python", "coding"]
+        )
+        page3 = MockAnalysisPage(source_path=Path("page3.md"), tags=["javascript"])
 
-        page2 = Mock(source_path=Path("page2.md"), metadata={})
-        page2.tags = ["python", "coding"]
-        page2.category = None
-        del page2.categories
-
-        page3 = Mock(source_path=Path("page3.md"), metadata={})
-        page3.tags = ["javascript"]
-        page3.category = None
-        del page3.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page1, page2, page3]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([page1, page2, page3])
 
         engine = LinkSuggestionEngine(graph, min_score=0.0)
         results = engine.generate_suggestions()
@@ -173,25 +179,11 @@ class TestLinkSuggestionEngine:
 
     def test_category_scoring(self):
         """Test that pages in same category get scored."""
-        page1 = Mock(source_path=Path("page1.md"), metadata={})
-        page1.tags = []
-        page1.category = "Tutorial"
-        del page1.categories
+        page1 = MockAnalysisPage(source_path=Path("page1.md"), category="Tutorial")
+        page2 = MockAnalysisPage(source_path=Path("page2.md"), category="Tutorial")
+        page3 = MockAnalysisPage(source_path=Path("page3.md"), category="Reference")
 
-        page2 = Mock(source_path=Path("page2.md"), metadata={})
-        page2.tags = []
-        page2.category = "Tutorial"
-        del page2.categories
-
-        page3 = Mock(source_path=Path("page3.md"), metadata={})
-        page3.tags = []
-        page3.category = "Reference"
-        del page3.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page1, page2, page3]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([page1, page2, page3])
 
         engine = LinkSuggestionEngine(graph, min_score=0.0)
         results = engine.generate_suggestions()
@@ -205,21 +197,11 @@ class TestLinkSuggestionEngine:
 
     def test_excludes_existing_links(self):
         """Test that existing links are excluded."""
-        page1 = Mock(source_path=Path("page1.md"), metadata={})
-        page1.tags = ["python"]
-        page1.category = None
-        del page1.categories
+        page1 = MockAnalysisPage(source_path=Path("page1.md"), tags=["python"])
+        page2 = MockAnalysisPage(source_path=Path("page2.md"), tags=["python"])
 
-        page2 = Mock(source_path=Path("page2.md"), metadata={})
-        page2.tags = ["python"]
-        page2.category = None
-        del page2.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page1, page2]
-        graph.outgoing_refs = defaultdict(set)
+        graph = _create_mock_graph([page1, page2])
         graph.outgoing_refs[page1] = {page2}  # Existing link
-        graph.incoming_refs = defaultdict(int)
         graph.incoming_refs[page2] = 1
 
         engine = LinkSuggestionEngine(graph)
@@ -231,15 +213,8 @@ class TestLinkSuggestionEngine:
 
     def test_excludes_self_links(self):
         """Test that self-links are excluded."""
-        page = Mock(source_path=Path("page.md"), metadata={})
-        page.tags = ["python"]
-        page.category = None
-        del page.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        page = MockAnalysisPage(source_path=Path("page.md"), tags=["python"])
+        graph = _create_mock_graph([page])
 
         engine = LinkSuggestionEngine(graph)
         results = engine.generate_suggestions()
@@ -250,25 +225,11 @@ class TestLinkSuggestionEngine:
 
     def test_underlinked_bonus(self):
         """Test that underlinked pages get bonus."""
-        page1 = Mock(source_path=Path("page1.md"), metadata={})
-        page1.tags = []
-        page1.category = None
-        del page1.categories
+        page1 = MockAnalysisPage(source_path=Path("page1.md"))
+        orphan = MockAnalysisPage(source_path=Path("orphan.md"))
+        popular = MockAnalysisPage(source_path=Path("popular.md"))
 
-        orphan = Mock(source_path=Path("orphan.md"), metadata={})
-        orphan.tags = []
-        orphan.category = None
-        del orphan.categories
-
-        popular = Mock(source_path=Path("popular.md"), metadata={})
-        popular.tags = []
-        popular.category = None
-        del popular.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [page1, orphan, popular]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([page1, orphan, popular])
         graph.incoming_refs[orphan] = 0  # No incoming links
         graph.incoming_refs[popular] = 10  # Many incoming links
 
@@ -284,24 +245,15 @@ class TestLinkSuggestionEngine:
 
     def test_max_suggestions_per_page(self):
         """Test that max suggestions limit is respected."""
-        source = Mock(source_path=Path("source.md"), metadata={})
-        source.tags = ["python"]
-        source.category = None
-        del source.categories
+        source = MockAnalysisPage(source_path=Path("source.md"), tags=["python"])
 
         # Create 20 potential targets
-        targets = []
-        for i in range(20):
-            target = Mock(source_path=Path(f"target{i}.md"), metadata={})
-            target.tags = ["python"]
-            target.category = None
-            del target.categories
-            targets.append(target)
+        targets = [
+            MockAnalysisPage(source_path=Path(f"target{i}.md"), tags=["python"])
+            for i in range(20)
+        ]
 
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [source] + targets
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([source] + targets)
 
         max_suggestions = 5
         engine = LinkSuggestionEngine(
@@ -316,20 +268,14 @@ class TestLinkSuggestionEngine:
 
     def test_filters_generated_pages(self):
         """Test that generated pages are excluded."""
-        real_page = Mock(source_path=Path("real.md"), metadata={})
-        real_page.tags = ["python"]
-        real_page.category = None
-        del real_page.categories
+        real_page = MockAnalysisPage(source_path=Path("real.md"), tags=["python"])
+        generated = MockAnalysisPage(
+            source_path=Path("generated.md"),
+            tags=["python"],
+            metadata={"_generated": True},
+        )
 
-        generated = Mock(source_path=Path("generated.md"), metadata={"_generated": True})
-        generated.tags = ["python"]
-        generated.category = None
-        del generated.categories
-
-        graph = Mock()
-        graph.get_analysis_pages.return_value = [real_page, generated]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph([real_page, generated])
 
         engine = LinkSuggestionEngine(graph)
         results = engine.generate_suggestions()
@@ -345,18 +291,12 @@ class TestSuggestLinksFunction:
 
     def test_suggest_links(self):
         """Test the convenience function."""
-        pages = []
-        for i in range(3):
-            page = Mock(source_path=Path(f"page{i}.md"), metadata={})
-            page.tags = ["python"]
-            page.category = None
-            del page.categories
-            pages.append(page)
+        pages = [
+            MockAnalysisPage(source_path=Path(f"page{i}.md"), tags=["python"])
+            for i in range(3)
+        ]
 
-        graph = Mock()
-        graph.get_analysis_pages.return_value = pages
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(int)
+        graph = _create_mock_graph(pages)
 
         results = suggest_links(graph, min_score=0.0)
 

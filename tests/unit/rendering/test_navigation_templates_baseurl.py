@@ -5,6 +5,9 @@ Verifies that navigation components (breadcrumbs, footer menu)
 properly apply the | absolute_url filter to support subpath deployments.
 """
 
+from __future__ import annotations
+
+
 from unittest.mock import Mock
 
 import pytest

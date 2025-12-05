@@ -2,29 +2,15 @@
 Tests for DirectiveValidator health check.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
 
 from bengal.health.report import CheckStatus
 from bengal.health.validators.directives import DirectiveAnalyzer, DirectiveValidator
-
-
-class MockPage:
-    """Mock page object for testing."""
-
-    def __init__(self, source_path, output_path, metadata=None):
-        self.source_path = source_path
-        self.output_path = output_path
-        self.metadata = metadata or {}
-
-
-class MockSite:
-    """Mock site object for testing."""
-
-    def __init__(self, pages=None):
-        self.pages = pages or []
-        self.config = {}
+from tests._testing.mocks import MockPage, MockSite
 
 
 class TestDirectiveExtraction:
@@ -304,8 +290,8 @@ Just regular markdown content here.
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Hello World</body></html>")
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -347,8 +333,8 @@ Second option content.
         </html>
         """)
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -377,8 +363,8 @@ This one is valid.
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Content</body></html>")
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -402,8 +388,8 @@ This one is valid.
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Content</body></html>")
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -437,8 +423,8 @@ Content
         </html>
         """)
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -459,8 +445,8 @@ Content
         output_file.write_text("<html><body>Content</body></html>")
 
         # Mark as generated page
-        page = MockPage(source_file, output_file, metadata={"_generated": True})
-        site = MockSite([page])
+        page = MockPage(title="Generated", source_path=source_file, output_path=output_file, metadata={"_generated": True})
+        site = MockSite(pages=[page])
 
         analyzer = DirectiveAnalyzer()
         data = analyzer.analyze(site)
@@ -486,8 +472,8 @@ class TestPerformanceChecks:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Tabs</body></html>")
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)
@@ -538,8 +524,8 @@ Content
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Content</body></html>")
 
-        page = MockPage(source_file, output_file)
-        site = MockSite([page])
+        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
+        site = MockSite(pages=[page])
 
         validator = DirectiveValidator()
         results = validator.validate(site)

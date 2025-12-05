@@ -1,6 +1,6 @@
 # Bengal Test Coverage Report
 
-**Last Updated**: 2025-12-03  
+**Last Updated**: 2025-12-05  
 **Status**: ✅ Core functionality comprehensively tested  
 
 ---
@@ -9,13 +9,13 @@
 
 **Overall Coverage**: ~42% of entire codebase (line coverage)  
 **Critical Path Coverage**: 75-100% (core objects, orchestration, cache indexes)  
-**Total Tests**: 4,150+ collected  
+**Total Tests**: 3,838+ unit tests (4,000+ total)  
 **Test Quality**: A+ (Property-based + Parametrized + Integration)
 
 ### Coverage Achievements
 
 Bengal has excellent test coverage on the critical build path:
-- **4,150+ tests** - up from 2,920+ in October 2025
+- **3,838+ unit tests** - with module-scoped fixtures for efficiency
 - **Core build pipeline**: 75-100% coverage on key objects
 - **Cache indexes**: 77-100% coverage (query, section, category, date range)
 - **Property-based testing**: 116 tests generating 11,600+ examples
@@ -35,10 +35,16 @@ Areas with intentionally lower coverage remain optional features:
 
 | Test Type | Count | Coverage Type |
 |-----------|-------|---------------|
-| Unit Tests | 3,800+ | Component isolation |
+| Unit Tests | 3,838+ | Component isolation |
 | Property Tests (Hypothesis) | 116 | Invariant verification (11,600+ examples) |
 | Integration Tests | 200+ | Multi-component workflows |
-| **TOTAL** | **4,150+** | **Comprehensive** |
+| **TOTAL** | **4,000+** | **Comprehensive** |
+
+### Test Infrastructure
+
+- **10 test roots** in `tests/roots/` - Minimal, reusable site structures
+- **Canonical mocks** in `tests/_testing/mocks.py` - `MockPage`, `MockSection`, `MockSite`
+- **Module-scoped parser** - 83% reduction in parser instantiations
 
 *(Additional tests in manual/ directory for dev server interaction testing)*
 

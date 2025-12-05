@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 from pathlib import Path
 
 from bengal.rendering.template_engine import TemplateEngine

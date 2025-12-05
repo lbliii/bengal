@@ -70,7 +70,7 @@
    * Tight: 1.2  (headings)
    * Snug:  1.35 (subheadings)
    * Normal: 1.5  (body text)
-   * Relaxed: 1.65 (comfortable reading)
+   * Relaxed: 1.7 (comfortable reading - optimized for long-form docs)
    * Loose: 2.0  (spacious)
    */
 
@@ -78,7 +78,7 @@
    --line-height-tight: 1.2;
    --line-height-snug: 1.35;
    --line-height-normal: 1.5;
-   --line-height-relaxed: 1.65;
+   --line-height-relaxed: 1.7;
    --line-height-loose: 2;
 
    /* ============================================
@@ -119,14 +119,16 @@
       'SF Mono', 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
 
    /**
-   * Display/Heading font - Optional distinctive typeface for h1/h2/hero text.
+   * Display/Heading font - Distinctive typeface for h1/h2/hero text.
    * 
-   * CONFIGURATION OPTIONS:
+   * DEFAULT: Instrument Serif (loaded via base/fonts.css)
+   * 
+   * OVERRIDE OPTIONS:
    * 
    * Option 1: Configure in bengal.toml (recommended)
    * ------------------------------------------------
    * [fonts]
-   * display = "Instrument Serif:400,700"
+   * display = "Fraunces:400,700"
    * 
    * This automatically:
    * - Downloads the font from Google Fonts
@@ -141,16 +143,17 @@
    * }
    * 
    * Recommended fonts (all OFL licensed, available via Google Fonts):
-   *   - Instrument Serif: Refined, modern (~25KB)
+   *   - Instrument Serif: Refined, modern (~25KB) [DEFAULT]
    *   - Fraunces: Soft, optical sizing (~35KB variable)
    *   - DM Serif Display: Classic, bold (~15KB)
    *   - Newsreader: Editorial clarity (~30KB)
    * 
    * FALLBACK CHAIN:
    *   1. --font-display (from bengal.toml [fonts] config)
-   *   2. --font-family-sans (system font stack)
+   *   2. --font-display-default (Instrument Serif from fonts.css)
+   *   3. Georgia, serif (system fallback)
    */
-   --font-family-display: var(--font-display, var(--font-family-sans));
+   --font-family-display: var(--font-display, var(--font-display-default, 'Instrument Serif', Georgia, serif));
 
    /* Default fonts */
    --font-family-base: var(--font-family-sans);

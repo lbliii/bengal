@@ -1,5 +1,8 @@
 """Tests for Jinja2 utility functions."""
 
+from __future__ import annotations
+
+
 import pytest
 from jinja2 import Undefined
 

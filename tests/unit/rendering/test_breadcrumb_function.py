@@ -2,6 +2,9 @@
 Tests for breadcrumb template function.
 """
 
+from __future__ import annotations
+
+
 from unittest.mock import Mock
 
 from bengal.rendering.template_functions.navigation import get_breadcrumbs

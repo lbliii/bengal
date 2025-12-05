@@ -4,10 +4,9 @@ Test navigation directives (breadcrumbs, siblings, prev-next, related).
 These directives leverage the pre-computed site tree via renderer._current_page.
 """
 
+
 from pathlib import Path
 from unittest.mock import Mock
-
-from bengal.rendering.parsers import MistuneParser
 
 
 class TestBreadcrumbsDirective:
@@ -22,9 +21,8 @@ class TestBreadcrumbsDirective:
         section.index_page.url = url
         return section
 
-    def test_breadcrumbs_renders_ancestors(self):
+    def test_breadcrumbs_renders_ancestors(self, parser):
         """Test breadcrumbs renders ancestor sections."""
-        parser = MistuneParser()
 
         section1 = self._create_mock_section("Content", "/docs/content/", "docs/content")
         section2 = self._create_mock_section("Docs", "/docs/", "docs")
@@ -47,9 +45,8 @@ class TestBreadcrumbsDirective:
         assert "Content" in result
         assert "Authoring" in result
 
-    def test_breadcrumbs_with_home_link(self):
+    def test_breadcrumbs_with_home_link(self, parser):
         """Test breadcrumbs includes home link."""
-        parser = MistuneParser()
 
         current_page = Mock()
         current_page.title = "Test"
@@ -68,9 +65,8 @@ class TestBreadcrumbsDirective:
         assert "Home" in result
         assert 'href="/"' in result
 
-    def test_breadcrumbs_custom_separator(self):
+    def test_breadcrumbs_custom_separator(self, parser):
         """Test breadcrumbs uses custom separator."""
-        parser = MistuneParser()
 
         current_page = Mock()
         current_page.title = "Test"
@@ -87,9 +83,8 @@ class TestBreadcrumbsDirective:
 
         assert "breadcrumb-separator" in result
 
-    def test_breadcrumbs_no_page_context(self):
+    def test_breadcrumbs_no_page_context(self, parser):
         """Test breadcrumbs handles missing page context."""
-        parser = MistuneParser()
         parser.md.renderer._current_page = None
 
         content = """
@@ -104,9 +99,8 @@ class TestBreadcrumbsDirective:
 class TestSiblingsDirective:
     """Test the siblings directive."""
 
-    def test_siblings_renders_section_pages(self):
+    def test_siblings_renders_section_pages(self, parser):
         """Test siblings renders other pages in section."""
-        parser = MistuneParser()
 
         sibling1 = Mock()
         sibling1.title = "Installation"
@@ -146,9 +140,8 @@ class TestSiblingsDirective:
             or "Installation" not in result.split("Configuration")[0]
         )
 
-    def test_siblings_with_descriptions(self):
+    def test_siblings_with_descriptions(self, parser):
         """Test siblings shows descriptions when enabled."""
-        parser = MistuneParser()
 
         sibling = Mock()
         sibling.title = "Config"
@@ -175,9 +168,8 @@ class TestSiblingsDirective:
 
         assert "Configure your site" in result
 
-    def test_siblings_no_section(self):
+    def test_siblings_no_section(self, parser):
         """Test siblings handles missing section."""
-        parser = MistuneParser()
 
         current_page = Mock()
         current_page._section = None
@@ -196,9 +188,8 @@ class TestSiblingsDirective:
 class TestPrevNextDirective:
     """Test the prev-next directive."""
 
-    def test_prev_next_renders_navigation(self):
+    def test_prev_next_renders_navigation(self, parser):
         """Test prev-next renders navigation links."""
-        parser = MistuneParser()
 
         prev_page = Mock()
         prev_page.title = "Installation"
@@ -228,9 +219,8 @@ class TestPrevNextDirective:
         assert "← Previous" in result
         assert "Next →" in result
 
-    def test_prev_next_only_prev(self):
+    def test_prev_next_only_prev(self, parser):
         """Test prev-next with only previous page."""
-        parser = MistuneParser()
 
         prev_page = Mock()
         prev_page.title = "Previous"
@@ -251,9 +241,8 @@ class TestPrevNextDirective:
         assert "Previous" in result
         assert "next-link disabled" in result
 
-    def test_prev_next_only_next(self):
+    def test_prev_next_only_next(self, parser):
         """Test prev-next with only next page."""
-        parser = MistuneParser()
 
         next_page = Mock()
         next_page.title = "Next"
@@ -274,9 +263,8 @@ class TestPrevNextDirective:
         assert "Next" in result
         assert "prev-link disabled" in result
 
-    def test_prev_next_no_navigation(self):
+    def test_prev_next_no_navigation(self, parser):
         """Test prev-next returns empty when no navigation."""
-        parser = MistuneParser()
 
         current_page = Mock()
         current_page.prev_in_section = None
@@ -297,9 +285,8 @@ class TestPrevNextDirective:
 class TestRelatedDirective:
     """Test the related directive."""
 
-    def test_related_renders_posts(self):
+    def test_related_renders_posts(self, parser):
         """Test related renders related posts."""
-        parser = MistuneParser()
 
         related1 = Mock()
         related1.title = "Advanced Config"
@@ -328,9 +315,8 @@ class TestRelatedDirective:
         assert "Advanced Config" in result
         assert "Theming" in result
 
-    def test_related_with_tags(self):
+    def test_related_with_tags(self, parser):
         """Test related shows tags when enabled."""
-        parser = MistuneParser()
 
         related = Mock()
         related.title = "Advanced"
@@ -352,9 +338,8 @@ class TestRelatedDirective:
         assert "python" in result
         assert "config" in result
 
-    def test_related_respects_limit(self):
+    def test_related_respects_limit(self, parser):
         """Test related respects limit option."""
-        parser = MistuneParser()
 
         related_posts = []
         for i in range(10):
@@ -382,9 +367,8 @@ class TestRelatedDirective:
         assert "Post 2" in result
         assert "Post 3" not in result
 
-    def test_related_no_posts_returns_empty(self):
+    def test_related_no_posts_returns_empty(self, parser):
         """Test related returns empty when no related posts."""
-        parser = MistuneParser()
 
         current_page = Mock()
         current_page.related_posts = []
@@ -399,3 +383,4 @@ class TestRelatedDirective:
 
         # Should return empty string
         assert result.strip() == ""
+

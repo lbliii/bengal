@@ -78,7 +78,7 @@ class TrackValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"Invalid track item type in {track_id}",
-                            f"Track item must be a string (page path), got {type(item_path).__name__}.",
+                            recommendation=f"Track item must be a string (page path), got {type(item_path).__name__}.",
                         )
                     )
                     continue
@@ -89,24 +89,20 @@ class TrackValidator(BaseValidator):
                     missing_items.append(item_path)
 
             if missing_items:
+                details_text = (
+                    f"The following track items reference pages that don't exist: {', '.join(missing_items[:5])}"
+                    + (f" (and {len(missing_items) - 5} more)" if len(missing_items) > 5 else "")
+                )
                 results.append(
                     CheckResult.warning(
                         f"Track '{track_id}' has {len(missing_items)} missing page(s)",
-                        f"The following track items reference pages that don't exist: {', '.join(missing_items[:5])}"
-                        + (
-                            f" (and {len(missing_items) - 5} more)"
-                            if len(missing_items) > 5
-                            else ""
-                        ),
                         recommendation="Check that page paths in tracks.yaml match actual content files.",
+                        details=[details_text],
                     )
                 )
             else:
                 results.append(
-                    CheckResult.success(
-                        f"Track '{track_id}' is valid",
-                        f"All {len(track['items'])} track items reference existing pages.",
-                    )
+                    CheckResult.success(f"Track '{track_id}' is valid ({len(track['items'])} items)")
                 )
 
         # Check for track pages with invalid track_id
@@ -117,8 +113,8 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Page '{page.relative_path}' has invalid track_id",
-                        f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml.",
                         recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
+                        details=[f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml."],
                     )
                 )
 

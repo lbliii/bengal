@@ -1,30 +1,25 @@
 """Tests for taxonomy helper template functions."""
 
+from __future__ import annotations
+
 from bengal.rendering.template_functions.taxonomies import (
     has_tag,
     popular_tags,
     related_posts,
     tag_url,
 )
-
-
-class MockPage:
-    """Mock page object for testing."""
-
-    def __init__(self, title: str, tags: list = None):
-        self.title = title
-        self.tags = tags or []
+from tests._testing.mocks import MockPage
 
 
 class TestRelatedPosts:
     """Tests for related_posts function."""
 
     def test_find_related(self):
-        current = MockPage("Current", ["python", "web"])
+        current = MockPage(title="Current", tags=["python", "web"])
         all_pages = [
-            MockPage("Post 1", ["python", "django"]),
-            MockPage("Post 2", ["javascript"]),
-            MockPage("Post 3", ["python", "web", "flask"]),
+            MockPage(title="Post 1", tags=["python", "django"]),
+            MockPage(title="Post 2", tags=["javascript"]),
+            MockPage(title="Post 3", tags=["python", "web", "flask"]),
         ]
 
         result = related_posts(current, all_pages, limit=5)
@@ -33,15 +28,15 @@ class TestRelatedPosts:
         assert result[0].title == "Post 3"
 
     def test_no_tags(self):
-        current = MockPage("Current", [])
-        all_pages = [MockPage("Post 1", ["python"])]
+        current = MockPage(title="Current", tags=[])
+        all_pages = [MockPage(title="Post 1", tags=["python"])]
 
         result = related_posts(current, all_pages)
         assert result == []
 
     def test_limit_results(self):
-        current = MockPage("Current", ["python"])
-        all_pages = [MockPage(f"Post {i}", ["python"]) for i in range(10)]
+        current = MockPage(title="Current", tags=["python"])
+        all_pages = [MockPage(title=f"Post {i}", tags=["python"]) for i in range(10)]
 
         result = related_posts(current, all_pages, limit=3)
         assert len(result) == 3
@@ -101,17 +96,17 @@ class TestHasTag:
     """Tests for has_tag filter."""
 
     def test_has_tag(self):
-        page = MockPage("Test", ["python", "web"])
+        page = MockPage(title="Test", tags=["python", "web"])
         assert has_tag(page, "python") is True
 
     def test_no_tag(self):
-        page = MockPage("Test", ["python"])
+        page = MockPage(title="Test", tags=["python"])
         assert has_tag(page, "javascript") is False
 
     def test_case_insensitive(self):
-        page = MockPage("Test", ["Python"])
+        page = MockPage(title="Test", tags=["Python"])
         assert has_tag(page, "python") is True
 
     def test_no_tags(self):
-        page = MockPage("Test", [])
+        page = MockPage(title="Test", tags=[])
         assert has_tag(page, "python") is False

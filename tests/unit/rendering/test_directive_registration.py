@@ -5,6 +5,9 @@ This test ensures we don't forget to register directives in the
 create_documentation_directives() function.
 """
 
+from __future__ import annotations
+
+
 import inspect
 
 import pytest

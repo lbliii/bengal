@@ -1,5 +1,6 @@
 """Tests for custom Jinja2 template tests."""
 
+
 from datetime import datetime, timedelta
 
 from jinja2 import Environment
@@ -7,14 +8,7 @@ from jinja2 import Environment
 from bengal.core.section import Section
 from bengal.rendering import template_tests
 from bengal.rendering.template_tests import register
-
-
-class MockPage:
-    """Mock Page object for testing."""
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+from tests._testing.mocks import MockPage
 
 
 class TestDraftTest:
