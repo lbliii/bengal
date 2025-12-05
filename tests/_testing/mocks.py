@@ -166,6 +166,42 @@ class MockSite:
     output_dir: Path = field(default_factory=lambda: Path("public"))
 
 
+@dataclass
+class MockAnalysisPage:
+    """
+    Mock page for analysis/graph tests (link suggestions, PageRank, etc.).
+
+    This dataclass deliberately does NOT have a `categories` attribute to match
+    the Page interface used by LinkSuggestionEngine._build_category_map(), which
+    checks `hasattr(page, "category")` first, then falls back to `categories`.
+
+    Use this instead of raw Mock() with `del page.categories` patterns.
+
+    Attributes:
+        source_path: Path to source file (required for identity)
+        title: Page title (used in LinkSuggestion repr)
+        tags: List of tags for topic similarity scoring
+        category: Single category (optional, used for category similarity)
+        metadata: Page metadata dict (for _generated flag, etc.)
+
+    Example:
+        >>> page = MockAnalysisPage(
+        ...     source_path=Path("docs/guide.md"),
+        ...     title="User Guide",
+        ...     tags=["python", "tutorial"],
+        ...     category="guides"
+        ... )
+        >>> hasattr(page, "categories")
+        False
+    """
+
+    source_path: Path
+    title: str = ""
+    tags: list[str] = field(default_factory=list)
+    category: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
 def create_mock_xref_index(pages: list[MockPage]) -> dict[str, Any]:
     """
     Build xref_index from mock pages.

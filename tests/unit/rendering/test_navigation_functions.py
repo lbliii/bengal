@@ -5,6 +5,9 @@ Tests the data provider functions that handle complex logic for
 breadcrumbs, pagination, TOC grouping, and navigation trees.
 """
 
+from __future__ import annotations
+
+
 from unittest.mock import Mock
 
 from bengal.rendering.template_functions.navigation import (

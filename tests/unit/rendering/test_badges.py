@@ -4,7 +4,6 @@ Test badge plugin.
 Validates {bdg-color}`text` syntax support (Sphinx-Design compatible).
 """
 
-from __future__ import annotations
 
 
 class TestBadgePlugin:

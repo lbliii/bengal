@@ -8,6 +8,9 @@ These tests verify that:
 4. Parser handles malformed HTML gracefully
 """
 
+from __future__ import annotations
+
+
 from bengal.rendering.parsers.factory import ParserBackend, ParserFactory
 
 

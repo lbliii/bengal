@@ -1,5 +1,4 @@
 """
-from __future__ import annotations
 Test MyST Markdown syntax compatibility.
 
 Verifies that Bengal supports colon-fenced directive syntax (MyST standard).

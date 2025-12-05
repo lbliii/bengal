@@ -7,6 +7,9 @@ Covers:
 - Mistune [[link]] plugin
 """
 
+from __future__ import annotations
+
+
 from pathlib import Path
 
 from bengal.core.page import Page

@@ -4,7 +4,6 @@ Tests for cross-reference bug fixes.
 Verifies that cross-references are NOT substituted inside code blocks.
 """
 
-from __future__ import annotations
 
 import pytest
 

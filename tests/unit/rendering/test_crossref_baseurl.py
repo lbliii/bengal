@@ -5,6 +5,9 @@ Tests that ref(), anchor(), and relref() properly handle base URLs
 in various scenarios (path-only, absolute, none).
 """
 
+from __future__ import annotations
+
+
 from pathlib import Path
 
 from bengal.core.page import Page

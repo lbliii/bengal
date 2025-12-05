@@ -1,6 +1,5 @@
 """Tests for the link transformer module."""
 
-from __future__ import annotations
 
 from bengal.rendering.link_transformer import (
     get_baseurl,

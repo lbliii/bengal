@@ -1,5 +1,4 @@
 """
-from __future__ import annotations
 Tests for Mistune parser and plugins.
 """
 

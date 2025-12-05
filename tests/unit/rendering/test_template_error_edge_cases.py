@@ -5,6 +5,9 @@ Extends test_template_errors.py with edge cases and error recovery scenarios
 to improve coverage from 54% to 70%.
 """
 
+from __future__ import annotations
+
+
 from unittest.mock import Mock
 
 import pytest

@@ -2,7 +2,6 @@
 Test cards directive system (modern and Sphinx-Design compatibility).
 """
 
-from __future__ import annotations
 
 from tests._testing.mocks import MockPage
 

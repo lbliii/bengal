@@ -2,7 +2,6 @@
 Tests for i18n missing translation warnings.
 """
 
-from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import patch

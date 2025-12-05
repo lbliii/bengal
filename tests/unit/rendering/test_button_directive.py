@@ -4,7 +4,6 @@ Test button directive.
 Validates clean button syntax for CTAs and navigation.
 """
 
-from __future__ import annotations
 
 import textwrap
 

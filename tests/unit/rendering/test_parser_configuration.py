@@ -5,6 +5,9 @@ Ensures the rendering pipeline correctly selects the markdown parser
 based on different configuration formats.
 """
 
+from __future__ import annotations
+
+
 from unittest.mock import Mock
 
 import pytest

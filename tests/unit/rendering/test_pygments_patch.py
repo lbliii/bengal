@@ -7,6 +7,9 @@ as a context manager without side effects.
 Note: These tests require python-markdown (optional dependency).
 """
 
+from __future__ import annotations
+
+
 import pytest
 
 # python-markdown is optional (mistune is default)

@@ -1,5 +1,4 @@
 """
-from __future__ import annotations
 Test MyST-style tab-set and tab-item directives.
 """
 

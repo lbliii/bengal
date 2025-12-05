@@ -4,7 +4,6 @@ Test navigation directives (breadcrumbs, siblings, prev-next, related).
 These directives leverage the pre-computed site tree via renderer._current_page.
 """
 
-from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import Mock

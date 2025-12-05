@@ -5,7 +5,6 @@ Note: Per-page logging was removed in favor of progress bar feedback.
 These tests verify that output files are written correctly.
 """
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 
