@@ -32,7 +32,7 @@ class OutputValidator(BaseValidator):
     MIN_SIZE = 1000  # Configurable via site.config
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Run output validation checks."""
         results = []
 

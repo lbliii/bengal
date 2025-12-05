@@ -117,6 +117,7 @@ class HealthCheck:
         incremental: bool = False,
         context: list[Path] | None = None,
         cache: Any = None,
+        build_context: Any = None,
     ) -> HealthReport:
         """
         Run all registered validators and produce a health report.
@@ -128,6 +129,8 @@ class HealthCheck:
             incremental: If True, only validate changed files (requires cache)
             context: Optional list of specific file paths to validate (overrides incremental)
             cache: Optional BuildCache instance for incremental validation and result caching
+            build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph)
+                          that validators can use to avoid redundant computation
 
         Returns:
             HealthReport with results from all validators
@@ -223,7 +226,8 @@ class HealthCheck:
                 # For file-specific validators with context, we could optimize further
                 # but for now, validators still validate entire site
                 # Future: Pass files_to_validate to validator.validate() for optimization
-                results = validator.validate(self.site)
+                # Pass build_context so validators can use cached artifacts
+                results = validator.validate(self.site, build_context=build_context)
 
                 # Set validator name on all results
                 for result in results:

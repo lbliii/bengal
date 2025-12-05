@@ -45,7 +45,7 @@ class AssetValidator(BaseValidator):
     LARGE_IMAGE_KB = 1000
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
 

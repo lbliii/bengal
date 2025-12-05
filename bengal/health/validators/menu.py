@@ -4,7 +4,6 @@ Menu validator - checks navigation menu integrity.
 Integrates menu validation from MenuBuilder into health check system.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -32,7 +31,7 @@ class MenuValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Validate menu structure."""
         results = []
 

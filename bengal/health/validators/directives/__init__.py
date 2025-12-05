@@ -88,12 +88,13 @@ class DirectiveValidator(BaseValidator):
     MAX_TABS_PER_BLOCK = MAX_TABS_PER_BLOCK
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """
         Run directive validation checks.
 
         Args:
             site: Site instance to validate
+            build_context: Optional BuildContext (not used by this validator)
 
         Returns:
             List of CheckResult objects
@@ -117,4 +118,3 @@ class DirectiveValidator(BaseValidator):
         results.extend(check_directive_rendering(site, directive_data))
 
         return results
-

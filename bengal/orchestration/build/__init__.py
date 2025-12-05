@@ -284,7 +284,7 @@ class BuildOrchestrator:
 
         # Phase 20: Health Check
         with self.logger.phase("health_check"):
-            finalization.run_health_check(self, profile=profile)
+            finalization.run_health_check(self, profile=profile, build_context=ctx)
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
@@ -441,9 +441,13 @@ class BuildOrchestrator:
         """Phase 19: Collect Final Stats."""
         finalization.phase_collect_stats(self, build_start)
 
-    def _run_health_check(self, profile: BuildProfile = None, incremental: bool = False) -> None:
+    def _run_health_check(
+        self, profile: BuildProfile = None, incremental: bool = False, build_context=None
+    ) -> None:
         """Run health check system with profile-based filtering."""
-        finalization.run_health_check(self, profile=profile, incremental=incremental)
+        finalization.run_health_check(
+            self, profile=profile, incremental=incremental, build_context=build_context
+        )
 
     def _phase_finalize(self, verbose: bool, collector) -> None:
         """Phase 21: Finalize Build."""

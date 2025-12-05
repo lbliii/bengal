@@ -25,7 +25,7 @@ class TrackValidator(BaseValidator):
     description = "Validates learning track definitions and page references"
     enabled_by_default = True
 
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Validate track definitions and references."""
         results = []
 

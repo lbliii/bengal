@@ -10,6 +10,7 @@ Key Concepts:
     - Phase coordination: Enables phase-to-phase communication
     - State management: Centralized build state management
     - Lifecycle: Created at build start, populated during phases
+    - Lazy artifacts: Expensive computations cached on first access
 
 Related Modules:
     - bengal.orchestration.build: Build orchestration using BuildContext
@@ -19,15 +20,17 @@ Related Modules:
 See Also:
     - bengal/utils/build_context.py:BuildContext for context structure
     - plan/active/rfc-build-pipeline.md: Build pipeline design
+    - plan/active/rfc-lazy-build-artifacts.md: Lazy artifact design
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.dependency_tracker import DependencyTracker
     from bengal.core.asset import Asset
@@ -100,3 +103,69 @@ class BuildContext:
 
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
+
+    # Lazy-computed artifacts (built once on first access)
+    # These eliminate redundant expensive computations across build phases
+    _knowledge_graph: Any = field(default=None, repr=False)
+    _knowledge_graph_enabled: bool = field(default=True, repr=False)
+
+    @property
+    def knowledge_graph(self) -> KnowledgeGraph | None:
+        """
+        Get knowledge graph (built lazily, cached for build duration).
+
+        The knowledge graph is expensive to build (~200-500ms for 773 pages).
+        By caching it here, we avoid rebuilding it 3 times per build
+        (post-processing, special pages, health check).
+
+        Returns:
+            Built KnowledgeGraph instance, or None if disabled/unavailable
+
+        Example:
+            # First access builds the graph
+            graph = ctx.knowledge_graph
+
+            # Subsequent accesses reuse cached instance
+            graph2 = ctx.knowledge_graph  # Same instance, no rebuild
+        """
+        if not self._knowledge_graph_enabled:
+            return None
+
+        if self._knowledge_graph is None:
+            self._knowledge_graph = self._build_knowledge_graph()
+        return self._knowledge_graph
+
+    def _build_knowledge_graph(self) -> KnowledgeGraph | None:
+        """
+        Build and cache knowledge graph.
+
+        Returns:
+            Built KnowledgeGraph instance, or None if disabled/unavailable
+        """
+        if self.site is None:
+            return None
+
+        try:
+            from bengal.analysis.knowledge_graph import KnowledgeGraph
+            from bengal.config.defaults import is_feature_enabled
+
+            # Check if graph feature is enabled
+            if not is_feature_enabled(self.site.config, "graph"):
+                self._knowledge_graph_enabled = False
+                return None
+
+            graph = KnowledgeGraph(self.site)
+            graph.build()
+            return graph
+        except ImportError:
+            self._knowledge_graph_enabled = False
+            return None
+
+    def clear_lazy_artifacts(self) -> None:
+        """
+        Clear lazy-computed artifacts to free memory.
+
+        Call this at the end of a build to release memory used by
+        cached artifacts like the knowledge graph.
+        """
+        self._knowledge_graph = None

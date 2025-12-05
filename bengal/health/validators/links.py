@@ -28,7 +28,7 @@ class LinkValidatorWrapper(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
         """Validate links in generated pages."""
         results = []
 

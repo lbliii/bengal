@@ -45,7 +45,7 @@ class SpecialPagesGenerator:
         """
         self.site = site
 
-    def generate(self) -> None:
+    def generate(self, build_context=None) -> None:
         """
         Generate all special pages that are enabled.
 
@@ -54,6 +54,9 @@ class SpecialPagesGenerator:
         - search page if enabled and template exists (and no user content overrides)
         - graph visualization if enabled (and no user content overrides)
         Failures are logged but don't stop the build process.
+
+        Args:
+            build_context: Optional BuildContext with cached knowledge graph
         """
         pages_generated = []
 
@@ -66,7 +69,7 @@ class SpecialPagesGenerator:
             pages_generated.append("search")
 
         # Generate graph visualization when enabled
-        if self._generate_graph():
+        if self._generate_graph(build_context=build_context):
             pages_generated.append("graph")
 
         # Log what was generated for debugging (especially important in CI)
@@ -268,15 +271,18 @@ class SpecialPagesGenerator:
             )
             return False
 
-    def _generate_graph(self) -> bool:
+    def _generate_graph(self, build_context=None) -> bool:
         """
         Generate interactive knowledge graph visualization.
 
         Behavior:
         - Respects [graph] config: enabled, path
         - Skips if a user-authored content page exists that would handle /graph/
-        - Builds knowledge graph and generates standalone HTML visualization
+        - Uses cached knowledge graph from build_context if available
         - Writes to /graph/index.html by default
+
+        Args:
+            build_context: Optional BuildContext with cached knowledge graph
 
         Returns:
             True if generated successfully, False if disabled or error occurred
@@ -306,13 +312,22 @@ class SpecialPagesGenerator:
                 if user_graph_md.exists():
                     return False
 
-            # Build knowledge graph
+            # Try to get cached graph from build context first
             from bengal.analysis.graph_visualizer import GraphVisualizer
-            from bengal.analysis.knowledge_graph import KnowledgeGraph
 
-            logger.debug("building_knowledge_graph_for_visualization")
-            graph = KnowledgeGraph(self.site)
-            graph.build()
+            graph = None
+            if build_context is not None:
+                graph = getattr(build_context, "knowledge_graph", None)
+
+            # Fallback: build our own (for standalone usage)
+            if graph is None:
+                from bengal.analysis.knowledge_graph import KnowledgeGraph
+
+                logger.debug("building_knowledge_graph_for_visualization")
+                graph = KnowledgeGraph(self.site)
+                graph.build()
+            else:
+                logger.debug("using_cached_knowledge_graph_for_visualization")
 
             # Generate visualization HTML
             visualizer = GraphVisualizer(self.site, graph)

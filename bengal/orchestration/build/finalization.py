@@ -95,7 +95,10 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
 
 
 def run_health_check(
-    orchestrator: BuildOrchestrator, profile: BuildProfile = None, incremental: bool = False
+    orchestrator: BuildOrchestrator,
+    profile: BuildProfile = None,
+    incremental: bool = False,
+    build_context=None,
 ) -> None:
     """
     Run health check system with profile-based filtering.
@@ -109,6 +112,7 @@ def run_health_check(
         orchestrator: Build orchestrator instance
         profile: Build profile to use for filtering validators
         incremental: Whether this is an incremental build (enables incremental validation)
+        build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph)
 
     Raises:
         Exception: If strict_mode is enabled and health checks fail
@@ -141,6 +145,7 @@ def run_health_check(
         profile=profile,
         incremental=incremental,
         cache=cache,
+        build_context=build_context,
     )
 
     health_time_ms = (time.time() - health_start) * 1000

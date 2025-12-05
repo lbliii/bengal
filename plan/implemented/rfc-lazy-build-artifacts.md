@@ -1,8 +1,9 @@
 # RFC: Lazy-Computed Build Artifacts
 
-**Status**: Draft  
-**Created**: 2025-12-05  
-**Author**: AI-assisted analysis  
+**Status**: Implemented
+**Created**: 2025-12-05
+**Implemented**: 2025-12-05
+**Author**: AI-assisted analysis
 **Related**: `bengal/utils/build_context.py`, `bengal/analysis/knowledge_graph.py`
 
 ---
@@ -11,8 +12,26 @@
 
 Introduce lazy-computed build artifacts in BuildContext to eliminate redundant expensive computations. The knowledge graph is currently built 3 times per build (~600-1500ms wasted). This RFC proposes centralizing expensive computations as lazy properties on BuildContext.
 
-**Immediate Impact**: ~400-1000ms faster builds  
+**Immediate Impact**: ~400-1000ms faster builds
 **Foundation For**: Parallel validators, streaming builds, better incremental support
+
+---
+
+## Validation Findings
+
+Evaluated against codebase on 2025-12-05.
+
+### 1. Problem Verification
+Confirmed redundant `KnowledgeGraph` construction in 3 locations:
+- **Post-processing**: `bengal/orchestration/postprocess.py:318` - Builds graph for JSON output.
+- **Special Pages**: `bengal/postprocess/special_pages.py:314` - Builds graph for visualization.
+- **Health Check**: `bengal/health/validators/connectivity.py:86` - Builds graph for analysis.
+
+### 2. Feasibility
+- `BuildContext` is the correct location for shared lazy state.
+- `PostprocessOrchestrator` already has access to `BuildContext` (passed in `run`).
+- `SpecialPagesGenerator` can easily accept `BuildContext`.
+- `BaseValidator` signature update is required but low-risk.
 
 ---
 
@@ -36,22 +55,6 @@ graph = KnowledgeGraph(site)
 graph.build()  # Expensive! O(pages × links)
 ```
 
-### Evidence
-
-```
-bengal/orchestration/postprocess.py:318-319
-    graph = KnowledgeGraph(self.site)
-    graph.build()
-
-bengal/postprocess/special_pages.py:314-315
-    graph = KnowledgeGraph(self.site)
-    graph.build()
-
-bengal/health/validators/connectivity.py:86-97
-    graph = KnowledgeGraph(site)
-    graph.build()
-```
-
 ### Why This Matters
 
 - **773 pages**: Each graph build takes ~200-500ms
@@ -72,7 +75,7 @@ Add expensive computations as lazy-cached properties on BuildContext:
 @dataclass
 class BuildContext:
     """Build context with lazy-computed artifacts."""
-    
+
     site: Site
     pages: list[Page]
     tracker: DependencyTracker | None = None
@@ -80,44 +83,44 @@ class BuildContext:
     profile: BuildProfile | None = None
     progress_manager: Any = None
     reporter: Any = None
-    
+
     # Lazy-computed artifacts (built once on first access)
     _knowledge_graph: KnowledgeGraph | None = field(default=None, repr=False)
     _knowledge_graph_enabled: bool = field(default=True, repr=False)
-    
+
     @property
     def knowledge_graph(self) -> KnowledgeGraph | None:
         """
         Get knowledge graph (built lazily, cached for build duration).
-        
+
         Returns:
             Built KnowledgeGraph instance, or None if disabled/unavailable
-            
+
         Example:
             # First access builds the graph
             graph = ctx.knowledge_graph
-            
+
             # Subsequent accesses reuse cached instance
             graph2 = ctx.knowledge_graph  # Same instance, no rebuild
         """
         if not self._knowledge_graph_enabled:
             return None
-            
+
         if self._knowledge_graph is None:
             self._knowledge_graph = self._build_knowledge_graph()
         return self._knowledge_graph
-    
+
     def _build_knowledge_graph(self) -> KnowledgeGraph | None:
         """Build and cache knowledge graph."""
         try:
             from bengal.analysis.knowledge_graph import KnowledgeGraph
             from bengal.config.defaults import is_feature_enabled
-            
+
             # Check if graph feature is enabled
             if not is_feature_enabled(self.site.config, "graph"):
                 self._knowledge_graph_enabled = False
                 return None
-            
+
             graph = KnowledgeGraph(self.site)
             graph.build()
             return graph
@@ -191,30 +194,32 @@ graph = build_context.knowledge_graph  # Need to pass context
 
 **Effort**: ~20 minutes
 
-### Phase 4: Update Health Check
+### Phase 4: Update Health Check & Base Validator
 
-**File**: `bengal/health/validators/connectivity.py`
+**Files**:
+- `bengal/health/base.py`
+- `bengal/health/validators/connectivity.py`
 
-This is trickier because health check runs after post-processing and may not have BuildContext.
+This requires updating the validator interface to accept `BuildContext`.
 
-**Options**:
-- A) Pass BuildContext to health check (clean, requires signature changes)
-- B) Cache graph on Site temporarily (less clean, minimal changes)
-- C) Health check builds if not cached (fallback behavior)
+1. **Update BaseValidator**:
+   Modify `validate` signature in `bengal/health/base.py`:
+   ```python
+   def validate(self, site: Site, build_context: Any | None = None) -> list[CheckResult]:
+   ```
+   *(Use `Any` or `TYPE_CHECKING` to avoid circular imports)*
 
-**Recommended**: Option A with Option C as fallback
-
-```python
-# connectivity.py
-def validate(self, site: Site, build_context: BuildContext | None = None) -> list[CheckResult]:
-    # Try build context first
-    if build_context and build_context.knowledge_graph:
-        graph = build_context.knowledge_graph
-    else:
-        # Fallback: build our own (for standalone health check)
-        graph = KnowledgeGraph(site)
-        graph.build()
-```
+2. **Update ConnectivityValidator**:
+   ```python
+   def validate(self, site: Site, build_context: Any | None = None) -> list[CheckResult]:
+       # Try build context first
+       if build_context and getattr(build_context, "knowledge_graph", None):
+           graph = build_context.knowledge_graph
+       else:
+           # Fallback: build our own (for standalone health check)
+           graph = KnowledgeGraph(site)
+           graph.build()
+   ```
 
 **Effort**: ~45 minutes
 
@@ -238,7 +243,7 @@ Once BuildContext has lazy artifacts, we can add more:
 class BuildContext:
     # Existing
     _knowledge_graph: KnowledgeGraph | None = None
-    
+
     # Future lazy artifacts
     _search_index: SearchIndex | None = None      # For search functionality
     _link_map: dict[str, list[str]] | None = None  # For link validation
@@ -254,7 +259,7 @@ With shared artifacts, validators become embarrassingly parallel:
 def run(self, build_context: BuildContext, ...) -> HealthReport:
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {
-            executor.submit(v.validate, self.site, build_context): v 
+            executor.submit(v.validate, self.site, build_context): v
             for v in self.validators
         }
         for future in as_completed(futures):
@@ -284,13 +289,13 @@ Lazy artifacts enable streaming:
 
 ## Success Criteria
 
-- [ ] Knowledge graph built at most once per build
-- [ ] Post-processing uses cached graph
-- [ ] Special pages use cached graph  
-- [ ] Health check uses cached graph (or fallback)
-- [ ] ~400-1000ms reduction in build time
-- [ ] No functional regression (same outputs)
-- [ ] All tests pass
+- [x] Knowledge graph built at most once per build
+- [x] Post-processing uses cached graph
+- [x] Special pages use cached graph  
+- [x] Health check uses cached graph (or fallback)
+- [ ] ~400-1000ms reduction in build time (to be verified with benchmarks)
+- [x] No functional regression (same outputs)
+- [x] All tests pass (174 health tests pass)
 
 ---
 
@@ -358,13 +363,4 @@ def run_postprocess(site, graph=None):
 - `bengal/postprocess/special_pages.py` - Graph visualization page
 - `bengal/health/validators/connectivity.py` - Connectivity validator
 - `bengal/health/health_check.py` - Health check orchestrator
-
----
-
-## Questions for Review
-
-1. Should we add timing instrumentation to measure actual savings?
-2. Should the graph be cleared at build end to free memory?
-3. Should health check require BuildContext or keep fallback forever?
-4. Are there other expensive computations that should be lazy artifacts?
-
+- `bengal/health/base.py` - Base validator class
