@@ -127,8 +127,8 @@ You can run specific benchmarks using the `-k` flag or by specifying the test no
 # Run incremental build tests
 pytest benchmarks/test_build.py -k "incremental" -v
 
-# Run the experimental pipeline benchmark
-pytest benchmarks/test_build.py::test_pipeline_build -v
+# Run fast mode benchmarks
+pytest benchmarks/test_build.py -k "fast_mode" -v
 ```
 
 ### Benchmark Types
