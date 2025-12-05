@@ -171,7 +171,7 @@ class MockSite:
     output_dir: Path = field(default_factory=lambda: Path("public"))
 
 
-@dataclass
+@dataclass(eq=False)
 class MockAnalysisPage:
     """
     Mock page for analysis/graph tests (link suggestions, PageRank, etc.).
@@ -181,6 +181,11 @@ class MockAnalysisPage:
     checks `hasattr(page, "category")` first, then falls back to `categories`.
 
     Use this instead of raw Mock() with `del page.categories` patterns.
+
+    HASHABILITY:
+    ============
+    MockAnalysisPage is hashable based on source_path (matching the real Page
+    class behavior), allowing use in sets and as dict keys for analysis graphs.
 
     Attributes:
         source_path: Path to source file (required for identity)
@@ -198,6 +203,8 @@ class MockAnalysisPage:
         ... )
         >>> hasattr(page, "categories")
         False
+        >>> hash(page)  # Hashable!
+        ...
     """
 
     source_path: Path
@@ -205,6 +212,16 @@ class MockAnalysisPage:
     tags: list[str] = field(default_factory=list)
     category: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __hash__(self) -> int:
+        """Hash based on source_path (same as Page)."""
+        return hash(self.source_path)
+
+    def __eq__(self, other: object) -> bool:
+        """Pages are equal if they have the same source path."""
+        if not isinstance(other, MockAnalysisPage):
+            return NotImplemented
+        return self.source_path == other.source_path
 
 
 def create_mock_xref_index(pages: list[MockPage]) -> dict[str, Any]:
