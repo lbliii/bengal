@@ -225,7 +225,8 @@ class CacheStore:
         """
         Load entries from cache file (tolerant).
 
-        Deserializes entries from JSON and validates version. If version
+        Deserializes entries and validates version. Automatically detects
+        format (compressed .json.zst or uncompressed .json). If version
         mismatch or file missing, returns empty list (doesn't crash).
 
         This "tolerant loading" approach ensures that builds never fail due
@@ -241,11 +242,11 @@ class CacheStore:
             List of deserialized entries, or [] if:
             - File doesn't exist (no warning, normal for first build)
             - Version mismatch (warning logged)
-            - Malformed JSON (error logged)
+            - Malformed data (error logged)
             - Deserialization fails (error logged)
 
         Example:
-            # Normal load
+            # Normal load (auto-detects .json.zst or .json)
             tags = store.load(TagEntry, expected_version=1)
 
             # Version mismatch (returns [])
@@ -258,73 +259,98 @@ class CacheStore:
                 store.load(TagEntry, ...)  # ✅ OK (TagEntry implements Cacheable)
                 store.load(Page, ...)      # ❌ Error (Page doesn't implement Cacheable)
         """
-        # File missing (normal for first build)
-        if not self.cache_path.exists():
-            logger.debug(f"Cache file not found: {self.cache_path} (will rebuild)")
+        # Try to load data (auto-detect format)
+        data = self._load_data()
+        if data is None:
             return []
 
-        try:
-            # Read and parse JSON
-            with open(self.cache_path, encoding="utf-8") as f:
-                data = json.load(f)
-
-            # Validate structure
-            if not isinstance(data, dict):
-                logger.error(
-                    f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}"
-                )
-                return []
-
-            # Check version
-            file_version = data.get("version")
-            if file_version != expected_version:
-                logger.warning(
-                    f"Cache version mismatch: {self.cache_path} has version "
-                    f"{file_version}, expected {expected_version}. Rebuilding cache."
-                )
-                return []
-
-            # Deserialize entries
-            entries_data = data.get("entries", [])
-            if not isinstance(entries_data, list):
-                logger.error(f"Malformed cache file {self.cache_path}: 'entries' is not a list")
-                return []
-
-            # Deserialize each entry using protocol method
-            entries: list[T] = []
-            for entry_data in entries_data:
-                try:
-                    entry = entry_type.from_cache_dict(entry_data)
-                    entries.append(entry)
-                except (KeyError, TypeError, ValueError) as e:
-                    logger.error(f"Failed to deserialize entry from {self.cache_path}: {e}")
-                    # Continue loading other entries (tolerant)
-                    continue
-
-            logger.debug(
-                f"Loaded {len(entries)} entries from {self.cache_path} (version {file_version})"
+        # Validate structure
+        if not isinstance(data, dict):
+            logger.error(
+                f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}"
             )
-            return entries
+            return []
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse cache file {self.cache_path}: {e}")
+        # Check version
+        file_version = data.get("version")
+        if file_version != expected_version:
+            logger.warning(
+                f"Cache version mismatch: {self.cache_path} has version "
+                f"{file_version}, expected {expected_version}. Rebuilding cache."
+            )
             return []
-        except OSError as e:
-            logger.error(f"Failed to read cache file {self.cache_path}: {e}")
+
+        # Deserialize entries
+        entries_data = data.get("entries", [])
+        if not isinstance(entries_data, list):
+            logger.error(f"Malformed cache file {self.cache_path}: 'entries' is not a list")
             return []
+
+        # Deserialize each entry using protocol method
+        entries: list[T] = []
+        for entry_data in entries_data:
+            try:
+                entry = entry_type.from_cache_dict(entry_data)
+                entries.append(entry)
+            except (KeyError, TypeError, ValueError) as e:
+                logger.error(f"Failed to deserialize entry from {self.cache_path}: {e}")
+                # Continue loading other entries (tolerant)
+                continue
+
+        logger.debug(
+            f"Loaded {len(entries)} entries from {self.cache_path} (version {file_version})"
+        )
+        return entries
+
+    def _load_data(self) -> dict | None:
+        """
+        Load raw data from cache file with auto-detection.
+
+        Tries compressed format first (.json.zst), falls back to uncompressed (.json).
+        This enables seamless migration from old uncompressed caches.
+
+        Returns:
+            Parsed data dict, or None if file not found or load failed
+        """
+        from compression import zstd
+
+        # Try compressed first (if compression enabled)
+        if self._compressed_path and self._compressed_path.exists():
+            try:
+                from bengal.cache.compression import load_compressed
+
+                return load_compressed(self._compressed_path)
+            except (zstd.ZstdError, json.JSONDecodeError, OSError) as e:
+                logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
+                return None
+
+        # Fall back to uncompressed JSON (for migration from old caches)
+        if self.cache_path.exists():
+            try:
+                with open(self.cache_path, encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.error(f"Failed to load cache {self.cache_path}: {e}")
+                return None
+
+        # Neither file exists (normal for first build)
+        logger.debug(f"Cache file not found: {self.cache_path} (will rebuild)")
+        return None
 
     def exists(self) -> bool:
         """
-        Check if cache file exists.
+        Check if cache file exists (compressed or uncompressed).
 
         Returns:
-            True if cache file exists, False otherwise
+            True if cache file exists in either format, False otherwise
         """
+        if self._compressed_path and self._compressed_path.exists():
+            return True
         return self.cache_path.exists()
 
     def clear(self) -> None:
         """
-        Delete cache file if it exists.
+        Delete cache file if it exists (both compressed and uncompressed).
 
         Used to force cache rebuild (e.g., after format changes).
 
@@ -332,6 +358,12 @@ class CacheStore:
             store = CacheStore(Path('.bengal/tags.json'))
             store.clear()  # Force rebuild on next build
         """
+        # Clear compressed file
+        if self._compressed_path and self._compressed_path.exists():
+            self._compressed_path.unlink()
+            logger.debug(f"Cleared compressed cache: {self._compressed_path}")
+
+        # Clear uncompressed file (for migration cleanup)
         if self.cache_path.exists():
             self.cache_path.unlink()
             logger.debug(f"Cleared cache file: {self.cache_path}")

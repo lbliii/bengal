@@ -2,8 +2,8 @@
 Build cache for tracking file changes and dependencies in incremental builds.
 
 Maintains file hashes, dependency graphs, taxonomy indexes, and validation
-results across builds. Uses JSON serialization for persistence and provides
-tolerant loading for version migrations.
+results across builds. Uses Zstandard-compressed JSON for persistence and
+provides tolerant loading for version migrations.
 
 Key Concepts:
     - File fingerprints: mtime + size for fast change detection, hash for verification
@@ -11,21 +11,25 @@ Key Concepts:
     - Taxonomy indexes: Tag/category mappings for fast reconstruction
     - Config hash: Auto-invalidation when configuration changes
     - Version tolerance: Accepts missing/older cache versions gracefully
+    - Zstandard compression: 92-93% size reduction, <1ms overhead
 
 Performance Optimization (RFC: orchestrator-performance-improvements):
     - Fast path: mtime + size check (no I/O beyond stat)
     - Slow path: SHA256 hash only when mtime/size mismatch suggests change
     - Expected improvement: 10-30% faster incremental build detection
+    - Compression: 12-14x smaller cache files, faster I/O
 
 Related Modules:
     - bengal.orchestration.incremental: Incremental build logic using cache
     - bengal.cache.dependency_tracker: Dependency graph construction
     - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
+    - bengal.cache.compression: Zstandard compression utilities
 
 See Also:
     - bengal/cache/build_cache.py:BuildCache class for cache structure
     - plan/active/rfc-incremental-builds.md: Incremental build design
     - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+    - plan/active/rfc-zstd-cache-compression.md: Compression RFC
 """
 
 from __future__ import annotations
@@ -275,15 +279,20 @@ class BuildCache:
         """
         Internal method to load cache from file (assumes lock is held if needed).
 
+        Auto-detects format: tries compressed (.json.zst) first, falls back to
+        uncompressed (.json). This enables seamless migration.
+
         Args:
-            cache_path: Path to cache file
+            cache_path: Path to cache file (base path, without .zst extension)
 
         Returns:
             BuildCache instance
         """
         try:
-            with open(cache_path, encoding="utf-8") as f:
-                data = json.load(f)
+            # Try to load data (auto-detect format)
+            data = cls._load_data_auto(cache_path)
+            if data is None:
+                return cls()
 
             # Tolerant versioning: accept missing version (pre-versioned files)
             found_version = data.get("version")
@@ -341,6 +350,44 @@ class BuildCache:
             )
             return cls()
 
+    @classmethod
+    def _load_data_auto(cls, cache_path: Path) -> dict | None:
+        """
+        Load raw data with auto-detection of format.
+
+        Tries compressed format first (.json.zst), falls back to uncompressed (.json).
+
+        Args:
+            cache_path: Base path to cache file
+
+        Returns:
+            Parsed data dict, or None if load failed
+        """
+        from compression import zstd
+
+        # Try compressed first
+        compressed_path = cache_path.with_suffix(".json.zst")
+        if compressed_path.exists():
+            try:
+                from bengal.cache.compression import load_compressed
+
+                logger.debug("cache_loading_compressed", path=str(compressed_path))
+                return load_compressed(compressed_path)
+            except (zstd.ZstdError, json.JSONDecodeError, OSError) as e:
+                logger.warning(
+                    "cache_compressed_load_failed",
+                    path=str(compressed_path),
+                    error=str(e),
+                    action="trying_uncompressed",
+                )
+
+        # Fall back to uncompressed
+        if cache_path.exists():
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+
+        return None
+
     def save(self, cache_path: Path, use_lock: bool = True) -> None:
         """
         Save build cache to disk with optional file locking.
@@ -382,12 +429,15 @@ class BuildCache:
                 impact="incremental_builds_disabled",
             )
 
-    def _save_to_file(self, cache_path: Path) -> None:
+    def _save_to_file(self, cache_path: Path, compress: bool = True) -> None:
         """
         Internal method to save cache to file (assumes lock is held if needed).
 
+        Uses Zstandard compression by default for 92-93% size reduction.
+
         Args:
-            cache_path: Path to cache file
+            cache_path: Path to cache file (base path, will save as .json.zst)
+            compress: Whether to use compression (default: True)
         """
         # Convert sets to lists for JSON serialization
         data = {
@@ -406,19 +456,34 @@ class BuildCache:
             "last_build": datetime.now().isoformat(),
         }
 
-        # Write cache atomically (crash-safe)
-        from bengal.utils.atomic_write import AtomicFile
+        if compress:
+            # Save compressed (92-93% size reduction)
+            from bengal.cache.compression import save_compressed
 
-        with AtomicFile(cache_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            compressed_path = cache_path.with_suffix(".json.zst")
+            save_compressed(data, compressed_path)
 
-        logger.debug(
-            "cache_saved",
-            cache_path=str(cache_path),
-            tracked_files=len(self.file_hashes),
-            dependencies=len(self.dependencies),
-            cached_content=len(self.parsed_content),
-        )
+            logger.debug(
+                "cache_saved_compressed",
+                cache_path=str(compressed_path),
+                tracked_files=len(self.file_hashes),
+                dependencies=len(self.dependencies),
+                cached_content=len(self.parsed_content),
+            )
+        else:
+            # Write uncompressed (for debugging)
+            from bengal.utils.atomic_write import AtomicFile
+
+            with AtomicFile(cache_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            logger.debug(
+                "cache_saved",
+                cache_path=str(cache_path),
+                tracked_files=len(self.file_hashes),
+                dependencies=len(self.dependencies),
+                cached_content=len(self.parsed_content),
+            )
 
     def hash_file(self, file_path: Path) -> str:
         """

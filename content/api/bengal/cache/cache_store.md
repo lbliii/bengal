@@ -22,9 +22,11 @@ This module provides a type-safe, generic cache storage mechanism that works
 with any type implementing the Cacheable protocol. It handles:
 
 - JSON serialization/deserialization
+- Zstandard compression (92-93% size reduction)
 - Version management (tolerant loading)
 - Directory creation
 - Type-safe load/save operations
+- Backward compatibility (reads both compressed and uncompressed)
 
 Design Philosophy:
     CacheStore provides a reusable cache storage layer that works with any
@@ -37,29 +39,32 @@ Design Philosophy:
     - Tolerant loading (returns empty on mismatch, doesn't crash)
     - Automatic directory creation
     - Single source of truth for cache file format
+    - 12-14x compression ratio with Zstandard (PEP 784)
 
 Usage Example:
     from bengal.cache.cache_store import CacheStore
     from bengal.cache.taxonomy_index import TagEntry
 
-    # Create store
+    # Create store (compression enabled by default)
     store = CacheStore(Path('.bengal/tags.json'))
 
-    # Save entries (type-safe)
+    # Save entries (type-safe, compressed)
     tags = [
         TagEntry(tag_slug='python', tag_name='Python', page_paths=[], updated_at='...'),
         TagEntry(tag_slug='web', tag_name='Web', page_paths=[], updated_at='...'),
     ]
     store.save(tags, version=1)
 
-    # Load entries (type-safe, tolerant)
+    # Load entries (auto-detects format: .json.zst or .json)
     loaded_tags = store.load(TagEntry, expected_version=1)
     # Returns [] if file missing or version mismatch
 
 See Also:
     - bengal/cache/cacheable.py - Cacheable protocol definition
+    - bengal/cache/compression.py - Zstandard compression utilities
     - bengal/cache/taxonomy_index.py - Example usage (TagEntry)
     - bengal/cache/asset_dependency_map.py - Example usage (AssetDependencyEntry)
+    - plan/active/rfc-zstd-cache-compression.md - Compression RFC
 
 ## Classes
 
@@ -71,8 +76,9 @@ See Also:
 
 Generic cache storage for types implementing the Cacheable protocol.
 
-Provides type-safe save/load operations with version management and
-tolerant loading (returns empty list on version mismatch or missing file).
+Provides type-safe save/load operations with version management,
+Zstandard compression, and tolerant loading (returns empty list on
+version mismatch or missing file).
 
 
 
@@ -80,7 +86,11 @@ tolerant loading (returns empty list on version mismatch or missing file).
 
 | Name | Type | Description |
 |:-----|:-----|:------------|
-| `cache_path` | - | Path to cache file (e.g., .bengal/taxonomy_index.json) Cache File Format: { "version": 1, "entries": [ {...}, // Serialized Cacheable objects {...} ] } Version Management: - Each cache file has a top-level "version" field - On version mismatch, load() returns empty list and logs warning - On missing file, load() returns empty list (no warning) - On malformed JSON, load() returns empty list and logs error This "tolerant loading" approach ensures that stale or incompatible caches don't crash the build - they just rebuild from scratch. Type Safety: - save() accepts list of any Cacheable type - load() requires explicit type parameter for deserialization - mypy validates that type implements Cacheable protocol |
+| `cache_path` | - | Path to cache file (e.g., .bengal/taxonomy_index.json) |
+| `compress` | - | Whether to use Zstandard compression (default: True) Cache File Format: |
+| `Compressed` | - | Zstd-compressed JSON with same structure as below 92-93% smaller, 12-14x compression ratio |
+| `Uncompressed` | - | { "version": 1, "entries": [ {...}, // Serialized Cacheable objects {...} ] } Version Management: - Each cache file has a top-level "version" field - On version mismatch, load() returns empty list and logs warning - On missing file, load() returns empty list (no warning) - On malformed data, load() returns empty list and logs error This "tolerant loading" approach ensures that stale or incompatible caches don't crash the build - they just rebuild from scratch. |
+| `Compression` | - | - Enabled by default (Python 3.14+ with compression.zstd) - 92-93% size reduction on typical cache files - <1ms compress time, <0.3ms decompress time - Auto-detects format on load (reads both .json.zst and .json) - Backward compatible: reads old uncompressed caches Type Safety: - save() accepts list of any Cacheable type - load() requires explicit type parameter for deserialization - mypy validates that type implements Cacheable protocol |
 
 
 
@@ -94,7 +104,7 @@ tolerant loading (returns empty list on version mismatch or missing file).
 
 #### `__init__`
 ```python
-def __init__(self, cache_path: Path)
+def __init__(self, cache_path: Path, compress: bool = True)
 ```
 
 
@@ -105,7 +115,8 @@ Initialize cache store.
 
 | Name | Type | Default | Description |
 |:-----|:-----|:--------|:------------|
-| `cache_path` | `Path` | - | Path to cache file (e.g., .bengal/taxonomy_index.json). Parent directory will be created if missing. |
+| `cache_path` | `Path` | - | Path to cache file (e.g., .bengal/taxonomy_index.json). Parent directory will be created if missing. With compression enabled, actual file will be .json.zst |
+| `compress` | `bool` | `True` | Whether to use Zstandard compression (default: True). Set to False for debugging or compatibility. |
 
 
 
@@ -123,7 +134,7 @@ def save(self, entries: list[Cacheable], version: int = 1, indent: int = 2) -> N
 Save entries to cache file.
 
 Serializes all entries to JSON and writes to cache file. Creates
-parent directory if missing.
+parent directory if missing. Uses Zstandard compression by default.
 
 
 **Parameters:**
@@ -132,7 +143,7 @@ parent directory if missing.
 |:-----|:-----|:--------|:------------|
 | `entries` | `list[Cacheable]` | - | List of Cacheable objects to save |
 | `version` | `int` | `1` | Cache version number (default: 1). Increment when format changes (new fields, removed fields, etc.) |
-| `indent` | `int` | `2` | JSON indentation (default: 2). Use None for compact output. |
+| `indent` | `int` | `2` | JSON indentation (default: 2). Only used when compression is disabled; compressed files always use compact JSON. |
 
 
 
@@ -161,7 +172,7 @@ tags = [
         TagEntry(tag_slug='python', ...),
         TagEntry(tag_slug='web', ...),
     ]
-    store.save(tags, version=1)
+    store.save(tags, version=1)  # Saves as .json.zst
 ```
 
 
@@ -175,7 +186,8 @@ def load(self, entry_type: type[T], expected_version: int = 1) -> list[T]
 
 Load entries from cache file (tolerant).
 
-Deserializes entries from JSON and validates version. If version
+Deserializes entries and validates version. Automatically detects
+format (compressed .json.zst or uncompressed .json). If version
 mismatch or file missing, returns empty list (doesn't crash).
 
 This "tolerant loading" approach ensures that builds never fail due
@@ -201,7 +213,7 @@ to stale or incompatible caches - they just rebuild from scratch.
 `list[T]` - List of deserialized entries, or [] if:
     - File doesn't exist (no warning, normal for first build)
     - Version mismatch (warning logged)
-    - Malformed JSON (error logged)
+    - Malformed data (error logged)
     - Deserialization fails (error logged)
 :::{rubric} Examples
 :class: rubric-examples
@@ -209,7 +221,7 @@ to stale or incompatible caches - they just rebuild from scratch.
 
 
 ```python
-# Normal load
+# Normal load (auto-detects .json.zst or .json)
     tags = store.load(TagEntry, expected_version=1)
 
     # Version mismatch (returns [])
@@ -226,20 +238,21 @@ Type Safety:
 
 
 
+
 #### `exists`
 ```python
 def exists(self) -> bool
 ```
 
 
-Check if cache file exists.
+Check if cache file exists (compressed or uncompressed).
 
 
 
 **Returns**
 
 
-`bool` - True if cache file exists, False otherwise
+`bool` - True if cache file exists in either format, False otherwise
 
 
 
@@ -249,7 +262,7 @@ def clear(self) -> None
 ```
 
 
-Delete cache file if it exists.
+Delete cache file if it exists (both compressed and uncompressed).
 
 Used to force cache rebuild (e.g., after format changes).
 
@@ -273,3 +286,4 @@ store = CacheStore(Path('.bengal/tags.json'))
 
 ---
 *Generated by Bengal autodoc from `bengal/bengal/cache/cache_store.py`*
+

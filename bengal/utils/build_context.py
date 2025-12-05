@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -109,6 +110,12 @@ class BuildContext:
     _knowledge_graph: Any = field(default=None, repr=False)
     _knowledge_graph_enabled: bool = field(default=True, repr=False)
 
+    # Content cache - populated during discovery, shared by validators
+    # Eliminates redundant disk I/O during health checks (4s+ → <100ms)
+    # See: plan/active/rfc-build-integrated-validation.md
+    _page_contents: dict[str, str] = field(default_factory=dict, repr=False)
+    _content_cache_lock: Lock = field(default_factory=Lock, repr=False)
+
     @property
     def knowledge_graph(self) -> KnowledgeGraph | None:
         """
@@ -166,6 +173,106 @@ class BuildContext:
         Clear lazy-computed artifacts to free memory.
 
         Call this at the end of a build to release memory used by
-        cached artifacts like the knowledge graph.
+        cached artifacts like the knowledge graph and content cache.
         """
         self._knowledge_graph = None
+        self.clear_content_cache()
+
+    # =========================================================================
+    # Content Cache Methods (Build-Integrated Validation)
+    # =========================================================================
+    # These methods enable validators to use cached content instead of re-reading
+    # files from disk, reducing health check time from ~4.6s to <100ms.
+    # See: plan/active/rfc-build-integrated-validation.md
+
+    def cache_content(self, source_path: Path, content: str) -> None:
+        """
+        Cache raw content during discovery phase (thread-safe).
+
+        Call this during content discovery to store file content for later
+        use by validators. This eliminates redundant disk I/O during health
+        checks.
+
+        Args:
+            source_path: Path to source file (used as cache key)
+            content: Raw file content to cache
+
+        Example:
+            # During content discovery
+            content = file_path.read_text()
+            if build_context:
+                build_context.cache_content(file_path, content)
+        """
+        with self._content_cache_lock:
+            self._page_contents[str(source_path)] = content
+
+    def get_content(self, source_path: Path) -> str | None:
+        """
+        Get cached content without disk I/O.
+
+        Args:
+            source_path: Path to source file
+
+        Returns:
+            Cached content string, or None if not cached
+
+        Example:
+            # In validator
+            content = build_context.get_content(page.source_path)
+            if content is None:
+                content = page.source_path.read_text()  # Fallback
+        """
+        with self._content_cache_lock:
+            return self._page_contents.get(str(source_path))
+
+    def get_all_cached_contents(self) -> dict[str, str]:
+        """
+        Get a copy of all cached contents for batch processing.
+
+        Returns a copy to avoid thread safety issues when iterating.
+
+        Returns:
+            Dictionary mapping source path strings to content
+
+        Example:
+            # In DirectiveAnalyzer
+            all_contents = build_context.get_all_cached_contents()
+            for path, content in all_contents.items():
+                directives = self._extract_directives(content, Path(path))
+        """
+        with self._content_cache_lock:
+            return dict(self._page_contents)
+
+    def clear_content_cache(self) -> None:
+        """
+        Clear content cache to free memory.
+
+        Call this after validation phase completes to release memory
+        used by cached file contents.
+        """
+        with self._content_cache_lock:
+            self._page_contents.clear()
+
+    @property
+    def content_cache_size(self) -> int:
+        """
+        Get number of cached content entries.
+
+        Returns:
+            Number of files with cached content
+        """
+        with self._content_cache_lock:
+            return len(self._page_contents)
+
+    @property
+    def has_cached_content(self) -> bool:
+        """
+        Check if content cache has any entries.
+
+        Validators can use this to decide whether to use cache or fallback.
+
+        Returns:
+            True if cache has content
+        """
+        with self._content_cache_lock:
+            return len(self._page_contents) > 0

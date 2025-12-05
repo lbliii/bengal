@@ -1,8 +1,8 @@
 # RFC: Build-Integrated Validation Architecture
 
-**Status**: Draft
+**Status**: Review
 **Created**: 2025-12-05
-**Author**: AI-assisted analysis
+**Author**: AI Pair
 **Depends On**: `rfc-lazy-build-artifacts.md` (implemented)
 **Related**: `bengal/health/`, `bengal/orchestration/`
 
@@ -95,25 +95,31 @@ content = page.source_path.read_text(encoding="utf-8")  # 773 disk reads!
 
 ```python
 # bengal/utils/build_context.py
+from threading import Lock
+
 @dataclass
 class BuildContext:
     site: Site
     
     # Content cache - populated during discovery, shared by validators
     _page_contents: dict[str, str] = field(default_factory=dict)
+    _cache_lock: Lock = field(default_factory=Lock, repr=False)
     
     def cache_content(self, source_path: Path, content: str) -> None:
-        """Cache raw content during discovery phase."""
-        self._page_contents[str(source_path)] = content
+        """Cache raw content during discovery phase (thread-safe)."""
+        with self._cache_lock:
+            self._page_contents[str(source_path)] = content
     
     def get_content(self, source_path: Path) -> str | None:
         """Get cached content without disk I/O."""
-        return self._page_contents.get(str(source_path))
+        with self._cache_lock:
+            return self._page_contents.get(str(source_path))
     
     @cached_property
     def directive_analysis(self) -> dict[str, DirectiveData]:
         """Analyze all directives once using cached content."""
         analyzer = DirectiveAnalyzer()
+        # Note: analyze_from_cache needs to handle the lock or copy data
         return analyzer.analyze_from_cache(self._page_contents)
 ```
 
@@ -121,14 +127,23 @@ class BuildContext:
 
 ```python
 # bengal/discovery/content_discovery.py
-def discover_page(file_path: Path, build_context: BuildContext) -> Page:
-    content = file_path.read_text(encoding="utf-8")
-    
-    # Cache for validators (single read, shared by all)
-    build_context.cache_content(file_path, content)
-    
-    metadata, body = parse_frontmatter(content)
-    return Page(source_path=file_path, content=body, metadata=metadata)
+class ContentDiscovery:
+    def __init__(self, ..., build_context: BuildContext | None = None):
+        self.build_context = build_context
+        # ...
+
+    def _parse_content_file(self, file_path: Path) -> tuple:
+        # Existing file read logic using utils.file_io
+        file_content = read_text_file(file_path, ...)
+        
+        # Cache for validators (single read, shared by all)
+        if self.build_context:
+            self.build_context.cache_content(file_path, file_content)
+        
+        # Existing parsing logic...
+        try:
+            post = frontmatter.loads(file_content)
+            # ...
 ```
 
 #### 3. Validators Use BuildContext
@@ -295,6 +310,7 @@ if cached_hash == current_hash:
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Memory pressure from content cache | High memory on large sites | Clear cache after validation phase |
+| Thread safety in parallel discovery | Race conditions in cache | Use `Lock` for `cache_content` operations |
 | Breaking standalone health check | Users can't run `bengal health` alone | Keep disk-based fallback |
 | Coupling validation to build | Harder to test validators | Validators work with or without context |
 | Config complexity | Users confused by tiers | Sensible defaults, clear docs |

@@ -1,7 +1,7 @@
 """
 Cache compression utilities using Zstandard (PEP 784).
 
-Python 3.14+ uses stdlib compression.zstd module for cache file compression.
+Python 3.14+ stdlib compression.zstd module for cache file compression.
 Provides transparent compression/decompression with backward compatibility.
 
 Performance (from spike benchmarks):
@@ -227,4 +227,3 @@ def migrate_to_compressed(json_path: Path, remove_original: bool = True) -> Path
             error=str(e),
         )
         return None
-

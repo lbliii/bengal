@@ -4,7 +4,7 @@ title: "build_cache"
 type: "python-module"
 source_file: "bengal/bengal/cache/build_cache.py"
 line_number: 1
-description: "Build cache for tracking file changes and dependencies in incremental builds. Maintains file hashes, dependency graphs, taxonomy indexes, and validation results across builds. Uses JSON serialization ..."
+description: "Build cache for tracking file changes and dependencies in incremental builds. Maintains file hashes, dependency graphs, taxonomy indexes, and validation results across builds. Uses Zstandard-compresse..."
 ---
 
 # build_cache
@@ -19,26 +19,174 @@ description: "Build cache for tracking file changes and dependencies in incremen
 Build cache for tracking file changes and dependencies in incremental builds.
 
 Maintains file hashes, dependency graphs, taxonomy indexes, and validation
-results across builds. Uses JSON serialization for persistence and provides
-tolerant loading for version migrations.
+results across builds. Uses Zstandard-compressed JSON for persistence and
+provides tolerant loading for version migrations.
 
 Key Concepts:
-    - File hashes: SHA256 hashes for detecting content changes
+    - File fingerprints: mtime + size for fast change detection, hash for verification
     - Dependency tracking: Templates, partials, and data files used by pages
     - Taxonomy indexes: Tag/category mappings for fast reconstruction
     - Config hash: Auto-invalidation when configuration changes
     - Version tolerance: Accepts missing/older cache versions gracefully
+    - Zstandard compression: 92-93% size reduction, <1ms overhead
+
+Performance Optimization (RFC: orchestrator-performance-improvements):
+    - Fast path: mtime + size check (no I/O beyond stat)
+    - Slow path: SHA256 hash only when mtime/size mismatch suggests change
+    - Expected improvement: 10-30% faster incremental build detection
+    - Compression: 12-14x smaller cache files, faster I/O
 
 Related Modules:
     - bengal.orchestration.incremental: Incremental build logic using cache
     - bengal.cache.dependency_tracker: Dependency graph construction
     - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
+    - bengal.cache.compression: Zstandard compression utilities
 
 See Also:
     - bengal/cache/build_cache.py:BuildCache class for cache structure
     - plan/active/rfc-incremental-builds.md: Incremental build design
+    - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+    - plan/active/rfc-zstd-cache-compression.md: Compression RFC
 
 ## Classes
+
+
+
+
+### `FileFingerprint`
+
+
+Fast file change detection using mtime + size, with optional hash verification.
+
+Performance Optimization:
+    - mtime + size comparison is O(1) stat call (no file read)
+    - Hash computed lazily only when mtime/size mismatch detected
+    - Handles edge cases like touch/rsync that change mtime but not content
+
+
+:::{info}
+This is a dataclass.
+:::
+
+
+
+**Attributes:**
+
+| Name | Type | Description |
+|:-----|:-----|:------------|
+| `mtime` | - | File modification time (seconds since epoch) |
+| `size` | - | File size in bytes |
+| `hash` | - | SHA256 hash (computed lazily, may be None for fast path) Thread Safety: Immutable after creation. Thread-safe for read operations. |
+
+
+
+
+
+
+
+## Methods
+
+
+
+#### `matches_stat`
+```python
+def matches_stat(self, stat_result) -> bool
+```
+
+
+Fast path check: does mtime + size match?
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `stat_result` | - | - | Result from Path.stat() |
+
+
+
+
+
+
+
+**Returns**
+
+
+`bool` - True if mtime and size both match (definitely unchanged)
+
+
+
+#### `to_dict`
+```python
+def to_dict(self) -> dict[str, Any]
+```
+
+
+Serialize to JSON-compatible dict.
+
+
+
+**Returns**
+
+
+`dict[str, Any]`
+
+
+
+#### `from_dict` @classmethod
+```python
+def from_dict(cls, data: dict[str, Any]) -> FileFingerprint
+```
+
+
+Deserialize from JSON dict.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `data` | `dict[str, Any]` | - | *No description provided.* |
+
+
+
+
+
+
+
+**Returns**
+
+
+`FileFingerprint`
+
+
+
+#### `from_path` @classmethod
+```python
+def from_path(cls, file_path: Path, compute_hash: bool = True) -> FileFingerprint
+```
+
+
+Create fingerprint from file path.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `file_path` | `Path` | - | Path to file |
+| `compute_hash` | `bool` | `True` | Whether to compute SHA256 hash (slower but more reliable) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`FileFingerprint` - FileFingerprint with mtime, size, and optionally hash
 
 
 
@@ -79,6 +227,7 @@ This is a dataclass.
 | `VERSION` | - | *No description provided.* |
 | `version` | - | *No description provided.* |
 | `file_hashes` | - | Mapping of file paths to their SHA256 hashes |
+| `file_fingerprints` | - | *No description provided.* |
 | `dependencies` | - | Mapping of pages to their dependencies (templates, partials, etc.) |
 | `output_sources` | - | Mapping of output files to their source files |
 | `taxonomy_deps` | - | Mapping of taxonomy terms to affected pages |
@@ -86,6 +235,7 @@ This is a dataclass.
 | `tag_to_pages` | - | Inverted index mapping tag slug to page paths (for O(1) reconstruction) |
 | `known_tags` | - | Set of all tag slugs from previous build (for detecting deletions) |
 | `parsed_content` | - | Cached parsed HTML/TOC (Optimization #2) |
+| `rendered_output` | - | *No description provided.* |
 | `synthetic_pages` | - | *No description provided.* |
 | `validation_results` | - | *No description provided.* |
 | `config_hash` | - | Hash of resolved configuration (for auto-invalidation) |
@@ -150,6 +300,7 @@ Loader behavior:
 
 
 `BuildCache` - BuildCache instance (empty if file doesn't exist or is invalid)
+
 
 
 
@@ -233,6 +384,11 @@ def is_changed(self, file_path: Path) -> bool
 
 Check if a file has changed since last build.
 
+Performance Optimization (RFC: orchestrator-performance-improvements):
+    - Fast path: mtime + size check (single stat call, no file read)
+    - Slow path: SHA256 hash only when mtime/size mismatch detected
+    - Handles edge cases: touch/rsync may change mtime but not content
+
 
 **Parameters:**
 
@@ -259,7 +415,11 @@ def update_file(self, file_path: Path) -> None
 ```
 
 
-Update the hash for a file.
+Update the fingerprint for a file (mtime + size + hash).
+
+Performance Optimization:
+    Stores full fingerprint for fast change detection on subsequent builds.
+    Uses mtime + size for fast path, hash for verification.
 
 
 **Parameters:**
@@ -960,5 +1120,124 @@ Get parsed content cache statistics.
 
 
 
+#### `store_rendered_output`
+```python
+def store_rendered_output(self, file_path: Path, html: str, template: str, metadata: dict[str, Any], dependencies: list[str] | None = None) -> None
+```
+
+
+Store fully rendered HTML output in cache.
+
+This allows skipping BOTH markdown parsing AND template rendering for
+pages where content, template, and metadata are unchanged. Expected
+to provide 20-40% faster incremental builds.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `file_path` | `Path` | - | Path to source file |
+| `html` | `str` | - | Fully rendered HTML (post-template, ready to write) |
+| `template` | `str` | - | Template name used for rendering |
+| `metadata` | `dict[str, Any]` | - | Page metadata (frontmatter) |
+| `dependencies` | `list[str] \| None` | - | List of template/partial paths this page depends on |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+#### `get_rendered_output`
+```python
+def get_rendered_output(self, file_path: Path, template: str, metadata: dict[str, Any]) -> str | None
+```
+
+
+Get cached rendered HTML if still valid.
+
+Validates that:
+1. Content file hasn't changed (via file_fingerprints)
+2. Metadata hasn't changed (via metadata_hash)
+3. Template name matches
+4. Template files haven't changed (via dependencies)
+5. Config hasn't changed (caller should validate config_hash)
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `file_path` | `Path` | - | Path to source file |
+| `template` | `str` | - | Current template name |
+| `metadata` | `dict[str, Any]` | - | Current page metadata |
+
+
+
+
+
+
+
+**Returns**
+
+
+`str | None` - Cached HTML string if valid, None if invalid or not found
+
+
+
+#### `invalidate_rendered_output`
+```python
+def invalidate_rendered_output(self, file_path: Path) -> None
+```
+
+
+Remove cached rendered output for a file.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `file_path` | `Path` | - | Path to file |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+#### `get_rendered_output_stats`
+```python
+def get_rendered_output_stats(self) -> dict[str, Any]
+```
+
+
+Get rendered output cache statistics.
+
+
+
+**Returns**
+
+
+`dict[str, Any]` - Dictionary with cache stats
+
+
+
 ---
 *Generated by Bengal autodoc from `bengal/bengal/cache/build_cache.py`*
+

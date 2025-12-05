@@ -15,6 +15,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class ContentOrchestrator:
@@ -38,7 +39,12 @@ class ContentOrchestrator:
         self.site = site
         self.logger = get_logger(__name__)
 
-    def discover(self, incremental: bool = False, cache: Any | None = None) -> None:
+    def discover(
+        self,
+        incremental: bool = False,
+        cache: Any | None = None,
+        build_context: BuildContext | None = None,
+    ) -> None:
         """
         Discover all content and assets.
 
@@ -47,22 +53,34 @@ class ContentOrchestrator:
         Args:
             incremental: Whether this is an incremental build (enables lazy loading)
             cache: PageDiscoveryCache instance (required if incremental=True)
+            build_context: Optional BuildContext for caching content during discovery.
+                          When provided, raw file content is cached for later use by
+                          validators, eliminating redundant disk I/O during health checks.
         """
-        self.discover_content(incremental=incremental, cache=cache)
+        self.discover_content(incremental=incremental, cache=cache, build_context=build_context)
         self.discover_assets()
 
     def discover_content(
-        self, content_dir: Path | None = None, incremental: bool = False, cache: Any | None = None
+        self,
+        content_dir: Path | None = None,
+        incremental: bool = False,
+        cache: Any | None = None,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Discover all content (pages, sections) in the content directory.
 
         Supports optional lazy loading with PageProxy for incremental builds.
+        When build_context is provided, raw file content is cached for later
+        use by validators (build-integrated validation).
 
         Args:
             content_dir: Content directory path (defaults to root_path/content)
             incremental: Whether this is an incremental build (enables lazy loading)
             cache: PageDiscoveryCache instance (required if incremental=True)
+            build_context: Optional BuildContext for caching content during discovery.
+                          When provided, raw file content is cached for later use by
+                          validators, eliminating redundant disk I/O during health checks.
         """
         if content_dir is None:
             content_dir = self.site.root_path / "content"
@@ -95,6 +113,7 @@ class ContentOrchestrator:
             site=self.site,
             collections=collections,
             strict_validation=strict_validation,
+            build_context=build_context,
         )
 
         # Use lazy loading if incremental build with cache
