@@ -45,7 +45,13 @@ bengal --version
 ## Run Tests
 
 ```bash
-# Run all tests
+# Fast dev loop (RECOMMENDED, ~20s)
+pytest -m "not slow" -n auto
+
+# Unit tests only (~8s)
+pytest tests/unit -n auto
+
+# Full suite (~60s)
 pytest
 
 # Run specific test file
@@ -54,6 +60,8 @@ pytest tests/unit/test_page.py
 # Run with coverage
 pytest --cov=bengal
 ```
+
+See `tests/README.md` for comprehensive testing documentation.
 
 ## Project Structure
 

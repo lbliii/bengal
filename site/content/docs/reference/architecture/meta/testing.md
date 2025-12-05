@@ -9,7 +9,7 @@ keywords: [testing, test strategy, unit tests, integration tests, benchmarks, co
 
 # Testing Strategy
 
-Bengal maintains high code quality through a multi-layered testing strategy.
+Bengal maintains high code quality through a multi-layered testing strategy with 4,000+ tests.
 
 ## Test Layers
 
@@ -38,33 +38,92 @@ Measure speed on large sites. Catch regressions.
 :::
 ::::
 
-## Key Testing Patterns
+## Quick Start
 
-### 1. Fixtures
+```bash
+# Fast feedback loop (recommended during development)
+pytest -m "not slow" -n auto  # ~20 seconds
 
-We use `pytest` fixtures extensively for setup/teardown.
+# Unit tests only
+pytest tests/unit -n auto  # ~8 seconds
 
-```python
-@pytest.fixture
-def site(tmp_path):
-    """Create a configured site instance."""
-    root = tmp_path / "site"
-    # ... setup structure ...
-    return Site.from_config(root)
+# Full suite
+pytest  # ~60 seconds
 ```
 
-### 2. Snapshot Testing
+## Test Infrastructure
 
-For complex outputs (like HTML generation), we compare against known-good snapshots.
+### Test Roots
 
-### 3. Property-Based Testing
+Minimal, reusable site structures in `tests/roots/`:
 
-For critical utilities (like slug generation), we use `hypothesis` to test edge cases.
+| Root | Purpose | Pages |
+|------|---------|-------|
+| `test-basic` | Minimal smoke test | 1 |
+| `test-directives` | Card, admonition, glossary | 4+ |
+| `test-navigation` | Multi-level hierarchy | 8 |
+| `test-large` | Performance testing | 100+ |
+
+```python
+@pytest.mark.bengal(testroot="test-directives")
+def test_card_directive(site, build_site):
+    build_site()
+    assert "card-grid" in (site.output_dir / "cards/index.html").read_text()
+```
+
+### Canonical Mocks
+
+Use shared mocks instead of inline class definitions:
+
+```python
+from tests._testing.mocks import MockPage, MockSection, MockSite
+
+page = MockPage(title="Test", url="/test/", tags=["python"])
+site = MockSite(pages=[page])
+```
+
+### Module-Scoped Fixtures
+
+Rendering tests use module-scoped parser for efficiency:
+
+```python
+# In tests/unit/rendering/
+def test_markdown(parser):  # Parser created once per module
+    result = parser.parse("# Hello", {})
+    assert "<h1>" in result
+```
+
+## Key Testing Patterns
+
+### 1. Declarative Test Sites
+
+```python
+@pytest.mark.bengal(testroot="test-basic", confoverrides={"site.title": "Custom"})
+def test_with_overrides(site):
+    assert site.title == "Custom"
+```
+
+### 2. Property-Based Testing
+
+For critical utilities, we use `hypothesis` to test edge cases (116 tests, 11,600+ examples).
+
+### 3. Parallel Safety
+
+Mark tests with internal parallelism:
+
+```python
+@pytest.mark.parallel_unsafe  # Prevents xdist worker crashes
+def test_concurrent_operations():
+    with ThreadPoolExecutor() as ex:
+        ...
+```
 
 ## Continuous Integration
 
 Every PR runs:
-1.  **Linting**: `ruff` check and format.
-2.  **Type Checking**: `mypy` strict mode.
-3.  **Test Suite**: All unit and integration tests.
-4.  **Benchmarks**: Verified against baseline.
+1. **Linting**: `ruff` check and format
+2. **Type Checking**: `mypy` strict mode
+3. **Test Suite**: Unit + integration (`-m "not slow"`)
+4. **Full Suite**: On main/release branches
+
+See `tests/README.md` for complete documentation.
