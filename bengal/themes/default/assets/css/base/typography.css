@@ -30,8 +30,14 @@ body {
    ============================================ 
    
    Font families:
-   - h1, h2: Use --font-heading (defaults to body, can be overridden)
+   - h1, h2: Use --font-heading (Instrument Serif by default)
    - h3-h6: Use inherited body font
+   
+   Weight gradient (heavier at top for strong hierarchy):
+   - h1: extrabold (800)
+   - h2: bold (700)
+   - h3, h4: semibold (600)
+   - h5, h6: medium (500)
    
    Tracking gradient: Larger headings get tighter tracking
    for improved visual cohesion at display sizes.
@@ -57,7 +63,7 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
   font-family: var(--font-heading-display);
   font-size: var(--text-h1);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-extrabold);
   line-height: var(--leading-heading);
   letter-spacing: var(--tracking-display);
   margin-top: 0;
@@ -67,7 +73,7 @@ h1 {
 h2 {
   font-family: var(--font-heading-section);
   font-size: var(--text-h2);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tighter);
   margin-top: 2em;
   margin-bottom: 0.5em;
@@ -76,7 +82,7 @@ h2 {
 
 h3 {
   font-size: var(--text-h3);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-tight);
   margin-top: 1.5em;
   margin-bottom: 0.375em;
@@ -84,7 +90,7 @@ h3 {
 
 h4 {
   font-size: var(--text-h4);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-tight);
   margin-top: 1.25em;
   margin-bottom: 0.375em;
@@ -473,7 +479,7 @@ pre {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   overflow-x: auto;
-  line-height: 1.5;  /* Tighter than body (1.65) for code readability */
+  line-height: 1.7;  /* Matches Supabase's code block line-height */
   position: relative;
 }
 
@@ -549,6 +555,9 @@ figure {
 figcaption {
   margin-top: var(--space-2);
   font-size: var(--text-caption);
+  font-family: var(--font-family-mono);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-wide);
   text-align: center;
   color: var(--color-text-muted);
 }
