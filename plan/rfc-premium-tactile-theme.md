@@ -3,7 +3,8 @@
 **Status**: Draft  
 **Created**: 2025-12-05  
 **Author**: Design System Team  
-**Related**: Competitor analysis (Supabase docs)
+**Related**: Competitor analysis (Supabase docs)  
+**References**: [Apple HIG: Color](https://developer.apple.com/design/human-interface-guidelines/color), [Apple HIG: Layout](https://developer.apple.com/design/human-interface-guidelines/layout)
 
 ---
 
@@ -42,11 +43,19 @@ Already implemented throughout:
 
 **Verdict**: Bengal already feels tactile. ✅
 
-### 1.3 Frosted Glass Effects
+### 1.3 Frosted Glass Effects (Vibrancy)
 
 - **Header**: `backdrop-filter: blur(12px) saturate(180%)` with fallback
 - **Code header**: `backdrop-filter: blur(4px)` on language labels
 - **Dark mode variants**: Adjusted opacity for both
+
+**Apple HIG alignment**: Apple calls this "vibrancy"—translucent materials that allow background content to inform foreground appearance. Bengal's implementation aligns with Apple's material system.
+
+| Apple Material | Bengal Equivalent | Use Case |
+|----------------|-------------------|----------|
+| `.ultraThinMaterial` | `blur(4px)` | Code labels, subtle overlays |
+| `.regularMaterial` | `blur(12px)` | Headers, navigation |
+| `.thickMaterial` | `blur(20px)` | Modals, popovers (future) |
 
 **Verdict**: Already implemented. ✅
 
@@ -102,7 +111,7 @@ Already implemented throughout:
 --font-family-display: var(--font-display, var(--font-family-sans));
 ```
 
-**Recommendation**: 
+**Recommendation**:
 - Ship with a recommended display font (Instrument Serif, Newsreader, or Fraunces)
 - Document the `[fonts]` config in `bengal.toml`
 - Consider adding the font to default theme assets
@@ -163,7 +172,19 @@ h3:hover .heading-anchor {
 }
 ```
 
-**Recommendation**: Audit focus states across all interactive elements.
+**Apple HIG Contrast Requirements** (WCAG AA + Apple HIG alignment):
+| Element | Minimum Contrast | Rationale |
+|---------|------------------|-----------|
+| Body text | 4.5:1 | WCAG AA standard |
+| Large text (18px+) | 3:1 | Reduced threshold for large type |
+| UI components | 3:1 | Focus rings, borders, icons |
+| Non-text contrast | 3:1 | Buttons, form controls |
+
+**Recommendations**:
+- [ ] Audit focus states across all interactive elements
+- [ ] Verify all 5 breed palettes meet contrast minimums
+- [ ] Test focus visibility in both light and dark modes
+- [ ] Ensure focus ring color adapts per palette (not hard-coded blue)
 
 ---
 
@@ -235,6 +256,41 @@ h3:hover .heading-anchor {
 | Linear | Full-width, content-only has max-width |
 | Vercel | Full-width app shell, docs constrained |
 | Stripe | Traditional centered (but very wide) |
+| Apple | Edge-to-edge with safe area insets |
+
+#### Safe Area Principles (Apple HIG-informed)
+
+Apple's safe area concept translates directly to web layouts:
+
+| Apple Concept | Web Implementation | Bengal Token |
+|---------------|-------------------|--------------|
+| Safe area insets | Edge padding for content | `--safe-area-inline` |
+| Readable content width | Prose max-width (~80 chars) | `--prose-max-width` |
+| Minimum margins | Responsive spacing | `--content-margin-inline` |
+
+```css
+/* Safe area tokens (Apple HIG-informed) */
+:root {
+  --safe-area-inline: var(--space-6);       /* 24px - minimum edge padding */
+  --safe-area-block: var(--space-4);        /* 16px - vertical safe zone */
+  --prose-max-width: 65ch;                  /* ~80 chars optimal reading */
+
+  /* Responsive margins */
+  --content-margin-inline: var(--space-4);  /* Mobile: 16px */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --content-margin-inline: var(--space-6); /* Tablet+: 24px */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --content-margin-inline: var(--space-8); /* Desktop: 32px */
+  }
+}
+```
 
 **Recommendation**: Offer two layout modes:
 
@@ -252,17 +308,17 @@ h3:hover .heading-anchor {
     max-width: 100%;
     padding-inline: var(--space-6);
   }
-  
+
   /* Sidebar touches edge */
   .docs-sidebar {
     padding-inline-start: var(--space-6);
   }
-  
+
   /* Only content has max-width */
   .docs-main .prose {
     max-width: var(--prose-max-width);
   }
-  
+
   /* TOC touches right edge */
   .docs-toc {
     padding-inline-end: var(--space-6);
@@ -300,14 +356,14 @@ layout = "app"  # or "classic"
   /* Better: separate properties for snappier feel */
   opacity: 0;
   transform: translateY(-4px);  /* Reduced from -8px */
-  transition: 
+  transition:
     opacity 100ms ease-out,      /* Faster fade */
     transform 150ms ease-out,    /* Slightly slower position */
     visibility 0ms 100ms;        /* Delay hide */
 }
 
 .nav-main li:hover > .submenu {
-  transition: 
+  transition:
     opacity 100ms ease-out,
     transform 150ms ease-out,
     visibility 0ms;  /* Instant show */
@@ -339,7 +395,39 @@ menu:
 
 ---
 
-### 3.5 Transition Timing Audit
+### 3.5 Touch Target Requirements (Apple HIG)
+
+**Apple's minimum**: 44×44 points for all interactive elements.
+
+**Why it matters**: Mobile users need adequately sized tap targets. Even desktop users benefit from generous click zones.
+
+```css
+/* Touch target minimum */
+.interactive-element {
+  min-height: 44px;
+  min-width: 44px;
+  /* Or use padding to achieve equivalent */
+}
+
+/* Adjacent targets need spacing */
+.nav-item + .nav-item {
+  margin-block-start: var(--space-1);  /* Prevent mis-taps */
+}
+```
+
+**Audit checklist**:
+- [ ] All buttons ≥ 44×44px (including icon-only buttons)
+- [ ] Dropdown menu items have adequate touch zones
+- [ ] Mobile nav hamburger/close ≥ 44×44px
+- [ ] Sidebar links have adequate vertical padding
+- [ ] Theme switcher dropdown items ≥ 44px tall
+- [ ] TOC links have adequate touch zones on tablet
+- [ ] Code copy button ≥ 44×44px
+- [ ] Prev/next navigation links ≥ 44px height
+
+---
+
+### 3.6 Transition Timing Audit
 
 **Issue**: Inconsistent transition speeds across components
 
@@ -367,33 +455,47 @@ menu:
 
 ---
 
-### 3.6 Edge-to-Edge Header
+### 3.7 Edge-to-Edge Header
 
 **Current**: Header content is constrained to `.container`
 
-**App-like pattern**: Header spans full width, with branding at left edge and controls at right edge:
+**App-like pattern**: Header spans full width, with branding at left edge and controls at right edge.
+
+**Apple HIG alignment**: Apple's navigation bars extend edge-to-edge while respecting safe areas for content. The header chrome (background, blur) extends fully, but interactive elements stay within safe zones.
 
 ```css
-/* Full-width header with edge alignment */
+/* Full-width header with safe area alignment */
 header[role="banner"] {
-  /* Remove container constraint */
+  /* Background/blur extends full width */
+  width: 100%;
 }
 
 header .header-inner {
   display: flex;
   justify-content: space-between;
-  padding-inline: var(--space-6);
+  /* Safe area padding keeps interactive elements accessible */
+  padding-inline: var(--safe-area-inline);
   max-width: none;  /* Full width */
 }
 
-/* Logo touches left edge (minus safe padding) */
+/* Logo at left safe edge */
 .logo {
   margin-inline-start: 0;
 }
 
-/* Controls touch right edge */
+/* Controls at right safe edge */
 .header-actions {
   margin-inline-end: 0;
+  gap: var(--space-2);  /* Adequate spacing between controls */
+}
+
+/* Each control meets touch target minimum */
+.header-actions > * {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 ```
 
@@ -438,10 +540,13 @@ header .header-inner {
 - [ ] Ensure font loading doesn't cause layout shift
 
 ### Phase 2: Interaction Polish (Week 2)
-- [ ] Audit and standardize focus states
+- [ ] Audit and standardize focus states (see Section 2.4 contrast requirements)
+- [ ] Verify all 5 palettes meet WCAG AA contrast (4.5:1 text, 3:1 UI)
+- [ ] Touch target audit: all interactive elements ≥ 44×44px (see Section 3.5)
 - [ ] Add heading anchor links (hover reveal)
 - [ ] Ensure keyboard navigation is excellent
 - [ ] Test with screen readers
+- [ ] Verify safe area padding on mobile devices
 
 ### Phase 3: Brand Identity (Week 3)
 - [ ] Consider Brown Bengal as default palette
@@ -483,6 +588,14 @@ Bengal's existing systems are excellent. Do NOT:
 - [ ] All focus states visible and consistent
 - [ ] Reduced motion respected throughout
 - [ ] Print styles preserve readability
+
+### Accessibility (Apple HIG + WCAG AA)
+- [ ] All body text meets 4.5:1 contrast ratio
+- [ ] All large text meets 3:1 contrast ratio
+- [ ] All UI components (focus rings, borders) meet 3:1 contrast
+- [ ] All interactive elements ≥ 44×44px touch target
+- [ ] Edge content respects safe area insets (24px minimum)
+- [ ] Each of the 5 breed palettes passes contrast audit
 
 ### Performance
 - [ ] No JS added for visual effects
@@ -557,15 +670,93 @@ bengal/themes/default/assets/css/
 
 ---
 
+## Appendix C: Apple HIG-Informed Design Tokens
+
+### Proposed Token Additions
+
+```css
+/* ============================================
+   SAFE AREA & LAYOUT TOKENS (Apple HIG-informed)
+   ============================================ */
+
+:root {
+  /* Safe areas - minimum edge padding for interactive elements */
+  --safe-area-inline: var(--space-6);       /* 24px */
+  --safe-area-block: var(--space-4);        /* 16px */
+
+  /* Touch targets - Apple minimum 44pt */
+  --touch-target-min: 44px;
+
+  /* Readable content width (~80 chars optimal) */
+  --prose-max-width: 65ch;
+
+  /* Responsive content margins */
+  --content-margin-inline: var(--space-4);  /* Base: 16px */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --content-margin-inline: var(--space-6); /* Tablet: 24px */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --content-margin-inline: var(--space-8); /* Desktop: 32px */
+  }
+}
+
+/* ============================================
+   VIBRANCY/MATERIAL TOKENS (Apple HIG-informed)
+   ============================================ */
+
+:root {
+  /* Blur intensities matching Apple's material system */
+  --vibrancy-ultra-thin: blur(4px);
+  --vibrancy-regular: blur(12px);
+  --vibrancy-thick: blur(20px);
+
+  /* Saturation boost for vibrancy */
+  --vibrancy-saturation: saturate(180%);
+}
+
+/* ============================================
+   ACCESSIBILITY CONTRAST TOKENS
+   ============================================ */
+
+:root {
+  /* Minimum contrast ratios (WCAG AA) */
+  --contrast-text-min: 4.5;        /* Body text */
+  --contrast-large-text-min: 3;    /* 18px+ or 14px bold */
+  --contrast-ui-min: 3;            /* Borders, icons, focus rings */
+}
+```
+
+### Contrast Audit Matrix
+
+| Palette | Light BG | Dark BG | Primary on Light | Primary on Dark | Status |
+|---------|----------|---------|------------------|-----------------|--------|
+| Snow Lynx | `#FDFCF9` | `#1A1918` | TBD | TBD | 🔲 Audit |
+| Brown Bengal | `#FAF8F5` | `#1C1917` | TBD | TBD | 🔲 Audit |
+| Silver Bengal | `#FFFFFF` | `#000000` | TBD | TBD | 🔲 Audit |
+| Blue Bengal | `#F8FAFC` | `#0F172A` | TBD | TBD | 🔲 Audit |
+| Charcoal Bengal | `#F9FAFB` | `#111827` | TBD | TBD | 🔲 Audit |
+
+---
+
 ## Conclusion
 
 Bengal doesn't need a redesign—it needs **recognition and polish**. The breed palettes and neumorphic system are already distinctive. The main polish opportunities are:
 
 1. **Typography**: Add a display serif font
-2. **Focus states**: Audit and strengthen
-3. **Brand identity**: Consider making Brown Bengal the default
+2. **Focus states**: Audit and strengthen (meet WCAG AA contrast)
+3. **Touch targets**: Ensure all interactive elements ≥ 44×44px
+4. **Safe areas**: Implement Apple HIG-informed edge padding
+5. **Brand identity**: Consider making Brown Bengal the default
 
 **Philosophy**: Bengal should feel like using a well-crafted notebook or a premium keyboard—warm, tactile, and distinctly NOT another Tailwind template.
+
+**Design System Alignment**: Where applicable, Bengal aligns with Apple Human Interface Guidelines for accessibility (contrast ratios), touch targets (44px minimum), and material vibrancy (backdrop-filter tiers). This ensures a familiar, quality feel for users accustomed to native experiences.
 
 ---
 
