@@ -3,7 +3,9 @@
  * Landing Page Components
  *
  * Premium, marketing-oriented styles for landing pages and home pages.
- * Distinct from documentation-focused components - designed to impress and convert.
+ * Aligned with Bengal's neumorphic design system (search modal, dropdowns, etc.)
+ *
+ * Uses tokens from: tokens/semantic.css, tokens/foundation.css
  */
 
 /* ============================================
@@ -11,10 +13,7 @@
    ============================================ */
 
 .home {
-  --landing-section-gap: var(--space-16, 4rem);
-  --landing-card-radius: var(--radius-2xl, 16px);
-  --landing-glow-color: var(--color-primary);
-  --landing-glow-intensity: 0.15;
+  /* Inherit token system - no custom overrides needed */
 }
 
 /* ============================================
@@ -22,157 +21,111 @@
    ============================================ */
 
 .features {
-  padding: var(--space-16, 4rem) var(--space-6, 1.5rem);
-  max-width: var(--container-xl, 1280px);
+  padding: var(--space-16) var(--space-6);
+  max-width: var(--container-xl);
   margin: 0 auto;
 }
 
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: var(--space-8, 2rem);
+  gap: var(--space-8);
 }
 
-/* Feature Card - Premium glassmorphism treatment */
+/* Feature Card - Neumorphic style matching search modal */
 .feature-card {
-  --card-glow-color: var(--color-primary);
-  
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 1rem);
-  padding: var(--space-8, 2rem);
+  gap: var(--space-4);
+  padding: var(--space-8);
   
-  /* Refined background with subtle depth */
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--color-bg-elevated) 98%, var(--card-glow-color) 2%),
-    var(--color-bg-elevated)
-  );
+  /* Neumorphic background gradient - matches search modal items */
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
   
-  /* Premium rounded corners */
-  border-radius: var(--landing-card-radius);
+  /* Standard border */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   
-  /* Subtle border with glow potential */
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, var(--card-glow-color) 20%);
+  /* Neumorphic shadow - elevated card style */
+  box-shadow: var(--neumorphic-enhanced-base, var(--neumorphic-base));
   
-  /* Layered shadow for depth */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 8px rgba(0, 0, 0, 0.04),
-    0 8px 16px rgba(0, 0, 0, 0.04),
-    0 0 0 1px color-mix(in srgb, var(--card-glow-color) 5%, transparent);
-  
-  /* Smooth transitions */
+  /* Smooth transitions using motion tokens */
   transition: 
-    transform var(--motion-medium) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
-    box-shadow var(--motion-medium) var(--ease-out-expo),
-    border-color var(--motion-medium) var(--ease-out);
+    transform var(--motion-medium) var(--ease-out),
+    box-shadow var(--motion-medium) var(--ease-out),
+    border-color var(--motion-fast);
   
-  overflow: hidden;
   height: 100%;
 }
 
-/* Animated glow on hover */
-.feature-card::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--card-glow-color) 40%, transparent) 0%,
-    transparent 40%,
-    transparent 60%,
-    color-mix(in srgb, var(--card-glow-color) 20%, transparent) 100%
-  );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity var(--motion-medium) var(--ease-out);
-  pointer-events: none;
-}
-
-.feature-card:hover::before {
-  opacity: 1;
-}
-
 .feature-card:hover {
-  transform: translateY(-6px);
-  border-color: color-mix(in srgb, var(--color-border) 50%, var(--card-glow-color) 50%);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    0 8px 16px rgba(0, 0, 0, 0.06),
-    0 16px 32px rgba(0, 0, 0, 0.06),
-    0 0 40px color-mix(in srgb, var(--card-glow-color) 15%, transparent);
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: var(--neumorphic-enhanced-hover, var(--neumorphic-hover));
 }
 
-[data-theme="dark"] .feature-card:hover {
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 8px 16px rgba(0, 0, 0, 0.3),
-    0 16px 32px rgba(0, 0, 0, 0.3),
-    0 0 50px color-mix(in srgb, var(--card-glow-color) 20%, transparent);
+.feature-card:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: var(--neumorphic-pressed);
 }
 
-/* Feature Icon - Large, expressive emoji/icon */
+/* Feature Icon - Neumorphic badge style */
 .feature-icon {
-  font-size: 3rem;
+  font-size: 2.5rem;
   line-height: 1;
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 4rem;
+  height: 4rem;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  /* Soft glowing background */
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--card-glow-color) 15%, transparent) 0%,
-    color-mix(in srgb, var(--card-glow-color) 8%, transparent) 100%
-  );
-  border-radius: var(--radius-xl, 12px);
+  /* Neumorphic badge background */
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-tertiary));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neumorphic-subtle);
   
-  transition: transform var(--motion-medium) var(--ease-out);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .feature-card:hover .feature-icon {
-  transform: scale(1.1) rotate(-3deg);
+  transform: scale(1.05);
+  box-shadow: var(--neumorphic-hover);
 }
 
 /* Feature Title */
 .feature-title {
   margin: 0;
-  font-size: var(--text-xl, 1.25rem);
-  font-weight: var(--weight-bold, 700);
-  line-height: var(--leading-snug, 1.375);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
 }
 
 /* Feature Description */
 .feature-description {
   margin: 0;
-  font-size: var(--text-base, 1rem);
-  line-height: var(--leading-relaxed, 1.625);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
   color: var(--color-text-secondary);
   flex: 1;
 }
 
-/* Feature Link */
+/* Feature Link - Styled as inline action */
 .feature-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: var(--space-2);
   margin-top: auto;
-  padding-top: var(--space-2, 0.5rem);
+  padding-top: var(--space-2);
   
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--weight-semibold, 600);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-primary);
   text-decoration: none;
   
@@ -181,7 +134,7 @@
 
 .feature-link:hover {
   color: var(--color-primary-hover);
-  gap: 0.625rem;
+  gap: var(--space-3);
 }
 
 /* ============================================
@@ -189,18 +142,18 @@
    ============================================ */
 
 .stats {
-  padding: var(--space-12, 3rem) var(--space-6, 1.5rem);
-  max-width: var(--container-lg, 1024px);
+  padding: var(--space-12) var(--space-6);
+  max-width: var(--container-lg);
   margin: 0 auto;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-  gap: var(--space-6, 1.5rem);
+  gap: var(--space-6);
 }
 
-/* Stat Card - Bold, attention-grabbing numbers */
+/* Stat Card - Neumorphic elevated style */
 .stat-card {
   position: relative;
   display: flex;
@@ -208,17 +161,15 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: var(--space-8, 2rem) var(--space-6, 1.5rem);
+  padding: var(--space-8) var(--space-6);
   
-  /* Subtle background */
-  background: var(--color-bg-secondary);
-  border-radius: var(--landing-card-radius);
-  border: 1px solid var(--color-border-light);
-  
-  /* Soft shadow */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 4px 8px rgba(0, 0, 0, 0.04);
+  /* Neumorphic background */
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--neumorphic-base);
   
   transition: 
     transform var(--motion-medium) var(--ease-out),
@@ -226,38 +177,24 @@
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.06),
-    0 8px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  box-shadow: var(--neumorphic-hover);
 }
 
-/* Large stat value with gradient text */
+/* Large stat value */
 .stat-value {
   font-size: clamp(2.5rem, 5vw, 3.5rem);
-  font-weight: var(--weight-extrabold, 800);
+  font-weight: var(--weight-extrabold);
   line-height: 1;
-  letter-spacing: -0.02em;
-  
-  /* Gradient text effect */
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    color-mix(in srgb, var(--color-primary) 70%, var(--color-secondary, #8b5cf6)) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  
-  /* Fallback */
+  letter-spacing: var(--letter-spacing-tighter);
   color: var(--color-primary);
 }
 
 /* Stat label */
 .stat-label {
-  margin-top: var(--space-2, 0.5rem);
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--weight-medium, 500);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -268,44 +205,42 @@
    ============================================ */
 
 .quick-links {
-  padding: var(--space-12, 3rem) var(--space-6, 1.5rem);
-  max-width: var(--container-xl, 1280px);
+  padding: var(--space-12) var(--space-6);
+  max-width: var(--container-xl);
   margin: 0 auto;
 }
 
 .quick-links h2 {
   text-align: center;
-  margin-bottom: var(--space-10, 2.5rem);
-  font-size: var(--text-3xl, 1.875rem);
-  font-weight: var(--weight-bold, 700);
+  margin-bottom: var(--space-10);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
 }
 
 .quick-links-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  gap: var(--space-6, 1.5rem);
+  gap: var(--space-6);
 }
 
-/* Quick Link Card - Sleek navigation blocks */
+/* Quick Link Card - Neumorphic clickable style */
 .quick-link-card {
-  --ql-accent: var(--color-primary);
-  
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 0.75rem);
-  padding: var(--space-6, 1.5rem);
+  gap: var(--space-3);
+  padding: var(--space-6);
   
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-xl, 12px);
+  /* Neumorphic background */
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--neumorphic-base);
   
   text-decoration: none;
   color: inherit;
-  
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.04);
   
   transition:
     transform var(--motion-medium) var(--ease-out),
@@ -314,49 +249,57 @@
 }
 
 .quick-link-card:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(in srgb, var(--ql-accent) 50%, var(--color-border));
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    0 8px 16px rgba(0, 0, 0, 0.06),
-    0 0 20px color-mix(in srgb, var(--ql-accent) 10%, transparent);
+  transform: translateY(-3px);
+  border-color: var(--color-primary);
+  box-shadow: var(--neumorphic-hover);
 }
 
+.quick-link-card:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: var(--neumorphic-pressed);
+}
+
+/* Quick Link Icon - Neumorphic badge */
 .quick-link-icon {
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1;
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   
-  background: color-mix(in srgb, var(--ql-accent) 10%, transparent);
-  border-radius: var(--radius-lg, 8px);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-tertiary));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neumorphic-subtle);
   
-  transition: transform var(--motion-fast);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .quick-link-card:hover .quick-link-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: var(--neumorphic-hover);
 }
 
 .quick-link-card h3 {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
-  font-weight: var(--weight-semibold, 600);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   transition: color var(--motion-fast);
 }
 
 .quick-link-card:hover h3 {
-  color: var(--ql-accent);
+  color: var(--color-primary);
 }
 
 .quick-link-card p {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
-  line-height: var(--leading-relaxed, 1.625);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
   color: var(--color-text-secondary);
 }
 
@@ -365,101 +308,131 @@
    ============================================ */
 
 .home-content {
-  max-width: var(--container-prose, 65ch);
-  margin: var(--space-12, 3rem) auto;
-  padding: 0 var(--space-6, 1.5rem);
+  max-width: var(--container-prose);
+  margin: var(--space-12) auto;
+  padding: 0 var(--space-6);
 }
 
 .home-content h2 {
-  margin-top: var(--space-12, 3rem);
-  margin-bottom: var(--space-6, 1.5rem);
-  font-size: var(--text-2xl, 1.5rem);
-  font-weight: var(--weight-bold, 700);
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-6);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   text-align: center;
 }
 
 .home-content h3 {
-  margin-top: var(--space-8, 2rem);
-  margin-bottom: var(--space-4, 1rem);
-  font-size: var(--text-xl, 1.25rem);
-  font-weight: var(--weight-semibold, 600);
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
 /* Style the cards directive within home content */
 .home-content .card-grid-container {
-  max-width: var(--container-xl, 1280px);
+  max-width: var(--container-xl);
   margin-left: auto;
   margin-right: auto;
 }
 
 /* ============================================
    LANDING PAGE CTA BUTTONS (Hero)
+   Neumorphic style consistent with Bengal's design system
    ============================================ */
 
 .hero__button {
   position: relative;
-  padding: 1rem 2rem;
-  font-size: var(--text-base, 1rem);
-  font-weight: var(--weight-semibold, 600);
-  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-lg);
   cursor: pointer;
+  text-decoration: none;
   
   /* Smooth transitions */
   transition: 
     transform var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-fast) var(--ease-out),
-    background-color var(--motion-fast);
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
 }
 
-/* Primary CTA - Bold, attention-grabbing */
+/* Primary CTA - Solid primary with neumorphic depth */
 .hero__button--primary {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    color-mix(in srgb, var(--color-primary) 85%, #000) 100%
-  );
+  background: linear-gradient(180deg,
+    var(--color-primary),
+    var(--color-primary-dark));
   color: var(--color-text-inverse);
-  border: none;
+  border: 1px solid var(--color-primary-dark);
   
+  /* Neumorphic shadow with primary tint */
   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.1),
-    0 4px 8px color-mix(in srgb, var(--color-primary) 25%, transparent);
+    0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .hero__button--primary:hover {
+  background: linear-gradient(180deg,
+    var(--color-primary-hover),
+    var(--color-primary));
   transform: translateY(-2px);
+  
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.15),
-    0 8px 16px color-mix(in srgb, var(--color-primary) 35%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 4px 8px rgba(0, 0, 0, 0.12),
+    0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .hero__button--primary:active {
-  transform: translateY(0);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    0 2px 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
-}
-
-/* Secondary CTA - Subtle but present */
-.hero__button--secondary {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
-  border: 2px solid var(--color-border);
+  transform: translateY(0) scale(0.98);
+  background: linear-gradient(180deg,
+    var(--color-primary-dark),
+    var(--color-primary-active));
   
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.04);
+    inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Secondary CTA - Neumorphic light button (matches search modal close button) */
+.hero__button--secondary {
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  
+  /* Standard neumorphic base shadow */
+  box-shadow: var(--neumorphic-base);
 }
 
 .hero__button--secondary:hover {
-  transform: translateY(-2px);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-hover));
   border-color: var(--color-primary);
   color: var(--color-primary);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.06),
-    0 4px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  
+  /* Neumorphic hover shadow */
+  box-shadow: var(--neumorphic-hover);
+}
+
+.hero__button--secondary:active {
+  background: linear-gradient(180deg,
+    var(--color-bg-active),
+    var(--color-bg-secondary));
+  transform: translateY(0) scale(0.98);
+  
+  /* Neumorphic pressed shadow */
+  box-shadow: var(--neumorphic-pressed);
 }
 
 /* ============================================
@@ -468,21 +441,20 @@
    ============================================ */
 
 .home .card-grid {
-  max-width: var(--container-xl, 1280px);
-  margin: var(--space-8, 2rem) auto;
+  max-width: var(--container-xl);
+  margin: var(--space-8) auto;
 }
 
 .home .card {
-  --card-accent: var(--color-primary);
+  padding: var(--space-6);
   
-  padding: var(--space-6, 1.5rem);
-  background: var(--color-bg-elevated);
-  border-radius: var(--landing-card-radius);
+  /* Neumorphic background */
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 4px 8px rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--neumorphic-base);
   
   transition:
     transform var(--motion-medium) var(--ease-out),
@@ -491,98 +463,46 @@
 }
 
 .home .card:hover {
-  transform: translateY(-6px);
-  border-color: color-mix(in srgb, var(--card-accent) 40%, var(--color-border));
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    0 12px 24px rgba(0, 0, 0, 0.08),
-    0 0 30px color-mix(in srgb, var(--card-accent) 10%, transparent);
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: var(--neumorphic-hover);
 }
 
 /* Card icon in landing page context */
 .home .card-icon {
-  font-size: 2rem;
-  width: 3rem;
-  height: 3rem;
+  font-size: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--card-accent) 12%, transparent);
-  border-radius: var(--radius-lg, 8px);
-  transition: transform var(--motion-fast);
+  
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-tertiary));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neumorphic-subtle);
+  
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .home .card:hover .card-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: var(--neumorphic-hover);
 }
 
 /* Card title styling */
 .home .card-title {
-  font-size: var(--text-lg, 1.125rem);
-  font-weight: var(--weight-semibold, 600);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0;
+  transition: color var(--motion-fast);
 }
 
 .home .card:hover .card-title {
   color: var(--color-primary);
-}
-
-/* ============================================
-   FALLBACKS FOR BROWSERS WITHOUT color-mix
-   ============================================ */
-
-@supports not (color: color-mix(in srgb, black, white)) {
-  .feature-card {
-    background: var(--color-bg-elevated);
-    border-color: var(--color-border);
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      0 4px 8px rgba(0, 0, 0, 0.04),
-      0 8px 16px rgba(0, 0, 0, 0.04);
-  }
-  
-  .feature-card::before {
-    display: none;
-  }
-  
-  .feature-card:hover {
-    border-color: var(--color-primary);
-    box-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.04),
-      0 8px 16px rgba(0, 0, 0, 0.06),
-      0 16px 32px rgba(0, 0, 0, 0.06);
-  }
-  
-  .feature-icon {
-    background: rgba(59, 130, 246, 0.1);
-  }
-  
-  .stat-value {
-    background: none;
-    -webkit-text-fill-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-  
-  .quick-link-card:hover {
-    border-color: var(--color-primary);
-  }
-  
-  .quick-link-icon {
-    background: rgba(59, 130, 246, 0.1);
-  }
-  
-  .hero__button--primary {
-    background: var(--color-primary);
-  }
-  
-  .home .card:hover {
-    border-color: var(--color-primary);
-  }
-  
-  .home .card-icon {
-    background: rgba(59, 130, 246, 0.1);
-  }
 }
 
 /* ============================================
@@ -620,26 +540,26 @@
   .features,
   .stats,
   .quick-links {
-    padding: var(--space-10, 2.5rem) var(--space-4, 1rem);
+    padding: var(--space-10) var(--space-4);
   }
   
   .features-grid,
   .quick-links-grid {
-    gap: var(--space-6, 1.5rem);
+    gap: var(--space-6);
   }
   
   .feature-card {
-    padding: var(--space-6, 1.5rem);
+    padding: var(--space-6);
   }
   
   .feature-icon {
-    font-size: 2.5rem;
-    width: 3.5rem;
-    height: 3.5rem;
+    font-size: 2rem;
+    width: 3rem;
+    height: 3rem;
   }
   
   .feature-title {
-    font-size: var(--text-lg, 1.125rem);
+    font-size: var(--text-lg);
   }
   
   .stat-value {
@@ -647,8 +567,8 @@
   }
   
   .hero__button {
-    padding: 0.875rem 1.5rem;
-    font-size: var(--text-sm, 0.875rem);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
   }
 }
 
@@ -660,11 +580,11 @@
   }
   
   .stat-card {
-    padding: var(--space-6, 1.5rem);
+    padding: var(--space-6);
   }
   
   .home-content {
-    padding: 0 var(--space-4, 1rem);
+    padding: 0 var(--space-4);
   }
 }
 
@@ -686,14 +606,4 @@
     border: 1px solid #ddd;
     break-inside: avoid;
   }
-  
-  .feature-card::before {
-    display: none;
-  }
-  
-  .stat-value {
-    -webkit-text-fill-color: inherit;
-    background: none;
-  }
 }
-

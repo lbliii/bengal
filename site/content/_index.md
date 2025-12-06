@@ -102,19 +102,19 @@ Your site runs at `localhost:8000`. Edit markdown files and watch them rebuild.
 :columns: 1-2-3
 :gap: medium
 
-:::{card} 📝 Writer
+:::{card} Writer
 :link: /docs/get-started/quickstart-writer/
 
 Write content in Markdown. Use the default theme.
 :::
 
-:::{card} 🎨 Themer
+:::{card} Themer
 :link: /docs/get-started/quickstart-themer/
 
 Customize templates and styles. Build your own theme.
 :::
 
-:::{card} 🛠️ Contributor
+:::{card} Contributor
 :link: /docs/get-started/quickstart-contributor/
 
 Hack on Bengal. Fix bugs, add features.

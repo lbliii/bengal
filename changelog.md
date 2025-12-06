@@ -1,19 +1,13 @@
 ## Unreleased
 
-### Marketing Positioning & Brand Voice ✅
-- **site(homepage)**: rewrite with value-first messaging, hero with CTA buttons, feature cards, and stats section
-- **site(homepage)**: add "Choose Your Path" cards (Writer/Themer/Contributor) with outcome-focused copy
-- **site(homepage)**: add "When to Use Bengal" decision guide with honest competitor recommendations
-- **README**: update with new positioning ("Build static sites in Python, without the compromises")
-- **README**: add "Why Bengal?" value pillars and "When to Use Bengal" decision guide
-- **docs(comparison)**: revamp as "Choosing the Right SSG" with quick decision guide and detailed comparisons
-- **docs(comparison)**: add honest competitor recommendations (Hugo for 50k+ pages, MkDocs for docs-only)
-- **docs(comparison)**: expand "When NOT to Use Bengal" section with specific alternatives
-- **docs(about)**: add philosophy and point of view sections with core beliefs
-- **docs(about)**: communicate Bengal's stance on developer experience, Python-native tooling, and honesty
-- **docs(limitations)**: rewrite with new tone and messaging aligned to brand voice
-- **docs(get-started)**: revise with outcome-focused messaging and clear value proposition
-- **docs(index)**: update with new messaging and "Why Bengal?" summary
+### Documentation Cleanup ✅
+- **site(homepage)**: simplify to focus on features and getting started
+- **README**: streamline to essential info only
+- **docs(about)**: remove philosophy/positioning content, keep practical info
+- **docs(comparison)**: simplify to feature comparison table
+- **docs(limitations)**: condense to brief list of constraints
+- **docs(get-started)**: simplify to install + quickstart paths
+- **docs(index)**: clean up to straightforward navigation
 - **plan**: move marketing-positioning-strategy.md to implemented/
 
 ### Progressive Enhancements Architecture ✅
