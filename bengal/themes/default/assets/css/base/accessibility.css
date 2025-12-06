@@ -278,7 +278,7 @@ select:focus-visible {
   }
 
   .toc-link.active::after {
-    box-shadow: 2px 0 8px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+    box-shadow: 4px 0 15px 0 color-mix(in srgb, var(--color-primary) 18%, transparent);
   }
 
   .tab-nav li.active a::after {
