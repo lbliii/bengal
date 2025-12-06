@@ -223,7 +223,7 @@ class TestBuildLogPathProperties:
     )
     def test_default_path_has_bengal_prefix(self, dir_name):
         """
-        Property: Default build log has .bengal prefix.
+        Property: Default build log path contains .bengal directory.
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = Path(tmpdir) / dir_name
@@ -231,8 +231,9 @@ class TestBuildLogPathProperties:
 
             log_path = BengalPaths.get_build_log_path(source_dir)
 
-            assert ".bengal" in log_path.name, (
-                f"Build log should have .bengal prefix: {log_path.name}"
+            assert ".bengal" in str(log_path), f"Build log path should contain .bengal: {log_path}"
+            assert log_path.parts[-3] == ".bengal", (
+                f"Build log should be under .bengal/logs/: {log_path}"
             )
 
 

@@ -80,7 +80,7 @@ class TestGetBuildLogPath:
 
         log_path = BengalPaths.get_build_log_path(source_dir)
 
-        assert log_path == source_dir / ".bengal-build.log"
+        assert log_path == source_dir / ".bengal" / "logs" / "build.log"
 
     def test_custom_log_path(self, tmp_path):
         """Test custom build log path."""
@@ -103,7 +103,7 @@ class TestGetBuildLogPath:
         log_path = BengalPaths.get_build_log_path(source_dir, custom_path)
 
         assert log_path == custom_path
-        assert log_path != source_dir / ".bengal-build.log"
+        assert log_path != source_dir / ".bengal" / "logs" / "build.log"
 
 
 class TestGetProfilePath:
