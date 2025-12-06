@@ -24,7 +24,17 @@
     };
   }
 
-  const { log, copyToClipboard, isExternalUrl, ready } = window.BengalUtils;
+  // Safely destructure with defaults to prevent errors
+  const log = window.BengalUtils?.log || (() => {});
+  const copyToClipboard = window.BengalUtils?.copyToClipboard || (async () => {});
+  const isExternalUrl = window.BengalUtils?.isExternalUrl || (() => false);
+  const ready = window.BengalUtils?.ready || ((fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  });
 
   /**
    * Smooth scroll for anchor links

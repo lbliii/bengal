@@ -11,13 +11,69 @@
 (function () {
   'use strict';
 
-  // Ensure utils are available
+  // Ensure utils are available (with graceful degradation)
   if (!window.BengalUtils) {
-    console.error('BengalUtils not loaded - interactive.js requires utils.js');
-    return;
+    console.error('[Bengal] BengalUtils not loaded - interactive.js requires utils.js');
+    // Provide fallback functions to prevent errors
+    window.BengalUtils = {
+      log: () => {},
+      throttleScroll: (fn) => {
+        let ticking = false;
+        return function throttled(...args) {
+          if (!ticking) {
+            window.requestAnimationFrame(() => {
+              fn.apply(this, args);
+              ticking = false;
+            });
+            ticking = true;
+          }
+        };
+      },
+      debounce: (fn, wait) => {
+        let timeout;
+        return function debounced(...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fn.apply(this, args), wait);
+        };
+      },
+      ready: (fn) => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fn);
+        } else {
+          fn();
+        }
+      }
+    };
   }
 
-  const { log, throttleScroll, debounce, ready } = window.BengalUtils;
+  // Safely destructure with defaults to prevent errors
+  const log = window.BengalUtils?.log || (() => {});
+  const throttleScroll = window.BengalUtils?.throttleScroll || ((fn) => {
+    let ticking = false;
+    return function throttled(...args) {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          fn.apply(this, args);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+  });
+  const debounce = window.BengalUtils?.debounce || ((fn, wait) => {
+    let timeout;
+    return function debounced(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => fn.apply(this, args), wait);
+    };
+  });
+  const ready = window.BengalUtils?.ready || ((fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  });
 
   // Store references for cleanup to prevent memory leaks
   const cleanupHandlers = {
