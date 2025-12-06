@@ -322,7 +322,7 @@ See: plan/active/rfc-template-performance-optimization.md
     </header>
 
     {# Mobile Navigation - uses cached _main_menu and _auto_nav from top of template #}
-    <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+    <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation" data-bengal="mobile-nav">
         <div class="mobile-nav-header">
             <span class="logo">
                 {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
@@ -509,7 +509,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Back to Top Button - Feature: navigation.back_to_top #}
     {% if 'navigation.back_to_top' in site.theme_config.features %}
-    <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
+    <button class="back-to-top" aria-label="Scroll to top" title="Back to top" data-bengal="back-to-top">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor"></line>
@@ -520,7 +520,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Image Lightbox - Feature: content.lightbox #}
     {% if 'content.lightbox' in site.theme_config.features %}
-    <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
+    <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true" data-bengal="lightbox">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"

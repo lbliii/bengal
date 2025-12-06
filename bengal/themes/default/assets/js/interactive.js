@@ -464,4 +464,37 @@
     cleanup: cleanup
   };
 
+  // Register with progressive enhancement system if available
+  // This allows data-bengal="back-to-top" elements to work with
+  // the new enhancement loader while maintaining backward compatibility
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('back-to-top', function(el, options) {
+      // The existing setupBackToTop handles all back-to-top buttons,
+      // but this registers for consistency and allows explicit enhancement
+      let isVisible = false;
+
+      const toggleVisibility = () => {
+        const scrolled = window.pageYOffset || document.documentElement.scrollTop;
+        const shouldShow = scrolled > (options.threshold || 300);
+
+        if (shouldShow !== isVisible) {
+          isVisible = shouldShow;
+          el.classList.toggle('visible', shouldShow);
+        }
+      };
+
+      // Scroll handler
+      const throttledToggle = throttleScroll(toggleVisibility);
+      window.addEventListener('scroll', throttledToggle, { passive: true });
+
+      // Click handler
+      el.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Initial check
+      toggleVisibility();
+    }, { override: true });
+  }
+
 })();

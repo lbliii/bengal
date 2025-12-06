@@ -717,6 +717,21 @@
 
     ready(init);
 
+    // Register with progressive enhancement system if available
+    // This allows data-bengal="search-modal" elements to work with
+    // the new enhancement loader while maintaining backward compatibility
+    if (window.Bengal && window.Bengal.enhance) {
+        Bengal.enhance.register('search-modal', function(el, options) {
+            // The existing init handles all search modal functionality,
+            // but this registers for consistency
+            el._bengalSearchModal = {
+                open: openModal,
+                close: closeModal,
+                isOpen: () => isOpen
+            };
+        }, { override: true });
+    }
+
     log('Bengal Search Modal loaded');
 
 })();
