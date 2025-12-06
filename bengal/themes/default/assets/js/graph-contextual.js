@@ -351,7 +351,7 @@
                     if (d.isPreviousPage) classes += ' graph-node-previous';
                     return classes;
                 })
-                .attr('r', d => d.isCurrent ? 3 : (d.isPreviousPage ? 2.5 : 2))
+                .attr('r', d => d.isCurrent ? 8 : (d.isPreviousPage ? 6 : 5))
                 .attr('cx', d => d.x)
                 .attr('cy', d => d.y)
                 .attr('fill', d => d._resolvedColor || d.color || '#9e9e9e')
@@ -398,7 +398,7 @@
         _computeStaticLayout(width, height) {
             const centerX = width / 2;
             const centerY = height / 2;
-            const radius = Math.min(width, height) * 0.35;
+            const radius = Math.min(width, height) * 0.38;
 
             // Find current node and place at center
             const currentNode = this.filteredData.nodes.find(n => n.isCurrent);
@@ -428,10 +428,10 @@
                 .alphaDecay(0.05)       // Gentle decay for smooth animation
                 .alphaMin(0.01)         // Stop when stable
                 .velocityDecay(0.4)     // Some friction
-                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(25))
+                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(40))
                 .force('charge', d3.forceManyBody().strength(-80))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(4));
+                .force('collision', d3.forceCollide().radius(8));
 
             // Animate positions on each tick
             this.simulation.on('tick', () => {
