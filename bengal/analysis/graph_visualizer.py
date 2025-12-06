@@ -309,7 +309,6 @@ class GraphVisualizer:
         # Get asset manifest to resolve fingerprinted paths
         # Try to get fingerprinted paths from manifest, fallback to non-fingerprinted
         css_path = "/assets/css/style.css"
-        js_path = "/assets/js/theme-init.js"
 
         # Check if manifest exists and resolve fingerprinted paths
         # Manifest is written to output_dir/asset-manifest.json during asset processing
@@ -326,11 +325,8 @@ class GraphVisualizer:
                 manifest = AssetManifest.load(manifest_path)
                 if manifest:
                     css_entry = manifest.get("css/style.css")
-                    js_entry = manifest.get("js/theme-init.js")
                     if css_entry:
                         css_path = f"/{css_entry.output_path}"
-                    if js_entry:
-                        js_path = f"/{js_entry.output_path}"
         except Exception:
             # If manifest lookup fails, use non-fingerprinted paths
             pass
@@ -338,7 +334,6 @@ class GraphVisualizer:
         # Apply baseurl prefix
         if baseurl:
             css_path = f"{baseurl}{css_path}"
-            js_path = f"{baseurl}{js_path}"
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -358,8 +353,25 @@ class GraphVisualizer:
         }};
     </script>
 
-    <!-- Theme initialization script -->
-    <script src="{js_path}"></script>
+    <!-- Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) -->
+    <script>
+        (function () {{
+            try {{
+                var defaults = window.BENGAL_THEME_DEFAULTS || {{ appearance: 'system', palette: '' }};
+                var defaultAppearance = defaults.appearance;
+                if (defaultAppearance === 'system') {{
+                    defaultAppearance = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                        ? 'dark' : 'light';
+                }}
+                var storedTheme = localStorage.getItem('bengal-theme');
+                var storedPalette = localStorage.getItem('bengal-palette');
+                var theme = storedTheme ? (storedTheme === 'system' ? defaultAppearance : storedTheme) : defaultAppearance;
+                var palette = storedPalette ?? defaults.palette;
+                document.documentElement.setAttribute('data-theme', theme);
+                if (palette) {{ document.documentElement.setAttribute('data-palette', palette); }}
+            }} catch (e) {{ document.documentElement.setAttribute('data-theme', 'light'); }}
+        }})();
+    </script>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>

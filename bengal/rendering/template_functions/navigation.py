@@ -760,6 +760,9 @@ def _build_section_menu_item(
     section_url = getattr(section, "relative_url", f"/{section.name}/")
     section_identifier = section.name
 
+    # Get section icon from Section.icon property (reads from _index.md frontmatter)
+    section_icon = getattr(section, "icon", None)
+
     # Determine parent identifier from section.parent if not provided
     if parent_identifier is None and hasattr(section, "parent") and section.parent:
         parent_identifier = section.parent.name
@@ -770,6 +773,7 @@ def _build_section_menu_item(
         "weight": section_weight,
         "identifier": section_identifier,
         "parent": parent_identifier,
+        "icon": section_icon,
     }
 
 

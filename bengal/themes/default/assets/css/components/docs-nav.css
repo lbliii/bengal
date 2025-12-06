@@ -532,7 +532,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* ============================================
    ACTIVE ACCENT BAR GLOW ANIMATION
    ============================================
-   
+
    Peaceful slow glow animation for active navigation items.
    Matches the footer's breathing glow effect.
 */
@@ -610,5 +610,160 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
     animation: none;
     box-shadow: 2px 0 6px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+}
+
+/* ============================================================================
+   NAVIGATION ICONS (Premium Sidebar Icons)
+   ============================================================================
+
+   Icons appear alongside directory/section items (not individual pages).
+   - Section icons: via section.icon property (from _index.md frontmatter)
+
+   Layout: [Caret] [Icon] [Text]
+
+   Premium touches:
+   - Subtle glow on active items
+   - Smooth color transitions
+   - Muted default icons (for sections without explicit icon)
+*/
+
+/* Base icon container */
+.docs-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-fast), filter var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Smaller icons for leaf sections */
+.docs-nav-icon--section {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+}
+
+/* Muted styling for default/fallback icons */
+.docs-nav-icon[data-default="true"] {
+  opacity: 0.5;
+}
+
+/* Icon color on hover - all contexts */
+.docs-nav-group-toggle-wrapper:hover .docs-nav-icon,
+.docs-nav-link:hover .docs-nav-icon {
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+/* ============================================================================
+   ACTIVE ICON STYLING - Premium Glow Effect
+   ============================================================================ */
+
+/* Active section icons (in group headers) */
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) .docs-nav-icon,
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon {
+  color: var(--color-primary);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
+}
+
+/* Active leaf section icons (in nav links) */
+.docs-nav-link--section.active .docs-nav-icon,
+.docs-nav-link--section[aria-current="page"] .docs-nav-icon {
+  color: var(--color-primary);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
+}
+
+/* Parent section icons when containing active child - subtle glow */
+.docs-nav-group:has(.docs-nav-link.active) > .docs-nav-group-toggle-wrapper .docs-nav-icon,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-group-toggle-wrapper .docs-nav-icon {
+  color: var(--color-primary);
+  opacity: 0.8;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent));
+}
+
+/* ============================================================================
+   SECTION LINK STYLING (with icon)
+   ============================================================================ */
+
+/* Leaf section links use flex for icon + text layout */
+.docs-nav-link--section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Text element within section link */
+.docs-nav-link-text {
+  flex: 1;
+  min-width: 0; /* Allow text to shrink for ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   ROOT SECTION ICON STYLING
+   ============================================================================ */
+
+.docs-nav-link--root {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.docs-nav-icon--root {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+}
+
+/* ============================================================================
+   DARK MODE ICON ADJUSTMENTS
+   ============================================================================ */
+
+[data-theme="dark"] .docs-nav-icon {
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .docs-nav-icon[data-default="true"] {
+  opacity: 0.4;
+}
+
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:hover .docs-nav-icon,
+[data-theme="dark"] .docs-nav-link:hover .docs-nav-icon {
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+/* Brighter glow in dark mode */
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon,
+[data-theme="dark"] .docs-nav-link--section.active .docs-nav-icon,
+[data-theme="dark"] .docs-nav-link--section[aria-current="page"] .docs-nav-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
+}
+
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) > .docs-nav-group-toggle-wrapper .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-group-toggle-wrapper .docs-nav-icon {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 35%, transparent));
+}
+
+/* ============================================================================
+   REDUCED MOTION PREFERENCES
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-nav-icon {
+    transition: none;
   }
 }

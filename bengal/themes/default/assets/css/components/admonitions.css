@@ -3,17 +3,61 @@
  * Styled callout boxes for highlighting important information
  */
 
+/* ============================================
+   LUMINESCENT LEFT-EDGE GLOW ANIMATION
+   Peaceful pulsing glow matching Bengal's code block aesthetic
+   ============================================ */
+
+@keyframes admonition-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      /* Left edge glow - base state */
+      -1px 0 0 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 15%, transparent),
+      -3px 0 8px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 8%, transparent),
+      -1px 0 12px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 4%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      /* Left edge glow - peak state */
+      -1px 0 0 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 25%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 6%, transparent);
+  }
+}
+
+/* Dark mode variant - more visible glow */
+@keyframes admonition-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 20%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 35%, transparent),
+      -3px 0 14px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 18%, transparent),
+      -1px 0 20px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 10%, transparent);
+  }
+}
+
 /* Base Admonition Styles */
 .admonition {
+  --admonition-color: var(--color-border-strong);
   position: relative;
   margin-block: 1.5rem;
   padding: 1rem 1.25rem;
-  border-inline-start: 4px solid var(--color-border);
+  /* Luminescent left edge - thin border with soft glow */
+  border-inline-start: 2px solid color-mix(in srgb, var(--admonition-color) 60%, transparent);
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-  /* Increased from --border-radius-large (8px → 12px) */
   background-color: var(--color-bg-secondary);
-  box-shadow: var(--elevation-card);
-  transition: all var(--transition-base);
+  /* Peaceful glow animation - signature Bengal left-edge pulse */
+  animation: admonition-edge-glow 8s ease-in-out infinite;
+  transition: border-color var(--transition-base);
   overflow: hidden;
 }
 
@@ -48,6 +92,7 @@
 }
 
 /* Fallback for browsers without color-mix */
+/* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
   .admonition::before {
     background: radial-gradient(circle at 35% 35%,
@@ -56,12 +101,51 @@
         rgba(255, 152, 0, 0.03) 55%,
         transparent 70%);
   }
+
+  /* Fallback to solid border for browsers without color-mix */
+  .admonition {
+    border-inline-start: 2px solid var(--color-border-strong);
+    animation: none;
+    box-shadow: var(--elevation-card);
+  }
+
+  .admonition.note,
+  .admonition.info {
+    border-inline-start-color: var(--color-info-border);
+  }
+
+  .admonition.tip,
+  .admonition.success {
+    border-inline-start-color: var(--color-success-border);
+  }
+
+  .admonition.warning,
+  .admonition.caution {
+    border-inline-start-color: var(--color-warning-border);
+  }
+
+  .admonition.danger,
+  .admonition.error {
+    border-inline-start-color: var(--color-error-border);
+  }
+
+  .admonition.example {
+    border-inline-start-color: #8b5cf6;
+  }
 }
 
-/* Respect reduced motion */
+/* Respect reduced motion - static subtle glow */
 @media (prefers-reduced-motion: reduce) {
   .admonition::before {
     animation: none !important;
+  }
+
+  .admonition {
+    animation: none !important;
+    /* Static subtle glow for reduced motion users */
+    box-shadow:
+      var(--elevation-card),
+      -2px 0 8px 0 color-mix(in srgb, var(--admonition-color, var(--color-primary)) 10%, transparent);
   }
 }
 
@@ -84,7 +168,8 @@
 }
 
 .admonition.gradient-border {
-  border-inline-start: 4px solid var(--color-primary);
+  --admonition-color: var(--color-primary);
+  border-inline-start: 2px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
 }
 
 .admonition:hover {
@@ -109,20 +194,21 @@
   text-transform: uppercase;
 }
 
-/* Admonition Title Icon - Using Bengal SVG Icons */
-.admonition-title::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
+/* Admonition Title Icon - Now rendered directly in HTML as SVG */
+.admonition-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  background-color: currentColor;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
+}
+
+.admonition-icon {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.admonition-title-text {
+  flex: 1;
 }
 
 /* Admonition Content - visually distinct from body */
@@ -215,12 +301,14 @@
 
 /* ============================================
    ADMONITION TYPES
+   Each type sets --admonition-color for the luminescent glow
    ============================================ */
 
 /* Note / Info */
 .admonition.note,
 .admonition.info {
-  border-inline-start-color: var(--color-info-border);
+  --admonition-color: var(--color-info);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 60%, transparent);
   background-color: var(--color-info-bg);
 }
 
@@ -229,17 +317,11 @@
   color: var(--color-info-text);
 }
 
-/* Info icon: Circle with i */
-.admonition.note .admonition-title::before,
-.admonition.info .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='8' r='1.2' fill='currentColor'/%3E%3Cpath d='M12 11 V16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='8' r='1.2' fill='currentColor'/%3E%3Cpath d='M12 11 V16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
 [data-theme="dark"] .admonition.note,
 [data-theme="dark"] .admonition.info {
   background-color: var(--color-info-bg);
-  border-inline-start-color: var(--color-info-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 50%, transparent);
+  animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.note .admonition-title,
@@ -250,7 +332,8 @@
 /* Tip / Success */
 .admonition.tip,
 .admonition.success {
-  border-inline-start-color: var(--color-success-border);
+  --admonition-color: var(--color-success);
+  border-inline-start-color: color-mix(in srgb, var(--color-success) 60%, transparent);
   background-color: var(--color-success-bg);
 }
 
@@ -259,22 +342,11 @@
   color: var(--color-success-text);
 }
 
-/* Tip icon: Star with center dot */
-.admonition.tip .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 2L14.5 9L22 9.5L16.5 14L18 21.5L12 17.5L6 21.5L7.5 14L2 9.5L9.5 9Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='currentColor'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 2L14.5 9L22 9.5L16.5 14L18 21.5L12 17.5L6 21.5L7.5 14L2 9.5L9.5 9Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='currentColor'/%3E%3C/svg%3E");
-}
-
-/* Success icon: Circle with checkmark */
-.admonition.success .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M7 12 L10.5 15.5 L17 8.5' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M7 12 L10.5 15.5 L17 8.5' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
 [data-theme="dark"] .admonition.tip,
 [data-theme="dark"] .admonition.success {
   background-color: var(--color-success-bg);
-  border-inline-start-color: var(--color-success-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+  animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.tip .admonition-title,
@@ -285,7 +357,8 @@
 /* Warning / Caution */
 .admonition.warning,
 .admonition.caution {
-  border-inline-start-color: var(--color-warning-border);
+  --admonition-color: var(--color-warning);
+  border-inline-start-color: color-mix(in srgb, var(--color-warning) 60%, transparent);
   background-color: var(--color-warning-bg);
 }
 
@@ -294,17 +367,11 @@
   color: var(--color-warning-text);
 }
 
-/* Warning icon: Triangle with exclamation */
-.admonition.warning .admonition-title::before,
-.admonition.caution .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 4 L22 20 A1 1 0 0 1 21 21 L3 21 A1 1 0 0 1 2 20 Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 10 V14' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.3' fill='currentColor'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 4 L22 20 A1 1 0 0 1 21 21 L3 21 A1 1 0 0 1 2 20 Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 10 V14' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.3' fill='currentColor'/%3E%3C/svg%3E");
-}
-
 [data-theme="dark"] .admonition.warning,
 [data-theme="dark"] .admonition.caution {
   background-color: var(--color-warning-bg);
-  border-inline-start-color: var(--color-warning-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-warning) 50%, transparent);
+  animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.warning .admonition-title,
@@ -315,7 +382,8 @@
 /* Danger / Error */
 .admonition.danger,
 .admonition.error {
-  border-inline-start-color: var(--color-error-border);
+  --admonition-color: var(--color-error);
+  border-inline-start-color: color-mix(in srgb, var(--color-error) 60%, transparent);
   background-color: var(--color-error-bg);
 }
 
@@ -324,17 +392,11 @@
   color: var(--color-error-text);
 }
 
-/* Danger/Error icon: Circle with X */
-.admonition.danger .admonition-title::before,
-.admonition.error .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M8 8 L16 16 M16 8 L8 16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M8 8 L16 16 M16 8 L8 16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
 [data-theme="dark"] .admonition.danger,
 [data-theme="dark"] .admonition.error {
   background-color: var(--color-error-bg);
-  border-inline-start-color: var(--color-error-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-error) 50%, transparent);
+  animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.danger .admonition-title,
@@ -344,15 +406,13 @@
 
 /* Example */
 .admonition.example {
-  border-inline-start-color: #8b5cf6;
-  /* violet-500 */
-  background-color: #f5f3ff;
-  /* violet-50 */
+  --admonition-color: #8b5cf6; /* violet-500 */
+  border-inline-start-color: color-mix(in srgb, #8b5cf6 60%, transparent);
+  background-color: #f5f3ff; /* violet-50 */
 }
 
 .admonition.example .admonition-title {
-  color: #7c3aed;
-  /* violet-600 */
+  color: #7c3aed; /* violet-600 */
 }
 
 /* Example icon: Notepad */
@@ -362,14 +422,14 @@
 }
 
 [data-theme="dark"] .admonition.example {
-  border-inline-start-color: #a78bfa;
-  /* violet-400 */
+  --admonition-color: #a78bfa; /* violet-400 */
+  border-inline-start-color: color-mix(in srgb, #a78bfa 50%, transparent);
   background-color: rgba(139, 92, 246, 0.1);
+  animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.example .admonition-title {
-  color: #c4b5fd;
-  /* violet-300 */
+  color: #c4b5fd; /* violet-300 */
 }
 
 /* ============================================
@@ -380,7 +440,7 @@
   cursor: pointer;
 }
 
-/* Collapsible chevron using Bengal SVG icon */
+/* Collapsible chevron using Phosphor icon (chevron-down) */
 .admonition.collapsible .admonition-title::after {
   content: '';
   display: inline-block;
@@ -388,8 +448,8 @@
   height: 12px;
   margin-inline-start: auto;
   background-color: currentColor;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 8 L12 16 L19 8' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 8 L12 16 L19 8' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;

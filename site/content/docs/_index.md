@@ -1,17 +1,32 @@
 ---
-title: ᗢ Documentation
-description: Complete documentation for Bengal
+title: Documentation
 weight: 5
 draft: false
 lang: en
-tags: [documentation, docs]
-keywords: [documentation, docs, guides, reference]
-category: documentation
+icon: book-open
+
+# 1. Identity (What is it?)
+type: doc
+
+# 2. Mode (How does it look?)
+# 'overview' sets the hero style and grid layout for top-level docs
+variant: overview
+
+# 3. Data (Props)
+# Explicit props block (preferred for new model)
+props:
+  description: Complete documentation for Bengal
+  category: documentation
+  tags: [documentation, docs]
+  keywords: [documentation, docs, guides, reference]
+  menu:
+    main:
+      weight: 10
+
+# 4. Cascade (Inheritance)
 cascade:
-  type: doc
-menu:
-  main:
-    weight: 10
+  type: doc          # All children are docs
+  variant: standard  # Default children to standard layout (not overview)
 ---
 
 # Documentation

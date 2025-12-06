@@ -312,15 +312,13 @@ class CacheStore:
         Returns:
             Parsed data dict, or None if file not found or load failed
         """
-        from compression import zstd
-
         # Try compressed first (if compression enabled)
         if self._compressed_path and self._compressed_path.exists():
             try:
-                from bengal.cache.compression import load_compressed
+                from bengal.cache.compression import ZstdError, load_compressed
 
                 return load_compressed(self._compressed_path)
-            except (zstd.ZstdError, json.JSONDecodeError, OSError) as e:
+            except (ZstdError, json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
                 return None
 

@@ -18,6 +18,7 @@ COMMAND_ALIASES: dict[str, str] = {
     "s": "serve",
     "c": "clean",
     "v": "validate",
+    "sk": "skeleton",
     # Semantic aliases
     "dev": "serve",
     "check": "validate",

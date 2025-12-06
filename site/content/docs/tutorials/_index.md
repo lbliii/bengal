@@ -2,6 +2,7 @@
 title: Tutorials
 description: Guided learning journeys to master Bengal
 weight: 15
+icon: notepad
 cascade:
   type: doc
 ---
@@ -23,6 +24,15 @@ Hands-on lessons that teach you Bengal step-by-step. Each tutorial starts from s
 **15 minutes** · For writers and beginners
 
 Go from zero to a deployed personal blog. The perfect first tutorial.
+:::
+
+:::{card} 🎨 Swizzle and Customize the Default Theme
+:link: ./swizzle-default-theme/
+:color: orange
+
+**20 minutes** · For theme customizers
+
+Learn to copy and customize theme templates without breaking updates. Perfect for personalizing your site.
 :::
 
 :::{card} 🔄 Migrate from Hugo
@@ -49,11 +59,12 @@ Set up CI/CD pipelines for automatic builds, testing, and deployment.
 ```mermaid
 flowchart LR
     A[Build a Blog] --> B[Content Authoring]
-    A --> C[Theming Basics]
-    B --> D[Advanced Content]
-    C --> E[Custom Themes]
-    D --> F[Automation]
-    E --> F
+    A --> C[Swizzle Theme]
+    C --> D[Theming Basics]
+    B --> E[Advanced Content]
+    D --> F[Custom Themes]
+    E --> G[Automation]
+    F --> G
 ```
 
 :::{tip}

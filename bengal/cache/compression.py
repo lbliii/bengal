@@ -22,8 +22,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from compression import zstd
-
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +31,43 @@ logger = get_logger(__name__)
 # Level 1: Slightly faster, similar savings (92%)
 # Level 6+: Diminishing returns, slower
 COMPRESSION_LEVEL = 3
+
+# Try to import compression.zstd (Python 3.14+)
+# Fallback to zstandard package if available
+# Fallback to mock if neither (allows running in older environments)
+try:
+    # Try stdlib first (Python 3.14+)
+    from compression import zstd
+    
+    # Re-export ZstdError
+    ZstdError = zstd.ZstdError
+    
+except ImportError:
+    try:
+        # Try PyPI package
+        import zstandard as zstd  # type: ignore
+        
+        # Re-export ZstdError
+        ZstdError = zstd.ZstdError
+        
+    except ImportError:
+        # Fallback mock for environments without zstd
+        logger.warning("zstd_not_available_using_mock", reason="compression_module_missing")
+        
+        class MockZstd:
+            @staticmethod
+            def compress(data: bytes, level: int = 3) -> bytes:
+                return data
+            
+            @staticmethod
+            def decompress(data: bytes) -> bytes:
+                return data
+                
+            class ZstdError(Exception):
+                pass
+                
+        zstd = MockZstd()
+        ZstdError = MockZstd.ZstdError
 
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:

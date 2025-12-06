@@ -47,11 +47,11 @@ Declare enhancements using the `data-bengal` attribute:
 Options are passed via additional `data-*` attributes:
 
 ```html
-<nav data-bengal="toc" data-spy="true" data-offset="100">
+<nav data-bengal="toc" data-spy="true" data-offset="80">
 ```
 
 - **Boolean values**: `data-spy="true"` or just `data-spy`
-- **Numbers**: `data-offset="120"`
+- **Numbers**: `data-offset="80"`
 - **JSON**: `data-config='{"key": "value"}'`
 
 ### Available Enhancements
@@ -129,7 +129,98 @@ See [`enhancements/README.md`](enhancements/README.md) for full documentation.
 
 ---
 
+## Linting
+
+### Biome (Recommended)
+
+A `biome.json` configuration is included for linting JavaScript files:
+
+```bash
+# Install Biome (Rust-based, fast, no Node.js required)
+brew install biome
+# or: cargo install @biomejs/biome
+
+# Lint all JS files
+biome check .
+
+# Lint and auto-fix
+biome check --apply .
+```
+
+### What It Catches
+
+- ❌ **Undeclared variables** (strict mode errors)
+- ⚠️ **Unused variables**
+- ⚠️ **Use of `var`** (prefer `const`/`let`)
+- Recommended best practices
+
+---
+
 ## Architecture
+
+### Directory Structure
+
+```
+js/
+├── utils.js                    # Foundation utilities (load first)
+├── bengal-enhance.js           # Progressive enhancement registry
+├── main.js                     # Core initialization
+│
+├── core/                       # Always-loaded modules
+│   ├── theme.js               # Theme/palette switching
+│   ├── search.js              # Full-text search with Lunr
+│   ├── nav-dropdown.js        # Navigation dropdowns
+│   └── session-path-tracker.js # Session tracking
+│
+├── enhancements/              # Core enhancements (explicitly loaded)
+│   ├── interactive.js         # Docs nav, back-to-top, scroll spy
+│   ├── tabs.js                # Tab component
+│   ├── toc.js                 # Table of contents
+│   ├── mobile-nav.js          # Mobile navigation
+│   ├── action-bar.js          # Action bar component
+│   ├── copy-link.js           # Copy heading links
+│   ├── holo.js                # Holographic effects
+│   ├── lightbox.js            # Image lightbox (feature-gated)
+│   ├── lazy-loaders.js        # Lazy loading (Mermaid, D3)
+│   └── data-table.js          # Data table enhancements
+│
+├── vendor/                    # Third-party libraries
+│   ├── lunr.min.js           # Full-text search
+│   └── tabulator.min.js      # Data tables
+│
+├── graph-*.js                 # Graph visualization (lazy-loaded)
+├── mermaid-*.js               # Mermaid diagrams (lazy-loaded)
+│
+└── biome.json                 # Linting configuration
+```
+
+### Loading Order
+
+Scripts load in this order (configured in `base.html` and `js_bundler.py`):
+
+1. **`utils.js`** - Core utilities (`BengalUtils` namespace)
+2. **`bengal-enhance.js`** - Enhancement registry
+3. **`core/*.js`** - Always-needed functionality
+4. **`main.js`** - Core initialization
+5. **`enhancements/*.js`** - Interactive features
+
+### Responsibility Matrix
+
+| Feature | Module | Trigger |
+|---------|--------|---------|
+| Theme switching | `core/theme.js` | Auto-init |
+| Search | `core/search.js` | Auto-init |
+| Nav dropdowns | `core/nav-dropdown.js` | Auto-init |
+| Code copy buttons | `main.js` | Auto-init |
+| External link icons | `main.js` | Auto-init |
+| Docs nav toggle | `enhancements/interactive.js` | `data-bengal="docs-nav"` |
+| Back to top | `enhancements/interactive.js` | Auto-init |
+| Reading progress | `enhancements/interactive.js` | Auto-init |
+| TOC + scroll spy | `enhancements/toc.js` | `data-bengal="toc"` |
+| Tabs | `enhancements/tabs.js` | `data-bengal="tabs"` |
+| Mobile nav | `enhancements/mobile-nav.js` | Auto-init |
+| Lightbox | `enhancements/lightbox.js` | Feature-gated |
+| Holo effects | `enhancements/holo.js` | Auto-init |
 
 ### Module Pattern
 

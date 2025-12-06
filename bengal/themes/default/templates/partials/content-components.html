@@ -122,7 +122,8 @@ Example:
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
-'page_count': subsection.pages | length if subsection.pages else 0
+'page_count': subsection.pages | length if subsection.pages else 0,
+'icon': subsection.metadata.get('icon', '') if subsection.metadata else ''
 }) %}
 {% endfor %}
 {% endif %}
@@ -140,7 +141,8 @@ subsection.metadata.get('description', '') else '',
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
-'date': post.date if post.date else none
+'date': post.date if post.date else none,
+'icon': post.metadata.get('icon', '') if post.metadata else ''
 }) %}
 {% endif %}
 {% endfor %}
@@ -154,15 +156,16 @@ subsection.metadata.get('description', '') else '',
     {% for item in sorted_items %}
     <article class="child-item">
       <div class="child-item-icon">
-        {% if item.type == 'section' %}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-        </svg>
+        {# Try custom icon from frontmatter first, then fall back to type-based default #}
+        {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
+        {% if rendered_icon %}
+        {{ rendered_icon }}
+        {% elif item.type == 'section' %}
+        {# Default folder icon for sections #}
+        {{ icon('folder', size=20) }}
         {% else %}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
+        {# Default file icon for pages #}
+        {{ icon('file-text', size=20) }}
         {% endif %}
       </div>
 

@@ -492,23 +492,69 @@ a.card:hover {
 
 /* ============================================
    CALLOUT CARD (Highlighted Information)
+   Luminescent left-edge glow matching admonitions
    ============================================ */
 
+/* Luminescent glow animation for callout cards */
+@keyframes callout-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 15%, transparent),
+      -3px 0 8px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 8%, transparent),
+      -1px 0 12px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 4%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 25%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 6%, transparent);
+  }
+}
+
+@keyframes callout-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 20%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 35%, transparent),
+      -3px 0 14px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 18%, transparent),
+      -1px 0 20px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 10%, transparent);
+  }
+}
+
 .callout-card {
+  --callout-color: var(--color-primary);
   display: flex;
   gap: 1rem;
   padding: 1.25rem;
   background: var(--color-bg-secondary);
-  border-inline-start: 4px solid var(--color-primary);
-  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
+  /* Luminescent left edge - thin border with soft glow */
+  border-inline-start: 2px solid color-mix(in srgb, var(--callout-color) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
   margin-block: 1.5rem;
+  /* Peaceful glow animation */
+  animation: callout-edge-glow 8s ease-in-out infinite;
+  transition: border-color var(--transition-base);
+}
+
+[data-theme="dark"] .callout-card {
+  border-inline-start-color: color-mix(in srgb, var(--callout-color) 50%, transparent);
+  animation-name: callout-edge-glow-dark;
 }
 
 .callout-card__icon {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
-  color: var(--color-primary);
+  color: var(--callout-color);
 }
 
 .callout-card__content {
@@ -529,10 +575,11 @@ a.card:hover {
   color: var(--color-text-secondary);
 }
 
-/* Callout Variants */
+/* Callout Variants - each sets --callout-color for the glow */
 .callout-card--info {
+  --callout-color: var(--color-info);
   background: var(--color-info-bg);
-  border-inline-start-color: var(--color-info-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 60%, transparent);
 
   .callout-card__icon {
     color: var(--color-info);
@@ -540,8 +587,9 @@ a.card:hover {
 }
 
 .callout-card--success {
+  --callout-color: var(--color-success);
   background: var(--color-success-bg);
-  border-inline-start-color: var(--color-success-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-success) 60%, transparent);
 
   .callout-card__icon {
     color: var(--color-success);
@@ -549,8 +597,9 @@ a.card:hover {
 }
 
 .callout-card--warning {
+  --callout-color: var(--color-warning);
   background: var(--color-warning-bg);
-  border-inline-start-color: var(--color-warning-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-warning) 60%, transparent);
 
   .callout-card__icon {
     color: var(--color-warning);
@@ -558,11 +607,47 @@ a.card:hover {
 }
 
 .callout-card--error {
+  --callout-color: var(--color-error);
   background: var(--color-error-bg);
-  border-inline-start-color: var(--color-error-border);
+  border-inline-start-color: color-mix(in srgb, var(--color-error) 60%, transparent);
 
   .callout-card__icon {
     color: var(--color-error);
+  }
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .callout-card {
+    border-inline-start: 2px solid var(--color-primary);
+    animation: none;
+    box-shadow: var(--elevation-card);
+  }
+
+  .callout-card--info {
+    border-inline-start-color: var(--color-info-border);
+  }
+
+  .callout-card--success {
+    border-inline-start-color: var(--color-success-border);
+  }
+
+  .callout-card--warning {
+    border-inline-start-color: var(--color-warning-border);
+  }
+
+  .callout-card--error {
+    border-inline-start-color: var(--color-error-border);
+  }
+}
+
+/* Reduced motion - static subtle glow */
+@media (prefers-reduced-motion: reduce) {
+  .callout-card {
+    animation: none !important;
+    box-shadow:
+      var(--elevation-card),
+      -2px 0 8px 0 color-mix(in srgb, var(--callout-color, var(--color-primary)) 10%, transparent);
   }
 }
 
@@ -757,6 +842,7 @@ a.card:hover {
 
 /* ============================================
    CARD COLOR VARIANTS (Theme-Aware Semantic Tokens)
+   Luminescent left-edge glow treatment
    ============================================ */
 
 /**
@@ -775,117 +861,188 @@ a.card:hover {
  * - gray → neutral border
  */
 
+/* Shared luminescent glow animation for card color variants */
+@keyframes card-color-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--card-accent-color) 15%, transparent),
+      -2px 0 6px 0 color-mix(in srgb, var(--card-accent-color) 8%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--card-accent-color) 25%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--card-accent-color) 12%, transparent);
+  }
+}
+
+@keyframes card-color-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--card-accent-color) 20%, transparent),
+      -2px 0 8px 0 color-mix(in srgb, var(--card-accent-color) 12%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--card-accent-color) 35%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--card-accent-color) 18%, transparent);
+  }
+}
+
 /* Blue - Maps to primary brand color (matches palette) */
 .card-color-blue {
-  border-left-width: 4px;
-  border-left-color: var(--color-primary);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-primary) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-primary);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-blue:hover {
-  border-left-color: var(--color-primary-hover);
+  border-left-color: color-mix(in srgb, var(--color-primary-hover) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-blue {
+  border-left-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Green - Maps to success/secondary (success state, secondary brand) */
 .card-color-green {
-  border-left-width: 4px;
-  border-left-color: var(--color-success-border);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-success-border) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-success);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-success) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-green:hover {
-  border-left-color: var(--color-success);
+  border-left-color: color-mix(in srgb, var(--color-success) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-green {
+  border-left-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Red - Maps to error (error/danger state) */
 .card-color-red {
-  border-left-width: 4px;
-  border-left-color: var(--color-error-border);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-error-border) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-error);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-error) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-red:hover {
-  border-left-color: var(--color-error);
+  border-left-color: color-mix(in srgb, var(--color-error) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-red {
+  border-left-color: color-mix(in srgb, var(--color-error) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Yellow/Orange - Maps to warning/accent (warning state, accent color) */
 .card-color-yellow,
 .card-color-orange {
-  border-left-width: 4px;
-  border-left-color: var(--color-warning-border);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-warning-border) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-warning);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-warning) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-yellow:hover,
 .card-color-orange:hover {
-  border-left-color: var(--color-warning);
+  border-left-color: color-mix(in srgb, var(--color-warning) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-yellow,
+[data-theme="dark"] .card-color-orange {
+  border-left-color: color-mix(in srgb, var(--color-warning) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Purple - Custom color (kept as foundation token for design flexibility) */
 .card-color-purple {
-  border-left-width: 4px;
-  border-left-color: var(--purple-500);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--purple-500) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--purple-500);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--purple-500) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-purple:hover {
-  border-left-color: var(--purple-600);
+  border-left-color: color-mix(in srgb, var(--purple-600) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-purple {
+  --card-accent-color: var(--purple-400);
+  border-left-color: color-mix(in srgb, var(--purple-400) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Pink - Custom variant of purple */
 .card-color-pink {
-  border-left-width: 4px;
-  border-left-color: var(--purple-400);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--purple-400) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--purple-400);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--purple-400) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-pink:hover {
-  border-left-color: var(--purple-500);
+  border-left-color: color-mix(in srgb, var(--purple-500) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-pink {
+  --card-accent-color: var(--purple-300);
+  border-left-color: color-mix(in srgb, var(--purple-300) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Indigo - Maps to primary-dark (darker variant of primary) */
 .card-color-indigo {
-  border-left-width: 4px;
-  border-left-color: var(--color-primary-dark);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-primary-dark) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-primary-dark);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-primary-dark) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-indigo:hover {
-  border-left-color: var(--color-primary-active);
+  border-left-color: color-mix(in srgb, var(--color-primary-active) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-indigo {
+  border-left-color: color-mix(in srgb, var(--color-primary-dark) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Gray - Maps to neutral border (neutral, no semantic meaning) */
 .card-color-gray {
-  border-left-width: 4px;
-  border-left-color: var(--color-border-strong);
-  background: linear-gradient(to right,
-      color-mix(in srgb, var(--color-border-strong) 3%, transparent) 0%,
-      transparent 4px);
+  --card-accent-color: var(--color-border-strong);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
 }
 
 .card-color-gray:hover {
-  border-left-color: var(--color-border);
+  border-left-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-gray {
+  border-left-color: color-mix(in srgb, var(--color-border-strong) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
 }
 
 /* Fallback for browsers without color-mix support */
-/* Note: Border colors still use semantic tokens and adapt to theme variants */
-/* Background gradient is a subtle enhancement - gracefully degrade without it */
 @supports not (color: color-mix(in srgb, black, white)) {
-
   .card-color-blue,
   .card-color-green,
   .card-color-red,
@@ -895,8 +1052,37 @@ a.card:hover {
   .card-color-pink,
   .card-color-indigo,
   .card-color-gray {
-    /* Remove background gradient - border color still adapts via semantic tokens */
-    background: none;
+    /* Fallback to solid 2px border with no animation */
+    animation: none;
+    box-shadow: var(--elevation-card);
+  }
+
+  .card-color-blue { border-left-color: var(--color-primary); }
+  .card-color-green { border-left-color: var(--color-success-border); }
+  .card-color-red { border-left-color: var(--color-error-border); }
+  .card-color-yellow,
+  .card-color-orange { border-left-color: var(--color-warning-border); }
+  .card-color-purple { border-left-color: var(--purple-500); }
+  .card-color-pink { border-left-color: var(--purple-400); }
+  .card-color-indigo { border-left-color: var(--color-primary-dark); }
+  .card-color-gray { border-left-color: var(--color-border-strong); }
+}
+
+/* Reduced motion - static subtle glow */
+@media (prefers-reduced-motion: reduce) {
+  .card-color-blue,
+  .card-color-green,
+  .card-color-red,
+  .card-color-yellow,
+  .card-color-orange,
+  .card-color-purple,
+  .card-color-pink,
+  .card-color-indigo,
+  .card-color-gray {
+    animation: none !important;
+    box-shadow:
+      var(--elevation-card),
+      -2px 0 6px 0 color-mix(in srgb, var(--card-accent-color) 10%, transparent);
   }
 }
 

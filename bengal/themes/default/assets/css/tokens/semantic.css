@@ -406,6 +406,62 @@
     0 2px 0 var(--color-border-strong);
 
   /* ============================================
+     ENHANCED NEUMORPHIC SHADOWS (Multi-Layer Depth)
+     ============================================ */
+
+  /* Enhanced neumorphic base - adds multi-layer depth while preserving tactile feel */
+  --neumorphic-enhanced-base:
+    /* Existing neumorphic layers (tactile feel) */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
+    /* Border-defining shadow (refined edge) */
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    /* Depth layers (multi-layer technique) */
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    /* Neumorphic outset highlight */
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+
+  /* Enhanced neumorphic hover - raised with refined depth */
+  --neumorphic-enhanced-hover:
+    /* Enhanced neumorphic inset/outset */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
+    /* Refined border + depth */
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    /* Neumorphic highlight */
+    -1px -1px 3px rgba(255, 255, 255, 0.4);
+
+  /* Enhanced neumorphic subtle - for smaller elements */
+  --neumorphic-enhanced-subtle:
+    /* Neumorphic subtle layers */
+    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
+    inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
+    /* Border-defining shadow */
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    /* Depth layer */
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    /* Neumorphic highlight */
+    -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
+
+  /* Refined border tokens (softer opacity) */
+  --border-refined-subtle: 1px solid rgba(0, 0, 0, 0.06);
+  --border-refined-base: 1px solid rgba(0, 0, 0, 0.08);
+  --border-refined-strong: 1px solid rgba(0, 0, 0, 0.1);
+
+  /* Soft border radius variants (enhanced rounding) */
+  --radius-soft-sm: 0.375rem;   /* 6px */
+  --radius-soft-md: 0.5rem;     /* 8px */
+  --radius-soft-lg: 0.75rem;    /* 12px */
+  --radius-soft-xl: 1rem;       /* 16px */
+  --radius-soft-2xl: 1.25rem;  /* 20px */
+  --radius-soft-3xl: 1.5rem;   /* 24px */
+
+  /* ============================================
      SEMANTIC BORDERS
      ============================================ */
 
@@ -501,6 +557,8 @@
   --container-lg: 1024px;
   --container-xl: 1280px;
   --container-2xl: 1536px;
+  --container-3xl: 1920px;
+  /* Ultra-wide constraint */
 
   /* Breakpoints (for reference in JS) */
   --breakpoint-xxs: 400px;
@@ -510,6 +568,8 @@
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 1920px;
+  /* Ultra-wide screens */
 
 }
 
@@ -668,6 +728,48 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 1px 3px rgba(0, 0, 0, 0.4),
     0 2px 0 #000;
+
+  /* Enhanced neumorphic shadows (dark mode) */
+  --neumorphic-enhanced-base:
+    /* Neumorphic layers (dark mode tactile feel) */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    /* Border-defining shadow (refined edge) */
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    /* Depth layers (multi-layer technique) */
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    /* Neumorphic highlight */
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+
+  --neumorphic-enhanced-hover:
+    /* Enhanced neumorphic (dark mode) */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
+    /* Refined border + depth */
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.35),
+    /* Neumorphic highlight */
+    -1px -1px 3px rgba(255, 255, 255, 0.08);
+
+  --neumorphic-enhanced-subtle:
+    /* Neumorphic subtle (dark mode) */
+    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
+    inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
+    /* Border-defining shadow */
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    /* Depth layer */
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    /* Neumorphic highlight */
+    -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
+
+  /* Refined border tokens (dark mode) */
+  --border-refined-subtle: 1px solid rgba(255, 255, 255, 0.05);
+  --border-refined-base: 1px solid rgba(255, 255, 255, 0.08);
+  --border-refined-strong: 1px solid rgba(255, 255, 255, 0.1);
 
   /* Surface Colors (Dark mode) */
   --color-surface: #252525;

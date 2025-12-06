@@ -6,19 +6,55 @@
 (function () {
   'use strict';
 
-  // Ensure utils are available
+  // Ensure utils are available (with graceful degradation)
   if (!window.BengalUtils) {
-    console.error('BengalUtils not loaded - main.js requires utils.js');
-    return;
+    console.error('[Bengal] BengalUtils not loaded - main.js requires utils.js');
+    // Provide fallback functions to prevent errors
+    window.BengalUtils = {
+      log: () => {},
+      copyToClipboard: async () => {},
+      isExternalUrl: () => false,
+      ready: (fn) => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fn);
+        } else {
+          fn();
+        }
+      }
+    };
   }
 
-  const { log, copyToClipboard, isExternalUrl, ready } = window.BengalUtils;
+  // Safely destructure with defaults to prevent errors
+  const log = window.BengalUtils?.log || (() => {});
+  const copyToClipboard = window.BengalUtils?.copyToClipboard || (async () => {});
+  const isExternalUrl = window.BengalUtils?.isExternalUrl || (() => false);
+  const ready = window.BengalUtils?.ready || ((fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  });
 
   /**
    * Smooth scroll for anchor links
    */
   function setupSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    // Ensure document is available
+    if (typeof document === 'undefined') {
+      log('[Bengal] Document not available for setupSmoothScroll');
+      return;
+    }
+
+    const anchors = document.querySelectorAll('a[href^="#"]');
+    if (!anchors || anchors.length === 0) {
+      return;
+    }
+
+    anchors.forEach(function (anchor) {
+      if (!anchor || typeof anchor.addEventListener !== 'function') {
+        return;
+      }
       anchor.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
 
@@ -221,6 +257,8 @@
    * Lazy load images
    */
   let imageObserver = null;
+  let trackScrollHandler = null;
+
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
       imageObserver = new IntersectionObserver(function (entries) {
@@ -253,47 +291,12 @@
 
   /**
    * Table of contents highlighting
+   *
+   * NOTE: TOC highlighting functionality has been moved to enhancements/toc.js
+   * This function is kept here for backward compatibility but is no longer called.
+   * The toc.js module handles all TOC functionality including highlighting.
    */
-  let tocObserver = null;
-  function setupTOCHighlight() {
-    const toc = document.querySelector('.toc');
-    if (!toc) return;
-
-    const headings = document.querySelectorAll('h2[id], h3[id], h4[id]');
-    const tocLinks = toc.querySelectorAll('a');
-
-    if (headings.length === 0 || tocLinks.length === 0) return;
-
-    tocObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          const id = entry.target.getAttribute('id');
-
-          // Remove active class from all links
-          tocLinks.forEach(function (link) {
-            link.classList.remove('active');
-          });
-
-          // Add active class to current link
-          // Use find() to match href ending with the ID (handles IDs starting with numbers)
-          const activeLink = Array.from(tocLinks).find(function (link) {
-            return link.getAttribute('href') === '#' + id;
-          });
-          if (activeLink) {
-            activeLink.classList.add('active');
-          }
-        }
-      });
-    }, {
-      rootMargin: '-80px 0px -80% 0px'
-    });
-
-    headings.forEach(function (heading) {
-      if (tocObserver) {
-        tocObserver.observe(heading);
-      }
-    });
-  }
+  // Removed - functionality moved to enhancements/toc.js
 
   /**
    * Detect keyboard navigation for better focus indicators
@@ -412,7 +415,7 @@
 
     // Update on scroll (throttled)
     let ticking = false;
-    function onScroll() {
+    trackScrollHandler = function onScroll() {
       if (!ticking) {
         window.requestAnimationFrame(function() {
           updateProgress();
@@ -420,20 +423,24 @@
         });
         ticking = true;
       }
-    }
+    };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', trackScrollHandler, { passive: true });
 
     // Initial update
     updateProgress();
   }
 
   function init() {
+    // IMPORTANT: Clean up any existing observers before re-initializing
+    // This prevents memory leaks if init is called multiple times
+    cleanup();
+
     setupSmoothScroll();
     setupExternalLinks();
     setupCodeCopyButtons();
     setupLazyLoading();
-    setupTOCHighlight();
+    // setupTOCHighlight() removed - TOC highlighting now handled by enhancements/toc.js
     setupKeyboardDetection();
     setupScrollAnimations();
     setupTrackProgress();
@@ -449,9 +456,10 @@
       imageObserver.disconnect();
       imageObserver = null;
     }
-    if (tocObserver) {
-      tocObserver.disconnect();
-      tocObserver = null;
+    // tocObserver removed - TOC functionality moved to enhancements/toc.js
+    if (trackScrollHandler) {
+      window.removeEventListener('scroll', trackScrollHandler);
+      trackScrollHandler = null;
     }
   }
 

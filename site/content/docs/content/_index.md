@@ -2,6 +2,7 @@
 title: Content
 description: Author, organize, and validate your documentation
 weight: 20
+icon: file-text
 cascade:
   type: doc
 ---

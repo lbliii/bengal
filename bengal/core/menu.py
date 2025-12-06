@@ -52,6 +52,7 @@ class MenuItem:
         weight: Sort weight (lower values appear first)
         parent: Parent menu identifier (for hierarchical menus)
         identifier: Unique identifier (auto-generated from name if not provided)
+        icon: Icon name from frontmatter (e.g., 'book', 'folder', 'terminal')
         children: Child menu items (populated during menu building)
         active: Whether this item matches the current page URL
         active_trail: Whether this item is in the active path (has active child)
@@ -67,6 +68,9 @@ class MenuItem:
 
         # From page frontmatter
         menu_item = MenuItem(name=page.title, url=page.url, weight=page.metadata.get("weight", 0))
+
+        # With icon
+        menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
     """
 
     name: str
@@ -74,6 +78,7 @@ class MenuItem:
     weight: int = 0
     parent: str | None = None
     identifier: str | None = None
+    icon: str | None = None
     children: list[MenuItem] = field(default_factory=list)
 
     # Runtime state (set during rendering)
@@ -181,24 +186,26 @@ class MenuItem:
         and template rendering. Recursively converts children to dictionaries.
 
         Returns:
-            Dictionary with name, url, active, active_trail, and children fields.
+            Dictionary with name, url, icon, active, active_trail, and children fields.
             Children are recursively converted to dictionaries.
 
         Examples:
-            item = MenuItem(name="Home", url="/")
-            item.add_child(MenuItem(name="About", url="/about"))
+            item = MenuItem(name="Home", url="/", icon="house")
+            item.add_child(MenuItem(name="About", url="/about", icon="info"))
             data = item.to_dict()
             # Returns: {
             #     "name": "Home",
             #     "url": "/",
+            #     "icon": "house",
             #     "active": False,
             #     "active_trail": False,
-            #     "children": [{"name": "About", "url": "/about", ...}]
+            #     "children": [{"name": "About", "url": "/about", "icon": "info", ...}]
             # }
         """
         return {
             "name": self.name,
             "url": self.url,
+            "icon": self.icon,
             "active": self.active,
             "active_trail": self.active_trail,
             "children": [child.to_dict() for child in self.children],
@@ -284,8 +291,8 @@ class MenuBuilder:
         Track an item to prevent future duplicates.
 
         Adds the item's identifier, URL, and name to the seen sets for duplicate
-        detection. Called automatically when items are added via add_from_config(),
-        add_from_page(), or add_from_auto_nav().
+        detection. Called automatically when items are added via add_from_config()
+        or add_from_page().
 
         Args:
             item: MenuItem to track
@@ -343,6 +350,7 @@ class MenuBuilder:
                 weight=item_config.get("weight", 0),
                 parent=item_config.get("parent"),
                 identifier=item_config.get("identifier"),
+                icon=item_config.get("icon"),
             )
             self.items.append(item)
             self._track_item(item)
@@ -392,111 +400,6 @@ class MenuBuilder:
         )
         self.items.append(item)
         self._track_item(item)
-
-    def add_from_auto_nav(self, site: Any, exclude_sections: set[str] | None = None) -> None:
-        """
-        Add auto-discovered sections to menu, including nested sections.
-
-        Automatically creates menu items from section hierarchy. Recursively
-        includes all sections (not just top-level), respects section visibility
-        settings (hidden, menu: false), and uses section metadata for title/weight.
-
-        Process:
-            1. Find all top-level sections (no parent)
-            2. Recursively add sections and subsections
-            3. Skip hidden sections (hidden: true or menu: false)
-            4. Use section index page metadata for title/weight
-            5. Build parent-child relationships from section hierarchy
-
-        Args:
-            site: Site instance with sections populated
-            exclude_sections: Set of section names to exclude from menu
-                             (e.g., {'api', 'cli'}). None means include all sections.
-
-        Examples:
-            # Add all sections to menu
-            builder.add_from_auto_nav(site)
-
-            # Exclude API and CLI sections
-            builder.add_from_auto_nav(site, exclude_sections={'api', 'cli'})
-        """
-        if exclude_sections is None:
-            exclude_sections = set()
-
-        def _add_section_recursive(section: Any, parent_id: str | None = None) -> None:
-            """Recursively add section and its subsections to menu."""
-            # Skip sections without paths
-            if not hasattr(section, "path") or not section.path:
-                return
-
-            # Skip excluded sections (e.g., dev sections being bundled)
-            if hasattr(section, "name") and section.name in exclude_sections:
-                return
-
-            # Get section metadata
-            section_hidden = False
-            section_title = (
-                getattr(section, "title", None) or section.name.replace("-", " ").title()
-            )
-            section_weight = getattr(section, "weight", 999)
-
-            # Check index page metadata
-            if hasattr(section, "index_page") and section.index_page:
-                index_page = section.index_page
-                metadata = getattr(index_page, "metadata", {})
-
-                # Supports: hidden: true, menu: false, menu.main: false
-                if metadata.get("hidden", False) is True:
-                    section_hidden = True
-                else:
-                    menu_setting = metadata.get("menu", True)
-                    if menu_setting is False or (
-                        isinstance(menu_setting, dict) and menu_setting.get("main") is False
-                    ):
-                        section_hidden = True
-
-                if hasattr(index_page, "title") and index_page.title:
-                    section_title = index_page.title
-                if "weight" in metadata:
-                    section_weight = metadata["weight"]
-
-            if section_hidden:
-                return
-
-            section_url = getattr(section, "relative_url", f"/{section.name}/")
-            section_id = section.name
-
-            if parent_id is None and hasattr(section, "parent") and section.parent:
-                parent_id = section.parent.name
-
-            if self._is_duplicate(section_id, section_url.rstrip("/"), section_title.lower()):
-                logger.debug("menu_duplicate_skipped", item=section_title, reason="auto_nav")
-                return
-
-            item = MenuItem(
-                name=section_title,
-                url=section_url,
-                weight=section_weight,
-                identifier=section_id,
-                parent=parent_id,
-            )
-            self.items.append(item)
-            self._track_item(item)
-
-            if hasattr(section, "subsections"):
-                for subsection in section.subsections:
-                    _add_section_recursive(subsection, section_id)
-
-        top_level_sections = []
-        for section in site.sections:
-            if not hasattr(section, "path") or not section.path:
-                continue
-
-            if not hasattr(section, "parent") or section.parent is None:
-                top_level_sections.append(section)
-
-        for section in top_level_sections:
-            _add_section_recursive(section, None)
 
     def build_hierarchy(self) -> list[MenuItem]:
         """

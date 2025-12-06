@@ -8,6 +8,7 @@ type coercion, helpful error messages, and support for nested types.
 from __future__ import annotations
 
 import logging
+import types
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -301,7 +302,8 @@ class SchemaValidator:
             ]
 
         # Handle Optional[X] (Union[X, None])
-        if origin is Union:
+        # Handle both typing.Union and types.UnionType (A | B)
+        if origin is Union or origin is types.UnionType:
             # Filter out NoneType
             non_none_args = [a for a in args if a is not type(None)]
 
@@ -437,7 +439,8 @@ class SchemaValidator:
                 ]
 
         # Default: accept as-is if type matches
-        if isinstance(value, expected):
+        # Handle generic types by checking if they are types before calling isinstance
+        if isinstance(expected, type) and isinstance(value, expected):
             return value, []
 
         # Unknown type - accept as-is with warning
@@ -523,7 +526,7 @@ class SchemaValidator:
     def _is_optional(self, type_hint: type) -> bool:
         """Check if type hint is Optional (Union with None)."""
         origin = get_origin(type_hint)
-        if origin is Union:
+        if origin is Union or origin is types.UnionType:
             args = get_args(type_hint)
             return type(None) in args
         return False
@@ -532,7 +535,7 @@ class SchemaValidator:
         """Get human-readable type name."""
         origin = get_origin(t)
 
-        if origin is Union:
+        if origin is Union or origin is types.UnionType:
             args = get_args(t)
             # Check for Optional[X]
             if type(None) in args:
@@ -557,4 +560,3 @@ class SchemaValidator:
             return t.__name__
 
         return str(t)
-

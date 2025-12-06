@@ -211,10 +211,15 @@ class BuildHandler(FileSystemEventHandler):
             # Content files (.md) always trigger full rebuild for navigation consistency
             # Frontmatter changes (hidden, visibility, menu, draft) affect site-wide navigation
             # and listings, which are rendered into every page's HTML
+            # SVG files in theme assets/icons/ also need full rebuild because they're inlined in HTML
             if not needs_full_rebuild:
                 content_extensions = {".md", ".markdown"}
+                svg_extensions = {".svg"}
                 for changed_path in changed_files:
-                    if Path(changed_path).suffix.lower() in content_extensions:
+                    path_obj = Path(changed_path)
+                    suffix = path_obj.suffix.lower()
+                    
+                    if suffix in content_extensions:
                         needs_full_rebuild = True
                         logger.debug(
                             "full_rebuild_triggered_by_content",
@@ -222,6 +227,19 @@ class BuildHandler(FileSystemEventHandler):
                             file=changed_path,
                         )
                         break
+                    
+                    # SVG files in theme assets/icons/ are inlined in HTML, so pages need re-rendering
+                    if suffix in svg_extensions:
+                        # Check if it's in a theme icons directory
+                        path_str = str(path_obj).replace("\\", "/")
+                        if "/themes/" in path_str and "/assets/icons/" in path_str:
+                            needs_full_rebuild = True
+                            logger.debug(
+                                "full_rebuild_triggered_by_svg",
+                                reason="svg_icon_changed_inlined_in_html",
+                                file=changed_path,
+                            )
+                            break
 
             logger.info(
                 "rebuild_triggered",
@@ -296,6 +314,7 @@ class BuildHandler(FileSystemEventHandler):
                 else:
                     # 1) Source-gated quick path: if we know which sources changed, decide directly
                     #    CSS-only → reload-css; otherwise full reload. This avoids output churn.
+                    #    SVG files in theme icons need full reload (they're inlined in HTML)
                     if changed_files:
                         try:
                             lower = [str(p).lower() for p in changed_files]
@@ -303,7 +322,15 @@ class BuildHandler(FileSystemEventHandler):
                             src_only = [
                                 p for p in lower if "/public/" not in p and "\\public\\" not in p
                             ]
-                            css_only = bool(src_only) and all(p.endswith(".css") for p in src_only)
+                            
+                            # Check for SVG icon changes (need full reload because inlined in HTML)
+                            has_svg_icons = any(
+                                "/themes/" in p and "/assets/icons/" in p and p.endswith(".svg")
+                                for p in src_only
+                            )
+                            
+                            css_only = bool(src_only) and all(p.endswith(".css") for p in src_only) and not has_svg_icons
+                            
                             if css_only:
                                 decision = ReloadDecision(
                                     action="reload-css", reason="css-only", changed_paths=[]

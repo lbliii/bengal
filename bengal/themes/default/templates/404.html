@@ -13,13 +13,7 @@
 
     {# Decorative icon - compass/lost metaphor #}
     <div class="empty-state__icon" aria-hidden="true">
-      <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2" stroke-opacity="0.1" fill="none"/>
-        <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.15" fill="none" stroke-dasharray="4 4"/>
-        <path d="M60 25L65 55L60 60L55 55L60 25Z" fill="currentColor" fill-opacity="0.3"/>
-        <path d="M60 95L55 65L60 60L65 65L60 95Z" fill="currentColor" fill-opacity="0.15"/>
-        <circle cx="60" cy="60" r="6" fill="currentColor" fill-opacity="0.2"/>
-      </svg>
+      {{ icon('compass', size=120) }}
     </div>
 
     <h1 class="empty-state__title">Page Not Found</h1>
@@ -29,10 +23,7 @@
 
     <div class="empty-state__actions">
       <a href="{{ '/' | absolute_url }}" class="button button-light">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          <polyline points="9 22 9 12 15 12 15 22"></polyline>
-        </svg>
+        {{ icon('house', size=16) }}
         <span>Go Home</span>
       </a>
     </div>

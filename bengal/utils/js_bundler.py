@@ -100,42 +100,40 @@ def get_theme_js_bundle_order() -> list[str]:
 
     This order ensures dependencies are loaded before dependents:
     1. utils.js - Core utilities (BengalUtils namespace)
-    2. theme-toggle.js - Theme switching (uses BengalUtils)
-    3. mobile-nav.js - Mobile navigation
-    4. tabs.js - Tab component
-    5. toc.js - Table of contents
-    6. action-bar.js - Action bar (copy, etc.)
-    7. interactive.js - Interactive elements
-    8. main.js - Main initialization
-    9. copy-link.js - Copy link functionality
-    10. holo.js - Holographic effects
-    11. search.js - Search core
-    12. search-modal.js - Search modal
-    13. search-page.js - Search page
-    14. session-path-tracker.js - Analytics
-    15. lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
-    16. search-preload.js - Search index preloading
+    2. bengal-enhance.js - Enhancement registry (load second)
+    3. core/theme.js - Theme switching (merged from theme-toggle.js + theme-init.js)
+    4. core/search.js - Search (merged from search.js, search-modal.js, search-page.js, search-preload.js)
+    5. core/nav-dropdown.js - Navigation dropdowns (always needed)
+    6. core/session-path-tracker.js - Analytics (always needed)
+    7. enhancements/mobile-nav.js - Mobile navigation
+    8. enhancements/tabs.js - Tab component
+    9. enhancements/toc.js - Table of contents
+    10. enhancements/action-bar.js - Action bar (copy, etc.)
+    11. enhancements/interactive.js - Interactive elements
+    12. main.js - Main initialization
+    13. enhancements/copy-link.js - Copy link functionality
+    14. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
+    15. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
 
     Returns:
-        List of JS filenames in load order
+        List of JS filenames in load order (with paths relative to js/ directory)
     """
     return [
         "utils.js",
-        "theme-toggle.js",
-        "mobile-nav.js",
-        "tabs.js",
-        "toc.js",
-        "action-bar.js",
-        "interactive.js",
+        "bengal-enhance.js",
+        "core/theme.js",
+        "core/search.js",
+        "core/nav-dropdown.js",
+        "core/session-path-tracker.js",
+        "enhancements/mobile-nav.js",
+        "enhancements/tabs.js",
+        "enhancements/toc.js",
+        "enhancements/action-bar.js",
+        "enhancements/interactive.js",
         "main.js",
-        "copy-link.js",
-        "holo.js",
-        "search.js",
-        "search-modal.js",
-        "search-page.js",
-        "session-path-tracker.js",
-        "lazy-loaders.js",
-        "search-preload.js",
+        "enhancements/copy-link.js",
+        "enhancements/holo.js",
+        "enhancements/lazy-loaders.js",
     ]
 
 
@@ -152,18 +150,17 @@ def get_theme_js_excluded() -> set[str]:
         Set of filenames to exclude from bundling
     """
     return {
-        # Third-party libraries
-        "lunr.min.js",
-        "tabulator.min.js",
+        # Third-party libraries (in vendor/)
+        "vendor/lunr.min.js",
+        "vendor/tabulator.min.js",
         # Lazy-loaded scripts (loaded on demand by lazy-loaders.js)
-        "data-table.js",
+        "enhancements/data-table.js",
         "graph-contextual.js",
         "graph-minimap.js",
         "mermaid-theme.js",
         "mermaid-toolbar.js",
         # Feature-specific (loaded conditionally)
-        "lightbox.js",
-        "holo-cards.js",
+        "enhancements/lightbox.js",
     }
 
 
@@ -193,22 +190,39 @@ def discover_js_files(
     bundle_order = bundle_order or get_theme_js_bundle_order()
     excluded = excluded or get_theme_js_excluded()
 
-    # Find all JS files
-    all_files = {f.name: f for f in js_dir.glob("*.js")}
+    # Find all JS files recursively (including subdirectories)
+    # Maps relative path -> file path (e.g., "core/theme.js" -> Path(...))
+    all_files: dict[str, Path] = {}
+    # Also track files by filename for backward compatibility in bundle_order
+    files_by_name: dict[str, Path] = {}
+
+    for js_file in js_dir.rglob("*.js"):
+        # Get relative path from js_dir (e.g., "core/theme.js" or "utils.js")
+        rel_path = js_file.relative_to(js_dir)
+        rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
+        all_files[rel_path_str] = js_file
+        # Also index by filename for backward compatibility in bundle_order lookup
+        files_by_name[js_file.name] = js_file
 
     # Build ordered list
     ordered: list[Path] = []
+    seen_paths: set[Path] = set()
 
-    # First: files in explicit order
+    # First: files in explicit order (using relative paths or filename)
     for name in bundle_order:
-        if name in all_files and name not in excluded:
-            ordered.append(all_files[name])
+        # Try relative path first, then filename
+        js_file = all_files.get(name) or files_by_name.get(name)
+        if js_file and name not in excluded:
+            if js_file not in seen_paths:
+                ordered.append(js_file)
+                seen_paths.add(js_file)
 
-    # Then: any remaining files not in order or excluded (alphabetically)
-    remaining = sorted(
-        f for name, f in all_files.items() if name not in excluded and f not in ordered
-    )
-    ordered.extend(remaining)
+    # Then: any remaining files not already added or excluded (alphabetically)
+    # Check exclusion using the canonical relative path
+    for rel_path, js_file in sorted(all_files.items()):
+        if js_file not in seen_paths and rel_path not in excluded:
+            ordered.append(js_file)
+            seen_paths.add(js_file)
 
     return ordered
 

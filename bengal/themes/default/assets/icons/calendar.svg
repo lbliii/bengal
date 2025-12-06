@@ -1,24 +1,2 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Calendar: Clean block calendar -->
-  <title>Calendar</title>
-
-  <!-- Shadow -->
-  <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.2" transform="translate(0.3, 0.3)"/>
-
-  <!-- Main calendar body -->
-  <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
-
-  <!-- Top bar/header -->
-  <path d="M3 9 H21" stroke="currentColor" stroke-width="1.5"/>
-
-  <!-- Hanging tabs -->
-  <path d="M8 3 V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <path d="M16 3 V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-
-  <!-- Date grid dots -->
-  <circle cx="7" cy="13" r="1" fill="currentColor"/>
-  <circle cx="12" cy="13" r="1" fill="currentColor"/>
-  <circle cx="17" cy="13" r="1" fill="currentColor"/>
-  <circle cx="7" cy="17" r="1" fill="currentColor"/>
-  <circle cx="12" cy="17" r="1" fill="currentColor"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Calendar</title><path fill="currentColor" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-96-88v64a8,8,0,0,1-16,0V132.94l-4.42,2.22a8,8,0,0,1-7.16-14.32l16-8A8,8,0,0,1,112,120Zm59.16,30.45L152,176h16a8,8,0,0,1,0,16H136a8,8,0,0,1-6.4-12.8l28.78-38.37A8,8,0,1,0,145.07,132a8,8,0,1,1-13.85-8A24,24,0,0,1,176,136,23.76,23.76,0,0,1,171.16,150.45Z"/></svg>

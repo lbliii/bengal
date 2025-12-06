@@ -1,23 +1,2 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Documentation: Glass stacked pages with thinner strokes -->
-  <title>Documentation</title>
-
-  <!-- Back page -->
-  <rect x="4" y="4" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
-
-  <!-- Front page depth -->
-  <rect x="6.4" y="5.4" width="12" height="13" rx="2" fill="currentColor" opacity="0.3"/>
-
-  <!-- Front page - thinner stroke -->
-  <rect x="6" y="5" width="12" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
-
-  <!-- Soft highlight arc -->
-  <path d="M8 7 A4 4 0 0 1 15 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
-
-  <!-- Bookmark tab -->
-  <path d="M14 5 L14 10 L16 8.5 L18 10 L18 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Text lines -->
-  <line x1="9" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="9" y1="15" x2="12" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Docs</title><path fill="currentColor" d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"/></svg>

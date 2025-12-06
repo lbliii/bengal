@@ -476,8 +476,30 @@ class AssetOrchestrator:
             bundle_order = get_theme_js_bundle_order()
             excluded = get_theme_js_excluded()
 
-            # Build file path map from modules
-            module_map = {a.source_path.name: a.source_path for a in js_modules}
+            # Build file path map from modules (support subdirectories)
+            # Find js_dir by looking at one of the modules
+            js_dir = None
+            if js_modules:
+                js_dir = js_modules[0].source_path.parent
+                # Walk up to find the js/ directory
+                while js_dir.name != "js" and js_dir.parent != js_dir:
+                    js_dir = js_dir.parent
+                if js_dir.name != "js":
+                    js_dir = js_modules[0].source_path.parent
+
+            module_map = {}
+            for a in js_modules:
+                if js_dir:
+                    # Get relative path from js_dir (e.g., "core/theme.js" or "utils.js")
+                    rel_path = a.source_path.relative_to(js_dir)
+                    rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
+                    module_map[rel_path_str] = a.source_path
+                    # Also index by filename for backward compatibility
+                    if rel_path_str != a.source_path.name:
+                        module_map[a.source_path.name] = a.source_path
+                else:
+                    # Fallback to filename only
+                    module_map[a.source_path.name] = a.source_path
 
             # Order files according to bundle order
             ordered_files: list[Path] = []
@@ -488,8 +510,8 @@ class AssetOrchestrator:
             # Add any remaining files not in explicit order
             remaining = sorted(
                 f
-                for name, f in module_map.items()
-                if name not in excluded and f not in ordered_files
+                for rel_path, f in module_map.items()
+                if rel_path not in excluded and f not in ordered_files
             )
             ordered_files.extend(remaining)
 

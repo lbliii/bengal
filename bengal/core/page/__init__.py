@@ -174,6 +174,10 @@ class Page(
         Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
         should be called before caching to convert to relative paths.
         """
+        # Logic to extract variant from legacy fields if needed
+        # Component Model: variant (normalized from layout/hero_style)
+        variant = self.metadata.get("variant") or self.metadata.get("layout") or self.metadata.get("hero_style")
+        
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially
             title=self.metadata.get("title", ""),
@@ -182,7 +186,12 @@ class Page(
             slug=self.metadata.get("slug"),
             weight=self.metadata.get("weight"),
             lang=self.lang,
+            # Component Model Fields
             type=self.metadata.get("type"),
+            variant=variant,
+            description=self.metadata.get("description"),
+            props=self.metadata,  # Pass all metadata as props bucket
+            # Links
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
             aliases=self.aliases or [],

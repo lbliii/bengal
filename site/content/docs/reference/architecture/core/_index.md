@@ -2,6 +2,7 @@
 title: Core Architecture
 description: Data models, build coordination, and core principles
 weight: 10
+icon: bengal-rosette
 cascade:
   type: doc
 ---

@@ -2,6 +2,7 @@
 title: Reference
 description: Technical specifications, directives, and architecture
 weight: 40
+icon: bookmark
 cascade:
   type: doc
 menu:

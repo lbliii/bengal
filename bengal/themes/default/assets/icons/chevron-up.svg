@@ -1,10 +1,2 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Chevron Up: Clean arrow -->
-  <title>Chevron Up</title>
-
-  <!-- Subtle depth shadow -->
-  <path d="M5 16 L12 8 L19 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
-
-  <!-- Main chevron -->
-  <path d="M5 16 L12 8 L19 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Chevron Up</title><path fill="currentColor" d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"/></svg>

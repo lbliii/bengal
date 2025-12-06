@@ -9,6 +9,7 @@ Related:
     - Implementation: bengal/rendering/plugins/directives/__init__.py
 """
 
+from __future__ import annotations
 
 import pytest
 
@@ -194,6 +195,7 @@ class TestDirectiveClassesCompleteness:
             "PrevNextDirective",
             "RelatedDirective",
             "MarimoCellDirective",
+            "IconDirective",
         }
 
         missing = expected_classes - registry_classes
@@ -262,6 +264,9 @@ class TestKnownDirectiveNamesContent:
             "related",
             # Marimo
             "marimo",
+            # Icons
+            "icon",
+            "svg-icon",
         ],
     )
     def test_expected_directive_present(self, directive_name: str):
@@ -278,8 +283,8 @@ class TestKnownDirectiveNamesContent:
 
         # 10 admonitions + 2 badges + 1 button + 5 cards + 3 tabs + 2 code-tabs
         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric
-        # + 2 includes + 4 navigation + 1 marimo = 39 total
-        expected_count = 39
+        # + 2 includes + 4 navigation + 1 marimo + 2 icons = 41 total
+        expected_count = 41
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "

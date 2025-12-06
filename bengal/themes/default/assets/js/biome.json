@@ -1,0 +1,84 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUndeclaredVariables": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noAssignInExpressions": "off"
+      },
+      "style": {
+        "useConst": "warn",
+        "noVar": "warn"
+      },
+      "complexity": {
+        "noForEach": "off"
+      }
+    }
+  },
+  "javascript": {
+    "globals": [
+      "window",
+      "document",
+      "console",
+      "setTimeout",
+      "clearTimeout",
+      "setInterval",
+      "clearInterval",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "fetch",
+      "localStorage",
+      "sessionStorage",
+      "history",
+      "location",
+      "navigator",
+      "CSS",
+      "Node",
+      "MutationObserver",
+      "IntersectionObserver",
+      "ResizeObserver",
+      "CustomEvent",
+      "HTMLElement",
+      "Element",
+      "Event",
+      "KeyboardEvent",
+      "MouseEvent",
+      "TouchEvent",
+      "DOMParser",
+      "XMLSerializer",
+      "URL",
+      "URLSearchParams",
+      "Blob",
+      "FileReader",
+      "Image",
+      "Audio",
+      "Map",
+      "Set",
+      "WeakMap",
+      "WeakSet",
+      "Promise",
+      "Bengal",
+      "BengalUtils",
+      "lunr",
+      "mermaid",
+      "Tabulator",
+      "BENGAL_LAZY_ASSETS",
+      "BENGAL_ICONS",
+      "BENGAL_THEME_DEFAULTS"
+    ]
+  },
+  "files": {
+    "include": ["*.js"],
+    "ignore": ["vendor/**", "*.min.js"]
+  }
+}
+

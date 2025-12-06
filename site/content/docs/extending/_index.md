@@ -2,6 +2,7 @@
 title: Extending
 description: Autodoc, analysis, validation, and architecture
 weight: 35
+icon: starburst
 cascade:
   type: doc
 ---

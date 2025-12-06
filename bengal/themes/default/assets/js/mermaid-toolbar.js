@@ -18,7 +18,7 @@
         return;
     }
 
-    const { log, copyToClipboard, ready } = window.BengalUtils;
+    const { log, copyToClipboard, ready, loadIcon } = window.BengalUtils;
 
     let lightbox = null;
     let currentDiagram = null;
@@ -31,17 +31,95 @@
         startY: 0
     };
 
-    // Icons
+    // Icons cache (loaded asynchronously)
     const ICONS = {
-        close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor"></line><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor"></line></svg>`,
-        enlarge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>`,
-        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
-        downloadSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
-        downloadPng: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`,
-        zoomIn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>`,
-        zoomOut: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>`,
-        reset: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`
+        close: '',
+        enlarge: '',
+        copy: '',
+        downloadSvg: '',
+        downloadPng: '',
+        zoomIn: '',
+        zoomOut: '',
+        reset: ''
     };
+
+    // Promise that resolves when icons are loaded
+    let iconsLoadedPromise = null;
+
+    // Load all icons on initialization
+    async function loadIcons() {
+        if (!loadIcon) {
+            log('loadIcon utility not available, using fallback');
+            return;
+        }
+
+        try {
+            ICONS.close = await loadIcon('close') || ICONS.close;
+            ICONS.enlarge = await loadIcon('enlarge') || ICONS.enlarge;
+            ICONS.copy = await loadIcon('copy') || ICONS.copy;
+            ICONS.downloadSvg = await loadIcon('download-svg') || ICONS.downloadSvg;
+            ICONS.downloadPng = await loadIcon('download-png') || ICONS.downloadPng;
+            ICONS.zoomIn = await loadIcon('zoom-in') || ICONS.zoomIn;
+            ICONS.zoomOut = await loadIcon('zoom-out') || ICONS.zoomOut;
+            ICONS.reset = await loadIcon('reset') || ICONS.reset;
+            
+            // Update any existing buttons that were created before icons loaded
+            updateExistingToolbarButtons();
+        } catch (err) {
+            log('Error loading icons:', err);
+        }
+    }
+
+    // Initialize icons when DOM is ready
+    iconsLoadedPromise = loadIcons();
+    ready(() => iconsLoadedPromise);
+
+    // Update existing toolbar buttons with loaded icons
+    function updateExistingToolbarButtons() {
+        // Update toolbar buttons
+        const buttons = document.querySelectorAll('.mermaid-toolbar__button');
+        buttons.forEach(button => {
+            // Match class name after mermaid-toolbar__button-- (handles hyphens)
+            const match = button.className.match(/mermaid-toolbar__button--([\w-]+)/);
+            if (!match) return;
+            
+            const action = match[1];
+            let icon = '';
+            switch (action) {
+                case 'enlarge':
+                    icon = ICONS.enlarge;
+                    break;
+                case 'copy':
+                    icon = ICONS.copy;
+                    break;
+                case 'download-svg':
+                    icon = ICONS.downloadSvg;
+                    break;
+                case 'download-png':
+                    icon = ICONS.downloadPng;
+                    break;
+                case 'zoom-in':
+                    icon = ICONS.zoomIn;
+                    break;
+                case 'zoom-out':
+                    icon = ICONS.zoomOut;
+                    break;
+                case 'reset':
+                    icon = ICONS.reset;
+                    break;
+            }
+            if (icon && !button.querySelector('svg')) {
+                button.innerHTML = icon;
+            }
+        });
+        
+        // Update lightbox close button (replace fallback SVG if needed)
+        const closeButton = document.querySelector('.mermaid-lightbox__close');
+        if (closeButton && ICONS.close) {
+            // Always update with loaded icon (replaces fallback if present)
+            closeButton.innerHTML = ICONS.close;
+        }
+    }
 
     /**
      * Create lightbox element for enlarged diagrams
@@ -59,16 +137,11 @@
         const container = document.createElement('div');
         container.className = 'mermaid-lightbox__container';
 
-        // Create close button with SVG (using innerHTML like working examples)
+        // Create close button with SVG (using Phosphor icon)
         const closeButton = document.createElement('button');
         closeButton.className = 'mermaid-lightbox__close';
         closeButton.setAttribute('aria-label', 'Close lightbox');
-        closeButton.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-        `;
+        closeButton.innerHTML = ICONS.close || '<svg viewBox="0 0 256 256" fill="none"><path d="M208 48l-160 160M48 48l160 160" stroke="currentColor" stroke-width="16" stroke-linecap="round"/></svg>';
 
         // Create toolbar for lightbox
         const toolbar = document.createElement('div');
@@ -220,9 +293,22 @@
     /**
      * Open lightbox with a diagram
      */
-    function openLightbox(diagramElement) {
+    async function openLightbox(diagramElement) {
+        // Ensure icons are loaded before creating/updating lightbox
+        if (iconsLoadedPromise) {
+            await iconsLoadedPromise;
+        }
+        
+        // Update any existing buttons that were created before icons loaded
+        updateExistingToolbarButtons();
+        
         if (!lightbox) {
             lightbox = createLightbox();
+            // Ensure close button has icon (icons are loaded at this point)
+            const closeButton = lightbox.querySelector('.mermaid-lightbox__close');
+            if (closeButton && ICONS.close) {
+                closeButton.innerHTML = ICONS.close;
+            }
         }
 
         currentDiagram = diagramElement;
@@ -558,7 +644,12 @@
         wrapper.appendChild(toolbar);
     }
 
-    function setupMermaidToolbars() {
+    async function setupMermaidToolbars() {
+        // Wait for icons to load before creating buttons
+        if (iconsLoadedPromise) {
+            await iconsLoadedPromise;
+        }
+        
         const diagrams = document.querySelectorAll('.mermaid');
         diagrams.forEach(diagram => {
             setupDiagramToolbar(diagram);

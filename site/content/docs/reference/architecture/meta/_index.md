@@ -2,6 +2,7 @@
 title: Meta & Operations
 description: Performance, testing, and project structure
 weight: 50
+icon: tag
 cascade:
   type: doc
 ---

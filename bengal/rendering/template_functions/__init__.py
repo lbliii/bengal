@@ -31,6 +31,7 @@ from . import (
     files,
     get_page,
     i18n,
+    icons,
     images,
     math_functions,
     navigation,
@@ -74,6 +75,7 @@ def register_all(env: Environment, site: Site) -> None:
 
     # Phase 3: Specialized functions (20 functions)
     images.register(env, site)
+    icons.register(env, site)
     seo.register(env, site)
     debug.register(env, site)
     taxonomies.register(env, site)
@@ -100,6 +102,7 @@ __all__ = [
     "debug",
     "files",
     "get_page",
+    "icons",
     "images",
     "math_functions",
     "navigation",

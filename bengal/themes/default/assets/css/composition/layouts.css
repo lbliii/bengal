@@ -8,11 +8,18 @@
 
 /* ============================================
    THREE-COLUMN DOCUMENTATION LAYOUT
+   App Shell Pattern - Full-width edge-to-edge
    ============================================ */
 
 /**
  * Main documentation layout with sidebar navigation,
  * content area, and table of contents.
+ *
+ * App Shell Pattern:
+ * - Sidebar touches left edge (with internal padding)
+ * - TOC touches right edge (with internal padding)
+ * - Content column is fluid, prose inside is constrained
+ * - No outer gutters - feels like a native app
  *
  * Usage:
  * <div class="docs-layout">
@@ -26,42 +33,42 @@
   display: grid;
   grid-template-areas:
     "sidebar content toc";
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(200px, 260px);
-  gap: 1.5rem; /* Reduced from 2rem for tighter spacing */
-  max-width: 1600px;
-  margin: 0 auto;
-  padding-block: 1rem 2rem; /* Reduced top from 2rem to 1rem for tighter spacing beneath navbar */
-  padding-inline: var(--space-4); /* Default padding when NOT inside container */
+  grid-template-columns: 260px minmax(0, 1fr) 240px;
+  gap: 0; /* Columns handle their own internal padding */
+  max-width: none; /* Full-width app shell */
+  padding-block: 0;
   align-items: start;
+  /* Break out of container - edge-to-edge app shell */
+  /* Cleaner breakout technique using calc() - more explicit and maintainable */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
-/* Remove container constraints for docs layout */
-/* When docs-layout is inside a container, remove container padding to avoid double padding */
+/* Ensure docs-layout ignores container constraints */
 .container>.docs-layout {
-  max-width: 100%;
-  margin: 0;
-  padding-inline-start: 0; /* Container handles left padding */
-  padding-inline-end: 0; /* Right edge handled by docs-toc for alignment with header */
+  max-width: none;
 }
 
-/* Docs layout provides its own padding when NOT inside a container */
-.docs-layout:not(.container > *) {
-  padding-inline: var(--space-4);
+/* Remove container padding when it contains docs-layout to allow proper breakout */
+.container:has(>.docs-layout) {
+  padding-inline: 0;
 }
 
-/* Left Sidebar (Navigation) */
+/* Left Sidebar (Navigation) - touches left edge */
 .docs-sidebar {
   grid-area: sidebar;
   position: sticky;
-  top: 80px;
-  /* Account for fixed header */
-  max-height: calc(100vh - 100px);
+  top: 60px; /* Tighter to header */
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-inline-end: 1rem;
-  /* Ensure shadows/transforms aren't clipped */
-  padding-inline-start: 0.5rem;
-  margin-inline-start: -0.5rem;
+  /* Internal padding - content doesn't touch edges */
+  padding-block: var(--space-5) var(--space-8);
+  padding-inline-start: var(--space-5);
+  padding-inline-end: var(--space-4);
+  /* Clean separation - border only, no background */
+  border-right: 1px solid var(--color-border-light, var(--color-border));
 }
 
 /* Hide empty sidebars */
@@ -74,19 +81,18 @@
 .docs-layout:has(.docs-sidebar:empty):has(.docs-toc:empty) {
   grid-template-areas: "content";
   grid-template-columns: minmax(0, 1fr);
-  max-width: var(--container-lg);
 }
 
 /* When only left sidebar is empty */
 .docs-layout:has(.docs-sidebar:empty):not(:has(.docs-toc:empty)) {
   grid-template-areas: "content toc";
-  grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+  grid-template-columns: minmax(0, 1fr) 240px;
 }
 
 /* When only right sidebar is empty */
 .docs-layout:has(.docs-toc:empty):not(:has(.docs-sidebar:empty)) {
   grid-template-areas: "sidebar content";
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
 }
 
 /* Main Content */
@@ -94,24 +100,48 @@
   grid-area: content;
   min-width: 0;
   /* Prevent grid blowout */
-  /* max-width removed - let grid control width */
+  /* Generous padding for breathing room */
+  padding-block: var(--space-5) var(--space-8);
+  padding-inline: var(--space-6);
 }
 
-/* Center prose content within docs-main on wide screens */
+/* Constrain prose content for readability */
 .docs-main .prose {
+  max-width: var(--content-width, 75ch);
   margin-inline: auto;
 }
 
-/* Right Sidebar (TOC) */
+/* Right Sidebar (TOC) - touches right edge */
 .docs-toc {
   grid-area: toc;
   position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 100px);
+  top: 60px; /* Match sidebar */
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-inline-start: 1rem;
-  padding-inline-end: 0; /* Extends to container edge - aligns with header buttons */
+  /* Internal padding - content doesn't touch edges */
+  padding-block: var(--space-5) var(--space-8);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: var(--space-5);
+  /* Clean separation - border only, no background */
+  border-left: 1px solid var(--color-border-light, var(--color-border));
+}
+
+/* ============================================
+   RESPONSIVE: ULTRA-WIDE (Constrain App Shell)
+   ============================================ */
+
+/* Ultra-wide screens (3xl breakpoint) */
+@media (min-width: 1920px) {
+  .docs-layout {
+    /* Constrain the app shell on ultra-wide monitors */
+    max-width: var(--container-3xl, 1920px);
+    margin-inline: auto;
+    /* Reset the breakout technique */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* ============================================
@@ -123,12 +153,16 @@
   .docs-layout {
     grid-template-areas:
       "sidebar content";
-    grid-template-columns: minmax(240px, 260px) minmax(0, 1fr);
-    gap: 1.5rem; /* Reduced from 2rem for tighter spacing */
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .docs-sidebar {
+    padding-inline-start: var(--space-4);
   }
 
   .docs-main {
     grid-area: content;
+    padding-inline: var(--space-5);
   }
 
   .docs-toc {
@@ -146,13 +180,19 @@
     grid-template-areas:
       "content";
     grid-template-columns: 1fr;
-    padding-block: 0.75rem 1rem; /* Reduced top from 1rem to 0.75rem */
-    padding-inline: var(--space-4); /* Use consistent spacing */
-    gap: 1rem;
+    /* Reset breakout on mobile - use normal container flow */
+    width: 100%;
+    position: static;
+    left: auto;
+    right: auto;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .docs-main {
     grid-area: content;
+    padding-block: var(--space-4) var(--space-6);
+    padding-inline: var(--space-4);
   }
 
   .docs-sidebar {
@@ -162,10 +202,10 @@
     /* Mobile header height */
     left: 0;
     bottom: 0;
-    width: min(280px, 90vw);  /* Use 90vw for very small screens */
-    max-width: 90vw;  /* Increased from 80vw for better usability */
+    width: min(280px, 90vw);
+    max-width: 90vw;
     max-height: calc(100vh - 60px);
-    padding: 1rem;
+    padding: var(--space-4);
     background: var(--color-bg-primary);
     border-right: 1px solid var(--color-border);
     box-shadow: var(--elevation-high);

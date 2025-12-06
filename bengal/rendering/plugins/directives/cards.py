@@ -1165,9 +1165,8 @@ def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
     if icon or title:
         parts.append('  <div class="card-header">')
         if icon:
-            # Use SVG for default folder/file icons to match theme
-            use_svg = icon in ("folder", "file", "document")
-            rendered_icon = _render_icon(icon, use_svg=use_svg)
+            # Always use SVG icons (Phosphor icons) - no emoji fallback
+            rendered_icon = _render_icon(icon, use_svg=True)
             if rendered_icon:
                 parts.append(f'    <span class="card-icon" data-icon="{_escape_html(icon)}">')
                 parts.append(f"      {rendered_icon}")

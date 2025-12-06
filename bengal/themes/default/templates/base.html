@@ -190,6 +190,8 @@ See: plan/active/rfc-template-performance-optimization.md
 </head>
 
 <body
+    data-type="{{ _page.type if _has_page else '' }}"
+    data-variant="{{ _page.variant if _has_page else '' }}"
     class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in site.theme_config.features %}
@@ -199,10 +201,10 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Search Modal (Cmd/Ctrl+K) #}
     {% include 'partials/search-modal.html' %}
 
-    {# Header #}
-    <header role="banner">
+    {# Header - App Shell Pattern: Full-width edge-to-edge #}
+    <header role="banner" class="header-appshell">
         <nav role="navigation" aria-label="Main navigation">
-            <div class="container">
+            <div class="header-nav-content">
                 {# Logo / Site Title #}
                 <a href="{{ '/' | absolute_url }}" class="logo">
                     {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image')
@@ -229,7 +231,12 @@ See: plan/active/rfc-template-performance-optimization.md
                         <ul class="submenu">
                             {% for child in item.children %}
                             <li class="{{ 'active' if child.active else '' }}">
-                                <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
+                                <a href="{{ child.url | absolute_url }}">
+                                    {%- if child.get('icon') -%}
+                                    <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
+                                    {%- endif -%}
+                                    <span class="submenu-text">{{ child.name }}</span>
+                                </a>
                             </li>
                             {% endfor %}
                         </ul>
@@ -261,10 +268,7 @@ See: plan/active/rfc-template-performance-optimization.md
                     <li>
                         <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener"
                             title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                            </svg>
+                            {{ icon('github-logo', size=16) }}
                             <span>GitHub</span>
                         </a>
                     </li>
@@ -282,21 +286,13 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% if modal_enabled %}
                     <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
                         aria-label="Open search">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
+                        {{ icon('magnifying-glass', size=16) }}
                         <span>Search</span>
                         <kbd class="nav-search-shortcut">⌘K</kbd>
                     </button>
                     {% else %}
                     <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
+                        {{ icon('magnifying-glass', size=16) }}
                         <span>Search</span>
                     </a>
                     {% endif %}
@@ -307,15 +303,14 @@ See: plan/active/rfc-template-performance-optimization.md
 
                 {# Mobile Menu Toggle #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
+                    {{ icon('list', size=24) }}
                 </button>
             </div>
         </nav>
     </header>
+
+    {# Mobile Navigation Backdrop #}
+    <div class="mobile-nav-backdrop" aria-hidden="true"></div>
 
     {# Mobile Navigation - uses cached _main_menu and _auto_nav from top of template #}
     <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation" data-bengal="mobile-nav">
@@ -331,11 +326,22 @@ See: plan/active/rfc-template-performance-optimization.md
                 <span class="brand-text">{{ _site_title }}</span>
                 {% endif %}
             </span>
-            <button class="mobile-nav-close" aria-label="Close menu">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+            <div class="mobile-nav-actions">
+                {# Search Button - opens search modal #}
+                {% set search_config = site.config.get('search', {}) %}
+                {% set ui_config = search_config.get('ui', {}) %}
+                {% set modal_enabled = ui_config.get('modal', false) %}
+                {% if modal_enabled %}
+                <button class="mobile-nav-search" aria-label="Search" data-open-search>
+                    {{ icon('magnifying-glass', size=16) }}
+                    <span>Search</span>
+                </button>
+                {% endif %}
+                <button class="mobile-nav-close" aria-label="Close menu">
+                    {{ icon('x', size=16) }}
+                    <span>Close</span>
+                </button>
+            </div>
         </div>
         {% if _main_menu or _auto_nav %}
         <ul>
@@ -348,7 +354,12 @@ See: plan/active/rfc-template-performance-optimization.md
                 <ul class="submenu">
                     {% for child in item.children %}
                     <li class="{{ 'active' if child.active else '' }}">
-                        <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
+                        <a href="{{ child.url | absolute_url }}">
+                            {%- if child.get('icon') -%}
+                            <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
+                            {%- endif -%}
+                            <span class="submenu-text">{{ child.name }}</span>
+                        </a>
                     </li>
                     {% endfor %}
                 </ul>
@@ -379,11 +390,7 @@ See: plan/active/rfc-template-performance-optimization.md
             {% if site.config.params and site.config.params.repo_url and not github_bundled %}
             <li>
                 <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
-                        style="margin-right: 8px; vertical-align: text-bottom;">
-                        <path
-                            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                    </svg>
+                    {{ icon('github-logo', size=16, css_class='nav-icon') }}
                     GitHub
                 </a>
             </li>
@@ -455,35 +462,31 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Reduces HTTP requests from ~20 to 3 for better mobile performance #}
     <script defer src="{{ asset_url('js/bundle.js') }}"></script>
     {# Third-party libraries (not bundled - already optimized) #}
-    <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
+    <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
     {% else %}
     {# Individual Scripts - Better for development/debugging #}
     {# Progressive Enhancement System - Load first so other scripts can register #}
-    <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
-    <script defer src="{{ asset_url('js/theme-toggle.js') }}"></script>
-    <script defer src="{{ asset_url('js/mobile-nav.js') }}"></script>
-    <script defer src="{{ asset_url('js/nav-dropdown.js') }}"></script>
-    <script defer src="{{ asset_url('js/tabs.js') }}"></script>
-    <script defer src="{{ asset_url('js/toc.js') }}"></script>
-    <script defer src="{{ asset_url('js/action-bar.js') }}"></script>
+    <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
+    {# Core modules - Always loaded #}
+    <script defer src="{{ asset_url('js/core/theme.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
+    {# Main initialization #}
     <script defer src="{{ asset_url('js/main.js') }}"></script>
-    <script defer src="{{ asset_url('js/interactive.js') }}"></script>
-    <script defer src="{{ asset_url('js/copy-link.js') }}"></script>
-    <script defer src="{{ asset_url('js/holo.js') }}"></script>
-    {# Lightbox JS - Feature: content.lightbox #}
+    {# Core enhancements - Always loaded (provide essential interactivity) #}
+    <script defer src="{{ asset_url('js/enhancements/interactive.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
+    {# Optional enhancements - Auto-loaded by bengal-enhance.js when data-bengal elements detected #}
+    {# Lightbox JS - Feature: content.lightbox (still manually loaded for feature gate) #}
     {% if 'content.lightbox' in site.theme_config.features %}
-    <script defer src="{{ asset_url('js/lightbox.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>
     {% endif %}
 
-    {# Search - Core scripts with defer #}
-    <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
-    <script defer src="{{ asset_url('js/search.js') }}"></script>
-    <script defer src="{{ asset_url('js/search-page.js') }}"></script>
-    <script defer src="{{ asset_url('js/search-modal.js') }}"></script>
-
-    {# Session path tracker - lightweight, always load #}
-    <script defer src="{{ asset_url('js/session-path-tracker.js') }}"></script>
+    {# Search - Third-party library #}
+    <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
 
     {# Lazy-loaded Libraries - URLs injected here, logic in external file #}
     <script>
@@ -495,11 +498,19 @@ See: plan/active/rfc-template-performance-optimization.md
             graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
             graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
         };
+        {# Icon paths for JavaScript - Phosphor icons #}
+        window.BENGAL_ICONS = {
+            close: '{{ asset_url("icons/close.svg") }}',
+            enlarge: '{{ asset_url("icons/enlarge.svg") }}',
+            copy: '{{ asset_url("icons/copy.svg") }}',
+            'download-svg': '{{ asset_url("icons/download.svg") }}',
+            'download-png': '{{ asset_url("icons/image.svg") }}',
+            'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}',
+            'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}',
+            reset: '{{ asset_url("icons/reset.svg") }}'
+        };
     </script>
-    <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
-
-    {# Smart search index preloading #}
-    <script defer src="{{ asset_url('js/search-preload.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
     {% endif %}
 
     {% block extra_js %}{% endblock %}
@@ -507,11 +518,7 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Back to Top Button - Feature: navigation.back_to_top #}
     {% if 'navigation.back_to_top' in site.theme_config.features %}
     <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor"></line>
-            <polyline points="5 12 12 5 19 12" stroke="currentColor"></polyline>
-        </svg>
+        {{ icon("arrow-up", size=24) }}
     </button>
     {% endif %}
 
@@ -520,11 +527,7 @@ See: plan/active/rfc-template-performance-optimization.md
     <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            {{ icon("close", size=24) }}
         </button>
         <div class="lightbox__caption"></div>
     </div>

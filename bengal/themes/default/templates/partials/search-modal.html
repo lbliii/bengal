@@ -12,9 +12,9 @@ Features:
 - Lazy loads search index on first open
 
 Dependencies:
-- JavaScript: /assets/js/search-modal.js
+- JavaScript: /assets/js/core/search.js (consolidated search module)
 - CSS: /assets/css/components/search-modal.css
-- Search: BengalSearch module (search.js)
+- Search: BengalSearch module (core/search.js)
 
 Configuration:
   search:
@@ -41,10 +41,7 @@ Usage:
     {# Header with search input #}
     <header class="search-modal__header">
       <div class="search-modal__input-wrapper">
-        <svg class="search-modal__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
+        {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
 
         <input
           type="search"
@@ -95,11 +92,7 @@ Usage:
 
       {# No results message #}
       <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-          <path d="M8 8l6 6M14 8l-6 6"></path>
-        </svg>
+        {{ icon('magnifying-glass', size=48) }}
         <p class="search-modal__no-results-text">No results for "<span id="search-modal-no-results-query"></span>"</p>
         <p class="search-modal__no-results-hint">Try different keywords or check your spelling</p>
       </div>

@@ -8,6 +8,7 @@ Variables:
 - page._section: Current section (for determining root)
 - page._section.root: Root section to display from
 - site: Site object (fallback when no section)
+- show_nav_icons: Whether to show section icons (default: true)
 
 Features:
 - Hierarchical tree structure
@@ -16,6 +17,7 @@ Features:
 - Scoped to current section tree
 - Recursive subsection rendering
 - Keyboard accessible
+- Section icons from frontmatter (directories only, not pages)
 
 Note:
 Includes 'partials/docs-nav-section.html' for recursive rendering.
@@ -26,7 +28,10 @@ Usage:
 {% include 'partials/docs-nav.html' %}
 #}
 
-<nav class="docs-nav" aria-label="Documentation pages">
+{# Control icon visibility - defaults to true, can be overridden by parent template #}
+{% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
+
+<nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
   {# Navigation Tree #}
   <div class="docs-nav-tree">
     {# Determine the root section to display #}
@@ -51,11 +56,21 @@ Usage:
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
-    {% set root_title = root_section.index_page.title if root_section.index_page.title and root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if root_section.slug else 'API Reference') %}
+    {% set root_title = root_section.index_page.title if root_section.index_page.title and
+    root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if
+    root_section.slug else 'API Reference') %}
+    {% set root_icon = root_section.icon if root_section.icon else none %}
+    {% set root_is_active = (page is defined and page and current_url == root_url_normalized) %}
     <a href="{{ root_section.index_page.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == root_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == root_url_normalized) %}aria-current="page"{% endif %}>
-      {{ root_title }}
+      class="docs-nav-link docs-nav-link--root {% if root_is_active %}active{% endif %}" {% if root_is_active
+      %}aria-current="page" {% endif %}>
+      {# Root Section Icon (from frontmatter, defaults to book-open for docs) #}
+      {% if show_nav_icons %}
+      <span class="docs-nav-icon docs-nav-icon--root" {% if not root_icon %}data-default="true" {% endif %}>
+        {{ icon(root_icon or 'book-open', size=16) }}
+      </span>
+      {% endif %}
+      <span class="docs-nav-link-text">{{ root_title }}</span>
     </a>
     {% endif %}
 
@@ -65,9 +80,9 @@ Usage:
     {# Use relative_url for comparisons (without baseurl) #}
     {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    <a href="{{ p.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
+    {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
+    <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
+      %}aria-current="page" {% endif %}>
       {{ p.title }}
     </a>
     {% endif %}
@@ -92,9 +107,9 @@ Usage:
     {% for p in top_pages %}
     {# Use relative_url for comparisons (without baseurl) #}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    <a href="{{ p.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
+    {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
+    <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
+      %}aria-current="page" {% endif %}>
       {{ p.title }}
     </a>
     {% endfor %}

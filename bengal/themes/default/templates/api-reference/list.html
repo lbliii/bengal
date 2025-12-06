@@ -6,12 +6,14 @@ API Reference List Template
 Three-column layout optimized for API documentation section index pages:
 - Left sidebar: Navigation tree
 - Center: Content + Child page tiles
-- Right sidebar: TOC + metadata
+- Right sidebar: Contextual Graph + TOC + metadata
 
 Usage: Set `template: api-reference/list.html` in frontmatter
 Or set `type: api-reference` to auto-select this template
 
 Features:
+- Page hero with overview variant (shows page count instead of read time)
+- Contextual graph minimap
 - Automatically displays child pages and subsections as tiles
 - Disable with `show_children: false` in frontmatter
 #}
@@ -28,74 +30,56 @@ Features:
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
-    {# Left Sidebar: Navigation #}
-    <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
-        {% include 'partials/docs-nav.html' %}
-    </aside>
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
 
-    {# Main Content #}
-    <div class="docs-main">
-        {# Action Bar: Breadcrumbs + Share #}
-        {% if page %}
-        {% include 'partials/action-bar.html' %}
-        {% endif %}
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Section Stats #}
+    {# List pages default to 'overview' variant (shows page count instead of read time) #}
+    {% set _list_hero_default = 'overview' %}
+    {% include 'partials/page-hero.html' %}
 
-        {# Article Content #}
-        <article
-            class="prose {% if page and page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-            <header class="page-header">
-                <h1>{{ page.title if page else (section.title if section else 'API Reference') }}</h1>
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
 
-                {% if page and page.metadata.get('description', '') %}
-                <p class="lead">{{ page.metadata.get('description', '') }}</p>
-                {% elif section and section.metadata.get('description', '') %}
-                <p class="lead">{{ section.metadata.get('description', '') }}</p>
-                {% endif %}
-            </header>
+      {# Main content #}
+      <div class="docs-content">
+        {{ content | safe }}
+      </div>
 
-            {# Main content #}
-            <div class="docs-content">
-                {{ content | safe }}
-            </div>
+      {# Child page tiles - can be disabled via frontmatter: show_children: false or feature flag #}
+      {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
+      {% set show_children_feature = 'content.children' in site.theme_config.features %}
+      {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
+      {% if show_children and (posts or subsections) %}
+      <div class="docs-children">
+        {{ child_page_tiles(posts=posts, subsections=subsections) }}
+      </div>
+      {% endif %}
 
-            {# Child page tiles - can be disabled via frontmatter: show_children: false or feature flag #}
-            {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
-            {% set show_children_feature = 'content.children' in site.theme_config.features %}
-            {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
-            {% if show_children and (posts or subsections) %}
-            <div class="docs-children">
-                {{ child_page_tiles(posts=posts, subsections=subsections) }}
-            </div>
-            {% endif %}
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
 
-            {# Tags #}
-            {% if page and page.tags %}
-            <footer class="docs-footer">
-                {{ tag_list(page.tags) }}
-            </footer>
-            {% endif %}
-        </article>
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
 
-        {# Page navigation (prev/next) at bottom #}
-        {{ page_navigation(page) }}
-    </div>
-
-    {# Right Sidebar: TOC + Metadata #}
-    {% if toc_items %}
-    <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-        {{ toc(toc_items=toc_items, toc=toc, page=page) }}
-    </aside>
-    {% endif %}
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
 </div>
 
 {# Mobile sidebar toggle button #}
 <button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-    aria-controls="docs-sidebar">
-    <svg viewBox="0 0 24 24">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-    </svg>
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
 </button>
 
 {# Sidebar overlay for mobile #}

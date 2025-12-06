@@ -15,7 +15,6 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 
 class TestBundleJsFilesBasics:
@@ -211,7 +210,7 @@ class TestGetThemeJsExcluded:
 
         result = get_theme_js_excluded()
 
-        assert "lunr.min.js" in result
+        assert "vendor/lunr.min.js" in result
 
     def test_includes_lazy_loaded_scripts(self) -> None:
         """Test that lazy-loaded scripts are excluded."""
@@ -219,7 +218,7 @@ class TestGetThemeJsExcluded:
 
         result = get_theme_js_excluded()
 
-        assert "data-table.js" in result
+        assert "enhancements/data-table.js" in result
         assert "mermaid-theme.js" in result
 
 
@@ -421,4 +420,3 @@ class TestJsBundlerIntegration:
 
         # utils should come before main
         assert result.index("BengalUtils = {}") < result.index("BengalUtils.init()")
-

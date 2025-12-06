@@ -58,6 +58,12 @@
   }
 }
 
+@media (min-width: 1920px) {
+  .container {
+    max-width: var(--container-3xl);
+  }
+}
+
 /* Content Width */
 .content-width {
   max-width: var(--content-width);
@@ -798,13 +804,13 @@
   .container {
     padding-inline: var(--space-2);  /* 8px for tiny windows */
   }
-  
+
   /* Ensure critical interactive elements remain usable */
   .mobile-nav-toggle {
     min-width: 36px;  /* Smaller but still tappable */
     min-height: 36px;
   }
-  
+
   button,
   .btn,
   a.button {

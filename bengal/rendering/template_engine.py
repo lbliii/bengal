@@ -126,6 +126,11 @@ class TemplateEngine:
         self._asset_manifest_cache: dict[str, AssetManifestEntry] = {}
         self._asset_manifest_fallbacks: set[str] = set()
 
+        # Menu dict cache - avoids repeated to_dict() calls on every page render
+        # Format: {"main": [dict, ...], "footer": [...]}
+        # Invalidated when menus are rebuilt (see invalidate_menu_cache)
+        self._menu_dict_cache: dict[str, list[dict]] = {}
+
     def _create_environment(self) -> Environment:
         """
         Create and configure Jinja2 environment.
@@ -778,15 +783,27 @@ class TemplateEngine:
 
         return self._with_baseurl(fallback_url)
 
+    def invalidate_menu_cache(self) -> None:
+        """
+        Invalidate the menu dict cache.
+
+        Call this after menus are rebuilt to ensure fresh dicts are generated.
+        """
+        self._menu_dict_cache.clear()
+
     def _get_menu(self, menu_name: str = "main") -> list:
         """
-        Get menu items as dicts for template access.
+        Get menu items as dicts for template access (cached).
 
         Args:
             menu_name: Name of the menu to get (e.g., 'main', 'footer')
 
         Returns:
             List of menu item dicts
+
+        Performance:
+            Menu dicts are cached to avoid repeated to_dict() calls on every
+            page render. Cache is invalidated when menus are rebuilt.
         """
         # If i18n enabled and current_language set, prefer localized menu
         i18n = self.site.config.get("i18n", {}) or {}
@@ -794,21 +811,37 @@ class TemplateEngine:
         if lang and i18n.get("strategy") != "none":
             localized = self.site.menu_localized.get(menu_name, {}).get(lang)
             if localized is not None:
-                return [item.to_dict() for item in localized]
-        menu = self.site.menu.get(menu_name, [])
-        return [item.to_dict() for item in menu]
+                cache_key = f"{menu_name}:{lang}"
+                if cache_key not in self._menu_dict_cache:
+                    self._menu_dict_cache[cache_key] = [
+                        item.to_dict() for item in localized
+                    ]
+                return self._menu_dict_cache[cache_key]
+
+        # Check cache for non-localized menu
+        if menu_name not in self._menu_dict_cache:
+            menu = self.site.menu.get(menu_name, [])
+            self._menu_dict_cache[menu_name] = [item.to_dict() for item in menu]
+        return self._menu_dict_cache[menu_name]
 
     def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list:
         """
-        Get menu items for a specific language.
+        Get menu items for a specific language (cached).
         """
         if not lang:
             return self._get_menu(menu_name)
+
+        cache_key = f"{menu_name}:{lang}"
+        if cache_key in self._menu_dict_cache:
+            return self._menu_dict_cache[cache_key]
+
         localized = self.site.menu_localized.get(menu_name, {}).get(lang)
         if localized is None:
             # Fallback to default
             return self._get_menu(menu_name)
-        return [item.to_dict() for item in localized]
+
+        self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
+        return self._menu_dict_cache[cache_key]
 
     def _find_template_path(self, template_name: str) -> Path | None:
         """

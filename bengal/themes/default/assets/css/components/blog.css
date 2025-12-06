@@ -1130,6 +1130,28 @@ html:not([data-devtools-open]) .blog-post-list > * {
     text-decoration: underline;
 }
 
+/* ============================================
+   RESPONSIVE: ULTRA-WIDE (Better Proportions)
+   ============================================ */
+
+/* Ultra-wide screens - wider container with more breathing room */
+@media (min-width: 1920px) {
+    .blog-container {
+        max-width: var(--container-3xl, 1920px);
+        padding: var(--space-10) var(--space-8);
+    }
+
+    .blog-post-layout {
+        max-width: var(--container-xl, 1280px);
+        padding: var(--space-10) var(--space-8);
+    }
+
+    /* Blog grid can be wider */
+    .blog-grid {
+        gap: var(--space-8);
+    }
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .blog-container {

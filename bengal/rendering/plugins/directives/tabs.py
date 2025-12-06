@@ -335,10 +335,10 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
 
     if not matches:
         # Fallback: just wrap the content
-        return f'<div class="tabs" id="{tab_id}">\n{text}</div>\n'
+        return f'<div class="tabs" id="{tab_id}" data-bengal="tabs">\n{text}</div>\n'
 
     # Build tab navigation
-    nav_html = f'<div class="tabs" id="{tab_id}"'
+    nav_html = f'<div class="tabs" id="{tab_id}" data-bengal="tabs"'
     if sync_key:
         nav_html += f' data-sync="{_escape_html(sync_key)}"'
     nav_html += '>\n  <ul class="tab-nav">\n'
@@ -446,10 +446,10 @@ def render_tabs(renderer, text: str, **attrs) -> str:
 
     if not matches:
         # Fallback: just wrap the content
-        return f'<div class="tabs" id="{tab_id}">\n{text}</div>\n'
+        return f'<div class="tabs" id="{tab_id}" data-bengal="tabs">\n{text}</div>\n'
 
     # Build tab navigation
-    nav_html = f'<div class="tabs" id="{tab_id}">\n  <ul class="tab-nav">\n'
+    nav_html = f'<div class="tabs" id="{tab_id}" data-bengal="tabs">\n  <ul class="tab-nav">\n'
 
     for i, (title, selected, _) in enumerate(matches):
         active = (
