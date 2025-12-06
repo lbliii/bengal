@@ -169,6 +169,20 @@
       backdrop.addEventListener('click', closeNav);
     }
 
+    // Search button - close nav and open search modal
+    const searchBtn = mobileNav.querySelector('.mobile-nav-search');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function() {
+        closeNav();
+        // Small delay to let nav close animation start, then open search
+        setTimeout(function() {
+          if (window.BengalSearchModal && typeof window.BengalSearchModal.open === 'function') {
+            window.BengalSearchModal.open();
+          }
+        }, 100);
+      });
+    }
+
     // Handle submenu toggles
     const submenuParents = mobileNav.querySelectorAll('.has-submenu > a');
     submenuParents.forEach(function(link) {
