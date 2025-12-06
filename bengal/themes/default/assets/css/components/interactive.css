@@ -148,12 +148,13 @@
   .back-to-top {
     bottom: 4rem;
     right: 1rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    min-height: 2.5rem;
-    max-width: 2.5rem;
-    max-height: 2.5rem;
+    /* Apple HIG: Minimum 44×44px touch target */
+    width: 2.75rem; /* 44px */
+    height: 2.75rem; /* 44px */
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    max-width: 2.75rem;
+    max-height: 2.75rem;
     aspect-ratio: 1 / 1;
   }
 
@@ -229,10 +230,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  /* Apple HIG: Minimum 44×44px touch target */
+  min-width: 44px;
+  min-height: 44px;
+  width: 1.75rem; /* Increased from 1.5rem for better touch target */
+  height: 1.75rem;
   margin-inline-start: 0.5rem;
-  padding: 0;
+  padding: 0.5rem; /* Added padding to meet 44px minimum */
   /* Ghost/frosted glass effect with neumorphic shadow */
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px) saturate(180%);

@@ -83,9 +83,13 @@
       const pre = codeBlock.parentElement;
 
       // Skip if already processed
-      if (pre.querySelector('.code-copy-button')) {
+      if (pre.closest('.code-block-wrapper') || pre.querySelector('.code-copy-button')) {
         return;
       }
+
+      // Check if this is inside a Pygments table (has line numbers)
+      const highlightTable = pre.closest('.highlighttable');
+      const isTableLayout = !!highlightTable;
 
       // Detect language from class (e.g., language-python, hljs-python)
       let language = '';
@@ -95,34 +99,10 @@
         language = (matches[1] || matches[2]).toUpperCase();
       }
 
-      // Create header container
-      const header = document.createElement('div');
-      header.className = 'code-header-inline';
-
-      // Create language label if detected
-      if (language) {
-        const langLabel = document.createElement('span');
-        langLabel.className = 'code-language';
-        langLabel.textContent = language;
-        // Use CSS custom properties via getComputedStyle
-        const root = getComputedStyle(document.documentElement);
-        langLabel.style.fontSize = root.getPropertyValue('--text-caption').trim() || '0.75rem';
-        langLabel.style.fontWeight = root.getPropertyValue('--weight-semibold').trim() || '600';
-        langLabel.style.color = 'var(--color-text-muted)';
-        langLabel.style.textTransform = 'uppercase';
-        langLabel.style.letterSpacing = '0.05em';
-        langLabel.style.opacity = '0.7';
-        header.appendChild(langLabel);
-      } else {
-        // Empty span to maintain layout
-        header.appendChild(document.createElement('span'));
-      }
-
       // Create copy button
       const button = document.createElement('button');
       button.className = 'code-copy-button';
       button.setAttribute('aria-label', 'Copy');
-      button.style.pointerEvents = 'auto';
 
       // Add copy icon (SVG) - icon only, no text
       button.innerHTML = `
@@ -133,37 +113,61 @@
         <span>Copy</span>
       `;
 
-      header.appendChild(button);
-
-      // Wrap pre in a container and place button outside the scrolling area
-      const wrapper = document.createElement('div');
-      wrapper.className = 'code-block-wrapper';
-      wrapper.style.position = 'relative';
-
-      // Move decorative border classes to wrapper so pseudo-borders stay fixed while <pre> scrolls
-      const borderClasses = [
-        'gradient-border',
-        'gradient-border-subtle',
-        'gradient-border-strong',
-        'fluid-border',
-        'fluid-combined'
-      ];
-      borderClasses.forEach(function (cls) {
-        if (pre.classList.contains(cls)) {
-          pre.classList.remove(cls);
-          wrapper.classList.add(cls);
+      if (isTableLayout) {
+        // For Pygments table layout: add button to the .highlight wrapper
+        // This ensures button stays in top-right of entire code block
+        const highlightWrapper = highlightTable.closest('.highlight');
+        if (highlightWrapper) {
+          highlightWrapper.classList.add('has-copy-button');
+          button.classList.add('code-copy-button--absolute');
+          highlightWrapper.appendChild(button);
         }
-      });
+      } else {
+        // Standard layout: wrap pre in container
 
-      // Insert wrapper before pre, then move pre into wrapper
-      pre.parentNode.insertBefore(wrapper, pre);
-      wrapper.appendChild(pre);
+        // Create header container
+        const header = document.createElement('div');
+        header.className = 'code-header-inline';
 
-      // Add header to wrapper (not inside pre)
-      wrapper.appendChild(header);
+        // Create language label if detected
+        if (language) {
+          const langLabel = document.createElement('span');
+          langLabel.className = 'code-language';
+          langLabel.textContent = language;
+          header.appendChild(langLabel);
+        } else {
+          // Empty span to maintain layout
+          header.appendChild(document.createElement('span'));
+        }
 
-      // Adjust pre padding
-      pre.style.paddingTop = '2.5rem'; // Make room for header
+        header.appendChild(button);
+
+        // Wrap pre in a container and place button outside the scrolling area
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+
+        // Move decorative border classes to wrapper so pseudo-borders stay fixed while <pre> scrolls
+        const borderClasses = [
+          'gradient-border',
+          'gradient-border-subtle',
+          'gradient-border-strong',
+          'fluid-border',
+          'fluid-combined'
+        ];
+        borderClasses.forEach(function (cls) {
+          if (pre.classList.contains(cls)) {
+            pre.classList.remove(cls);
+            wrapper.classList.add(cls);
+          }
+        });
+
+        // Insert wrapper before pre, then move pre into wrapper
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Add header to wrapper (not inside pre)
+        wrapper.appendChild(header);
+      }
 
       // Copy functionality
       button.addEventListener('click', function (e) {

@@ -195,11 +195,17 @@ class MistuneParser(BaseMarkdownParser):
                     # Get cached lexer for the language
                     lexer = get_lexer_cached(language=info_stripped)
 
+                    # Count lines to decide on line numbers
+                    line_count = code.count('\n') + 1
+
                     # Format with Pygments using 'highlight' CSS class (matches python-markdown)
+                    # Add line numbers for code blocks with 3+ lines (Supabase-style)
                     formatter = HtmlFormatter(
                         cssclass="highlight",
                         wrapcode=True,
                         noclasses=False,  # Use CSS classes instead of inline styles
+                        linenos='table' if line_count >= 3 else False,
+                        linenostart=1,
                     )
 
                     # Highlight the code

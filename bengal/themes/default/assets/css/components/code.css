@@ -29,7 +29,8 @@ pre {
   padding: var(--space-6);
   background-color: var(--color-bg-code);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-2xl); /* Increased from --radius-xl (12px → 16px) */
+  border-radius: var(--radius-2xl);
+  /* Increased from --radius-xl (12px → 16px) */
   overflow-x: auto;
   line-height: var(--line-height-relaxed);
   box-shadow: var(--elevation-card);
@@ -44,8 +45,14 @@ pre.fluid-border {
   border: none;
 }
 
-pre:hover .code-copy-button {
+/* Show copy button on hover (Supabase pattern) */
+pre:hover .code-copy-button,
+.code-block-wrapper:hover .code-copy-button,
+.highlight:hover .code-copy-button,
+td.code:hover .code-copy-button,
+.code-copy-button:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 [data-theme="dark"] pre {
@@ -120,7 +127,8 @@ pre code {
   border: 1px solid rgba(0, 0, 0, 0.1);
   background-color: var(--color-bg-code);
   box-shadow: var(--elevation-card);
-  overflow: visible; /* Allow tooltips to overflow */
+  overflow: visible;
+  /* Allow tooltips to overflow */
   transition: box-shadow var(--transition-base);
 }
 
@@ -141,10 +149,13 @@ pre code {
 
 .code-block-wrapper pre {
   margin: 0;
+  padding-top: 2.5rem;
+  /* Make room for header */
   border: none;
   border-radius: inherit;
   box-shadow: none;
-  overflow: hidden; /* Clip code content to border-radius */
+  overflow: hidden;
+  /* Clip code content to border-radius */
 }
 
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
@@ -179,7 +190,8 @@ pre code {
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
     1px 1px 2px rgba(0, 0, 0, 0.08),
     -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
-  pointer-events: auto; /* Allow interaction */
+  pointer-events: auto;
+  /* Allow interaction */
 }
 
 /* Dark mode for code language label */
@@ -224,7 +236,7 @@ pre code {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast), box-shadow 0.2s ease;
+  transition: all var(--transition-fast), box-shadow 0.2s ease, opacity 0.15s ease;
   /* Neumorphic shadow - refined depth with better balance */
   box-shadow:
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
@@ -235,11 +247,15 @@ pre code {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  position: relative; /* For tooltip */
+  position: relative;
+  /* For tooltip */
+  /* Hidden by default, shows on hover (Supabase pattern) */
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Hide text span */
-.code-copy-button > span {
+.code-copy-button>span {
   display: none;
 }
 
@@ -332,7 +348,8 @@ pre code {
 
 .code-copy-button.copied {
   color: var(--color-success);
-  background: rgba(34, 197, 94, 0.15); /* Success color with transparency */
+  background: rgba(34, 197, 94, 0.15);
+  /* Success color with transparency */
   border-color: rgba(34, 197, 94, 0.3);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
@@ -518,9 +535,113 @@ pre code {
 }
 
 /* ============================================
-   LINE NUMBERS
+   LINE NUMBERS (Pygments table-based)
    ============================================ */
 
+/* Pygments structure:
+   .highlight > table.highlighttable > tbody > tr >
+     td.linenos > div.linenodiv > pre
+     td.code > pre
+*/
+
+/* Container for copy button in table layout */
+.highlight.has-copy-button {
+  position: relative;
+}
+
+/* Absolute positioned copy button (for table layout) */
+.code-copy-button--absolute {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 10;
+}
+
+/* Table wrapper - takes over styling from pre */
+.highlight .highlighttable {
+  width: 100%;
+  margin-block: 1.5rem;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: var(--color-bg-code);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-card);
+}
+
+/* Reset ALL pre styles inside highlighttable */
+.highlight .highlighttable pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Line numbers cell */
+.highlight td.linenos {
+  width: 3.5rem;
+  padding: 0;
+  border-right: 1px solid var(--color-border-light);
+  background: var(--color-bg-code);
+  vertical-align: top;
+}
+
+/* Line numbers inner div and pre */
+.highlight .linenodiv {
+  padding: 0;
+}
+
+.highlight .linenodiv pre {
+  padding: var(--space-6) var(--space-3) var(--space-6) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-muted);
+  text-align: right;
+  user-select: none;
+}
+
+/* Code cell */
+.highlight td.code {
+  padding: 0;
+  vertical-align: top;
+}
+
+/* Code pre inside table */
+.highlight td.code pre {
+  padding: var(--space-6);
+  padding-left: var(--space-4);
+}
+
+/* Disable table row hover effect (from typography.css) */
+.highlight .highlighttable tr:hover {
+  background-color: transparent;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .highlight td.linenos {
+  border-right-color: var(--color-border);
+}
+
+[data-theme="dark"] .highlight .highlighttable {
+  border-color: var(--color-border);
+}
+
+/* Hide line numbers on mobile */
+@media (max-width: 639px) {
+  .highlight td.linenos {
+    display: none;
+  }
+
+  .highlight td.code pre {
+    padding-left: var(--space-6);
+  }
+}
+
+/* Legacy Pygments linenos support */
 .highlight .linenos {
   display: inline-block;
   padding-right: var(--space-4);
