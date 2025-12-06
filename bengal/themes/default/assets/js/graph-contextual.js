@@ -280,15 +280,14 @@
 
             this.g = this.svg.append('g');
 
-            // v2: Simpler zoom without transform logging
+            // v2: Simpler zoom - no initial transform offset
+            // The static layout already centers the current node at (width/2, height/2)
             const zoom = d3.zoom()
-                .scaleExtent([0.8, 3])
+                .scaleExtent([0.5, 3])
                 .on('zoom', (event) => {
                     this.g.attr('transform', event.transform);
                 });
 
-            const initialZoom = d3.zoomIdentity.scale(1.5).translate(width * 0.15, height * 0.15);
-            this.svg.call(zoom.transform, initialZoom);
             this.svg.call(zoom);
         }
 
