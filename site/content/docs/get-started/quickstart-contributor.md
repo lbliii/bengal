@@ -20,7 +20,7 @@ Set up Bengal for development and start contributing.
 
 ## Prerequisites
 
-- Python 3.12+ (3.14t recommended)
+- Python 3.14+ (3.14t recommended for best performance)
 - Git
 - A GitHub account
 
@@ -45,13 +45,7 @@ bengal --version
 ## Run Tests
 
 ```bash
-# Fast dev loop (RECOMMENDED, ~20s)
-pytest -m "not slow" -n auto
-
-# Unit tests only (~8s)
-pytest tests/unit -n auto
-
-# Full suite (~60s)
+# Run all tests
 pytest
 
 # Run specific test file
@@ -60,8 +54,6 @@ pytest tests/unit/test_page.py
 # Run with coverage
 pytest --cov=bengal
 ```
-
-See `tests/README.md` for comprehensive testing documentation.
 
 ## Project Structure
 

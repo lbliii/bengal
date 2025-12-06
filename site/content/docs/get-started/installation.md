@@ -16,7 +16,7 @@ aliases:
 
 ## Requirements
 
-Bengal requires **Python 3.12 or later**. We recommend Python 3.14+ (3.14t free-threaded build for best performance).
+Bengal requires **Python 3.14 or later**. For best performance, use Python 3.14t (free-threaded build).
 
 ## Install
 
@@ -126,7 +126,7 @@ python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False 
 ### Python version errors
 
 - Verify: `python --version` or `python3 --version`
-- Install Python 3.12+ using pyenv or official installer
+- Install Python 3.14+ using pyenv or official installer
 
 ### Permission errors
 
@@ -138,3 +138,6 @@ python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False 
 - **[Writer Quickstart](/docs/get-started/quickstart-writer/)** — Start creating content
 - **[Themer Quickstart](/docs/get-started/quickstart-themer/)** — Customize your site's look
 - **[Tutorials](/docs/tutorials/)** — Guided learning journeys
+
+
+
