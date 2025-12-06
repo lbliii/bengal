@@ -3,104 +3,578 @@
 {#
 Search Results Page
 
-Dedicated page for search functionality with full-screen experience.
-Can be accessed directly at /search/ or used as a fallback.
+Dedicated full-page search experience with modal-consistent design language.
+Uses the same result rendering as the search modal for consistency.
 #}
 
 {% block title %}Search - {{ site.config.title }}{% endblock %}
 
 {% block content %}
 <div class="search-page">
-  <div class="search-hero fluid-bg">
-    <header class="page-header page-header--centered">
-      <h1>🔍 Search</h1>
-      <p class="search-page-description">
-        Search through {{ site.pages | length }} pages of documentation, tutorials, and guides.
-      </p>
+  {# Search Header - Compact & Focused #}
+  <header class="search-page__header">
+    <div class="search-page__title-row">
+      <h1 class="search-page__title">
+        {{ icon('magnifying-glass', size=24, css_class='search-page__title-icon') }}
+        <span>Search</span>
+      </h1>
+      <span class="search-page__page-count">{{ site.pages | length }} pages indexed</span>
+    </div>
     </header>
-  </div>
 
-  {# Search Component #}
-  <div class="search-page-content">
-    {% include 'partials/search.html' %}
-  </div>
+  {# Main Search Interface #}
+  <div class="search-page__container">
+    {# Search Input - Modal Style #}
+    <div class="search-page__input-section">
+      <div class="search-page__input-wrapper">
+        {{ icon('magnifying-glass', size=20, css_class='search-page__icon') }}
 
-  {# Search Tips - Compact & Slick #}
-  <div class="search-tips">
-    <div class="tips-grid tips-grid--compact">
-      <div class="tip-card gradient-border-subtle">
-        <div class="tip-header">
-          <span class="tip-icon">⌨️</span>
-          <h3>Shortcuts</h3>
-        </div>
-        <div class="tip-body">
-          <span class="tip-pill"><kbd>⌘/Ctrl</kbd> + <kbd>K</kbd></span>
-          <span class="tip-pill"><kbd>Esc</kbd></span>
-        </div>
-      </div>
+        <input
+          type="search"
+          id="search-input"
+          class="search-page__input"
+          placeholder="Search documentation..."
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="Search"
+          aria-describedby="search-status"
+          aria-controls="search-results"
+          aria-autocomplete="list"
+          autofocus
+        >
 
-      <div class="tip-card gradient-border-subtle">
-        <div class="tip-header">
-          <span class="tip-icon">🎯</span>
-          <h3>Operators</h3>
+        <div class="search-page__loading" id="search-loading-indicator" style="display: none;">
+          <div class="search-page__spinner"></div>
         </div>
-        <div class="tip-body">
-          <span class="tip-pill" title="Must include"><code>+term</code></span>
-          <span class="tip-pill" title="Exclude"><code>-term</code></span>
-          <span class="tip-pill" title="Fuzzy match"><code>term~2</code></span>
-        </div>
-      </div>
 
-      <div class="tip-card gradient-border-subtle">
-        <div class="tip-header">
-          <span class="tip-icon">🔍</span>
-          <h3>Filters</h3>
+        <button type="button" class="search-page__clear" id="search-clear" style="display: none;" aria-label="Clear search">
+          {{ icon('x-mark', size=16) }}
+        </button>
         </div>
-        <div class="tip-body">
-          <span class="tip-text">Filter by section, type, or tags</span>
-        </div>
-      </div>
 
-      <div class="tip-card gradient-border-subtle">
-        <div class="tip-header">
-          <span class="tip-icon">📚</span>
-          <h3>Index</h3>
-        </div>
-        <div class="tip-body">
-          <span class="tip-text">Docs, Blog, API, & CLI</span>
-        </div>
-      </div>
-
-      <div class="tip-card gradient-border-subtle" style="grid-column: span 2;">
-        <div class="tip-header">
-          <span class="tip-icon">🗺️</span>
-          <h3>Interactive Graph</h3>
-        </div>
-        <div class="tip-body" style="padding: 0;">
-          <div class="graph-minimap" style="min-height: 250px;"></div>
-        </div>
+      {# Keyboard hints #}
+      <div class="search-page__hints">
+        <span class="search-page__hint">
+          <kbd>↑</kbd><kbd>↓</kbd>
+          <span>Navigate</span>
+        </span>
+        <span class="search-page__hint">
+          <kbd>↵</kbd>
+          <span>Open</span>
+        </span>
+        <span class="search-page__hint">
+          <kbd>ESC</kbd>
+          <span>Clear</span>
+        </span>
       </div>
     </div>
-  </div>
 
-  {# Popular Searches #}
-  <div class="popular-searches">
-    <h2>Popular Searches</h2>
-    <div class="popular-search-links">
-      <a href="#" class="popular-search-link" data-query="getting started">Getting Started</a>
-      <a href="#" class="popular-search-link" data-query="configuration">Configuration</a>
-      <a href="#" class="popular-search-link" data-query="template">Templates</a>
-      <a href="#" class="popular-search-link" data-query="markdown">Markdown</a>
-      <a href="#" class="popular-search-link" data-query="api">API Reference</a>
-      <a href="#" class="popular-search-link" data-query="tutorial">Tutorials</a>
-      <a href="#" class="popular-search-link" data-query="optimization">Optimization</a>
-      <a href="#" class="popular-search-link" data-query="deployment">Deployment</a>
+    {# Status for screen readers #}
+    <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
+
+    {# Search Results Area #}
+    <div class="search-page__results-area">
+      {# Results Container #}
+      <section class="search-page__results" id="search-results" aria-label="Search results" style="display: none;">
+        {# Results header with count #}
+        <div class="search-page__results-header">
+          <span id="search-results-count" class="search-page__results-count"></span>
+
+          {# Filters toggle #}
+          <button type="button" class="search-page__filters-toggle" id="filters-toggle" aria-expanded="false">
+            {{ icon('funnel', size=16) }}
+            <span>Filters</span>
+          </button>
+        </div>
+
+        {# Filters Panel (collapsible) #}
+        <div class="search-page__filters" id="search-filters" style="display: none;">
+          <div class="search-page__filters-grid">
+            {# Section filter #}
+            <div class="search-page__filter-group">
+              <label for="filter-section">Section</label>
+              <select id="filter-section" class="search-page__filter-select">
+                <option value="">All Sections</option>
+              </select>
+            </div>
+
+            {# Type filter #}
+            <div class="search-page__filter-group">
+              <label for="filter-type">Type</label>
+              <select id="filter-type" class="search-page__filter-select">
+                <option value="">All Types</option>
+              </select>
+            </div>
+
+            {# Clear filters #}
+            <button type="button" class="search-page__filter-clear" id="clear-filters">
+              {{ icon('x-mark', size=14) }}
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {# Results list - matches modal format #}
+        <div id="search-results-list" class="search-page__results-list" role="listbox">
+          {# Results populated by JavaScript #}
+      </div>
+
+        {# No results message #}
+        <div class="search-page__no-results" id="search-no-results" style="display: none;">
+          {{ icon('magnifying-glass', size=48) }}
+          <p class="search-page__no-results-text">No results for "<span id="search-no-results-query"></span>"</p>
+          <p class="search-page__no-results-hint">Try different keywords or check your spelling</p>
+        </div>
+      </section>
+
+      {# Empty State (before searching) #}
+      <div class="search-page__empty" id="search-empty">
+        <div class="search-page__empty-content">
+          {{ icon('magnifying-glass', size=56, css_class='search-page__empty-icon') }}
+          <p class="search-page__empty-title">Start typing to search</p>
+          <p class="search-page__empty-hint">Search through documentation, tutorials, API reference, and more</p>
+        </div>
+
+        {# Quick Search Suggestions #}
+        <div class="search-page__suggestions">
+          <span class="search-page__suggestions-label">Try searching for:</span>
+          <div class="search-page__suggestion-pills">
+            <button type="button" class="search-page__suggestion" data-query="getting started">Getting Started</button>
+            <button type="button" class="search-page__suggestion" data-query="configuration">Configuration</button>
+            <button type="button" class="search-page__suggestion" data-query="template">Templates</button>
+            <button type="button" class="search-page__suggestion" data-query="markdown">Markdown</button>
+            <button type="button" class="search-page__suggestion" data-query="api">API</button>
+            <button type="button" class="search-page__suggestion" data-query="tutorial">Tutorials</button>
+      </div>
+        </div>
+
+        {# Search Tips - Compact #}
+        <div class="search-page__tips">
+          <div class="search-page__tip">
+            <span class="search-page__tip-label">Operators:</span>
+            <code>+term</code> must include
+            <code>-term</code> exclude
+            <code>term~2</code> fuzzy
+          </div>
+        </div>
+      </div>
+
+      {# Loading State #}
+      <div class="search-page__loading-state" id="search-loading" style="display: none;">
+        <div class="search-page__spinner search-page__spinner--large"></div>
+        <p>Loading search index...</p>
+        </div>
+
+      {# Error State #}
+      <div class="search-page__error" id="search-error" style="display: none;">
+        <p>Failed to load search index. Please try refreshing the page.</p>
+      </div>
     </div>
   </div>
 </div>
 
-{# moved to assets/js/search-page.js #}
+<script>
+(function() {
+  'use strict';
 
-{# styles are covered by components/search.css and global tokens #}
-{# Graph scripts loaded in base.html #}
+  // Wait for BengalSearch to be available
+  function initSearchPage() {
+    if (typeof window.BengalSearch === 'undefined') {
+      setTimeout(initSearchPage, 100);
+      return;
+    }
+
+    // Elements
+    const input = document.getElementById('search-input');
+    const clearBtn = document.getElementById('search-clear');
+    const loadingIndicator = document.getElementById('search-loading-indicator');
+    const status = document.getElementById('search-status');
+    const results = document.getElementById('search-results');
+    const resultsList = document.getElementById('search-results-list');
+    const resultsCount = document.getElementById('search-results-count');
+    const noResults = document.getElementById('search-no-results');
+    const noResultsQuery = document.getElementById('search-no-results-query');
+    const emptyState = document.getElementById('search-empty');
+    const loadingState = document.getElementById('search-loading');
+    const errorState = document.getElementById('search-error');
+    const filtersToggle = document.getElementById('filters-toggle');
+    const filtersPanel = document.getElementById('search-filters');
+    const filterSection = document.getElementById('filter-section');
+    const filterType = document.getElementById('filter-type');
+    const clearFiltersBtn = document.getElementById('clear-filters');
+
+    let debounceTimer = null;
+    let currentQuery = '';
+    let currentFilters = {};
+    let selectedIndex = -1;
+    let currentResultItems = [];
+
+    // Initialize
+    function init() {
+      // Show loading until index is ready
+      if (!BengalSearch.isLoaded()) {
+        loadingState.style.display = 'flex';
+        emptyState.style.display = 'none';
+        window.addEventListener('searchIndexLoaded', onIndexLoaded);
+        window.addEventListener('searchIndexError', onIndexError);
+      } else {
+        onIndexLoaded();
+      }
+
+      // Input events
+      input.addEventListener('input', onInput);
+      input.addEventListener('keydown', onKeydown);
+      clearBtn.addEventListener('click', clearSearch);
+
+      // Filter events
+      filtersToggle.addEventListener('click', toggleFilters);
+      filterSection.addEventListener('change', onFilterChange);
+      filterType.addEventListener('change', onFilterChange);
+      clearFiltersBtn.addEventListener('click', clearFilters);
+
+      // Suggestion pills
+      document.querySelectorAll('.search-page__suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+          input.value = btn.dataset.query;
+          input.dispatchEvent(new Event('input'));
+          input.focus();
+        });
+      });
+
+      // Handle URL query parameter
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('q')) {
+        const query = params.get('q');
+        input.value = query;
+        // Wait for index to load before searching
+        if (BengalSearch.isLoaded()) {
+          performSearch(query);
+        } else {
+          window.addEventListener('searchIndexLoaded', () => performSearch(query), { once: true });
+        }
+      }
+    }
+
+    function onIndexLoaded() {
+      loadingState.style.display = 'none';
+      if (!currentQuery) {
+        emptyState.style.display = 'flex';
+      }
+      populateFilters();
+    }
+
+    function onIndexError(e) {
+      loadingState.style.display = 'none';
+      errorState.style.display = 'block';
+      console.error('Search index error:', e.detail?.error);
+    }
+
+    function populateFilters() {
+      // Sections
+      const sections = BengalSearch.getAvailableSections();
+      sections.forEach(section => {
+        const opt = document.createElement('option');
+        opt.value = section;
+        opt.textContent = section;
+        filterSection.appendChild(opt);
+      });
+
+      // Types
+      const types = BengalSearch.getAvailableTypes();
+      types.forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type;
+        opt.textContent = type;
+        filterType.appendChild(opt);
+      });
+    }
+
+    function onInput(e) {
+      const query = e.target.value.trim();
+      clearBtn.style.display = query ? 'flex' : 'none';
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => performSearch(query), 150);
+    }
+
+    function onKeydown(e) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          navigateResults(1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          navigateResults(-1);
+          break;
+        case 'Enter':
+          e.preventDefault();
+          selectResult();
+          break;
+        case 'Escape':
+          if (currentQuery) {
+            e.preventDefault();
+            clearSearch();
+          }
+          break;
+      }
+    }
+
+    function performSearch(query) {
+      currentQuery = query;
+      selectedIndex = -1;
+      currentResultItems = [];
+
+      if (!query || query.length < 2) {
+        hideResults();
+        emptyState.style.display = 'flex';
+        status.textContent = '';
+        updateURL('');
+        return;
+      }
+
+      // Get filters
+      currentFilters = {
+        section: filterSection.value || null,
+        type: filterType.value || null,
+        tags: []
+      };
+
+      // Perform search
+      const searchResults = BengalSearch.search(query, currentFilters);
+      displayResults(searchResults, query);
+      updateURL(query);
+    }
+
+    function displayResults(searchResults, query) {
+      emptyState.style.display = 'none';
+      resultsList.innerHTML = '';
+
+      if (searchResults.length === 0) {
+        results.style.display = 'block';
+        noResults.style.display = 'flex';
+        noResultsQuery.textContent = query;
+        status.textContent = 'No results found';
+        return;
+      }
+
+      // Show results
+      results.style.display = 'block';
+      noResults.style.display = 'none';
+      resultsCount.textContent = `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`;
+      status.textContent = `Found ${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`;
+
+      // Group by autodoc status (matching modal behavior)
+      const { docs, api } = groupByAutodoc(searchResults);
+      let globalIndex = 0;
+
+      // Documentation section
+      if (docs.length > 0) {
+        const section = createResultSection('Documentation', docs, query, false, globalIndex);
+        resultsList.appendChild(section);
+        globalIndex += docs.length;
+      }
+
+      // API Reference section (collapsed by default)
+      if (api.length > 0) {
+        const section = createResultSection(`API Reference (${api.length})`, api, query, true, globalIndex);
+        resultsList.appendChild(section);
+      }
+
+      // Cache navigable items
+      currentResultItems = Array.from(resultsList.querySelectorAll('.search-page__result-item'));
+    }
+
+    function groupByAutodoc(results) {
+      const docs = [];
+      const api = [];
+      results.forEach(r => {
+        if (r.isAutodoc) api.push(r);
+        else docs.push(r);
+      });
+      return { docs, api };
+    }
+
+    function createResultSection(title, items, query, collapsed, startIndex) {
+      const section = document.createElement('div');
+      section.className = 'search-page__results-group';
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'search-page__section-header' + (collapsed ? ' search-page__section-header--collapsible' : '');
+      header.innerHTML = `
+        <span class="search-page__section-title">${title}</span>
+        ${collapsed ? '<span class="search-page__section-toggle" aria-hidden="true">▶</span>' : ''}
+      `;
+
+      // Items container
+      const itemsContainer = document.createElement('div');
+      itemsContainer.className = 'search-page__section-items';
+      if (collapsed) {
+        itemsContainer.style.display = 'none';
+        itemsContainer.setAttribute('aria-hidden', 'true');
+      }
+
+      // Render items
+      items.forEach((result, localIndex) => {
+        const item = createResultItem(result, startIndex + localIndex, query);
+        itemsContainer.appendChild(item);
+      });
+
+      // Toggle behavior for collapsed sections
+      if (collapsed) {
+        header.style.cursor = 'pointer';
+        header.setAttribute('role', 'button');
+        header.setAttribute('aria-expanded', 'false');
+        header.setAttribute('tabindex', '0');
+
+        const toggle = () => {
+          const isHidden = itemsContainer.style.display === 'none';
+          itemsContainer.style.display = isHidden ? 'block' : 'none';
+          itemsContainer.setAttribute('aria-hidden', !isHidden);
+          header.querySelector('.search-page__section-toggle').textContent = isHidden ? '▼' : '▶';
+          header.setAttribute('aria-expanded', isHidden);
+          // Re-cache items after toggle
+          currentResultItems = Array.from(resultsList.querySelectorAll('.search-page__result-item'));
+        };
+
+        header.addEventListener('click', toggle);
+        header.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+          }
+        });
+      }
+
+      section.appendChild(header);
+      section.appendChild(itemsContainer);
+      return section;
+    }
+
+    function createResultItem(result, index, query) {
+      const item = document.createElement('div');
+      item.className = 'search-page__result-item';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', 'false');
+      item.setAttribute('data-index', index);
+
+      const href = result.href || result.uri || result.url;
+      const title = result.highlightedTitle || result.title || 'Untitled';
+      const description = result.description || result.highlightedExcerpt || result.excerpt || '';
+      const section = result.section || '';
+
+      item.innerHTML = `
+        <a href="${href}" class="search-page__result-link" tabindex="-1">
+          <div class="search-page__result-content">
+            <span class="search-page__result-title">${title}</span>
+            ${section ? `<span class="search-page__result-section">${section}</span>` : ''}
+            ${result.isAutodoc ? '<span class="search-page__autodoc-badge">API</span>' : ''}
+          </div>
+          ${description ? `<p class="search-page__result-excerpt">${description}</p>` : ''}
+        </a>
+      `;
+
+      // Click handler
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectedIndex = index;
+        selectResult();
+      });
+
+      return item;
+    }
+
+    function navigateResults(direction) {
+      if (currentResultItems.length === 0) return;
+
+      // Remove previous selection
+      if (selectedIndex >= 0 && selectedIndex < currentResultItems.length) {
+        currentResultItems[selectedIndex].classList.remove('search-page__result-item--selected');
+        currentResultItems[selectedIndex].setAttribute('aria-selected', 'false');
+      }
+
+      // Calculate new index
+      selectedIndex += direction;
+      if (selectedIndex < 0) selectedIndex = currentResultItems.length - 1;
+      if (selectedIndex >= currentResultItems.length) selectedIndex = 0;
+
+      // Apply new selection
+      const selected = currentResultItems[selectedIndex];
+      selected.classList.add('search-page__result-item--selected');
+      selected.setAttribute('aria-selected', 'true');
+      selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+      // Update status for screen readers
+      const title = selected.querySelector('.search-page__result-title');
+      if (title) {
+        status.textContent = `${title.textContent}, ${selectedIndex + 1} of ${currentResultItems.length}`;
+      }
+    }
+
+    function selectResult() {
+      if (selectedIndex >= 0 && selectedIndex < currentResultItems.length) {
+        const link = currentResultItems[selectedIndex].querySelector('a');
+        if (link) window.location.href = link.href;
+      }
+    }
+
+    function hideResults() {
+      results.style.display = 'none';
+      noResults.style.display = 'none';
+      resultsList.innerHTML = '';
+      selectedIndex = -1;
+      currentResultItems = [];
+    }
+
+    function clearSearch() {
+      input.value = '';
+      currentQuery = '';
+      clearBtn.style.display = 'none';
+      hideResults();
+      emptyState.style.display = 'flex';
+      status.textContent = '';
+      updateURL('');
+      input.focus();
+    }
+
+    function toggleFilters() {
+      const isExpanded = filtersToggle.getAttribute('aria-expanded') === 'true';
+      filtersToggle.setAttribute('aria-expanded', !isExpanded);
+      filtersPanel.style.display = isExpanded ? 'none' : 'block';
+    }
+
+    function onFilterChange() {
+      if (currentQuery) performSearch(currentQuery);
+    }
+
+    function clearFilters() {
+      filterSection.value = '';
+      filterType.value = '';
+      if (currentQuery) performSearch(currentQuery);
+    }
+
+    function updateURL(query) {
+      const url = new URL(window.location);
+      if (query) {
+        url.searchParams.set('q', query);
+      } else {
+        url.searchParams.delete('q');
+      }
+      history.replaceState({}, '', url);
+    }
+
+    // Initialize
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  }
+
+  initSearchPage();
+})();
+</script>
 {% endblock %}
