@@ -22,7 +22,9 @@ Use the `:::{icon}` directive to inline SVG icons:
 :::
 ```
 
-Result: :::{icon} terminal
+**Result:**
+
+:::{icon} terminal
 :::
 
 ## Available Icons
@@ -31,14 +33,10 @@ Result: :::{icon} terminal
 
 The signature Bengal cat rosette pattern—inspired by the spotted coat of Bengal cats.
 
-<div class="icon-gallery">
-  <div class="icon-gallery-item">
-    :::{icon} bengal-rosette
-    :size: 48
-    :::
-    <span class="icon-name">bengal-rosette</span>
-  </div>
-</div>
+:::{icon} bengal-rosette
+:size: 48
+:class: icon-primary
+:::
 
 **Use cases**: Brand signature, decorative separators, loading states, section headers.
 
@@ -46,14 +44,10 @@ The signature Bengal cat rosette pattern—inspired by the spotted coat of Benga
 
 Stacked pages with a bookmark tab for that tactile feel.
 
-<div class="icon-gallery">
-  <div class="icon-gallery-item">
-    :::{icon} docs
-    :size: 48
-    :::
-    <span class="icon-name">docs</span>
-  </div>
-</div>
+:::{icon} docs
+:size: 48
+:class: icon-primary
+:::
 
 **Use cases**: Documentation links, tutorials, reference sections.
 
@@ -61,14 +55,10 @@ Stacked pages with a bookmark tab for that tactile feel.
 
 CLI window with title bar dots and command prompt.
 
-<div class="icon-gallery">
-  <div class="icon-gallery-item">
-    :::{icon} terminal
-    :size: 48
-    :::
-    <span class="icon-name">terminal</span>
-  </div>
-</div>
+:::{icon} terminal
+:size: 48
+:class: icon-primary
+:::
 
 **Use cases**: CLI documentation, command references, terminal output.
 
@@ -76,38 +66,20 @@ CLI window with title bar dots and command prompt.
 
 Use the `:size:` option to control icon size (in pixels):
 
-<div class="icon-size-demo">
-  <div class="icon-size-item">
-    :::{icon} terminal
-    :size: 16
-    :::
-    <span class="icon-size-label">16px</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} terminal
-    :size: 24
-    :::
-    <span class="icon-size-label">24px (default)</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} terminal
-    :size: 32
-    :::
-    <span class="icon-size-label">32px</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} terminal
-    :size: 48
-    :::
-    <span class="icon-size-label">48px</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} terminal
-    :size: 64
-    :::
-    <span class="icon-size-label">64px</span>
-  </div>
-</div>
+| Size | Example | Code |
+|------|---------|------|
+| 16px | :::{icon} terminal
+:size: 16
+::: | `:size: 16` |
+| 24px (default) | :::{icon} terminal
+:size: 24
+::: | `:size: 24` |
+| 32px | :::{icon} terminal
+:size: 32
+::: | `:size: 32` |
+| 48px | :::{icon} terminal
+:size: 48
+::: | `:size: 48` |
 
 ```markdown
 :::{icon} terminal
@@ -119,67 +91,34 @@ Use the `:size:` option to control icon size (in pixels):
 
 Icons inherit `currentColor` by default, so they adapt to their container's text color. Add CSS classes for color variants:
 
-<div class="icon-size-demo">
-  <div class="icon-size-item">
-    :::{icon} bengal-rosette
-    :size: 32
-    :class: icon-primary
-    :::
-    <span class="icon-size-label">Primary</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} bengal-rosette
-    :size: 32
-    :class: icon-success
-    :::
-    <span class="icon-size-label">Success</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} bengal-rosette
-    :size: 32
-    :class: icon-warning
-    :::
-    <span class="icon-size-label">Warning</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} bengal-rosette
-    :size: 32
-    :class: icon-danger
-    :::
-    <span class="icon-size-label">Danger</span>
-  </div>
-  <div class="icon-size-item">
-    :::{icon} bengal-rosette
-    :size: 32
-    :class: icon-muted
-    :::
-    <span class="icon-size-label">Muted</span>
-  </div>
-</div>
+| Variant | Example | Class |
+|---------|---------|-------|
+| Primary | :::{icon} bengal-rosette
+:size: 24
+:class: icon-primary
+::: | `icon-primary` |
+| Success | :::{icon} bengal-rosette
+:size: 24
+:class: icon-success
+::: | `icon-success` |
+| Warning | :::{icon} bengal-rosette
+:size: 24
+:class: icon-warning
+::: | `icon-warning` |
+| Danger | :::{icon} bengal-rosette
+:size: 24
+:class: icon-danger
+::: | `icon-danger` |
+| Muted | :::{icon} bengal-rosette
+:size: 24
+:class: icon-muted
+::: | `icon-muted` |
 
 ```markdown
 :::{icon} bengal-rosette
 :class: icon-primary
 :::
 ```
-
-## Icon with Text
-
-Combine icons with text using the `icon-text` wrapper class:
-
-<p class="icon-text">
-  :::{icon} docs
-  :size: 20
-  :::
-  <span>Documentation</span>
-</p>
-
-<p class="icon-text">
-  :::{icon} terminal
-  :size: 20
-  :::
-  <span>Command Line Interface</span>
-</p>
 
 ## Directive Syntax
 
@@ -200,6 +139,28 @@ Full directive syntax:
 | `:size:` | `24` | Icon size in pixels |
 | `:class:` | (none) | Additional CSS classes |
 | `:aria-label:` | (none) | Accessibility label (adds `role="img"`) |
+
+## All Icons Gallery
+
+Here are all available icons at 48px:
+
+**Bengal Rosette:**
+
+:::{icon} bengal-rosette
+:size: 48
+:::
+
+**Documentation:**
+
+:::{icon} docs
+:size: 48
+:::
+
+**Terminal:**
+
+:::{icon} terminal
+:size: 48
+:::
 
 ## Design Principles
 
@@ -250,30 +211,6 @@ Example SVG structure:
 </svg>
 ```
 
-## Full Gallery
-
-<div class="icon-gallery">
-  <div class="icon-gallery-item">
-    :::{icon} bengal-rosette
-    :size: 48
-    :::
-    <span class="icon-name">bengal-rosette</span>
-  </div>
-  <div class="icon-gallery-item">
-    :::{icon} docs
-    :size: 48
-    :::
-    <span class="icon-name">docs</span>
-  </div>
-  <div class="icon-gallery-item">
-    :::{icon} terminal
-    :size: 48
-    :::
-    <span class="icon-name">terminal</span>
-  </div>
-</div>
-
 :::{tip}
 Toggle between light and dark mode using the theme switcher in the header to see how icons adapt to different themes!
 :::
-
