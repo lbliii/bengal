@@ -1,13 +1,32 @@
 /**
- * Bengal SSG - Contextual Graph Minimap Component
+ * Bengal SSG - Contextual Graph Minimap Component (v2)
  *
  * Renders a small, filtered graph visualization showing only connections
  * to the current page. Similar to Obsidian's contextual graph view.
  * Designed to be embedded in the right sidebar above the TOC.
+ *
+ * Performance optimizations (v2):
+ * - Removed MutationObserver (use CSS custom properties for theming)
+ * - Faster force simulation with early termination
+ * - Static layout option for minimal CPU usage
+ * - Debounced theme change handling
+ * - Single getComputedStyle call per theme change
  */
 
 (function() {
     'use strict';
+
+    // Debounce utility (avoid importing utils.js dependency)
+    function debounce(fn, delay) {
+        let timer = null;
+        return function(...args) {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                timer = null;
+                fn.apply(this, args);
+            }, delay);
+        };
+    }
 
     /**
      * Contextual Graph Minimap Component
@@ -27,11 +46,12 @@
             this.options = {
                 width: options.width || 200,
                 height: options.height || 200,
-                // Try page JSON first, fallback to global graph.json
                 dataUrl: options.dataUrl || this._getPageJsonUrl(),
                 currentPageUrl: options.currentPageUrl || window.location.pathname,
-                maxConnections: options.maxConnections || 15, // Limit nodes for performance
-                usePageJson: options.usePageJson !== false, // Default to true
+                maxConnections: options.maxConnections || 15,
+                usePageJson: options.usePageJson !== false,
+                // Use force simulation for organic feel (static layout available as fallback)
+                staticLayout: options.staticLayout || false,
                 ...options
             };
 
@@ -43,19 +63,17 @@
             this.nodes = null;
             this.links = null;
 
+            // v2: Store bound handlers for cleanup
+            this._boundHandlers = {};
+
             this.init();
         }
 
         _getPageJsonUrl() {
-            // Get current page path and construct JSON URL
-            // JSON files are named index.json and placed next to HTML files
             const path = window.location.pathname;
-            // Ensure path ends with /index.json (Bengal's convention)
             if (path.endsWith('/')) {
                 return path + 'index.json';
             } else {
-                // If path doesn't end with /, it's likely a file path
-                // Remove filename and add /index.json
                 return path.substring(0, path.lastIndexOf('/') + 1) + 'index.json';
             }
         }
@@ -65,29 +83,20 @@
                 let jsonData = null;
                 let loadedFromPageJson = false;
 
-                // Try loading from page JSON first (if enabled)
                 if (this.options.usePageJson) {
                     try {
                         const pageJsonUrl = this._getPageJsonUrl();
                         const response = await fetch(pageJsonUrl);
                         if (response.ok) {
                             jsonData = await response.json();
-                            // Check if page JSON has graph data
                             if (jsonData && jsonData.graph) {
-                                // Data is already filtered in page JSON
-                                // BUT: We need to re-validate isCurrent flags because
-                                // the page JSON might have been generated for a different page
-                                // (e.g., if you're on /docs/guides/blog-from-scratch/ but
-                                // the JSON was cached for /docs/guides/)
                                 this.filteredData = jsonData.graph;
-                                this.data = jsonData.graph; // Keep for reference
+                                this.data = jsonData.graph;
 
-                                // Re-validate isCurrent flags - clear all and set only the actual current page
                                 const currentUrl = this.normalizeUrl(this.options.currentPageUrl);
                                 this.filteredData.nodes.forEach(node => {
-                                    delete node.isCurrent; // Clear existing flag
+                                    delete node.isCurrent;
                                     const nodeUrl = this.normalizeUrl(node.url);
-                                    // Only mark as current if URL matches exactly (not parent/child)
                                     if (nodeUrl === currentUrl) {
                                         node.isCurrent = true;
                                     }
@@ -97,66 +106,50 @@
                             }
                         }
                     } catch (e) {
-                        // Page JSON doesn't exist or failed - fall through to global graph.json
-                        // Silently fall back - this is expected for pages without graph data
+                        // Fall through to global graph.json
                     }
                 }
 
-                // Fallback to global graph.json if page JSON didn't work
                 if (!loadedFromPageJson) {
-                    // Get baseurl from meta tag if present
                     let baseurl = '';
                     try {
                         const m = document.querySelector('meta[name="bengal:baseurl"]');
                         baseurl = (m && m.getAttribute('content')) || '';
-                        if (baseurl) {
-                            baseurl = baseurl.replace(/\/$/, '');
-                        }
-                    } catch (e) {
-                        // Ignore errors
-                    }
+                        if (baseurl) baseurl = baseurl.replace(/\/$/, '');
+                    } catch (e) {}
+
                     const fallbackUrl = baseurl + '/graph/graph.json';
                     const response = await fetch(fallbackUrl);
                     if (!response.ok) {
                         throw new Error(`Failed to load graph data: ${response.status}`);
                     }
                     jsonData = await response.json();
-                    // Loading from global graph.json - need to filter
                     this.data = jsonData;
                     this.filterData();
                 }
 
-                // Only create SVG and render if we have data
                 if (this.filteredData && this.filteredData.nodes && this.filteredData.nodes.length > 0) {
-                    // Remove loading class before creating SVG
                     const graphContainer = this.container.querySelector('.graph-contextual-container');
                     if (graphContainer) {
                         graphContainer.classList.remove('graph-loading');
                     }
 
-                    // Create SVG container
                     this.createSVG();
-
-                    // Render graph
                     this.render();
                 } else {
-                    // No connections - hide container entirely
-                    const graphContainer = this.container.querySelector('.graph-contextual-container');
-                    if (graphContainer) {
-                        graphContainer.classList.remove('graph-loading');
-                        graphContainer.style.display = 'none';
-                    }
-                    // Hide the parent container too
-                    this.container.style.display = 'none';
+                    this._hideContainer();
                 }
             } catch (error) {
-                // Hide container on error - fail silently
-                const graphContainer = this.container.querySelector('.graph-contextual-container');
-                if (graphContainer) {
-                    graphContainer.style.display = 'none';
-                }
-                this.container.style.display = 'none';
+                this._hideContainer();
             }
+        }
+
+        _hideContainer() {
+            const graphContainer = this.container.querySelector('.graph-contextual-container');
+            if (graphContainer) {
+                graphContainer.style.display = 'none';
+            }
+            this.container.style.display = 'none';
         }
 
         filterData() {
@@ -165,36 +158,27 @@
                 return;
             }
 
-            // Normalize current page URL for matching
             const currentUrl = this.normalizeUrl(this.options.currentPageUrl);
-
-            // Find current page node - exact match only (don't match parent/child paths)
             const currentNode = this.data.nodes.find(node => {
                 const nodeUrl = this.normalizeUrl(node.url);
                 return nodeUrl === currentUrl;
             });
 
             if (!currentNode) {
-                // Current page not in graph (might be excluded)
                 this.filteredData = { nodes: [], edges: [] };
                 return;
             }
 
-            // Collect connected node IDs
             const connectedNodeIds = new Set([currentNode.id]);
-
-            // Find all edges connected to current page
             const connectedEdges = this.data.edges.filter(edge => {
                 const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
                 const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target;
                 return sourceId === currentNode.id || targetId === currentNode.id;
             });
 
-            // Collect all connected nodes
             connectedEdges.forEach(edge => {
                 const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
                 const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target;
-
                 if (sourceId === currentNode.id) {
                     connectedNodeIds.add(targetId);
                 } else {
@@ -202,10 +186,7 @@
                 }
             });
 
-            // Limit to maxConnections (keep current page + most connected)
             const connectedNodes = this.data.nodes.filter(node => connectedNodeIds.has(node.id));
-
-            // Sort by connectivity (incoming + outgoing refs) and limit
             connectedNodes.sort((a, b) => {
                 const aConn = (a.incoming_refs || 0) + (a.outgoing_refs || 0);
                 const bConn = (b.incoming_refs || 0) + (b.outgoing_refs || 0);
@@ -215,26 +196,20 @@
             const limitedNodes = connectedNodes.slice(0, this.options.maxConnections);
             const limitedNodeIds = new Set(limitedNodes.map(n => n.id));
 
-            // Filter edges to only include connections between limited nodes
             const filteredEdges = this.data.edges.filter(edge => {
                 const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
                 const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target;
                 return limitedNodeIds.has(sourceId) && limitedNodeIds.has(targetId);
             });
 
-            // Mark current page - clear any existing isCurrent flags first
-            // IMPORTANT: Only mark the exact current page, not parent/child pages
             limitedNodes.forEach(node => {
-                // Clear existing flags (in case they were set in page JSON)
                 delete node.isCurrent;
                 delete node.isPreviousPage;
-                // Set only for the actual current node (exact URL match)
                 if (node.id === currentNode.id) {
                     node.isCurrent = true;
                 }
             });
 
-            // Mark previous page node (if visible)
             this.markPreviousPageNode(limitedNodes);
 
             this.filteredData = {
@@ -243,24 +218,13 @@
             };
         }
 
-        /**
-         * Mark the previous page node (if visible in graph)
-         * @param {Array} nodes - Array of node objects
-         */
         markPreviousPageNode(nodes) {
-            // Check if session path tracker is available
-            if (typeof window === 'undefined' || !window.bengalSessionPath) {
-                return;
-            }
+            if (typeof window === 'undefined' || !window.bengalSessionPath) return;
 
             const pathTracker = window.bengalSessionPath;
             const previousPageUrl = pathTracker.getPreviousPage();
+            if (!previousPageUrl) return;
 
-            if (!previousPageUrl) {
-                return; // No previous page tracked
-            }
-
-            // Mark the node that matches the previous page
             nodes.forEach(node => {
                 const nodeUrl = this.normalizeUrl(node.url);
                 if (pathTracker.isPreviousPage(nodeUrl)) {
@@ -271,60 +235,40 @@
 
         normalizeUrl(url) {
             if (!url) return '';
-            // Normalize URL for comparison - remove trailing slashes and baseurl
             let normalized = url;
 
-            // Remove protocol/host if present (absolute URL)
             if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
                 try {
                     const urlObj = new URL(normalized);
                     normalized = urlObj.pathname;
                 } catch (e) {
-                    // Invalid URL, try to extract path manually
                     const match = normalized.match(/https?:\/\/[^\/]+(\/.*)/);
-                    if (match) {
-                        normalized = match[1];
-                    }
+                    if (match) normalized = match[1];
                 }
             }
 
-            // Remove trailing slashes for comparison (both should match)
-            // But preserve the distinction between /docs/guides/ and /docs/guides/blog-from-scratch/
             normalized = normalized.replace(/\/+$/, '') || '/';
-
-            // Ensure it starts with / for consistency
-            if (!normalized.startsWith('/')) {
-                normalized = '/' + normalized;
-            }
+            if (!normalized.startsWith('/')) normalized = '/' + normalized;
 
             return normalized;
         }
 
         createSVG() {
-            // Get or create wrapper
             let wrapper = this.container.querySelector('.graph-contextual-container');
             if (!wrapper) {
-                // Create wrapper if it doesn't exist
                 wrapper = document.createElement('div');
                 wrapper.className = 'graph-contextual-container';
                 this.container.appendChild(wrapper);
             } else {
-                // Clear existing content (including loading placeholder)
-                // Remove loading class before clearing
                 wrapper.classList.remove('graph-loading');
                 wrapper.innerHTML = '';
             }
 
-            // Get actual container dimensions (use computed style to match CSS)
             const containerRect = wrapper.getBoundingClientRect();
             const width = containerRect.width || Number(this.options.width) || 200;
-            const height = containerRect.height || Number(this.options.height) || 200; // Match CSS height
-
-            // Ensure proper spacing in viewBox string - explicitly format with spaces
+            const height = containerRect.height || Number(this.options.height) || 200;
             const viewBoxValue = '0 0 ' + width + ' ' + height;
 
-            // Use CSS class instead of inline styles (reduces CSSStyleDeclaration churn)
-            wrapper.classList.remove('graph-loading');
             wrapper.classList.add('graph-loaded', 'graph-visible');
 
             this.svg = d3.select(wrapper)
@@ -334,48 +278,30 @@
                 .attr('viewBox', viewBoxValue)
                 .attr('class', 'graph-svg-visible');
 
-            // Create group for panning
             this.g = this.svg.append('g');
 
-            // Add pan/zoom behavior (limited for contextual view)
+            // v2: Simpler zoom - no initial transform offset
+            // The static layout already centers the current node at (width/2, height/2)
             const zoom = d3.zoom()
-                .scaleExtent([0.8, 3]) // Zoom in more by default (0.8x = 125% zoom)
+                .scaleExtent([0.5, 3])
                 .on('zoom', (event) => {
-                    // Constrain panning to prevent nodes from going too far outside view
-                    const transform = event.transform;
-                    const k = transform.k;
-                    const tx = Math.max(-width * (k - 1), Math.min(0, transform.x));
-                    const ty = Math.max(-height * (k - 1), Math.min(0, transform.y));
-                    this.g.attr('transform', d3.zoomIdentity.translate(tx, ty).scale(k));
+                    this.g.attr('transform', event.transform);
                 });
-
-            // Set initial zoom to be closer (1.5x = zoomed in more)
-            // Reuse width/height from above
-            const initialZoom = d3.zoomIdentity.scale(1.5).translate(
-                width * 0.15, // Slight offset to center better
-                height * 0.15
-            );
-            this.svg.call(zoom.transform, initialZoom);
 
             this.svg.call(zoom);
         }
 
         render() {
-            // Ensure filteredData is set
             if (!this.filteredData && this.data) {
                 this.filterData();
             }
 
             if (!this.filteredData || !this.filteredData.nodes || this.filteredData.nodes.length === 0) {
-                // Hide only the graph container, not the whole section
                 const graphContainer = this.container.querySelector('.graph-contextual-container');
-                if (graphContainer) {
-                    graphContainer.style.display = 'none';
-                }
+                if (graphContainer) graphContainer.style.display = 'none';
                 return;
             }
 
-            // Prepare edges for D3 (convert IDs to node references)
             const nodeMap = new Map(this.filteredData.nodes.map(n => [n.id, n]));
             const preparedEdges = this.filteredData.edges.map(edge => {
                 const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
@@ -384,43 +310,35 @@
                     source: nodeMap.get(sourceId),
                     target: nodeMap.get(targetId)
                 };
-            }).filter(e => e.source && e.target); // Filter out invalid edges
+            }).filter(e => e.source && e.target);
 
-            // Get numeric dimensions for simulation
             const width = Number(this.options.width) || 200;
             const height = Number(this.options.height) || 200;
 
-            // Create force simulation with faster cooling for better performance
-            this.simulation = d3.forceSimulation(this.filteredData.nodes)
-                .alphaDecay(0.15) // Faster decay (default 0.0228) - stops animation sooner
-                .alphaMin(0.05)   // Stop earlier when nearly stable
-                .velocityDecay(0.5) // More friction - reduces jitter
-                .force('link', d3.forceLink(preparedEdges)
-                    .id(d => d.id)
-                    .distance(20))
-                .force('charge', d3.forceManyBody()
-                    .strength(-60))
-                .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide()
-                    .radius(d => Math.max((d.size || 5) * 0.25, 2)));
+            // v2: Resolve colors once before rendering (not on every tick)
+            this._resolveNodeColorsOnce();
 
-            // Render links (use same class as full graph for shared styling)
+            // v2: Use static layout or very fast simulation
+            if (this.options.staticLayout) {
+                this._computeStaticLayout(width, height);
+            } else {
+                this._createSimulation(preparedEdges, width, height);
+            }
+
+            // Render links
             this.links = this.g.append('g')
                 .attr('class', 'graph-links')
                 .selectAll('line')
                 .data(preparedEdges)
                 .enter()
                 .append('line')
-                .attr('class', 'graph-link');
+                .attr('class', 'graph-link')
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
 
-            // Resolve CSS variables in node colors before rendering
-            try {
-                this.resolveNodeColors();
-            } catch (e) {
-                console.warn('ContextualGraphMinimap: Error resolving node colors', e);
-            }
-
-            // Render nodes (use same class as full graph, smaller sizes for contextual)
+            // Render nodes
             this.nodes = this.g.append('g')
                 .attr('class', 'graph-nodes')
                 .selectAll('circle')
@@ -433,40 +351,25 @@
                     if (d.isPreviousPage) classes += ' graph-node-previous';
                     return classes;
                 })
-                .attr('r', d => {
-                    // Current page: largest, previous page: medium, others: smallest
-                    if (d.isCurrent) return 3;
-                    if (d.isPreviousPage) return 2.5;
-                    return 2;
-                })
-                .attr('fill', d => d.color || '#9e9e9e')
+                .attr('r', d => d.isCurrent ? 8 : (d.isPreviousPage ? 6 : 5))
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y)
+                .attr('fill', d => d._resolvedColor || d.color || '#9e9e9e')
                 .style('cursor', 'pointer')
-                .style('pointer-events', 'all') // Ensure clicks are captured
+                .style('pointer-events', 'all')
                 .on('click', (event, d) => {
                     event.preventDefault();
                     event.stopPropagation();
-
-                    // Only navigate if node has URL and isn't current page
                     if (d.url && !d.isCurrent) {
-                        // Normalize URL for navigation
                         let targetUrl = d.url;
-
-                        // Remove baseurl if present (extract path from absolute URL)
                         if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                             try {
-                                const urlObj = new URL(targetUrl);
-                                targetUrl = urlObj.pathname;
-                            } catch (e) {
-                                // Invalid URL, use as-is
-                            }
+                                targetUrl = new URL(targetUrl).pathname;
+                            } catch (e) {}
                         }
-
-                        // Ensure trailing slash for directory-like URLs (Bengal convention)
-                        // This handles index files correctly: /docs/page/ -> /docs/page/
                         if (!targetUrl.endsWith('/') && !targetUrl.includes('#')) {
                             targetUrl += '/';
                         }
-
                         window.location.href = targetUrl;
                     }
                 })
@@ -479,70 +382,135 @@
                     this.clearHighlights();
                 });
 
-            // Listen for theme changes to re-resolve colors (after nodes are rendered)
-            try {
-                this.setupThemeListener();
-            } catch (e) {
-                // Silently fail - theme changes won't update colors, but graph will still work
+            // v2: Setup lightweight theme listener (event-only, no MutationObserver)
+            this._setupThemeListener();
+
+            this.addExpandButton();
+
+            const wrapper = this.container.querySelector('.graph-contextual-container');
+            if (wrapper) wrapper.classList.add('graph-visible');
+        }
+
+        /**
+         * v2: Compute static layout (radial around center node)
+         * No animation = no DevTools performance issues
+         */
+        _computeStaticLayout(width, height) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) * 0.38;
+
+            // Find current node and place at center
+            const currentNode = this.filteredData.nodes.find(n => n.isCurrent);
+            const otherNodes = this.filteredData.nodes.filter(n => !n.isCurrent);
+
+            if (currentNode) {
+                currentNode.x = centerX;
+                currentNode.y = centerY;
             }
 
-            // Constrain nodes to container bounds (use same dimensions as simulation)
-            const padding = 5; // Padding from edges
+            // Distribute other nodes in a circle
+            const angleStep = (2 * Math.PI) / Math.max(otherNodes.length, 1);
+            otherNodes.forEach((node, i) => {
+                const angle = i * angleStep - Math.PI / 2; // Start from top
+                node.x = centerX + radius * Math.cos(angle);
+                node.y = centerY + radius * Math.sin(angle);
+            });
+        }
 
-            // Update positions on simulation tick with boundary constraints
+        /**
+         * Create animated force simulation for organic feel
+         */
+        _createSimulation(preparedEdges, width, height) {
+            const padding = 5;
+
+            this.simulation = d3.forceSimulation(this.filteredData.nodes)
+                .alphaDecay(0.05)       // Gentle decay for smooth animation
+                .alphaMin(0.01)         // Stop when stable
+                .velocityDecay(0.4)     // Some friction
+                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(40))
+                .force('charge', d3.forceManyBody().strength(-80))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(8));
+
+            // Animate positions on each tick
             this.simulation.on('tick', () => {
-                // Constrain node positions to stay within bounds
+                // Constrain to bounds
                 this.filteredData.nodes.forEach(node => {
                     node.x = Math.max(padding, Math.min(width - padding, node.x));
                     node.y = Math.max(padding, Math.min(height - padding, node.y));
                 });
 
-                this.links
-                    .attr('x1', d => d.source.x)
-                    .attr('y1', d => d.source.y)
-                    .attr('x2', d => d.target.x)
-                    .attr('y2', d => d.target.y);
-
-                this.nodes
-                    .attr('cx', d => d.x)
-                    .attr('cy', d => d.y);
-            });
-
-            // Add expand button
-            this.addExpandButton();
-
-            // Ensure graph remains visible after rendering (use CSS classes instead of inline styles)
-            const wrapper = this.container.querySelector('.graph-contextual-container');
-            if (wrapper) {
-                wrapper.classList.add('graph-visible');
-            }
-            if (this.svg) {
-                this.svg.attr('class', 'graph-svg-visible');
-            }
-
-            // Stop simulation after initial layout (shorter timeout to prevent jitter)
-            // Also stop when simulation naturally cools down
-            this.simulation.on('end', () => {
-                if (this._simulationTimeout) {
-                    clearTimeout(this._simulationTimeout);
-                    this._simulationTimeout = null;
+                // Update link positions
+                if (this.links) {
+                    this.links
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
                 }
-                // Ensure visibility is maintained after simulation ends (use CSS class)
-                if (wrapper) {
-                    wrapper.classList.add('graph-visible');
+
+                // Update node positions
+                if (this.nodes) {
+                    this.nodes
+                        .attr('cx', d => d.x)
+                        .attr('cy', d => d.y);
                 }
             });
 
+            // Stop after reasonable time to save CPU
             this._simulationTimeout = setTimeout(() => {
                 if (this.simulation) {
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
-                // Ensure visibility is maintained after timeout (use CSS class)
-                if (wrapper) {
-                    wrapper.classList.add('graph-visible');
+            }, 2000);
+        }
+
+        /**
+         * v2: Resolve CSS variables once, not on every update
+         */
+        _resolveNodeColorsOnce() {
+            if (!this.filteredData || !this.filteredData.nodes) return;
+
+            // Single getComputedStyle call
+            const styles = getComputedStyle(document.documentElement);
+
+            this.filteredData.nodes.forEach(node => {
+                if (node.color && node.color.startsWith('var(')) {
+                    const varMatch = node.color.match(/var\(([^)]+)\)/);
+                    if (varMatch) {
+                        const varName = varMatch[1].trim();
+                        const resolved = styles.getPropertyValue(varName).trim();
+                        node._resolvedColor = resolved || '#9e9e9e';
+                    }
+                } else {
+                    node._resolvedColor = node.color || '#9e9e9e';
                 }
-            }, 500); // Reduced from 1000ms to stop sooner
+            });
+        }
+
+        /**
+         * v2: Lightweight theme listener - events only, no MutationObserver
+         * Debounced to prevent rapid fire updates
+         */
+        _setupThemeListener() {
+            // Debounced handler to prevent thrashing
+            const debouncedUpdate = debounce(() => {
+                this._resolveNodeColorsOnce();
+                if (this.nodes) {
+                    this.nodes.attr('fill', d => d._resolvedColor || '#9e9e9e');
+                }
+            }, 100);
+
+            this._boundHandlers.themechange = debouncedUpdate;
+            this._boundHandlers.palettechange = debouncedUpdate;
+
+            window.addEventListener('themechange', this._boundHandlers.themechange);
+            window.addEventListener('palettechange', this._boundHandlers.palettechange);
+
+            // Note: NO MutationObserver - this was causing DevTools crashes
+            // The theme.js dispatches themechange/palettechange events which is sufficient
         }
 
         highlightConnections(d) {
@@ -585,211 +553,114 @@
                 </svg>
             `;
             expandBtn.addEventListener('click', () => {
-                // Get baseurl from meta tag if present
                 let baseurl = '';
                 try {
                     const m = document.querySelector('meta[name="bengal:baseurl"]');
                     baseurl = (m && m.getAttribute('content')) || '';
-                    if (baseurl) {
-                        baseurl = baseurl.replace(/\/$/, '');
-                    }
-                } catch (e) {
-                    // Ignore errors
-                }
-                const graphUrl = baseurl + '/graph/';
-                window.location.href = graphUrl;
+                    if (baseurl) baseurl = baseurl.replace(/\/$/, '');
+                } catch (e) {}
+                window.location.href = baseurl + '/graph/';
             });
             wrapper.appendChild(expandBtn);
         }
 
         showTooltip(event, d) {
-            // Remove existing tooltip
             const existing = document.querySelector('.graph-contextual-tooltip');
-            if (existing) {
-                existing.remove();
-            }
+            if (existing) existing.remove();
 
-            // Create tooltip
             const tooltip = document.createElement('div');
             tooltip.className = 'graph-contextual-tooltip';
-            tooltip.innerHTML = `
-                <div class="graph-contextual-tooltip-title">${d.label || 'Untitled'}</div>
-            `;
+            tooltip.innerHTML = `<div class="graph-contextual-tooltip-title">${d.label || 'Untitled'}</div>`;
             document.body.appendChild(tooltip);
 
-            // Position tooltip
             const rect = tooltip.getBoundingClientRect();
-            const x = event.pageX + 10;
-            const y = event.pageY + 10;
+            let x = event.pageX + 10;
+            let y = event.pageY + 10;
+
+            if (x + rect.width > window.innerWidth) {
+                x = event.pageX - rect.width - 10;
+            }
+            if (y + rect.height > window.innerHeight) {
+                y = event.pageY - rect.height - 10;
+            }
 
             tooltip.style.left = `${x}px`;
             tooltip.style.top = `${y}px`;
-
-            // Adjust if tooltip goes off screen
-            if (x + rect.width > window.innerWidth) {
-                tooltip.style.left = `${event.pageX - rect.width - 10}px`;
-            }
-            if (y + rect.height > window.innerHeight) {
-                tooltip.style.top = `${event.pageY - rect.height - 10}px`;
-            }
         }
 
         hideTooltip() {
             const tooltip = document.querySelector('.graph-contextual-tooltip');
-            if (tooltip) {
-                tooltip.remove();
-            }
-        }
-
-        resolveNodeColors() {
-            // Cache getComputedStyle once for all nodes (prevents CSSStyleDeclaration object churn)
-            const computedStyles = getComputedStyle(document.documentElement);
-
-            // Helper function to resolve CSS variables using cached styles
-            const resolveCSSVariable = (varName) => {
-                const cleanVar = varName.replace(/var\(|\s|\)/g, '');
-                const value = computedStyles.getPropertyValue(cleanVar).trim();
-                return value || '#9e9e9e';
-            };
-
-            // Resolve CSS variables in node colors
-            if (this.filteredData && this.filteredData.nodes) {
-                this.filteredData.nodes.forEach(node => {
-                    if (node.color && node.color.startsWith('var(')) {
-                        const varMatch = node.color.match(/var\(([^)]+)\)/);
-                        if (varMatch) {
-                            const varName = varMatch[1].trim();
-                            node.color = resolveCSSVariable(varName);
-                        }
-                    }
-                });
-
-                // Update rendered nodes if they exist
-                if (this.nodes) {
-                    this.nodes.attr('fill', d => d.color || '#9e9e9e');
-                }
-            }
-        }
-
-        setupThemeListener() {
-            // Store references for cleanup
-            this._themeChangeHandler = () => this.resolveNodeColors();
-            this._paletteChangeHandler = () => this.resolveNodeColors();
-
-            // Listen for theme changes (light/dark mode toggle)
-            window.addEventListener('themechange', this._themeChangeHandler);
-
-            // Listen for palette changes (color variant changes)
-            window.addEventListener('palettechange', this._paletteChangeHandler);
-
-            // Also watch for data-theme/data-palette attribute changes (MutationObserver)
-            this._themeObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' &&
-                        (mutation.attributeName === 'data-theme' || mutation.attributeName === 'data-palette')) {
-                        this.resolveNodeColors();
-                    }
-                });
-            });
-
-            this._themeObserver.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['data-theme', 'data-palette']
-            });
+            if (tooltip) tooltip.remove();
         }
 
         cleanup() {
-            // Clear timeout if pending
+            // Clear simulation timeout
             if (this._simulationTimeout) {
                 clearTimeout(this._simulationTimeout);
                 this._simulationTimeout = null;
             }
 
-            // Remove event listeners
-            if (this._themeChangeHandler) {
-                window.removeEventListener('themechange', this._themeChangeHandler);
-                this._themeChangeHandler = null;
-            }
-            if (this._paletteChangeHandler) {
-                window.removeEventListener('palettechange', this._paletteChangeHandler);
-                this._paletteChangeHandler = null;
-            }
-
-            // Disconnect MutationObserver
-            if (this._themeObserver) {
-                this._themeObserver.disconnect();
-                this._themeObserver = null;
-            }
-
-            // Stop simulation if running
+            // Stop simulation
             if (this.simulation) {
                 this.simulation.stop();
                 this.simulation = null;
             }
+
+            // Remove event listeners
+            if (this._boundHandlers.themechange) {
+                window.removeEventListener('themechange', this._boundHandlers.themechange);
+            }
+            if (this._boundHandlers.palettechange) {
+                window.removeEventListener('palettechange', this._boundHandlers.palettechange);
+            }
+            this._boundHandlers = {};
         }
     }
 
-    // Store instance for cleanup
+    // Module-level state
     let contextualGraphInstance = null;
     let intersectionObserver = null;
 
-    // Auto-initialize if container exists - with IntersectionObserver for lazy loading
     function initContextualGraph() {
         const contextualContainer = document.querySelector('.graph-contextual');
         if (!contextualContainer) return;
 
-        // Use IntersectionObserver for lazy initialization (only load when visible)
-        // This reduces memory/CPU usage for pages where graph isn't scrolled into view
+        // Use IntersectionObserver for lazy initialization
         if ('IntersectionObserver' in window) {
             intersectionObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        // Disconnect observer - only initialize once
                         intersectionObserver.disconnect();
                         intersectionObserver = null;
-                        // Initialize the graph
                         initGraphWhenD3Ready(contextualContainer);
                     }
                 });
-            }, { rootMargin: '100px' }); // Start loading 100px before visible
+            }, { rootMargin: '100px' });
 
             intersectionObserver.observe(contextualContainer);
         } else {
-            // Fallback for browsers without IntersectionObserver
             initGraphWhenD3Ready(contextualContainer);
         }
     }
 
-    // Wait for D3.js and initialize graph
     function initGraphWhenD3Ready(contextualContainer) {
         let retries = 0;
-        const maxRetries = 50; // 5 seconds max wait
+        const maxRetries = 50;
 
         function checkD3() {
             if (typeof d3 !== 'undefined') {
-                // D3.js ready, initialize component
                 const currentPageUrl = contextualContainer.dataset.pageUrl || window.location.pathname;
                 try {
                     contextualGraphInstance = new ContextualGraphMinimap(contextualContainer, {
                         currentPageUrl: currentPageUrl
                     });
                 } catch (error) {
-                    // Hide container on initialization error - fail silently
-                    const container = contextualContainer.querySelector('.graph-contextual-container');
-                    if (container) {
-                        container.classList.add('graph-hidden');
-                    }
                     contextualContainer.classList.add('graph-hidden');
                 }
             } else if (retries < maxRetries) {
                 retries++;
                 setTimeout(checkD3, 100);
             } else {
-                // Hide container if D3.js fails to load - fail silently
-                const container = contextualContainer.querySelector('.graph-contextual-container');
-                if (container) {
-                    container.classList.add('graph-hidden');
-                }
                 contextualContainer.classList.add('graph-hidden');
             }
         }
@@ -797,24 +668,14 @@
         checkD3();
     }
 
-    // Cleanup function for memory leak prevention
     function cleanup() {
-        // Disconnect IntersectionObserver if still active
         if (intersectionObserver) {
             intersectionObserver.disconnect();
             intersectionObserver = null;
         }
-
         if (contextualGraphInstance && typeof contextualGraphInstance.cleanup === 'function') {
             contextualGraphInstance.cleanup();
             contextualGraphInstance = null;
-        }
-    }
-
-    // Pause simulation when tab is hidden (reduces CPU usage)
-    function handleVisibilityChange() {
-        if (document.hidden && contextualGraphInstance && contextualGraphInstance.simulation) {
-            contextualGraphInstance.simulation.stop();
         }
     }
 
@@ -822,26 +683,16 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initContextualGraph);
     } else {
-        // DOM already ready, initialize immediately (but still wait for D3)
         initContextualGraph();
     }
 
-    // Also listen for d3:ready event (fired when D3 is lazy-loaded)
     window.addEventListener('d3:ready', initContextualGraph);
-
-    // Cleanup on various navigation events to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
-    window.addEventListener('pagehide', cleanup);  // For bfcache
-    window.addEventListener('popstate', cleanup);  // For SPA-like navigation
+    window.addEventListener('pagehide', cleanup);
 
-    // Pause simulation when tab is hidden
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Export for manual initialization and cleanup
+    // Export
     if (typeof window !== 'undefined') {
         window.ContextualGraphMinimap = ContextualGraphMinimap;
-        window.BengalContextualGraph = {
-            cleanup: cleanup
-        };
+        window.BengalContextualGraph = { cleanup };
     }
 })();

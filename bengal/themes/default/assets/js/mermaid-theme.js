@@ -432,82 +432,77 @@
 
     /**
      * Re-render Mermaid diagrams when theme or palette changes
+     * v2: Use event listeners instead of MutationObserver to avoid DevTools issues
      */
     function setupThemeObserver() {
         let reRenderTimeout = null;
 
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                if (mutation.type === 'attributes' &&
-                    (mutation.attributeName === 'data-theme' ||
-                        mutation.attributeName === 'data-palette' ||
-                        mutation.attributeName === 'class')) {
+        function handleThemeChange() {
+            // Check if there are any Mermaid diagrams on the page
+            const mermaidElements = document.querySelectorAll('.mermaid');
+            if (mermaidElements.length === 0 || typeof mermaid === 'undefined') {
+                return;
+            }
 
-                    // Check if there are any Mermaid diagrams on the page
-                    const mermaidElements = document.querySelectorAll('.mermaid');
-                    if (mermaidElements.length === 0 || typeof mermaid === 'undefined') {
-                        return;
+            // Debounce re-rendering to avoid multiple rapid updates
+            // Also gives CSS time to update before we read variables
+            if (reRenderTimeout) {
+                clearTimeout(reRenderTimeout);
+            }
+
+            reRenderTimeout = setTimeout(function () {
+                // Restore original syntax before re-rendering
+                restoreMermaidSyntax();
+
+                // Get updated theme config with new CSS variables
+                const updatedConfig = getMermaidThemeConfig();
+
+                // Re-initialize with updated Bengal theme
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: updatedConfig.theme,
+                    themeVariables: updatedConfig.themeVariables,
+                    securityLevel: 'loose',
+                    flowchart: {
+                        useMaxWidth: true,
+                        htmlLabels: true
                     }
+                });
 
-                    // Debounce re-rendering to avoid multiple rapid updates
-                    // Also gives CSS time to update before we read variables
-                    if (reRenderTimeout) {
-                        clearTimeout(reRenderTimeout);
-                    }
-
-                    reRenderTimeout = setTimeout(function () {
-                        // Restore original syntax before re-rendering
-                        restoreMermaidSyntax();
-
-                        // Get updated theme config with new CSS variables
-                        const updatedConfig = getMermaidThemeConfig();
-
-                        // Re-initialize with updated Bengal theme
-                        mermaid.initialize({
-                            startOnLoad: false,
-                            theme: updatedConfig.theme,
-                            themeVariables: updatedConfig.themeVariables,
-                            securityLevel: 'loose',
-                            flowchart: {
-                                useMaxWidth: true,
-                                htmlLabels: true
+                // Re-render all Mermaid diagrams using mermaid.run() with explicit nodes
+                // According to Mermaid docs, this is the preferred way (v10+)
+                const elementsToRender = document.querySelectorAll('.mermaid');
+                if (elementsToRender.length > 0) {
+                    mermaid.run({
+                        nodes: Array.from(elementsToRender),
+                        suppressErrors: false
+                    }).then(() => {
+                        if (window.BengalMermaidToolbar) {
+                            window.BengalMermaidToolbar.setupToolbars();
+                        }
+                    }).catch(function (error) {
+                        log('Mermaid re-render error:', error);
+                        // Fallback: try with querySelector
+                        mermaid.run({
+                            querySelector: '.mermaid',
+                            suppressErrors: true
+                        }).then(() => {
+                            if (window.BengalMermaidToolbar) {
+                                window.BengalMermaidToolbar.setupToolbars();
                             }
                         });
-
-                        // Re-render all Mermaid diagrams using mermaid.run() with explicit nodes
-                        // According to Mermaid docs, this is the preferred way (v10+)
-                        const elementsToRender = document.querySelectorAll('.mermaid');
-                        if (elementsToRender.length > 0) {
-                            mermaid.run({
-                                nodes: Array.from(elementsToRender),
-                                suppressErrors: false
-                            }).then(() => {
-                                if (window.BengalMermaidToolbar) {
-                                    window.BengalMermaidToolbar.setupToolbars();
-                                }
-                            }).catch(function (error) {
-                                log('Mermaid re-render error:', error);
-                                // Fallback: try with querySelector
-                                mermaid.run({
-                                    querySelector: '.mermaid',
-                                    suppressErrors: true
-                                }).then(() => {
-                                    if (window.BengalMermaidToolbar) {
-                                        window.BengalMermaidToolbar.setupToolbars();
-                                    }
-                                });
-                            });
-                        }
-                    }, 50); // Small delay to ensure CSS variables are updated
+                    });
                 }
-            });
-        });
+            }, 50); // Small delay to ensure CSS variables are updated
+        }
 
-        // Observe theme and palette changes on html element
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ['data-theme', 'data-palette', 'class']
-        });
+        // v2: Use event listeners instead of MutationObserver
+        // The theme.js dispatches 'themechange' and 'palettechange' events
+        window.addEventListener('themechange', handleThemeChange);
+        window.addEventListener('palettechange', handleThemeChange);
+
+        // Note: Removed MutationObserver - it was causing DevTools performance issues
+        // The theme system dispatches events which is sufficient for detecting changes
     }
 
     /**
