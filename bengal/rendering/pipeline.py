@@ -647,7 +647,13 @@ class RenderingPipeline:
                             # Create a temporary generator instance to use its page_to_json method
                             # We'll pass graph_data later in post-processing if needed
                             json_gen = PageJSONGenerator(self.site, graph_data=None)
-                            page_data = json_gen.page_to_json(page)
+                            # Respect config option for including HTML content (default: False)
+                            options = output_formats_config.get("options", {})
+                            include_html = options.get("include_html_content", False)
+                            include_text = options.get("include_plain_text", True)
+                            page_data = json_gen.page_to_json(
+                                page, include_html=include_html, include_text=include_text
+                            )
                             self.build_context.accumulate_page_json(json_path, page_data)
                     except Exception as e:
                         # Never fail the build on JSON accumulation errors

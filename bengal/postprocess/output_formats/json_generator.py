@@ -47,6 +47,8 @@ class PageJSONGenerator:
         self,
         site: Site,
         graph_data: dict[str, Any] | None = None,
+        include_html: bool = False,
+        include_text: bool = True,
     ) -> None:
         """
         Initialize the JSON generator.
@@ -54,9 +56,13 @@ class PageJSONGenerator:
         Args:
             site: Site instance
             graph_data: Optional pre-computed graph data for contextual minimap
+            include_html: Whether to include HTML content in JSON (default: False, HTML file already exists)
+            include_text: Whether to include plain text content in JSON (default: True)
         """
         self.site = site
         self.graph_data = graph_data
+        self.include_html = include_html
+        self.include_text = include_text
 
     def generate(
         self, pages: list[Page], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None
@@ -98,7 +104,9 @@ class PageJSONGenerator:
                 json_path = get_page_json_path(page)
                 if not json_path:
                     continue
-                page_data = self.page_to_json(page)
+                page_data = self.page_to_json(
+                    page, include_html=self.include_html, include_text=self.include_text
+                )
                 page_items.append((json_path, page_data))
 
         if not page_items:
