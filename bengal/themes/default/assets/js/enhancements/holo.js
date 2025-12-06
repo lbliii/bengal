@@ -319,28 +319,47 @@
 
   /**
    * Observe DOM for dynamically added elements
+   * Uses debouncing to prevent DevTools-induced feedback loops
    */
   function observeDOM() {
     // Prevent duplicate observers
     if (domObserver) return domObserver;
 
+    // Debounce to batch rapid DOM changes (prevents DevTools crashes)
+    let pendingNodes = [];
+    let debounceTimer = null;
+
+    function processPendingNodes() {
+      const nodes = pendingNodes;
+      pendingNodes = [];
+      debounceTimer = null;
+
+      nodes.forEach((node) => {
+        // Check if the added node is a holo element
+        if (node.matches && node.matches(CONFIG.selectors.all)) {
+          initElement(node);
+        }
+
+        // Check children
+        const children = node.querySelectorAll?.(CONFIG.selectors.all);
+        if (children) {
+          children.forEach(initElement);
+        }
+      });
+    }
+
     domObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-          // Check if the added node is a holo element
-          if (node.matches && node.matches(CONFIG.selectors.all)) {
-            initElement(node);
-          }
-
-          // Check children
-          const children = node.querySelectorAll?.(CONFIG.selectors.all);
-          if (children) {
-            children.forEach(initElement);
-          }
+          pendingNodes.push(node);
         });
       });
+
+      // Debounce processing
+      if (pendingNodes.length > 0 && !debounceTimer) {
+        debounceTimer = setTimeout(processPendingNodes, 50);
+      }
     });
 
     domObserver.observe(document.body, {
