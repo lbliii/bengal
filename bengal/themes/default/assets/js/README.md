@@ -47,11 +47,11 @@ Declare enhancements using the `data-bengal` attribute:
 Options are passed via additional `data-*` attributes:
 
 ```html
-<nav data-bengal="toc" data-spy="true" data-offset="100">
+<nav data-bengal="toc" data-spy="true" data-offset="80">
 ```
 
 - **Boolean values**: `data-spy="true"` or just `data-spy`
-- **Numbers**: `data-offset="120"`
+- **Numbers**: `data-offset="80"`
 - **JSON**: `data-config='{"key": "value"}'`
 
 ### Available Enhancements

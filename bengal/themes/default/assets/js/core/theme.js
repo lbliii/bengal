@@ -1,10 +1,35 @@
 /**
- * Bengal SSG Default Theme
- * Dark Mode Toggle
+ * Bengal Core: Theme Management
+ *
+ * Merged from:
+ * - theme-toggle.js (theme switching functionality)
+ * - theme-init.js (initialization - note: immediate init stays inline in base.html for FOUC prevention)
+ *
+ * Provides theme and palette switching functionality:
+ * - Light/Dark/System theme switching
+ * - Palette selection
+ * - Theme toggle buttons and dropdowns
+ * - System theme preference watching
+ *
+ * Note: Immediate theme initialization (to prevent FOUC) is kept inline in base.html.
+ * This module provides the toggle functionality and DOM-ready initialization.
+ *
+ * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function () {
   'use strict';
+
+  // ============================================================
+  // Dependencies
+  // ============================================================
+
+  // Utils are optional - graceful degradation if not available
+  const log = window.BengalUtils?.log || (() => {});
+
+  // ============================================================
+  // Constants
+  // ============================================================
 
   const THEME_KEY = 'bengal-theme';
   const PALETTE_KEY = 'bengal-palette';
@@ -13,6 +38,16 @@
     LIGHT: 'light',
     DARK: 'dark'
   };
+
+  // ============================================================
+  // State
+  // ============================================================
+
+  let cachedDropdowns = [];
+
+  // ============================================================
+  // Private Functions
+  // ============================================================
 
   /**
    * Get current theme from localStorage or system preference
@@ -69,7 +104,8 @@
   }
 
   /**
-   * Initialize theme
+   * Initialize theme (runs after DOM ready, not immediately)
+   * Note: Immediate init (to prevent FOUC) is kept inline in base.html
    */
   function initTheme() {
     const stored = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
@@ -77,9 +113,6 @@
     const palette = getPalette();
     if (palette) setPalette(palette);
   }
-
-  // Cache dropdown elements and their menus to avoid repeated DOM queries
-  let cachedDropdowns = [];
 
   /**
    * Cache all dropdown elements and their menus
@@ -126,11 +159,8 @@
           btn.classList.remove('active');
         }
       });
-
     });
   }
-
-
 
   /**
    * Setup theme toggle button
@@ -191,8 +221,6 @@
       // Set initial active states
       updateActiveStates();
     });
-
-
   }
 
   /**
@@ -222,20 +250,9 @@
     }
   }
 
-  // Initialize immediately to prevent flash of wrong theme
-  initTheme();
-
-
-  // Setup after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setupToggleButton();
-      watchSystemTheme();
-    });
-  } else {
-    setupToggleButton();
-    watchSystemTheme();
-  }
+  // ============================================================
+  // Public API
+  // ============================================================
 
   // Export for use in other scripts
   window.BengalTheme = {
@@ -245,6 +262,10 @@
     getPalette: getPalette,
     setPalette: setPalette
   };
+
+  // ============================================================
+  // Registration
+  // ============================================================
 
   // Register with progressive enhancement system if available
   // This allows data-bengal="theme-toggle" elements to work with
@@ -271,4 +292,25 @@
       }
     }, { override: true });
   }
+
+  // ============================================================
+  // Auto-initialize
+  // ============================================================
+
+  // Setup after DOM is ready
+  // Note: Immediate theme init (to prevent FOUC) is kept inline in base.html
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      initTheme(); // Re-apply theme after DOM ready (in case inline init didn't run)
+      setupToggleButton();
+      watchSystemTheme();
+    });
+  } else {
+    initTheme();
+    setupToggleButton();
+    watchSystemTheme();
+  }
+
+  log('[BengalTheme] Initialized');
+
 })();

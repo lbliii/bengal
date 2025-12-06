@@ -203,7 +203,7 @@
 
     const highlightNavigation = () => {
       const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      const headerOffset = 100;
+      const headerOffset = 80; // Matches header height + buffer
 
       // Find current section using cached offsets (no DOM reads)
       let foundSection = '';
@@ -419,6 +419,10 @@
    * Initialize all interactive features
    */
   function init() {
+    // IMPORTANT: Clean up any existing handlers before re-initializing
+    // This prevents memory leaks if init is called multiple times
+    cleanup();
+
     // Check if user prefers reduced motion
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

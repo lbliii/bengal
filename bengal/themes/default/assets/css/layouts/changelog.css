@@ -563,6 +563,25 @@
 }
 
 /* ============================================
+   RESPONSIVE: ULTRA-WIDE (Better Proportions)
+   ============================================ */
+
+/* Ultra-wide screens - wider container, more breathing room */
+@media (min-width: 1920px) {
+    .changelog-container,
+    .changelog-single {
+        max-width: var(--container-xl, 1280px);
+        padding: var(--space-10) var(--space-8);
+    }
+
+    /* Timeline content remains readable width */
+    .timeline {
+        max-width: var(--prose-width);
+        margin-inline: auto;
+    }
+}
+
+/* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 

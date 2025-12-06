@@ -255,6 +255,7 @@
    * Table of contents highlighting
    */
   let tocObserver = null;
+  let trackScrollHandler = null;
   function setupTOCHighlight() {
     const toc = document.querySelector('.toc');
     if (!toc) return;
@@ -412,7 +413,7 @@
 
     // Update on scroll (throttled)
     let ticking = false;
-    function onScroll() {
+    trackScrollHandler = function onScroll() {
       if (!ticking) {
         window.requestAnimationFrame(function() {
           updateProgress();
@@ -420,15 +421,19 @@
         });
         ticking = true;
       }
-    }
+    };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', trackScrollHandler, { passive: true });
 
     // Initial update
     updateProgress();
   }
 
   function init() {
+    // IMPORTANT: Clean up any existing observers before re-initializing
+    // This prevents memory leaks if init is called multiple times
+    cleanup();
+
     setupSmoothScroll();
     setupExternalLinks();
     setupCodeCopyButtons();
@@ -452,6 +457,10 @@
     if (tocObserver) {
       tocObserver.disconnect();
       tocObserver = null;
+    }
+    if (trackScrollHandler) {
+      window.removeEventListener('scroll', trackScrollHandler);
+      trackScrollHandler = null;
     }
   }
 

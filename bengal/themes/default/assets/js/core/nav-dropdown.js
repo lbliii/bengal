@@ -1,6 +1,6 @@
 /**
  * Navigation Dropdown Handler
- * 
+ *
  * Handles dropdown menus in main navigation with keyboard navigation support.
  * Uses JavaScript for reliable state management, consistent with theme dropdown pattern.
  */
@@ -13,7 +13,7 @@
    */
   function initNavDropdowns() {
     const navItems = document.querySelectorAll('.nav-main > li');
-    
+
     if (!navItems.length) {
       return;
     }
@@ -21,23 +21,29 @@
     navItems.forEach(function(navItem) {
       const submenu = navItem.querySelector('.submenu');
       const navLink = navItem.querySelector('a');
-      
+
       if (!submenu || !navLink) {
         return;
       }
 
+      // Skip if already initialized to prevent duplicate event listeners
+      if (navItem.dataset.dropdownInit) {
+        return;
+      }
+      navItem.dataset.dropdownInit = 'true';
+
       // Mark nav item as having dropdown
       navItem.classList.add('has-dropdown');
-      
+
       // Initialize state attributes (Supabase/Radix pattern)
       navItem.setAttribute('data-state', 'closed');
       navLink.setAttribute('data-state', 'closed');
-      
+
       // Add ARIA attributes for accessibility
       navLink.setAttribute('aria-haspopup', 'true');
       navLink.setAttribute('aria-expanded', 'false');
       navLink.setAttribute('aria-controls', submenu.id || `submenu-${Math.random().toString(36).substr(2, 9)}`);
-      
+
       if (!submenu.id) {
         submenu.id = navLink.getAttribute('aria-controls');
       }
@@ -50,12 +56,12 @@
        */
       function openDropdown() {
         if (isOpen) return;
-        
+
         isOpen = true;
         navItem.setAttribute('data-state', 'open');
         navLink.setAttribute('data-state', 'open');
         navLink.setAttribute('aria-expanded', 'true');
-        
+
         // Close other dropdowns
         document.querySelectorAll('.nav-main > li[data-state="open"]').forEach(function(item) {
           if (item !== navItem) {
@@ -75,7 +81,7 @@
        */
       function closeDropdown() {
         if (!isOpen) return;
-        
+
         isOpen = false;
         navItem.setAttribute('data-state', 'closed');
         navLink.setAttribute('data-state', 'closed');
@@ -188,4 +194,3 @@
     initNavDropdowns();
   }
 })();
-

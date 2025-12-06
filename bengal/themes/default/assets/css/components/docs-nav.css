@@ -532,7 +532,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* ============================================
    ACTIVE ACCENT BAR GLOW ANIMATION
    ============================================
-   
+
    Peaceful slow glow animation for active navigation items.
    Matches the footer's breathing glow effect.
 */
@@ -616,12 +616,12 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* ============================================================================
    NAVIGATION ICONS (Premium Sidebar Icons)
    ============================================================================
-   
+
    Icons appear alongside directory/section items (not individual pages).
    - Section icons: via section.icon property (from _index.md frontmatter)
-   
+
    Layout: [Caret] [Icon] [Text]
-   
+
    Premium touches:
    - Subtle glow on active items
    - Smooth color transitions
@@ -713,6 +713,9 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
    ============================================================================ */
 
 .docs-nav-link--root {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.25rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-border);

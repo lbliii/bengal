@@ -125,6 +125,26 @@
 }
 
 /* ============================================
+   RESPONSIVE: ULTRA-WIDE (Constrain App Shell)
+   ============================================ */
+
+/* Ultra-wide screens (3xl breakpoint) */
+@media (min-width: 1920px) {
+  .docs-layout {
+    /* Constrain the app shell on ultra-wide monitors */
+    max-width: var(--container-3xl, 1920px);
+    margin-inline: auto;
+    /* Reset the breakout technique */
+    width: 100%;
+    position: static;
+    left: auto;
+    right: auto;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ============================================
    RESPONSIVE: TABLET (Hide TOC)
    ============================================ */
 

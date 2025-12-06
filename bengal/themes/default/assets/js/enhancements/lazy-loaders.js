@@ -21,7 +21,7 @@
 
     // Get asset URLs from template-injected config
     var assets = window.BENGAL_LAZY_ASSETS || {};
-    
+
     // Track loaded libraries to prevent duplicate loads
     var loaded = {
         mermaid: false,
@@ -101,7 +101,7 @@
      */
     function loadMermaid() {
         if (loaded.mermaid || pending.mermaid) return;
-        
+
         pending.mermaid = true;
         loaded.mermaid = true;
 

@@ -3,7 +3,7 @@ title: Documentation
 weight: 5
 draft: false
 lang: en
-icon: docs
+icon: book-open
 
 # 1. Identity (What is it?)
 type: doc
