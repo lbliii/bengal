@@ -13,7 +13,10 @@
    ============================================ */
 
 .home {
-  /* Inherit token system - no custom overrides needed */
+  /* Ensure consistent containment for all home page content */
+  width: 100%;
+  max-width: var(--container-3xl);
+  margin-inline: auto;
 }
 
 /* ============================================
@@ -308,14 +311,25 @@
    ============================================ */
 
 .home-content {
-  max-width: var(--container-prose);
+  /* Container for the markdown body content */
+  max-width: var(--container-xl);
   margin: var(--space-12) auto;
   padding: 0 var(--space-6);
 }
 
+/* When home-content has prose class, constrain text blocks for readability */
+.home-content.prose > p,
+.home-content.prose > ul,
+.home-content.prose > ol,
+.home-content.prose > blockquote {
+  max-width: var(--container-prose, 65ch);
+  margin-inline: auto;
+}
+
+/* Headings - centered and readable */
 .home-content h2 {
-  margin-top: var(--space-12);
-  margin-bottom: var(--space-6);
+  max-width: var(--container-lg);
+  margin: var(--space-12) auto var(--space-6);
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
@@ -323,18 +337,41 @@
 }
 
 .home-content h3 {
-  margin-top: var(--space-8);
-  margin-bottom: var(--space-4);
+  max-width: var(--container-prose, 65ch);
+  margin: var(--space-8) auto var(--space-4);
   font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
-/* Style the cards directive within home content */
+/* Code blocks - contained but not too narrow */
+.home-content pre {
+  max-width: var(--container-md);
+  margin-inline: auto;
+}
+
+/* Card grids - use full container width */
 .home-content .card-grid-container {
   max-width: var(--container-xl);
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline: auto;
+}
+
+/* Tables - full width up to container */
+.home-content table {
+  max-width: var(--container-lg);
+  margin-inline: auto;
+}
+
+/* Horizontal rules - contained */
+.home-content hr {
+  max-width: var(--container-md);
+  margin: var(--space-10) auto;
+}
+
+/* Lists with specific styling */
+.home-content ul,
+.home-content ol {
+  padding-left: var(--space-6);
 }
 
 /* ============================================
