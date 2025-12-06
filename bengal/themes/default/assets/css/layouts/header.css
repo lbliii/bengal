@@ -907,7 +907,9 @@ header .container {
 }
 
 .theme-dropdown__menu button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   text-align: left;
   background: transparent;
