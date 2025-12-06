@@ -353,10 +353,27 @@
     }
   }
 
+  // ============================================================
+  // Registration
+  // ============================================================
+
+  // Register with enhancement system (primary method)
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('lightbox', function(el, options) {
+      // Lightbox auto-initializes on image clicks via event delegation
+      // This registration allows the enhancement system to track it
+      log('[BengalLightbox] Registered via enhancement system');
+    });
+  }
+
+  // ============================================================
+  // Auto-initialize
+  // ============================================================
+
   // Cleanup on page unload to prevent memory leaks
   window.addEventListener('beforeunload', cleanup);
 
-  // Export cleanup for manual cleanup if needed
+  // Export cleanup for manual cleanup if needed (backward compatibility)
   window.BengalLightbox = {
     cleanup: cleanup,
     open: openLightbox,

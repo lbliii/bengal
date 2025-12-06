@@ -253,48 +253,12 @@
 
   /**
    * Table of contents highlighting
+   *
+   * NOTE: TOC highlighting functionality has been moved to enhancements/toc.js
+   * This function is kept here for backward compatibility but is no longer called.
+   * The toc.js module handles all TOC functionality including highlighting.
    */
-  let tocObserver = null;
-  let trackScrollHandler = null;
-  function setupTOCHighlight() {
-    const toc = document.querySelector('.toc');
-    if (!toc) return;
-
-    const headings = document.querySelectorAll('h2[id], h3[id], h4[id]');
-    const tocLinks = toc.querySelectorAll('a');
-
-    if (headings.length === 0 || tocLinks.length === 0) return;
-
-    tocObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          const id = entry.target.getAttribute('id');
-
-          // Remove active class from all links
-          tocLinks.forEach(function (link) {
-            link.classList.remove('active');
-          });
-
-          // Add active class to current link
-          // Use find() to match href ending with the ID (handles IDs starting with numbers)
-          const activeLink = Array.from(tocLinks).find(function (link) {
-            return link.getAttribute('href') === '#' + id;
-          });
-          if (activeLink) {
-            activeLink.classList.add('active');
-          }
-        }
-      });
-    }, {
-      rootMargin: '-60px 0px -80% 0px'
-    });
-
-    headings.forEach(function (heading) {
-      if (tocObserver) {
-        tocObserver.observe(heading);
-      }
-    });
-  }
+  // Removed - functionality moved to enhancements/toc.js
 
   /**
    * Detect keyboard navigation for better focus indicators
@@ -438,7 +402,7 @@
     setupExternalLinks();
     setupCodeCopyButtons();
     setupLazyLoading();
-    setupTOCHighlight();
+    // setupTOCHighlight() removed - TOC highlighting now handled by enhancements/toc.js
     setupKeyboardDetection();
     setupScrollAnimations();
     setupTrackProgress();
@@ -454,10 +418,7 @@
       imageObserver.disconnect();
       imageObserver = null;
     }
-    if (tocObserver) {
-      tocObserver.disconnect();
-      tocObserver = null;
-    }
+    // tocObserver removed - TOC functionality moved to enhancements/toc.js
     if (trackScrollHandler) {
       window.removeEventListener('scroll', trackScrollHandler);
       trackScrollHandler = null;

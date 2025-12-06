@@ -1,15 +1,25 @@
 /**
- * Tabs Component (Robust Implementation)
+ * Bengal Enhancement: Tabs Component
  *
- * Features:
+ * Provides tabbed content functionality:
  * - Event delegation (works with dynamic content)
  * - ID-based targeting (more robust than index-based)
  * - Handles nested tabs correctly
- * - accessible keyboard navigation
+ * - Accessible keyboard navigation
+ *
+ * @requires utils.js (optional, for logging)
+ * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function() {
   'use strict';
+
+  // ============================================================
+  // Dependencies
+  // ============================================================
+
+  // Utils are optional - graceful degradation if not available
+  const log = window.BengalUtils?.log || (() => {});
 
   // CSS classes
   const CLASS_ACTIVE = 'active';
@@ -108,11 +118,19 @@
     });
   }
 
+  // ============================================================
+  // Auto-initialize
+  // ============================================================
+
   // Initialize on load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTabs);
+    document.addEventListener('DOMContentLoaded', () => {
+      initTabs();
+      log('[BengalTabs] Initialized');
+    });
   } else {
     initTabs();
+    log('[BengalTabs] Initialized');
   }
 
   // Register with progressive enhancement system if available

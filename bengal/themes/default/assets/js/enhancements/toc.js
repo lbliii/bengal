@@ -533,6 +533,18 @@
   }
 
   // ============================================================================
+  // Registration
+  // ============================================================================
+
+  // Register with enhancement system (primary method)
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('toc', function(el, options) {
+      // Initialize TOC for this specific element
+      initTOC();
+    });
+  }
+
+  // ============================================================================
   // Auto-initialize
   // ============================================================================
 
@@ -541,7 +553,7 @@
   // Re-initialize on dynamic content load
   window.addEventListener('contentLoaded', initTOC);
 
-  // Export for use by other scripts
+  // Export for use by other scripts (backward compatibility)
   window.BengalTOC = {
     init: initTOC,
     cleanup: cleanup,

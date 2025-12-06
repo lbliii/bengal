@@ -1,10 +1,29 @@
 /**
- * Bengal SSG Default Theme
- * Mobile Navigation
+ * Bengal Enhancement: Mobile Navigation
+ *
+ * Provides mobile navigation menu functionality:
+ * - Slide-out menu with backdrop
+ * - Focus trap for accessibility
+ * - Keyboard navigation support
+ * - Submenu handling
+ *
+ * @requires utils.js (optional, for logging)
+ * @requires bengal-enhance.js (for enhancement registration)
  */
 
 (function() {
   'use strict';
+
+  // ============================================================
+  // Dependencies
+  // ============================================================
+
+  // Utils are optional - graceful degradation if not available
+  const log = window.BengalUtils?.log || (() => {});
+
+  // ============================================================
+  // State
+  // ============================================================
 
   let mobileNav = null;
   let backdrop = null;
@@ -153,8 +172,11 @@
     closeBtn = document.querySelector('.mobile-nav-close');
 
     if (!mobileNav || !toggleBtn) {
+      log('[BengalNav] Mobile nav elements not found');
       return;
     }
+
+    log('[BengalNav] Initialized');
 
     // Toggle button
     toggleBtn.addEventListener('click', toggleNav);

@@ -457,13 +457,39 @@
     cleanupHandlers.keydown = [];
   }
 
+  // ============================================================
+  // Registration
+  // ============================================================
+
+  // Register with enhancement system (multiple registrations for different features)
+  if (window.Bengal && window.Bengal.enhance) {
+    // Back to top button
+    Bengal.enhance.register('back-to-top', function(el, options) {
+      setupBackToTop();
+    });
+
+    // Reading progress bar
+    Bengal.enhance.register('reading-progress', function(el, options) {
+      setupReadingProgress();
+    });
+
+    // Docs navigation scroll spy
+    Bengal.enhance.register('docs-nav', function(el, options) {
+      setupScrollSpy();
+    });
+  }
+
+  // ============================================================
+  // Auto-initialize
+  // ============================================================
+
   // Initialize when DOM is ready
   ready(init);
 
   // Cleanup on page unload to prevent memory leaks
   window.addEventListener('beforeunload', cleanup);
 
-  // Export cleanup for manual cleanup if needed
+  // Export cleanup for manual cleanup if needed (backward compatibility)
   window.BengalInteractive = {
     cleanup: cleanup
   };
