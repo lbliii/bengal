@@ -8,7 +8,7 @@ Variables:
 - page._section: Current section (for determining root)
 - page._section.root: Root section to display from
 - site: Site object (fallback when no section)
-- show_nav_icons: Whether to show navigation icons (default: true)
+- show_nav_icons: Whether to show section icons (default: true)
 
 Features:
 - Hierarchical tree structure
@@ -17,7 +17,7 @@ Features:
 - Scoped to current section tree
 - Recursive subsection rendering
 - Keyboard accessible
-- Section and page icons from frontmatter
+- Section icons from frontmatter (directories only, not pages)
 
 Note:
 Includes 'partials/docs-nav-section.html' for recursive rendering.
@@ -80,17 +80,10 @@ Usage:
     {# Use relative_url for comparisons (without baseurl) #}
     {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    {% set p_icon = p.metadata.get('icon') if p.metadata else none %}
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
       %}aria-current="page" {% endif %}>
-      {# Page Icon (from frontmatter) #}
-      {% if show_nav_icons %}
-      <span class="docs-nav-icon docs-nav-icon--page" {% if not p_icon %}data-default="true" {% endif %}>
-        {{ icon(p_icon or 'file-text', size=14) }}
-      </span>
-      {% endif %}
-      <span class="docs-nav-link-text">{{ p.title }}</span>
+      {{ p.title }}
     </a>
     {% endif %}
     {% endfor %}
@@ -114,17 +107,10 @@ Usage:
     {% for p in top_pages %}
     {# Use relative_url for comparisons (without baseurl) #}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    {% set p_icon = p.metadata.get('icon') if p.metadata else none %}
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
       %}aria-current="page" {% endif %}>
-      {# Page Icon (from frontmatter) #}
-      {% if show_nav_icons %}
-      <span class="docs-nav-icon docs-nav-icon--page" {% if not p_icon %}data-default="true" {% endif %}>
-        {{ icon(p_icon or 'file-text', size=14) }}
-      </span>
-      {% endif %}
-      <span class="docs-nav-link-text">{{ p.title }}</span>
+      {{ p.title }}
     </a>
     {% endfor %}
 

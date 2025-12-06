@@ -617,16 +617,15 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
    NAVIGATION ICONS (Premium Sidebar Icons)
    ============================================================================
    
-   Icons appear alongside navigation items, sourced from frontmatter.
-   - Section icons: via section.icon property (from _index.md)
-   - Page icons: via page.metadata.icon (from page frontmatter)
+   Icons appear alongside directory/section items (not individual pages).
+   - Section icons: via section.icon property (from _index.md frontmatter)
    
    Layout: [Caret] [Icon] [Text]
    
    Premium touches:
    - Subtle glow on active items
    - Smooth color transitions
-   - Muted default icons (for items without explicit icon)
+   - Muted default icons (for sections without explicit icon)
 */
 
 /* Base icon container */
@@ -642,8 +641,8 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   transition: color var(--transition-fast), filter var(--transition-fast), transform var(--transition-fast);
 }
 
-/* Smaller icons for pages (vs sections) */
-.docs-nav-icon--page {
+/* Smaller icons for leaf sections */
+.docs-nav-icon--section {
   width: 16px;
   min-width: 16px;
   height: 16px;
@@ -673,9 +672,9 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
 }
 
-/* Active page icons (in nav links) */
-.docs-nav-link.active .docs-nav-icon,
-.docs-nav-link[aria-current="page"] .docs-nav-icon {
+/* Active leaf section icons (in nav links) */
+.docs-nav-link--section.active .docs-nav-icon,
+.docs-nav-link--section[aria-current="page"] .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
@@ -690,17 +689,17 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* ============================================================================
-   LINK TEXT STYLING (with icon)
+   SECTION LINK STYLING (with icon)
    ============================================================================ */
 
-/* Make nav links flex containers for icon + text layout */
-.docs-nav-link {
+/* Leaf section links use flex for icon + text layout */
+.docs-nav-link--section {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* Text element within link */
+/* Text element within section link */
 .docs-nav-link-text {
   flex: 1;
   min-width: 0; /* Allow text to shrink for ellipsis */
@@ -746,8 +745,8 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* Brighter glow in dark mode */
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) .docs-nav-icon,
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon,
-[data-theme="dark"] .docs-nav-link.active .docs-nav-icon,
-[data-theme="dark"] .docs-nav-link[aria-current="page"] .docs-nav-icon {
+[data-theme="dark"] .docs-nav-link--section.active .docs-nav-icon,
+[data-theme="dark"] .docs-nav-link--section[aria-current="page"] .docs-nav-icon {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
 }
 

@@ -12,9 +12,9 @@
 
 Extend the Component Model to **template partials** with two key mechanisms:
 1.  **Explicit Props**: Typed configuration for components (e.g., `show_reading_time=true`) via Jinja2 macros.
-2.  **Atomic Layering**: Decompose complex components into reusable, overridable parts.
+2.  **Atomic Layering**: Decompose complex components into reusable, overridable parts ("Atoms" and "Molecules").
 
-**Key Insight**: By decomposing large partials (like `page-hero`) into smaller "atoms" and "molecules" (like `share_widget`), we allow themers to customize specific parts via the theme chain without rewriting the entire component.
+**Key Insight**: By decomposing large partials (like `page-hero`) into smaller "atoms" (like `hero_title`) and "molecules" (like `share_widget`), we allow themers to customize specific parts via the theme chain without rewriting the entire component. This enables "Swizzling"—overriding just the part you need.
 
 ---
 
@@ -33,8 +33,9 @@ The `page-hero.html` partial is a dispatcher that routes to 4 different implemen
 
 Problems:
 1.  **Monolithic**: The "Share with AI" dropdown logic is trapped inside the hero. You can't use it in the footer.
-2.  **Rigidity**: A themer cannot change the date format without copying the entire 150-line file, including the complex share logic.
+2.  **Rigidity**: A themer cannot change the date format without copying the entire 150-line file, shielding them from future bug fixes to the share widget.
 3.  **Duplication**: Similar logic is repeated across `editorial` and `magazine`.
+4.  **Drift**: Templates like `api-reference` have drifted from `doc` because the dispatcher is too rigid to reuse.
 
 ---
 
@@ -48,30 +49,32 @@ We apply **Atomic Design** principles to Jinja macros:
 *   **Molecules**: Functional units composed of atoms (e.g., `share_widget` - the complex AI dropdown).
 *   **Organisms**: Complex sections composed of molecules/atoms (e.g., `page_hero`).
 
-### 2. Props Convention
+### 2. Props Convention & Explicit Context
 
-Every component accepts typed props and supports content injection:
+Every component accepts typed props. **Crucially**, we pass explicit arguments to avoid "Context Traps" (Jinja2 scoping issues).
 
 ```jinja2
 {# partials/components/page-hero.html #}
 
-{% from 'partials/components/share-widget.html' import share_widget with context %}
-{% from 'partials/components/atoms/hero-title.html' import hero_title with context %}
+{% from 'partials/components/share-widget.html' import share_widget %}
+{% from 'partials/components/atoms/hero-title.html' import hero_title %}
 
 {% macro page_hero(
+    page,
     show_share=true,
     title_tag='h1',
     extra_classes="",
     **overrides
 ) %}
     <header class="page-hero {{ extra_classes }}">
-
-        {{ hero_title(tag=title_tag) }}
+        
+        {# Explicitly pass data to atoms - SAFE #}
+        {{ hero_title(title=page.title, tag=title_tag) }}
 
         {% if show_share %}
-            {# Reusing the complex share logic as a component #}
             <div class="page-hero__actions">
-                {{ share_widget(context='hero') }}
+                {# Pass class_prefix to adapt BEM styling #}
+                {{ share_widget(page=page, class_prefix='page-hero') }}
             </div>
         {% endif %}
 
@@ -81,7 +84,7 @@ Every component accepts typed props and supports content injection:
 {% endmacro %}
 ```
 
-### 3. Layering via Theme Chain
+### 3. Layering via Theme Chain (Swizzling)
 
 Because Bengal resolves imports via the theme chain, layering is native:
 
@@ -97,11 +100,11 @@ Because Bengal resolves imports via the theme chain, layering is native:
 
 | Component | Type | Props | Description |
 |-----------|------|-------|-------------|
-| `page_hero` | Organism | `show_share`, `preset` | The main hero wrapper. Composes title, meta, widget. |
-| `share_widget` | Molecule | `url`, `title`, `orientation` | **NEW**: The complex AI share dropdown. Reusable! |
-| `hero_title` | Atom | `title`, `tag` | Renders the title. |
-| `hero_meta` | Atom | `show_date`, `show_time` | Renders metadata line. |
-| `toc` | Molecule | `collapsible`, `max_depth` | Table of contents. |
+| `page_hero` | Organism | `page`, `show_share`, `preset` | The main hero wrapper. Composes title, meta, widget. |
+| `share_widget` | Molecule | `page`, `class_prefix` | **NEW**: The complex AI share dropdown. Reusable! |
+| `hero_title` | Atom | `title`, `tag`, `class_prefix` | Renders the title. |
+| `hero_meta` | Atom | `page`, `show_date`, `class_prefix` | Renders metadata line. |
+| `toc` | Molecule | `page`, `collapsible`, `max_depth` | Table of contents. |
 
 ---
 
@@ -121,11 +124,22 @@ partials/
 
 ---
 
-## Benefits for Themers
+## Benefits
 
 1.  **Reusability**: The `share_widget` can now be used in the footer or sidebar, not just the hero.
 2.  **Surgical Overrides**: Change the `hero_title` markup without touching the complex `share_widget` logic.
-3.  **Composition**: Build new layouts by composing existing atoms/molecules.
+3.  **Safe Upgrades**: Themers who override atoms still receive updates/fixes to the molecules they didn't touch.
+4.  **Consistency**: Use the same `page_hero` macro across Doc, API, and Blog layouts with different props.
+
+---
+
+## Risks & Mitigations (Gotchas)
+
+| Risk | Description | Mitigation |
+|------|-------------|------------|
+| **Context Trap** | Macros don't see global context. | **Rule**: Always pass explicit arguments (e.g., pass `page` object). |
+| **CSS Prefixing** | Reused widgets might break layout. | **Rule**: Atoms must accept `class_prefix` prop to adapt BEM classes. |
+| **Name Collisions** | Overriding files requires matching macro names. | **Doc**: Explicitly document required macro names for overrides. |
 
 ---
 

@@ -14,7 +14,7 @@ Variables:
 - section.has_nav_children: Whether section has navigable children
 - depth: Current nesting depth for styling (required)
 - page: Current page object (for active highlighting)
-- show_nav_icons: Whether to show navigation icons (default: true)
+- show_nav_icons: Whether to show section icons (default: true)
 
 Features:
 - Collapsible section with toggle button (only when has children)
@@ -23,7 +23,7 @@ Features:
 - Active page highlighting
 - Recursive rendering of subsections
 - Smart title display (extracts short names from dotted titles)
-- Section and page icons from frontmatter
+- Section icons from frontmatter (directories only, not pages)
 
 Note:
 This component calls itself recursively for subsections.
@@ -83,18 +83,11 @@ Usage:
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    {% set p_icon = p.metadata.get('icon') if p.metadata else none %}
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}"
       class="docs-nav-link {% if p_is_active %}active{% endif %}"
       {% if p_is_active %}aria-current="page"{% endif %}>
-      {# Page Icon (from frontmatter) #}
-      {% if show_nav_icons %}
-      <span class="docs-nav-icon docs-nav-icon--page" {% if not p_icon %}data-default="true"{% endif %}>
-        {{ icon(p_icon or 'file-text', size=14) }}
-      </span>
-      {% endif %}
-      <span class="docs-nav-link-text">{{ display_title }}</span>
+      {{ display_title }}
     </a>
     {% endif %}
     {% endfor %}
