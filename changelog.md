@@ -6,11 +6,9 @@
 - **themes(js)**: unified `data-bengal` attribute pattern for declaring enhancements (e.g., `<div data-bengal="tabs">`)
 - **themes(js)**: enhancement configuration via additional `data-*` attributes (booleans, numbers, JSON parsed automatically)
 - **themes(js)**: MutationObserver watches for dynamic content and auto-enhances new elements
-- **themes(js)**: backward compatibility maintained - existing scripts register with new system when available
 - **themes(base.html)**: load enhancement loader before other scripts; add configuration for base URL and debug mode
 - **themes(base.html)**: add `data-bengal` attributes to mobile-nav, back-to-top, and lightbox components
 - **themes(partials)**: add `data-bengal` to search-modal and toc-sidebar components
-- **themes(js)**: add enhancement registration to lightbox.js, interactive.js, and search-modal.js
 - **config**: add `[enhancements]` config section with `watch_dom`, `debug`, and `base_url` options
 - **docs**: add enhancement README with usage examples and custom enhancement guide
 

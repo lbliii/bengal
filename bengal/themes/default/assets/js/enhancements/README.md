@@ -102,10 +102,6 @@ Bengal.enhance.enhanceAll();
 Bengal.enhance.enhanceElement(element);
 ```
 
-## Backward Compatibility
-
-The existing scripts (`theme-toggle.js`, `tabs.js`, etc.) continue to work and also register with the enhancement system when available. Migration to `data-bengal` attributes is optional.
-
 ## See Also
 
 - [RFC: Progressive Enhancements Architecture](../../../../../../plan/active/rfc-progressive-enhancements.md)

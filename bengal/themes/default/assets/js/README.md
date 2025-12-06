@@ -116,18 +116,6 @@ Then use it:
 
 Non-preloaded enhancements are automatically lazy-loaded when their elements are detected. Scripts are fetched from `/assets/js/enhancements/{name}.js`.
 
-### Backward Compatibility
-
-The existing scripts (`theme-toggle.js`, `tabs.js`, etc.) continue to work exactly as before. They also register with the enhancement system when available, so both patterns work:
-
-```html
-<!-- Old pattern (still works) -->
-<button class="theme-toggle">Toggle</button>
-
-<!-- New pattern -->
-<button data-bengal="theme-toggle">Toggle</button>
-```
-
 ### Configuration
 
 ```toml

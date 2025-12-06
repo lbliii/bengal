@@ -363,19 +363,4 @@
     close: closeLightbox
   };
 
-  // Register with progressive enhancement system if available
-  // This allows data-bengal="lightbox" elements to work with
-  // the new enhancement loader while maintaining backward compatibility
-  if (window.Bengal && window.Bengal.enhance) {
-    Bengal.enhance.register('lightbox', function(el, options) {
-      // The lightbox container is the overlay itself
-      // The existing init handles setup, this registers for consistency
-      el._bengalLightbox = {
-        open: openLightbox,
-        close: closeLightbox,
-        cleanup: cleanup
-      };
-    }, { override: true });
-  }
-
 })();
