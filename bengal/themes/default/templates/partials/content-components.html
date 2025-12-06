@@ -156,9 +156,10 @@ subsection.metadata.get('description', '') else '',
     {% for item in sorted_items %}
     <article class="child-item">
       <div class="child-item-icon">
-        {% if item.icon %}
-        {# Use custom icon from frontmatter (Phosphor icons) #}
-        {{ icon(item.icon, size=20) }}
+        {# Try custom icon from frontmatter first, then fall back to type-based default #}
+        {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
+        {% if rendered_icon %}
+        {{ rendered_icon }}
         {% elif item.type == 'section' %}
         {# Default folder icon for sections #}
         {{ icon('folder', size=20) }}

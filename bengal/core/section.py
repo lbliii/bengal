@@ -90,6 +90,37 @@ class Section:
         return self.metadata.get("title", self.name.replace("-", " ").title())
 
     @property
+    def icon(self) -> str | None:
+        """
+        Get section icon from index page metadata.
+
+        Icons can be specified in a section's _index.md frontmatter:
+
+            ---
+            title: API Reference
+            icon: book
+            ---
+
+        The icon name should match a Phosphor icon in the icon library
+        (e.g., 'book', 'folder', 'terminal', 'code').
+
+        Returns:
+            Icon name string, or None if no icon is specified
+
+        Example:
+            {% if section.icon %}
+              {{ icon(section.icon, size=16) }}
+            {% endif %}
+        """
+        # First check index page metadata (preferred source)
+        if self.index_page and hasattr(self.index_page, "metadata"):
+            icon_value = self.index_page.metadata.get("icon")
+            if icon_value:
+                return icon_value
+        # Fall back to section metadata (in case copied during add_page)
+        return self.metadata.get("icon")
+
+    @property
     def hierarchy(self) -> list[str]:
         """
         Get the full hierarchy path of this section.

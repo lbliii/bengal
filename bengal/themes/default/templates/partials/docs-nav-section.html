@@ -7,12 +7,14 @@ Variables:
 - section: Section object to render (required)
 - section.title: Section title
 - section.url: Section URL
+- section.icon: Section icon from frontmatter (optional)
 - section.index_page: Section index page (optional)
 - section.sorted_pages: Pages in section (pre-sorted by weight)
 - section.sorted_subsections: Subsections (pre-sorted by weight)
 - section.has_nav_children: Whether section has navigable children
 - depth: Current nesting depth for styling (required)
 - page: Current page object (for active highlighting)
+- show_nav_icons: Whether to show navigation icons (default: true)
 
 Features:
 - Collapsible section with toggle button (only when has children)
@@ -21,6 +23,7 @@ Features:
 - Active page highlighting
 - Recursive rendering of subsections
 - Smart title display (extracts short names from dotted titles)
+- Section and page icons from frontmatter
 
 Note:
 This component calls itself recursively for subsections.
@@ -36,6 +39,9 @@ Usage:
 {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
 {% set section_url_normalized = section.index_page.relative_url.rstrip('/') if (section.index_page and section.index_page.relative_url) else '' %}
 {% set is_active = (page is defined and page and current_url == section_url_normalized) %}
+{% set section_icon = section.icon if section.icon else none %}
+{# Control icon visibility - defaults to true, can be overridden by template #}
+{% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
 
 {% if section.has_nav_children %}
 {# ===== EXPANDABLE SECTION (has children) ===== #}
@@ -43,8 +49,15 @@ Usage:
   {# Section Toggle Button - with link functionality #}
   <div class="docs-nav-group-toggle-wrapper">
     <button class="docs-nav-group-toggle" aria-expanded="false" aria-controls="nav-section-{{ section.url | slugify }}">
-      {{ icon('caret-right', size=16) }}
+      {{ icon('caret-right', size=14) }}
     </button>
+
+    {# Section Icon (from frontmatter) #}
+    {% if show_nav_icons %}
+    <span class="docs-nav-icon" {% if not section_icon %}data-default="true"{% endif %}>
+      {{ icon(section_icon or 'folder', size=16) }}
+    </span>
+    {% endif %}
 
     {% if section.index_page %}
     <a href="{{ section.index_page.url }}"
@@ -70,10 +83,18 @@ Usage:
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
+    {% set p_icon = p.metadata.get('icon') if p.metadata else none %}
+    {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
-      {{ display_title }}
+      class="docs-nav-link {% if p_is_active %}active{% endif %}"
+      {% if p_is_active %}aria-current="page"{% endif %}>
+      {# Page Icon (from frontmatter) #}
+      {% if show_nav_icons %}
+      <span class="docs-nav-icon docs-nav-icon--page" {% if not p_icon %}data-default="true"{% endif %}>
+        {{ icon(p_icon or 'file-text', size=14) }}
+      </span>
+      {% endif %}
+      <span class="docs-nav-link-text">{{ display_title }}</span>
     </a>
     {% endif %}
     {% endfor %}
@@ -94,10 +115,24 @@ Usage:
   <a href="{{ section.index_page.url }}"
     class="docs-nav-link docs-nav-link--section {% if is_active %}active{% endif %}"
     {% if is_active %}aria-current="page"{% endif %}>
-    {{ section_title }}
+    {# Leaf Section Icon (from frontmatter) #}
+    {% if show_nav_icons %}
+    <span class="docs-nav-icon docs-nav-icon--section" {% if not section_icon %}data-default="true"{% endif %}>
+      {{ icon(section_icon or 'folder', size=14) }}
+    </span>
+    {% endif %}
+    <span class="docs-nav-link-text">{{ section_title }}</span>
   </a>
   {% else %}
-  <span class="docs-nav-link docs-nav-link--section">{{ section_title }}</span>
+  <span class="docs-nav-link docs-nav-link--section">
+    {# Leaf Section Icon (from frontmatter) #}
+    {% if show_nav_icons %}
+    <span class="docs-nav-icon docs-nav-icon--section" {% if not section_icon %}data-default="true"{% endif %}>
+      {{ icon(section_icon or 'folder', size=14) }}
+    </span>
+    {% endif %}
+    <span class="docs-nav-link-text">{{ section_title }}</span>
+  </span>
   {% endif %}
 </div>
 {% endif %}

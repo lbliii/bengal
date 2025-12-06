@@ -172,7 +172,7 @@ ICON_MAP: dict[str, str] = {
     "download": "download",
     "upload": "upload",
     # UI & Metadata
-    "settings": "gear",
+    "settings": "settings",
     "star": "star",
     "heart": "heart",
     "bookmark": "bookmark",
@@ -197,10 +197,10 @@ ICON_MAP: dict[str, str] = {
     "terminal": "terminal",
     "docs": "file-text",
     "notepad": "note",
-    # Mid-century modern (keep custom or find closest match)
-    "atomic": "atom",
-    "starburst": "star-four",
-    "boomerang": "arrow-arc-left",
+    # Mid-century modern (Bengal custom icons)
+    "atomic": "atomic",
+    "starburst": "starburst",
+    "boomerang": "boomerang",
 }
 
 
@@ -265,4 +265,3 @@ def render_icon(name: str, size: int = 20) -> str:
 
     # Return empty string if no icon found (no emoji fallback)
     return ""
-
