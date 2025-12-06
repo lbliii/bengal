@@ -36,6 +36,7 @@ from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
+from bengal.rendering.plugins.directives.icon import IconDirective
 from bengal.rendering.plugins.directives.include import IncludeDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.literalinclude import LiteralIncludeDirective
@@ -97,6 +98,8 @@ DIRECTIVE_CLASSES: list[type] = [
     DataTableDirective,
     # Glossary (glossary)
     GlossaryDirective,
+    # Icon (icon, svg-icon)
+    IconDirective,
     # Checklist (checklist)
     ChecklistDirective,
     # Steps (steps, step)
@@ -241,6 +244,7 @@ def create_documentation_directives():
                 ListTableDirective(),  # MyST list-table for tables without pipe issues
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
                 GlossaryDirective(),  # Key terms from centralized glossary data file
+                IconDirective(),  # Inline SVG icons from theme icon library
                 CardsDirective(),  # Modern card grid system
                 CardDirective(),  # Individual cards
                 ChildCardsDirective(),  # Auto-generate cards from children
