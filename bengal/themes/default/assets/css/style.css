@@ -292,7 +292,10 @@
    PAGE-SPECIFIC STYLES
    ============================================ */
 
-/* Removed page-specific CSS in favor of reusable components */
+/* Landing page / home page components */
+@layer pages {
+  @import url('pages/landing.css');
+}
 
 /* ============================================
    CUSTOM GLOBAL STYLES

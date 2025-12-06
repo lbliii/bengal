@@ -3,13 +3,13 @@
 title: "init"
 type: "cli-reference"
 source_file: "bengal/cli/helpers/error_handling.py"
-line_number: 365
-description: "🏗️  Initialize site structure with sections and pages."
+line_number: 83
+description: "🏗️  Initialize site structure. Uses the Component Model to generate sections and pages."
 ---
 
 # init
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/helpers/error_handling.py#L365)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/helpers/error_handling.py#L83)
 
 :::{badge} Command
 :class: badge-secondary
@@ -20,7 +20,9 @@ description: "🏗️  Initialize site structure with sections and pages."
 **Command:** `bengal.project.init`
 
 
-🏗️  Initialize site structure with sections and pages.
+🏗️  Initialize site structure.
+
+Uses the Component Model to generate sections and pages.
 
 ## Usage
 
@@ -33,7 +35,7 @@ init [OPTIONS] [ARGUMENTS]
 ### `sections`
 
 
-Content sections to create (e.g., blog posts about). Default: blog
+Content sections to create (e.g., blog, docs). Default: blog
 
 **Type:** `text`
 

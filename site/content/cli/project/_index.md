@@ -63,7 +63,9 @@ Shows:
 
 ### `init`
 
-🏗️  Initialize site structure with sections and pages.
+🏗️  Initialize site structure.
+
+Uses the Component Model to generate sections and pages.
 
 **Usage:** `project init [OPTIONS]`
 

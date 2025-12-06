@@ -41,23 +41,24 @@
         </div>
     </header>
 
-    {# Feature Highlights #}
+    {# Feature Highlights - Value Proposition Grid #}
     {% if page.metadata.get('features') %}
-    <section class="features">
+    <section class="features" aria-label="Key features">
         <div class="features-grid">
             {% for feature in page.metadata.get('features') %}
-            <div class="feature-card gradient-border-strong fluid-bg">
+            <article class="feature-card">
                 {% if feature.icon %}
-                <div class="feature-icon">{{ feature.icon }}</div>
+                <div class="feature-icon" aria-hidden="true">{{ feature.icon }}</div>
                 {% endif %}
                 <h3 class="feature-title">{{ feature.title }}</h3>
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
                 <a href="{{ feature.link.url }}" class="feature-link">
-                    {{ feature.link.text | default('Learn more') }} →
+                    {{ feature.link.text | default('Learn more') }}
+                    <span aria-hidden="true">→</span>
                 </a>
                 {% endif %}
-            </div>
+            </article>
             {% endfor %}
         </div>
     </section>
@@ -68,15 +69,15 @@
         {{ content | safe }}
     </div>
 
-    {# Quick Links Section #}
+    {# Quick Links Section - Navigation Cards #}
     {% if page.metadata.get('quick_links') %}
-    <section class="quick-links">
+    <section class="quick-links" aria-label="Quick navigation">
         <h2>Quick Links</h2>
         <div class="quick-links-grid">
             {% for link in page.metadata.get('quick_links') %}
             <a href="{{ link.url }}" class="quick-link-card">
                 {% if link.icon %}
-                <div class="quick-link-icon">{{ link.icon }}</div>
+                <div class="quick-link-icon" aria-hidden="true">{{ link.icon }}</div>
                 {% endif %}
                 <h3>{{ link.title }}</h3>
                 {% if link.description %}
@@ -88,12 +89,12 @@
     </section>
     {% endif %}
 
-    {# Statistics/Metrics Section #}
+    {# Statistics/Metrics Section - Impressive Numbers #}
     {% if page.metadata.get('stats') %}
-    <section class="stats">
+    <section class="stats" aria-label="Key metrics">
         <div class="stats-grid">
             {% for stat in page.metadata.get('stats') %}
-            <div class="stat-card gradient-border-subtle">
+            <div class="stat-card">
                 <div class="stat-value">{{ stat.value }}</div>
                 <div class="stat-label">{{ stat.label }}</div>
             </div>
