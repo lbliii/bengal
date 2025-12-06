@@ -203,6 +203,68 @@ class IncrementalOrchestrator:
 
         return False
 
+    def _get_changed_sections(self, sections: list[Section] | None = None) -> set[Section]:
+        """
+        Identify sections with any changed files (section-level optimization).
+
+        Uses max mtime of pages in each section to quickly skip entire sections
+        that haven't changed. This is a major optimization for large sites where
+        only a few sections have changes.
+
+        Args:
+            sections: List of sections to check. If None, uses site.sections.
+
+        Returns:
+            Set of Section objects that have changed files
+
+        Performance:
+            - O(sections) instead of O(pages) for initial filtering
+            - Only checks individual pages in changed sections
+            - Uses fast mtime+size check from cache
+        """
+        if not self.cache:
+            return set()
+
+        if sections is None:
+            sections = self.site.sections if hasattr(self.site, "sections") else []
+
+        changed_sections: set[Section] = set()
+
+        # Get last build time from cache (for comparison)
+        last_build_time = 0.0
+        if self.cache.last_build:
+            try:
+                from datetime import datetime
+
+                last_build_time = datetime.fromisoformat(self.cache.last_build).timestamp()
+            except (ValueError, TypeError):
+                pass
+
+        for section in sections:
+            # Get max mtime of all pages in this section
+            section_mtime = 0.0
+            has_pages = False
+
+            for page in section.pages:
+                if page.metadata.get("_generated"):
+                    continue
+
+                try:
+                    if page.source_path.exists():
+                        stat = page.source_path.stat()
+                        section_mtime = max(section_mtime, stat.st_mtime)
+                        has_pages = True
+                except OSError:
+                    # File doesn't exist or can't stat - treat as changed
+                    changed_sections.add(section)
+                    break
+
+            # If section has pages and max mtime > last build, section changed
+            if has_pages and section_mtime > last_build_time:
+                changed_sections.add(section)
+
+        return changed_sections
+
     def find_work_early(
         self, verbose: bool = False
     ) -> tuple[list[Page], list[Asset], dict[str, list]]:
@@ -211,6 +273,8 @@ class IncrementalOrchestrator:
 
         This is called BEFORE taxonomies/menus are generated, so it only checks content/asset changes.
         Generated pages (tags, etc.) will be determined later based on affected tags.
+
+        Uses section-level optimization: skips checking individual pages in unchanged sections.
 
         Args:
             verbose: Whether to collect detailed change information
@@ -230,8 +294,49 @@ class IncrementalOrchestrator:
             "Taxonomy changes": [],
         }
 
-        for page in self.site.pages:
+        # OPTIMIZATION: Section-level filtering (RFC 2.3)
+        # Skip entire sections if no files changed within them
+        changed_sections: set[Section] | None = None
+        if hasattr(self.site, "sections") and self.site.sections:
+            changed_sections = self._get_changed_sections(self.site.sections)
+            if verbose and changed_sections:
+                logger.debug(
+                    "section_level_filtering",
+                    total_sections=len(self.site.sections),
+                    changed_sections=len(changed_sections),
+                )
+
+        # Only check pages in changed sections (or all pages if section filtering unavailable)
+        pages_to_check = self.site.pages
+        if changed_sections is not None:
+            # Filter to only pages in changed sections
+            changed_section_paths = {s.path for s in changed_sections}
+            pages_to_check = [
+                p
+                for p in self.site.pages
+                if p.metadata.get("_generated")
+                or (
+                    hasattr(p, "_section")
+                    and p._section
+                    and p._section.path in changed_section_paths
+                )
+                or (
+                    # Handle pages without section (root level)
+                    not hasattr(p, "_section") or p._section is None
+                )
+            ]
+
+        for page in pages_to_check:
             if page.metadata.get("_generated"):
+                continue
+
+            # Skip if page is in an unchanged section (double-check for safety)
+            if (
+                changed_sections is not None
+                and hasattr(page, "_section")
+                and page._section
+                and page._section not in changed_sections
+            ):
                 continue
 
             if self.cache.is_changed(page.source_path):
@@ -389,10 +494,50 @@ class IncrementalOrchestrator:
             "Taxonomy changes": [],
         }
 
+        # OPTIMIZATION: Section-level filtering (RFC 2.3)
+        # Skip entire sections if no files changed within them
+        changed_sections: set[Section] | None = None
+        if hasattr(self.site, "sections") and self.site.sections:
+            changed_sections = self._get_changed_sections(self.site.sections)
+            if verbose and changed_sections:
+                logger.debug(
+                    "section_level_filtering",
+                    total_sections=len(self.site.sections),
+                    changed_sections=len(changed_sections),
+                )
+
+        # Only check pages in changed sections (or all pages if section filtering unavailable)
+        pages_to_check = self.site.pages
+        if changed_sections is not None:
+            changed_section_paths = {s.path for s in changed_sections}
+            pages_to_check = [
+                p
+                for p in self.site.pages
+                if p.metadata.get("_generated")
+                or (
+                    hasattr(p, "_section")
+                    and p._section
+                    and p._section.path in changed_section_paths
+                )
+                or (
+                    # Handle pages without section (root level)
+                    not hasattr(p, "_section") or p._section is None
+                )
+            ]
+
         # Find changed content files (skip generated pages - they have virtual paths)
-        for page in self.site.pages:
+        for page in pages_to_check:
             # Skip generated pages - they'll be handled separately
             if page.metadata.get("_generated"):
+                continue
+
+            # Skip if page is in an unchanged section (double-check for safety)
+            if (
+                changed_sections is not None
+                and hasattr(page, "_section")
+                and page._section
+                and page._section not in changed_sections
+            ):
                 continue
 
             if self.cache.is_changed(page.source_path):
