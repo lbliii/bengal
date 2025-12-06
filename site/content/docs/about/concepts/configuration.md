@@ -101,12 +101,13 @@ Build process settings.
 ```toml
 [build]
 output_dir = "public"
-markdown_engine = "mistune"
 parallel = true          # Enable parallel processing
 incremental = false      # Enable incremental builds
-max_workers = 4          # Max parallel workers
+max_workers = null       # Auto-detect based on CPU cores (default: CPU count - 1, min 4)
 pretty_urls = true       # Generate /page/index.html instead of /page.html
 ```
+
+**Note**: `max_workers` defaults to auto-detection based on your CPU cores (leaves 1 core for OS, minimum 4 workers). Set a specific number to override.
 
 ### `[assets]`
 

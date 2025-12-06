@@ -59,6 +59,9 @@ class StreamingRenderOrchestrator:
         """
         Render pages in memory-optimized batches using connectivity analysis.
 
+        Uses build_context.knowledge_graph if available to avoid rebuilding
+        the graph multiple times per build.
+
         Args:
             pages: List of pages to render
             parallel: Whether to use parallel rendering
@@ -67,6 +70,8 @@ class StreamingRenderOrchestrator:
             stats: Build statistics tracker
             batch_size: Number of leaves to process per batch
             progress_manager: Optional progress manager to use for unified progress display
+            reporter: Optional progress reporter for output
+            build_context: Optional BuildContext with cached knowledge graph
         """
         total_pages = len(pages)
 
@@ -122,30 +127,40 @@ class StreamingRenderOrchestrator:
             recommended=total_pages >= RECOMMENDED_THRESHOLD,
         )
 
-        # Import here to avoid circular dependency
-        try:
-            from bengal.analysis.knowledge_graph import KnowledgeGraph
-        except ImportError:
-            logger.warning(
-                "streaming_render_fallback",
-                reason="Knowledge graph not available, using standard rendering",
-            )
-            # Fall back to standard rendering
-            from bengal.orchestration.render import RenderOrchestrator
+        # Try to get cached graph from build context first (lazy-computed artifact)
+        graph = None
+        if build_context is not None:
+            graph = build_context.knowledge_graph
+            if graph is not None:
+                logger.debug("using_cached_knowledge_graph_for_streaming_render")
 
-            orchestrator = RenderOrchestrator(self.site)
-            orchestrator.process(
-                pages, parallel, quiet, tracker, stats, progress_manager=progress_manager
-            )
-            return
+        # Fallback: build our own (for standalone usage or if not in context)
+        if graph is None:
+            # Import here to avoid circular dependency
+            try:
+                from bengal.analysis.knowledge_graph import KnowledgeGraph
+            except ImportError:
+                logger.warning(
+                    "streaming_render_fallback",
+                    reason="Knowledge graph not available, using standard rendering",
+                )
+                # Fall back to standard rendering
+                from bengal.orchestration.render import RenderOrchestrator
 
-        # Build knowledge graph to analyze connectivity
-        if reporter:
-            reporter.log("  🧠 Analyzing connectivity for memory optimization...")
-        elif not quiet:
-            print("  🧠 Analyzing connectivity for memory optimization...")
-        graph = KnowledgeGraph(self.site)
-        graph.build()
+                orchestrator = RenderOrchestrator(self.site)
+                orchestrator.process(
+                    pages, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                )
+                return
+
+            # Build knowledge graph to analyze connectivity
+            if reporter:
+                reporter.log("  🧠 Analyzing connectivity for memory optimization...")
+            elif not quiet:
+                print("  🧠 Analyzing connectivity for memory optimization...")
+            logger.debug("building_knowledge_graph_for_streaming_render")
+            graph = KnowledgeGraph(self.site)
+            graph.build()
 
         # Get connectivity-based layers
         hubs, mid_tier, leaves = graph.get_layers()

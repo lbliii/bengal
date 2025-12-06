@@ -606,5 +606,3 @@ Refactor: `reference/architecture/`, `reference/directives/`
 ## Examples
 
 See companion file: `plan/active/index-page-examples.md`
-
-

@@ -323,10 +323,10 @@ class PostprocessOrchestrator:
             if not is_feature_enabled(self.site.config, "graph"):
                 return None
 
-            # Try to get cached graph from build context first
+            # Try to get cached graph from build context first (lazy-computed artifact)
             graph = None
             if build_context is not None:
-                graph = getattr(build_context, "knowledge_graph", None)
+                graph = build_context.knowledge_graph
 
             # Fallback: build our own (for standalone usage)
             if graph is None:
