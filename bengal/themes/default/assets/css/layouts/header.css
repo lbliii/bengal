@@ -628,6 +628,12 @@ header .container {
   color: var(--color-text-primary);
 }
 
+/* Larger icon on mobile */
+.mobile-nav-footer .theme-dropdown__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .mobile-nav-footer .theme-dropdown__button:hover {
   box-shadow: var(--neumorphic-hover);
 }
@@ -699,13 +705,13 @@ header .container {
   margin-top: 0;
 }
 
-/* Menu buttons - pill style */
+/* Menu buttons - left aligned like desktop */
 .mobile-nav-footer .theme-dropdown__menu button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-3);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   border-radius: var(--radius-md);
@@ -735,11 +741,12 @@ header .container {
   border-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
   color: var(--color-primary);
   box-shadow: var(--neumorphic-active);
+  justify-content: space-between;
 }
 
 .mobile-nav-footer .theme-dropdown__menu button.active::after {
   position: static;
-  margin-left: var(--space-2);
+  margin-left: auto;
 }
 
 /* (Removed legacy single-button theme toggle styles) */
