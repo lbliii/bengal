@@ -21,6 +21,7 @@ class PageMetadataMixin:
     - Basic properties: title, date, slug, url
     - Type checking: is_home, is_section, is_page, kind
     - Simple metadata: description, draft, keywords
+    - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
     """
 
@@ -280,15 +281,61 @@ class PageMetadataMixin:
             return "section"
         return "page"
 
+    # =========================================================================
+    # Component Model Properties
+    # =========================================================================
+
+    @property
+    def type(self) -> str | None:
+        """
+        Get page type from core metadata (preferred) or frontmatter.
+
+        Component Model: Identity.
+
+        Returns:
+            Page type or None
+        """
+        return self.core.type or self.metadata.get("type")
+
     @property
     def description(self) -> str:
         """
-        Get page description from metadata.
+        Get page description from core metadata (preferred) or frontmatter.
 
         Returns:
             Page description or empty string
         """
-        return self.metadata.get("description", "")
+        return self.core.description or self.metadata.get("description", "")
+
+    @property
+    def variant(self) -> str | None:
+        """
+        Get visual variant from core (preferred) or legacy layout/hero_style fields.
+
+        This normalizes 'layout' and 'hero_style' into the new Component Model 'variant'.
+
+        Component Model: Mode.
+
+        Returns:
+            Variant string or None
+        """
+        if self.core.variant:
+            return self.core.variant
+        
+        # Legacy fallbacks
+        return self.metadata.get("layout") or self.metadata.get("hero_style")
+
+    @property
+    def props(self) -> dict[str, Any]:
+        """
+        Get page props (alias for metadata).
+
+        Component Model: Data.
+
+        Returns:
+            Page metadata dictionary
+        """
+        return self.metadata
 
     @property
     def draft(self) -> bool:
@@ -367,9 +414,9 @@ class PageMetadataMixin:
             ---
             title: Partially Hidden
             visibility:
-              menu: false
-              listings: true
-              sitemap: true
+                menu: false
+                listings: true
+                sitemap: true
             ---
             ```
         """
@@ -413,7 +460,7 @@ class PageMetadataMixin:
     def in_sitemap(self) -> bool:
         """
         Check if page should appear in sitemap.
-
+        
         Excludes drafts and pages with visibility.sitemap=False.
 
         Returns:
@@ -482,7 +529,7 @@ class PageMetadataMixin:
             ```yaml
             ---
             visibility:
-              render: local  # Only in dev server
+                render: local  # Only in dev server
             ---
             ```
         """

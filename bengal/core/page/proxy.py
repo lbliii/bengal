@@ -170,6 +170,34 @@ class PageProxy:
         return self.core.type
 
     @property
+    def variant(self) -> str | None:
+        """
+        Get visual variant from cached metadata (Mode).
+
+        Falls back to legacy layout/hero_style fields in props if not set.
+        """
+        if self.core.variant:
+            return self.core.variant
+        # Legacy fallback via metadata
+        props = self.metadata  # Triggers metadata build (but not full page)
+        return props.get("layout") or props.get("hero_style")
+
+    @property
+    def description(self) -> str:
+        """Get page description from cached metadata (promoted prop)."""
+        return self.core.description or ""
+
+    @property
+    def props(self) -> dict[str, Any]:
+        """
+        Get custom props from cached metadata.
+
+        This provides access to the 'props' dictionary (formerly metadata)
+        without loading the full page.
+        """
+        return self.core.props
+
+    @property
     def section(self) -> str | None:
         """Get section path from cached metadata."""
         return self.core.section
@@ -481,7 +509,14 @@ class PageProxy:
 
     @property
     def description(self) -> str:
-        """Get page description from metadata."""
+        """
+        Get page description.
+
+        Favors core.description (fast, cached) but falls back to full page
+        load if not available, for backward compatibility.
+        """
+        if self.core.description:
+            return self.core.description
         self._ensure_loaded()
         return self._full_page.description if self._full_page else ""
 

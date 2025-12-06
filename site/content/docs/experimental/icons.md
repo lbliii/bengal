@@ -10,7 +10,7 @@ weight: 20
 
 # Icon Reference
 
-Theme-aware SVG icons that adapt to light/dark mode.
+Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a comprehensive open-source icon library with 6,000+ icons. All icons adapt to light/dark mode using `currentColor`.
 
 ## Syntax
 
@@ -124,6 +124,52 @@ Theme-aware SVG icons that adapt to light/dark mode.
 
 ---
 
+## Quick Preview
+
+All icons at 32px for easy viewing:
+
+**Navigation**: {icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`link:32` {icon}`external:32`
+
+**Status**: {icon}`check:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32`
+
+**Files**: {icon}`file:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`copy:32` {icon}`edit:32`
+
+**Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`bookmark:32` {icon}`tag:32`
+
+**Time & Location**: {icon}`clock:32` {icon}`calendar:32` {icon}`pin:32`
+
+**Theme**: {icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32`
+
+**Bengal**: {icon}`bengal-rosette:32` {icon}`terminal:32` {icon}`docs:32`
+
+**Mid-Century**: {icon}`atomic:32` {icon}`starburst:32` {icon}`boomerang:32`
+
+---
+
+## All Icons Preview
+
+Here's a complete gallery of all available icons:
+
+### Navigation Icons
+{icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`link:32` {icon}`external:32`
+
+### Status Icons
+{icon}`check:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32`
+
+### File & Content Icons
+{icon}`file:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`copy:32` {icon}`edit:32` {icon}`bookmark:32` {icon}`tag:32`
+
+### Action Icons
+{icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32`
+
+### Time & Location
+{icon}`clock:32` {icon}`calendar:32` {icon}`pin:32`
+
+### Theme & Settings
+{icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32`
+
+---
+
 ## Custom Icons
 
 Place SVG files in `themes/your-theme/assets/icons/`:
@@ -134,19 +180,22 @@ themes/my-theme/assets/icons/
 └── another.svg
 ```
 
-### SVG Requirements
+### Icon Source
 
-```xml
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <title>Icon Name</title>
-  <!-- Use currentColor for theme awareness -->
-  <path stroke="currentColor" stroke-width="1.5" .../>
-  <!-- Depth layer at 20-35% opacity -->
-  <path fill="currentColor" opacity="0.3" .../>
-</svg>
-```
+Bengal uses [Phosphor Icons](https://phosphoricons.com/) - a high-quality, open-source icon library with:
 
-- 24×24 viewBox
-- Use `currentColor` for stroke/fill
-- 1.5px strokes for glass aesthetic
-- Optional depth shadows at 20-35% opacity
+- **6,000+ icons** covering all common use cases
+- **Multiple weights**: Thin, Light, Regular, Bold, Fill, Duotone
+- **MIT License** - free for commercial use
+- **Consistent design** - all icons follow the same design principles
+- **Theme-aware** - uses `currentColor` for automatic light/dark mode support
+
+### SVG Format
+
+Phosphor icons use:
+- `viewBox="0 0 256 256"` (scales automatically via width/height)
+- `fill="currentColor"` on paths (theme-aware)
+- `fill="none"` on root SVG element
+- Clean, minimal design optimized for UI
+
+Icons are automatically sized via the `:size:` parameter and inherit colors from the current theme.

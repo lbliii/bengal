@@ -2,6 +2,7 @@
 title: Building
 description: Build configuration, CLI usage, and deployment
 weight: 30
+icon: settings
 cascade:
   type: doc
 ---

@@ -109,20 +109,21 @@
   text-transform: uppercase;
 }
 
-/* Admonition Title Icon - Using Bengal SVG Icons */
-.admonition-title::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
+/* Admonition Title Icon - Now rendered directly in HTML as SVG */
+.admonition-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  background-color: currentColor;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
+}
+
+.admonition-icon {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.admonition-title-text {
+  flex: 1;
 }
 
 /* Admonition Content - visually distinct from body */
@@ -229,12 +230,7 @@
   color: var(--color-info-text);
 }
 
-/* Info icon: Circle with i */
-.admonition.note .admonition-title::before,
-.admonition.info .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='8' r='1.2' fill='currentColor'/%3E%3Cpath d='M12 11 V16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='8' r='1.2' fill='currentColor'/%3E%3Cpath d='M12 11 V16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-}
+/* Icons are now rendered directly in HTML, no CSS mask needed */
 
 [data-theme="dark"] .admonition.note,
 [data-theme="dark"] .admonition.info {
@@ -259,17 +255,7 @@
   color: var(--color-success-text);
 }
 
-/* Tip icon: Star with center dot */
-.admonition.tip .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 2L14.5 9L22 9.5L16.5 14L18 21.5L12 17.5L6 21.5L7.5 14L2 9.5L9.5 9Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='currentColor'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 2L14.5 9L22 9.5L16.5 14L18 21.5L12 17.5L6 21.5L7.5 14L2 9.5L9.5 9Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='1.5' fill='currentColor'/%3E%3C/svg%3E");
-}
-
-/* Success icon: Circle with checkmark */
-.admonition.success .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M7 12 L10.5 15.5 L17 8.5' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M7 12 L10.5 15.5 L17 8.5' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
+/* Icons are now rendered directly in HTML, no CSS mask needed */
 
 [data-theme="dark"] .admonition.tip,
 [data-theme="dark"] .admonition.success {
@@ -294,12 +280,7 @@
   color: var(--color-warning-text);
 }
 
-/* Warning icon: Triangle with exclamation */
-.admonition.warning .admonition-title::before,
-.admonition.caution .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 4 L22 20 A1 1 0 0 1 21 21 L3 21 A1 1 0 0 1 2 20 Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 10 V14' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.3' fill='currentColor'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 4 L22 20 A1 1 0 0 1 21 21 L3 21 A1 1 0 0 1 2 20 Z' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 10 V14' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17.5' r='1.3' fill='currentColor'/%3E%3C/svg%3E");
-}
+/* Icons are now rendered directly in HTML, no CSS mask needed */
 
 [data-theme="dark"] .admonition.warning,
 [data-theme="dark"] .admonition.caution {
@@ -324,12 +305,7 @@
   color: var(--color-error-text);
 }
 
-/* Danger/Error icon: Circle with X */
-.admonition.danger .admonition-title::before,
-.admonition.error .admonition-title::before {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M8 8 L16 16 M16 8 L8 16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='9' stroke='currentColor' stroke-width='1.5'/%3E%3Cpath d='M8 8 L16 16 M16 8 L8 16' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
-}
+/* Icons are now rendered directly in HTML, no CSS mask needed */
 
 [data-theme="dark"] .admonition.danger,
 [data-theme="dark"] .admonition.error {
@@ -380,7 +356,7 @@
   cursor: pointer;
 }
 
-/* Collapsible chevron using Bengal SVG icon */
+/* Collapsible chevron using Phosphor icon (chevron-down) */
 .admonition.collapsible .admonition-title::after {
   content: '';
   display: inline-block;
@@ -388,8 +364,8 @@
   height: 12px;
   margin-inline-start: auto;
   background-color: currentColor;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 8 L12 16 L19 8' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 8 L12 16 L19 8' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;

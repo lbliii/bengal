@@ -214,6 +214,35 @@
     };
   }
 
+  /**
+   * Load icon SVG content (for use in JavaScript)
+   * @param {string} iconName - Icon name (e.g., "close", "enlarge")
+   * @returns {Promise<string>} SVG HTML string
+   */
+  async function loadIcon(iconName) {
+    // Check if icon paths are available
+    if (!window.BENGAL_ICONS || !window.BENGAL_ICONS[iconName]) {
+      log('Icon not found:', iconName);
+      return '';
+    }
+
+    const iconPath = window.BENGAL_ICONS[iconName];
+    try {
+      const response = await fetch(iconPath);
+      if (!response.ok) {
+        log('Failed to load icon:', iconName, response.status);
+        return '';
+      }
+      const svgText = await response.text();
+      // Ensure SVG uses currentColor for theme compatibility, but preserve 'none'
+      return svgText.replace(/fill="(?!(?:none|transparent))[^"]*"/g, 'fill="currentColor"')
+                    .replace(/stroke="(?!(?:none|transparent))[^"]*"/g, 'stroke="currentColor"');
+    } catch (err) {
+      log('Error loading icon:', iconName, err);
+      return '';
+    }
+  }
+
   // Export utilities
   window.BengalUtils = {
     log,
@@ -224,7 +253,8 @@
     isExternalUrl,
     escapeRegex,
     scrollManager,
-    createFocusTrap
+    createFocusTrap,
+    loadIcon
   };
 
   log('Utilities initialized');

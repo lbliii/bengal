@@ -2,6 +2,7 @@
 title: About Bengal
 description: Philosophy, concepts, and comparisons
 weight: 5
+icon: info
 cascade:
   type: doc
 layout: list

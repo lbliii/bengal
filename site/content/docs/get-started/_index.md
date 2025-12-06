@@ -8,6 +8,7 @@ lang: en
 tags: [onboarding, quickstart]
 keywords: [getting started, installation, quickstart]
 category: onboarding
+icon: arrow-clockwise
 cascade:
   type: doc
 aliases:

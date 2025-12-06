@@ -7,6 +7,7 @@
   'use strict';
 
   let mobileNav = null;
+  let backdrop = null;
   let toggleBtn = null;
   let closeBtn = null;
   let isOpen = false;
@@ -61,6 +62,9 @@
     if (mobileNav) {
       prevFocused = document.activeElement;
       mobileNav.classList.add('is-open');
+      if (backdrop) {
+        backdrop.classList.add('is-open');
+      }
       document.body.style.overflow = 'hidden';
       isOpen = true;
 
@@ -86,6 +90,9 @@
   function closeNav() {
     if (mobileNav) {
       mobileNav.classList.remove('is-open');
+      if (backdrop) {
+        backdrop.classList.remove('is-open');
+      }
       document.body.style.overflow = '';
       isOpen = false;
 
@@ -141,6 +148,7 @@
    */
   function init() {
     mobileNav = document.querySelector('.mobile-nav');
+    backdrop = document.querySelector('.mobile-nav-backdrop');
     toggleBtn = document.querySelector('.mobile-nav-toggle');
     closeBtn = document.querySelector('.mobile-nav-close');
 
@@ -154,6 +162,11 @@
     // Close button
     if (closeBtn) {
       closeBtn.addEventListener('click', closeNav);
+    }
+
+    // Backdrop click to close
+    if (backdrop) {
+      backdrop.addEventListener('click', closeNav);
     }
 
     // Handle submenu toggles

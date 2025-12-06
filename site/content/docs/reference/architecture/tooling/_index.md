@@ -2,6 +2,7 @@
 title: Tooling & CLI
 description: Developer tools, CLI, server, and configuration
 weight: 40
+icon: terminal
 cascade:
   type: doc
 ---

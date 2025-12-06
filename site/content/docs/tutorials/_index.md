@@ -2,6 +2,7 @@
 title: Tutorials
 description: Guided learning journeys to master Bengal
 weight: 15
+icon: notepad
 cascade:
   type: doc
 ---

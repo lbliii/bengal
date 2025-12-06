@@ -1,19 +1,2 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Menu: Clean hamburger bars -->
-  <title>Menu</title>
-
-  <!-- Top bar shadow -->
-  <rect x="4.3" y="5.3" width="16" height="2" rx="1" fill="currentColor" opacity="0.2"/>
-  <!-- Top bar -->
-  <rect x="4" y="5" width="16" height="2" rx="1" stroke="currentColor" stroke-width="1.5"/>
-
-  <!-- Middle bar shadow -->
-  <rect x="4.3" y="10.3" width="14" height="2" rx="1" fill="currentColor" opacity="0.2"/>
-  <!-- Middle bar -->
-  <rect x="4" y="10" width="14" height="2" rx="1" stroke="currentColor" stroke-width="1.5"/>
-
-  <!-- Bottom bar shadow -->
-  <rect x="4.3" y="15.3" width="10" height="2" rx="1" fill="currentColor" opacity="0.2"/>
-  <!-- Bottom bar -->
-  <rect x="4" y="15" width="10" height="2" rx="1" stroke="currentColor" stroke-width="1.5"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Menu</title><path fill="currentColor" d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>

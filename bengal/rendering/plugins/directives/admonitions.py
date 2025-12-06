@@ -108,10 +108,37 @@ def render_admonition(
     if extra_class:
         css_class = f"{css_class} {extra_class}"
 
+    # Map admonition types to icon names (using Phosphor icons from icons directory)
+    # These names must match the actual .svg files in themes/default/assets/icons/
+    icon_map = {
+        "note": "note",
+        "info": "info",
+        "tip": "tip",
+        "warning": "warning",
+        "caution": "caution",
+        "danger": "danger",
+        "error": "error",
+        "success": "success",
+        "example": "example",
+        "seealso": "info",  # Default to info for seealso
+    }
+    
+    # Render icon using Phosphor icons
+    icon_name = icon_map.get(admon_type, "info")
+    from bengal.rendering.plugins.directives._icons import render_svg_icon
+    
+    icon_html = render_svg_icon(icon_name, size=20, css_class="admonition-icon")
+    
+    # Build title with icon
+    if icon_html:
+        title_html = f'<span class="admonition-icon-wrapper">{icon_html}</span><span class="admonition-title-text">{title}</span>'
+    else:
+        title_html = title
+
     # text contains the rendered children
     html = (
         f'<div class="admonition {css_class}">\n'
-        f'  <p class="admonition-title">{title}</p>\n'
+        f'  <p class="admonition-title">{title_html}</p>\n'
         f"{text}"
         f"</div>\n"
     )

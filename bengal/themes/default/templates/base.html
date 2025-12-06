@@ -190,6 +190,8 @@ See: plan/active/rfc-template-performance-optimization.md
 </head>
 
 <body
+    data-type="{{ _page.type if _has_page else '' }}"
+    data-variant="{{ _page.variant if _has_page else '' }}"
     class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in site.theme_config.features %}
@@ -317,6 +319,9 @@ See: plan/active/rfc-template-performance-optimization.md
         </nav>
     </header>
 
+    {# Mobile Navigation Backdrop #}
+    <div class="mobile-nav-backdrop" aria-hidden="true"></div>
+
     {# Mobile Navigation - uses cached _main_menu and _auto_nav from top of template #}
     <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation" data-bengal="mobile-nav">
         <div class="mobile-nav-header">
@@ -332,9 +337,10 @@ See: plan/active/rfc-template-performance-optimization.md
                 {% endif %}
             </span>
             <button class="mobile-nav-close" aria-label="Close menu">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
+                <span>Close</span>
             </button>
         </div>
         {% if _main_menu or _auto_nav %}
@@ -495,6 +501,17 @@ See: plan/active/rfc-template-performance-optimization.md
             graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
             graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
         };
+        {# Icon paths for JavaScript - Phosphor icons #}
+        window.BENGAL_ICONS = {
+            close: '{{ asset_url("icons/close.svg") }}',
+            enlarge: '{{ asset_url("icons/enlarge.svg") }}',
+            copy: '{{ asset_url("icons/copy.svg") }}',
+            'download-svg': '{{ asset_url("icons/download.svg") }}',
+            'download-png': '{{ asset_url("icons/image.svg") }}',
+            'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}',
+            'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}',
+            reset: '{{ asset_url("icons/reset.svg") }}'
+        };
     </script>
     <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
 
@@ -507,11 +524,7 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Back to Top Button - Feature: navigation.back_to_top #}
     {% if 'navigation.back_to_top' in site.theme_config.features %}
     <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor"></line>
-            <polyline points="5 12 12 5 19 12" stroke="currentColor"></polyline>
-        </svg>
+        {{ icon("arrow-up", size=24) }}
     </button>
     {% endif %}
 
@@ -520,11 +533,7 @@ See: plan/active/rfc-template-performance-optimization.md
     <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            {{ icon("close", size=24) }}
         </button>
         <div class="lightbox__caption"></div>
     </div>

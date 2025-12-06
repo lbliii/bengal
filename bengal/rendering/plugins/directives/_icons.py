@@ -137,74 +137,91 @@ def _escape_attr(value: str) -> str:
     )
 
 
-# Icon mapping from semantic names to Bengal SVG icons
-# Used for backwards compatibility with emoji icon names
+# Icon mapping from semantic names to Phosphor icon names
+# This provides backwards compatibility and semantic naming
 ICON_MAP: dict[str, str] = {
     # Navigation & Actions
-    "arrow-right": "chevron-right",
-    "arrow-left": "chevron-left",
-    "arrow-up": "chevron-up",
-    "arrow-down": "chevron-down",
-    "external": "external",
+    "arrow-right": "arrow-right",
+    "arrow-left": "arrow-left",
+    "arrow-up": "arrow-up",
+    "arrow-down": "arrow-down",
+    "chevron-right": "chevron-right",
+    "chevron-left": "chevron-left",
+    "chevron-up": "chevron-up",
+    "chevron-down": "chevron-down",
+    "external": "arrow-square-out",
     "link": "link",
-    "search": "search",
-    "menu": "menu",
-    "close": "close",
+    "search": "magnifying-glass",
+    "menu": "list",
+    "close": "x",
     # Status & Feedback
     "info": "info",
     "warning": "warning",
-    "error": "error",
+    "error": "x-circle",
     "check": "check",
-    "success": "check",
+    "success": "check-circle",
     # Files & Content
     "file": "file",
+    "file-text": "file-text",
     "folder": "folder",
     "document": "file",
     "code": "code",
     "copy": "copy",
-    "edit": "edit",
+    "edit": "pencil",
     "trash": "trash",
     "download": "download",
     "upload": "upload",
-    # UI
-    "settings": "settings",
+    # UI & Metadata
+    "settings": "gear",
     "star": "star",
     "heart": "heart",
     "bookmark": "bookmark",
     "tag": "tag",
     "calendar": "calendar",
     "clock": "clock",
-    "pin": "pin",
+    "pin": "map-pin",
+    "user": "user",
+    "arrow-clockwise": "arrow-clockwise",
     # Theme
     "sun": "sun",
     "moon": "moon",
     "palette": "palette",
+    # Admonitions (use dedicated admonition icons from icons directory)
+    "tip": "tip",
+    "note": "note",
+    "example": "example",
+    "danger": "danger",
+    "caution": "caution",
+    "lightbulb": "tip",  # Backwards compatibility alias
     # Bengal-specific
     "terminal": "terminal",
-    "docs": "docs",
-    "notepad": "notepad",
-    # Mid-century modern
-    "atomic": "atomic",
-    "starburst": "starburst",
-    "boomerang": "boomerang",
+    "docs": "file-text",
+    "notepad": "note",
+    # Mid-century modern (keep custom or find closest match)
+    "atomic": "atom",
+    "starburst": "star-four",
+    "boomerang": "arrow-arc-left",
 }
 
 
 def render_icon(name: str, size: int = 20) -> str:
     """
-    Render an icon by name, with fallback to emoji.
+    Render an icon by name, preferring Phosphor SVG icons.
 
-    This function provides backwards compatibility with emoji icons
-    while preferring SVG icons when available.
+    This function maps common icon names to Phosphor icons and always
+    attempts to render SVG first. Only returns empty string if icon not found.
 
     Args:
         name: Icon name (semantic name like "book", "rocket", etc.)
         size: Icon size in pixels
 
     Returns:
-        HTML for icon (SVG or emoji fallback)
+        HTML for icon (SVG only, empty string if not found)
     """
-    # Map semantic name to Bengal icon name
+    if not name:
+        return ""
+
+    # Map semantic name to Phosphor icon name
     icon_name = ICON_MAP.get(name, name)
 
     # Try SVG icon first
@@ -212,22 +229,40 @@ def render_icon(name: str, size: int = 20) -> str:
     if svg:
         return svg
 
-    # Fallback to emoji for icons not in SVG library
-    emoji_fallback: dict[str, str] = {
-        "book": "📖",
-        "rocket": "🚀",
-        "users": "👥",
-        "database": "🗄️",
-        "tools": "🔧",
-        "shield": "🛡️",
-        "graduation-cap": "🎓",
-        "mortar-board": "🎓",
-        "package": "📦",
-        "graph": "📊",
-        "shield-lock": "🔒",
-        "github": "🐙",
-        "home": "🏠",
+    # If direct name didn't work, try common variations
+    # This handles cases where frontmatter might use different naming
+    variations = {
+        "book": "book",
+        "rocket": "rocket",
+        "users": "users",
+        "user": "user",
+        "database": "database",
+        "tools": "wrench",
+        "tool": "wrench",
+        "shield": "shield",
+        "graduation-cap": "graduation-cap",
+        "mortar-board": "graduation-cap",
+        "package": "package",
+        "graph": "chart-line",
+        "chart": "chart-line",
+        "shield-lock": "lock",
+        "lock": "lock",
+        "github": "github-logo",
+        "home": "house",
+        "house": "house",
+        "arrow-up": "arrow-up",
+        "arrow-down": "arrow-down",
+        "arrow-left": "arrow-left",
+        "arrow-right": "arrow-right",
     }
 
-    return emoji_fallback.get(name, "")
+    # Try variation if original didn't work
+    if name in variations:
+        icon_name = variations[name]
+        svg = render_svg_icon(icon_name, size=size)
+        if svg:
+            return svg
+
+    # Return empty string if no icon found (no emoji fallback)
+    return ""
 

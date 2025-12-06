@@ -206,7 +206,12 @@ class PageCore(Cacheable):
     lang: str | None = None  # Language code (i18n)
 
     # Cascaded fields (from section _index.md)
-    type: str | None = None  # Page type (determines layout)
+    type: str | None = None  # Page type (routing/strategy)
+    variant: str | None = None  # Visual variant (CSS/layouts)
+
+    # Core Props (Promoted for performance)
+    description: str | None = None  # SEO description (promoted from metadata)
+    props: dict[str, Any] = field(default_factory=dict)  # Additional metadata/props
 
     # References (path-based, not object references)
     section: str | None = None  # Section path (stable across rebuilds)
@@ -250,6 +255,9 @@ class PageCore(Cacheable):
             "weight": self.weight,
             "lang": self.lang,
             "type": self.type,
+            "variant": self.variant,
+            "description": self.description,
+            "props": self.props,
             "section": self.section,
             "file_hash": self.file_hash,
             "aliases": self.aliases,
@@ -277,6 +285,9 @@ class PageCore(Cacheable):
             weight=data.get("weight"),
             lang=data.get("lang"),
             type=data.get("type"),
+            variant=data.get("variant"),
+            description=data.get("description"),
+            props=data.get("props", {}),
             section=data.get("section"),
             file_hash=data.get("file_hash"),
             aliases=data.get("aliases", []),

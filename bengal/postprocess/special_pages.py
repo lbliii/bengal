@@ -126,6 +126,8 @@ class SpecialPagesGenerator:
                 url="/404.html",
                 relative_url="/404.html",
                 kind="page",
+                type="special",
+                variant=None,
                 draft=False,
                 metadata={},
                 tags=[],
@@ -232,6 +234,8 @@ class SpecialPagesGenerator:
                 url=raw_path,
                 relative_url=raw_path,
                 kind="page",
+                type="special",
+                variant=None,
                 draft=False,
                 metadata={"search_exclude": True},  # never index the search page
                 tags=[],

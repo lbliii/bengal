@@ -3,6 +3,7 @@ title: Architecture
 description: High-level architecture overview of Bengal
 weight: 50
 type: doc
+icon: folder
 category: architecture
 tags: [architecture, overview, design, systems, components]
 keywords: [architecture, design, overview, systems, components, structure]
