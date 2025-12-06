@@ -191,29 +191,38 @@ def discover_js_files(
     excluded = excluded or get_theme_js_excluded()
 
     # Find all JS files recursively (including subdirectories)
-    all_files = {}
+    # Maps relative path -> file path (e.g., "core/theme.js" -> Path(...))
+    all_files: dict[str, Path] = {}
+    # Also track files by filename for backward compatibility in bundle_order
+    files_by_name: dict[str, Path] = {}
+
     for js_file in js_dir.rglob("*.js"):
         # Get relative path from js_dir (e.g., "core/theme.js" or "utils.js")
         rel_path = js_file.relative_to(js_dir)
         rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
         all_files[rel_path_str] = js_file
-        # Also index by filename for backward compatibility
-        if rel_path_str != js_file.name:
-            all_files[js_file.name] = js_file
+        # Also index by filename for backward compatibility in bundle_order lookup
+        files_by_name[js_file.name] = js_file
 
     # Build ordered list
     ordered: list[Path] = []
+    seen_paths: set[Path] = set()
 
-    # First: files in explicit order (using relative paths)
+    # First: files in explicit order (using relative paths or filename)
     for name in bundle_order:
-        if name in all_files and name not in excluded:
-            ordered.append(all_files[name])
+        # Try relative path first, then filename
+        js_file = all_files.get(name) or files_by_name.get(name)
+        if js_file and name not in excluded:
+            if js_file not in seen_paths:
+                ordered.append(js_file)
+                seen_paths.add(js_file)
 
-    # Then: any remaining files not in order or excluded (alphabetically)
-    remaining = sorted(
-        f for rel_path, f in all_files.items() if rel_path not in excluded and f not in ordered
-    )
-    ordered.extend(remaining)
+    # Then: any remaining files not already added or excluded (alphabetically)
+    # Check exclusion using the canonical relative path
+    for rel_path, js_file in sorted(all_files.items()):
+        if js_file not in seen_paths and rel_path not in excluded:
+            ordered.append(js_file)
+            seen_paths.add(js_file)
 
     return ordered
 

@@ -16,6 +16,11 @@
   max-width: var(--prose-width);
 }
 
+/* Align action bar with prose content inside docs-main */
+.docs-main .action-bar-container {
+  max-width: var(--content-width, 75ch);
+}
+
 /* Action bar inside tag-page/tags-page containers inherits container width */
 .tag-page .action-bar-container,
 .tags-page .action-bar-container {

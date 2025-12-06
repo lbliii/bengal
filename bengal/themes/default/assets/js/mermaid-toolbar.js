@@ -43,6 +43,9 @@
         reset: ''
     };
 
+    // Promise that resolves when icons are loaded
+    let iconsLoadedPromise = null;
+
     // Load all icons on initialization
     async function loadIcons() {
         if (!loadIcon) {
@@ -59,13 +62,64 @@
             ICONS.zoomIn = await loadIcon('zoom-in') || ICONS.zoomIn;
             ICONS.zoomOut = await loadIcon('zoom-out') || ICONS.zoomOut;
             ICONS.reset = await loadIcon('reset') || ICONS.reset;
+            
+            // Update any existing buttons that were created before icons loaded
+            updateExistingToolbarButtons();
         } catch (err) {
             log('Error loading icons:', err);
         }
     }
 
     // Initialize icons when DOM is ready
-    ready(loadIcons);
+    iconsLoadedPromise = loadIcons();
+    ready(() => iconsLoadedPromise);
+
+    // Update existing toolbar buttons with loaded icons
+    function updateExistingToolbarButtons() {
+        // Update toolbar buttons
+        const buttons = document.querySelectorAll('.mermaid-toolbar__button');
+        buttons.forEach(button => {
+            // Match class name after mermaid-toolbar__button-- (handles hyphens)
+            const match = button.className.match(/mermaid-toolbar__button--([\w-]+)/);
+            if (!match) return;
+            
+            const action = match[1];
+            let icon = '';
+            switch (action) {
+                case 'enlarge':
+                    icon = ICONS.enlarge;
+                    break;
+                case 'copy':
+                    icon = ICONS.copy;
+                    break;
+                case 'download-svg':
+                    icon = ICONS.downloadSvg;
+                    break;
+                case 'download-png':
+                    icon = ICONS.downloadPng;
+                    break;
+                case 'zoom-in':
+                    icon = ICONS.zoomIn;
+                    break;
+                case 'zoom-out':
+                    icon = ICONS.zoomOut;
+                    break;
+                case 'reset':
+                    icon = ICONS.reset;
+                    break;
+            }
+            if (icon && !button.querySelector('svg')) {
+                button.innerHTML = icon;
+            }
+        });
+        
+        // Update lightbox close button (replace fallback SVG if needed)
+        const closeButton = document.querySelector('.mermaid-lightbox__close');
+        if (closeButton && ICONS.close) {
+            // Always update with loaded icon (replaces fallback if present)
+            closeButton.innerHTML = ICONS.close;
+        }
+    }
 
     /**
      * Create lightbox element for enlarged diagrams
@@ -239,9 +293,22 @@
     /**
      * Open lightbox with a diagram
      */
-    function openLightbox(diagramElement) {
+    async function openLightbox(diagramElement) {
+        // Ensure icons are loaded before creating/updating lightbox
+        if (iconsLoadedPromise) {
+            await iconsLoadedPromise;
+        }
+        
+        // Update any existing buttons that were created before icons loaded
+        updateExistingToolbarButtons();
+        
         if (!lightbox) {
             lightbox = createLightbox();
+            // Ensure close button has icon (icons are loaded at this point)
+            const closeButton = lightbox.querySelector('.mermaid-lightbox__close');
+            if (closeButton && ICONS.close) {
+                closeButton.innerHTML = ICONS.close;
+            }
         }
 
         currentDiagram = diagramElement;
@@ -577,7 +644,12 @@
         wrapper.appendChild(toolbar);
     }
 
-    function setupMermaidToolbars() {
+    async function setupMermaidToolbars() {
+        // Wait for icons to load before creating buttons
+        if (iconsLoadedPromise) {
+            await iconsLoadedPromise;
+        }
+        
         const diagrams = document.querySelectorAll('.mermaid');
         diagrams.forEach(diagram => {
             setupDiagramToolbar(diagram);

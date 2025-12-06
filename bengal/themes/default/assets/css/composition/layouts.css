@@ -52,6 +52,11 @@
   max-width: none;
 }
 
+/* Remove container padding when it contains docs-layout to allow proper breakout */
+.container:has(>.docs-layout) {
+  padding-inline: 0;
+}
+
 /* Left Sidebar (Navigation) - touches left edge */
 .docs-sidebar {
   grid-area: sidebar;

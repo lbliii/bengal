@@ -93,10 +93,10 @@ def render_code_tabs(renderer, text, **attrs):
     matches = _CODE_TAB_ITEM_PATTERN.findall(text)
 
     if not matches:
-        return f'<div class="code-tabs">{text}</div>'
+        return f'<div class="code-tabs" data-bengal="tabs">{text}</div>'
 
     # Build navigation
-    nav_html = f'<div class="code-tabs" id="{tab_id}">\n  <ul class="tab-nav">\n'
+    nav_html = f'<div class="code-tabs" id="{tab_id}" data-bengal="tabs">\n  <ul class="tab-nav">\n'
     for i, (lang, _) in enumerate(matches):
         active = ' class="active"' if i == 0 else ""
         nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{lang}</a></li>\n'
