@@ -232,8 +232,8 @@ See: plan/active/rfc-template-performance-optimization.md
                             {% for child in item.children %}
                             <li class="{{ 'active' if child.active else '' }}">
                                 <a href="{{ child.url | absolute_url }}">
-                                    {%- if child.icon -%}
-                                    <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
+                                    {%- if child.get('icon') -%}
+                                    <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
                                     {%- endif -%}
                                     <span class="submenu-text">{{ child.name }}</span>
                                 </a>
@@ -355,8 +355,8 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% for child in item.children %}
                     <li class="{{ 'active' if child.active else '' }}">
                         <a href="{{ child.url | absolute_url }}">
-                            {%- if child.icon -%}
-                            <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
+                            {%- if child.get('icon') -%}
+                            <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
                             {%- endif -%}
                             <span class="submenu-text">{{ child.name }}</span>
                         </a>
