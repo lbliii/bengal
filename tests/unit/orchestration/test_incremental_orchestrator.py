@@ -49,6 +49,9 @@ def mock_site(tmp_path):
         Mock(source_path=tmp_path / "assets/script.js"),
     ]
 
+    # Set sections to empty list (section-level filtering requires iterable)
+    site.sections = []
+
     return site
 
 

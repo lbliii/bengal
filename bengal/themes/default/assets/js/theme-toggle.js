@@ -245,4 +245,30 @@
     getPalette: getPalette,
     setPalette: setPalette
   };
+
+  // Register with progressive enhancement system if available
+  // This allows data-bengal="theme-toggle" elements to work with
+  // the new enhancement loader while maintaining backward compatibility
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('theme-toggle', function(el, options) {
+      // Simple toggle handler - delegates to BengalTheme API
+      el.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleTheme();
+      });
+
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleTheme();
+        }
+      });
+
+      // Ensure button role if not already a button
+      if (el.tagName !== 'BUTTON') {
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+      }
+    }, { override: true });
+  }
 })();

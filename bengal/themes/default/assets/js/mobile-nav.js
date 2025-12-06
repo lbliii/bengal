@@ -216,4 +216,20 @@
     close: closeNav,
     toggle: toggleNav
   };
+
+  // Register with progressive enhancement system if available
+  // This allows data-bengal="mobile-nav" elements to work with
+  // the new enhancement loader while maintaining backward compatibility
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('mobile-nav', function(el, options) {
+      // The existing init() already handles all mobile-nav elements,
+      // but this registers the enhancement for consistency and allows
+      // the enhancement system to track enhanced elements.
+      el._bengalNav = {
+        open: openNav,
+        close: closeNav,
+        toggle: toggleNav
+      };
+    }, { override: true });
+  }
 })();

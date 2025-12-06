@@ -146,6 +146,11 @@ See: plan/active/rfc-template-performance-optimization.md
             appearance: '{{ site.theme_config.default_appearance }}',
             palette: '{{ site.theme_config.default_palette }}'
         };
+        // Progressive Enhancement System Configuration
+        window.Bengal = window.Bengal || {};
+        window.Bengal.enhanceBaseUrl = '{{ asset_url("js/enhancements") }}';
+        window.Bengal.watchDom = {{ site.config.get('enhancements', {}).get('watch_dom', true) | lower }};
+        window.Bengal.debug = {{ site.config.get('enhancements', {}).get('debug', false) | lower }};
     </script>
 
     {# Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) #}
@@ -457,6 +462,8 @@ See: plan/active/rfc-template-performance-optimization.md
     <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
     {% else %}
     {# Individual Scripts - Better for development/debugging #}
+    {# Progressive Enhancement System - Load first so other scripts can register #}
+    <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
     <script defer src="{{ asset_url('js/theme-toggle.js') }}"></script>
     <script defer src="{{ asset_url('js/mobile-nav.js') }}"></script>

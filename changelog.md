@@ -1,17 +1,15 @@
 ## Unreleased
 
-### Test Suite Scaling Refactor ✅
-- **tests(roots)**: add `test-directives` root with cards, admonitions, cross-references, glossary data
-- **tests(roots)**: add `test-navigation` root with 3-level menu hierarchy (8 pages)
-- **tests(roots)**: add `test-large` root with 100+ generated pages for performance testing
-- **tests(_testing)**: add `mocks.py` with canonical `MockPage`, `MockSection`, `MockSite` dataclasses
-- **tests(_testing)**: add `create_mock_xref_index()` helper for cross-reference testing
-- **tests(rendering)**: add `conftest.py` with module-scoped `parser` fixture (~5x reduction in instantiations)
-- **tests(rendering)**: add `reset_parser_state` autouse fixture for test isolation
-- **tests**: migrate `test_xref_bug.py`, `test_directive_validator*.py`, `test_template_tests.py` to use shared mocks
-- **tests**: total test roots increased from 7 to 10; canonical mock patterns established
-- **docs**: update tests/README.md with infrastructure overview and fixture documentation
-- **docs**: RFC moved to implemented
+### Progressive Enhancements Architecture ✅
+- **themes(js)**: add `bengal-enhance.js` (~1.5KB) progressive enhancement loader with registry, auto-discovery, and lazy-loading
+- **themes(js)**: add `enhancements/` directory with modular enhancement scripts (`theme-toggle`, `mobile-nav`, `tabs`, `toc`)
+- **themes(js)**: unified `data-bengal` attribute pattern for declaring enhancements (e.g., `<div data-bengal="tabs">`)
+- **themes(js)**: enhancement configuration via additional `data-*` attributes (booleans, numbers, JSON parsed automatically)
+- **themes(js)**: MutationObserver watches for dynamic content and auto-enhances new elements
+- **themes(js)**: backward compatibility maintained - existing scripts register with new system when available
+- **themes(base.html)**: load enhancement loader before other scripts; add configuration for base URL and debug mode
+- **config**: add `[enhancements]` config section with `watch_dom`, `debug`, and `base_url` options
+- **docs**: add enhancement README with usage examples and custom enhancement guide
 
 ### Systematic Observability Improvements ✅
 - **utils**: add `observability.py` module with `ComponentStats` dataclass and `HasStats` protocol for standardized stats collection

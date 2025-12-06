@@ -559,4 +559,21 @@
       });
     }
   };
+
+  // Register with progressive enhancement system if available
+  // This allows data-bengal="toc" elements to work with
+  // the new enhancement loader while maintaining backward compatibility
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('toc', function(nav, options) {
+      // The existing initTOC handles all TOC elements globally,
+      // but this registers for consistency and allows explicit
+      // enhancement via data-bengal="toc".
+      nav._bengalToc = {
+        updateActive: updateActiveItem,
+        expandAll: window.BengalTOC.expandAll,
+        collapseAll: window.BengalTOC.collapseAll,
+        cleanup: cleanup
+      };
+    }, { override: true });
+  }
 })();
