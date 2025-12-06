@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Code: Clean angle brackets -->
+  <title>Code</title>
+
+  <!-- Left bracket shadow -->
+  <path d="M9 5 L2 12 L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Left bracket -->
+  <path d="M9 5 L2 12 L9 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right bracket shadow -->
+  <path d="M15 5 L22 12 L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Right bracket -->
+  <path d="M15 5 L22 12 L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

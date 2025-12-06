@@ -84,6 +84,7 @@ class MistuneParser(BaseMarkdownParser):
         # Import our custom plugins
         from bengal.rendering.plugins import (
             BadgePlugin,
+            InlineIconPlugin,
             TermPlugin,
             create_documentation_directives,
         )
@@ -146,6 +147,9 @@ class MistuneParser(BaseMarkdownParser):
         # Badge plugin (always enabled)
         self._badge_plugin = BadgePlugin()
 
+        # Inline icon plugin (always enabled)
+        self._inline_icon_plugin = InlineIconPlugin()
+
         # AST parser instance (created lazily for parse_to_ast)
         # Uses renderer=None to get raw AST tokens instead of HTML
         self._ast_parser = None
@@ -195,11 +199,17 @@ class MistuneParser(BaseMarkdownParser):
                     # Get cached lexer for the language
                     lexer = get_lexer_cached(language=info_stripped)
 
+                    # Count lines to decide on line numbers
+                    line_count = code.count('\n') + 1
+
                     # Format with Pygments using 'highlight' CSS class (matches python-markdown)
+                    # Add line numbers for code blocks with 3+ lines (Supabase-style)
                     formatter = HtmlFormatter(
                         cssclass="highlight",
                         wrapcode=True,
                         noclasses=False,  # Use CSS classes instead of inline styles
+                        linenos='table' if line_count >= 3 else False,
+                        linenostart=1,
                     )
 
                     # Highlight the code
@@ -240,8 +250,9 @@ class MistuneParser(BaseMarkdownParser):
 
         try:
             html = self.md(content)
-            # Post-process for badges
+            # Post-process for badges and inline icons
             html = self._badge_plugin._substitute_badges(html)
+            html = self._inline_icon_plugin._substitute_icons(html)
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
                 html = self._xref_plugin._substitute_xrefs(html)
@@ -272,8 +283,9 @@ class MistuneParser(BaseMarkdownParser):
         # Stage 1: Parse markdown
         html = self.md(content)
 
-        # Stage 1.5: Post-process badges
+        # Stage 1.5: Post-process badges and inline icons
         html = self._badge_plugin._substitute_badges(html)
+        html = self._inline_icon_plugin._substitute_icons(html)
 
         # Stage 1.6: Post-process cross-references if enabled
         if self._xref_enabled and self._xref_plugin:
@@ -413,8 +425,9 @@ class MistuneParser(BaseMarkdownParser):
             # HTML entities as the expected characters for documentation.
             html = self._escape_jinja_blocks(html)
 
-            # Post-process for badges
+            # Post-process for badges and inline icons
             html = self._badge_plugin._substitute_badges(html)
+            html = self._inline_icon_plugin._substitute_icons(html)
 
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
@@ -679,9 +692,10 @@ class MistuneParser(BaseMarkdownParser):
         # Render AST to HTML
         html = self.render_ast(ast) if ast else ""
 
-        # Apply post-processing (badges, xrefs)
+        # Apply post-processing (badges, inline icons, xrefs)
         if html:
             html = self._badge_plugin._substitute_badges(html)
+            html = self._inline_icon_plugin._substitute_icons(html)
             if self._xref_enabled and self._xref_plugin:
                 html = self._xref_plugin._substitute_xrefs(html)
 

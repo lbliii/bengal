@@ -181,7 +181,6 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 .docs-nav-group-link.active,
 .docs-nav-group-link[aria-current="page"] {
   color: var(--color-primary);
-  background: var(--color-primary-light);
 }
 
 /* Subtle indicator for parent groups containing active child - accent bar only */
@@ -206,15 +205,10 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   /* JavaScript will set aria-expanded="true" */
 }
 
-/* Also handle when the group link itself is active */
+/* Also handle when the group link itself is active - accent bar only */
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  /* Unified neumorphic style - matches nav action buttons */
-  background: linear-gradient(180deg,
-      var(--color-surface, var(--color-bg-elevated)),
-      var(--color-bg-secondary));
-  border: 1px solid var(--color-border);
-  box-shadow: var(--neumorphic-subtle);
+  /* No background highlight - accent bar provides indication */
 }
 
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
@@ -225,7 +219,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 [data-theme="dark"] .docs-nav-group-link.active,
 [data-theme="dark"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
+  /* No background highlight - accent bar provides indication */
 }
 
 .docs-nav-group-items {
@@ -464,12 +458,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* Also handle when the group link itself is active */
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  /* Unified neumorphic style - dark mode inherits via CSS variables */
-  background: linear-gradient(180deg,
-      var(--color-surface, var(--color-bg-elevated)),
-      var(--color-bg-secondary));
-  border: 1px solid var(--color-border);
-  box-shadow: var(--neumorphic-subtle);
+  /* No background highlight - accent bar provides indication */
 }
 
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
@@ -524,34 +513,102 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
    to match any data-palette value ending in "-bengal".
 */
 
-/* Active navigation links - all palettes */
+/* Active navigation links - all palettes (pages only, not directories) */
 [data-palette$="-bengal"] .docs-nav-link.active,
 [data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
-[data-palette$="-bengal"] .docs-nav-group-link.active,
-[data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"],
 [data-palette$="-bengal"] .docs-nav-link--section.active,
 [data-palette$="-bengal"] .docs-nav-link--section[aria-current="page"] {
   background: var(--color-primary-light);
 }
 
-/* Active navigation links - all palettes (dark mode) */
+/* Active navigation links - all palettes (dark mode, pages only) */
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link.active,
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
-[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"],
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link--section.active,
 [data-theme="dark"][data-palette$="-bengal"] .docs-nav-link--section[aria-current="page"] {
   background: var(--color-primary-light);
 }
 
-/* Active group toggle wrappers - all palettes */
-[data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
+/* ============================================
+   ACTIVE ACCENT BAR GLOW ANIMATION
+   ============================================
+   
+   Peaceful slow glow animation for active navigation items.
+   Matches the footer's breathing glow effect.
+*/
+
+/* Keyframes for the accent bar glow - light mode */
+@keyframes nav-accent-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      2px 0 6px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      3px 0 10px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
 }
 
-/* Active group toggle wrappers - all palettes (dark mode) */
-[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
+/* Keyframes for the accent bar glow - dark mode (slightly brighter) */
+@keyframes nav-accent-glow-dark {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 5%, transparent),
+      2px 0 8px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 25%, transparent),
+      4px 0 12px 0 color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+}
+
+/* Apply glow to active page link accent bars */
+.docs-nav-link.active::before,
+.docs-nav-link[aria-current="page"]::before {
+  animation: nav-accent-glow 8s ease-in-out infinite;
+}
+
+/* Apply glow to active directory accent bars */
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+  animation: nav-accent-glow 8s ease-in-out infinite;
+}
+
+/* Apply glow to parent directory accent bars (containing active child) */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+  animation: nav-accent-glow 8s ease-in-out infinite;
+}
+
+/* Dark mode: use brighter glow animation */
+[data-theme="dark"] .docs-nav-link.active::before,
+[data-theme="dark"] .docs-nav-link[aria-current="page"]::before {
+  animation: nav-accent-glow-dark 8s ease-in-out infinite;
+}
+
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+  animation: nav-accent-glow-dark 8s ease-in-out infinite;
+}
+
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+  animation: nav-accent-glow-dark 8s ease-in-out infinite;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  .docs-nav-link.active::before,
+  .docs-nav-link[aria-current="page"]::before,
+  .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
+  .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after,
+  .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
+  .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+    animation: none;
+    box-shadow: 2px 0 6px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
 }

@@ -1,5 +1,5 @@
 ---
-title: Documentation
+title: ᗢ Documentation
 description: Complete documentation for Bengal
 weight: 5
 draft: false

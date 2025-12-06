@@ -8,7 +8,7 @@
  * - Smooth scroll enhancements
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Ensure utils are available
@@ -177,11 +177,11 @@
     if (navLinks.length === 0) return;
 
     let currentSection = '';
-    
+
     // Cache section data to avoid reading offsetTop on every scroll
     // Structure: { id: string, element: Element, offsetTop: number }
     let sectionData = [];
-    
+
     // Build initial cache
     const updateSectionCache = () => {
       sectionData = Array.from(sections).map(section => ({
@@ -190,10 +190,10 @@
         offsetTop: section.offsetTop
       }));
     };
-    
+
     // Initialize cache
     updateSectionCache();
-    
+
     // Rebuild cache on resize (layout may change)
     const debouncedCacheUpdate = debounce(updateSectionCache, 250);
     window.addEventListener('resize', debouncedCacheUpdate, { passive: true });
@@ -221,7 +221,7 @@
         navLinks.forEach(link => {
           const href = link.getAttribute('href');
           const shouldBeActive = currentSection && href === `#${currentSection}`;
-          
+
           if (shouldBeActive) {
             link.classList.add('active');
           } else {
@@ -342,8 +342,8 @@
     // Close sidebar when clicking outside on mobile
     const outsideClickHandler = (e) => {
       if (sidebar.hasAttribute('data-open') &&
-          !sidebar.contains(e.target) &&
-          !toggleButton.contains(e.target)) {
+        !sidebar.contains(e.target) &&
+        !toggleButton.contains(e.target)) {
         sidebar.removeAttribute('data-open');
         toggleButton.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
@@ -376,12 +376,12 @@
 
     if (filterButtons.length === 0 || timelineItems.length === 0) return;
 
-    filterButtons.forEach(function(button) {
-      button.addEventListener('click', function() {
+    filterButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
         const filter = this.getAttribute('data-filter');
 
         // Update button states
-        filterButtons.forEach(function(btn) {
+        filterButtons.forEach(function (btn) {
           btn.classList.remove('active');
           btn.setAttribute('aria-pressed', 'false');
         });
@@ -389,21 +389,21 @@
         this.setAttribute('aria-pressed', 'true');
 
         // Filter timeline items
-        timelineItems.forEach(function(item) {
+        timelineItems.forEach(function (item) {
           const changeTypes = item.getAttribute('data-change-types') || '';
 
           // Items without structured data (empty or 'all') show for all filters
           // Items with structured data only show if they match the filter
           const hasStructuredData = changeTypes && changeTypes !== 'all';
           const shouldShow = filter === 'all' ||
-                            !hasStructuredData ||
-                            changeTypes.includes(filter);
+            !hasStructuredData ||
+            changeTypes.includes(filter);
 
           if (shouldShow) {
             item.style.display = '';
             // Smooth fade-in animation
             item.style.opacity = '0';
-            setTimeout(function() {
+            setTimeout(function () {
               item.style.transition = 'opacity 0.3s ease';
               item.style.opacity = '1';
             }, 10);

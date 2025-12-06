@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem; /* Compact on desktop */
   font-size: var(--text-xs, 0.75rem);
   font-family: inherit;
   font-weight: var(--weight-medium, 500);
@@ -54,6 +54,23 @@
   transform: translateY(0) scale(0.98);
 }
 
+/* Focus state for accessibility (WCAG AA - 3:1 contrast for UI components) */
+.nav-action-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 
+    0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent),
+    var(--neumorphic-hover);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .nav-action-btn:focus-visible {
+    box-shadow: 
+      0 0 0 4px rgba(33, 150, 243, 0.1),
+      var(--neumorphic-hover);
+  }
+}
+
 .nav-action-btn svg {
   flex-shrink: 0;
   width: var(--icon-size-sm, 14px);
@@ -70,7 +87,7 @@
    ============================================ */
 
 .nav-action-btn--icon-only {
-  padding: 0.25rem;
+  padding: 0.25rem; /* Compact on desktop */
   gap: 0;
 }
 
@@ -87,9 +104,18 @@
    RESPONSIVE
    ============================================ */
 
+/* Mobile: enforce 44px touch targets */
 @media (max-width: 768px) {
   .nav-action-btn {
-    padding: 0.375rem;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .nav-action-btn--icon-only {
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

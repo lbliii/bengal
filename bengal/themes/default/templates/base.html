@@ -218,94 +218,90 @@ See: plan/active/rfc-template-performance-optimization.md
                 </a>
 
                 {# Desktop Navigation - uses cached _main_menu and _auto_nav from top of template #}
-                <div class="nav-main hidden-mobile">
-                    {% if _main_menu or _auto_nav %}
-                    <ul>
-                        {# Manual menu items (if configured) #}
-                        {% if _main_menu %}
-                        {% for item in _main_menu %}
-                        <li
-                            class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
-                            <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
-                            {% if item.children %}
-                            <ul class="submenu">
-                                {% for child in item.children %}
-                                <li class="{{ 'active' if child.active else '' }}">
-                                    <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
+                {% if _main_menu or _auto_nav %}
+                <ul class="nav-main hidden-mobile">
+                    {# Manual menu items (if configured) #}
+                    {% if _main_menu %}
+                    {% for item in _main_menu %}
+                    <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
+                        <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                        {% if item.children %}
+                        <ul class="submenu">
+                            {% for child in item.children %}
+                            <li class="{{ 'active' if child.active else '' }}">
+                                <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
                         {% endif %}
-
-                        {# Auto-discovered nav items (if no manual config) #}
-                        {% if _auto_nav %}
-                        {# Always show Home first in auto mode #}
-                        <li class="{{ 'active' if _page_url == '/' else '' }}">
-                            <a href="{{ '/' | absolute_url }}">Home</a>
-                        </li>
-                        {% for item in _auto_nav %}
-                        <li
-                            class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
-                            <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
-                        </li>
-                        {% endfor %}
-                        {% endif %}
-
-                        {# Search - Modal trigger if enabled, otherwise link to search page #}
-                        {% set search_config = site.config.get('search', {}) %}
-                        {% set ui_config = search_config.get('ui', {}) %}
-                        {% set modal_enabled = ui_config.get('modal', false) %}
-                        <li>
-                            {% if modal_enabled %}
-                            <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
-                                aria-label="Open search">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <path d="m21 21-4.35-4.35"></path>
-                                </svg>
-                                <span>Search</span>
-                                <kbd class="nav-search-shortcut">⌘K</kbd>
-                            </button>
-                            {% else %}
-                            <a href="{{ '/search/' | absolute_url }}" title="Search (⌘K)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <path d="m21 21-4.35-4.35"></path>
-                                </svg>
-                                <span>Search</span>
-                            </a>
-                            {% endif %}
-                        </li>
-                        {# GitHub link - only show if not bundled in Dev dropdown #}
-                        {% set github_bundled = false %}
-                        {% if site._dev_menu_metadata is defined %}
-                        {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
-                        {% endif %}
-                        {% if site.config.params and site.config.params.repo_url and not github_bundled %}
-                        <li>
-                            <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener"
-                                title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path
-                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                                </svg>
-                                <span>GitHub</span>
-                            </a>
-                        </li>
-                        {% endif %}
-                        {% block nav_items %}{% endblock %}
-                    </ul>
+                    </li>
+                    {% endfor %}
                     {% endif %}
 
-                </div>
+                    {# Auto-discovered nav items (if no manual config) #}
+                    {% if _auto_nav %}
+                    {# Always show Home first in auto mode #}
+                    <li class="{{ 'active' if _page_url == '/' else '' }}">
+                        <a href="{{ '/' | absolute_url }}">Home</a>
+                    </li>
+                    {% for item in _auto_nav %}
+                    <li
+                        class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                        <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                    </li>
+                    {% endfor %}
+                    {% endif %}
 
-                {# Theme Controls - Desktop Only #}
-                <div class="theme-controls-desktop hidden-mobile">
+                    {# GitHub link - only show if not bundled in Dev dropdown #}
+                    {% set github_bundled = false %}
+                    {% if site._dev_menu_metadata is defined %}
+                    {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
+                    {% endif %}
+                    {% if site.config.params and site.config.params.repo_url and not github_bundled %}
+                    <li>
+                        <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener"
+                            title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                            </svg>
+                            <span>GitHub</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% block nav_items %}{% endblock %}
+                </ul>
+                {% endif %}
+
+                {# Header Actions - Desktop Only (Search + Theme) #}
+                <div class="header-actions hidden-mobile">
+                    {# Search - Modal trigger if enabled, otherwise link to search page #}
+                    {% set search_config = site.config.get('search', {}) %}
+                    {% set ui_config = search_config.get('ui', {}) %}
+                    {% set modal_enabled = ui_config.get('modal', false) %}
+                    {% if modal_enabled %}
+                    <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
+                        aria-label="Open search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <span>Search</span>
+                        <kbd class="nav-search-shortcut">⌘K</kbd>
+                    </button>
+                    {% else %}
+                    <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <span>Search</span>
+                    </a>
+                    {% endif %}
+
+                    {# Theme Controls #}
                     {% include 'partials/theme-controls.html' %}
                 </div>
 
@@ -467,6 +463,7 @@ See: plan/active/rfc-template-performance-optimization.md
     <script defer src="{{ asset_url('js/utils.js') }}"></script>
     <script defer src="{{ asset_url('js/theme-toggle.js') }}"></script>
     <script defer src="{{ asset_url('js/mobile-nav.js') }}"></script>
+    <script defer src="{{ asset_url('js/nav-dropdown.js') }}"></script>
     <script defer src="{{ asset_url('js/tabs.js') }}"></script>
     <script defer src="{{ asset_url('js/toc.js') }}"></script>
     <script defer src="{{ asset_url('js/action-bar.js') }}"></script>
@@ -509,7 +506,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Back to Top Button - Feature: navigation.back_to_top #}
     {% if 'navigation.back_to_top' in site.theme_config.features %}
-    <button class="back-to-top" aria-label="Scroll to top" title="Back to top" data-bengal="back-to-top">
+    <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor"></line>
@@ -520,7 +517,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
     {# Image Lightbox - Feature: content.lightbox #}
     {% if 'content.lightbox' in site.theme_config.features %}
-    <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true" data-bengal="lightbox">
+    <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"

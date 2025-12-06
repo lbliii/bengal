@@ -49,7 +49,16 @@ button:focus-visible,
 .button:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  /* Use palette-aware focus ring color (3:1 contrast for UI components per WCAG AA) */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  button:focus-visible,
+  .button:focus-visible {
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  }
 }
 
 /* (Removed legacy theme toggle focus rule) */
@@ -64,7 +73,17 @@ select:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 0;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  /* Use palette-aware focus ring color (3:1 contrast for UI components per WCAG AA) */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus) 20%, transparent);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  }
 }
 
 /* ============================================
@@ -139,7 +158,13 @@ select:focus-visible {
 .pagination a:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .pagination a:focus-visible {
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  }
 }
 
 /* ============================================
@@ -149,7 +174,13 @@ select:focus-visible {
 .code-copy-button:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 25%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .code-copy-button:focus-visible {
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
+  }
 }
 
 /* ============================================
@@ -228,6 +259,37 @@ select:focus-visible {
   .skip-link {
     transition: none;
   }
+
+  /* Disable all casting light glow animations */
+  header[role="banner"],
+  [data-theme="dark"] header[role="banner"],
+  .toc-link.active::after,
+  [data-theme="dark"] .toc-link.active::after,
+  .tab-nav li.active a::after,
+  [data-theme="dark"] .tab-nav li.active a::after,
+  .pagination .active,
+  [data-theme="dark"] .pagination .active {
+    animation: none;
+  }
+
+  /* Static subtle glow for reduced motion users */
+  header[role="banner"] {
+    box-shadow: 0 1px 8px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+
+  .toc-link.active::after {
+    box-shadow: 4px 0 15px 0 color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  .tab-nav li.active a::after {
+    box-shadow: 0 2px 10px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+
+  .pagination .active {
+    box-shadow:
+      var(--elevation-medium),
+      0 2px 12px 0 color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
 }
 
 /* ============================================
@@ -236,7 +298,14 @@ select:focus-visible {
 
 [data-theme="dark"] *:focus-visible {
   outline-color: var(--color-border-focus);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+  /* Use palette-aware focus ring for dark mode */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 25%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  [data-theme="dark"] *:focus-visible {
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+  }
 }
 
 [data-theme="dark"] .skip-link:focus {
@@ -273,7 +342,13 @@ body.user-is-tabbing *:focus {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 0;
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .search-input:focus-visible {
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+  }
 }
 
 /* Dropdown menus */

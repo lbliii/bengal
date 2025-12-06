@@ -64,7 +64,7 @@ custom CLI tools or generating standalone CLI docs.
 Show performance metrics and trends.
 
 Displays build performance metrics collected from previous builds.
-Metrics are automatically saved to .bengal-metrics/ directory.
+Metrics are automatically saved to .bengal/metrics/ directory.
 
 **Usage:** `utils perf [OPTIONS]`
 

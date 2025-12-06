@@ -432,7 +432,55 @@
 
 .toc-link.active {
     color: var(--color-primary);
-    border-inline-start-color: var(--color-primary);
+    border-inline-start-color: transparent;
+    position: relative;
+}
+
+/* Soft glowing accent for active TOC item */
+.toc-link.active::after {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    /* Very soft gradient - almost invisible line, glow does the work */
+    background: linear-gradient(180deg,
+        transparent 0%,
+        color-mix(in srgb, var(--color-primary) 50%, transparent) 30%,
+        color-mix(in srgb, var(--color-primary) 60%, transparent) 50%,
+        color-mix(in srgb, var(--color-primary) 50%, transparent) 70%,
+        transparent 100%);
+    border-radius: 1px;
+    animation: toc-accent-glow 8s ease-in-out infinite;
+}
+
+@keyframes toc-accent-glow {
+    0%, 100% {
+        box-shadow: 3px 0 12px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+    }
+    50% {
+        box-shadow: 5px 0 18px 0 color-mix(in srgb, var(--color-primary) 22%, transparent);
+    }
+}
+
+[data-theme="dark"] .toc-link.active::after {
+    background: linear-gradient(180deg,
+        transparent 0%,
+        color-mix(in srgb, var(--color-primary) 60%, transparent) 30%,
+        color-mix(in srgb, var(--color-primary) 70%, transparent) 50%,
+        color-mix(in srgb, var(--color-primary) 60%, transparent) 70%,
+        transparent 100%);
+    animation: toc-accent-glow-dark 8s ease-in-out infinite;
+}
+
+@keyframes toc-accent-glow-dark {
+    0%, 100% {
+        box-shadow: 4px 0 15px 0 color-mix(in srgb, var(--color-primary) 18%, transparent);
+    }
+    50% {
+        box-shadow: 6px 0 22px 0 color-mix(in srgb, var(--color-primary) 32%, transparent);
+    }
 }
 
 /* ============================================================================

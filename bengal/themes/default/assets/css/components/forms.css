@@ -72,9 +72,13 @@
   font-family: inherit;
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg); /* Increased from --border-radius-medium (4px → 8px) */
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  /* Neumorphic inset - carved into surface */
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.04),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.4);
+  transition: all var(--transition-fast);
 }
 
 .form-input.gradient-border,
@@ -87,14 +91,41 @@
 .form-textarea:hover,
 .form-select:hover {
   border-color: var(--color-border-dark);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.06),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
 }
 
 .form-input:focus,
 .form-textarea:focus,
 .form-select:focus {
   outline: none;
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  border-color: var(--color-primary);
+  /* Neumorphic focus with casting light glow */
+  box-shadow:
+    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.06),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.25),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent),
+    0 0 15px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-textarea,
+[data-theme="dark"] .form-select {
+  box-shadow:
+    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.25),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-textarea:focus,
+[data-theme="dark"] .form-select:focus {
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.02),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent),
+    0 0 20px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .form-input:disabled,

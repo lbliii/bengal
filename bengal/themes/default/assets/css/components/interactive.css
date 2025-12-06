@@ -148,12 +148,13 @@
   .back-to-top {
     bottom: 4rem;
     right: 1rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    min-height: 2.5rem;
-    max-width: 2.5rem;
-    max-height: 2.5rem;
+    /* Apple HIG: Minimum 44×44px touch target */
+    width: 2.75rem; /* 44px */
+    height: 2.75rem; /* 44px */
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    max-width: 2.75rem;
+    max-height: 2.75rem;
     aspect-ratio: 1 / 1;
   }
 
@@ -225,57 +226,56 @@
   /* Account for fixed header */
 }
 
+/* Link appears to the LEFT of heading on hover (GitHub-style) */
 .copy-link {
-  display: inline-flex;
+  position: absolute;
+  left: -2.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-inline-start: 0.5rem;
-  padding: 0;
-  /* Ghost/frosted glass effect with neumorphic shadow */
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px) saturate(180%);
-  -webkit-backdrop-filter: blur(8px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-tertiary);
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-text-secondary);
   opacity: 0;
   cursor: pointer;
   transition: all var(--transition-fast);
-  vertical-align: middle;
-  text-decoration: none;
-  /* Neumorphic shadow - standardized */
-  box-shadow: var(--neumorphic-subtle);
+  border-radius: var(--radius-sm);
+  /* Reset ALL link styles from prose - critical overrides */
+  text-decoration: none !important;
+  background: none !important;
+  background-image: none !important;
+  background-size: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Prevent ::after pseudo-element from external link styles */
+.copy-link::after {
+  display: none !important;
+  content: none !important;
 }
 
 .heading-anchor:hover .copy-link,
 .copy-link:focus {
-  opacity: 1;
+  opacity: 0.6;
 }
 
 .copy-link:hover {
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  /* Neumorphic hover - standardized */
-  box-shadow: var(--neumorphic-hover);
-  transform: scale(1.08);
+  opacity: 1;
+  color: var(--color-primary);
+  transform: translateY(-50%) scale(1.1);
 }
 
 .copy-link:active {
-  /* Neumorphic pressed state - standardized */
-  box-shadow: var(--neumorphic-subtle-pressed);
-  transform: scale(0.98);
-  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-50%) scale(0.95);
 }
 
 .copy-link:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
   opacity: 1;
-  /* Show on focus for accessibility */
 }
 
 /* Hide legacy pilcrow headerlinks if present (parser now outputs IDs only) */
@@ -284,56 +284,42 @@
 }
 
 .copy-link svg {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 /* Success state */
 .copy-link.copied {
+  opacity: 1;
   color: var(--color-success);
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.3);
-  /* Neumorphic shadow with success tint - using base pattern */
-  box-shadow: var(--neumorphic-subtle);
 }
 
-/* Dark mode adjustments for ghost effect */
-[data-theme="dark"] .copy-link {
-  background: rgba(0, 0, 0, 0.2);
-  border-color: rgba(255, 255, 255, 0.1);
-  /* Neumorphic shadow for dark mode - standardized */
-  box-shadow: var(--neumorphic-subtle);
-}
-
-[data-theme="dark"] .copy-link:hover {
-  background: rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
-  /* Neumorphic hover for dark mode - standardized */
-  box-shadow: var(--neumorphic-hover);
-}
-
-[data-theme="dark"] .copy-link.copied {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.4);
-}
-
-/* Fallback for browsers without backdrop-filter */
-@supports not (backdrop-filter: blur(8px)) {
-  .copy-link {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--color-border);
-  }
-
-  [data-theme="dark"] .copy-link {
-    background: rgba(26, 26, 26, 0.9);
-    border-color: var(--color-border);
-  }
-}
-
-/* Always show on mobile (can't hover) */
+/* On mobile: show inline after the heading (can't hover to reveal) */
 @media (max-width: 768px) {
   .copy-link {
-    opacity: 0.5;
+    position: static;
+    transform: none;
+    display: inline-flex;
+    vertical-align: middle;
+    width: auto;
+    height: auto;
+    padding: 0.25rem;
+    margin: 0 0 0 0.5rem !important;
+    opacity: 0.4;
+    /* Subtle frosted background on mobile */
+    background: rgba(128, 128, 128, 0.1) !important;
+    border-radius: var(--radius-sm);
+  }
+
+  .copy-link:hover,
+  .copy-link:active {
+    transform: none;
+  }
+
+  .copy-link svg {
+    width: 14px;
+    height: 14px;
   }
 }
 

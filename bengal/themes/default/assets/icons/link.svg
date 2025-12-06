@@ -1,0 +1,20 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Link: Clean chain links -->
+  <title>Link</title>
+
+  <!-- Back link shadow -->
+  <path d="M10 14 A4 4 0 0 1 8.5 8.5 L11.5 5.5 A4 4 0 0 1 17 11 L16 12"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Back link -->
+  <path d="M10 14 A4 4 0 0 1 8.5 8.5 L11.5 5.5 A4 4 0 0 1 17 11 L16 12"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Front link shadow -->
+  <path d="M14 10 A4 4 0 0 1 15.5 15.5 L12.5 18.5 A4 4 0 0 1 7 13 L8 12"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Front link -->
+  <path d="M14 10 A4 4 0 0 1 15.5 15.5 L12.5 18.5 A4 4 0 0 1 7 13 L8 12"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

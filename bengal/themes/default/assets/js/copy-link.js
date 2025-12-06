@@ -98,6 +98,8 @@
       `;
       button.classList.remove('copied');
       button.setAttribute('aria-label', 'Copy link to this section');
+      // Remove focus so it hides again (click left it focused)
+      button.blur();
     }, 2000);
   }
 

@@ -247,4 +247,3 @@ git add -A && git commit -m "theme(typography): align prose elements with premiu
 - **Parent RFC**: `plan/rfc-premium-tactile-theme.md`
 - **Bengal typography tokens**: `bengal/themes/default/assets/css/tokens/typography.css`
 - **Bengal typography styles**: `bengal/themes/default/assets/css/base/typography.css`
-
