@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bookmark: Clean ribbon -->
+  <title>Bookmark</title>
+
+  <!-- Shadow -->
+  <path d="M5 4 A2 2 0 0 1 7 2 H17 A2 2 0 0 1 19 4 V20 L12 15 L5 20 V4 Z"
+    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Main shape -->
+  <path d="M5 4 A2 2 0 0 1 7 2 H17 A2 2 0 0 1 19 4 V20 L12 15 L5 20 V4 Z"
+    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Inner bookmark fold detail -->
+  <path d="M9 6 V10 L12 8 L15 10 V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+</svg>

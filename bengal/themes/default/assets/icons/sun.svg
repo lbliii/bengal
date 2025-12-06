@@ -1,0 +1,23 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sun: Clean sun with rays -->
+  <title>Sun</title>
+
+  <!-- Center disk shadow -->
+  <circle cx="12.3" cy="12.3" r="4.5" stroke="currentColor" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Center disk -->
+  <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
+
+  <!-- Rays -->
+  <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Diagonal rays -->
+  <line x1="5.5" y1="5.5" x2="7.5" y2="7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16.5" y1="16.5" x2="18.5" y2="18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="5.5" y1="18.5" x2="7.5" y2="16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16.5" y1="7.5" x2="18.5" y2="5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>

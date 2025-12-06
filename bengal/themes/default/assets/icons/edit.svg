@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Edit: Clean pencil -->
+  <title>Edit</title>
+
+  <!-- Shadow -->
+  <path d="M17 3a2.121 2.121 0 0 1 3 3L7.5 19.5 2 21l1.5-5.5L17 3z"
+    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Main pencil -->
+  <path d="M17 3a2.121 2.121 0 0 1 3 3L7.5 19.5 2 21l1.5-5.5L17 3z"
+    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Pencil division line -->
+  <path d="M14.5 6.5 L5.5 15.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.35"/>
+</svg>

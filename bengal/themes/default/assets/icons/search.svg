@@ -1,0 +1,20 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Search: Glass magnifying glass with thinner outline -->
+  <title>Search</title>
+
+  <!-- Handle depth -->
+  <path d="M15 16 L20 21 L21 20 L16 15 Z" fill="currentColor" opacity="0.35"/>
+  <!-- Handle -->
+  <line x1="14.5" y1="15.5" x2="20" y2="21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Lens depth -->
+  <ellipse cx="10" cy="11.5" rx="6" ry="6" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+  <!-- Lens main - thinner stroke -->
+  <circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.5"/>
+
+  <!-- Soft highlight arc -->
+  <path d="M6 7.5 A4 4 0 0 1 13 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Glass reflection dot -->
+  <circle cx="7" cy="7" r="1" fill="currentColor" opacity="0.5"/>
+</svg>

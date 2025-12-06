@@ -1,0 +1,24 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Calendar: Clean block calendar -->
+  <title>Calendar</title>
+
+  <!-- Shadow -->
+  <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.2" transform="translate(0.3, 0.3)"/>
+
+  <!-- Main calendar body -->
+  <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+
+  <!-- Top bar/header -->
+  <path d="M3 9 H21" stroke="currentColor" stroke-width="1.5"/>
+
+  <!-- Hanging tabs -->
+  <path d="M8 3 V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M16 3 V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Date grid dots -->
+  <circle cx="7" cy="13" r="1" fill="currentColor"/>
+  <circle cx="12" cy="13" r="1" fill="currentColor"/>
+  <circle cx="17" cy="13" r="1" fill="currentColor"/>
+  <circle cx="7" cy="17" r="1" fill="currentColor"/>
+  <circle cx="12" cy="17" r="1" fill="currentColor"/>
+</svg>
