@@ -4,7 +4,7 @@ title: "perf"
 type: "cli-reference"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 11
-description: "Show performance metrics and trends. Displays build performance metrics collected from previous builds. Metrics are automatically saved to .bengal-metrics/ directory."
+description: "Show performance metrics and trends. Displays build performance metrics collected from previous builds. Metrics are automatically saved to .bengal/metrics/ directory."
 ---
 
 # perf
@@ -23,7 +23,7 @@ description: "Show performance metrics and trends. Displays build performance me
 Show performance metrics and trends.
 
 Displays build performance metrics collected from previous builds.
-Metrics are automatically saved to .bengal-metrics/ directory.
+Metrics are automatically saved to .bengal/metrics/ directory.
 
 ## Usage
 

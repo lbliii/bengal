@@ -293,7 +293,7 @@ Show full traditional output instead of live progress (useful for debugging)
 ### `log_file`
 
 
-Write detailed logs to file (default: .bengal-build.log)
+Write detailed logs to file (default: .bengal/logs/build.log)
 
 **Type:** `path`
 

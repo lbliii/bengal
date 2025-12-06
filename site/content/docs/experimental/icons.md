@@ -13,114 +13,134 @@ weight: 20
 
 Bengal includes a custom icon system with theme-aware SVG icons that adapt to light/dark mode and palette colors.
 
-## Quick Start
+## Two Syntaxes
 
-Use the `:::{icon}` directive to inline SVG icons:
+Bengal provides two ways to use icons:
+
+| Syntax | Use Case | Example |
+|--------|----------|---------|
+| Block directive | Standalone icons | `:::{icon} terminal` |
+| Inline syntax | Tables, paragraphs | `{icon}`terminal`` |
+
+---
+
+## Block Directive (Standalone)
+
+Use the `:::{icon}` directive for standalone icons:
 
 ```markdown
 :::{icon} terminal
+:size: 48
+:class: icon-primary
 :::
 ```
 
 **Result:**
 
 :::{icon} terminal
+:size: 48
+:class: icon-primary
 :::
+
+---
+
+## Inline Syntax (Tables & Paragraphs)
+
+Use `{icon}`name`` for inline icons in tables and text:
+
+```markdown
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`terminal` | Terminal | CLI icon |
+| {icon}`docs:20` | Docs | Documentation |
+```
+
+**Result:**
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`terminal` | Terminal | CLI command prompt |
+| {icon}`docs` | Docs | Documentation pages |
+| {icon}`bengal-rosette` | Rosette | Bengal signature |
+
+### Inline Syntax Options
+
+The inline syntax supports size and class options with colons:
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `{icon}`name`` | Default 24px | {icon}`terminal` |
+| `{icon}`name:size`` | Custom size | {icon}`terminal:16` |
+| `{icon}`name:size:class`` | Size + class | {icon}`bengal-rosette:20:icon-primary` |
+
+---
 
 ## Available Icons
 
 ### Bengal Rosette
 
-The signature Bengal cat rosette pattern—inspired by the spotted coat of Bengal cats.
+The signature Bengal cat rosette pattern—inspired by the spotted coat.
 
 :::{icon} bengal-rosette
-:size: 48
+:size: 64
 :class: icon-primary
 :::
 
-**Use cases**: Brand signature, decorative separators, loading states, section headers.
+**Inline:** {icon}`bengal-rosette:32`
+
+---
 
 ### Documentation
 
 Stacked pages with a bookmark tab for that tactile feel.
 
 :::{icon} docs
-:size: 48
+:size: 64
 :class: icon-primary
 :::
 
-**Use cases**: Documentation links, tutorials, reference sections.
+**Inline:** {icon}`docs:32`
+
+---
 
 ### Terminal
 
 CLI window with title bar dots and command prompt.
 
 :::{icon} terminal
-:size: 48
+:size: 64
 :class: icon-primary
 :::
 
-**Use cases**: CLI documentation, command references, terminal output.
+**Inline:** {icon}`terminal:32`
 
-## Icon Sizes
+---
 
-Use the `:size:` option to control icon size (in pixels):
+## Size Comparison
 
-| Size | Example | Code |
-|------|---------|------|
-| 16px | :::{icon} terminal
-:size: 16
-::: | `:size: 16` |
-| 24px (default) | :::{icon} terminal
-:size: 24
-::: | `:size: 24` |
-| 32px | :::{icon} terminal
-:size: 32
-::: | `:size: 32` |
-| 48px | :::{icon} terminal
-:size: 48
-::: | `:size: 48` |
+| Size | Terminal | Docs | Rosette |
+|------|----------|------|---------|
+| 16px | {icon}`terminal:16` | {icon}`docs:16` | {icon}`bengal-rosette:16` |
+| 24px | {icon}`terminal:24` | {icon}`docs:24` | {icon}`bengal-rosette:24` |
+| 32px | {icon}`terminal:32` | {icon}`docs:32` | {icon}`bengal-rosette:32` |
 
-```markdown
-:::{icon} terminal
-:size: 32
-:::
-```
+---
 
 ## Color Variants
 
-Icons inherit `currentColor` by default, so they adapt to their container's text color. Add CSS classes for color variants:
+Add CSS classes to colorize icons:
 
-| Variant | Example | Class |
-|---------|---------|-------|
-| Primary | :::{icon} bengal-rosette
-:size: 24
-:class: icon-primary
-::: | `icon-primary` |
-| Success | :::{icon} bengal-rosette
-:size: 24
-:class: icon-success
-::: | `icon-success` |
-| Warning | :::{icon} bengal-rosette
-:size: 24
-:class: icon-warning
-::: | `icon-warning` |
-| Danger | :::{icon} bengal-rosette
-:size: 24
-:class: icon-danger
-::: | `icon-danger` |
-| Muted | :::{icon} bengal-rosette
-:size: 24
-:class: icon-muted
-::: | `icon-muted` |
+| Variant | Example | Inline Syntax |
+|---------|---------|---------------|
+| Primary | {icon}`bengal-rosette:24:icon-primary` | `{icon}`bengal-rosette:24:icon-primary`` |
+| Success | {icon}`bengal-rosette:24:icon-success` | `{icon}`bengal-rosette:24:icon-success`` |
+| Warning | {icon}`bengal-rosette:24:icon-warning` | `{icon}`bengal-rosette:24:icon-warning`` |
+| Danger | {icon}`bengal-rosette:24:icon-danger` | `{icon}`bengal-rosette:24:icon-danger`` |
+| Muted | {icon}`bengal-rosette:24:icon-muted` | `{icon}`bengal-rosette:24:icon-muted`` |
 
-```markdown
-:::{icon} bengal-rosette
-:class: icon-primary
-:::
-```
+---
 
-## Directive Syntax
+## Directive Options (Block Syntax)
 
 Full directive syntax:
 
@@ -132,45 +152,13 @@ Full directive syntax:
 :::
 ```
 
-### Options
+### Available Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `:size:` | `24` | Icon size in pixels |
-| `:class:` | (none) | Additional CSS classes |
-| `:aria-label:` | (none) | Accessibility label (adds `role="img"`) |
+- **`:size:`** (default: `24`) — Icon size in pixels
+- **`:class:`** (default: none) — Additional CSS classes
+- **`:aria-label:`** (default: none) — Accessibility label (adds `role="img"`)
 
-## All Icons Gallery
-
-Here are all available icons at 48px:
-
-**Bengal Rosette:**
-
-:::{icon} bengal-rosette
-:size: 48
-:::
-
-**Documentation:**
-
-:::{icon} docs
-:size: 48
-:::
-
-**Terminal:**
-
-:::{icon} terminal
-:size: 48
-:::
-
-## Design Principles
-
-Bengal icons follow these design principles:
-
-1. **Theme-aware**: Use `currentColor` for automatic light/dark adaptation
-2. **Stroke-based**: 2px stroke width for consistency with UI
-3. **Organic feel**: Rounded stroke caps/joins for warmth
-4. **Accessible**: Support for `aria-label` and high contrast
-5. **Tactile**: Match Bengal's neumorphic aesthetic
+---
 
 ## Adding Custom Icons
 
@@ -185,11 +173,13 @@ themes/
             └── another-icon.svg
 ```
 
-Then use them with the directive:
+Then use them:
 
 ```markdown
 :::{icon} my-icon
 :::
+
+Or inline: {icon}`my-icon`
 ```
 
 ### SVG Requirements
@@ -210,6 +200,18 @@ Example SVG structure:
   <path d="..." stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 ```
+
+---
+
+## Design Principles
+
+Bengal icons follow these design principles:
+
+1. **Theme-aware**: Use `currentColor` for automatic light/dark adaptation
+2. **Stroke-based**: 2px stroke width for consistency with UI
+3. **Organic feel**: Rounded stroke caps/joins for warmth
+4. **Accessible**: Support for `aria-label` and high contrast
+5. **Tactile**: Match Bengal's neumorphic aesthetic
 
 :::{tip}
 Toggle between light and dark mode using the theme switcher in the header to see how icons adapt to different themes!
