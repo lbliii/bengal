@@ -1,0 +1,45 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Starburst: Sputnik-inspired mid-century starburst -->
+  <title>Starburst</title>
+  
+  <!-- Center glow -->
+  <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.2"/>
+  
+  <!-- Center orb -->
+  <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="0.8" fill="currentColor"/>
+  
+  <!-- Radiating spokes with orbs (8 directions) -->
+  <!-- North -->
+  <line x1="12" y1="10" x2="12" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="12" cy="2.5" r="1.2" fill="currentColor"/>
+  
+  <!-- NE -->
+  <line x1="13.4" y1="10.6" x2="18.4" y2="5.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="19" cy="5" r="1" fill="currentColor"/>
+  
+  <!-- East -->
+  <line x1="14" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="21.5" cy="12" r="1.2" fill="currentColor"/>
+  
+  <!-- SE -->
+  <line x1="13.4" y1="13.4" x2="18.4" y2="18.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="19" cy="19" r="1" fill="currentColor"/>
+  
+  <!-- South -->
+  <line x1="12" y1="14" x2="12" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="12" cy="21.5" r="1.2" fill="currentColor"/>
+  
+  <!-- SW -->
+  <line x1="10.6" y1="13.4" x2="5.6" y2="18.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="5" cy="19" r="1" fill="currentColor"/>
+  
+  <!-- West -->
+  <line x1="10" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="2.5" cy="12" r="1.2" fill="currentColor"/>
+  
+  <!-- NW -->
+  <line x1="10.6" y1="10.6" x2="5.6" y2="5.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="5" cy="5" r="1" fill="currentColor"/>
+</svg>
+

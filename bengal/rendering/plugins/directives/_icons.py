@@ -183,6 +183,10 @@ ICON_MAP: dict[str, str] = {
     "terminal": "terminal",
     "docs": "docs",
     "notepad": "notepad",
+    # Mid-century modern
+    "atomic": "atomic",
+    "starburst": "starburst",
+    "boomerang": "boomerang",
 }
 
 
