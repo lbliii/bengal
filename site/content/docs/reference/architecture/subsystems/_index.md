@@ -2,6 +2,7 @@
 title: Subsystems
 description: Specialized feature subsystems
 weight: 30
+icon: list
 cascade:
   type: doc
 ---

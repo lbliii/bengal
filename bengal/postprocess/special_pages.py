@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.core.page.utils import create_synthetic_page
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -116,23 +117,13 @@ class SpecialPagesGenerator:
                 # No 404 template in theme, skip generation
                 return False
 
-            # Create context for 404 page
-            # Create a minimal page-like object for template context
-            from types import SimpleNamespace
-
-            page_context = SimpleNamespace(
+            # Create context for 404 page using factory
+            page_context = create_synthetic_page(
                 title="Page Not Found",
                 description="The page you're looking for doesn't exist.",
                 url="/404.html",
-                relative_url="/404.html",
                 kind="page",
                 type="special",
-                variant=None,
-                draft=False,
-                metadata={},
-                tags=[],
-                keywords=[],
-                content="",
             )
 
             context = {
@@ -225,22 +216,14 @@ class SpecialPagesGenerator:
                 # Template missing → skip
                 return False
 
-            # Build minimal page-like context
-            from types import SimpleNamespace
-
-            page_context = SimpleNamespace(
+            # Build context using factory
+            page_context = create_synthetic_page(
                 title="Search",
                 description="Search this site for content.",
                 url=raw_path,
-                relative_url=raw_path,
                 kind="page",
                 type="special",
-                variant=None,
-                draft=False,
                 metadata={"search_exclude": True},  # never index the search page
-                tags=[],
-                keywords=[],
-                content="",
             )
 
             context = {

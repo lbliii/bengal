@@ -5,6 +5,7 @@ type: changelog
 weight: 90
 draft: false
 lang: en
+icon: calendar
 tags: [releases, changelog, version history]
 keywords: [releases, changelog, version, updates]
 category: changelog
