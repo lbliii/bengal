@@ -299,6 +299,44 @@
     // ============================================================
 
     /**
+     * Build enhanced Lunr query with prefix matching and fuzzy search
+     * Makes "direct" match "directive", "direction", etc.
+     * 
+     * @param {string} query - Raw user query
+     * @returns {string} Enhanced Lunr query
+     */
+    function buildEnhancedQuery(query) {
+        // Split query into terms
+        const terms = query.trim().split(/\s+/).filter(Boolean);
+
+        if (terms.length === 0) return query;
+
+        // Build enhanced query for each term
+        // Strategy: For each term, try:
+        // 1. Exact match (highest priority via boost)
+        // 2. Prefix match with wildcard (term*)
+        // 3. Fuzzy match with edit distance 1 (term~1)
+        const enhancedTerms = terms.map(term => {
+            // Skip if term already has Lunr operators
+            if (term.includes('*') || term.includes('~') || term.includes('+') || term.includes('-') || term.includes(':')) {
+                return term;
+            }
+
+            // For short terms (< 4 chars), just use prefix matching
+            // Fuzzy on short terms gives too many false positives
+            if (term.length < 4) {
+                return `${term}*`;
+            }
+
+            // For longer terms, combine prefix and fuzzy matching
+            // This finds both "directive" (prefix) and "direkt" (typo) for "direct"
+            return `${term}* ${term}~1`;
+        });
+
+        return enhancedTerms.join(' ');
+    }
+
+    /**
      * Perform search with query
      * @param {string} query - Search query
      * @param {Object} filters - Optional filters
@@ -315,8 +353,12 @@
         }
 
         try {
-            // Perform Lunr search
-            let results = searchIndex.search(query);
+            // Build enhanced query with prefix matching and fuzzy search
+            // This makes "direct" match "directive", "direction", etc.
+            const enhancedQuery = buildEnhancedQuery(query);
+
+            // Perform Lunr search with enhanced query
+            let results = searchIndex.search(enhancedQuery);
 
             // Get full page data for each result
             results = results.map(result => {

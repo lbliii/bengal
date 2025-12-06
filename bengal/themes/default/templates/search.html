@@ -31,28 +31,17 @@ CSS: /assets/css/components/search.css
     <div class="search-page__input-section">
       <div class="search-page__input-wrapper">
         {{ icon('magnifying-glass', size=20, css_class='search-page__icon') }}
-        
-        <input
-          type="search"
-          id="search-input"
-          class="search-page__input"
-          placeholder="Search documentation..."
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          aria-label="Search"
-          aria-describedby="search-status"
-          aria-controls="search-results"
-          aria-autocomplete="list"
-          autofocus
-        >
+
+        <input type="search" id="search-input" class="search-page__input" placeholder="Search documentation..."
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search"
+          aria-describedby="search-status" aria-controls="search-results" aria-autocomplete="list" autofocus>
 
         <div class="search-page__loading" id="search-loading-indicator" style="display: none;">
           <div class="search-page__spinner"></div>
         </div>
 
-        <button type="button" class="search-page__clear" id="search-clear" style="display: none;" aria-label="Clear search">
+        <button type="button" class="search-page__clear" id="search-clear" style="display: none;"
+          aria-label="Clear search">
           {{ icon('x-mark', size=16) }}
         </button>
       </div>
@@ -84,7 +73,7 @@ CSS: /assets/css/components/search.css
         {# Results header with count #}
         <div class="search-page__results-header">
           <span id="search-results-count" class="search-page__results-count"></span>
-          
+
           {# Filters toggle #}
           <button type="button" class="search-page__filters-toggle" id="filters-toggle" aria-expanded="false">
             {{ icon('funnel', size=16) }}
