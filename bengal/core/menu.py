@@ -52,6 +52,7 @@ class MenuItem:
         weight: Sort weight (lower values appear first)
         parent: Parent menu identifier (for hierarchical menus)
         identifier: Unique identifier (auto-generated from name if not provided)
+        icon: Icon name from frontmatter (e.g., 'book', 'folder', 'terminal')
         children: Child menu items (populated during menu building)
         active: Whether this item matches the current page URL
         active_trail: Whether this item is in the active path (has active child)
@@ -67,6 +68,9 @@ class MenuItem:
 
         # From page frontmatter
         menu_item = MenuItem(name=page.title, url=page.url, weight=page.metadata.get("weight", 0))
+
+        # With icon
+        menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
     """
 
     name: str
@@ -74,6 +78,7 @@ class MenuItem:
     weight: int = 0
     parent: str | None = None
     identifier: str | None = None
+    icon: str | None = None
     children: list[MenuItem] = field(default_factory=list)
 
     # Runtime state (set during rendering)
@@ -343,6 +348,7 @@ class MenuBuilder:
                 weight=item_config.get("weight", 0),
                 parent=item_config.get("parent"),
                 identifier=item_config.get("identifier"),
+                icon=item_config.get("icon"),
             )
             self.items.append(item)
             self._track_item(item)
@@ -473,12 +479,16 @@ class MenuBuilder:
                 logger.debug("menu_duplicate_skipped", item=section_title, reason="auto_nav")
                 return
 
+            # Get section icon from section.icon property (from _index.md frontmatter)
+            section_icon = getattr(section, "icon", None)
+
             item = MenuItem(
                 name=section_title,
                 url=section_url,
                 weight=section_weight,
                 identifier=section_id,
                 parent=parent_id,
+                icon=section_icon,
             )
             self.items.append(item)
             self._track_item(item)

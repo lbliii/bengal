@@ -64,10 +64,10 @@ Usage:
     <a href="{{ root_section.index_page.url }}"
       class="docs-nav-link docs-nav-link--root {% if root_is_active %}active{% endif %}" {% if root_is_active
       %}aria-current="page" {% endif %}>
-      {# Root Section Icon (from frontmatter) #}
+      {# Root Section Icon (from frontmatter, defaults to book-open for docs) #}
       {% if show_nav_icons %}
       <span class="docs-nav-icon docs-nav-icon--root" {% if not root_icon %}data-default="true" {% endif %}>
-        {{ icon(root_icon or 'house', size=16) }}
+        {{ icon(root_icon or 'book-open', size=16) }}
       </span>
       {% endif %}
       <span class="docs-nav-link-text">{{ root_title }}</span>

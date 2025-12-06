@@ -275,6 +275,36 @@ header .container {
   font-weight: var(--weight-semibold);
 }
 
+/* Submenu Icons - Premium dropdown styling */
+.nav-main .submenu a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.submenu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-fast);
+}
+
+.nav-main .submenu a:hover .submenu-icon {
+  color: var(--color-primary);
+}
+
+.nav-main .submenu li.active>a .submenu-icon {
+  color: var(--color-primary);
+}
+
+.submenu-text {
+  flex: 1;
+}
+
 /* ============================================
    MOBILE NAVIGATION
    ============================================ */
@@ -561,8 +591,19 @@ header .container {
 }
 
 .mobile-nav .submenu a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-sm);
   padding: var(--space-2) var(--space-3);
+}
+
+.mobile-nav .submenu .submenu-icon {
+  color: var(--color-text-tertiary);
+}
+
+.mobile-nav .submenu li.active .submenu-icon {
+  color: var(--color-primary);
 }
 
 .mobile-nav li.has-submenu > a {

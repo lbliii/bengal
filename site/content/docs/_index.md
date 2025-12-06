@@ -1,5 +1,5 @@
 ---
-title: ᗢ Documentation
+title: Documentation
 weight: 5
 draft: false
 lang: en
