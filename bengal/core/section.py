@@ -89,10 +89,10 @@ class Section:
         """Get section title from metadata or generate from name."""
         return self.metadata.get("title", self.name.replace("-", " ").title())
 
-    @property
+    @cached_property
     def icon(self) -> str | None:
         """
-        Get section icon from index page metadata.
+        Get section icon from index page metadata (cached).
 
         Icons can be specified in a section's _index.md frontmatter:
 
@@ -111,12 +111,17 @@ class Section:
             {% if section.icon %}
               {{ icon(section.icon, size=16) }}
             {% endif %}
+
+        Performance:
+            Uses @cached_property to avoid repeated dict lookups on each access.
         """
         # First check index page metadata (preferred source)
-        if self.index_page and hasattr(self.index_page, "metadata"):
-            icon_value = self.index_page.metadata.get("icon")
-            if icon_value:
-                return icon_value
+        if (
+            self.index_page
+            and hasattr(self.index_page, "metadata")
+            and (icon_value := self.index_page.metadata.get("icon"))
+        ):
+            return icon_value
         # Fall back to section metadata (in case copied during add_page)
         return self.metadata.get("icon")
 

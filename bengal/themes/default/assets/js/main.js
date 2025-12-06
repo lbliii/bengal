@@ -285,7 +285,7 @@
         }
       });
     }, {
-      rootMargin: '-80px 0px -80% 0px'
+      rootMargin: '-60px 0px -80% 0px'
     });
 
     headings.forEach(function (heading) {
