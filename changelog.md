@@ -1,5 +1,21 @@
 ## Unreleased
 
+### Marketing Positioning & Brand Voice ✅
+- **site(homepage)**: rewrite with value-first messaging, hero with CTA buttons, feature cards, and stats section
+- **site(homepage)**: add "Choose Your Path" cards (Writer/Themer/Contributor) with outcome-focused copy
+- **site(homepage)**: add "When to Use Bengal" decision guide with honest competitor recommendations
+- **README**: update with new positioning ("Build static sites in Python, without the compromises")
+- **README**: add "Why Bengal?" value pillars and "When to Use Bengal" decision guide
+- **docs(comparison)**: revamp as "Choosing the Right SSG" with quick decision guide and detailed comparisons
+- **docs(comparison)**: add honest competitor recommendations (Hugo for 50k+ pages, MkDocs for docs-only)
+- **docs(comparison)**: expand "When NOT to Use Bengal" section with specific alternatives
+- **docs(about)**: add philosophy and point of view sections with core beliefs
+- **docs(about)**: communicate Bengal's stance on developer experience, Python-native tooling, and honesty
+- **docs(limitations)**: rewrite with new tone and messaging aligned to brand voice
+- **docs(get-started)**: revise with outcome-focused messaging and clear value proposition
+- **docs(index)**: update with new messaging and "Why Bengal?" summary
+- **plan**: move marketing-positioning-strategy.md to implemented/
+
 ### Progressive Enhancements Architecture ✅
 - **themes(js)**: add `bengal-enhance.js` (~1.5KB) progressive enhancement loader with registry, auto-discovery, and lazy-loading
 - **themes(js)**: add `enhancements/` directory with modular enhancement scripts (`theme-toggle`, `mobile-nav`, `tabs`, `toc`)
