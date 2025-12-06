@@ -257,6 +257,8 @@
    * Lazy load images
    */
   let imageObserver = null;
+  let trackScrollHandler = null;
+
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
       imageObserver = new IntersectionObserver(function (entries) {
