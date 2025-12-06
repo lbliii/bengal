@@ -1,12 +1,30 @@
 /**
- * Bengal SSG - Graph Minimap Component
+ * Bengal SSG - Graph Minimap Component (v2)
  *
  * Renders a small, interactive graph visualization similar to Obsidian's minimap.
  * Designed to be embedded in the search page or other pages.
+ *
+ * Performance optimizations (v2):
+ * - Removed MutationObserver (use event listeners only)
+ * - Faster force simulation with synchronous layout
+ * - Debounced theme change handling
+ * - Single getComputedStyle call per theme change
  */
 
 (function() {
     'use strict';
+
+    // Debounce utility
+    function debounce(fn, delay) {
+        let timer = null;
+        return function(...args) {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                timer = null;
+                fn.apply(this, args);
+            }, delay);
+        };
+    }
 
     /**
      * Graph Minimap Component
@@ -17,27 +35,23 @@
                 ? document.querySelector(container)
                 : container;
 
-            if (!this.container) {
-                return;
-            }
+            if (!this.container) return;
 
             // Get baseurl from meta tag if present
             let baseurl = '';
             try {
                 const m = document.querySelector('meta[name="bengal:baseurl"]');
                 baseurl = (m && m.getAttribute('content')) || '';
-                if (baseurl) {
-                    baseurl = baseurl.replace(/\/$/, '');
-                }
-            } catch (e) {
-                // Ignore errors
-            }
+                if (baseurl) baseurl = baseurl.replace(/\/$/, '');
+            } catch (e) {}
 
             this.options = {
                 width: options.width || 242,
                 height: options.height || 250,
                 dataUrl: options.dataUrl || (baseurl + '/graph/graph.json'),
                 expandUrl: options.expandUrl || (baseurl + '/graph/'),
+                // v2: Use synchronous layout by default
+                syncLayout: options.syncLayout !== false,
                 ...options
             };
 
@@ -49,25 +63,22 @@
             this.links = null;
             this.zoom = null;
 
+            // v2: Store bound handlers for cleanup
+            this._boundHandlers = {};
+
             this.init();
         }
 
         async init() {
             try {
-                // Load graph data
                 const response = await fetch(this.options.dataUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to load graph data: ${response.status}`);
                 }
                 this.data = await response.json();
 
-                // Create SVG container
                 this.createSVG();
-
-                // Render graph
                 this.render();
-
-                // Add expand button
                 this.addExpandButton();
             } catch (error) {
                 this.container.innerHTML = '<div class="graph-minimap-error">Graph unavailable</div>';
@@ -75,29 +86,20 @@
         }
 
         createSVG() {
-            // Clear container
             this.container.innerHTML = '';
 
-            // Create wrapper
             const wrapper = document.createElement('div');
-            wrapper.className = 'graph-minimap-container';
-
-            // Use CSS class instead of inline styles (reduces CSSStyleDeclaration churn)
-            wrapper.classList.add('graph-visible');
-
+            wrapper.className = 'graph-minimap-container graph-visible';
             this.container.appendChild(wrapper);
 
-            // Create SVG
             this.svg = d3.select(wrapper)
                 .append('svg')
                 .attr('width', this.options.width)
                 .attr('height', this.options.height)
                 .attr('class', 'graph-svg-visible');
 
-            // Create group for zoom/pan
             this.g = this.svg.append('g');
 
-            // Set up zoom behavior (limited zoom for minimap)
             this.zoom = d3.zoom()
                 .scaleExtent([0.5, 2])
                 .on('zoom', (event) => {
@@ -106,7 +108,6 @@
 
             this.svg.call(this.zoom);
 
-            // Initial transform to center and scale
             const initialScale = Math.min(
                 this.options.width / 800,
                 this.options.height / 600
@@ -123,19 +124,15 @@
         render() {
             if (!this.data || !this.g) return;
 
-            // Create force simulation with faster cooling for better performance
-            this.simulation = d3.forceSimulation(this.data.nodes)
-                .alphaDecay(0.15) // Faster decay (default 0.0228) - stops animation sooner
-                .alphaMin(0.05)   // Stop earlier when nearly stable
-                .velocityDecay(0.5) // More friction - reduces jitter
-                .force('link', d3.forceLink(this.data.edges)
-                    .id(d => d.id)
-                    .distance(30))
-                .force('charge', d3.forceManyBody()
-                    .strength(-100))
-                .force('center', d3.forceCenter(this.options.width / 2, this.options.height / 2))
-                .force('collision', d3.forceCollide()
-                    .radius(d => Math.max(d.size || 5, 3)));
+            // v2: Resolve colors once before rendering
+            this._resolveNodeColorsOnce();
+
+            // v2: Compute layout synchronously
+            if (this.options.syncLayout) {
+                this._computeSyncLayout();
+            } else {
+                this._createAsyncSimulation();
+            }
 
             // Render links
             this.links = this.g.append('g')
@@ -146,13 +143,11 @@
                 .append('line')
                 .attr('class', 'graph-minimap-link')
                 .attr('stroke', 'var(--color-border-light, rgba(0, 0, 0, 0.1))')
-                .attr('stroke-width', 0.5);
-
-            // Resolve CSS variables in node colors
-            this.resolveNodeColors();
-
-            // Listen for theme changes to re-resolve colors
-            this.setupThemeListener();
+                .attr('stroke-width', 0.5)
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
 
             // Render nodes
             this.nodes = this.g.append('g')
@@ -163,20 +158,17 @@
                 .append('circle')
                 .attr('class', 'graph-minimap-node')
                 .attr('r', d => Math.max((d.size || 5) * 0.3, 2))
-                .attr('fill', d => d.color || '#9e9e9e')
+                .attr('cx', d => d.x)
+                .attr('cy', d => d.y)
+                .attr('fill', d => d._resolvedColor || d.color || '#9e9e9e')
                 .attr('stroke', 'var(--color-border, rgba(0, 0, 0, 0.2))')
                 .attr('stroke-width', 0.5)
                 .style('cursor', 'pointer')
                 .on('click', (event, d) => {
-                    // Navigate to page on click
-                    if (d.url) {
-                        window.location.href = d.url;
-                    }
+                    if (d.url) window.location.href = d.url;
                 })
                 .on('mouseover', (event, d) => {
-                    // Show tooltip
                     this.showTooltip(event, d);
-                    // Highlight connections
                     this.highlightConnections(d);
                 })
                 .on('mouseout', () => {
@@ -184,7 +176,46 @@
                     this.clearHighlights();
                 });
 
-            // Update positions on simulation tick
+            // v2: Setup lightweight theme listener
+            this._setupThemeListener();
+        }
+
+        /**
+         * v2: Compute layout synchronously - no animation
+         */
+        _computeSyncLayout() {
+            const simulation = d3.forceSimulation(this.data.nodes)
+                .alphaDecay(0.3)
+                .alphaMin(0.1)
+                .velocityDecay(0.6)
+                .force('link', d3.forceLink(this.data.edges).id(d => d.id).distance(30))
+                .force('charge', d3.forceManyBody().strength(-100))
+                .force('center', d3.forceCenter(this.options.width / 2, this.options.height / 2))
+                .force('collision', d3.forceCollide().radius(d => Math.max(d.size || 5, 3)));
+
+            // Run to completion synchronously
+            simulation.stop();
+            for (let i = 0; i < 100; i++) {
+                simulation.tick();
+            }
+
+            // No need to store simulation - it's done
+            this.simulation = null;
+        }
+
+        /**
+         * v2: Async simulation (legacy, for compatibility)
+         */
+        _createAsyncSimulation() {
+            this.simulation = d3.forceSimulation(this.data.nodes)
+                .alphaDecay(0.15)
+                .alphaMin(0.05)
+                .velocityDecay(0.5)
+                .force('link', d3.forceLink(this.data.edges).id(d => d.id).distance(30))
+                .force('charge', d3.forceManyBody().strength(-100))
+                .force('center', d3.forceCenter(this.options.width / 2, this.options.height / 2))
+                .force('collision', d3.forceCollide().radius(d => Math.max(d.size || 5, 3)));
+
             this.simulation.on('tick', () => {
                 this.links
                     .attr('x1', d => d.source.x)
@@ -197,20 +228,53 @@
                     .attr('cy', d => d.y);
             });
 
-            // Stop simulation after a short time (minimap doesn't need continuous animation)
-            // Reduced from 2000ms to 500ms for better performance
+            // Stop after short time
             this._simulationTimeout = setTimeout(() => {
-                if (this.simulation) {
-                    this.simulation.stop();
-                }
+                if (this.simulation) this.simulation.stop();
                 this._simulationTimeout = null;
+            }, 300);
+        }
 
-                // Ensure visibility is maintained after simulation ends (use CSS class)
-                const wrapper = this.container.querySelector('.graph-minimap-container');
-                if (wrapper) {
-                    wrapper.classList.add('graph-visible');
+        /**
+         * v2: Resolve CSS variables once
+         */
+        _resolveNodeColorsOnce() {
+            if (!this.data || !this.data.nodes) return;
+
+            const styles = getComputedStyle(document.documentElement);
+
+            this.data.nodes.forEach(node => {
+                if (node.color && node.color.startsWith('var(')) {
+                    const varMatch = node.color.match(/var\(([^)]+)\)/);
+                    if (varMatch) {
+                        const varName = varMatch[1].trim();
+                        const resolved = styles.getPropertyValue(varName).trim();
+                        node._resolvedColor = resolved || '#9e9e9e';
+                    }
+                } else {
+                    node._resolvedColor = node.color || '#9e9e9e';
                 }
-            }, 500);
+            });
+        }
+
+        /**
+         * v2: Lightweight theme listener - events only, no MutationObserver
+         */
+        _setupThemeListener() {
+            const debouncedUpdate = debounce(() => {
+                this._resolveNodeColorsOnce();
+                if (this.nodes) {
+                    this.nodes.attr('fill', d => d._resolvedColor || '#9e9e9e');
+                }
+            }, 100);
+
+            this._boundHandlers.themechange = debouncedUpdate;
+            this._boundHandlers.palettechange = debouncedUpdate;
+
+            window.addEventListener('themechange', this._boundHandlers.themechange);
+            window.addEventListener('palettechange', this._boundHandlers.palettechange);
+
+            // v2: NO MutationObserver - this was causing DevTools crashes
         }
 
         highlightConnections(d) {
@@ -239,13 +303,9 @@
         }
 
         showTooltip(event, d) {
-            // Remove existing tooltip
             const existing = document.querySelector('.graph-minimap-tooltip');
-            if (existing) {
-                existing.remove();
-            }
+            if (existing) existing.remove();
 
-            // Create tooltip
             const tooltip = document.createElement('div');
             tooltip.className = 'graph-minimap-tooltip';
             tooltip.innerHTML = `
@@ -256,28 +316,24 @@
             `;
             document.body.appendChild(tooltip);
 
-            // Position tooltip
             const rect = tooltip.getBoundingClientRect();
-            const x = event.pageX + 10;
-            const y = event.pageY + 10;
+            let x = event.pageX + 10;
+            let y = event.pageY + 10;
+
+            if (x + rect.width > window.innerWidth) {
+                x = event.pageX - rect.width - 10;
+            }
+            if (y + rect.height > window.innerHeight) {
+                y = event.pageY - rect.height - 10;
+            }
 
             tooltip.style.left = `${x}px`;
             tooltip.style.top = `${y}px`;
-
-            // Adjust if tooltip goes off screen
-            if (x + rect.width > window.innerWidth) {
-                tooltip.style.left = `${event.pageX - rect.width - 10}px`;
-            }
-            if (y + rect.height > window.innerHeight) {
-                tooltip.style.top = `${event.pageY - rect.height - 10}px`;
-            }
         }
 
         hideTooltip() {
             const tooltip = document.querySelector('.graph-minimap-tooltip');
-            if (tooltip) {
-                tooltip.remove();
-            }
+            if (tooltip) tooltip.remove();
         }
 
         addExpandButton() {
@@ -301,87 +357,20 @@
             wrapper.appendChild(expandBtn);
         }
 
-        resolveNodeColors() {
-            // Cache getComputedStyle once for all nodes (prevents CSSStyleDeclaration object churn)
-            const computedStyles = getComputedStyle(document.documentElement);
-
-            // Helper function to resolve CSS variables using cached styles
-            const resolveCSSVariable = (varName) => {
-                const cleanVar = varName.replace(/var\(|\s|\)/g, '');
-                const value = computedStyles.getPropertyValue(cleanVar).trim();
-                return value || '#9e9e9e';
-            };
-
-            // Resolve CSS variables in node colors
-            if (this.data && this.data.nodes) {
-                this.data.nodes.forEach(node => {
-                    if (node.color && node.color.startsWith('var(')) {
-                        const varMatch = node.color.match(/var\(([^)]+)\)/);
-                        if (varMatch) {
-                            const varName = varMatch[1].trim();
-                            node.color = resolveCSSVariable(varName);
-                        }
-                    }
-                });
-
-                // Update rendered nodes if they exist
-                if (this.nodes) {
-                    this.nodes.attr('fill', d => d.color || '#9e9e9e');
-                }
-            }
-        }
-
-        setupThemeListener() {
-            // Store references for cleanup
-            this._themeChangeHandler = () => this.resolveNodeColors();
-            this._paletteChangeHandler = () => this.resolveNodeColors();
-
-            // Listen for theme changes (light/dark mode toggle)
-            window.addEventListener('themechange', this._themeChangeHandler);
-
-            // Listen for palette changes (color variant changes)
-            window.addEventListener('palettechange', this._paletteChangeHandler);
-
-            // Also watch for data-theme/data-palette attribute changes (MutationObserver)
-            this._themeObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' &&
-                        (mutation.attributeName === 'data-theme' || mutation.attributeName === 'data-palette')) {
-                        this.resolveNodeColors();
-                    }
-                });
-            });
-
-            this._themeObserver.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['data-theme', 'data-palette']
-            });
-        }
-
         cleanup() {
-            // Clear timeout if pending
             if (this._simulationTimeout) {
                 clearTimeout(this._simulationTimeout);
                 this._simulationTimeout = null;
             }
 
-            // Remove event listeners
-            if (this._themeChangeHandler) {
-                window.removeEventListener('themechange', this._themeChangeHandler);
-                this._themeChangeHandler = null;
+            if (this._boundHandlers.themechange) {
+                window.removeEventListener('themechange', this._boundHandlers.themechange);
             }
-            if (this._paletteChangeHandler) {
-                window.removeEventListener('palettechange', this._paletteChangeHandler);
-                this._paletteChangeHandler = null;
+            if (this._boundHandlers.palettechange) {
+                window.removeEventListener('palettechange', this._boundHandlers.palettechange);
             }
+            this._boundHandlers = {};
 
-            // Disconnect MutationObserver
-            if (this._themeObserver) {
-                this._themeObserver.disconnect();
-                this._themeObserver = null;
-            }
-
-            // Stop simulation if running
             if (this.simulation) {
                 this.simulation.stop();
                 this.simulation = null;
@@ -389,42 +378,35 @@
         }
     }
 
-    // Store instance for cleanup
+    // Module-level state
     let minimapInstance = null;
     let intersectionObserver = null;
 
-    // Auto-initialize if container exists - with IntersectionObserver for lazy loading
     function initMinimap() {
         const minimapContainer = document.querySelector('.graph-minimap');
         if (!minimapContainer) return;
 
-        // Use IntersectionObserver for lazy initialization (only load when visible)
         if ('IntersectionObserver' in window) {
             intersectionObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        // Disconnect observer - only initialize once
                         intersectionObserver.disconnect();
                         intersectionObserver = null;
-                        // Initialize when D3 is ready
                         initMinimapWhenD3Ready(minimapContainer);
                     }
                 });
-            }, { rootMargin: '100px' }); // Start loading 100px before visible
+            }, { rootMargin: '100px' });
 
             intersectionObserver.observe(minimapContainer);
         } else {
-            // Fallback for browsers without IntersectionObserver
             initMinimapWhenD3Ready(minimapContainer);
         }
     }
 
-    // Wait for D3.js and initialize minimap
     function initMinimapWhenD3Ready(minimapContainer) {
         if (typeof d3 !== 'undefined') {
             minimapInstance = new GraphMinimap(minimapContainer);
         } else {
-            // Wait for D3 to load
             window.addEventListener('d3:ready', () => {
                 if (!minimapInstance && typeof d3 !== 'undefined') {
                     minimapInstance = new GraphMinimap(minimapContainer);
@@ -433,24 +415,14 @@
         }
     }
 
-    // Cleanup function for memory leak prevention
     function cleanup() {
-        // Disconnect IntersectionObserver if still active
         if (intersectionObserver) {
             intersectionObserver.disconnect();
             intersectionObserver = null;
         }
-
         if (minimapInstance && typeof minimapInstance.cleanup === 'function') {
             minimapInstance.cleanup();
             minimapInstance = null;
-        }
-    }
-
-    // Pause simulation when tab is hidden (reduces CPU usage)
-    function handleVisibilityChange() {
-        if (document.hidden && minimapInstance && minimapInstance.simulation) {
-            minimapInstance.simulation.stop();
         }
     }
 
@@ -461,22 +433,13 @@
         initMinimap();
     }
 
-    // Also listen for d3:ready event (fired when D3 is lazy-loaded)
     window.addEventListener('d3:ready', initMinimap);
-
-    // Cleanup on various navigation events to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
-    window.addEventListener('pagehide', cleanup);  // For bfcache
-    window.addEventListener('popstate', cleanup);  // For SPA-like navigation
+    window.addEventListener('pagehide', cleanup);
 
-    // Pause simulation when tab is hidden
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Export for manual initialization and cleanup
+    // Export
     if (typeof window !== 'undefined') {
         window.GraphMinimap = GraphMinimap;
-        window.BengalGraphMinimap = {
-            cleanup: cleanup
-        };
+        window.BengalGraphMinimap = { cleanup };
     }
 })();
