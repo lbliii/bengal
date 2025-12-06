@@ -60,9 +60,9 @@ class PerformanceCollector:
         Initialize performance collector.
 
         Args:
-            metrics_dir: Directory to store metrics (default: .bengal-metrics)
+            metrics_dir: Directory to store metrics (default: .bengal/metrics)
         """
-        self.metrics_dir = metrics_dir or Path(".bengal-metrics")
+        self.metrics_dir = metrics_dir or Path(".bengal/metrics")
         self.start_time = None
         self.start_memory = None
         self.start_rss = None

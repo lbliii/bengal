@@ -34,7 +34,7 @@ def perf(last, format, compare):
     """Show performance metrics and trends.
 
     Displays build performance metrics collected from previous builds.
-    Metrics are automatically saved to .bengal-metrics/ directory.
+    Metrics are automatically saved to .bengal/metrics/ directory.
 
     Examples:
       bengal perf              # Show last 10 builds as table

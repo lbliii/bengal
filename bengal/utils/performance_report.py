@@ -1,7 +1,7 @@
 """
 Performance metrics reporting and analysis.
 
-Reads collected metrics from .bengal-metrics/ and provides analysis,
+Reads collected metrics from .bengal/metrics/ and provides analysis,
 visualization, and trend detection.
 """
 
@@ -95,9 +95,9 @@ class PerformanceReport:
         Initialize report generator.
 
         Args:
-            metrics_dir: Directory containing metrics (default: .bengal-metrics)
+            metrics_dir: Directory containing metrics (default: .bengal/metrics)
         """
-        self.metrics_dir = metrics_dir or Path(".bengal-metrics")
+        self.metrics_dir = metrics_dir or Path(".bengal/metrics")
 
     def load_metrics(self, last: int | None = None) -> list[BuildMetric]:
         """

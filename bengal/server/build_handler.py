@@ -43,8 +43,7 @@ class BuildHandler(FileSystemEventHandler):
 
     Ignored files:
     - Output directory (public/)
-    - Build logs (.bengal-build.log)
-    - Cache files (.bengal-cache.json)
+    - Bengal state directory (.bengal/) - logs, cache, metrics
     - Temp files (.tmp, ~, .swp, .swo)
     - System files (.DS_Store, .git)
     - Python cache (__pycache__, .pyc)
@@ -126,11 +125,11 @@ class BuildHandler(FileSystemEventHandler):
         }
 
         # Ignore common transient files by exact filename
+        # Note: .bengal/ directory is ignored via dir_ignores below,
+        # which covers logs, metrics, cache, etc.
         name_ignores = {
             ".DS_Store",
             ".bengal-cache.json",
-            ".bengal-build.log",
-            ".bengal-serve.log",  # Dev server log (prevents rebuild loops)
         }
 
         # Ignore when file lives under these directories anywhere in the path

@@ -144,7 +144,7 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Show full traditional output instead of live progress (useful for debugging)",
 )
 @click.option(
-    "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal-build.log)"
+    "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal/logs/build.log)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
@@ -229,7 +229,9 @@ def build(
         log_level = LogLevel.WARNING
 
     # Determine log file path
-    log_path = Path(log_file) if log_file else Path(source) / ".bengal-build.log"
+    from bengal.utils.paths import BengalPaths
+
+    log_path = BengalPaths.get_build_log_path(Path(source), Path(log_file) if log_file else None)
 
     configure_logging(
         level=log_level,

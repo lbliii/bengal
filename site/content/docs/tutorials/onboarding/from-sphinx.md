@@ -45,7 +45,7 @@ The only syntax change: `.. name::` becomes `:::{name}`.
 :::
 
 :::{tab-item} Bengal (MyST)
-```markdown
+````markdown
 :::{note} Important
 This is a note with **bold** text.
 :::
@@ -54,6 +54,7 @@ This is a note with **bold** text.
 def hello():
     print("Hello, World!")
 ```
+````
 :::
 
 ::::

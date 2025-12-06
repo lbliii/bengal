@@ -15,15 +15,17 @@ class BengalPaths:
     Manages Bengal's directory structure for generated files.
 
     Directory Structure:
-    - .bengal-cache.json         → output_dir/.bengal-cache.json (build cache)
-    - .bengal-cache/templates/   → output_dir/.bengal-cache/templates/ (Jinja2 bytecode)
-    - .bengal-build.log          → source_dir/.bengal-build.log (build logs)
-    - .bengal/profiles/          → source_dir/.bengal/profiles/ (performance profiles)
+    - .bengal/                   → source_dir/.bengal/ (all Bengal state)
+      - logs/build.log           → build logs
+      - logs/serve.log           → dev server logs
+      - metrics/                 → performance metrics
+      - profiles/                → cProfile output
+      - cache.json.zst           → build cache
+      - indexes/                 → query indexes
 
     This provides a clean separation between:
     1. Build outputs (public/) - deployable files
-    2. Build metadata (public/.bengal-cache*) - cache files
-    3. Development files (source/.bengal*) - logs, profiles
+    2. Bengal state (.bengal/) - cache, logs, metrics, profiles
     """
 
     @staticmethod
@@ -66,14 +68,31 @@ class BengalPaths:
             custom_path: Optional custom path specified by user
 
         Returns:
-            Path to build log file
+            Path to build log file (.bengal/logs/build.log)
         """
         if custom_path:
             return custom_path
 
-        # For backward compatibility, keep .bengal-build.log at source root
-        # In future versions, could migrate to .bengal/logs/build.log
-        return source_dir / ".bengal-build.log"
+        log_dir = BengalPaths.get_log_dir(source_dir)
+        return log_dir / "build.log"
+
+    @staticmethod
+    def get_serve_log_path(source_dir: Path, custom_path: Path | None = None) -> Path:
+        """
+        Get the path for the dev server log file.
+
+        Args:
+            source_dir: Source directory
+            custom_path: Optional custom path specified by user
+
+        Returns:
+            Path to serve log file (.bengal/logs/serve.log)
+        """
+        if custom_path:
+            return custom_path
+
+        log_dir = BengalPaths.get_log_dir(source_dir)
+        return log_dir / "serve.log"
 
     @staticmethod
     def get_profile_path(

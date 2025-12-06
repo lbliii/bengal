@@ -137,7 +137,7 @@ class BuildProfile(Enum):
             show_phase_timing: Show build phase timing
             track_memory: Enable memory profiling (tracemalloc + psutil)
             enable_debug_output: Print debug messages to stderr
-            collect_metrics: Save metrics to .bengal-metrics/
+            collect_metrics: Save metrics to .bengal/metrics/
             health_checks: Dict with enabled/disabled validator lists
             verbose_build_stats: Show detailed build statistics
         """
