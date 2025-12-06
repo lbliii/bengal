@@ -437,7 +437,15 @@ header .container {
   background: rgba(0, 0, 0, 0.2);
 }
 
-/* Close button - Neumorphic pill style */
+/* Actions wrapper for search + close buttons */
+.mobile-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Shared button style for search and close */
+.mobile-nav-search,
 .mobile-nav-close {
   display: flex;
   align-items: center;
@@ -460,17 +468,20 @@ header .container {
   flex-shrink: 0;
 }
 
+.mobile-nav-search:hover,
 .mobile-nav-close:hover {
   color: var(--color-text-primary);
   box-shadow: var(--neumorphic-hover);
   transform: translateY(-1px);
 }
 
+.mobile-nav-search:active,
 .mobile-nav-close:active {
   box-shadow: var(--neumorphic-subtle-pressed);
   transform: translateY(0) scale(0.98);
 }
 
+.mobile-nav-search svg,
 .mobile-nav-close svg {
   width: 16px;
   height: 16px;

@@ -336,12 +336,27 @@ See: plan/active/rfc-template-performance-optimization.md
                 <span class="brand-text">{{ _site_title }}</span>
                 {% endif %}
             </span>
-            <button class="mobile-nav-close" aria-label="Close menu">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>Close</span>
-            </button>
+            <div class="mobile-nav-actions">
+                {# Search Button - opens search modal #}
+                {% set search_config = site.config.get('search', {}) %}
+                {% set ui_config = search_config.get('ui', {}) %}
+                {% set modal_enabled = ui_config.get('modal', false) %}
+                {% if modal_enabled %}
+                <button class="mobile-nav-search" aria-label="Search" data-open-search>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <span>Search</span>
+                </button>
+                {% endif %}
+                <button class="mobile-nav-close" aria-label="Close menu">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Close</span>
+                </button>
+            </div>
         </div>
         {% if _main_menu or _auto_nav %}
         <ul>
