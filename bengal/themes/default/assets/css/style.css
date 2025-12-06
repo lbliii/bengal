@@ -41,11 +41,6 @@
    BASE STYLES (Resets & Foundations)
    ============================================ */
 
-/* Font loading (must come before typography) */
-@layer base {
-  @import url('base/fonts.css');
-}
-
 @layer base {
   @import url('base/reset.css');
 }
@@ -188,6 +183,10 @@
 
 @layer components {
   @import url('components/badges.css');
+}
+
+@layer components {
+  @import url('components/icons.css');
 }
 
 @layer components {

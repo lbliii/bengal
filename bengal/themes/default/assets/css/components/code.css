@@ -35,6 +35,29 @@ pre {
   line-height: var(--line-height-relaxed);
   box-shadow: var(--elevation-card);
   transition: box-shadow var(--transition-base);
+  /* Peaceful glow animation - signature Bengal top/bottom border pulse */
+  animation: code-border-glow 8s ease-in-out infinite;
+}
+
+/* Peaceful slow glow animation for code block borders - light mode */
+@keyframes code-border-glow {
+  0%,
+  100% {
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      0 -2px 8px 0 color-mix(in srgb, var(--color-primary) 5%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      0 2px 8px 0 color-mix(in srgb, var(--color-primary) 5%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 12%, transparent),
+      0 -2px 10px 0 color-mix(in srgb, var(--color-primary) 10%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 12%, transparent),
+      0 2px 10px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
 }
 
 pre.gradient-border {
@@ -57,6 +80,28 @@ td.code:hover .code-copy-button,
 
 [data-theme="dark"] pre {
   border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: code-border-glow-dark 8s ease-in-out infinite;
+}
+
+/* Peaceful slow glow animation for code block borders - dark mode (slightly brighter) */
+@keyframes code-border-glow-dark {
+  0%,
+  100% {
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 3%, transparent),
+      0 -2px 10px 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 3%, transparent),
+      0 2px 10px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 18%, transparent),
+      0 -2px 14px 0 color-mix(in srgb, var(--color-primary) 14%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 18%, transparent),
+      0 2px 14px 0 color-mix(in srgb, var(--color-primary) 14%, transparent);
+  }
 }
 
 /* Break out of container padding on mobile for better scrolling */
@@ -130,11 +175,14 @@ pre code {
   overflow: visible;
   /* Allow tooltips to overflow */
   transition: box-shadow var(--transition-base);
+  /* Peaceful glow animation - signature Bengal top/bottom border pulse */
+  animation: code-border-glow 8s ease-in-out infinite;
 }
 
 
 [data-theme="dark"] .code-block-wrapper {
   border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: code-border-glow-dark 8s ease-in-out infinite;
 }
 
 /* Keep animated borders outside the scrolling <pre> */
@@ -156,6 +204,8 @@ pre code {
   box-shadow: none;
   overflow: hidden;
   /* Clip code content to border-radius */
+  /* Disable glow on inner pre - wrapper handles it */
+  animation: none;
 }
 
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
@@ -568,6 +618,8 @@ pre code {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: var(--elevation-card);
+  /* Peaceful glow animation - signature Bengal top/bottom border pulse */
+  animation: code-border-glow 8s ease-in-out infinite;
 }
 
 /* Reset ALL pre styles inside highlighttable */
@@ -578,6 +630,8 @@ pre code {
   border: none;
   border-radius: 0;
   box-shadow: none;
+  /* Disable glow on inner pre - table handles it */
+  animation: none;
 }
 
 /* Line numbers cell */
@@ -628,6 +682,7 @@ pre code {
 
 [data-theme="dark"] .highlight .highlighttable {
   border-color: var(--color-border);
+  animation: code-border-glow-dark 8s ease-in-out infinite;
 }
 
 /* Hide line numbers on mobile */
@@ -686,4 +741,24 @@ pre::-webkit-scrollbar-thumb {
 
 pre::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+/* ============================================
+   REDUCED MOTION PREFERENCES
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  pre,
+  [data-theme="dark"] pre,
+  .code-block-wrapper,
+  [data-theme="dark"] .code-block-wrapper,
+  .highlight .highlighttable,
+  [data-theme="dark"] .highlight .highlighttable {
+    animation: none;
+    /* Static subtle glow for reduced motion users */
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
 }
