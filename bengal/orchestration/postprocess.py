@@ -132,7 +132,9 @@ class PostprocessOrchestrator:
             graph_data = None
             if output_formats_config.get("options", {}).get("include_graph_connections", True):
                 graph_data = self._build_graph_data(build_context)
-            tasks.append(("output formats", lambda: self._generate_output_formats(graph_data)))
+            tasks.append(
+                ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
+            )
 
         # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
         # This is safe because:
@@ -347,16 +349,21 @@ class PostprocessOrchestrator:
             )
             return None
 
-    def _generate_output_formats(self, graph_data: dict[str, Any] | None = None) -> None:
+    def _generate_output_formats(
+        self, graph_data: dict[str, Any] | None = None, build_context=None
+    ) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).
 
         Args:
             graph_data: Optional pre-computed graph data to include in page JSON
+            build_context: Optional BuildContext with accumulated JSON data from rendering phase
 
         Raises:
             Exception: If output format generation fails
         """
         config = self.site.config.get("output_formats", {})
-        generator = OutputFormatsGenerator(self.site, config, graph_data=graph_data)
+        generator = OutputFormatsGenerator(
+            self.site, config, graph_data=graph_data, build_context=build_context
+        )
         generator.generate()

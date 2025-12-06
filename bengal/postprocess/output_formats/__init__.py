@@ -78,6 +78,7 @@ class OutputFormatsGenerator:
         site: Site,
         config: dict[str, Any] | None = None,
         graph_data: dict[str, Any] | None = None,
+        build_context=None,
     ) -> None:
         """
         Initialize output formats generator.
@@ -86,10 +87,12 @@ class OutputFormatsGenerator:
             site: Site instance
             config: Configuration dict from bengal.toml
             graph_data: Optional pre-computed graph data for including in page JSON
+            build_context: Optional BuildContext with accumulated JSON data from rendering phase
         """
         self.site = site
         self.config = self._normalize_config(config or {})
         self.graph_data = graph_data
+        self.build_context = build_context
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -152,7 +155,7 @@ class OutputFormatsGenerator:
             "per_page": ["json", "llm_txt"],  # JSON + LLM text by default
             "site_wide": ["index_json", "llm_full"],  # Search index + full LLM text
             "options": {
-                "include_html_content": True,
+                "include_html_content": False,  # HTML file already exists, no need to duplicate
                 "include_plain_text": True,
                 "excerpt_length": 200,
                 "exclude_sections": [],
@@ -196,8 +199,22 @@ class OutputFormatsGenerator:
 
         # Per-page outputs
         if "json" in per_page:
-            json_gen = PageJSONGenerator(self.site, graph_data=self.graph_data)
-            count = json_gen.generate(pages)
+            # Get config options for HTML/text inclusion
+            include_html = options.get("include_html_content", False)
+            include_text = options.get("include_plain_text", True)
+            json_gen = PageJSONGenerator(
+                self.site,
+                graph_data=self.graph_data,
+                include_html=include_html,
+                include_text=include_text,
+            )
+            # OPTIMIZATION: Use accumulated JSON data if available (Phase 2 of post-processing optimization)
+            # This eliminates double iteration of pages, saving ~500-700ms on large sites
+            # See: plan/active/rfc-postprocess-optimization.md
+            accumulated_json = None
+            if self.build_context and self.build_context.has_accumulated_json:
+                accumulated_json = self.build_context.get_accumulated_json()
+            count = json_gen.generate(pages, accumulated_json=accumulated_json)
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
 

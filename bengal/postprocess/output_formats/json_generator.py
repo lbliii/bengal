@@ -47,6 +47,8 @@ class PageJSONGenerator:
         self,
         site: Site,
         graph_data: dict[str, Any] | None = None,
+        include_html: bool = False,
+        include_text: bool = True,
     ) -> None:
         """
         Initialize the JSON generator.
@@ -54,30 +56,58 @@ class PageJSONGenerator:
         Args:
             site: Site instance
             graph_data: Optional pre-computed graph data for contextual minimap
+            include_html: Whether to include HTML content in JSON (default: False, HTML file already exists)
+            include_text: Whether to include plain text content in JSON (default: True)
         """
         self.site = site
         self.graph_data = graph_data
+        self.include_html = include_html
+        self.include_text = include_text
 
-    def generate(self, pages: list[Page]) -> int:
+    def generate(
+        self, pages: list[Page], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None
+    ) -> int:
         """
         Generate JSON files for all pages.
 
         Args:
-            pages: List of pages to generate JSON for
+            pages: List of pages to generate JSON for (used if accumulated_json not provided)
+            accumulated_json: Optional pre-computed JSON data from rendering phase.
+                            If provided, uses this instead of iterating pages again.
 
         Returns:
             Number of JSON files generated
         """
         import concurrent.futures
 
-        # Prepare all page data first (can be parallelized)
-        page_items: list[tuple[Any, dict[str, Any]]] = []
-        for page in pages:
-            json_path = get_page_json_path(page)
-            if not json_path:
-                continue
-            page_data = self.page_to_json(page)
-            page_items.append((json_path, page_data))
+        # OPTIMIZATION: Use accumulated JSON data if available (Phase 2 of post-processing optimization)
+        # This eliminates double iteration of pages, saving ~500-700ms on large sites
+        # See: plan/active/rfc-postprocess-optimization.md
+        if accumulated_json:
+            page_items = list(accumulated_json)
+            # Update graph connections if graph_data is available (wasn't available during rendering)
+            if self.graph_data and pages:
+                # Need to map pages to accumulated data to update graph connections
+                page_url_map = {get_page_url(page, self.site): page for page in pages}
+                for _json_path, page_data in page_items:
+                    page_url = page_data.get("url", "")
+                    if page_url in page_url_map:
+                        page = page_url_map[page_url]
+                        connections = self._get_page_connections(page, self.graph_data)
+                        if connections:
+                            page_data["graph"] = connections
+        else:
+            # Fallback: Compute JSON data from pages (original behavior)
+            # Prepare all page data first (can be parallelized)
+            page_items: list[tuple[Any, dict[str, Any]]] = []
+            for page in pages:
+                json_path = get_page_json_path(page)
+                if not json_path:
+                    continue
+                page_data = self.page_to_json(
+                    page, include_html=self.include_html, include_text=self.include_text
+                )
+                page_items.append((json_path, page_data))
 
         if not page_items:
             return 0
