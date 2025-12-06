@@ -1272,10 +1272,404 @@
     // Search Page Functions
     // ============================================================
 
+    // Search page state
+    let pageInput = null;
+    let pageClearBtn = null;
+    let pageResults = null;
+    let pageResultsList = null;
+    let pageResultsCount = null;
+    let pageNoResults = null;
+    let pageNoResultsQuery = null;
+    let pageEmptyState = null;
+    let pageLoadingState = null;
+    let pageErrorState = null;
+    let pageFiltersToggle = null;
+    let pageFiltersPanel = null;
+    let pageFilterSection = null;
+    let pageFilterType = null;
+    let pageDebounceTimer = null;
+    let pageCurrentQuery = '';
+    let pageCurrentFilters = {};
+    let pageSelectedIndex = -1;
+    let pageResultItems = [];
+
     /**
      * Initialize search page functionality
      */
     function initSearchPage() {
+        // Check if this is the new search page layout
+        const isNewLayout = document.querySelector('.search-page__container');
+
+        if (isNewLayout) {
+            initSearchPageNew();
+        } else {
+            initSearchPageLegacy();
+        }
+    }
+
+    /**
+     * Initialize the new search page layout (modal-style)
+     */
+    function initSearchPageNew() {
+        // Cache elements
+        pageInput = document.getElementById('search-input');
+        pageClearBtn = document.getElementById('search-clear');
+        pageResults = document.getElementById('search-results');
+        pageResultsList = document.getElementById('search-results-list');
+        pageResultsCount = document.getElementById('search-results-count');
+        pageNoResults = document.getElementById('search-no-results');
+        pageNoResultsQuery = document.getElementById('search-no-results-query');
+        pageEmptyState = document.getElementById('search-empty');
+        pageLoadingState = document.getElementById('search-loading');
+        pageErrorState = document.getElementById('search-error');
+        pageFiltersToggle = document.getElementById('filters-toggle');
+        pageFiltersPanel = document.getElementById('search-filters');
+        pageFilterSection = document.getElementById('filter-section');
+        pageFilterType = document.getElementById('filter-type');
+
+        if (!pageInput) return;
+
+        // Show loading until index is ready
+        if (!isIndexLoaded) {
+            if (pageLoadingState) pageLoadingState.style.display = 'flex';
+            if (pageEmptyState) pageEmptyState.style.display = 'none';
+            window.addEventListener('searchIndexLoaded', onPageIndexLoaded);
+            window.addEventListener('searchIndexError', onPageIndexError);
+        } else {
+            onPageIndexLoaded();
+        }
+
+        // Input events
+        pageInput.addEventListener('input', onPageInput);
+        pageInput.addEventListener('keydown', onPageKeydown);
+        if (pageClearBtn) pageClearBtn.addEventListener('click', clearPageSearch);
+
+        // Filter events
+        if (pageFiltersToggle) pageFiltersToggle.addEventListener('click', togglePageFilters);
+        if (pageFilterSection) pageFilterSection.addEventListener('change', onPageFilterChange);
+        if (pageFilterType) pageFilterType.addEventListener('change', onPageFilterChange);
+
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearPageFilters);
+
+        // Suggestion pills
+        document.querySelectorAll('.search-page__suggestion').forEach(btn => {
+            btn.addEventListener('click', () => {
+                pageInput.value = btn.dataset.query;
+                pageInput.dispatchEvent(new Event('input'));
+                pageInput.focus();
+            });
+        });
+
+        // Handle URL query parameter
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('q')) {
+            const query = params.get('q');
+            pageInput.value = query;
+            if (isIndexLoaded) {
+                performPageSearch(query);
+            } else {
+                window.addEventListener('searchIndexLoaded', () => performPageSearch(query), { once: true });
+            }
+        }
+
+        log('Search page initialized (new layout)');
+    }
+
+    function onPageIndexLoaded() {
+        if (pageLoadingState) pageLoadingState.style.display = 'none';
+        if (!pageCurrentQuery && pageEmptyState) pageEmptyState.style.display = 'flex';
+        populatePageFilters();
+    }
+
+    function onPageIndexError(e) {
+        if (pageLoadingState) pageLoadingState.style.display = 'none';
+        if (pageErrorState) pageErrorState.style.display = 'block';
+    }
+
+    function populatePageFilters() {
+        if (pageFilterSection) {
+            const sections = getAvailableSections();
+            sections.forEach(section => {
+                const opt = document.createElement('option');
+                opt.value = section;
+                opt.textContent = section;
+                pageFilterSection.appendChild(opt);
+            });
+        }
+
+        if (pageFilterType) {
+            const types = getAvailableTypes();
+            types.forEach(type => {
+                const opt = document.createElement('option');
+                opt.value = type;
+                opt.textContent = type;
+                pageFilterType.appendChild(opt);
+            });
+        }
+    }
+
+    function onPageInput(e) {
+        const query = e.target.value.trim();
+        if (pageClearBtn) pageClearBtn.style.display = query ? 'flex' : 'none';
+
+        clearTimeout(pageDebounceTimer);
+        pageDebounceTimer = setTimeout(() => performPageSearch(query), CONFIG.modalDebounceDelay);
+    }
+
+    function onPageKeydown(e) {
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                navigatePageResults(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                navigatePageResults(-1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                selectPageResult();
+                break;
+            case 'Escape':
+                if (pageCurrentQuery) {
+                    e.preventDefault();
+                    clearPageSearch();
+                }
+                break;
+        }
+    }
+
+    function performPageSearch(query) {
+        pageCurrentQuery = query;
+        pageSelectedIndex = -1;
+        pageResultItems = [];
+
+        if (!query || query.length < CONFIG.minQueryLength) {
+            hidePageResults();
+            if (pageEmptyState) pageEmptyState.style.display = 'flex';
+            updatePageURL('');
+            return;
+        }
+
+        // Get filters
+        pageCurrentFilters = {
+            section: pageFilterSection?.value || null,
+            type: pageFilterType?.value || null,
+            tags: []
+        };
+
+        // Perform search
+        const results = search(query, pageCurrentFilters);
+        displayPageResults(results, query);
+        updatePageURL(query);
+    }
+
+    function displayPageResults(results, query) {
+        if (pageEmptyState) pageEmptyState.style.display = 'none';
+        if (pageResultsList) pageResultsList.innerHTML = '';
+
+        if (results.length === 0) {
+            if (pageResults) pageResults.style.display = 'block';
+            if (pageNoResults) pageNoResults.style.display = 'flex';
+            if (pageNoResultsQuery) pageNoResultsQuery.textContent = query;
+            return;
+        }
+
+        // Show results
+        if (pageResults) pageResults.style.display = 'block';
+        if (pageNoResults) pageNoResults.style.display = 'none';
+        if (pageResultsCount) {
+            pageResultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+        }
+
+        // Group by autodoc status (matching modal behavior)
+        const { docs, api } = groupByAutodoc(results);
+        let globalIndex = 0;
+
+        // Documentation section
+        if (docs.length > 0) {
+            const section = createPageResultSection('Documentation', docs, query, false, globalIndex);
+            pageResultsList.appendChild(section);
+            globalIndex += docs.length;
+        }
+
+        // API Reference section (collapsed by default)
+        if (api.length > 0) {
+            const section = createPageResultSection(`API Reference (${api.length})`, api, query, true, globalIndex);
+            pageResultsList.appendChild(section);
+        }
+
+        // Cache navigable items
+        pageResultItems = Array.from(pageResultsList.querySelectorAll('.search-page__result-item'));
+    }
+
+    function createPageResultSection(title, items, query, collapsed, startIndex) {
+        const section = document.createElement('div');
+        section.className = 'search-page__results-group';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'search-page__section-header' + (collapsed ? ' search-page__section-header--collapsible' : '');
+        header.innerHTML = `
+            <span class="search-page__section-title">${title}</span>
+            ${collapsed ? '<span class="search-page__section-toggle" aria-hidden="true">▶</span>' : ''}
+        `;
+
+        // Items container
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'search-page__section-items';
+        if (collapsed) {
+            itemsContainer.style.display = 'none';
+            itemsContainer.setAttribute('aria-hidden', 'true');
+        }
+
+        // Render items
+        items.forEach((result, localIndex) => {
+            const item = createPageResultItem(result, startIndex + localIndex);
+            itemsContainer.appendChild(item);
+        });
+
+        // Toggle behavior for collapsed sections
+        if (collapsed) {
+            header.style.cursor = 'pointer';
+            header.setAttribute('role', 'button');
+            header.setAttribute('aria-expanded', 'false');
+            header.setAttribute('tabindex', '0');
+
+            const toggle = () => {
+                const isHidden = itemsContainer.style.display === 'none';
+                itemsContainer.style.display = isHidden ? 'block' : 'none';
+                itemsContainer.setAttribute('aria-hidden', !isHidden);
+                header.querySelector('.search-page__section-toggle').textContent = isHidden ? '▼' : '▶';
+                header.setAttribute('aria-expanded', isHidden);
+                pageResultItems = Array.from(pageResultsList.querySelectorAll('.search-page__result-item'));
+            };
+
+            header.addEventListener('click', toggle);
+            header.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        }
+
+        section.appendChild(header);
+        section.appendChild(itemsContainer);
+        return section;
+    }
+
+    function createPageResultItem(result, index) {
+        const item = document.createElement('div');
+        item.className = 'search-page__result-item';
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', 'false');
+        item.setAttribute('data-index', index);
+
+        const href = result.href || result.uri || result.url;
+        const title = result.highlightedTitle || result.title || 'Untitled';
+        const description = result.description || result.highlightedExcerpt || result.excerpt || '';
+        const section = result.section || '';
+
+        item.innerHTML = `
+            <a href="${href}" class="search-page__result-link" tabindex="-1">
+                <div class="search-page__result-content">
+                    <span class="search-page__result-title">${title}</span>
+                    ${section ? `<span class="search-page__result-section">${section}</span>` : ''}
+                    ${result.isAutodoc ? '<span class="search-page__autodoc-badge">API</span>' : ''}
+                </div>
+                ${description ? `<p class="search-page__result-excerpt">${description}</p>` : ''}
+            </a>
+        `;
+
+        // Click handler
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            pageSelectedIndex = index;
+            selectPageResult();
+        });
+
+        return item;
+    }
+
+    function navigatePageResults(direction) {
+        if (pageResultItems.length === 0) return;
+
+        // Remove previous selection
+        if (pageSelectedIndex >= 0 && pageSelectedIndex < pageResultItems.length) {
+            pageResultItems[pageSelectedIndex].classList.remove('search-page__result-item--selected');
+            pageResultItems[pageSelectedIndex].setAttribute('aria-selected', 'false');
+        }
+
+        // Calculate new index
+        pageSelectedIndex += direction;
+        if (pageSelectedIndex < 0) pageSelectedIndex = pageResultItems.length - 1;
+        if (pageSelectedIndex >= pageResultItems.length) pageSelectedIndex = 0;
+
+        // Apply new selection
+        const selected = pageResultItems[pageSelectedIndex];
+        selected.classList.add('search-page__result-item--selected');
+        selected.setAttribute('aria-selected', 'true');
+        selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function selectPageResult() {
+        if (pageSelectedIndex >= 0 && pageSelectedIndex < pageResultItems.length) {
+            const link = pageResultItems[pageSelectedIndex].querySelector('a');
+            if (link) window.location.href = link.href;
+        }
+    }
+
+    function hidePageResults() {
+        if (pageResults) pageResults.style.display = 'none';
+        if (pageNoResults) pageNoResults.style.display = 'none';
+        if (pageResultsList) pageResultsList.innerHTML = '';
+        pageSelectedIndex = -1;
+        pageResultItems = [];
+    }
+
+    function clearPageSearch() {
+        if (pageInput) pageInput.value = '';
+        pageCurrentQuery = '';
+        if (pageClearBtn) pageClearBtn.style.display = 'none';
+        hidePageResults();
+        if (pageEmptyState) pageEmptyState.style.display = 'flex';
+        updatePageURL('');
+        if (pageInput) pageInput.focus();
+    }
+
+    function togglePageFilters() {
+        if (!pageFiltersToggle || !pageFiltersPanel) return;
+        const isExpanded = pageFiltersToggle.getAttribute('aria-expanded') === 'true';
+        pageFiltersToggle.setAttribute('aria-expanded', !isExpanded);
+        pageFiltersPanel.style.display = isExpanded ? 'none' : 'block';
+    }
+
+    function onPageFilterChange() {
+        if (pageCurrentQuery) performPageSearch(pageCurrentQuery);
+    }
+
+    function clearPageFilters() {
+        if (pageFilterSection) pageFilterSection.value = '';
+        if (pageFilterType) pageFilterType.value = '';
+        if (pageCurrentQuery) performPageSearch(pageCurrentQuery);
+    }
+
+    function updatePageURL(query) {
+        const url = new URL(window.location);
+        if (query) {
+            url.searchParams.set('q', query);
+        } else {
+            url.searchParams.delete('q');
+        }
+        history.replaceState({}, '', url);
+    }
+
+    /**
+     * Initialize legacy search page (backward compatibility)
+     */
+    function initSearchPageLegacy() {
         // Popular searches quick-fill
         document.querySelectorAll('.popular-search-link').forEach(link => {
             link.addEventListener('click', function (e) {
@@ -1317,6 +1711,8 @@
                 }, 500);
             }
         }
+
+        log('Search page initialized (legacy layout)');
     }
 
     // ============================================================
