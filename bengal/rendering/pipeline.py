@@ -335,9 +335,7 @@ class RenderingPipeline:
             cache = self.dependency_tracker.cache
             if cache and not page.metadata.get("_generated"):
                 # Try fully rendered output cache first (most aggressive caching)
-                rendered_html = cache.get_rendered_output(
-                    page.source_path, template, page.metadata
-                )
+                rendered_html = cache.get_rendered_output(page.source_path, template, page.metadata)
                 if rendered_html:
                     page.rendered_html = rendered_html
 
@@ -628,6 +626,37 @@ class RenderingPipeline:
 
         # Stage 7: Write output
         self._write_output(page)
+
+        # OPTIMIZATION: Accumulate JSON data during rendering (Phase 2 of post-processing optimization)
+        # This eliminates double iteration of pages in post-processing, saving ~500-700ms
+        # See: plan/active/rfc-postprocess-optimization.md
+        if self.build_context and self.site:
+            output_formats_config = self.site.config.get("output_formats", {})
+            if output_formats_config.get("enabled", True):
+                per_page = output_formats_config.get("per_page", ["json", "llm_txt"])
+                if "json" in per_page:
+                    # Build JSON data now (parallelized) instead of later (sequential)
+                    try:
+                        from bengal.postprocess.output_formats.json_generator import (
+                            PageJSONGenerator,
+                        )
+                        from bengal.postprocess.output_formats.utils import get_page_json_path
+
+                        json_path = get_page_json_path(page)
+                        if json_path:
+                            # Create a temporary generator instance to use its page_to_json method
+                            # We'll pass graph_data later in post-processing if needed
+                            json_gen = PageJSONGenerator(self.site, graph_data=None)
+                            page_data = json_gen.page_to_json(page)
+                            self.build_context.accumulate_page_json(json_path, page_data)
+                    except Exception as e:
+                        # Never fail the build on JSON accumulation errors
+                        # Fall back to computing in post-processing
+                        logger.debug(
+                            "json_accumulation_failed",
+                            page=str(page.source_path),
+                            error=str(e)[:100],
+                        )
 
         # End page tracking
         if self.dependency_tracker and not page.metadata.get("_generated"):
