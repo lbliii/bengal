@@ -186,24 +186,26 @@ class MenuItem:
         and template rendering. Recursively converts children to dictionaries.
 
         Returns:
-            Dictionary with name, url, active, active_trail, and children fields.
+            Dictionary with name, url, icon, active, active_trail, and children fields.
             Children are recursively converted to dictionaries.
 
         Examples:
-            item = MenuItem(name="Home", url="/")
-            item.add_child(MenuItem(name="About", url="/about"))
+            item = MenuItem(name="Home", url="/", icon="house")
+            item.add_child(MenuItem(name="About", url="/about", icon="info"))
             data = item.to_dict()
             # Returns: {
             #     "name": "Home",
             #     "url": "/",
+            #     "icon": "house",
             #     "active": False,
             #     "active_trail": False,
-            #     "children": [{"name": "About", "url": "/about", ...}]
+            #     "children": [{"name": "About", "url": "/about", "icon": "info", ...}]
             # }
         """
         return {
             "name": self.name,
             "url": self.url,
+            "icon": self.icon,
             "active": self.active,
             "active_trail": self.active_trail,
             "children": [child.to_dict() for child in self.children],
