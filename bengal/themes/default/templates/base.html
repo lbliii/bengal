@@ -475,8 +475,11 @@ See: plan/active/rfc-template-performance-optimization.md
     <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
     {# Main initialization #}
     <script defer src="{{ asset_url('js/main.js') }}"></script>
-    {# Enhancements - Auto-loaded by bengal-enhance.js when elements detected #}
-    {# No manual <script> tags needed - they'll lazy-load via data-bengal attributes #}
+    {# Core enhancements - Always loaded (provide essential interactivity) #}
+    <script defer src="{{ asset_url('js/enhancements/interactive.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
+    {# Optional enhancements - Auto-loaded by bengal-enhance.js when data-bengal elements detected #}
     {# Lightbox JS - Feature: content.lightbox (still manually loaded for feature gate) #}
     {% if 'content.lightbox' in site.theme_config.features %}
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>
