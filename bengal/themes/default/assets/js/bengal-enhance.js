@@ -192,27 +192,46 @@
 
   /**
    * Set up MutationObserver to watch for dynamic content
+   * Debounced to prevent performance issues (especially with DevTools)
    */
   function setupDomWatcher() {
     if (!CONFIG.watchDom) return;
+
+    // Debounce to batch rapid DOM changes (prevents DevTools-induced loops)
+    let pendingNodes = [];
+    let debounceTimer = null;
+
+    function processPendingNodes() {
+      if (pendingNodes.length === 0) return;
+
+      // Process accumulated nodes
+      const nodesToProcess = pendingNodes;
+      pendingNodes = [];
+
+      nodesToProcess.forEach((node) => {
+        if (node.dataset && node.dataset.bengal) {
+          enhanceElement(node);
+        }
+        enhanceAll(node);
+      });
+    }
 
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if the node itself has data-bengal
-            if (node.dataset && node.dataset.bengal) {
-              enhanceElement(node);
-            }
-            // Check descendants
-            enhanceAll(node);
+            pendingNodes.push(node);
           }
         });
       });
+
+      // Debounce processing to batch rapid changes
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(processPendingNodes, 50);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-    log('DOM watcher initialized');
+    log('DOM watcher initialized (debounced)');
 
     // Store reference for potential cleanup
     window.BENGAL_DOM_OBSERVER = observer;

@@ -50,8 +50,8 @@
                 currentPageUrl: options.currentPageUrl || window.location.pathname,
                 maxConnections: options.maxConnections || 15,
                 usePageJson: options.usePageJson !== false,
-                // v2: Use static layout by default (no animation = no DevTools issues)
-                staticLayout: options.staticLayout !== false,
+                // Use force simulation for organic feel (static layout available as fallback)
+                staticLayout: options.staticLayout || false,
                 ...options
             };
 
@@ -419,33 +419,52 @@
         }
 
         /**
-         * v2: Fast simulation that runs synchronously and stops immediately
+         * Create animated force simulation for organic feel
          */
         _createSimulation(preparedEdges, width, height) {
-            const simulation = d3.forceSimulation(this.filteredData.nodes)
-                .alphaDecay(0.3)        // Very fast decay
-                .alphaMin(0.1)          // Stop early
-                .velocityDecay(0.6)     // High friction
-                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(20))
-                .force('charge', d3.forceManyBody().strength(-60))
-                .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(3));
-
-            // Run simulation synchronously to completion
-            simulation.stop();
-            for (let i = 0; i < 50; i++) {
-                simulation.tick();
-            }
-
-            // Constrain nodes to bounds
             const padding = 5;
-            this.filteredData.nodes.forEach(node => {
-                node.x = Math.max(padding, Math.min(width - padding, node.x));
-                node.y = Math.max(padding, Math.min(height - padding, node.y));
+
+            this.simulation = d3.forceSimulation(this.filteredData.nodes)
+                .alphaDecay(0.05)       // Gentle decay for smooth animation
+                .alphaMin(0.01)         // Stop when stable
+                .velocityDecay(0.4)     // Some friction
+                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(25))
+                .force('charge', d3.forceManyBody().strength(-80))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(4));
+
+            // Animate positions on each tick
+            this.simulation.on('tick', () => {
+                // Constrain to bounds
+                this.filteredData.nodes.forEach(node => {
+                    node.x = Math.max(padding, Math.min(width - padding, node.x));
+                    node.y = Math.max(padding, Math.min(height - padding, node.y));
+                });
+
+                // Update link positions
+                if (this.links) {
+                    this.links
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+                }
+
+                // Update node positions
+                if (this.nodes) {
+                    this.nodes
+                        .attr('cx', d => d.x)
+                        .attr('cy', d => d.y);
+                }
             });
 
-            // Don't store simulation reference - it's done
-            this.simulation = null;
+            // Stop after reasonable time to save CPU
+            this._simulationTimeout = setTimeout(() => {
+                if (this.simulation) {
+                    this.simulation.stop();
+                }
+                this._simulationTimeout = null;
+            }, 2000);
         }
 
         /**
@@ -575,6 +594,18 @@
         }
 
         cleanup() {
+            // Clear simulation timeout
+            if (this._simulationTimeout) {
+                clearTimeout(this._simulationTimeout);
+                this._simulationTimeout = null;
+            }
+
+            // Stop simulation
+            if (this.simulation) {
+                this.simulation.stop();
+                this.simulation = null;
+            }
+
             // Remove event listeners
             if (this._boundHandlers.themechange) {
                 window.removeEventListener('themechange', this._boundHandlers.themechange);
