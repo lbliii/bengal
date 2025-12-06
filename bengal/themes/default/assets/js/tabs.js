@@ -115,4 +115,34 @@
     initTabs();
   }
 
+  // Register with progressive enhancement system if available
+  // This allows data-bengal="tabs" elements to work with
+  // the new enhancement loader while maintaining backward compatibility
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('tabs', function(container, options) {
+      // The existing event delegation handles all tabs globally,
+      // but this registers the enhancement for consistency.
+      // For data-bengal="tabs", we add explicit initialization.
+      const navItems = Array.from(container.querySelectorAll(SELECTOR_NAV_ITEM)).filter(item =>
+        item.closest(SELECTOR_TABS) === container || item.closest('[data-bengal="tabs"]') === container
+      );
+      const panes = Array.from(container.querySelectorAll(SELECTOR_PANE)).filter(pane =>
+        pane.closest(SELECTOR_TABS) === container || pane.closest('[data-bengal="tabs"]') === container
+      );
+
+      // Initialize first tab if none active
+      if (navItems.length > 0 && !navItems.some(item => item.classList.contains(CLASS_ACTIVE))) {
+        navItems[0].classList.add(CLASS_ACTIVE);
+        const link = navItems[0].querySelector('a');
+        if (link) {
+          const targetId = link.getAttribute('data-tab-target');
+          if (targetId) {
+            const pane = document.getElementById(targetId);
+            if (pane) pane.classList.add(CLASS_ACTIVE);
+          }
+        }
+      }
+    }, { override: true });
+  }
+
 })();

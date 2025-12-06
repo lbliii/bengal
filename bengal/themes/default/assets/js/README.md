@@ -10,6 +10,125 @@
 
 All JavaScript is written in vanilla ES6+ with no framework dependencies. The code follows progressive enhancement principles - all core functionality works without JavaScript.
 
+---
+
+## Progressive Enhancement System
+
+Bengal provides a unified **Progressive Enhancement Architecture** for declaring and managing JavaScript enhancements.
+
+### Philosophy
+
+> "Layered enhancement — HTML that works, CSS that delights, JS that elevates"
+
+### Quick Start
+
+Declare enhancements using the `data-bengal` attribute:
+
+```html
+<!-- Theme toggle -->
+<button data-bengal="theme-toggle">Toggle Theme</button>
+
+<!-- Tabs -->
+<div data-bengal="tabs">
+  <ul class="tab-nav">
+    <li><a data-tab-target="tab-1">Tab 1</a></li>
+  </ul>
+  <div id="tab-1" class="tab-pane">Content</div>
+</div>
+
+<!-- Table of contents with scroll spy -->
+<nav data-bengal="toc" data-spy="true">
+  <a data-toc-item="#section-1">Section 1</a>
+</nav>
+```
+
+### Configuration via Data Attributes
+
+Options are passed via additional `data-*` attributes:
+
+```html
+<nav data-bengal="toc" data-spy="true" data-offset="100">
+```
+
+- **Boolean values**: `data-spy="true"` or just `data-spy`
+- **Numbers**: `data-offset="120"`
+- **JSON**: `data-config='{"key": "value"}'`
+
+### Available Enhancements
+
+| Enhancement | Description | Options |
+|-------------|-------------|---------|
+| `theme-toggle` | Dark/light theme switching | `default` |
+| `mobile-nav` | Mobile slide-out navigation | `closeOnClick`, `closeOnEscape` |
+| `tabs` | Tabbed content panels | `defaultTab` |
+| `toc` | Table of contents with scroll spy | `spy`, `offset`, `smooth` |
+
+### Enhancement Loader API
+
+```javascript
+// Register a custom enhancement
+Bengal.enhance.register('my-feature', function(el, options) {
+  // el: The element with data-bengal="my-feature"
+  // options: Parsed data attributes
+  el.addEventListener('click', () => console.log('Enhanced!'));
+});
+
+// List registered enhancements
+Bengal.enhance.list();  // ['theme-toggle', 'tabs', 'toc', ...]
+
+// Check if an element is enhanced
+Bengal.enhance.isEnhanced(element);  // true/false
+
+// Manually enhance all unenhanced elements
+Bengal.enhance.enhanceAll();
+
+// Enhance a specific element
+Bengal.enhance.enhanceElement(element);
+```
+
+### Creating Custom Enhancements
+
+Create a file in `enhancements/my-feature.js`:
+
+```javascript
+(function() {
+  'use strict';
+
+  if (!window.Bengal || !window.Bengal.enhance) {
+    console.warn('[Bengal] Enhancement system not loaded');
+    return;
+  }
+
+  Bengal.enhance.register('my-feature', function(el, options) {
+    // Your enhancement logic here
+    console.log('Enhancing:', el, 'with options:', options);
+  });
+})();
+```
+
+Then use it:
+
+```html
+<div data-bengal="my-feature" data-option1="value">Content</div>
+```
+
+### Lazy Loading
+
+Non-preloaded enhancements are automatically lazy-loaded when their elements are detected. Scripts are fetched from `/assets/js/enhancements/{name}.js`.
+
+### Configuration
+
+```toml
+# bengal.toml (optional)
+[enhancements]
+watch_dom = true   # Watch for dynamic content (MutationObserver)
+debug = false      # Enable debug logging
+```
+
+See [`enhancements/README.md`](enhancements/README.md) for full documentation.
+
+---
+
 ## Architecture
 
 ### Module Pattern
@@ -605,6 +724,45 @@ if ('IntersectionObserver' in window) {
 
 ### Adding New Modules
 
+**Recommended: Use the Progressive Enhancement Pattern**
+
+1. **Create enhancement file** (`enhancements/new-feature.js`)
+
+```javascript
+/**
+ * Bengal Enhancement: New Feature
+ * Description of what this enhancement does
+ * @requires bengal-enhance.js
+ */
+(function() {
+  'use strict';
+
+  if (!window.Bengal || !window.Bengal.enhance) {
+    console.warn('[Bengal] Enhancement system not loaded');
+    return;
+  }
+
+  Bengal.enhance.register('new-feature', function(el, options) {
+    // el: Element with data-bengal="new-feature"
+    // options: Parsed data-* attributes
+
+    console.log('Enhanced:', el, options);
+  });
+})();
+```
+
+2. **Use in HTML**
+
+```html
+<div data-bengal="new-feature" data-option="value">Content</div>
+```
+
+The enhancement will be lazy-loaded automatically when the element is detected.
+
+---
+
+**Alternative: Standalone Module Pattern** (for complex features)
+
 1. **Create module file** (`new-feature.js`)
 
 ```javascript
@@ -629,6 +787,13 @@ if ('IntersectionObserver' in window) {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  // Optional: Register with enhancement system for hybrid approach
+  if (window.Bengal && window.Bengal.enhance) {
+    Bengal.enhance.register('new-feature', function(el, options) {
+      // Enhancement-specific init
+    }, { override: true });
   }
 })();
 ```

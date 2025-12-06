@@ -358,7 +358,9 @@
 
   // Export cleanup for manual cleanup if needed
   window.BengalLightbox = {
-    cleanup: cleanup
+    cleanup: cleanup,
+    open: openLightbox,
+    close: closeLightbox
   };
 
 })();
