@@ -409,7 +409,6 @@ build:
 
 ## Related Documentation
 
-- [Configuration Concepts](../about/concepts/configuration.md) - How config works
-- [Configuration System](../reference/architecture/tooling/config.md) - Architecture details
-- [Scaffold Tutorial](../tutorials/scaffold-your-site.md) - Step-by-step guide
-
+- [Configuration Concepts](/docs/about/concepts/configuration/) - How config works
+- [Configuration System](/docs/reference/architecture/tooling/config/) - Architecture details
+- [Scaffold Tutorial](/docs/tutorials/scaffold-your-site/) - Step-by-step guide

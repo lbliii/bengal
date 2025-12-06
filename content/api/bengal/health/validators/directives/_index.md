@@ -59,6 +59,12 @@ Checks:
 
 
 
+**Attributes:**
+
+| Name | Type | Description |
+|:-----|:-----|:------------|
+| `last_stats` | - | *No description provided.* |
+
 
 
 
@@ -71,7 +77,7 @@ Checks:
 
 #### `validate`
 ```python
-def validate(self, site: Site, build_context = None) -> list[CheckResult]
+def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]
 ```
 
 
@@ -86,7 +92,7 @@ redundant disk I/O (build-integrated validation).
 | Name | Type | Default | Description |
 |:-----|:-----|:--------|:------------|
 | `site` | `Site` | - | Site instance to validate |
-| `build_context` | - | - | Optional BuildContext with cached page contents. When provided, uses cached content instead of reading from disk (~4 seconds saved for large sites). |
+| `build_context` | `Any` | - | Optional BuildContext with cached page contents. When provided, uses cached content instead of reading from disk (~4 seconds saved for large sites). |
 
 
 

@@ -45,9 +45,9 @@ This is a warning
 
 ### Callout Boxes
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo
+::::{tab-item} Hugo
 ```markdown
 {{</* notice note */>}}
 This is a note with **bold** text.
@@ -61,9 +61,9 @@ Be careful!
 Pro tip here.
 {{</* /notice */>}}
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
 :::{note}
 This is a note with **bold** text.
@@ -77,16 +77,16 @@ Be careful!
 Pro tip here.
 :::
 ```
-:::
-
 ::::
+
+:::::
 
 ### Tabs
 
-::::{tab-set}
+::::::{tab-set}
 
-:::{tab-item} Hugo
-```markdown
+:::::{tab-item} Hugo
+````markdown
 {{</* tabs */>}}
 {{</* tab "Python" */>}}
 ```python
@@ -99,11 +99,11 @@ console.log("Hello");
 ```
 {{</* /tab */>}}
 {{</* /tabs */>}}
-```
-:::
+````
+:::::
 
-:::{tab-item} Bengal
-```markdown
+:::::{tab-item} Bengal
+````markdown
 ::::{tab-set}
 
 :::{tab-item} Python
@@ -119,16 +119,17 @@ console.log("Hello");
 :::
 
 ::::
-```
-:::
+````
 
-::::
+:::::
+
+::::::
 
 ### Code Highlighting
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo
+::::{tab-item} Hugo
 ```markdown
 {{</* highlight python "linenos=table,hl_lines=2" */>}}
 def hello():
@@ -136,69 +137,70 @@ def hello():
     return True
 {{</* /highlight */>}}
 ```
-:::
+::::
 
-:::{tab-item} Bengal
-```markdown
+::::{tab-item} Bengal
+````markdown
 ```python
 def hello():
     print("Hello!")  # use comments to draw attention
     return True
 ```
-:::
-
+````
 ::::
+
+:::::
 
 ### Figure / Image
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo
+::::{tab-item} Hugo
 ```markdown
-{{</* figure src="/images/photo.jpg" title="My Photo" caption="A description" */>}}
+{{</* figure src="/static/images/photo.jpg" title="My Photo" caption="A description" */>}}
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
-![My Photo](/images/photo.jpg)
+![My Photo](./images/photo.jpg)
 
 *A description*
 
 <!-- Or use a card for more styling -->
 :::{card} My Photo
-:img-top: /images/photo.jpg
+:img-top: ./images/photo.jpg
 
 A description
 :::
 ```
-:::
-
 ::::
+
+:::::
 
 ### YouTube Embed
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo
+::::{tab-item} Hugo
 ```markdown
 {{</* youtube dQw4w9WgXcQ */>}}
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
-<iframe 
-  width="560" 
-  height="315" 
-  src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
-  frameborder="0" 
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+  frameborder="0"
   allowfullscreen>
 </iframe>
 ```
-:::
-
 ::::
+
+:::::
 
 :::{note}
 Bengal doesn't have a built-in YouTube shortcode. Use standard HTML embeds or create a custom template partial.
@@ -260,9 +262,9 @@ This is unique to Bengal—Hugo only supports variables in templates, not conten
 
 ### Basic Site Config
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo (config.toml)
+::::{tab-item} Hugo (config.toml)
 ```toml
 baseURL = "https://example.com"
 title = "My Site"
@@ -273,9 +275,9 @@ theme = "docsy"
   description = "My awesome site"
   github_repo = "https://github.com/user/repo"
 ```
-:::
+::::
 
-:::{tab-item} Bengal (bengal.toml)
+::::{tab-item} Bengal (bengal.toml)
 ```toml
 [site]
 baseurl = "https://example.com"
@@ -287,15 +289,15 @@ theme = "bengal"
 description = "My awesome site"
 github_repo = "https://github.com/user/repo"
 ```
-:::
-
 ::::
+
+:::::
 
 ### Menu Configuration
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Hugo
+::::{tab-item} Hugo
 ```toml
 [[menu.main]]
   name = "Docs"
@@ -307,9 +309,9 @@ github_repo = "https://github.com/user/repo"
   url = "/blog/"
   weight = 20
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```toml
 [[site.menu.main]]
 name = "Docs"
@@ -321,9 +323,9 @@ name = "Blog"
 url = "/blog/"
 weight = 20
 ```
-:::
-
 ::::
+
+:::::
 
 ---
 
@@ -571,4 +573,3 @@ bengal site serve
 - [Migrate from Hugo](/docs/tutorials/migrate-from-hugo/) - Detailed migration guide
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Configuration](/docs/about/concepts/configuration/) - Full config reference
-

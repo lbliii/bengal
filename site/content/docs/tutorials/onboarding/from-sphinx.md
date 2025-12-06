@@ -108,8 +108,8 @@ def hello():
 
 | Sphinx | Bengal | Notes |
 |--------|--------|-------|
-| `:ref:\`label\`` | `[[label]]` or `[text](path.md)` | Different syntax |
-| `:doc:\`path\`` | `[text](path.md)` | Standard markdown |
+| `:ref:\`label\`` | `[[label]]` or `[text](./file.md)` | Different syntax |
+| `:doc:\`path\`` | `[text](./file.md)` | Standard markdown |
 | `:term:\`glossary\`` | `:::{glossary}` directive | Data-driven |
 | `.. _label:` | `{#label}` in heading | MyST anchor syntax |
 
@@ -346,4 +346,3 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Configuration](/docs/about/concepts/configuration/) - Full config options
-

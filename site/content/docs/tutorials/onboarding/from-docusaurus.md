@@ -24,9 +24,9 @@ Great news: You get the same rich components without React, JSX, or npm. Bengal'
 
 ### Side-by-Side
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus
+::::{tab-item} Docusaurus
 ```markdown
 :::note
 This is a note
@@ -36,9 +36,9 @@ This is a note
 This is a tip with a title
 :::
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
 :::{note}
 This is a note
@@ -48,9 +48,9 @@ This is a note
 This is a tip with a title
 :::
 ```
-:::
-
 ::::
+
+:::::
 
 The only difference: `:::note` → `:::{note}` (add curly braces).
 
@@ -60,9 +60,9 @@ The only difference: `:::note` → `:::{note}` (add curly braces).
 
 ### Tabs
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus (MDX)
+::::{tab-item} Docusaurus (MDX)
 ```jsx
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -80,9 +80,9 @@ import TabItem from '@theme/TabItem';
   </TabItem>
 </Tabs>
 ```
-:::
+::::
 
-:::{tab-item} Bengal (No imports!)
+::::{tab-item} Bengal (No imports!)
 ```markdown
 ::::{tab-set}
 
@@ -100,9 +100,9 @@ print("Hello")
 
 ::::
 ```
-:::
-
 ::::
+
+:::::
 
 :::{tip}
 No imports, no JSX, no React. Just markdown.
@@ -110,9 +110,9 @@ No imports, no JSX, no React. Just markdown.
 
 ### Code Blocks
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus
+::::{tab-item} Docusaurus
 ```jsx
 import CodeBlock from '@theme/CodeBlock';
 
@@ -121,24 +121,24 @@ def hello():
     print("Hello!")
 </CodeBlock>
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ````markdown
 ```python title="hello.py"
 def hello():
     print("Hello!")
 ```
 ````
-:::
-
 ::::
+
+:::::
 
 ### Cards / Feature Grid
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus (Custom Component)
+::::{tab-item} Docusaurus (Custom Component)
 ```jsx
 import {Card, CardGrid} from '@site/src/components/Card';
 
@@ -151,9 +151,9 @@ import {Card, CardGrid} from '@site/src/components/Card';
   </Card>
 </CardGrid>
 ```
-:::
+::::
 
-:::{tab-item} Bengal (Built-in!)
+::::{tab-item} Bengal (Built-in!)
 ```markdown
 ::::{cards}
 :columns: 2
@@ -172,39 +172,39 @@ Complete API documentation
 
 ::::
 ```
-:::
-
 ::::
+
+:::::
 
 ### Collapsible Sections
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus
+::::{tab-item} Docusaurus
 ```jsx
 <details>
   <summary>Click to expand</summary>
-  
+
   Hidden content here with **markdown** support.
 </details>
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
 :::{dropdown} Click to expand
 Hidden content here with **markdown** support.
 :::
 ```
-:::
-
 ::::
+
+:::::
 
 ### Live Code Editor
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus
+::::{tab-item} Docusaurus
 ```jsx
 ```jsx live
 function Hello() {
@@ -212,9 +212,9 @@ function Hello() {
 }
 ```
 ```
-:::
+::::
 
-:::{tab-item} Bengal
+::::{tab-item} Bengal
 ```markdown
 <!-- Live editors not built-in -->
 <!-- Options: -->
@@ -227,9 +227,9 @@ function Hello() {
   return <div>Hello World!</div>;
 }
 ```
-:::
-
 ::::
+
+:::::
 
 :::{note}
 Bengal focuses on documentation, not interactive playgrounds. For live code, link to external tools like CodeSandbox, StackBlitz, or Jupyter.
@@ -255,16 +255,16 @@ Bengal focuses on documentation, not interactive playgrounds. For live code, lin
 
 ### Basic Config
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus (docusaurus.config.js)
+::::{tab-item} Docusaurus (docusaurus.config.js)
 ```javascript
 module.exports = {
   title: 'My Site',
   tagline: 'Documentation made easy',
   url: 'https://example.com',
   baseUrl: '/',
-  
+
   presets: [
     [
       '@docusaurus/preset-classic',
@@ -280,9 +280,9 @@ module.exports = {
   ],
 };
 ```
-:::
+::::
 
-:::{tab-item} Bengal (bengal.toml)
+::::{tab-item} Bengal (bengal.toml)
 ```toml
 [site]
 title = "My Site"
@@ -290,15 +290,15 @@ description = "Documentation made easy"
 baseurl = "https://example.com"
 theme = "bengal"
 ```
-:::
-
 ::::
+
+:::::
 
 ### Sidebar Configuration
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Docusaurus (sidebars.js)
+::::{tab-item} Docusaurus (sidebars.js)
 ```javascript
 module.exports = {
   docs: [
@@ -309,16 +309,16 @@ module.exports = {
       items: ['quickstart', 'installation'],
     },
     {
-      type: 'category', 
+      type: 'category',
       label: 'Guides',
       items: ['guide1', 'guide2'],
     },
   ],
 };
 ```
-:::
+::::
 
-:::{tab-item} Bengal (Automatic!)
+::::{tab-item} Bengal (Automatic!)
 ```markdown
 <!-- Bengal auto-generates sidebar from directory structure -->
 <!-- Use weight frontmatter for ordering: -->
@@ -341,9 +341,9 @@ title: Installation
 weight: 20
 ---
 ```
-:::
-
 ::::
+
+:::::
 
 :::{tip}
 No `sidebars.js` needed! Bengal generates navigation from your directory structure. Use `weight` frontmatter to control order.
@@ -495,7 +495,7 @@ terms:
   - term: API
     definition: Application Programming Interface
     tags: [api, core]
-  
+
   - term: Endpoint
     definition: A specific URL path that accepts requests
     tags: [api, http]
@@ -623,4 +623,3 @@ Bengal generates a search index. For Algolia-level search, integrate externally 
 - [Directives Reference](/docs/reference/directives/) - All available directives  
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown guide
 - [Configuration](/docs/about/concepts/configuration/) - Config options
-

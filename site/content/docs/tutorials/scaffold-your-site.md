@@ -193,9 +193,9 @@ See [RFC: Skeleton Manifests](https://github.com/bengal-ssg/bengal/blob/main/pla
 
 ## Next Steps
 
-- [Configuration Reference](../about/concepts/configuration.md) - Detailed config options
-- [Content Organization](../content/organization/_index.md) - Structuring your content
-- [Theming Guide](../theming/_index.md) - Customize appearance
+- [Configuration Reference](/docs/about/concepts/configuration/) - Detailed config options
+- [Content Organization](/docs/content/organization/) - Structuring your content
+- [Theming Guide](/docs/theming/) - Customize appearance
 
 ## Troubleshooting
 
@@ -224,4 +224,3 @@ Use `--dry-run` to see what would be created:
 ```bash
 bengal init --sections api --sections guides --dry-run
 ```
-

@@ -131,8 +131,14 @@
             if (CONFIG.usePrebuilt) {
                 const prebuiltLoaded = await tryLoadPrebuiltIndex(baseurl);
                 if (prebuiltLoaded) {
+                    // Set flags BEFORE dispatching event so handlers see correct state
                     isIndexLoaded = true;
                     isIndexLoading = false;
+
+                    // Dispatch event for other components
+                    window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
+                        detail: { pages: searchData.pages.length, prebuilt: true }
+                    }));
                     return;
                 }
             }
@@ -140,8 +146,14 @@
             // Fall back to loading index.json and building at runtime
             await loadAndBuildRuntimeIndex(baseurl);
 
+            // Set flags BEFORE dispatching event so handlers see correct state
             isIndexLoaded = true;
             isIndexLoading = false;
+
+            // Dispatch event for other components
+            window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
+                detail: { pages: searchData.pages.length, prebuilt: false }
+            }));
 
         } catch (error) {
             console.error('Failed to load search index:', error);
@@ -206,11 +218,6 @@
             searchData = data;
 
             log(`Search index loaded (pre-built): ${data.pages.length} pages`);
-
-            // Dispatch event for other components
-            window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
-                detail: { pages: data.pages.length, prebuilt: true }
-            }));
 
             return true;
 
@@ -287,11 +294,6 @@
         });
 
         log(`Search index loaded (runtime): ${data.pages.length} pages`);
-
-        // Dispatch event for other components
-        window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
-            detail: { pages: data.pages.length, prebuilt: false }
-        }));
     }
 
     // ============================================================
@@ -299,45 +301,43 @@
     // ============================================================
 
     /**
-     * Build enhanced Lunr query with prefix matching and fuzzy search
-     * Makes "direct" match "directive", "direction", etc.
-     * 
+     * Parse query terms from user input
      * @param {string} query - Raw user query
-     * @returns {string} Enhanced Lunr query
+     * @returns {Array} Array of term objects with metadata
      */
-    function buildEnhancedQuery(query) {
-        // Split query into terms
-        const terms = query.trim().split(/\s+/).filter(Boolean);
+    function parseQueryTerms(query) {
+        const rawTerms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
-        if (terms.length === 0) return query;
+        return rawTerms.map(term => {
+            // Check for Lunr operators
+            const hasOperators = /[*~+\-:]/.test(term);
 
-        // Build enhanced query for each term
-        // Strategy: For each term, try:
-        // 1. Exact match (highest priority via boost)
-        // 2. Prefix match with wildcard (term*)
-        // 3. Fuzzy match with edit distance 1 (term~1)
-        const enhancedTerms = terms.map(term => {
-            // Skip if term already has Lunr operators
-            if (term.includes('*') || term.includes('~') || term.includes('+') || term.includes('-') || term.includes(':')) {
-                return term;
+            // Check for quoted phrases (basic support)
+            const isExact = term.startsWith('"') && term.endsWith('"');
+            if (isExact) {
+                term = term.slice(1, -1);
             }
 
-            // For short terms (< 4 chars), just use prefix matching
-            // Fuzzy on short terms gives too many false positives
-            if (term.length < 4) {
-                return `${term}*`;
-            }
-
-            // For longer terms, combine prefix and fuzzy matching
-            // This finds both "directive" (prefix) and "direkt" (typo) for "direct"
-            return `${term}* ${term}~1`;
-        });
-
-        return enhancedTerms.join(' ');
+            return {
+                term: term,
+                hasOperators: hasOperators,
+                isExact: isExact,
+                isShort: term.length < 4
+            };
+        }).filter(t => t.term.length > 0);
     }
 
     /**
-     * Perform search with query
+     * Perform search using Lunr's query builder API
+     *
+     * This approach uses the programmatic query builder instead of string parsing,
+     * giving full control over how terms are matched and combined.
+     *
+     * Strategy for each term (ORed together):
+     * 1. Exact match via pipeline (highest boost) - handles stemming correctly
+     * 2. Prefix match (medium boost) - for autocomplete-style matching
+     * 3. Fuzzy match (low boost) - for typo tolerance (longer terms only)
+     *
      * @param {string} query - Search query
      * @param {Object} filters - Optional filters
      * @returns {Array} Search results
@@ -353,12 +353,54 @@
         }
 
         try {
-            // Build enhanced query with prefix matching and fuzzy search
-            // This makes "direct" match "directive", "direction", etc.
-            const enhancedQuery = buildEnhancedQuery(query);
+            const parsedTerms = parseQueryTerms(query);
 
-            // Perform Lunr search with enhanced query
-            let results = searchIndex.search(enhancedQuery);
+            if (parsedTerms.length === 0) {
+                return [];
+            }
+
+            // Use Lunr's query builder for precise control
+            // This avoids the quirks of string-based query parsing
+            let results = searchIndex.query(function(q) {
+                parsedTerms.forEach(({ term, hasOperators, isExact, isShort }) => {
+
+                    // If term has operators, pass through as-is
+                    if (hasOperators) {
+                        q.term(term);
+                        return;
+                    }
+
+                    // Strategy 1: Exact match through pipeline
+                    // Pipeline handles stemming, so "directives" matches "directive"
+                    q.term(term, {
+                        boost: 10,
+                        usePipeline: true,
+                        presence: lunr.Query.presence.OPTIONAL
+                    });
+
+                    // Strategy 2: Prefix/wildcard match
+                    // Good for partial typing: "direct" → "directive", "direction"
+                    if (!isExact) {
+                        q.term(term, {
+                            boost: 5,
+                            wildcard: lunr.Query.wildcard.TRAILING,
+                            usePipeline: true,  // Stem first, then wildcard
+                            presence: lunr.Query.presence.OPTIONAL
+                        });
+                    }
+
+                    // Strategy 3: Fuzzy match for typo tolerance
+                    // Only for longer terms to avoid too many false positives
+                    if (!isExact && !isShort) {
+                        q.term(term, {
+                            boost: 1,
+                            editDistance: 1,
+                            usePipeline: true,
+                            presence: lunr.Query.presence.OPTIONAL
+                        });
+                    }
+                });
+            });
 
             // Get full page data for each result
             results = results.map(result => {
@@ -369,7 +411,7 @@
                 if (page) {
                     return {
                         ...page,
-                        // Use url (includes baseurl) for navigation to work with GitHub Pages and similar deployments
+                        // Use url (includes baseurl) for navigation
                         href: page.url || page.uri,
                         score: result.score,
                         matchData: result.matchData,
@@ -1349,6 +1391,9 @@
         }
     }
 
+    // Inline loading indicator (spinner in input)
+    let pageLoadingIndicator = null;
+
     /**
      * Initialize the new search page layout (modal-style)
      */
@@ -1363,6 +1408,7 @@
         pageNoResultsQuery = document.getElementById('search-no-results-query');
         pageEmptyState = document.getElementById('search-empty');
         pageLoadingState = document.getElementById('search-loading');
+        pageLoadingIndicator = document.getElementById('search-loading-indicator');
         pageErrorState = document.getElementById('search-error');
         pageFiltersToggle = document.getElementById('filters-toggle');
         pageFiltersPanel = document.getElementById('search-filters');
@@ -1371,7 +1417,18 @@
 
         if (!pageInput) return;
 
-        // Show loading until index is ready
+        // Check for URL query parameter FIRST
+        const params = new URLSearchParams(window.location.search);
+        const urlQuery = params.has('q') ? params.get('q') : null;
+
+        // If we have a query, start loading index immediately (no delay)
+        // This ensures the index is loading ASAP when user arrives with a search query
+        if (urlQuery && !isIndexLoaded && !isIndexLoading) {
+            log('URL has query, loading index immediately');
+            loadSearchIndex();
+        }
+
+        // Set up index loading state and listeners
         if (!isIndexLoaded) {
             if (pageLoadingState) pageLoadingState.style.display = 'flex';
             if (pageEmptyState) pageEmptyState.style.display = 'none';
@@ -1404,15 +1461,16 @@
         });
 
         // Handle URL query parameter
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('q')) {
-            const query = params.get('q');
-            pageInput.value = query;
+        if (urlQuery) {
+            pageInput.value = urlQuery;
+            // Store the query so onPageIndexLoaded can use it
+            pageCurrentQuery = urlQuery;
+
             if (isIndexLoaded) {
-                performPageSearch(query);
-            } else {
-                window.addEventListener('searchIndexLoaded', () => performPageSearch(query), { once: true });
+                performPageSearch(urlQuery);
             }
+            // Note: onPageIndexLoaded will re-trigger search using pageCurrentQuery
+            // No need for a separate listener - avoids duplicate event handlers
         }
 
         log('Search page initialized (new layout)');
@@ -1420,8 +1478,16 @@
 
     function onPageIndexLoaded() {
         if (pageLoadingState) pageLoadingState.style.display = 'none';
-        if (!pageCurrentQuery && pageEmptyState) pageEmptyState.style.display = 'flex';
+        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
         populatePageFilters();
+
+        // Re-trigger search if user was typing while index was loading
+        if (pageCurrentQuery && pageCurrentQuery.length >= CONFIG.minQueryLength) {
+            log('Index loaded, re-triggering search for: ' + pageCurrentQuery);
+            performPageSearch(pageCurrentQuery);
+        } else if (pageEmptyState) {
+            pageEmptyState.style.display = 'flex';
+        }
     }
 
     function onPageIndexError(e) {
@@ -1493,6 +1559,20 @@
             updatePageURL('');
             return;
         }
+
+        // Wait for index to load before searching (prevents false "No results")
+        if (!isIndexLoaded) {
+            log('Search index not loaded yet, showing loading state');
+            if (pageEmptyState) pageEmptyState.style.display = 'none';
+            // Show inline spinner in input (better UX than full-page loading)
+            if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'flex';
+            hidePageResults();
+            // Search will be re-triggered when index loads via onPageIndexLoaded
+            return;
+        }
+
+        // Hide loading indicator now that we're searching
+        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
 
         // Get filters
         pageCurrentFilters = {
@@ -1675,6 +1755,7 @@
         if (pageInput) pageInput.value = '';
         pageCurrentQuery = '';
         if (pageClearBtn) pageClearBtn.style.display = 'none';
+        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
         hidePageResults();
         if (pageEmptyState) pageEmptyState.style.display = 'flex';
         updatePageURL('');

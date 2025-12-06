@@ -42,7 +42,7 @@ cascade:
 ## Tutorials
 
 - [Build a Blog](/docs/tutorials/build-a-blog/)
-- [Build a Documentation Site](/docs/tutorials/build-a-doc-site/)
+- [Scaffold Your First Site](/docs/tutorials/scaffold-your-site/)
 
 ## Reference
 
