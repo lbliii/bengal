@@ -153,11 +153,7 @@ Context variables:
                             {# Time Estimate #}
                             {% if tutorial.metadata.get('time') or tutorial.metadata.get('duration') %}
                             <span class="tutorial-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
+                                {{ icon('clock', size=14) }}
                                 {{ tutorial.metadata.get('time') | default(tutorial.metadata.get('duration')) }}
                             </span>
                             {% endif %}
@@ -165,11 +161,7 @@ Context variables:
                             {# Prerequisites #}
                             {% if tutorial.metadata.get('prerequisites') %}
                             <span class="tutorial-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
+                                {{ icon('check-circle', size=14) }}
                                 {{ tutorial.metadata.get('prerequisites') | length }} prerequisite{{ 's' if
                                 tutorial.metadata.get('prerequisites') | length != 1 }}
                             </span>

@@ -365,17 +365,15 @@ class BuildCache:
         Returns:
             Parsed data dict, or None if load failed
         """
-        from compression import zstd
-
         # Try compressed first
         compressed_path = cache_path.with_suffix(".json.zst")
         if compressed_path.exists():
             try:
-                from bengal.cache.compression import load_compressed
+                from bengal.cache.compression import ZstdError, load_compressed
 
                 logger.debug("cache_loading_compressed", path=str(compressed_path))
                 return load_compressed(compressed_path)
-            except (zstd.ZstdError, json.JSONDecodeError, OSError) as e:
+            except (ZstdError, json.JSONDecodeError, OSError) as e:
                 logger.warning(
                     "cache_compressed_load_failed",
                     path=str(compressed_path),
@@ -389,7 +387,6 @@ class BuildCache:
                 return json.load(f)
 
         return None
-
     def save(self, cache_path: Path, use_lock: bool = True) -> None:
         """
         Save build cache to disk with optional file locking.
@@ -1280,3 +1277,4 @@ class BuildCache:
             if self.rendered_output
             else 0,
         }
+

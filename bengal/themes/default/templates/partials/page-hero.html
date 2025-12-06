@@ -23,19 +23,20 @@ Usage:
 {% set _page_variant = page.variant if (page is defined and page) else none %}
 {% set _page_hero_style = page.metadata.get('hero_style') if (page.metadata is defined and page.metadata) else none %}
 {% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
-{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and site.theme_config.hero_style is defined) else 'editorial' %}
+{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and
+site.theme_config.hero_style is defined) else 'editorial' %}
 
 {# Resolve effective variant #}
-{% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if _template_default else _theme_hero_style)) %}
+{% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if
+_template_default else _theme_hero_style)) %}
 
 {% if hero_style == 'magazine' %}
-  {% include 'partials/page-hero-magazine.html' %}
+{% include 'partials/page-hero-magazine.html' %}
 {% elif hero_style == 'classic' %}
-  {% include 'partials/page-hero-classic.html' %}
+{% include 'partials/page-hero-classic.html' %}
 {% elif hero_style == 'overview' %}
-  {% include 'partials/page-hero-overview.html' %}
+{% include 'partials/page-hero-overview.html' %}
 {% else %}
-  {# Default to editorial #}
-  {% include 'partials/page-hero-editorial.html' %}
+{# Default to editorial #}
+{% include 'partials/page-hero-editorial.html' %}
 {% endif %}
-

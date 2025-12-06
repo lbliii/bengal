@@ -71,11 +71,7 @@ Context variables:
                     {# Reading Time - Feature: content.reading_time #}
                     {% if page.content and 'content.reading_time' in site.theme_config.features %}
                     <span class="reading-time">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
+                        {{ icon('clock', size=14) }}
                         {{ (page.content | wordcount / 200) | round }} min read
                     </span>
                     {% endif %}
@@ -83,11 +79,7 @@ Context variables:
                     {# View Count (if tracked) #}
                     {% if page.metadata.get('views') %}
                     <span class="view-count">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
+                        {{ icon('eye', size=14) }}
                         {{ page.metadata.get('views') | default(0) }} views
                     </span>
                     {% endif %}
@@ -150,39 +142,24 @@ Context variables:
                     <a href="https://twitter.com/intent/tweet?url={{ page.url | urlencode }}&text={{ page.title | urlencode }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-twitter"
                         aria-label="Share on Twitter">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path
-                                d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z">
-                            </path>
-                        </svg>
+                        {{ icon('twitter-logo', size=20) }}
                         Twitter
                     </a>
                     <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.url | urlencode }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-linkedin"
                         aria-label="Share on LinkedIn">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path
-                                d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z">
-                            </path>
-                            <circle cx="4" cy="4" r="2"></circle>
-                        </svg>
+                        {{ icon('linkedin-logo', size=20) }}
                         LinkedIn
                     </a>
                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.url | urlencode }}" target="_blank"
                         rel="noopener noreferrer" class="share-button share-facebook" aria-label="Share on Facebook">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
-                        </svg>
+                        {{ icon('facebook-logo', size=20) }}
                         Facebook
                     </a>
                     <button class="share-button share-copy"
                         onclick="navigator.clipboard.writeText('{{ page.url }}'); this.innerHTML = '✓ Copied!'"
                         aria-label="Copy link">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path>
-                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path>
-                        </svg>
+                        {{ icon('link', size=20) }}
                         Copy Link
                     </button>
                 </div>

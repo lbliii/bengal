@@ -43,9 +43,7 @@ Usage:
   {# Section Toggle Button - with link functionality #}
   <div class="docs-nav-group-toggle-wrapper">
     <button class="docs-nav-group-toggle" aria-expanded="false" aria-controls="nav-section-{{ section.url | slugify }}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="9 18 15 12 9 6"></polyline>
-      </svg>
+      {{ icon('caret-right', size=16) }}
     </button>
 
     {% if section.index_page %}

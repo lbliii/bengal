@@ -77,16 +77,12 @@ Example:
     <li>
       {% if p.prev %}
       <a href="{{ p.prev.url }}" aria-label="Previous page">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+        {{ icon('caret-left', size=20) }}
         Previous
       </a>
       {% else %}
       <span class="disabled">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+        {{ icon('caret-left', size=20) }}
         Previous
       </span>
       {% endif %}
@@ -110,16 +106,12 @@ Example:
       {% if p.next %}
       <a href="{{ p.next.url }}" aria-label="Next page">
         Next
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
+        {{ icon('caret-right', size=20) }}
       </a>
       {% else %}
       <span class="disabled">
         Next
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
+        {{ icon('caret-right', size=20) }}
       </span>
       {% endif %}
     </li>
@@ -346,10 +338,7 @@ Example:
     {# Last Updated #}
     {% if page.date %}
     <div class="toc-meta-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
+      {{ icon('clock', size=14) }}
       <div>
         <div class="toc-meta-label">Last updated</div>
         <time datetime="{{ page.date | date_iso }}" class="toc-meta-value">
@@ -363,10 +352,7 @@ Example:
     {% if page.metadata.get('edit_url') or site.config.get('github_edit_base') %}
     <a href="{% if page.metadata.get('edit_url') %}{{ page.metadata.get('edit_url') }}{% else %}{{ site.config.get('github_edit_base') }}{{ page.source_path }}{% endif %}"
       class="toc-edit-link" target="_blank" rel="noopener noreferrer">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
+      {{ icon('pencil', size=14) }}
       <span>Edit this page</span>
     </a>
     {% endif %}
@@ -374,12 +360,7 @@ Example:
     {# Contributors (if configured) #}
     {% if page.metadata.get('contributors') %}
     <div class="toc-meta-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-        <circle cx="9" cy="7" r="4"></circle>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-      </svg>
+      {{ icon('users', size=14) }}
       <div>
         <div class="toc-meta-label">Contributors</div>
         <div class="toc-meta-value">{{ page.metadata.get('contributors') | join(', ') }}</div>
