@@ -107,15 +107,20 @@ body.search-modal-open {
   }
 }
 
-/* Gradient accent border on top */
+/* Soft glowing top edge - ethereal accent */
 .search-modal__container::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--gradient-border);
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-primary) 40%, transparent) 20%,
+    color-mix(in srgb, var(--color-primary) 60%, transparent) 50%,
+    color-mix(in srgb, var(--color-primary) 40%, transparent) 80%,
+    transparent 100%);
   border-radius: var(--border-radius-xl, 16px) var(--border-radius-xl, 16px) 0 0;
   z-index: 10;
 }
@@ -897,46 +902,54 @@ body.search-modal-open {
 }
 
 /* ============================================
-   MODAL ACCENT GLOW (matches footer glow)
+   MODAL TOP GLOW (peaceful breathing effect)
    ============================================ */
 
-/* Peaceful slow glow animation for modal accent bar */
-@keyframes modal-accent-glow {
+/* Peaceful slow glow animation - light mode */
+@keyframes modal-top-glow {
   0%,
   100% {
     box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
-      0 2px 8px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+      0 -2px 15px 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
+      0 -1px 5px 0 color-mix(in srgb, var(--color-primary) 5%, transparent);
   }
 
   50% {
     box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
-      0 3px 12px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+      0 -4px 25px 0 color-mix(in srgb, var(--color-primary) 18%, transparent),
+      0 -2px 10px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
   }
 }
 
-@keyframes modal-accent-glow-dark {
+/* Peaceful slow glow animation - dark mode (more visible) */
+@keyframes modal-top-glow-dark {
   0%,
   100% {
     box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--color-primary) 5%, transparent),
-      0 2px 10px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+      0 -3px 20px 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      0 -1px 8px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
   }
 
   50% {
     box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--color-primary) 25%, transparent),
-      0 4px 14px 0 color-mix(in srgb, var(--color-primary) 20%, transparent);
+      0 -6px 35px 0 color-mix(in srgb, var(--color-primary) 30%, transparent),
+      0 -3px 15px 0 color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
 }
 
+/* Apply glow to the thin accent line */
 .search-modal__container::before {
-  animation: modal-accent-glow 8s ease-in-out infinite;
+  animation: modal-top-glow 8s ease-in-out infinite;
 }
 
 [data-theme="dark"] .search-modal__container::before {
-  animation: modal-accent-glow-dark 8s ease-in-out infinite;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-primary) 50%, transparent) 20%,
+    color-mix(in srgb, var(--color-primary) 70%, transparent) 50%,
+    color-mix(in srgb, var(--color-primary) 50%, transparent) 80%,
+    transparent 100%);
+  animation: modal-top-glow-dark 8s ease-in-out infinite;
 }
 
 /* Reduced motion */
