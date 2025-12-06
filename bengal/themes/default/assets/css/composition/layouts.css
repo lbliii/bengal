@@ -39,12 +39,10 @@
   padding-block: 0;
   align-items: start;
   /* Break out of container - edge-to-edge app shell */
+  /* Cleaner breakout technique using calc() - more explicit and maintainable */
   width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 /* Ensure docs-layout ignores container constraints */
@@ -141,9 +139,6 @@
     margin-inline: auto;
     /* Reset the breakout technique */
     width: 100%;
-    position: static;
-    left: auto;
-    right: auto;
     margin-left: auto;
     margin-right: auto;
   }

@@ -201,10 +201,10 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Search Modal (Cmd/Ctrl+K) #}
     {% include 'partials/search-modal.html' %}
 
-    {# Header #}
-    <header role="banner">
+    {# Header - App Shell Pattern: Full-width edge-to-edge #}
+    <header role="banner" class="header-appshell">
         <nav role="navigation" aria-label="Main navigation">
-            <div class="container">
+            <div class="header-nav-content">
                 {# Logo / Site Title #}
                 <a href="{{ '/' | absolute_url }}" class="logo">
                     {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image')

@@ -66,15 +66,51 @@ header[role="banner"] {
   }
 }
 
+/* ============================================
+   HEADER APPSHELL PATTERN
+   Full-width edge-to-edge with internal padding
+   ============================================ */
+
+/* Header wrapper - full width, no negative margins needed since it's at body level */
+.header-appshell {
+  width: 100%;
+  /* No breakout needed - header is already at body level */
+}
+
 header nav {
   padding-block: var(--space-2); /* Balanced tight padding */
 }
 
-header .container {
+/* Header nav content - internal padding, constrained width */
+.header-nav-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-6);
+  /* Internal padding - content doesn't touch edges */
+  padding-inline: var(--space-5);
+  max-width: var(--container-3xl, 1920px);
+  margin-inline: auto;
+}
+
+/* Responsive padding adjustments */
+@media (min-width: 400px) {
+  .header-nav-content {
+    padding-inline: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-nav-content {
+    padding-inline: var(--space-8);
+  }
+}
+
+/* Ultra-wide screens - constrain content width, header stays full-width */
+@media (min-width: 1920px) {
+  .header-nav-content {
+    max-width: var(--container-3xl, 1920px);
+  }
 }
 
 /* ============================================
@@ -445,7 +481,7 @@ header .container {
   .mobile-nav {
     background: var(--color-bg-primary);
   }
-  
+
   [data-theme="dark"] .mobile-nav {
     background: var(--color-bg-primary);
   }
