@@ -901,72 +901,19 @@ def _resolve_link_url(renderer, link: str) -> str:
 
 def _render_icon(icon_name: str, use_svg: bool = False) -> str:
     """
-    Render icon as inline SVG or emoji.
+    Render icon using Bengal SVG icons with emoji fallback.
 
     Args:
-        icon_name: Name of the icon (e.g., "folder", "file", "book")
-        use_svg: If True, render SVG icons for folder/file types
+        icon_name: Name of the icon (e.g., "folder", "file", "terminal")
+        use_svg: Legacy parameter, now always attempts SVG first
 
     Returns:
-        HTML for icon, or empty string if icon not found
+        HTML for icon (inline SVG preferred, emoji fallback)
     """
-    # SVG icons for folder/file types (matches theme template icons)
-    if use_svg:
-        svg_icons = {
-            "folder": (
-                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
-                'stroke="currentColor" stroke-width="2">'
-                '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>'
-                "</svg>"
-            ),
-            "file": (
-                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
-                'stroke="currentColor" stroke-width="2">'
-                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>'
-                '<polyline points="14 2 14 8 20 8"></polyline>'
-                "</svg>"
-            ),
-            "document": (
-                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
-                'stroke="currentColor" stroke-width="2">'
-                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>'
-                '<polyline points="14 2 14 8 20 8"></polyline>'
-                "</svg>"
-            ),
-        }
-        if icon_name in svg_icons:
-            return svg_icons[icon_name]
+    from bengal.rendering.plugins.directives._icons import render_icon
 
-    # Emoji icon mapping
-    icon_map = {
-        "book": "📖",
-        "code": "💻",
-        "rocket": "🚀",
-        "users": "👥",
-        "star": "⭐",
-        "info": "ℹ️",
-        "warning": "⚠️",
-        "check": "✓",
-        "database": "🗄️",
-        "tools": "🔧",
-        "shield": "🛡️",
-        "graduation-cap": "🎓",
-        "mortar-board": "🎓",
-        "package": "📦",
-        "pin": "📌",
-        "graph": "📊",
-        "shield-lock": "🔒",
-        "folder": "📁",
-        "file": "📄",
-        "document": "📄",
-        "link": "🔗",
-        "settings": "⚙️",
-        "edit": "✏️",
-        "search": "🔍",
-        "home": "🏠",
-    }
-
-    return icon_map.get(icon_name, "")
+    # Always try SVG first now (use_svg parameter kept for API compatibility)
+    return render_icon(icon_name, size=20)
 
 
 def _escape_html(text: str) -> str:

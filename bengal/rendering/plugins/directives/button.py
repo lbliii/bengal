@@ -195,31 +195,17 @@ def render_button(renderer, text: str, **attrs) -> str:
 
 def _render_icon(icon_name: str) -> str:
     """
-    Render icon for button (same as cards).
+    Render icon for button using Bengal SVG icons with emoji fallback.
 
     Args:
-        icon_name: Name of the icon
+        icon_name: Name of the icon (e.g., "terminal", "download", "external")
 
     Returns:
-        HTML for icon, or empty string if not found
+        HTML for icon (inline SVG preferred, emoji fallback)
     """
-    icon_map = {
-        "book": "📖",
-        "code": "💻",
-        "rocket": "🚀",
-        "users": "👥",
-        "star": "⭐",
-        "download": "⬇️",
-        "upload": "⬆️",
-        "external": "🔗",
-        "github": "🐙",
-        "arrow-right": "→",
-        "check": "✓",
-        "info": "ℹ️",
-        "warning": "⚠️",
-    }
+    from bengal.rendering.plugins.directives._icons import render_icon
 
-    return icon_map.get(icon_name, "")
+    return render_icon(icon_name, size=18)
 
 
 def _escape_html(text: str) -> str:
