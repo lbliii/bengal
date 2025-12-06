@@ -6,10 +6,22 @@
 (function () {
   'use strict';
 
-  // Ensure utils are available
+  // Ensure utils are available (with graceful degradation)
   if (!window.BengalUtils) {
-    console.error('BengalUtils not loaded - main.js requires utils.js');
-    return;
+    console.error('[Bengal] BengalUtils not loaded - main.js requires utils.js');
+    // Provide fallback functions to prevent errors
+    window.BengalUtils = {
+      log: () => {},
+      copyToClipboard: async () => {},
+      isExternalUrl: () => false,
+      ready: (fn) => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fn);
+        } else {
+          fn();
+        }
+      }
+    };
   }
 
   const { log, copyToClipboard, isExternalUrl, ready } = window.BengalUtils;
@@ -18,7 +30,21 @@
    * Smooth scroll for anchor links
    */
   function setupSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    // Ensure document is available
+    if (typeof document === 'undefined') {
+      log('[Bengal] Document not available for setupSmoothScroll');
+      return;
+    }
+
+    const anchors = document.querySelectorAll('a[href^="#"]');
+    if (!anchors || anchors.length === 0) {
+      return;
+    }
+
+    anchors.forEach(function (anchor) {
+      if (!anchor || typeof anchor.addEventListener !== 'function') {
+        return;
+      }
       anchor.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
 
