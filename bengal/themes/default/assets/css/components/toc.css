@@ -432,7 +432,46 @@
 
 .toc-link.active {
     color: var(--color-primary);
-    border-inline-start-color: var(--color-primary);
+    border-inline-start-color: transparent;
+    position: relative;
+}
+
+/* Glowing accent bar for active TOC item */
+.toc-link.active::after {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-primary) 40%, transparent) 0%,
+        var(--color-primary) 50%,
+        color-mix(in srgb, var(--color-primary) 40%, transparent) 100%);
+    border-radius: 2px;
+    animation: toc-accent-glow 8s ease-in-out infinite;
+}
+
+@keyframes toc-accent-glow {
+    0%, 100% {
+        box-shadow: 2px 0 8px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+    }
+    50% {
+        box-shadow: 3px 0 12px 0 color-mix(in srgb, var(--color-primary) 25%, transparent);
+    }
+}
+
+[data-theme="dark"] .toc-link.active::after {
+    animation: toc-accent-glow-dark 8s ease-in-out infinite;
+}
+
+@keyframes toc-accent-glow-dark {
+    0%, 100% {
+        box-shadow: 2px 0 10px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+    }
+    50% {
+        box-shadow: 4px 0 15px 0 color-mix(in srgb, var(--color-primary) 35%, transparent);
+    }
 }
 
 /* ============================================================================

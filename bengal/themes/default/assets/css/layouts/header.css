@@ -18,6 +18,20 @@ header[role="banner"] {
   /* Glass effect */
   overflow: visible;
   /* allow dropdowns to overflow */
+  /* Peaceful glow animation - matches footer */
+  animation: header-glow 8s ease-in-out infinite;
+}
+
+/* Peaceful slow glow animation for header border */
+@keyframes header-glow {
+  0%, 100% {
+    box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      0 2px 8px 0 color-mix(in srgb, var(--color-primary) 5%, transparent);
+  }
+  50% {
+    box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-primary) 10%, transparent),
+      0 2px 12px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
 }
 
 /* Fallback for browsers without backdrop-filter */
@@ -31,6 +45,19 @@ header[role="banner"] {
 [data-theme="dark"] header[role="banner"] {
   background-color: rgba(26, 26, 26, 0.85);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  animation: header-glow-dark 8s ease-in-out infinite;
+}
+
+/* Dark mode header glow - slightly brighter */
+@keyframes header-glow-dark {
+  0%, 100% {
+    box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-primary) 3%, transparent),
+      0 2px 10px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+  50% {
+    box-shadow: 0 1px 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      0 2px 14px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
 }
 
 @supports not (backdrop-filter: blur(12px)) {

@@ -96,7 +96,7 @@
    PAGINATION STATES
    ============================================ */
 
-/* Active Page */
+/* Active Page - with casting light glow */
 .pagination .active {
   background-color: var(--color-primary);
   color: var(--color-text-inverse);
@@ -104,6 +104,41 @@
   box-shadow: var(--elevation-medium);
   cursor: default;
   font-weight: var(--weight-semibold);
+  animation: pagination-glow 8s ease-in-out infinite;
+}
+
+@keyframes pagination-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-medium),
+      0 0 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      0 2px 10px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-medium),
+      0 0 0 0 color-mix(in srgb, var(--color-primary) 10%, transparent),
+      0 4px 20px 0 color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+}
+
+[data-theme="dark"] .pagination .active {
+  animation: pagination-glow-dark 8s ease-in-out infinite;
+}
+
+@keyframes pagination-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-medium),
+      0 0 0 0 color-mix(in srgb, var(--color-primary) 5%, transparent),
+      0 2px 12px 0 color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-medium),
+      0 0 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      0 5px 25px 0 color-mix(in srgb, var(--color-primary) 40%, transparent);
+  }
 }
 
 /* Disabled State */
