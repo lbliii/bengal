@@ -10,7 +10,7 @@ parameters, returns, raises, examples, and inherited methods.
 {% from 'macros/parameter_table.md.jinja2' import parameter_table %}
 
 {% set all_methods = item.children | selectattr('element_type', 'equalto', 'method') | list %}
-{% set own_methods = all_methods | rejectattr('metadata.synthetic') | list %}
+{% set own_methods = all_methods | rejectattr('metadata.synthetic') | rejectattr('metadata.is_property') | list %}
 {% set inherited_methods = all_methods | selectattr('metadata.synthetic') | list %}
 
 {% if own_methods %}

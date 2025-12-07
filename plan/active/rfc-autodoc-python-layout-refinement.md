@@ -1,6 +1,6 @@
 # RFC: Autodoc Python Layout Refinement
 
-**Status**: Draft  
+**Status**: Accepted  
 **Created**: 2025-12-07  
 **Author**: AI Pair Programmer  
 **Context**: Refining autodoc Python layouts to match the quality and intentionality of the docs layouts, search modal, and other recent UI work.
@@ -267,12 +267,8 @@ Or render inline with CSS `.api-badge-group`.
 
 #### 5.2.2 Attributes Table Enhancement
 
-For long descriptions that break table formatting:
+**Decision**: Switch to definition list (Option B) to handle long descriptions gracefully. We will use a distinct styling for these lists (`.api-attributes`) to ensure they scan well and don't look like generic text.
 
-**Option A**: Truncate with expand  
-Show first 100 chars, add "..." link to expand.
-
-**Option B**: Switch to definition list  
 For attributes with descriptions > 100 chars, use definition list format:
 
 ```markdown
@@ -509,23 +505,29 @@ Add snapshot tests for key combinations to catch rendering regressions.
 
 ---
 
-## 9. Open Questions
+## 9. Deferred Decisions (Future Work)
 
-1. **Definition list vs table for attributes?**  
-   Tables are more scannable but break with long content. Definition lists handle long content but are less compact.
+1. **Inherited member expansion?**  
+   Current behavior: Dropdown with summary.
+   Future consideration: Should expanding an inherited member show full docs or just signature?
 
-2. **Inherited member expansion?**  
-   Should expanding an inherited member show full docs or just signature?
+2. **Source link destination?**  
+   Current behavior: Relative local path (useful for dev).
+   Future consideration: Configurable support for GitHub/GitLab remote links.
 
-3. **Source link destination?**  
-   Should source links point to local files, GitHub, or be configurable?
-
-4. **Interactive examples?**  
-   Should examples have a "Try in REPL" integration (like Marimo)?
+3. **Interactive examples?**  
+   Future consideration: "Try in REPL" integration (like Marimo) for example blocks.
 
 ---
 
-## 10. References
+## 10. Resolved Questions
+
+1. **Definition list vs table for attributes?**  
+   **Decision**: Use Definition Lists (`<dl>`) with specialized styling. Tables are too rigid for long docstrings and break mobile layouts.
+
+---
+
+## 11. References
 
 **Evidence Sources**:
 - `bengal/autodoc/templates/python/` - Template files
