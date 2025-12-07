@@ -318,7 +318,10 @@ class VirtualAutodocOrchestrator:
         # Generate HTML content using API Explorer template
         html_content = self._render_module(element)
 
-        # Create virtual page
+        # Create virtual page with absolute output path
+        # (output_path must be absolute for correct URL generation)
+        output_path = self.site.output_dir / f"api/{module_path}/index.html"
+        
         page = Page.create_virtual(
             source_id=source_id,
             title=element.name,
@@ -336,7 +339,7 @@ class VirtualAutodocOrchestrator:
             rendered_html=html_content,
             template_name="api-reference/module",
             section_path=section.path,
-            output_path=Path(f"api/{module_path}/index.html"),
+            output_path=output_path,
         )
 
         return page
@@ -428,6 +431,9 @@ class VirtualAutodocOrchestrator:
 
             # Use non-index filename to avoid triggering index page detection
             # in add_page (we set index_page directly below)
+            # output_path must be absolute for correct URL generation
+            output_path = self.site.output_dir / f"{section_path}/index.html"
+            
             index_page = Page.create_virtual(
                 source_id=f"__virtual__/{section_path}/section-index.md",
                 title=section.title,
@@ -438,7 +444,7 @@ class VirtualAutodocOrchestrator:
                 rendered_html=html_content,
                 template_name="api-reference/section-index",
                 section_path=section.path,
-                output_path=Path(f"{section_path}/index.html"),
+                output_path=output_path,
             )
 
             # Set as section index directly (don't use add_page which would

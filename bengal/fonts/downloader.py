@@ -64,13 +64,21 @@ class GoogleFontsDownloader:
             family: Font family name (e.g., "Inter", "Roboto")
             weights: List of weights (e.g., [400, 700])
             styles: List of styles (e.g., ["normal", "italic"])
-            output_dir: Directory to save font files
+            output_dir: Directory to save font files (required)
 
         Returns:
             List of downloaded FontVariant objects
+
+        Raises:
+            ValueError: If output_dir is not provided
+
+        Note:
+            output_dir must be explicit - no fallback to Path.cwd() to ensure
+            consistent behavior. See: plan/implemented/rfc-path-resolution-architecture.md
         """
+        if output_dir is None:
+            raise ValueError("output_dir is required for download_font")
         styles = styles or ["normal"]
-        output_dir = output_dir or Path.cwd()
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Build Google Fonts CSS URL

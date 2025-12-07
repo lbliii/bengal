@@ -65,16 +65,28 @@ class AutoFixer:
         fixer.apply_fixes(safe_fixes)
     """
 
-    def __init__(self, report: HealthReport, site_root: Path | None = None):
+    def __init__(self, report: HealthReport, site_root: Path):
         """
         Initialize auto-fixer.
 
         Args:
             report: Health report to analyze for fixes
-            site_root: Root path of the site (for resolving relative file paths)
+            site_root: Root path of the site (required, must be absolute)
+
+        Raises:
+            ValueError: If site_root is not provided or not absolute
+
+        Note:
+            site_root must be explicit - no fallback to Path.cwd() to ensure
+            consistent behavior regardless of working directory.
+            See: plan/implemented/rfc-path-resolution-architecture.md
         """
+        if not site_root:
+            raise ValueError("site_root is required for AutoFixer")
+        if not site_root.is_absolute():
+            site_root = site_root.resolve()
         self.report = report
-        self.site_root = site_root or Path.cwd()
+        self.site_root = site_root
         self.fixes: list[FixAction] = []
 
     def suggest_fixes(self) -> list[FixAction]:
