@@ -18,7 +18,7 @@ Uses the shared parameter table macro for consistency.
 {% for attr in attributes %}
 `{{ attr.name }}`
 : {% if attr.metadata.type_annotation %}`{{ attr.metadata.type_annotation }}`
-{% endif %}{{ attr.description | default('*No description provided.*') | indent(2, first=True) }}
+{% endif %}{{ attr.description | default('*No description provided.*') | trim | indent(2, first=True) }}
 
 {% endfor %}
 :::
