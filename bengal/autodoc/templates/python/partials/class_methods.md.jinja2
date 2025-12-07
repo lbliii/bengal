@@ -23,7 +23,13 @@ parameters, returns, raises, examples, and inherited methods.
 {% call safe_render("method", method_item) %}
 {% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
 
-#### `{{ method_item.name }}`{% if method_item.metadata.is_async %} @async{% endif %}{% if method_item.metadata.is_classmethod %} @classmethod{% endif %}{% if method_item.metadata.is_staticmethod %} @staticmethod{% endif %}
+#### `{{ method_item.name }}`
+
+:::{div} api-badge-group
+{% if method_item.metadata.is_async %}<span class="api-badge api-badge-async">async</span>{% endif %}
+{% if method_item.metadata.is_classmethod %}<span class="api-badge api-badge-classmethod">classmethod</span>{% endif %}
+{% if method_item.metadata.is_staticmethod %}<span class="api-badge api-badge-staticmethod">staticmethod</span>{% endif %}
+:::
 
 {{ signature_block(method_item.metadata.signature | default(''), 'method') }}
 
@@ -54,7 +60,9 @@ This is an asynchronous method. Use `await` when calling.
 {#- Returns section -#}
 {% if method_item.metadata.returns %}
 {% call rubric_shell() %}
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 {% endcall %}
 
 `{{ method_item.metadata.returns }}`{% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}

@@ -14,6 +14,7 @@ Extends Python base template with function-specific features.
 {% block doc_type %}python-function{% endblock %}
 
 {% block badges %}
+:::{div} api-badge-group
 :::{badge} Function
 :class: api-badge
 :::
@@ -29,6 +30,7 @@ Extends Python base template with function-specific features.
 :class: api-badge api-badge-deprecated
 :::
 {% endif %}
+:::
 {% endblock %}
 
 {% block content %}
@@ -68,7 +70,9 @@ This is an asynchronous function. Use `await` when calling.
 {#- Returns -#}
 {% if element.metadata.returns %}
 {% call safe_section("returns") %}
-## Returns
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 `{{ element.metadata.returns }}`{%- if element.metadata.parsed_doc.returns %} - {{ element.metadata.parsed_doc.returns }}{%- endif %}
 {% endcall %}

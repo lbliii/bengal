@@ -41,7 +41,7 @@ WHY THIS MATTERS:
 {% from 'macros/safe_macros.md.jinja2' import safe_render, safe_var, safe_attr %}
 
 {#- Main parameter table macro -#}
-{% macro parameter_table(parameters, title="Parameters", show_types=true, show_defaults=true, show_required=false, table_style="list") %}
+{% macro parameter_table(parameters, title="Parameters", show_types=true, show_defaults=true, show_required=false, table_style="auto") %}
 {% if parameters %}
 {%- set param_list = parameters %}
 {%- if parameters is mapping %}
@@ -50,7 +50,11 @@ WHY THIS MATTERS:
 {% if param_list and param_list|length > 0 %}
 
 {% if table_style == "dropdown" %}
-{{ parameter_dropdown(param_list, title, show_types, show_defaults, show_required) }}
+{{ parameter_dropdown(param_list, title, show_types, show_defaults, show_required, open=false) }}
+{% elif table_style == "auto" and param_list|length > 10 %}
+{{ parameter_dropdown(param_list, title, show_types, show_defaults, show_required, open=false) }}
+{% elif table_style == "auto" and param_list|length > 5 %}
+{{ parameter_dropdown(param_list, title, show_types, show_defaults, show_required, open=true) }}
 {% else %}
 {{ parameter_list_table(param_list, title, show_types, show_defaults, show_required) }}
 {% endif %}
@@ -100,11 +104,11 @@ CRITICAL: Newlines between rows, not within rows
 {% endmacro %}
 
 {#- Dropdown format for large parameter lists -#}
-{% macro parameter_dropdown(parameters, title, show_types, show_defaults, show_required) %}
+{% macro parameter_dropdown(parameters, title, show_types, show_defaults, show_required, open=false) %}
 **{{ title }}**
 
 ::::{dropdown} {{ parameters|length }} {{ title.lower() }} (click to expand)
-:open: false
+:open: {{ open|lower }}
 
 {{ parameter_list_table(parameters, title, show_types, show_defaults, show_required) }}
 

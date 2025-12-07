@@ -896,3 +896,18 @@
   margin-top: var(--space-6);
   margin-bottom: var(--space-2);
 }
+
+/* ============================================
+   BADGE GROUPS
+   ============================================ */
+
+.api-badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.api-badge-group .api-badge {
+  margin-left: 0; /* Remove individual margin */
+}
