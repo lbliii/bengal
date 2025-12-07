@@ -1,5 +1,14 @@
 ## Unreleased
 
+### Centralized Path Resolution Architecture ✅
+- **utils**: add `PathResolver` utility class for consistent path resolution relative to site root
+- **utils(path_resolver)**: add `resolve()`, `resolve_many()`, `resolve_if_exists()` for flexible resolution
+- **utils(path_resolver)**: add security methods `is_within_base()` and `relative_to_base()` for path traversal protection
+- **core(site)**: ensure `Site.root_path` is always absolute (resolved in `__post_init__`)
+- **rendering(directives)**: remove `Path.cwd()` fallback from `LiteralIncludeDirective`, `IncludeDirective`, `GlossaryDirective`, `DataTableDirective`
+- **tests**: add `test_path_resolver.py` with 20 tests covering PathResolver and Site path resolution
+- **docs**: RFC moved to implemented
+
 ### Documentation Cleanup ✅
 - **site(homepage)**: simplify to focus on features and getting started
 - **README**: streamline to essential info only
