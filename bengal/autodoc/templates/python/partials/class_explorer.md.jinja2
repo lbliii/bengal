@@ -1,0 +1,182 @@
+{#-
+API Explorer Layout - Class Card
+
+A compact, app-like card layout for class documentation.
+Uses progressive disclosure with collapsible sections.
+-#}
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render %}
+
+{#- Render a class as an expandable card -#}
+{% macro class_card(cls, expanded=false) %}
+::::{.api-card .api-card--class}
+:open: {{ 'true' if expanded else 'false' }}
+
+:::{.api-card__header}
+<span class="api-card__icon">◆</span>
+<span class="api-card__name">`{{ cls.name }}`</span>
+<span class="api-card__badges">
+{% if cls.metadata.is_dataclass %}<span class="api-badge--compact api-badge--dataclass">dataclass</span>{% endif %}
+{% if cls.metadata.is_abstract %}<span class="api-badge--compact api-badge--abstract">abstract</span>{% endif %}
+<span class="api-badge--compact api-badge--class">class</span>
+</span>
+<span class="api-card__toggle">▾</span>
+:::
+
+:::{.api-card__body}
+{% if cls.description %}
+<p class="api-card__description">{{ cls.description | first_sentence }}</p>
+{% endif %}
+
+{# Attributes Section #}
+{% if cls.attributes %}
+:::{.api-section}
+<div class="api-section__header">
+  <span>Attributes</span>
+  <span class="api-section__count">{{ cls.attributes | length }}</span>
+</div>
+<table class="api-table">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+{% for attr in cls.attributes %}
+<tr>
+<td class="api-table__name">{{ attr.name }}</td>
+<td class="api-table__type"><code>{{ attr.metadata.type_annotation | default('-') }}</code></td>
+<td class="api-table__desc">{{ attr.description | default('-') | truncate(80) }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+:::
+{% endif %}
+
+{# Methods Section - Compact List #}
+{% if cls.methods %}
+:::{.api-section}
+<div class="api-section__header">
+  <span>Methods</span>
+  <span class="api-section__count">{{ cls.methods | length }}</span>
+</div>
+<ul class="api-method-list">
+{% for method in cls.methods %}
+<li class="api-method-row" data-method="{{ method.name }}">
+  <span class="api-method-row__name">{{ method.name }}</span>
+  <span class="api-method-row__signature">{{ method.metadata.signature | default('()') | truncate(40) }}</span>
+  <span class="api-method-row__arrow">→</span>
+</li>
+{% endfor %}
+</ul>
+:::
+{% endif %}
+
+:::
+::::
+{% endmacro %}
+
+{#- Render a method as an expandable card -#}
+{% macro method_card(method, compact=true) %}
+::::{.api-card .api-card--method .api-card--nested}
+:open: {{ 'false' if compact else 'true' }}
+
+:::{.api-card__header}
+<span class="api-card__icon">ƒ</span>
+<span class="api-card__name">`{{ method.name }}`</span>
+<span class="api-card__badges">
+{% if method.metadata.is_async %}<span class="api-badge--compact api-badge--async">async</span>{% endif %}
+{% if method.metadata.is_property %}<span class="api-badge--compact api-badge--property">property</span>{% endif %}
+{% if method.metadata.is_classmethod %}<span class="api-badge--compact api-badge--classmethod">classmethod</span>{% endif %}
+{% if method.metadata.is_staticmethod %}<span class="api-badge--compact api-badge--static">static</span>{% endif %}
+</span>
+<span class="api-card__toggle">▾</span>
+:::
+
+:::{.api-card__body}
+{# Signature #}
+<div class="api-signature">
+<span class="sig-keyword">def</span> <span class="sig-name">{{ method.name }}</span>({% for param in method.parameters %}<span class="sig-param">{{ param.name }}</span>{% if param.type_annotation %}: <span class="sig-type">{{ param.type_annotation }}</span>{% endif %}{% if param.default_value %} <span class="sig-default">= {{ param.default_value }}</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) <span class="sig-arrow">→</span> <span class="sig-return">{{ method.metadata.return_type | default('None') }}</span>
+</div>
+
+{# Description (if any) #}
+{% if method.description %}
+<p class="api-card__description">{{ method.description | first_paragraph }}</p>
+{% endif %}
+
+{# Parameters Table #}
+{% if method.parameters | length > 1 %}
+<table class="api-table">
+<thead><tr><th>Param</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+<tbody>
+{% for param in method.parameters if param.name != 'self' %}
+<tr>
+<td class="api-table__name">{{ param.name }}</td>
+<td class="api-table__type"><code>{{ param.type_annotation | default('-') }}</code></td>
+<td class="api-table__default">{% if param.default_value %}<code>{{ param.default_value }}</code>{% else %}-{% endif %}</td>
+<td class="api-table__desc">{{ param.description | default('-') }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
+{# Returns - Inline Format #}
+{% if method.metadata.return_type and method.metadata.return_type != 'None' %}
+<div class="api-returns">
+<span class="api-returns__label">Returns</span>
+<span class="api-returns__type"><code>{{ method.metadata.return_type }}</code></span>
+{% if method.metadata.return_description %}<span class="api-returns__desc">{{ method.metadata.return_description }}</span>{% endif %}
+</div>
+{% endif %}
+
+{# Raises - If any #}
+{% if method.raises %}
+{% for exc in method.raises %}
+<div class="api-raises">
+<span class="api-raises__label">Raises</span>
+<span class="api-raises__type"><code>{{ exc.type }}</code></span>
+<span class="api-raises__desc">{{ exc.description | default('') }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+{# Example - Collapsed #}
+{% if method.examples %}
+<details class="api-example">
+<summary class="api-example__trigger">Example</summary>
+<div class="api-example__code">
+
+```python
+{{ method.examples[0] }}
+```
+
+</div>
+</details>
+{% endif %}
+
+:::
+::::
+{% endmacro %}
+
+{#- Module overview stats -#}
+{% macro module_stats(element) %}
+<div class="api-module-overview">
+{% if element.classes %}
+<div class="api-module-stat">
+<div class="api-module-stat__value">{{ element.classes | length }}</div>
+<div class="api-module-stat__label">Classes</div>
+</div>
+{% endif %}
+{% if element.functions %}
+<div class="api-module-stat">
+<div class="api-module-stat__value">{{ element.functions | length }}</div>
+<div class="api-module-stat__label">Functions</div>
+</div>
+{% endif %}
+{% set total_methods = element.classes | map(attribute='methods') | map('length') | sum %}
+{% if total_methods %}
+<div class="api-module-stat">
+<div class="api-module-stat__value">{{ total_methods }}</div>
+<div class="api-module-stat__label">Methods</div>
+</div>
+{% endif %}
+</div>
+{% endmacro %}
+
