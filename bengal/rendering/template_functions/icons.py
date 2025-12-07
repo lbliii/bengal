@@ -27,6 +27,9 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 from bengal.rendering.plugins.directives._icons import ICON_MAP
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Pre-loaded icon cache: icon_name -> raw SVG content
 _preloaded_icons: dict[str, str] = {}
@@ -61,8 +64,9 @@ def _preload_all_icons() -> None:
             svg_content = icon_path.read_text(encoding="utf-8")
             icon_name = icon_path.stem
             _preloaded_icons[icon_name] = svg_content
-        except OSError:
-            pass  # Skip unreadable files
+        except OSError as e:
+            # Skip unreadable files (graceful degradation)
+            logger.debug("icon_preload_skipped", path=str(icon_path), error=str(e))
 
     _icons_preloaded = True
 

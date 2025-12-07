@@ -116,8 +116,9 @@ class FileFingerprint:
                     while chunk := f.read(8192):
                         hasher.update(chunk)
                 file_hash = hasher.hexdigest()
-            except Exception:
-                pass  # Hash will be None, rely on mtime/size
+            except Exception as e:
+                # Hash will be None, rely on mtime/size (graceful degradation)
+                logger.debug("file_hash_computation_failed", path=str(file_path), error=str(e))
 
         return cls(mtime=stat.st_mtime, size=stat.st_size, hash=file_hash)
 

@@ -726,8 +726,9 @@ class RenderingPipeline:
                     "collapse_blank_lines": html_cfg.get("collapse_blank_lines", True),
                 }
             page.rendered_html = format_html_output(page.rendered_html, mode=mode, options=options)
-        except Exception:
-            pass  # Continue without formatting if it fails
+        except Exception as e:
+            # Continue without formatting if it fails (graceful degradation)
+            logger.debug("html_formatting_skipped", page=str(page.source_path), error=str(e))
 
         # Write output
         self._write_output(page)

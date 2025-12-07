@@ -332,7 +332,8 @@ class SpecialPagesGenerator:
 
             graph_data = visualizer.generate_graph_data()
             json_path = self.site.output_dir / raw_path.strip("/") / "graph.json"
-            json_path.write_text(json.dumps(graph_data, indent=2), encoding="utf-8")
+            # sort_keys=True ensures deterministic output for cache invalidation
+            json_path.write_text(json.dumps(graph_data, indent=2, sort_keys=True), encoding="utf-8")
 
             return True
         except Exception as e:

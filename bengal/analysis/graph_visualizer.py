@@ -427,8 +427,8 @@ class GraphVisualizer:
     </div>
 
     <script>
-        // Graph data
-        const graphData = {json.dumps(graph_data, indent=2)};
+        // Graph data (sort_keys=True for deterministic output)
+        const graphData = {json.dumps(graph_data, indent=2, sort_keys=True)};
 
         // Dimensions
         const width = window.innerWidth;
