@@ -341,6 +341,9 @@ class VirtualAutodocOrchestrator:
             section_path=section.path,
             output_path=output_path,
         )
+        
+        # Set site reference for URL computation
+        page._site = self.site
 
         return page
 
@@ -447,6 +450,9 @@ class VirtualAutodocOrchestrator:
                 output_path=output_path,
             )
 
+            # Set site reference for URL computation
+            index_page._site = self.site
+            
             # Set as section index directly (don't use add_page which would
             # trigger index collision detection)
             section.index_page = index_page
