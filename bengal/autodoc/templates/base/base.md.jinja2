@@ -13,6 +13,7 @@ all generated documentation.
 ---
 title: "{% block title %}{{ autodoc_title(element) }}{% endblock %}"
 type: "{% block doc_type %}doc{% endblock %}"
+css_class: "api-content"
 {% block source_metadata %}
 {% if element and element.source_file %}
 source_file: "{{ element.source_file | project_relative }}"
