@@ -29,6 +29,7 @@ parameters, returns, raises, examples, and inherited methods.
 {% if method_item.metadata.is_async %}<span class="api-badge api-badge-async">async</span>{% endif %}
 {% if method_item.metadata.is_classmethod %}<span class="api-badge api-badge-classmethod">classmethod</span>{% endif %}
 {% if method_item.metadata.is_staticmethod %}<span class="api-badge api-badge-staticmethod">staticmethod</span>{% endif %}
+
 :::
 
 {{ signature_block(method_item.metadata.signature | default(''), 'method') }}
