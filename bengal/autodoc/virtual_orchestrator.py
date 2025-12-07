@@ -153,6 +153,8 @@ class VirtualAutodocOrchestrator:
             source_path = Path(source_dir)
             if not source_path.is_absolute():
                 source_path = self.site.root_path / source_path
+            # Always resolve to absolute path for consistent module name resolution
+            source_path = source_path.resolve()
 
             if source_path.exists():
                 elements = extractor.extract(source_path)
