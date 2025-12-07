@@ -54,8 +54,8 @@ class Section:
 
     HASHABILITY:
     ============
-    Sections are hashable based on their path, allowing them to be stored
-    in sets and used as dictionary keys. This enables:
+    Sections are hashable based on their path (or name for virtual sections),
+    allowing them to be stored in sets and used as dictionary keys. This enables:
     - Fast membership tests and lookups
     - Type-safe Set[Section] collections
     - Set operations for section analysis
@@ -63,26 +63,97 @@ class Section:
     Two sections with the same path are considered equal. The hash is stable
     throughout the section lifecycle because path is immutable.
 
+    VIRTUAL SECTIONS:
+    =================
+    Virtual sections represent API documentation or other dynamically-generated
+    content that doesn't have a corresponding directory on disk. Virtual sections:
+    - Have _virtual=True and path=None
+    - Are discovered via AutodocOrchestrator during build
+    - Work with menu system via name-based lookups
+    - Don't write intermediate markdown files
+
     Attributes:
         name: Section name
-        path: Path to the section directory
+        path: Path to the section directory (None for virtual sections)
         pages: List of pages in this section
         subsections: Child sections
         metadata: Section-level metadata
         index_page: Optional index page for the section
         parent: Parent section (if nested)
+        _virtual: True if this is a virtual section (no disk directory)
     """
 
     name: str = "root"
-    path: Path = Path(".")
+    path: Path | None = field(default_factory=lambda: Path("."))
     pages: list[Page] = field(default_factory=list)
     subsections: list[Section] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     index_page: Page | None = None
     parent: Section | None = None
 
+    # Virtual section support (for API docs, generated content)
+    _virtual: bool = False
+    _relative_url_override: str | None = field(default=None, repr=False)
+
     # Reference to site (set during site building)
     _site: Any | None = field(default=None, repr=False)
+
+    @property
+    def is_virtual(self) -> bool:
+        """
+        Check if this is a virtual section (no disk directory).
+
+        Virtual sections are used for:
+        - API documentation generated from Python source code
+        - Dynamically-generated content from external sources
+        - Content that doesn't have a corresponding content/ directory
+
+        Returns:
+            True if this section is virtual (not backed by a disk directory)
+        """
+        return self._virtual or self.path is None
+
+    @classmethod
+    def create_virtual(
+        cls,
+        name: str,
+        relative_url: str,
+        title: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Section:
+        """
+        Create a virtual section for dynamically-generated content.
+
+        Virtual sections are not backed by a disk directory but integrate
+        with the site's section hierarchy, navigation, and menu system.
+
+        Args:
+            name: Section name (used for lookups, e.g., "api")
+            relative_url: URL for this section (e.g., "/api/")
+            title: Display title (defaults to titlecase of name)
+            metadata: Optional section metadata
+
+        Returns:
+            A new virtual Section instance
+
+        Example:
+            api_section = Section.create_virtual(
+                name="api",
+                relative_url="/api/",
+                title="API Reference",
+            )
+        """
+        section_metadata = metadata or {}
+        if title:
+            section_metadata["title"] = title
+
+        return cls(
+            name=name,
+            path=None,
+            metadata=section_metadata,
+            _virtual=True,
+            _relative_url_override=relative_url,
+        )
 
     @property
     def title(self) -> str:
@@ -336,7 +407,14 @@ class Section:
 
         This is the identity URL - use for comparisons, menu activation, etc.
         Always returns a relative path without baseurl.
+
+        For virtual sections, uses the _relative_url_override set during creation.
         """
+        # Virtual sections use explicit URL override
+        if self._relative_url_override:
+            logger.debug("section_url_from_override", section=self.name, url=self._relative_url_override)
+            return self._relative_url_override
+
         # If we have an index page with a proper output_path, use its relative_url
         if (
             self.index_page
@@ -609,24 +687,32 @@ class Section:
 
     def __hash__(self) -> int:
         """
-        Hash based on section path for stable identity.
+        Hash based on section path (or name for virtual sections) for stable identity.
 
         The hash is computed from the section's path, which is immutable
         throughout the section lifecycle. This allows sections to be stored
         in sets and used as dictionary keys.
 
+        For virtual sections (path=None), uses the name and _relative_url_override
+        for hashing to ensure stable identity.
+
         Returns:
-            Integer hash of the section path
+            Integer hash of the section path or name
         """
+        if self.path is None:
+            # Virtual sections: hash by name and URL
+            return hash((self.name, self._relative_url_override))
         return hash(self.path)
 
     def __eq__(self, other: Any) -> bool:
         """
-        Sections are equal if they have the same path.
+        Sections are equal if they have the same path (or name+URL for virtual).
 
         Equality is based on path only, not on pages or other mutable fields.
         This means two Section objects representing the same directory are
         considered equal, even if their contents differ.
+
+        For virtual sections (path=None), equality is based on name and URL.
 
         Args:
             other: Object to compare with
@@ -636,6 +722,9 @@ class Section:
         """
         if not isinstance(other, Section):
             return NotImplemented
+        if self.path is None and other.path is None:
+            # Both virtual: compare by name and URL
+            return (self.name, self._relative_url_override) == (other.name, other._relative_url_override)
         return self.path == other.path
 
     def __repr__(self) -> str:

@@ -299,19 +299,24 @@ class RenderingPipeline:
         and output writing. Uses cached parsed content when available (skips
         markdown parsing if only template changed).
 
+        Virtual pages (e.g., autodoc API pages) bypass markdown parsing and use
+        pre-rendered HTML directly. They still go through template rendering.
+
         Args:
             page: Page object to process. Must have source_path set.
 
         Process:
             1. Determine output path early (for page.url property)
-            2. Check parsed content cache (skip parsing if cache hit)
-            3. Parse markdown with variable substitution (if not cached)
-            4. Build AST and extract TOC (if not cached)
-            5. Render template with page context
-            6. Format HTML output (minify/pretty)
-            7. Write to output directory
+            2. Check for virtual page with pre-rendered HTML (fast path)
+            3. Check parsed content cache (skip parsing if cache hit)
+            4. Parse markdown with variable substitution (if not cached)
+            5. Build AST and extract TOC (if not cached)
+            6. Render template with page context
+            7. Format HTML output (minify/pretty)
+            8. Write to output directory
 
         Performance:
+            - Virtual page: Skips markdown parsing entirely
             - Cache hit: Skips markdown parsing (~10-50ms saved per page)
             - Cache miss: Full pipeline execution
             - Thread-local parser reuse: No parser creation overhead
@@ -320,6 +325,11 @@ class RenderingPipeline:
             pipeline.process_page(page)
             # Page is now fully rendered with rendered_html populated
         """
+        # Handle virtual pages with pre-rendered HTML (autodoc, etc.)
+        if getattr(page, "_virtual", False) and getattr(page, "_prerendered_html", None):
+            self._process_virtual_page(page)
+            return
+
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.start_page(page.source_path)
 
@@ -667,6 +677,63 @@ class RenderingPipeline:
         # End page tracking
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
+
+    def _process_virtual_page(self, page: Page) -> None:
+        """
+        Process a virtual page with pre-rendered HTML content.
+
+        Virtual pages (e.g., autodoc API documentation) bypass markdown parsing
+        and use pre-rendered HTML directly. They still go through template rendering
+        and HTML output formatting.
+
+        This is the fast path for dynamically-generated content that doesn't
+        need markdown processing.
+
+        Args:
+            page: Virtual page with _prerendered_html set
+        """
+        # Ensure output path is set
+        if not page.output_path:
+            page.output_path = self._determine_output_path(page)
+
+        # Use pre-rendered HTML as the parsed content
+        page.parsed_ast = page._prerendered_html
+        page.toc = ""  # Virtual pages handle their own TOC if needed
+
+        # Render with template (wraps content in full page HTML)
+        template = self._determine_template(page)
+        html_content = self.renderer.render_content(page.parsed_ast)
+        page.rendered_html = self.renderer.render_page(page, html_content)
+
+        # HTML formatting (minify/pretty)
+        try:
+            from bengal.postprocess.html_output import format_html_output
+
+            if page.metadata.get("no_format") is True:
+                mode = "raw"
+                options = {}
+            else:
+                html_cfg = self.site.config.get("html_output", {}) or {}
+                mode = html_cfg.get(
+                    "mode",
+                    "minify" if self.site.config.get("minify_html", True) else "pretty",
+                )
+                options = {
+                    "remove_comments": html_cfg.get("remove_comments", mode == "minify"),
+                    "collapse_blank_lines": html_cfg.get("collapse_blank_lines", True),
+                }
+            page.rendered_html = format_html_output(page.rendered_html, mode=mode, options=options)
+        except Exception:
+            pass  # Continue without formatting if it fails
+
+        # Write output
+        self._write_output(page)
+
+        logger.debug(
+            "virtual_page_rendered",
+            source_path=str(page.source_path),
+            output_path=str(page.output_path),
+        )
 
     def _escape_template_syntax_in_html(self, html: str) -> str:
         """

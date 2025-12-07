@@ -1,0 +1,87 @@
+{#-
+API Explorer - Section Index Template
+
+Renders an API section index page showing subsections and modules.
+-#}
+
+<div class="api-explorer api-explorer--index">
+  <header class="api-section-header">
+    <h1 class="api-section-header__title">{{ section.title }}</h1>
+    {% if section.metadata.description %}
+    <p class="api-section-header__description">{{ section.metadata.description }}</p>
+    {% endif %}
+  </header>
+
+  {# Quick Stats #}
+  <div class="api-stats">
+    {% if section.subsections %}
+    <span class="api-stat">
+      <span class="api-stat__count">{{ section.subsections | length }}</span>
+      <span class="api-stat__label">Packages</span>
+    </span>
+    {% endif %}
+    {% set module_pages = section.pages | rejectattr('metadata.is_section_index', 'defined') | list %}
+    {% if module_pages %}
+    <span class="api-stat">
+      <span class="api-stat__count">{{ module_pages | length }}</span>
+      <span class="api-stat__label">Modules</span>
+    </span>
+    {% endif %}
+  </div>
+
+  {# Subsections (Packages) #}
+  {% if section.sorted_subsections %}
+  <section class="api-section api-section--packages">
+    <h2 class="api-section__title">Packages</h2>
+    
+    <div class="api-grid api-grid--packages">
+      {% for subsection in section.sorted_subsections %}
+      <a href="{{ subsection.relative_url }}" class="api-package-card">
+        <span class="api-package-card__icon">📦</span>
+        <span class="api-package-card__name">{{ subsection.name }}</span>
+        {% if subsection.metadata.description %}
+        <span class="api-package-card__description">{{ subsection.metadata.description | truncate(80) }}</span>
+        {% endif %}
+        <span class="api-package-card__meta">
+          {% set child_count = subsection.subsections | length + subsection.pages | length %}
+          {{ child_count }} item{{ 's' if child_count != 1 else '' }}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# Module Pages #}
+  {% set module_pages = section.sorted_pages | rejectattr('source_path', 'match', '.*_index.*') | list %}
+  {% if module_pages %}
+  <section class="api-section api-section--modules">
+    <h2 class="api-section__title">Modules</h2>
+    
+    <div class="api-grid api-grid--modules">
+      {% for page in module_pages %}
+      <a href="{{ page.relative_url }}" class="api-module-card">
+        <span class="api-module-card__icon">📄</span>
+        <span class="api-module-card__name">{{ page.title }}</span>
+        {% if page.metadata.description %}
+        <span class="api-module-card__description">{{ page.metadata.description | truncate(80) }}</span>
+        {% endif %}
+        <span class="api-module-card__badges">
+          {% if page.metadata.element_type %}
+          <span class="api-badge--mini">{{ page.metadata.element_type }}</span>
+          {% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# Empty State #}
+  {% if not section.subsections and not module_pages %}
+  <div class="api-empty-state">
+    <p>No documentation available in this section yet.</p>
+  </div>
+  {% endif %}
+</div>
+

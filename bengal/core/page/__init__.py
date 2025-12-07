@@ -65,6 +65,15 @@ class Page(
     source_path is immutable. Mutable fields (content, rendered_html, etc.)
     do not affect the hash or equality.
 
+    VIRTUAL PAGES:
+    ==============
+    Virtual pages represent dynamically-generated content (e.g., API docs)
+    that doesn't have a corresponding file on disk. Virtual pages:
+    - Have _virtual=True and a synthetic source_path
+    - Are created via Page.create_virtual() factory
+    - Don't read from disk (content provided directly)
+    - Integrate with site's page collection and navigation
+
     BUILD LIFECYCLE:
     ================
     Pages progress through distinct build phases. Properties have different
@@ -86,7 +95,7 @@ class Page(
     but won't cache empty results, allowing proper extraction after parsing.
 
     Attributes:
-        source_path: Path to the source content file
+        source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
         metadata: Frontmatter metadata (title, date, tags, etc.)
         parsed_ast: Abstract Syntax Tree from parsed content
@@ -98,6 +107,7 @@ class Page(
         toc: Table of contents HTML (auto-generated from headings)
         toc_items: Structured TOC data for custom rendering
         related_posts: Related pages (pre-computed during build based on tag overlap)
+        _virtual: True if this is a virtual page (not backed by a disk file)
     """
 
     # Class-level warning counter (shared across all Page instances)
@@ -151,6 +161,15 @@ class Page(
     _ast_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
+
+    # Virtual page support (for API docs, generated content)
+    _virtual: bool = field(default=False, repr=False)
+
+    # Pre-rendered HTML for virtual pages (bypasses markdown parsing)
+    _prerendered_html: str | None = field(default=None, repr=False)
+
+    # Template override for virtual pages (uses custom template)
+    _template_name: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
@@ -218,6 +237,100 @@ class Page(
                 self.core.source_path = str(rel_path)
             except (ValueError, AttributeError):
                 pass  # Keep absolute if not under root
+
+    @property
+    def is_virtual(self) -> bool:
+        """
+        Check if this is a virtual page (not backed by a disk file).
+
+        Virtual pages are used for:
+        - API documentation generated from Python source code
+        - Dynamically-generated content from external sources
+        - Content that doesn't have a corresponding content/ file
+
+        Returns:
+            True if this page is virtual (not backed by a disk file)
+        """
+        return self._virtual
+
+    @property
+    def template_name(self) -> str | None:
+        """
+        Get custom template name for this page.
+
+        Virtual pages may specify a custom template for rendering.
+        Returns None to use the default template selection logic.
+        """
+        return self._template_name
+
+    @property
+    def prerendered_html(self) -> str | None:
+        """
+        Get pre-rendered HTML for virtual pages.
+
+        Virtual pages with pre-rendered HTML bypass markdown parsing
+        and use this HTML directly in the template.
+        """
+        return self._prerendered_html
+
+    @classmethod
+    def create_virtual(
+        cls,
+        source_id: str,
+        title: str,
+        content: str = "",
+        metadata: dict[str, Any] | None = None,
+        rendered_html: str | None = None,
+        template_name: str | None = None,
+        output_path: Path | None = None,
+        section_path: Path | None = None,
+    ) -> Page:
+        """
+        Create a virtual page for dynamically-generated content.
+
+        Virtual pages are not backed by a disk file but integrate with
+        the site's page collection, navigation, and rendering pipeline.
+
+        Args:
+            source_id: Unique identifier for this page (used as source_path)
+            title: Page title
+            content: Raw content (markdown) - optional if rendered_html provided
+            metadata: Page metadata/frontmatter
+            rendered_html: Pre-rendered HTML (bypasses markdown parsing)
+            template_name: Custom template name (optional)
+            output_path: Explicit output path (optional)
+            section_path: Section this page belongs to (optional)
+
+        Returns:
+            A new virtual Page instance
+
+        Example:
+            page = Page.create_virtual(
+                source_id="api/bengal/core/page.md",
+                title="Page Module",
+                metadata={"type": "api-reference"},
+                rendered_html="<div class='api-card'>...</div>",
+                template_name="api-reference/module",
+            )
+        """
+        page_metadata = metadata or {}
+        page_metadata["title"] = title
+
+        page = cls(
+            source_path=Path(source_id),
+            content=content,
+            metadata=page_metadata,
+            rendered_html=rendered_html or "",
+            output_path=output_path,
+            _section_path=section_path,
+        )
+
+        # Set virtual page fields (not in __init__ to preserve dataclass)
+        page._virtual = True
+        page._prerendered_html = rendered_html
+        page._template_name = template_name
+
+        return page
 
     @property
     def relative_path(self) -> str:

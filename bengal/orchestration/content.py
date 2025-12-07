@@ -136,6 +136,17 @@ class ContentOrchestrator:
             full_pages=full_page_count,
         )
 
+        # Integrate virtual autodoc pages if enabled
+        autodoc_pages, autodoc_sections = self._discover_autodoc_content()
+        if autodoc_pages or autodoc_sections:
+            self.site.pages.extend(autodoc_pages)
+            self.site.sections.extend(autodoc_sections)
+            self.logger.info(
+                "autodoc_virtual_pages_integrated",
+                pages=len(autodoc_pages),
+                sections=len(autodoc_sections),
+            )
+
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
         # This enables O(1) section lookups via page._section property
         self.site.register_sections()
@@ -160,24 +171,32 @@ class ContentOrchestrator:
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
 
-    def _discover_autodoc_content(self) -> list[Any]:
+    def _discover_autodoc_content(self) -> tuple[list[Any], list[Any]]:
         """
-        Generate autodoc synthetic pages if enabled.
+        Generate virtual autodoc pages if enabled.
 
         Returns:
-            Empty list - HTML renderer disabled, using traditional Markdown generation
+            Tuple of (pages, sections) from virtual autodoc generation.
+            Returns ([], []) if virtual autodoc is disabled.
         """
-        # HTML renderer disabled - return empty list
-        return []
+        try:
+            from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 
-        # Check for missing weight metadata (info logging to educate users)
-        self._check_weight_metadata()
+            orchestrator = VirtualAutodocOrchestrator(self.site)
 
-        # Build cross-reference index for O(1) lookups
-        self._build_xref_index()
-        self.logger.debug(
-            "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
-        )
+            if not orchestrator.is_enabled():
+                self.logger.debug("virtual_autodoc_not_enabled")
+                return [], []
+
+            pages, sections = orchestrator.generate()
+            return pages, sections
+
+        except ImportError as e:
+            self.logger.debug("autodoc_import_failed", error=str(e))
+            return [], []
+        except Exception as e:
+            self.logger.warning("autodoc_generation_failed", error=str(e))
+            return [], []
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """

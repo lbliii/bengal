@@ -1,0 +1,280 @@
+{#-
+API Explorer - Module Template
+
+Renders a Python module as a compact, card-based layout with
+progressive disclosure (collapsed by default).
+-#}
+
+<div class="api-explorer">
+  {# Module Header #}
+  <header class="api-module-header">
+    <div class="api-module-header__badges">
+      <span class="api-badge api-badge--module">Module</span>
+      {% if element.metadata.is_dataclass %}
+      <span class="api-badge api-badge--dataclass">dataclass</span>
+      {% endif %}
+    </div>
+    
+    <h1 class="api-module-header__title">
+      <code>{{ element.qualified_name }}</code>
+    </h1>
+    
+    {% if element.description %}
+    <p class="api-module-header__description">{{ element.description }}</p>
+    {% endif %}
+    
+    {% if element.source_file %}
+    <div class="api-module-header__source">
+      <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}" 
+         class="api-source-link" 
+         target="_blank" 
+         rel="noopener">
+        View source
+      </a>
+    </div>
+    {% endif %}
+  </header>
+
+  {# Module Stats #}
+  {% set classes = element.children | selectattr('element_type', 'eq', 'class') | list %}
+  {% set functions = element.children | selectattr('element_type', 'eq', 'function') | list %}
+  
+  <div class="api-stats">
+    <span class="api-stat">
+      <span class="api-stat__count">{{ classes | length }}</span>
+      <span class="api-stat__label">Classes</span>
+    </span>
+    <span class="api-stat">
+      <span class="api-stat__count">{{ functions | length }}</span>
+      <span class="api-stat__label">Functions</span>
+    </span>
+  </div>
+
+  {# Classes Section #}
+  {% if classes %}
+  <section class="api-section api-section--classes">
+    <h2 class="api-section__title">Classes</h2>
+    
+    <div class="api-cards">
+      {% for cls in classes %}
+      <details class="api-card api-card--class" {% if loop.first %}open{% endif %}>
+        <summary class="api-card__header">
+          <span class="api-card__icon">◆</span>
+          <code class="api-card__name">{{ cls.name }}</code>
+          <span class="api-card__badges">
+            {% if cls.metadata.is_dataclass %}
+            <span class="api-badge--compact api-badge--dataclass">dataclass</span>
+            {% endif %}
+            {% if cls.metadata.is_abstract %}
+            <span class="api-badge--compact api-badge--abstract">abstract</span>
+            {% endif %}
+          </span>
+          <span class="api-card__toggle">▸</span>
+        </summary>
+        
+        <div class="api-card__content">
+          {% if cls.description %}
+          <p class="api-card__description">{{ cls.description }}</p>
+          {% endif %}
+          
+          {# Class Signature #}
+          {% if cls.metadata.signature %}
+          <div class="api-signature">
+            <pre><code class="language-python">class {{ cls.name }}{{ cls.metadata.signature }}</code></pre>
+          </div>
+          {% endif %}
+          
+          {# Attributes #}
+          {% set attributes = cls.children | selectattr('element_type', 'eq', 'attribute') | list %}
+          {% if attributes %}
+          <div class="api-attributes">
+            <h4 class="api-subsection-title">Attributes</h4>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for attr in attributes %}
+                <tr>
+                  <td><code>{{ attr.name }}</code></td>
+                  <td>{% if attr.metadata.type_annotation %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% endif %}</td>
+                  <td>{{ attr.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+          
+          {# Methods #}
+          {% set methods = cls.children | selectattr('element_type', 'eq', 'method') | list %}
+          {% if methods %}
+          <div class="api-methods">
+            <h4 class="api-subsection-title">Methods</h4>
+            {% for method in methods %}
+            <details class="api-method">
+              <summary class="api-method__header">
+                <code class="api-method__name">{{ method.name }}</code>
+                {% if method.metadata.is_async %}
+                <span class="api-badge--tiny api-badge--async">async</span>
+                {% endif %}
+                {% if method.metadata.is_classmethod %}
+                <span class="api-badge--tiny api-badge--classmethod">classmethod</span>
+                {% endif %}
+                {% if method.metadata.is_staticmethod %}
+                <span class="api-badge--tiny api-badge--staticmethod">staticmethod</span>
+                {% endif %}
+                {% if method.metadata.is_property %}
+                <span class="api-badge--tiny api-badge--property">property</span>
+                {% endif %}
+              </summary>
+              <div class="api-method__content">
+                {% if method.metadata.signature %}
+                <pre class="api-method__signature"><code class="language-python">{{ method.metadata.signature }}</code></pre>
+                {% endif %}
+                {% if method.description %}
+                <p class="api-method__description">{{ method.description }}</p>
+                {% endif %}
+                
+                {# Parameters #}
+                {% if method.metadata.parameters %}
+                <div class="api-parameters">
+                  <h5 class="api-label">Parameters</h5>
+                  <table class="api-table api-table--mini">
+                    <tbody>
+                      {% for param in method.metadata.parameters %}
+                      <tr>
+                        <td><code>{{ param.name }}</code></td>
+                        <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
+                        <td>{{ param.description | default('') }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% endif %}
+                
+                {# Returns #}
+                {% if method.metadata.returns %}
+                <div class="api-returns">
+                  <h5 class="api-label">Returns</h5>
+                  <p>
+                    {% if method.metadata.returns.type %}<code>{{ method.metadata.returns.type }}</code> — {% endif %}
+                    {{ method.metadata.returns.description | default('') }}
+                  </p>
+                </div>
+                {% endif %}
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# Functions Section #}
+  {% if functions %}
+  <section class="api-section api-section--functions">
+    <h2 class="api-section__title">Functions</h2>
+    
+    <div class="api-cards">
+      {% for func in functions %}
+      <details class="api-card api-card--function">
+        <summary class="api-card__header">
+          <span class="api-card__icon">ƒ</span>
+          <code class="api-card__name">{{ func.name }}</code>
+          <span class="api-card__badges">
+            {% if func.metadata.is_async %}
+            <span class="api-badge--compact api-badge--async">async</span>
+            {% endif %}
+          </span>
+          <span class="api-card__toggle">▸</span>
+        </summary>
+        
+        <div class="api-card__content">
+          {% if func.metadata.signature %}
+          <pre class="api-signature"><code class="language-python">{{ func.metadata.signature }}</code></pre>
+          {% endif %}
+          
+          {% if func.description %}
+          <p class="api-card__description">{{ func.description }}</p>
+          {% endif %}
+          
+          {# Parameters #}
+          {% if func.metadata.parameters %}
+          <div class="api-parameters">
+            <h4 class="api-label">Parameters</h4>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Default</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for param in func.metadata.parameters %}
+                <tr>
+                  <td><code>{{ param.name }}</code></td>
+                  <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
+                  <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}</td>
+                  <td>{{ param.description | default('') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+          
+          {# Returns #}
+          {% if func.metadata.returns %}
+          <div class="api-returns">
+            <h4 class="api-label">Returns</h4>
+            <p>
+              {% if func.metadata.returns.type %}<code>{{ func.metadata.returns.type }}</code>{% endif %}
+              {{ func.metadata.returns.description | default('') }}
+            </p>
+          </div>
+          {% endif %}
+          
+          {# Raises #}
+          {% if func.metadata.raises %}
+          <div class="api-raises">
+            <h4 class="api-label">Raises</h4>
+            <ul class="api-raises__list">
+              {% for exc in func.metadata.raises %}
+              <li>
+                <code>{{ exc.type }}</code>
+                {% if exc.description %} — {{ exc.description }}{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+          
+          {# Examples #}
+          {% if func.metadata.examples %}
+          <div class="api-examples">
+            <h4 class="api-label">Examples</h4>
+            {% for example in func.metadata.examples %}
+            <pre class="api-example"><code class="language-python">{{ example }}</code></pre>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
