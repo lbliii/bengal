@@ -2,14 +2,14 @@
 ---
 title: "performance_advisor"
 type: "python-module"
-source_file: "bengal/bengal/analysis/performance_advisor.py"
+source_file: "bengal/analysis/performance_advisor.py"
 line_number: 1
 description: "Performance analysis and intelligent suggestions for Bengal builds. Analyzes build statistics and provides context-aware recommendations for improving build speed, resource usage, and developer experi..."
 ---
 
 # performance_advisor
 **Type:** Module
-**Source:** [View source](bengal/bengal/analysis/performance_advisor.py#L1)
+**Source:** [View source](bengal/analysis/performance_advisor.py#L1)
 
 
 
@@ -75,15 +75,29 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `type` | - | Category of suggestion (BUILD, CONTENT, CONFIG, etc.) |
-| `priority` | - | Priority level (HIGH, MEDIUM, LOW) |
-| `title` | - | Short title of the suggestion |
-| `description` | - | Detailed explanation of the issue |
-| `impact` | - | Estimated performance impact (e.g., "Could save ~2.5s") |
-| `action` | - | What the user should do to implement this suggestion |
-| `config_example` | - | Optional example configuration change |
+:::{div} api-attributes
+`type`
+: Category of suggestion (BUILD, CONTENT, CONFIG, etc.)
+
+`priority`
+: Priority level (HIGH, MEDIUM, LOW)
+
+`title`
+: Short title of the suggestion
+
+`description`
+: Detailed explanation of the issue
+
+`impact`
+: Estimated performance impact (e.g., "Could save ~2.5s")
+
+`action`
+: What the user should do to implement this suggestion
+
+`config_example`
+: Optional example configuration change
+
+:::
 
 
 
@@ -96,6 +110,10 @@ This is a dataclass.
 
 
 #### `__str__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __str__(self) -> str
 ```
@@ -105,7 +123,9 @@ Format suggestion for display.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -130,12 +150,20 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `grade` | - | Letter grade (A, B, C, D, or F) |
-| `score` | - | Numeric score (0-100) |
-| `category` | - | Performance category ("Excellent", "Good", "Fair", "Poor", "Critical") |
-| `summary` | - | One-line summary of performance assessment |
+:::{div} api-attributes
+`grade`
+: Letter grade (A, B, C, D, or F)
+
+`score`
+: Numeric score (0-100)
+
+`category`
+: Performance category ("Excellent", "Good", "Fair", "Poor", "Critical")
+
+`summary`
+: One-line summary of performance assessment
+
+:::
 
 
 
@@ -147,7 +175,11 @@ This is a dataclass.
 
 
 
-#### `calculate` @classmethod
+#### `calculate`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def calculate(cls, stats: BuildStats) -> PerformanceGrade
 ```
@@ -174,7 +206,9 @@ Scoring factors:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PerformanceGrade`
@@ -203,6 +237,10 @@ optimizations tailored to the specific project.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, stats: BuildStats, environment: dict[str, Any] | None = None)
 ```
@@ -226,6 +264,10 @@ Initialize performance advisor.
 
 
 #### `analyze`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def analyze(self) -> list[PerformanceSuggestion]
 ```
@@ -235,7 +277,9 @@ Analyze build and generate suggestions.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[PerformanceSuggestion]` - List of suggestions, ordered by priority
@@ -249,6 +293,10 @@ Analyze build and generate suggestions.
 
 
 #### `get_grade`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_grade(self) -> PerformanceGrade
 ```
@@ -258,7 +306,9 @@ Get overall performance grade.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PerformanceGrade` - PerformanceGrade with score and category
@@ -266,6 +316,10 @@ Get overall performance grade.
 
 
 #### `get_bottleneck`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_bottleneck(self) -> str | None
 ```
@@ -275,7 +329,9 @@ Identify the primary bottleneck phase.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str | None` - Name of slowest phase, or None if well-balanced
@@ -283,6 +339,10 @@ Identify the primary bottleneck phase.
 
 
 #### `get_top_suggestions`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_top_suggestions(self, limit: int = 3) -> list[PerformanceSuggestion]
 ```
@@ -303,7 +363,9 @@ Get top N suggestions.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[PerformanceSuggestion]` - Up to `limit` highest-priority suggestions
@@ -311,6 +373,10 @@ Get top N suggestions.
 
 
 #### `format_summary`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def format_summary(self) -> str
 ```
@@ -320,7 +386,9 @@ Format a text summary of analysis.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Multi-line string with analysis summary
@@ -362,5 +430,5 @@ Quick analysis of build statistics.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/analysis/performance_advisor.py`*
+*Generated by Bengal autodoc from `bengal/analysis/performance_advisor.py`*
 

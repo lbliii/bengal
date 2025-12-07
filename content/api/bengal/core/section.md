@@ -2,14 +2,14 @@
 ---
 title: "section"
 type: "python-module"
-source_file: "bengal/bengal/core/section.py"
+source_file: "bengal/core/section.py"
 line_number: 1
 description: "Section representation for organizing pages into hierarchical groups. Sections represent directories in the content tree and provide navigation, sorting, and hierarchical query interfaces. Sections ca..."
 ---
 
 # section
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/section.py#L1)
+**Source:** [View source](bengal/core/section.py#L1)
 
 
 
@@ -56,11 +56,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `page` | - | *No description provided.* |
-| `weight` | - | *No description provided.* |
-| `title_lower` | - | *No description provided.* |
+:::{div} api-attributes
+`page`
+: 
+
+`weight`
+: 
+
+`title_lower`
+: 
+
+:::
 
 
 
@@ -73,6 +79,10 @@ This is a dataclass.
 
 
 #### `__lt__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __lt__(self, other)
 ```
@@ -115,16 +125,32 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `name` | - | Section name |
-| `path` | - | Path to the section directory |
-| `pages` | - | List of pages in this section |
-| `subsections` | - | Child sections |
-| `metadata` | - | Section-level metadata |
-| `index_page` | - | Optional index page for the section |
-| `parent` | - | Parent section (if nested) |
-| `_site` | - | *No description provided.* |
+:::{div} api-attributes
+`name`
+: Section name
+
+`path`
+: Path to the section directory
+
+`pages`
+: List of pages in this section
+
+`subsections`
+: Child sections
+
+`metadata`
+: Section-level metadata
+
+`index_page`
+: Optional index page for the section
+
+`parent`
+: Parent section (if nested)
+
+`_site`
+: 
+
+:::
 
 
 
@@ -312,427 +338,11 @@ Use .relative_url for comparisons.
 
 
 
-#### `title`
-```python
-def title(self) -> str
-```
-
-
-Get section title from metadata or generate from name.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `icon`
-```python
-def icon(self) -> str | None
-```
-
-
-Get section icon from index page metadata (cached).
-
-Icons can be specified in a section's _index.md frontmatter:
-
-    ---
-    title: API Reference
-    icon: book
-    ---
-
-The icon name should match a Phosphor icon in the icon library
-(e.g., 'book', 'folder', 'terminal', 'code').
-
-
-
-**Returns**
-
-
-`str | None` - Icon name string, or None if no icon is specified
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% if section.icon %}
-      {{ icon(section.icon, size=16) }}
-    {% endif %}
-
-Performance:
-    Uses @cached_property to avoid repeated dict lookups on each access.
-```
-
-
-
-
-#### `hierarchy`
-```python
-def hierarchy(self) -> list[str]
-```
-
-
-Get the full hierarchy path of this section.
-
-
-
-**Returns**
-
-
-`list[str]` - List of section names from root to this section
-
-
-
-#### `depth`
-```python
-def depth(self) -> int
-```
-
-
-Get the depth of this section in the hierarchy.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `root`
-```python
-def root(self) -> Section
-```
-
-
-Get the root section of this section's hierarchy.
-
-
-
-**Returns**
-
-
-`Section` - The topmost ancestor section
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% set root_section = page._section.root %}
-```
-
-
-
-
-#### `regular_pages`
-```python
-def regular_pages(self) -> list[Page]
-```
-
-
-Get only regular pages (non-sections) in this section.
-
-
-
-**Returns**
-
-
-`list[Page]` - List of regular Page objects (excludes subsections)
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for page in section.regular_pages %}
-      <article>{{ page.title }}</article>
-    {% endfor %}
-```
-
-
-
-
-#### `sections`
-```python
-def sections(self) -> list[Section]
-```
-
-
-Get immediate child sections.
-
-
-
-**Returns**
-
-
-`list[Section]` - List of child Section objects
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for subsection in section.sections %}
-      <h3>{{ subsection.title }}</h3>
-    {% endfor %}
-```
-
-
-
-
-#### `sorted_pages`
-```python
-def sorted_pages(self) -> list[Page]
-```
-
-
-Get pages sorted by weight (ascending), then by title (CACHED).
-
-This property is cached after first access for O(1) subsequent lookups.
-The sort is computed once and reused across all template renders.
-
-Pages without a weight field are treated as having weight=float('inf')
-and appear at the end of the sorted list, after all weighted pages.
-Lower weights appear first in the list. Pages with equal weight are sorted
-alphabetically by title.
-
-Performance:
-    - First access: O(n log n) where n = number of pages
-    - Subsequent accesses: O(1) cached lookup
-    - Memory cost: O(n) to store sorted list
-
-
-
-**Returns**
-
-
-`list[Page]` - List of pages sorted by weight, then title
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for page in section.sorted_pages %}
-      <article>{{ page.title }}</article>
-    {% endfor %}
-```
-
-
-
-
-#### `sorted_subsections`
-```python
-def sorted_subsections(self) -> list[Section]
-```
-
-
-Get subsections sorted by weight (ascending), then by title (CACHED).
-
-This property is cached after first access for O(1) subsequent lookups.
-The sort is computed once and reused across all template renders.
-
-Subsections without a weight field in their index page metadata
-are treated as having weight=999999 (appear at end). Lower weights appear first.
-
-Performance:
-    - First access: O(m log m) where m = number of subsections
-    - Subsequent accesses: O(1) cached lookup
-    - Memory cost: O(m) to store sorted list
-
-
-
-**Returns**
-
-
-`list[Section]` - List of subsections sorted by weight, then title
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for subsection in section.sorted_subsections %}
-      <h3>{{ subsection.title }}</h3>
-    {% endfor %}
-```
-
-
-
-
-#### `subsection_index_urls`
-```python
-def subsection_index_urls(self) -> set[str]
-```
-
-
-Get set of URLs for all subsection index pages (CACHED).
-
-This pre-computed set enables O(1) membership checks for determining
-if a page is a subsection index. Used in navigation templates to avoid
-showing subsection indices twice (once as page, once as subsection link).
-
-Performance:
-    - First access: O(m) where m = number of subsections
-    - Subsequent lookups: O(1) set membership check
-    - Memory cost: O(m) URLs
-
-
-
-**Returns**
-
-
-`set[str]` - Set of URL strings for subsection index pages
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% if page.relative_url not in section.subsection_index_urls %}
-      <a href="{{ url_for(page) }}">{{ page.title }}</a>
-    {% endif %}
-```
-
-
-
-
-#### `has_nav_children`
-```python
-def has_nav_children(self) -> bool
-```
-
-
-Check if this section has navigable children (CACHED).
-
-A section has navigable children if it contains either:
-- Regular pages (excluding the index page itself)
-- Subsections
-
-This property is used by navigation templates to determine whether
-to render a section as an expandable group (with toggle button) or
-as a simple link. Sections without children should not show an
-expand/collapse toggle since there's nothing to expand.
-
-Performance:
-    - First access: O(1) - uses cached sorted_pages/sorted_subsections
-    - Subsequent accesses: O(1) cached lookup
-
-
-
-**Returns**
-
-
-`bool` - True if section has pages or subsections to display in nav
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% if section.has_nav_children %}
-      {# Render as expandable group with toggle #}
-    {% else %}
-      {# Render as simple link #}
-    {% endif %}
-```
-
-
-
-
-#### `regular_pages_recursive`
-```python
-def regular_pages_recursive(self) -> list[Page]
-```
-
-
-Get all regular pages recursively (including from subsections).
-
-
-
-**Returns**
-
-
-`list[Page]` - List of all descendant regular pages
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-<p>Total pages: {{ section.regular_pages_recursive | length }}</p>
-```
-
-
-
-
-#### `relative_url`
-```python
-def relative_url(self) -> str
-```
-
-
-Get relative URL without baseurl (for comparisons).
-
-This is the identity URL - use for comparisons, menu activation, etc.
-Always returns a relative path without baseurl.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `url`
-```python
-def url(self) -> str
-```
-
-
-Get URL with baseurl applied (cached after first access).
-
-This is the primary URL property for templates - automatically includes
-baseurl when available. Use .relative_url for comparisons.
-
-
-
-**Returns**
-
-
-`str` - URL path with baseurl prepended (if configured)
-
-
-
-#### `permalink`
-```python
-def permalink(self) -> str
-```
-
-
-Alias for url (for backward compatibility).
-
-Both url and permalink now return the same value (with baseurl).
-Use .relative_url for comparisons.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
 #### `add_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_page(self, page: Page) -> None
 ```
@@ -753,7 +363,9 @@ Add a page to this section.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -761,6 +373,10 @@ Add a page to this section.
 
 
 #### `add_subsection`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_subsection(self, section: Section) -> None
 ```
@@ -781,7 +397,9 @@ Add a subsection to this section.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -789,6 +407,10 @@ Add a subsection to this section.
 
 
 #### `sort_children_by_weight`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_children_by_weight(self) -> None
 ```
@@ -805,7 +427,9 @@ This is typically called after content discovery is complete.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -813,6 +437,10 @@ This is typically called after content discovery is complete.
 
 
 #### `needs_auto_index`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def needs_auto_index(self) -> bool
 ```
@@ -822,7 +450,9 @@ Check if this section needs an auto-generated index page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if section needs auto-generated index (no explicit _index.md)
@@ -830,6 +460,10 @@ Check if this section needs an auto-generated index page.
 
 
 #### `has_index`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_index(self) -> bool
 ```
@@ -839,7 +473,9 @@ Check if section has a valid index page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if section has an index page (explicit or auto-generated)
@@ -847,6 +483,10 @@ Check if section has a valid index page.
 
 
 #### `get_all_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_all_pages(self, recursive: bool = True) -> list[Page]
 ```
@@ -867,7 +507,9 @@ Get all pages in this section.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]` - List of all pages
@@ -875,6 +517,10 @@ Get all pages in this section.
 
 
 #### `aggregate_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def aggregate_content(self) -> dict[str, Any]
 ```
@@ -884,7 +530,9 @@ Aggregate content from all pages in this section.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with aggregated content information
@@ -892,6 +540,10 @@ Aggregate content from all pages in this section.
 
 
 #### `apply_section_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def apply_section_template(self, template_engine: Any) -> str
 ```
@@ -912,7 +564,9 @@ Apply a section template to generate a section index page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Rendered HTML for the section index
@@ -920,6 +574,10 @@ Apply a section template to generate a section index page.
 
 
 #### `walk`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def walk(self) -> list[Section]
 ```
@@ -929,7 +587,9 @@ Iteratively walk through all sections in the hierarchy.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Section]` - List of all sections (self and descendants)
@@ -937,6 +597,10 @@ Iteratively walk through all sections in the hierarchy.
 
 
 #### `__hash__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __hash__(self) -> int
 ```
@@ -950,7 +614,9 @@ in sets and used as dictionary keys.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int` - Integer hash of the section path
@@ -958,6 +624,10 @@ in sets and used as dictionary keys.
 
 
 #### `__eq__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __eq__(self, other: Any) -> bool
 ```
@@ -982,7 +652,9 @@ considered equal, even if their contents differ.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if other is a Section with the same path
@@ -990,6 +662,10 @@ considered equal, even if their contents differ.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -999,7 +675,9 @@ def __repr__(self) -> str
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -1007,4 +685,5 @@ def __repr__(self) -> str
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/section.py`*
+*Generated by Bengal autodoc from `bengal/core/section.py`*
+

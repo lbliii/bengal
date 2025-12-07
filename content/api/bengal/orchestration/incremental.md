@@ -2,14 +2,14 @@
 ---
 title: "incremental"
 type: "python-module"
-source_file: "bengal/bengal/orchestration/incremental.py"
+source_file: "bengal/orchestration/incremental.py"
 line_number: 1
 description: "Incremental build orchestration for Bengal SSG. Handles cache management, change detection, and determining what needs rebuilding. Uses file hashes, dependency graphs, and taxonomy indexes to identify..."
 ---
 
 # incremental
 **Type:** Module
-**Source:** [View source](bengal/bengal/orchestration/incremental.py#L1)
+**Source:** [View source](bengal/orchestration/incremental.py#L1)
 
 
 
@@ -60,13 +60,23 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `site` | - | Site instance for incremental builds |
-| `cache` | - | BuildCache instance for build state persistence |
-| `tracker` | - | DependencyTracker instance for dependency graph construction |
-| `logger` | - | Logger instance for incremental build events |
-| `Relationships` | - | - Uses: BuildCache for build state persistence - Uses: DependencyTracker for dependency graph construction - Used by: BuildOrchestrator for incremental build coordination - Uses: Site for content access and change detection Thread Safety: Not thread-safe. Should be used from single thread during build. Cache and tracker operations are thread-safe internally. |
+:::{div} api-attributes
+`site`
+: Site instance for incremental builds
+
+`cache`
+: BuildCache instance for build state persistence
+
+`tracker`
+: DependencyTracker instance for dependency graph construction
+
+`logger`
+: Logger instance for incremental build events
+
+`Relationships`
+: - Uses: BuildCache for build state persistence - Uses: DependencyTracker for dependency graph construction - Used by: BuildOrchestrator for incremental build coordination - Uses: Site for content access and change detection Thread Safety: Not thread-safe. Should be used from single thread during build. Cache and tracker operations are thread-safe internally.
+
+:::
 
 
 
@@ -79,6 +89,10 @@ Creation:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, site: Site)
 ```
@@ -101,6 +115,10 @@ Initialize incremental orchestrator.
 
 
 #### `initialize`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]
 ```
@@ -125,7 +143,9 @@ if needed). If disabled, creates empty cache instances.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `tuple[BuildCache, DependencyTracker]` - Tuple of (BuildCache, DependencyTracker) instances
@@ -149,6 +169,10 @@ cache, tracker = orchestrator.initialize(enabled=True)
 
 
 #### `check_config_changed`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def check_config_changed(self) -> bool
 ```
@@ -167,7 +191,9 @@ a file hash change.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if config changed (cache was invalidated)
@@ -176,6 +202,10 @@ a file hash change.
 
 
 #### `find_work_early`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def find_work_early(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list]]
 ```
@@ -201,7 +231,9 @@ Uses section-level optimization: skips checking individual pages in unchanged se
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `tuple[list[Page], list[Asset], dict[str, list]]` - Tuple of (pages_to_build, assets_to_process, change_summary)
@@ -209,6 +241,10 @@ Uses section-level optimization: skips checking individual pages in unchanged se
 
 
 #### `find_work`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list]]
 ```
@@ -232,7 +268,9 @@ Kept for backward compatibility but should be replaced with find_work_early().
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `tuple[list[Page], list[Asset], dict[str, list]]` - Tuple of (pages_to_build, assets_to_process, change_summary)
@@ -240,6 +278,10 @@ Kept for backward compatibility but should be replaced with find_work_early().
 
 
 #### `process`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def process(self, change_type: str, changed_paths: set) -> None
 ```
@@ -277,7 +319,9 @@ incremental pass without invoking the entire site build orchestrator.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -292,6 +336,10 @@ incremental pass without invoking the entire site build orchestrator.
 
 
 #### `full_rebuild`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def full_rebuild(self, pages: list, context: BuildContext)
 ```
@@ -316,6 +364,10 @@ def full_rebuild(self, pages: list, context: BuildContext)
 
 
 #### `save_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_cache(self, pages_built: list[Page], assets_processed: list[Asset]) -> None
 ```
@@ -337,7 +389,9 @@ Update cache with processed files.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -345,4 +399,5 @@ Update cache with processed files.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/orchestration/incremental.py`*
+*Generated by Bengal autodoc from `bengal/orchestration/incremental.py`*
+

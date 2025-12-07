@@ -16,21 +16,17 @@ parameters, returns, raises, examples, and inherited methods.
 {% if own_methods %}
 {% call safe_section("class_methods") %}
 {% call rubric_shell() %}
-## Methods
+:::{rubric} Methods
+:class: rubric-methods
+:::
 {% endcall %}
 
 {% call(method_item) safe_for(own_methods, "*No methods found.*") %}
 {% call safe_render("method", method_item) %}
 {% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
 
-#### `{{ method_item.name }}`
+#### `{{ method_item.name }}`{% if method_item.metadata.is_async %} <span class="api-badge api-badge-async">async</span>{% endif %}{% if method_item.metadata.is_classmethod %} <span class="api-badge api-badge-classmethod">classmethod</span>{% endif %}{% if method_item.metadata.is_staticmethod %} <span class="api-badge api-badge-staticmethod">staticmethod</span>{% endif %}
 
-:::{div} api-badge-group
-{% if method_item.metadata.is_async %}<span class="api-badge api-badge-async">async</span>{% endif %}
-{% if method_item.metadata.is_classmethod %}<span class="api-badge api-badge-classmethod">classmethod</span>{% endif %}
-{% if method_item.metadata.is_staticmethod %}<span class="api-badge api-badge-staticmethod">staticmethod</span>{% endif %}
-
-:::
 
 {{ signature_block(method_item.metadata.signature | default(''), 'method') }}
 
@@ -89,7 +85,9 @@ This is an asynchronous method. Use `await` when calling.
 {#- Inherited methods section -#}
 {% if inherited_methods %}
 {% call safe_section("inherited_methods") %}
-## Inherited Members
+:::{rubric} Inherited Members
+:class: rubric-inherited
+:::
 
 ::::{dropdown} {{ inherited_methods | length }} inherited members (click to expand)
 :open: false

@@ -2,14 +2,14 @@
 ---
 title: "proxy"
 type: "python-module"
-source_file: "bengal/bengal/core/page/proxy.py"
+source_file: "bengal/core/page/proxy.py"
 line_number: 1
 description: "PageProxy - Lazy-loaded page placeholder for incremental builds. A PageProxy holds minimal page metadata (title, date, tags, etc.) loaded from the PageDiscoveryCache and defers loading full page conte..."
 ---
 
 # proxy
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/page/proxy.py#L1)
+**Source:** [View source](bengal/core/page/proxy.py#L1)
 
 
 
@@ -499,892 +499,11 @@ Otherwise, performs path-based lookup via site registry without forcing load.
 
 
 
-#### `title`
-```python
-def title(self) -> str
-```
-
-
-Get page title from cached metadata.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `date`
-```python
-def date(self) -> datetime | None
-```
-
-
-Get page date from cached metadata (parsed from ISO string).
-
-
-
-**Returns**
-
-
-`datetime | None`
-
-
-
-#### `tags`
-```python
-def tags(self) -> list[str]
-```
-
-
-Get page tags from cached metadata.
-
-
-
-**Returns**
-
-
-`list[str]`
-
-
-
-#### `slug`
-```python
-def slug(self) -> str | None
-```
-
-
-Get URL slug from cached metadata.
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `weight`
-```python
-def weight(self) -> int | None
-```
-
-
-Get sort weight from cached metadata.
-
-
-
-**Returns**
-
-
-`int | None`
-
-
-
-#### `lang`
-```python
-def lang(self) -> str | None
-```
-
-
-Get language code from cached metadata.
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `type`
-```python
-def type(self) -> str | None
-```
-
-
-Get page type from cached metadata (cascaded).
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `variant`
-```python
-def variant(self) -> str | None
-```
-
-
-Get visual variant from cached metadata (Mode).
-
-Falls back to legacy layout/hero_style fields in props if not set.
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `description`
-```python
-def description(self) -> str
-```
-
-
-Get page description from cached metadata (promoted prop).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `props`
-```python
-def props(self) -> dict[str, Any]
-```
-
-
-Get custom props from cached metadata.
-
-This provides access to the 'props' dictionary (formerly metadata)
-without loading the full page.
-
-
-
-**Returns**
-
-
-`dict[str, Any]`
-
-
-
-#### `section`
-```python
-def section(self) -> str | None
-```
-
-
-Get section path from cached metadata.
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `relative_path`
-```python
-def relative_path(self) -> str
-```
-
-
-Get relative path string (alias for source_path as string).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `aliases`
-```python
-def aliases(self) -> list[str]
-```
-
-
-Get redirect aliases from cached metadata.
-
-
-
-**Returns**
-
-
-`list[str]`
-
-
-
-#### `content`
-```python
-def content(self) -> str
-```
-
-
-Get page content (lazy-loaded from disk).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `metadata`
-```python
-def metadata(self) -> dict[str, Any]
-```
-
-
-Get metadata dict from cache (no lazy load).
-
-Returns cached metadata including cascaded fields like 'type'.
-This allows templates to check page.metadata.get("type") without
-triggering a full page load.
-
-
-
-**Returns**
-
-
-`dict[str, Any]`
-
-
-
-#### `rendered_html`
-```python
-def rendered_html(self) -> str
-```
-
-
-Get rendered HTML (lazy-loaded).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `links`
-```python
-def links(self) -> list[str]
-```
-
-
-Get extracted links (lazy-loaded).
-
-
-
-**Returns**
-
-
-`list[str]`
-
-
-
-#### `version`
-```python
-def version(self) -> str | None
-```
-
-
-Get version (lazy-loaded).
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `toc`
-```python
-def toc(self) -> str | None
-```
-
-
-Get table of contents (lazy-loaded).
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `toc_items`
-```python
-def toc_items(self) -> list[dict[str, Any]]
-```
-
-
-Get TOC items (lazy-loaded).
-
-
-
-**Returns**
-
-
-`list[dict[str, Any]]`
-
-
-
-#### `output_path`
-```python
-def output_path(self) -> Path | None
-```
-
-
-Get output path (lazy-loaded).
-
-
-
-**Returns**
-
-
-`Path | None`
-
-
-
-#### `parsed_ast`
-```python
-def parsed_ast(self) -> Any
-```
-
-
-Get parsed AST (lazy-loaded).
-
-
-
-**Returns**
-
-
-`Any`
-
-
-
-#### `related_posts`
-```python
-def related_posts(self) -> list
-```
-
-
-Get related posts (lazy-loaded).
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `translation_key`
-```python
-def translation_key(self) -> str | None
-```
-
-
-Get translation key.
-
-
-
-**Returns**
-
-
-`str | None`
-
-
-
-#### `url`
-```python
-def url(self) -> str
-```
-
-
-Get the URL path for the page (lazy-loaded, cached after first access).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `relative_url`
-```python
-def relative_url(self) -> str
-```
-
-
-Get the relative URL (without baseurl) for the page (lazy-loaded, cached after first access).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `permalink`
-```python
-def permalink(self) -> str
-```
-
-
-Get the permalink (URL with baseurl) for the page (lazy-loaded, cached after first access).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `meta_description`
-```python
-def meta_description(self) -> str
-```
-
-
-Get meta description (lazy-loaded from full page).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `reading_time`
-```python
-def reading_time(self) -> str
-```
-
-
-Get reading time estimate (lazy-loaded from full page).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `excerpt`
-```python
-def excerpt(self) -> str
-```
-
-
-Get content excerpt (lazy-loaded from full page).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `keywords`
-```python
-def keywords(self) -> list[str]
-```
-
-
-Get keywords (lazy-loaded from full page).
-
-
-
-**Returns**
-
-
-`list[str]`
-
-
-
-#### `parent`
-```python
-def parent(self) -> Any
-```
-
-
-Get the parent section of this page.
-
-Returns parent section without forcing full page load (uses _section).
-
-
-
-**Returns**
-
-
-`Any`
-
-
-
-#### `ancestors`
-```python
-def ancestors(self) -> list[Any]
-```
-
-
-Get all ancestor sections of this page.
-
-Returns list of ancestor sections from immediate parent to root
-without forcing full page load (uses _section property).
-
-
-
-**Returns**
-
-
-`list[Any]`
-
-
-
-#### `is_home`
-```python
-def is_home(self) -> bool
-```
-
-
-Check if this page is the home page.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `is_section`
-```python
-def is_section(self) -> bool
-```
-
-
-Check if this page is a section page.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `is_page`
-```python
-def is_page(self) -> bool
-```
-
-
-Check if this is a regular page (not a section).
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `kind`
-```python
-def kind(self) -> str
-```
-
-
-Get the kind of page: 'home', 'section', or 'page'.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `description`
-```python
-def description(self) -> str
-```
-
-
-Get page description.
-
-Favors core.description (fast, cached) but falls back to full page
-load if not available, for backward compatibility.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `draft`
-```python
-def draft(self) -> bool
-```
-
-
-Check if page is marked as draft.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `hidden`
-```python
-def hidden(self) -> bool
-```
-
-
-Check if page is hidden (unlisted).
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `visibility`
-```python
-def visibility(self) -> dict[str, Any]
-```
-
-
-Get visibility settings with defaults.
-
-
-
-**Returns**
-
-
-`dict[str, Any]`
-
-
-
-#### `in_listings`
-```python
-def in_listings(self) -> bool
-```
-
-
-Check if page should appear in listings/queries.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `in_sitemap`
-```python
-def in_sitemap(self) -> bool
-```
-
-
-Check if page should appear in sitemap.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `in_search`
-```python
-def in_search(self) -> bool
-```
-
-
-Check if page should appear in search index.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `in_rss`
-```python
-def in_rss(self) -> bool
-```
-
-
-Check if page should appear in RSS feeds.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `robots_meta`
-```python
-def robots_meta(self) -> str
-```
-
-
-Get robots meta content for this page.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `should_render`
-```python
-def should_render(self) -> bool
-```
-
-
-Check if page should be rendered.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `next`
-```python
-def next(self) -> Page | None
-```
-
-
-Get next page in site collection.
-
-
-
-**Returns**
-
-
-`Page | None`
-
-
-
-#### `prev`
-```python
-def prev(self) -> Page | None
-```
-
-
-Get previous page in site collection.
-
-
-
-**Returns**
-
-
-`Page | None`
-
-
-
-#### `next_in_section`
-```python
-def next_in_section(self) -> Page | None
-```
-
-
-Get next page in same section.
-
-
-
-**Returns**
-
-
-`Page | None`
-
-
-
-#### `prev_in_section`
-```python
-def prev_in_section(self) -> Page | None
-```
-
-
-Get previous page in same section.
-
-
-
-**Returns**
-
-
-`Page | None`
-
-
-
-
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, source_path: Path, metadata: PageCore, loader: callable)
 ```
@@ -1411,6 +530,10 @@ Initialize PageProxy with PageCore metadata and loader.
 
 
 #### `rendered_html`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def rendered_html(self, value: str) -> None
 ```
@@ -1431,7 +554,9 @@ Set rendered HTML.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1439,6 +564,10 @@ Set rendered HTML.
 
 
 #### `toc`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def toc(self, value: str | None) -> None
 ```
@@ -1459,7 +588,9 @@ Set table of contents.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1467,6 +598,10 @@ Set table of contents.
 
 
 #### `output_path`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def output_path(self, value: Path | None) -> None
 ```
@@ -1487,7 +622,9 @@ Set output path.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1495,6 +632,10 @@ Set output path.
 
 
 #### `parsed_ast`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def parsed_ast(self, value: Any) -> None
 ```
@@ -1515,7 +656,9 @@ Set parsed AST.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1523,6 +666,10 @@ Set parsed AST.
 
 
 #### `related_posts`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def related_posts(self, value: list) -> None
 ```
@@ -1545,7 +692,9 @@ In incremental mode, allow setting on proxy without forcing a full load.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1553,6 +702,10 @@ In incremental mode, allow setting on proxy without forcing a full load.
 
 
 #### `should_render_in_environment`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def should_render_in_environment(self, is_production: bool = False) -> bool
 ```
@@ -1573,7 +726,9 @@ Check if page should be rendered in the given environment.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -1581,6 +736,10 @@ Check if page should be rendered in the given environment.
 
 
 #### `extract_links`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def extract_links(self) -> None
 ```
@@ -1590,7 +749,9 @@ Extract links from content.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1599,6 +760,10 @@ Extract links from content.
 
 
 #### `__hash__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __hash__(self) -> int
 ```
@@ -1608,7 +773,9 @@ Hash based on source_path (same as Page).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int`
@@ -1616,6 +783,10 @@ Hash based on source_path (same as Page).
 
 
 #### `__eq__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __eq__(self, other: Any) -> bool
 ```
@@ -1636,7 +807,9 @@ Equality based on source_path.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -1644,6 +817,10 @@ Equality based on source_path.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -1653,7 +830,9 @@ String representation.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -1661,6 +840,10 @@ String representation.
 
 
 #### `__str__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __str__(self) -> str
 ```
@@ -1670,7 +853,9 @@ String conversion.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -1678,6 +863,10 @@ String conversion.
 
 
 #### `get_load_status`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_load_status(self) -> dict[str, Any]
 ```
@@ -1687,14 +876,20 @@ Get debugging info about proxy state.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_page` @classmethod
+#### `from_page`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_page(cls, page: Page, metadata: Any) -> PageProxy
 ```
@@ -1716,7 +911,9 @@ Create proxy from full page (for testing).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageProxy`
@@ -1724,4 +921,5 @@ Create proxy from full page (for testing).
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/page/proxy.py`*
+*Generated by Bengal autodoc from `bengal/core/page/proxy.py`*
+

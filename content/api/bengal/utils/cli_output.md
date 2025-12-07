@@ -2,14 +2,14 @@
 ---
 title: "cli_output"
 type: "python-module"
-source_file: "bengal/bengal/utils/cli_output.py"
+source_file: "bengal/utils/cli_output.py"
 line_number: 1
 description: "Centralized CLI output system for Bengal. Provides a unified interface for all CLI messaging with: - Profile-aware formatting (Writer, Theme-Dev, Developer) - Consistent indentation and spacing - Auto..."
 ---
 
 # cli_output
 **Type:** Module
-**Source:** [View source](bengal/bengal/utils/cli_output.py#L1)
+**Source:** [View source](bengal/utils/cli_output.py#L1)
 
 
 
@@ -82,6 +82,10 @@ consistent spacing, and automatic TTY detection.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, profile: Any | None = None, quiet: bool = False, verbose: bool = False, use_rich: bool | None = None)
 ```
@@ -107,6 +111,10 @@ Initialize CLI output manager.
 
 
 #### `should_show`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def should_show(self, level: MessageLevel) -> bool
 ```
@@ -127,7 +135,9 @@ Determine if message should be shown based on level and settings.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -135,6 +145,10 @@ Determine if message should be shown based on level and settings.
 
 
 #### `header`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def header(self, text: str, mascot: bool = True, leading_blank: bool = True, trailing_blank: bool = True) -> None
 ```
@@ -159,7 +173,9 @@ Example: "ᓚᘏᗢ  Building your site..."
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -167,6 +183,10 @@ Example: "ᓚᘏᗢ  Building your site..."
 
 
 #### `subheader`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def subheader(self, text: str, icon: str | None = None, leading_blank: bool = True, trailing_blank: bool = False, width: int = 60) -> None
 ```
@@ -194,7 +214,9 @@ without the weight of a full boxed header.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -212,6 +234,10 @@ without the weight of a full boxed header.
 
 
 #### `phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def phase(self, name: str, status: str = 'Done', duration_ms: float | None = None, details: str | None = None, icon: str = '✓') -> None
 ```
@@ -236,7 +262,9 @@ Print a phase status line.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -255,6 +283,10 @@ Print a phase status line.
 
 
 #### `detail`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detail(self, text: str, indent: int = 1, icon: str | None = None) -> None
 ```
@@ -277,7 +309,9 @@ Print a detail/sub-item.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -295,6 +329,10 @@ Print a detail/sub-item.
 
 
 #### `success`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def success(self, text: str, icon: str = '✨') -> None
 ```
@@ -318,7 +356,9 @@ Example: "✨ Built 245 pages in 0.8s"
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -326,6 +366,10 @@ Example: "✨ Built 245 pages in 0.8s"
 
 
 #### `info`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def info(self, text: str, icon: str | None = None) -> None
 ```
@@ -347,7 +391,9 @@ Print an info message.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -355,6 +401,10 @@ Print an info message.
 
 
 #### `warning`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def warning(self, text: str, icon: str = '⚠️') -> None
 ```
@@ -376,7 +426,9 @@ Print a warning message.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -384,6 +436,10 @@ Print a warning message.
 
 
 #### `error`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def error(self, text: str, icon: str = '❌') -> None
 ```
@@ -405,7 +461,9 @@ Print an error message.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -413,6 +471,10 @@ Print an error message.
 
 
 #### `tip`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def tip(self, text: str, icon: str = '💡') -> None
 ```
@@ -434,7 +496,9 @@ Print a subtle tip/instruction line.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -442,6 +506,10 @@ Print a subtle tip/instruction line.
 
 
 #### `error_header`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def error_header(self, text: str, mouse: bool = True) -> None
 ```
@@ -467,7 +535,9 @@ The mouse represents errors that Bengal (the cat) needs to catch!
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -475,6 +545,10 @@ The mouse represents errors that Bengal (the cat) needs to catch!
 
 
 #### `path`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def path(self, path: str, icon: str = '📂', label: str = 'Output') -> None
 ```
@@ -497,7 +571,9 @@ Print a path.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -515,6 +591,10 @@ Print a path.
 
 
 #### `metric`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None
 ```
@@ -538,7 +618,9 @@ Print a metric.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -557,6 +639,10 @@ Print a metric.
 
 
 #### `table`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def table(self, data: list[dict[str, str]], headers: list[str]) -> None
 ```
@@ -578,7 +664,9 @@ Print a table (rich only, falls back to simple list).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -586,6 +674,10 @@ Print a table (rich only, falls back to simple list).
 
 
 #### `prompt`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def prompt(self, text: str, default: Any = None, type: Any = str, show_default: bool = True) -> Any
 ```
@@ -609,7 +701,9 @@ Prompt user for input with themed styling.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any` - User's input converted to the specified type
@@ -627,6 +721,10 @@ name = cli.prompt("Enter site name")
 
 
 #### `confirm`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def confirm(self, text: str, default: bool = False) -> bool
 ```
@@ -648,7 +746,9 @@ Prompt user for yes/no confirmation with themed styling.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if user confirms, False otherwise
@@ -666,6 +766,10 @@ if cli.confirm("Delete all files?"):
 
 
 #### `blank`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def blank(self, count: int = 1) -> None
 ```
@@ -686,7 +790,9 @@ Print blank lines.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -694,6 +800,10 @@ Print blank lines.
 
 
 #### `separator`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def separator(self, width: int = 78, style: str = 'dim') -> None
 ```
@@ -715,7 +825,9 @@ Print a horizontal separator line.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -732,6 +844,10 @@ Print a horizontal separator line.
 
 
 #### `file_change_notice`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def file_change_notice(self, file_name: str, timestamp: str | None = None) -> None
 ```
@@ -753,7 +869,9 @@ Print a file change notification for dev server.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -772,6 +890,10 @@ Print a file change notification for dev server.
 
 
 #### `server_url_inline`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def server_url_inline(self, host: str, port: int) -> None
 ```
@@ -793,7 +915,9 @@ Print server URL in inline format (for after rebuild).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -810,6 +934,10 @@ Print server URL in inline format (for after rebuild).
 
 
 #### `request_log_header`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def request_log_header(self) -> None
 ```
@@ -819,7 +947,9 @@ Print table header for HTTP request logging.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -837,6 +967,10 @@ TIME     │ METHOD │ STA │ PATH
 
 
 #### `http_request`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def http_request(self, timestamp: str, method: str, status_code: str, path: str, is_asset: bool = False) -> None
 ```
@@ -861,7 +995,9 @@ Print a formatted HTTP request log line.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -934,5 +1070,5 @@ Initialize the global CLI output instance with settings.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/utils/cli_output.py`*
+*Generated by Bengal autodoc from `bengal/utils/cli_output.py`*
 

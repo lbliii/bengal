@@ -2,14 +2,14 @@
 ---
 title: "site"
 type: "python-module"
-source_file: "bengal/bengal/core/site.py"
+source_file: "bengal/core/site.py"
 line_number: 1
 description: "Site container and build orchestrator for Bengal SSG. The Site object is the central container for all content (pages, sections, assets) and coordinates discovery, rendering, and output generation. It..."
 ---
 
 # site
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/site.py#L1)
+**Source:** [View source](bengal/core/site.py#L1)
 
 
 
@@ -68,30 +68,74 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `root_path` | - | Root directory of the site |
-| `config` | - | Site configuration dictionary (from bengal.toml or explicit) |
-| `pages` | - | All pages in the site |
-| `sections` | - | All sections in the site |
-| `assets` | - | All assets in the site |
-| `theme` | - | Theme name or path |
-| `output_dir` | - | Output directory for built site |
-| `build_time` | - | Timestamp of the last build |
-| `taxonomies` | - | Collected taxonomies (tags, categories, etc.) |
-| `menu` | - | *No description provided.* |
-| `menu_builders` | - | *No description provided.* |
-| `menu_localized` | - | *No description provided.* |
-| `menu_builders_localized` | - | *No description provided.* |
-| `current_language` | - | *No description provided.* |
-| `data` | - | *No description provided.* |
-| `_regular_pages_cache` | - | *No description provided.* |
-| `_generated_pages_cache` | - | *No description provided.* |
-| `_listable_pages_cache` | - | *No description provided.* |
-| `_theme_obj` | - | *No description provided.* |
-| `_query_registry` | - | *No description provided.* |
-| `_section_registry` | - | *No description provided.* |
-| `_config_hash` | - | *No description provided.* |
+:::{div} api-attributes
+`root_path`
+: Root directory of the site
+
+`config`
+: Site configuration dictionary (from bengal.toml or explicit)
+
+`pages`
+: All pages in the site
+
+`sections`
+: All sections in the site
+
+`assets`
+: All assets in the site
+
+`theme`
+: Theme name or path
+
+`output_dir`
+: Output directory for built site
+
+`build_time`
+: Timestamp of the last build
+
+`taxonomies`
+: Collected taxonomies (tags, categories, etc.)
+
+`menu`
+: 
+
+`menu_builders`
+: 
+
+`menu_localized`
+: 
+
+`menu_builders_localized`
+: 
+
+`current_language`
+: 
+
+`data`
+: 
+
+`_regular_pages_cache`
+: 
+
+`_generated_pages_cache`
+: 
+
+`_listable_pages_cache`
+: 
+
+`_theme_obj`
+: 
+
+`_query_registry`
+: 
+
+`_section_registry`
+: 
+
+`_config_hash`
+: 
+
+:::
 
 
 
@@ -219,274 +263,11 @@ The cache is automatically invalidated when pages are modified.
 
 
 
-#### `title`
-```python
-def title(self) -> str | None
-```
-
-
-Get site title from configuration.
-
-
-
-**Returns**
-
-
-`str | None` - Site title string from config, or None if not configured
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-site.title  # Returns "My Blog" or None
-```
-
-
-
-
-#### `baseurl`
-```python
-def baseurl(self) -> str | None
-```
-
-
-Get site baseurl from configuration.
-
-Baseurl is prepended to all page URLs. Can be empty, path-only (e.g., "/blog"),
-or absolute (e.g., "https://example.com").
-
-
-
-**Returns**
-
-
-`str | None` - Base URL string from config, or None if not configured
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-site.baseurl  # Returns "/blog" or "https://example.com" or None
-```
-
-
-
-
-#### `author`
-```python
-def author(self) -> str | None
-```
-
-
-Get site author from configuration.
-
-
-
-**Returns**
-
-
-`str | None` - Author name string from config, or None if not configured
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-site.author  # Returns "Jane Doe" or None
-```
-
-
-
-
-#### `config_hash`
-```python
-def config_hash(self) -> str
-```
-
-
-Get deterministic hash of the resolved configuration.
-
-Used for automatic cache invalidation when configuration changes.
-The hash captures the effective config state including:
-- Base config from files
-- Environment variable overrides
-- Build profile settings
-
-
-
-**Returns**
-
-
-`str` - 16-character hex string (truncated SHA-256)
-
-
-
-#### `theme_config`
-```python
-def theme_config(self) -> Theme
-```
-
-
-Get theme configuration object.
-
-Available in templates as `site.theme_config` for accessing theme settings:
-- site.theme_config.name: Theme name
-- site.theme_config.default_appearance: Default light/dark/system mode
-- site.theme_config.default_palette: Default color palette
-- site.theme_config.config: Additional theme-specific config
-
-
-
-**Returns**
-
-
-`Theme` - Theme configuration object
-
-
-
-#### `indexes`
-```python
-def indexes(self)
-```
-
-
-Access to query indexes for O(1) page lookups.
-
-Provides pre-computed indexes for common page queries:
-    site.indexes.section.get('blog')        # All blog posts
-    site.indexes.author.get('Jane Smith')   # Posts by Jane
-    site.indexes.category.get('tutorial')   # Tutorial pages
-    site.indexes.date_range.get('2024')     # 2024 posts
-
-Indexes are built during the build phase and provide O(1) lookups
-instead of O(n) filtering. This makes templates scale to large sites.
-
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
-    {% for post in blog_posts %}
-        <h2>{{ post.title }}</h2>
-    {% endfor %}
-```
-
-
-
-
-#### `regular_pages`
-```python
-def regular_pages(self) -> list[Page]
-```
-
-
-Get only regular content pages (excludes generated taxonomy/archive pages).
-
-PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
-The cache is automatically invalidated when pages are modified.
-
-
-
-**Returns**
-
-
-`list[Page]` - List of regular Page objects (excludes tag pages, archive pages, etc.)
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for page in site.regular_pages %}
-        <article>{{ page.title }}</article>
-    {% endfor %}
-```
-
-
-
-
-#### `generated_pages`
-```python
-def generated_pages(self) -> list[Page]
-```
-
-
-Get only generated pages (taxonomy, archive, pagination pages).
-
-PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
-The cache is automatically invalidated when pages are modified.
-
-
-
-**Returns**
-
-
-`list[Page]` - List of generated Page objects (tag pages, archive pages, pagination, etc.)
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-# Check if any tag pages need rebuilding
-    for page in site.generated_pages:
-        if page.metadata.get("type") == "tag":
-            # ... process tag page
-```
-
-
-
-
-#### `listable_pages`
-```python
-def listable_pages(self) -> list[Page]
-```
-
-
-Get pages that should appear in listings (excludes hidden pages).
-
-This property respects the visibility system:
-- Excludes pages with `hidden: true`
-- Excludes pages with `visibility.listings: false`
-- Excludes draft pages
-
-Use this for:
-- "Recent posts" sections
-- Archive pages
-- Category/tag listings
-- Any public-facing page list
-
-Use `site.pages` when you need ALL pages including hidden ones
-(e.g., for sitemap generation where you filter separately).
-
-PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
-The cache is automatically invalidated when pages are modified.
-
-
-
-**Returns**
-
-
-`list[Page]` - List of Page objects that should appear in public listings
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-{% for post in site.listable_pages | where('section', 'blog') | sort_by('date', reverse=true) | limit(5) %}
-        <article>{{ post.title }}</article>
-    {% endfor %}
-```
-
-
-
-
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self) -> None
 ```
@@ -496,7 +277,9 @@ Initialize site from configuration.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -505,6 +288,10 @@ Initialize site from configuration.
 
 
 #### `invalidate_page_caches`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_page_caches(self) -> None
 ```
@@ -522,7 +309,9 @@ will recompute on next access.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -530,6 +319,10 @@ will recompute on next access.
 
 
 #### `invalidate_regular_pages_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_regular_pages_cache(self) -> None
 ```
@@ -543,14 +336,20 @@ only need to invalidate regular_pages.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
 
 **See Also:**invalidate_page_caches(): Invalidate all page caches at once
 
-#### `from_config` @classmethod
+#### `from_config`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_config(cls, root_path: Path, config_path: Path | None = None, environment: str | None = None, profile: str | None = None) -> Site
 ```
@@ -604,7 +403,9 @@ Important Config Sections:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Site` - Configured Site instance with all settings loaded
@@ -638,7 +439,11 @@ For Testing:
 
 **See Also:**- Site() - Direct constructor for advanced use cases,- Site.for_testing() - Factory for test sites
 
-#### `for_testing` @classmethod
+#### `for_testing`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def for_testing(cls, root_path: Path | None = None, config: dict | None = None) -> Site
 ```
@@ -663,7 +468,9 @@ that need a Site object with custom configuration.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Site` - Configured Site instance ready for testing
@@ -690,6 +497,10 @@ that need a Site object with custom configuration.
 
 
 #### `discover_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def discover_content(self, content_dir: Path | None = None) -> None
 ```
@@ -713,7 +524,9 @@ objects for all markdown files and organizing them into a hierarchy.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -732,6 +545,10 @@ objects for all markdown files and organizing them into a hierarchy.
 
 
 #### `discover_assets`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def discover_assets(self, assets_dir: Path | None = None) -> None
 ```
@@ -757,7 +574,9 @@ deduplicated by output path with site assets taking precedence.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -780,6 +599,10 @@ site.discover_assets()  # Discovers from root_path/assets
 
 
 #### `build`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def build(self, parallel: bool = True, incremental: bool | None = None, verbose: bool = False, quiet: bool = False, profile: BuildProfile = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False, profile_templates: bool = False) -> BuildStats
 ```
@@ -789,6 +612,11 @@ Build the entire site.
 
 Delegates to BuildOrchestrator for actual build process.
 
+
+**Parameters**
+
+::::{dropdown} 9 parameters (click to expand)
+:open: true
 
 **Parameters:**
 
@@ -806,11 +634,16 @@ Delegates to BuildOrchestrator for actual build process.
 
 
 
+::::
 
 
 
 
-**Returns**
+
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `BuildStats` - BuildStats object with build statistics
@@ -818,6 +651,10 @@ Delegates to BuildOrchestrator for actual build process.
 
 
 #### `serve`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def serve(self, host: str = 'localhost', port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None
 ```
@@ -842,7 +679,9 @@ Start a development server.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -850,6 +689,10 @@ Start a development server.
 
 
 #### `clean`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clean(self) -> None
 ```
@@ -861,7 +704,9 @@ Useful for starting fresh or troubleshooting build issues.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -882,6 +727,10 @@ Useful for starting fresh or troubleshooting build issues.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -891,7 +740,9 @@ def __repr__(self) -> str
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -899,6 +750,10 @@ def __repr__(self) -> str
 
 
 #### `reset_ephemeral_state`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def reset_ephemeral_state(self) -> None
 ```
@@ -917,7 +772,9 @@ Persistence contract:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -926,6 +783,10 @@ Persistence contract:
 
 
 #### `get_section_by_path`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_section_by_path(self, path: Path | str) -> Section | None
 ```
@@ -950,7 +811,9 @@ and symlinks consistently.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Section | None` - Section object if found, None otherwise
@@ -972,6 +835,10 @@ Performance:
 
 
 #### `register_sections`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def register_sections(self) -> None
 ```
@@ -998,7 +865,9 @@ Performance:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1016,5 +885,5 @@ Performance:
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/site.py`*
+*Generated by Bengal autodoc from `bengal/core/site.py`*
 

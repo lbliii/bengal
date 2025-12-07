@@ -2,14 +2,14 @@
 ---
 title: "template_profiler"
 type: "python-module"
-source_file: "bengal/bengal/rendering/template_profiler.py"
+source_file: "bengal/rendering/template_profiler.py"
 line_number: 1
 description: "Template profiling infrastructure for Bengal SSG. Provides timing instrumentation for template rendering to identify performance bottlenecks and optimize template code. Usage: # Enable via CLI bengal ..."
 ---
 
 # template_profiler
 **Type:** Module
-**Source:** [View source](bengal/bengal/rendering/template_profiler.py#L1)
+**Source:** [View source](bengal/rendering/template_profiler.py#L1)
 
 
 
@@ -59,10 +59,14 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `name` | - | *No description provided.* |
-| `render_times` | - | *No description provided.* |
+:::{div} api-attributes
+`name`
+: 
+
+`render_times`
+: 
+
+:::
 
 
 
@@ -111,93 +115,6 @@ Maximum render time in milliseconds.
 
 
 
-## Methods
-
-
-
-#### `count`
-```python
-def count(self) -> int
-```
-
-
-Number of times template was rendered.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_ms`
-```python
-def total_ms(self) -> float
-```
-
-
-Total render time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `avg_ms`
-```python
-def avg_ms(self) -> float
-```
-
-
-Average render time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `min_ms`
-```python
-def min_ms(self) -> float
-```
-
-
-Minimum render time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `max_ms`
-```python
-def max_ms(self) -> float
-```
-
-
-Maximum render time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
 
 
 
@@ -215,10 +132,14 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `name` | - | *No description provided.* |
-| `call_times` | - | *No description provided.* |
+:::{div} api-attributes
+`name`
+: 
+
+`call_times`
+: 
+
+:::
 
 
 
@@ -253,59 +174,6 @@ Average execution time in milliseconds.
 
 
 
-## Methods
-
-
-
-#### `count`
-```python
-def count(self) -> int
-```
-
-
-Number of times function was called.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_ms`
-```python
-def total_ms(self) -> float
-```
-
-
-Total execution time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `avg_ms`
-```python
-def avg_ms(self) -> float
-```
-
-
-Average execution time in milliseconds.
-
-
-
-**Returns**
-
-
-`float`
-
 
 
 
@@ -329,6 +197,10 @@ Thread-safe implementation supports parallel builds.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self) -> None
 ```
@@ -338,7 +210,9 @@ Initialize the profiler.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -346,6 +220,10 @@ Initialize the profiler.
 
 
 #### `enable`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def enable(self) -> None
 ```
@@ -355,7 +233,9 @@ Enable profiling.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -363,6 +243,10 @@ Enable profiling.
 
 
 #### `disable`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def disable(self) -> None
 ```
@@ -372,7 +256,9 @@ Disable profiling.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -380,6 +266,10 @@ Disable profiling.
 
 
 #### `is_enabled`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_enabled(self) -> bool
 ```
@@ -389,7 +279,9 @@ Check if profiling is enabled.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -397,6 +289,10 @@ Check if profiling is enabled.
 
 
 #### `start_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_template(self, template_name: str) -> None
 ```
@@ -417,7 +313,9 @@ Mark start of template render.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -425,6 +323,10 @@ Mark start of template render.
 
 
 #### `end_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def end_template(self, template_name: str) -> None
 ```
@@ -445,7 +347,9 @@ Mark end of template render and record timing.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -453,6 +357,10 @@ Mark end of template render and record timing.
 
 
 #### `record_function_call`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def record_function_call(self, func_name: str, duration: float) -> None
 ```
@@ -474,7 +382,9 @@ Record a template function call timing.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -482,6 +392,10 @@ Record a template function call timing.
 
 
 #### `get_report`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_report(self) -> dict[str, Any]
 ```
@@ -491,7 +405,9 @@ Generate profiling report.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with template and function timing statistics
@@ -499,6 +415,10 @@ Generate profiling report.
 
 
 #### `reset`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def reset(self) -> None
 ```
@@ -508,7 +428,9 @@ Clear all collected timing data.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -537,6 +459,10 @@ intercepting render() calls for profiling.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, template: Template, profiler: TemplateProfiler) -> None
 ```
@@ -558,7 +484,9 @@ Initialize the profiled template.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -566,6 +494,10 @@ Initialize the profiled template.
 
 
 #### `__getattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getattr__(self, name: str) -> Any
 ```
@@ -586,7 +518,9 @@ Delegate attribute access to wrapped template.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -594,6 +528,10 @@ Delegate attribute access to wrapped template.
 
 
 #### `render`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def render(self, *args, **kwargs) -> str
 ```
@@ -603,7 +541,9 @@ Render template with timing instrumentation.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Rendered template string
@@ -752,5 +692,5 @@ Disable template profiling globally.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/rendering/template_profiler.py`*
+*Generated by Bengal autodoc from `bengal/rendering/template_profiler.py`*
 

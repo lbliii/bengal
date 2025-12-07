@@ -2,14 +2,14 @@
 ---
 title: "strategies"
 type: "python-module"
-source_file: "bengal/bengal/content_types/strategies.py"
+source_file: "bengal/content_types/strategies.py"
 line_number: 1
 description: "Concrete content type strategies. Implements specific strategies for different content types like blog, docs, etc."
 ---
 
 # strategies
 **Type:** Module
-**Source:** [View source](bengal/bengal/content_types/strategies.py#L1)
+**Source:** [View source](bengal/content_types/strategies.py#L1)
 
 
 
@@ -43,6 +43,10 @@ Implements specific strategies for different content types like blog, docs, etc.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -63,7 +67,9 @@ Sort by date (newest first).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -71,6 +77,10 @@ Sort by date (newest first).
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -91,7 +101,9 @@ Detect blog sections by name or date-heavy content.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -99,6 +111,10 @@ Detect blog sections by name or date-heavy content.
 
 
 #### `get_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str
 ```
@@ -120,7 +136,9 @@ Blog-specific template selection.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -164,6 +182,10 @@ Similar to blog but uses simpler archive template.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -184,7 +206,9 @@ Sort by weight, then title (keeps manual ordering).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -192,6 +216,10 @@ Sort by weight, then title (keeps manual ordering).
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -212,7 +240,9 @@ Detect docs sections by name.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -220,6 +250,10 @@ Detect docs sections by name.
 
 
 #### `get_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str
 ```
@@ -241,7 +275,9 @@ Docs-specific template selection.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -267,6 +303,10 @@ Docs-specific template selection.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -287,7 +327,9 @@ Keep original discovery order (alphabetical).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -295,6 +337,10 @@ Keep original discovery order (alphabetical).
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -315,7 +361,9 @@ Detect API sections by name or content.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -323,6 +371,10 @@ Detect API sections by name or content.
 
 
 #### `get_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str
 ```
@@ -344,7 +396,9 @@ API reference-specific template selection.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -370,6 +424,10 @@ API reference-specific template selection.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -390,7 +448,9 @@ Keep original discovery order (alphabetical).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -398,6 +458,10 @@ Keep original discovery order (alphabetical).
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -418,7 +482,9 @@ Detect CLI sections by name or content.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -426,6 +492,10 @@ Detect CLI sections by name or content.
 
 
 #### `get_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str
 ```
@@ -447,7 +517,9 @@ CLI reference-specific template selection.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -473,6 +545,10 @@ CLI reference-specific template selection.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -493,7 +569,9 @@ Sort by weight (for sequential tutorials).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -501,6 +579,10 @@ Sort by weight (for sequential tutorials).
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -521,7 +603,9 @@ Detect tutorial sections by name.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -547,6 +631,10 @@ Detect tutorial sections by name.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -567,7 +655,9 @@ Sort by date (newest first) or by version number.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -575,6 +665,10 @@ Sort by date (newest first) or by version number.
 
 
 #### `detect_from_section`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_from_section(self, section: Section) -> bool
 ```
@@ -595,7 +689,9 @@ Detect changelog sections by name.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -621,6 +717,10 @@ Detect changelog sections by name.
 
 
 #### `sort_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def sort_pages(self, pages: list[Page]) -> list[Page]
 ```
@@ -641,7 +741,9 @@ Sort by weight, then title.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]`
@@ -649,5 +751,5 @@ Sort by weight, then title.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/content_types/strategies.py`*
+*Generated by Bengal autodoc from `bengal/content_types/strategies.py`*
 

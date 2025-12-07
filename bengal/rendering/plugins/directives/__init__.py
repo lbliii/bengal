@@ -31,6 +31,7 @@ from bengal.rendering.plugins.directives.cards import (
 )
 from bengal.rendering.plugins.directives.checklist import ChecklistDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.container import ContainerDirective
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
@@ -102,6 +103,8 @@ DIRECTIVE_CLASSES: list[type] = [
     IconDirective,
     # Checklist (checklist)
     ChecklistDirective,
+    # Container (container, div) - generic wrapper div with class
+    ContainerDirective,
     # Steps (steps, step)
     StepsDirective,
     StepDirective,
@@ -208,6 +211,7 @@ def create_documentation_directives():
     - rubric: Pseudo-headings for API documentation (not in TOC)
     - list-table: MyST-style tables using nested lists (avoids pipe character issues)
     - checklist: Styled checklist containers for bullet lists and task lists
+    - container: Generic wrapper div with CSS classes (like Sphinx container)
     - include: Include markdown files directly in content
     - literalinclude: Include code files as syntax-highlighted code blocks
 
@@ -252,6 +256,7 @@ def create_documentation_directives():
                 GridItemCardDirective(),  # Grid item compatibility
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
+                ContainerDirective(),  # Generic wrapper div with CSS class
                 StepsDirective(),  # Visual step-by-step guides
                 StepDirective(),  # Individual step (nested in steps)
                 IncludeDirective(),  # Include markdown files

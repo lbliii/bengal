@@ -2,14 +2,14 @@
 ---
 title: "knowledge_graph"
 type: "python-module"
-source_file: "bengal/bengal/analysis/knowledge_graph.py"
+source_file: "bengal/analysis/knowledge_graph.py"
 line_number: 1
 description: "Knowledge Graph Analysis for Bengal SSG. Analyzes page connectivity, identifies hubs and leaves, finds orphaned pages, and provides insights for optimization and content strategy."
 ---
 
 # knowledge_graph
 **Type:** Module
-**Source:** [View source](bengal/bengal/analysis/knowledge_graph.py#L1)
+**Source:** [View source](bengal/analysis/knowledge_graph.py#L1)
 
 
 
@@ -40,14 +40,26 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `total_pages` | - | Total number of pages analyzed |
-| `total_links` | - | Total number of links between pages |
-| `avg_connectivity` | - | Average connectivity score per page |
-| `hub_count` | - | Number of hub pages (highly connected) |
-| `leaf_count` | - | Number of leaf pages (low connectivity) |
-| `orphan_count` | - | Number of orphaned pages (no connections at all) |
+:::{div} api-attributes
+`total_pages`
+: Total number of pages analyzed
+
+`total_links`
+: Total number of links between pages
+
+`avg_connectivity`
+: Average connectivity score per page
+
+`hub_count`
+: Number of hub pages (highly connected)
+
+`leaf_count`
+: Number of leaf pages (low connectivity)
+
+`orphan_count`
+: Number of orphaned pages (no connections at all)
+
+:::
 
 
 
@@ -72,15 +84,29 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `page` | - | The page object |
-| `incoming_refs` | - | Number of incoming references |
-| `outgoing_refs` | - | Number of outgoing references |
-| `connectivity_score` | - | Total connectivity (incoming + outgoing) |
-| `is_hub` | - | True if page has many incoming references |
-| `is_leaf` | - | True if page has few connections |
-| `is_orphan` | - | True if page has no connections at all |
+:::{div} api-attributes
+`page`
+: The page object
+
+`incoming_refs`
+: Number of incoming references
+
+`outgoing_refs`
+: Number of outgoing references
+
+`connectivity_score`
+: Total connectivity (incoming + outgoing)
+
+`is_hub`
+: True if page has many incoming references
+
+`is_leaf`
+: True if page has few connections
+
+`is_orphan`
+: True if page has no connections at all
+
+:::
 
 
 
@@ -121,6 +147,10 @@ Provides insights for:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, site: Site, hub_threshold: int = 10, leaf_threshold: int = 2, exclude_autodoc: bool = True)
 ```
@@ -146,6 +176,10 @@ Initialize knowledge graph analyzer.
 
 
 #### `build`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def build(self) -> None
 ```
@@ -163,7 +197,9 @@ Call this before using any analysis methods.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -171,6 +207,10 @@ Call this before using any analysis methods.
 
 
 #### `get_analysis_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_analysis_pages(self) -> list[Page]
 ```
@@ -180,7 +220,9 @@ Get list of pages to analyze, excluding autodoc pages if configured.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]` - List of pages to include in graph analysis
@@ -195,6 +237,10 @@ Get list of pages to analyze, excluding autodoc pages if configured.
 
 
 #### `get_connectivity`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_connectivity(self, page: Page) -> PageConnectivity
 ```
@@ -215,7 +261,9 @@ Get connectivity information for a specific page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageConnectivity` - PageConnectivity with detailed metrics
@@ -229,6 +277,10 @@ Get connectivity information for a specific page.
 
 
 #### `get_hubs`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_hubs(self, threshold: int | None = None) -> list[Page]
 ```
@@ -254,7 +306,9 @@ Hubs are pages with many incoming references. These are typically:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]` - List of hub pages sorted by incoming references (descending)
@@ -268,6 +322,10 @@ Hubs are pages with many incoming references. These are typically:
 
 
 #### `get_leaves`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_leaves(self, threshold: int | None = None) -> list[Page]
 ```
@@ -293,7 +351,9 @@ Leaves are pages with few connections. These are typically:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]` - List of leaf pages sorted by connectivity (ascending)
@@ -307,6 +367,10 @@ Leaves are pages with few connections. These are typically:
 
 
 #### `get_orphans`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_orphans(self) -> list[Page]
 ```
@@ -321,7 +385,9 @@ Orphans are pages with no incoming or outgoing references. These might be:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[Page]` - List of orphaned pages sorted by slug
@@ -335,6 +401,10 @@ Orphans are pages with no incoming or outgoing references. These might be:
 
 
 #### `get_connectivity_score`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_connectivity_score(self, page: Page) -> int
 ```
@@ -357,7 +427,9 @@ Connectivity = incoming_refs + outgoing_refs
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int` - Connectivity score (higher = more connected)
@@ -371,6 +443,10 @@ Connectivity = incoming_refs + outgoing_refs
 
 
 #### `get_layers`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_layers(self) -> tuple[list[Page], list[Page], list[Page]]
 ```
@@ -385,7 +461,9 @@ Layers enable hub-first streaming builds:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `tuple[list[Page], list[Page], list[Page]]` - Tuple of (hubs, mid_tier, leaves)
@@ -399,6 +477,10 @@ Layers enable hub-first streaming builds:
 
 
 #### `get_metrics`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_metrics(self) -> GraphMetrics
 ```
@@ -408,7 +490,9 @@ Get overall graph metrics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `GraphMetrics` - GraphMetrics with summary statistics
@@ -422,6 +506,10 @@ Get overall graph metrics.
 
 
 #### `format_stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def format_stats(self) -> str
 ```
@@ -431,7 +519,9 @@ Format graph statistics as a human-readable string.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Formatted statistics string
@@ -445,6 +535,10 @@ Format graph statistics as a human-readable string.
 
 
 #### `get_actionable_recommendations`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_actionable_recommendations(self) -> list[str]
 ```
@@ -454,7 +548,9 @@ Generate actionable recommendations for improving site structure.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]` - List of recommendation strings with emoji prefixes
@@ -462,6 +558,10 @@ Generate actionable recommendations for improving site structure.
 
 
 #### `get_seo_insights`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_seo_insights(self) -> list[str]
 ```
@@ -471,7 +571,9 @@ Generate SEO-focused insights about site structure.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]` - List of SEO insight strings with emoji prefixes
@@ -479,6 +581,10 @@ Generate SEO-focused insights about site structure.
 
 
 #### `get_content_gaps`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_content_gaps(self) -> list[str]
 ```
@@ -488,7 +594,9 @@ Identify content gaps based on link structure and taxonomies.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]` - List of content gap descriptions
@@ -496,6 +604,10 @@ Identify content gaps based on link structure and taxonomies.
 
 
 #### `compute_pagerank`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def compute_pagerank(self, damping: float = 0.85, max_iterations: int = 100, force_recompute: bool = False) -> PageRankResults
 ```
@@ -521,7 +633,9 @@ Pages that are linked to by many important pages get high scores.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageRankResults` - PageRankResults with scores and metadata
@@ -541,6 +655,10 @@ Pages that are linked to by many important pages get high scores.
 
 
 #### `compute_personalized_pagerank`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def compute_personalized_pagerank(self, seed_pages: set[Page], damping: float = 0.85, max_iterations: int = 100) -> PageRankResults
 ```
@@ -566,7 +684,9 @@ useful for finding pages related to a specific topic or set of pages.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageRankResults` - PageRankResults with personalized scores
@@ -588,6 +708,10 @@ useful for finding pages related to a specific topic or set of pages.
 
 
 #### `get_top_pages_by_pagerank`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple[Page, float]]
 ```
@@ -610,7 +734,9 @@ Automatically computes PageRank if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[tuple[Page, float]]` - List of (page, score) tuples sorted by score descending
@@ -630,6 +756,10 @@ Automatically computes PageRank if not already computed.
 
 
 #### `get_pagerank_score`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_pagerank_score(self, page: Page) -> float
 ```
@@ -652,7 +782,9 @@ Automatically computes PageRank if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `float` - PageRank score (0.0 if page not found)
@@ -672,6 +804,10 @@ Automatically computes PageRank if not already computed.
 
 
 #### `detect_communities`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_communities(self, resolution: float = 1.0, random_seed: int | None = None, force_recompute: bool = False) -> CommunityDetectionResults
 ```
@@ -697,7 +833,9 @@ Communities represent topic areas or content groups.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CommunityDetectionResults` - CommunityDetectionResults with discovered communities
@@ -718,6 +856,10 @@ Communities represent topic areas or content groups.
 
 
 #### `get_community_for_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_community_for_page(self, page: Page) -> int | None
 ```
@@ -740,7 +882,9 @@ Automatically detects communities if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int | None` - Community ID or None if page not found
@@ -760,6 +904,10 @@ Automatically detects communities if not already computed.
 
 
 #### `analyze_paths`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def analyze_paths(self, force_recompute: bool = False) -> PathAnalysisResults
 ```
@@ -785,7 +933,9 @@ Computes:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PathAnalysisResults` - PathAnalysisResults with centrality metrics
@@ -805,6 +955,10 @@ Computes:
 
 
 #### `get_betweenness_centrality`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_betweenness_centrality(self, page: Page) -> float
 ```
@@ -827,7 +981,9 @@ Automatically analyzes paths if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `float` - Betweenness centrality score
@@ -835,6 +991,10 @@ Automatically analyzes paths if not already computed.
 
 
 #### `get_closeness_centrality`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_closeness_centrality(self, page: Page) -> float
 ```
@@ -857,7 +1017,9 @@ Automatically analyzes paths if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `float` - Closeness centrality score
@@ -865,6 +1027,10 @@ Automatically analyzes paths if not already computed.
 
 
 #### `suggest_links`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def suggest_links(self, min_score: float = 0.3, max_suggestions_per_page: int = 10, force_recompute: bool = False) -> LinkSuggestionResults
 ```
@@ -893,7 +1059,9 @@ Uses multiple signals:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `LinkSuggestionResults` - LinkSuggestionResults with all suggestions
@@ -914,6 +1082,10 @@ Uses multiple signals:
 
 
 #### `get_suggestions_for_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_suggestions_for_page(self, page: Page, limit: int = 10) -> list[tuple[Page, float, list[str]]]
 ```
@@ -937,7 +1109,9 @@ Automatically generates suggestions if not already computed.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[tuple[Page, float, list[str]]]` - List of (target_page, score, reasons) tuples
@@ -945,5 +1119,5 @@ Automatically generates suggestions if not already computed.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/analysis/knowledge_graph.py`*
+*Generated by Bengal autodoc from `bengal/analysis/knowledge_graph.py`*
 

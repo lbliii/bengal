@@ -2,14 +2,14 @@
 ---
 title: "dependency_tracker"
 type: "python-module"
-source_file: "bengal/bengal/cache/dependency_tracker.py"
+source_file: "bengal/cache/dependency_tracker.py"
 line_number: 1
 description: "Dependency tracker for build process dependency management. Tracks template, partial, and data file dependencies during rendering to enable incremental builds. Records dependencies in BuildCache for c..."
 ---
 
 # dependency_tracker
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/dependency_tracker.py#L1)
+**Source:** [View source](bengal/cache/dependency_tracker.py#L1)
 
 
 
@@ -59,13 +59,23 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `config_hash` | - | Hash of configuration for config change detection |
-| `content_paths` | - | List of content file paths |
-| `template_paths` | - | List of template file paths |
-| `invalidated` | - | Set of invalidated paths |
-| `Relationships` | - | - Used by: DependencyTracker for cache invalidation - Uses: Path sets for invalidation tracking |
+:::{div} api-attributes
+`config_hash`
+: Hash of configuration for config change detection
+
+`content_paths`
+: List of content file paths
+
+`template_paths`
+: List of template file paths
+
+`invalidated`
+: Set of invalidated paths
+
+`Relationships`
+: - Used by: DependencyTracker for cache invalidation - Uses: Path sets for invalidation tracking
+
+:::
 
 
 
@@ -90,24 +100,11 @@ Invariant: Check if cache needs rebuild.
 
 
 
-#### `is_stale`
-```python
-def is_stale(self) -> bool
-```
-
-
-Invariant: Check if cache needs rebuild.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, config_hash: str, content_paths: list[Path], template_paths: list[Path])
 ```
@@ -132,6 +129,10 @@ def __init__(self, config_hash: str, content_paths: list[Path], template_paths: 
 
 
 #### `invalidate_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_content(self, changed_paths: set[Path]) -> set[Path]
 ```
@@ -152,7 +153,9 @@ Invalidate on content changes.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]`
@@ -160,6 +163,10 @@ Invalidate on content changes.
 
 
 #### `invalidate_templates`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_templates(self, changed_paths: set[Path]) -> set[Path]
 ```
@@ -180,7 +187,9 @@ Invalidate dependent pages on template changes.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]`
@@ -188,6 +197,10 @@ Invalidate dependent pages on template changes.
 
 
 #### `invalidate_config`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_config(self) -> set[Path]
 ```
@@ -197,7 +210,9 @@ Full invalidation on config change.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]`
@@ -223,17 +238,35 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `cache` | - | BuildCache instance for dependency storage |
-| `site` | - | Optional Site instance for config path access |
-| `logger` | - | Logger instance for dependency tracking events |
-| `tracked_files` | - | Mapping of file paths to page paths |
-| `dependencies` | - | Forward dependency graph (page → dependencies) |
-| `reverse_dependencies` | - | Reverse dependency graph (dependency → pages) |
-| `current_page` | - | Thread-local current page being processed |
-| `invalidator` | - | CacheInvalidator for cache invalidation |
-| `Relationships` | - | - Uses: BuildCache for dependency persistence - Used by: RenderingPipeline for dependency tracking during rendering - Used by: IncrementalOrchestrator for change detection Thread Safety: Thread-safe. Uses thread-local storage for current page tracking and thread-safe locks for dependency graph updates. |
+:::{div} api-attributes
+`cache`
+: BuildCache instance for dependency storage
+
+`site`
+: Optional Site instance for config path access
+
+`logger`
+: Logger instance for dependency tracking events
+
+`tracked_files`
+: Mapping of file paths to page paths
+
+`dependencies`
+: Forward dependency graph (page → dependencies)
+
+`reverse_dependencies`
+: Reverse dependency graph (dependency → pages)
+
+`current_page`
+: Thread-local current page being processed
+
+`invalidator`
+: CacheInvalidator for cache invalidation
+
+`Relationships`
+: - Uses: BuildCache for dependency persistence - Used by: RenderingPipeline for dependency tracking during rendering - Used by: IncrementalOrchestrator for change detection Thread Safety: Thread-safe. Uses thread-local storage for current page tracking and thread-safe locks for dependency graph updates.
+
+:::
 
 
 
@@ -246,6 +279,10 @@ Creation:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, cache: BuildCache, site = None)
 ```
@@ -270,6 +307,10 @@ Initialize the dependency tracker.
 
 
 #### `start_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_page(self, page_path: Path) -> None
 ```
@@ -290,7 +331,9 @@ Mark the start of processing a page (thread-safe).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -298,6 +341,10 @@ Mark the start of processing a page (thread-safe).
 
 
 #### `track_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_template(self, template_path: Path) -> None
 ```
@@ -318,7 +365,9 @@ Record that the current page depends on a template (thread-safe).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -326,6 +375,10 @@ Record that the current page depends on a template (thread-safe).
 
 
 #### `track_partial`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_partial(self, partial_path: Path) -> None
 ```
@@ -346,7 +399,9 @@ Record that the current page depends on a partial/include (thread-safe).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -354,6 +409,10 @@ Record that the current page depends on a partial/include (thread-safe).
 
 
 #### `track_config`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_config(self, config_path: Path) -> None
 ```
@@ -375,7 +434,9 @@ All pages depend on config, so this marks it as a global dependency.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -383,6 +444,10 @@ All pages depend on config, so this marks it as a global dependency.
 
 
 #### `track_asset`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_asset(self, asset_path: Path) -> None
 ```
@@ -403,7 +468,9 @@ Record an asset file (for cache invalidation).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -411,6 +478,10 @@ Record an asset file (for cache invalidation).
 
 
 #### `track_taxonomy`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_taxonomy(self, page_path: Path, tags: set[str]) -> None
 ```
@@ -434,7 +505,9 @@ When a page's tags change, tag pages need to be regenerated.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -442,6 +515,10 @@ When a page's tags change, tag pages need to be regenerated.
 
 
 #### `end_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def end_page(self) -> None
 ```
@@ -451,7 +528,9 @@ Mark the end of processing a page (thread-safe).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -459,6 +538,10 @@ Mark the end of processing a page (thread-safe).
 
 
 #### `get_changed_files`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_changed_files(self, root_path: Path) -> set[Path]
 ```
@@ -479,7 +562,9 @@ Get all files that have changed since the last build.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]` - Set of paths that have changed
@@ -487,6 +572,10 @@ Get all files that have changed since the last build.
 
 
 #### `find_new_files`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def find_new_files(self, current_files: set[Path]) -> set[Path]
 ```
@@ -507,7 +596,9 @@ Find files that are new (not in cache).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]` - Set of new file paths
@@ -515,6 +606,10 @@ Find files that are new (not in cache).
 
 
 #### `find_deleted_files`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def find_deleted_files(self, current_files: set[Path]) -> set[Path]
 ```
@@ -535,7 +630,9 @@ Find files that were deleted (in cache but not on disk).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[Path]` - Set of deleted file paths
@@ -543,5 +640,5 @@ Find files that were deleted (in cache but not on disk).
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/dependency_tracker.py`*
+*Generated by Bengal autodoc from `bengal/cache/dependency_tracker.py`*
 

@@ -2,14 +2,14 @@
 ---
 title: "taxonomy_index"
 type: "python-module"
-source_file: "bengal/bengal/cache/taxonomy_index.py"
+source_file: "bengal/cache/taxonomy_index.py"
 line_number: 1
 description: "Taxonomy Index for incremental builds. Maintains persistent index of tag-to-pages mappings to enable incremental taxonomy updates. Instead of rebuilding the entire taxonomy structure, incremental buil..."
 ---
 
 # taxonomy_index
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/taxonomy_index.py#L1)
+**Source:** [View source](bengal/cache/taxonomy_index.py#L1)
 
 
 
@@ -54,13 +54,23 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `tag_slug` | - | *No description provided.* |
-| `tag_name` | - | *No description provided.* |
-| `page_paths` | - | *No description provided.* |
-| `updated_at` | - | *No description provided.* |
-| `is_valid` | - | *No description provided.* |
+:::{div} api-attributes
+`tag_slug`
+: 
+
+`tag_name`
+: 
+
+`page_paths`
+: 
+
+`updated_at`
+: 
+
+`is_valid`
+: 
+
+:::
 
 
 
@@ -73,6 +83,10 @@ This is a dataclass.
 
 
 #### `to_cache_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_cache_dict(self) -> dict[str, Any]
 ```
@@ -82,14 +96,20 @@ Serialize to cache-friendly dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_cache_dict` @classmethod
+#### `from_cache_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_cache_dict(cls, data: dict[str, Any]) -> TagEntry
 ```
@@ -110,7 +130,9 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TagEntry`
@@ -118,6 +140,10 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -127,14 +153,20 @@ Alias for to_cache_dict (test compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @classmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_dict(cls, data: dict[str, Any]) -> TagEntry
 ```
@@ -155,7 +187,9 @@ Alias for from_cache_dict (test compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TagEntry`
@@ -201,6 +235,10 @@ Cache Format (JSON):
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, cache_path: Path | None = None)
 ```
@@ -224,6 +262,10 @@ Initialize taxonomy index.
 
 
 #### `save_to_disk`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_to_disk(self) -> None
 ```
@@ -233,7 +275,9 @@ Save taxonomy index to disk.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -241,6 +285,10 @@ Save taxonomy index to disk.
 
 
 #### `update_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_tag(self, tag_slug: str, tag_name: str, page_paths: list[str]) -> None
 ```
@@ -263,7 +311,9 @@ Update or create a tag entry.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -271,6 +321,10 @@ Update or create a tag entry.
 
 
 #### `get_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_tag(self, tag_slug: str) -> TagEntry | None
 ```
@@ -291,7 +345,9 @@ Get a tag entry by slug.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TagEntry | None` - TagEntry if found and valid, None otherwise
@@ -299,6 +355,10 @@ Get a tag entry by slug.
 
 
 #### `get_pages_for_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_pages_for_tag(self, tag_slug: str) -> list[str] | None
 ```
@@ -319,7 +379,9 @@ Get pages with a specific tag.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str] | None` - List of page paths or None if tag not found/invalid
@@ -327,6 +389,10 @@ Get pages with a specific tag.
 
 
 #### `has_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_tag(self, tag_slug: str) -> bool
 ```
@@ -347,7 +413,9 @@ Check if tag exists and is valid.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if tag exists and is valid
@@ -355,6 +423,10 @@ Check if tag exists and is valid.
 
 
 #### `get_tags_for_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_tags_for_page(self, page_path: Path) -> set[str]
 ```
@@ -375,7 +447,9 @@ Get all tags for a specific page (reverse lookup).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of tag slugs for this page
@@ -383,6 +457,10 @@ Get all tags for a specific page (reverse lookup).
 
 
 #### `get_all_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_all_tags(self) -> dict[str, TagEntry]
 ```
@@ -392,7 +470,9 @@ Get all valid tags.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, TagEntry]` - Dictionary mapping tag_slug to TagEntry for valid tags
@@ -400,6 +480,10 @@ Get all valid tags.
 
 
 #### `invalidate_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_tag(self, tag_slug: str) -> None
 ```
@@ -420,7 +504,9 @@ Mark a tag as invalid.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -428,6 +514,10 @@ Mark a tag as invalid.
 
 
 #### `invalidate_all`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_all(self) -> None
 ```
@@ -437,7 +527,9 @@ Invalidate all tag entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -445,6 +537,10 @@ Invalidate all tag entries.
 
 
 #### `clear`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear(self) -> None
 ```
@@ -454,7 +550,9 @@ Clear all tags.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -462,6 +560,10 @@ Clear all tags.
 
 
 #### `remove_page_from_all_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def remove_page_from_all_tags(self, page_path: Path) -> set[str]
 ```
@@ -482,7 +584,9 @@ Remove a page from all tags it belongs to.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of affected tag slugs
@@ -490,6 +594,10 @@ Remove a page from all tags it belongs to.
 
 
 #### `get_valid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_valid_entries(self) -> dict[str, TagEntry]
 ```
@@ -499,7 +607,9 @@ Get all valid tag entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, TagEntry]` - Dictionary mapping tag_slug to TagEntry for valid entries
@@ -507,6 +617,10 @@ Get all valid tag entries.
 
 
 #### `get_invalid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_invalid_entries(self) -> dict[str, TagEntry]
 ```
@@ -516,7 +630,9 @@ Get all invalid tag entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, TagEntry]` - Dictionary mapping tag_slug to TagEntry for invalid entries
@@ -524,6 +640,10 @@ Get all invalid tag entries.
 
 
 #### `pages_changed`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def pages_changed(self, tag_slug: str, new_page_paths: list[str]) -> bool
 ```
@@ -548,7 +668,9 @@ we can skip regenerating its HTML pages entirely since the output would be ident
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if tag pages have changed and need regeneration
@@ -557,6 +679,10 @@ we can skip regenerating its HTML pages entirely since the output would be ident
 
 
 #### `stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def stats(self) -> dict[str, Any]
 ```
@@ -566,7 +692,9 @@ Get taxonomy index statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with index stats
@@ -574,5 +702,5 @@ Get taxonomy index statistics.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/taxonomy_index.py`*
+*Generated by Bengal autodoc from `bengal/cache/taxonomy_index.py`*
 

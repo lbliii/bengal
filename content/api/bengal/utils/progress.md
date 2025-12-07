@@ -2,14 +2,14 @@
 ---
 title: "progress"
 type: "python-module"
-source_file: "bengal/bengal/utils/progress.py"
+source_file: "bengal/utils/progress.py"
 line_number: 1
 description: "Progress reporting system for build progress tracking. Provides protocol-based progress reporting with multiple implementations (CLI, server, noop for tests). Enables consistent progress reporting acr..."
 ---
 
 # progress
 **Type:** Module
-**Source:** [View source](bengal/bengal/utils/progress.py#L1)
+**Source:** [View source](bengal/utils/progress.py#L1)
 
 
 
@@ -75,6 +75,10 @@ Relationships:
 
 
 #### `add_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 ```
@@ -97,7 +101,9 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -105,6 +111,10 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 #### `start_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_phase(self, phase_id: str) -> None
 ```
@@ -125,7 +135,9 @@ def start_phase(self, phase_id: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -133,6 +145,10 @@ def start_phase(self, phase_id: str) -> None
 
 
 #### `update_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_phase(self, phase_id: str, current: int | None = None, current_item: str | None = None) -> None
 ```
@@ -155,7 +171,9 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -163,6 +181,10 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 #### `complete_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 ```
@@ -184,7 +206,9 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -192,6 +216,10 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 #### `log`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def log(self, message: str) -> None
 ```
@@ -212,7 +240,9 @@ def log(self, message: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -251,6 +281,10 @@ Relationships:
 
 
 #### `add_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 ```
@@ -273,7 +307,9 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -281,6 +317,10 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 #### `start_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_phase(self, phase_id: str) -> None
 ```
@@ -301,7 +341,9 @@ def start_phase(self, phase_id: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -309,6 +351,10 @@ def start_phase(self, phase_id: str) -> None
 
 
 #### `update_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_phase(self, phase_id: str, current: int | None = None, current_item: str | None = None) -> None
 ```
@@ -331,7 +377,9 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -339,6 +387,10 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 #### `complete_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 ```
@@ -360,7 +412,9 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -368,6 +422,10 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 #### `log`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def log(self, message: str) -> None
 ```
@@ -388,7 +446,9 @@ def log(self, message: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -414,10 +474,14 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `_pm` | - | LiveProgressManager instance being adapted |
-| `Relationships` | - | - Implements: ProgressReporter protocol - Uses: LiveProgressManager for actual progress reporting - Used by: BuildOrchestrator for progress reporting |
+:::{div} api-attributes
+`_pm`
+: LiveProgressManager instance being adapted
+
+`Relationships`
+: - Implements: ProgressReporter protocol - Uses: LiveProgressManager for actual progress reporting - Used by: BuildOrchestrator for progress reporting
+
+:::
 
 
 
@@ -430,6 +494,10 @@ Creation:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, live_progress_manager: Any)
 ```
@@ -452,6 +520,10 @@ def __init__(self, live_progress_manager: Any)
 
 
 #### `add_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 ```
@@ -474,7 +546,9 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -482,6 +556,10 @@ def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None
 
 
 #### `start_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_phase(self, phase_id: str) -> None
 ```
@@ -502,7 +580,9 @@ def start_phase(self, phase_id: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -510,6 +590,10 @@ def start_phase(self, phase_id: str) -> None
 
 
 #### `update_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_phase(self, phase_id: str, current: int | None = None, current_item: str | None = None) -> None
 ```
@@ -532,7 +616,9 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -540,6 +626,10 @@ def update_phase(self, phase_id: str, current: int | None = None, current_item: 
 
 
 #### `complete_phase`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 ```
@@ -561,7 +651,9 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -569,6 +661,10 @@ def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None
 
 
 #### `log`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def log(self, message: str) -> None
 ```
@@ -589,7 +685,9 @@ def log(self, message: str) -> None
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -597,5 +695,5 @@ def log(self, message: str) -> None
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/utils/progress.py`*
+*Generated by Bengal autodoc from `bengal/utils/progress.py`*
 

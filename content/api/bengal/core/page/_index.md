@@ -2,14 +2,14 @@
 ---
 title: "page"
 type: "python-module"
-source_file: "bengal/bengal/core/page/__init__.py"
+source_file: "bengal/core/page/__init__.py"
 line_number: 1
 description: "Page representation for content pages in Bengal SSG. This module provides the main Page class, which combines multiple mixins to provide a complete page interface while maintaining separation of conce..."
 ---
 
 # page
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/page/__init__.py#L1)
+**Source:** [View source](bengal/core/page/__init__.py#L1)
 
 
 
@@ -92,32 +92,80 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `_global_missing_section_warnings` | - | *No description provided.* |
-| `_MAX_WARNING_KEYS` | - | *No description provided.* |
-| `source_path` | - | Path to the source content file |
-| `core` | - | *No description provided.* |
-| `content` | - | Raw content (Markdown, etc.) |
-| `metadata` | - | Frontmatter metadata (title, date, tags, etc.) |
-| `parsed_ast` | - | Abstract Syntax Tree from parsed content |
-| `rendered_html` | - | Rendered HTML output |
-| `output_path` | - | Path where the rendered page will be written |
-| `links` | - | List of links found in the page |
-| `tags` | - | Tags associated with the page |
-| `version` | - | Version information for versioned content |
-| `toc` | - | Table of contents HTML (auto-generated from headings) |
-| `related_posts` | - | Related pages (pre-computed during build based on tag overlap) |
-| `lang` | - | *No description provided.* |
-| `translation_key` | - | *No description provided.* |
-| `aliases` | - | *No description provided.* |
-| `_site` | - | *No description provided.* |
-| `_section_path` | - | *No description provided.* |
-| `_toc_items_cache` | - | *No description provided.* |
-| `_ast_cache` | - | *No description provided.* |
-| `_html_cache` | - | *No description provided.* |
-| `_plain_text_cache` | - | *No description provided.* |
-| `toc_items` | - | Structured TOC data for custom rendering |
+:::{div} api-attributes
+`_global_missing_section_warnings`
+: 
+
+`_MAX_WARNING_KEYS`
+: 
+
+`source_path`
+: Path to the source content file
+
+`core`
+: 
+
+`content`
+: Raw content (Markdown, etc.)
+
+`metadata`
+: Frontmatter metadata (title, date, tags, etc.)
+
+`parsed_ast`
+: Abstract Syntax Tree from parsed content
+
+`rendered_html`
+: Rendered HTML output
+
+`output_path`
+: Path where the rendered page will be written
+
+`links`
+: List of links found in the page
+
+`tags`
+: Tags associated with the page
+
+`version`
+: Version information for versioned content
+
+`toc`
+: Table of contents HTML (auto-generated from headings)
+
+`related_posts`
+: Related pages (pre-computed during build based on tag overlap)
+
+`lang`
+: 
+
+`translation_key`
+: 
+
+`aliases`
+: 
+
+`_site`
+: 
+
+`_section_path`
+: 
+
+`_toc_items_cache`
+: 
+
+`_ast_cache`
+: 
+
+`_html_cache`
+: 
+
+`_plain_text_cache`
+: 
+
+`toc_items`
+: Structured TOC data for custom rendering
+
+:::
 
 
 
@@ -156,28 +204,11 @@ are recreated.
 
 
 
-#### `relative_path`
-```python
-def relative_path(self) -> str
-```
-
-
-Get relative path string (alias for source_path as string).
-
-Used by templates and filtering where a string path is expected.
-This provides backward compatibility and convenience.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self) -> None
 ```
@@ -187,7 +218,9 @@ Initialize computed fields and PageCore.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -196,6 +229,10 @@ Initialize computed fields and PageCore.
 
 
 #### `normalize_core_paths`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def normalize_core_paths(self) -> None
 ```
@@ -210,7 +247,9 @@ Note: Directly mutates self.core.source_path since dataclasses are mutable.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -218,6 +257,10 @@ Note: Directly mutates self.core.source_path since dataclasses are mutable.
 
 
 #### `__hash__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __hash__(self) -> int
 ```
@@ -231,7 +274,9 @@ and used as dictionary keys.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int` - Integer hash of the source path
@@ -239,6 +284,10 @@ and used as dictionary keys.
 
 
 #### `__eq__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __eq__(self, other: Any) -> bool
 ```
@@ -264,7 +313,9 @@ differs.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if other is a Page with the same source_path
@@ -272,6 +323,10 @@ differs.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -281,7 +336,9 @@ def __repr__(self) -> str
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -289,5 +346,5 @@ def __repr__(self) -> str
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/page/__init__.py`*
+*Generated by Bengal autodoc from `bengal/core/page/__init__.py`*
 

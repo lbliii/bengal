@@ -2,14 +2,14 @@
 ---
 title: "template_context"
 type: "python-module"
-source_file: "bengal/bengal/rendering/template_context.py"
+source_file: "bengal/rendering/template_context.py"
 line_number: 1
 description: "Template context wrappers for ergonomic URL handling. Wraps Page and Section objects so that .url automatically includes baseurl in templates, making it impossible to forget baseurl in href/src attrib..."
 ---
 
 # template_context
 **Type:** Module
-**Source:** [View source](bengal/bengal/rendering/template_context.py#L1)
+**Source:** [View source](bengal/rendering/template_context.py#L1)
 
 
 
@@ -60,11 +60,17 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `_page` | - | Wrapped Page object |
-| `_baseurl` | - | Base URL from site config (can be empty, path-only, or absolute) |
-| `Relationships` | - | - Uses: Page for wrapped page object - Used by: TemplateEngine for template context - Used in: Templates via template context Baseurl Formats Supported: - Path-only: `/bengal` → `/bengal/docs/page/` - Absolute: `https://example.com` → `https://example.com/docs/page/` - File protocol: `file:///path/to/site` → `file:///path/to/site/docs/page/` - S3: `s3://bucket/path` → `s3://bucket/path/docs/page/` |
+:::{div} api-attributes
+`_page`
+: Wrapped Page object
+
+`_baseurl`
+: Base URL from site config (can be empty, path-only, or absolute)
+
+`Relationships`
+: - Uses: Page for wrapped page object - Used by: TemplateEngine for template context - Used in: Templates via template context Baseurl Formats Supported: - Path-only: `/bengal` → `/bengal/docs/page/` - Absolute: `https://example.com` → `https://example.com/docs/page/` - File protocol: `file:///path/to/site` → `file:///path/to/site/docs/page/` - S3: `s3://bucket/path` → `s3://bucket/path/docs/page/`
+
+:::
 
 
 
@@ -113,68 +119,11 @@ For display URLs, use .url (which includes baseurl).
 
 
 
-#### `url`
-```python
-def url(self) -> str
-```
-
-
-URL with baseurl applied (for templates).
-
-This is the property templates should use for href/src attributes.
-It automatically includes baseurl, so theme developers don't need
-to remember to use permalink or filters.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `permalink`
-```python
-def permalink(self) -> str
-```
-
-
-Alias for url (for backward compatibility).
-
-Both url and permalink now return the same value (with baseurl).
-This maintains compatibility with existing templates that use permalink.
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `relative_url`
-```python
-def relative_url(self) -> str
-```
-
-
-Relative URL without baseurl (for comparisons).
-
-Use this when you need the relative URL for comparisons or logic.
-For display URLs, use .url (which includes baseurl).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, page: Any, baseurl: str = '')
 ```
@@ -198,6 +147,10 @@ Initialize wrapper.
 
 
 #### `__getattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getattr__(self, name: str) -> Any
 ```
@@ -220,7 +173,9 @@ This makes the wrapper transparent - all page properties work as expected.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -228,6 +183,10 @@ This makes the wrapper transparent - all page properties work as expected.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -237,7 +196,9 @@ String representation for debugging.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -263,11 +224,17 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `_section` | - | Wrapped Section object |
-| `_baseurl` | - | Base URL from site config |
-| `Relationships` | - | - Uses: Section for wrapped section object - Used by: TemplateEngine for template context - Used in: Templates via template context - Wraps: Pages and subsections when accessed |
+:::{div} api-attributes
+`_section`
+: Wrapped Section object
+
+`_baseurl`
+: Base URL from site config
+
+`Relationships`
+: - Uses: Section for wrapped section object - Used by: TemplateEngine for template context - Used in: Templates via template context - Wraps: Pages and subsections when accessed
+
+:::
 
 
 
@@ -341,143 +308,11 @@ Return wrapped index page.
 
 
 
-#### `url`
-```python
-def url(self) -> str
-```
-
-
-URL with baseurl applied (for templates).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `permalink`
-```python
-def permalink(self) -> str
-```
-
-
-Alias for url (for backward compatibility).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `relative_url`
-```python
-def relative_url(self) -> str
-```
-
-
-Relative URL without baseurl (for comparisons).
-
-
-
-**Returns**
-
-
-`str`
-
-
-
-#### `pages`
-```python
-def pages(self) -> list
-```
-
-
-Return wrapped pages.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `subsections`
-```python
-def subsections(self) -> list
-```
-
-
-Return wrapped subsections.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `sorted_pages`
-```python
-def sorted_pages(self) -> list
-```
-
-
-Return wrapped sorted pages.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `sorted_subsections`
-```python
-def sorted_subsections(self) -> list
-```
-
-
-Return wrapped sorted subsections.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `index_page`
-```python
-def index_page(self) -> Any
-```
-
-
-Return wrapped index page.
-
-
-
-**Returns**
-
-
-`Any`
-
-
-
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, section: Any, baseurl: str = '')
 ```
@@ -501,6 +336,10 @@ Initialize wrapper.
 
 
 #### `__getattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getattr__(self, name: str) -> Any
 ```
@@ -521,7 +360,9 @@ Delegate all other attributes to wrapped section.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -529,6 +370,10 @@ Delegate all other attributes to wrapped section.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -538,7 +383,9 @@ String representation for debugging.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -593,58 +440,11 @@ Return wrapped regular pages.
 
 
 
-#### `pages`
-```python
-def pages(self) -> list
-```
-
-
-Return wrapped pages.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `sections`
-```python
-def sections(self) -> list
-```
-
-
-Return wrapped sections.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
-#### `regular_pages`
-```python
-def regular_pages(self) -> list
-```
-
-
-Return wrapped regular pages.
-
-
-
-**Returns**
-
-
-`list`
-
-
-
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, site: Any, baseurl: str = '')
 ```
@@ -668,6 +468,10 @@ Initialize wrapper.
 
 
 #### `__getattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getattr__(self, name: str) -> Any
 ```
@@ -688,7 +492,9 @@ Delegate all other attributes to wrapped site.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -733,5 +539,5 @@ Other objects are returned unchanged.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/rendering/template_context.py`*
+*Generated by Bengal autodoc from `bengal/rendering/template_context.py`*
 

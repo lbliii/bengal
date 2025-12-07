@@ -2,14 +2,14 @@
 ---
 title: "dev_tools"
 type: "python-module"
-source_file: "bengal/bengal/autodoc/dev_tools.py"
+source_file: "bengal/autodoc/dev_tools.py"
 line_number: 1
 description: "Template development and validation tools. Provides utilities for template development, testing, and debugging including sample data generation, performance profiling, and hot-reloading support."
 ---
 
 # dev_tools
 **Type:** Module
-**Source:** [View source](bengal/bengal/autodoc/dev_tools.py#L1)
+**Source:** [View source](bengal/autodoc/dev_tools.py#L1)
 
 
 
@@ -40,14 +40,26 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `template_name` | - | *No description provided.* |
-| `render_time_ms` | - | *No description provided.* |
-| `content_size_bytes` | - | *No description provided.* |
-| `cache_hit` | - | *No description provided.* |
-| `error_count` | - | *No description provided.* |
-| `timestamp` | - | *No description provided.* |
+:::{div} api-attributes
+`template_name`
+: 
+
+`render_time_ms`
+: 
+
+`content_size_bytes`
+: 
+
+`cache_hit`
+: 
+
+`error_count`
+: 
+
+`timestamp`
+: 
+
+:::
 
 
 
@@ -60,6 +72,10 @@ This is a dataclass.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -69,7 +85,9 @@ Convert to dictionary for serialization.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -95,6 +113,10 @@ Generate sample data for testing templates.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self)
 ```
@@ -106,6 +128,10 @@ def __init__(self)
 
 
 #### `generate_python_module`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def generate_python_module(self, name: str = 'sample_module') -> DocElement
 ```
@@ -126,7 +152,9 @@ Generate sample Python module element.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `DocElement`
@@ -134,6 +162,10 @@ Generate sample Python module element.
 
 
 #### `generate_cli_command`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def generate_cli_command(self, name: str = 'sample-command') -> DocElement
 ```
@@ -154,7 +186,9 @@ Generate sample CLI command element.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `DocElement`
@@ -162,6 +196,10 @@ Generate sample CLI command element.
 
 
 #### `generate_openapi_endpoint`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def generate_openapi_endpoint(self, path: str = '/api/users', method: str = 'GET') -> DocElement
 ```
@@ -183,7 +221,9 @@ Generate sample OpenAPI endpoint element.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `DocElement`
@@ -191,6 +231,10 @@ Generate sample OpenAPI endpoint element.
 
 
 #### `generate_sample_config`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def generate_sample_config(self) -> dict[str, Any]
 ```
@@ -200,7 +244,9 @@ Generate sample configuration for template testing.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -226,6 +272,10 @@ Debug template rendering with detailed error information.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, renderer: SafeTemplateRenderer, validator: TemplateValidator)
 ```
@@ -249,6 +299,10 @@ def __init__(self, renderer: SafeTemplateRenderer, validator: TemplateValidator)
 
 
 #### `debug_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def debug_template(self, template_name: str, context: dict[str, Any]) -> dict[str, Any]
 ```
@@ -270,7 +324,9 @@ Debug template rendering with comprehensive information.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Debug information including validation, rendering results, and errors
@@ -278,6 +334,10 @@ Debug template rendering with comprehensive information.
 
 
 #### `get_debug_report`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_debug_report(self) -> str
 ```
@@ -287,7 +347,9 @@ Generate human-readable debug report.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -295,6 +357,10 @@ Generate human-readable debug report.
 
 
 #### `export_debug_session`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def export_debug_session(self, session_index: int, output_path: Path) -> None
 ```
@@ -316,7 +382,9 @@ Export debug session to JSON file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -342,6 +410,10 @@ Profile template rendering performance.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self)
 ```
@@ -353,6 +425,10 @@ def __init__(self)
 
 
 #### `profile_template`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def profile_template(self, template_name: str, renderer: SafeTemplateRenderer, context: dict[str, Any], cache_hit: bool = False) -> TemplatePerformanceMetrics
 ```
@@ -376,7 +452,9 @@ Profile template rendering performance.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TemplatePerformanceMetrics` - Performance metrics
@@ -384,6 +462,10 @@ Profile template rendering performance.
 
 
 #### `get_performance_summary`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_performance_summary(self) -> dict[str, Any]
 ```
@@ -393,7 +475,9 @@ Get performance summary statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -401,6 +485,10 @@ Get performance summary statistics.
 
 
 #### `export_metrics`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def export_metrics(self, output_path: Path) -> None
 ```
@@ -421,7 +509,9 @@ Export performance metrics to JSON file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -447,6 +537,10 @@ Hot-reload templates during development.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, template_dirs: list[Path])
 ```
@@ -469,6 +563,10 @@ def __init__(self, template_dirs: list[Path])
 
 
 #### `register_reload_callback`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def register_reload_callback(self, callback: callable) -> None
 ```
@@ -489,7 +587,9 @@ Register callback to be called when templates are reloaded.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -497,6 +597,10 @@ Register callback to be called when templates are reloaded.
 
 
 #### `check_for_changes`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def check_for_changes(self) -> list[str]
 ```
@@ -506,7 +610,9 @@ Check for template file changes.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]` - List of changed template files
@@ -514,6 +620,10 @@ Check for template file changes.
 
 
 #### `trigger_reload`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def trigger_reload(self, changed_files: list[str]) -> None
 ```
@@ -534,7 +644,9 @@ Trigger reload callbacks for changed files.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -542,6 +654,10 @@ Trigger reload callbacks for changed files.
 
 
 #### `start_watching`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def start_watching(self, check_interval: float = 1.0) -> None
 ```
@@ -562,7 +678,9 @@ Start watching for template changes.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -605,5 +723,5 @@ Create complete set of development tools.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/autodoc/dev_tools.py`*
+*Generated by Bengal autodoc from `bengal/autodoc/dev_tools.py`*
 

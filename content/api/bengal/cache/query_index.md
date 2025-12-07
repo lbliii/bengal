@@ -2,14 +2,14 @@
 ---
 title: "query_index"
 type: "python-module"
-source_file: "bengal/bengal/cache/query_index.py"
+source_file: "bengal/cache/query_index.py"
 line_number: 1
 description: "Query Index - Base class for queryable indexes. Provides O(1) lookups for common page queries by pre-computing indexes at build time. Similar to TaxonomyIndex but generalized for any page attribute. A..."
 ---
 
 # query_index
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/query_index.py#L1)
+**Source:** [View source](bengal/cache/query_index.py#L1)
 
 
 
@@ -59,13 +59,23 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `key` | - | Index key (e.g., 'blog', 'Jane Smith', '2024') |
-| `page_paths` | - | List of page source paths (strings, not Page objects) |
-| `metadata` | - | Extra data for display (e.g., section title, author email) |
-| `updated_at` | - | ISO timestamp of last update |
-| `content_hash` | - | Hash of page_paths for change detection |
+:::{div} api-attributes
+`key`
+: Index key (e.g., 'blog', 'Jane Smith', '2024')
+
+`page_paths`
+: List of page source paths (strings, not Page objects)
+
+`metadata`
+: Extra data for display (e.g., section title, author email)
+
+`updated_at`
+: ISO timestamp of last update
+
+`content_hash`
+: Hash of page_paths for change detection
+
+:::
 
 
 
@@ -78,6 +88,10 @@ This is a dataclass.
 
 
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self)
 ```
@@ -90,6 +104,10 @@ Compute content hash if not provided.
 
 
 #### `to_cache_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_cache_dict(self) -> dict[str, Any]
 ```
@@ -99,14 +117,20 @@ Serialize to cache-friendly dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_cache_dict` @classmethod
+#### `from_cache_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_cache_dict(cls, data: dict[str, Any]) -> IndexEntry
 ```
@@ -127,7 +151,9 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `IndexEntry`
@@ -135,6 +161,10 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -144,14 +174,20 @@ Alias for to_cache_dict (backward compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @staticmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-staticmethod">staticmethod</span>:::
+
 ```python
 def from_dict(data: dict[str, Any]) -> IndexEntry
 ```
@@ -172,7 +208,9 @@ Alias for from_cache_dict (backward compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `IndexEntry`
@@ -209,6 +247,10 @@ The base class handles:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, name: str, cache_path: Path)
 ```
@@ -232,6 +274,10 @@ Initialize query index.
 
 
 #### `extract_keys`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]
 ```
@@ -255,7 +301,9 @@ for multi-valued indexes (e.g., multi-author papers, multiple tags).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[tuple[str, dict[str, Any]]]` - List of (key, metadata) tuples
@@ -282,6 +330,10 @@ for multi-valued indexes (e.g., multi-author papers, multiple tags).
 
 
 #### `update_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_page(self, page: Page, build_cache: BuildCache) -> set[str]
 ```
@@ -308,7 +360,9 @@ Handles:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of affected index keys (need regeneration)
@@ -316,6 +370,10 @@ Handles:
 
 
 #### `remove_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def remove_page(self, page_path: str) -> set[str]
 ```
@@ -336,7 +394,9 @@ Remove page from all index entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of affected keys
@@ -344,6 +404,10 @@ Remove page from all index entries.
 
 
 #### `get`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get(self, key: str) -> list[str]
 ```
@@ -364,7 +428,9 @@ Get page paths for index key (O(1) lookup).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]` - List of page paths (copy, safe to modify)
@@ -372,6 +438,10 @@ Get page paths for index key (O(1) lookup).
 
 
 #### `keys`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def keys(self) -> list[str]
 ```
@@ -381,7 +451,9 @@ Get all index keys.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[str]`
@@ -389,6 +461,10 @@ Get all index keys.
 
 
 #### `has_changed`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_changed(self, key: str, page_paths: list[str]) -> bool
 ```
@@ -412,7 +488,9 @@ Compares page_paths as sets (order doesn't matter for most use cases).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if entry changed and needs regeneration
@@ -420,6 +498,10 @@ Compares page_paths as sets (order doesn't matter for most use cases).
 
 
 #### `get_metadata`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_metadata(self, key: str) -> dict[str, Any]
 ```
@@ -440,7 +522,9 @@ Get metadata for index key.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Metadata dict (empty if key not found)
@@ -448,6 +532,10 @@ Get metadata for index key.
 
 
 #### `save_to_disk`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_to_disk(self) -> None
 ```
@@ -457,7 +545,9 @@ Persist index to disk.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -468,6 +558,10 @@ Persist index to disk.
 
 
 #### `clear`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear(self) -> None
 ```
@@ -477,7 +571,9 @@ Clear all index data.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -485,6 +581,10 @@ Clear all index data.
 
 
 #### `stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def stats(self) -> dict[str, Any]
 ```
@@ -494,7 +594,9 @@ Get index statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with index stats
@@ -502,6 +604,10 @@ Get index statistics.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -511,7 +617,9 @@ String representation.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -519,5 +627,5 @@ String representation.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/query_index.py`*
+*Generated by Bengal autodoc from `bengal/cache/query_index.py`*
 

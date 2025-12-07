@@ -2,14 +2,14 @@
 ---
 title: "build_context"
 type: "python-module"
-source_file: "bengal/bengal/utils/build_context.py"
+source_file: "bengal/utils/build_context.py"
 line_number: 1
 description: "Build context for sharing state across build phases. Provides BuildContext dataclass for passing shared state between build phases, replacing scattered local variables. Created at build start and popu..."
 ---
 
 # build_context
 **Type:** Module
-**Source:** [View source](bengal/bengal/utils/build_context.py#L1)
+**Source:** [View source](bengal/utils/build_context.py#L1)
 
 
 
@@ -74,39 +74,101 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `site` | - | *No description provided.* |
-| `stats` | - | *No description provided.* |
-| `profile` | - | *No description provided.* |
-| `cache` | - | *No description provided.* |
-| `tracker` | - | *No description provided.* |
-| `incremental` | - | *No description provided.* |
-| `verbose` | - | *No description provided.* |
-| `quiet` | - | *No description provided.* |
-| `strict` | - | *No description provided.* |
-| `parallel` | - | *No description provided.* |
-| `memory_optimized` | - | *No description provided.* |
-| `full_output` | - | *No description provided.* |
-| `profile_templates` | - | *No description provided.* |
-| `pages` | - | *No description provided.* |
-| `pages_to_build` | - | *No description provided.* |
-| `assets` | - | *No description provided.* |
-| `assets_to_process` | - | *No description provided.* |
-| `affected_tags` | - | *No description provided.* |
-| `affected_sections` | - | *No description provided.* |
-| `changed_page_paths` | - | *No description provided.* |
-| `config_changed` | - | *No description provided.* |
-| `cli` | - | *No description provided.* |
-| `progress_manager` | - | *No description provided.* |
-| `reporter` | - | *No description provided.* |
-| `build_start` | - | *No description provided.* |
-| `_knowledge_graph` | - | *No description provided.* |
-| `_knowledge_graph_enabled` | - | *No description provided.* |
-| `_page_contents` | - | *No description provided.* |
-| `_content_cache_lock` | - | *No description provided.* |
-| `_accumulated_page_json` | - | *No description provided.* |
-| `_accumulated_json_lock` | - | *No description provided.* |
+:::{div} api-attributes
+`site`
+: 
+
+`stats`
+: 
+
+`profile`
+: 
+
+`cache`
+: 
+
+`tracker`
+: 
+
+`incremental`
+: 
+
+`verbose`
+: 
+
+`quiet`
+: 
+
+`strict`
+: 
+
+`parallel`
+: 
+
+`memory_optimized`
+: 
+
+`full_output`
+: 
+
+`profile_templates`
+: 
+
+`pages`
+: 
+
+`pages_to_build`
+: 
+
+`assets`
+: 
+
+`assets_to_process`
+: 
+
+`affected_tags`
+: 
+
+`affected_sections`
+: 
+
+`changed_page_paths`
+: 
+
+`config_changed`
+: 
+
+`cli`
+: 
+
+`progress_manager`
+: 
+
+`reporter`
+: 
+
+`build_start`
+: 
+
+`_knowledge_graph`
+: 
+
+`_knowledge_graph_enabled`
+: 
+
+`_page_contents`
+: 
+
+`_content_cache_lock`
+: 
+
+`_accumulated_page_json`
+: 
+
+`_accumulated_json_lock`
+: 
+
+:::
 
 
 
@@ -161,98 +223,12 @@ data or fall back to computing from pages.
 
 
 
-#### `knowledge_graph`
-```python
-def knowledge_graph(self) -> KnowledgeGraph | None
-```
-
-
-Get knowledge graph (built lazily, cached for build duration).
-
-The knowledge graph is expensive to build (~200-500ms for 773 pages).
-By caching it here, we avoid rebuilding it 3 times per build
-(post-processing, special pages, health check).
-
-
-
-**Returns**
-
-
-`KnowledgeGraph | None` - Built KnowledgeGraph instance, or None if disabled/unavailable
-:::{rubric} Examples
-:class: rubric-examples
-:::
-
-
-```python
-# First access builds the graph
-    graph = ctx.knowledge_graph
-
-    # Subsequent accesses reuse cached instance
-    graph2 = ctx.knowledge_graph  # Same instance, no rebuild
-```
-
-
-
-
-#### `content_cache_size`
-```python
-def content_cache_size(self) -> int
-```
-
-
-Get number of cached content entries.
-
-
-
-**Returns**
-
-
-`int` - Number of files with cached content
-
-
-
-#### `has_cached_content`
-```python
-def has_cached_content(self) -> bool
-```
-
-
-Check if content cache has any entries.
-
-Validators can use this to decide whether to use cache or fallback.
-
-
-
-**Returns**
-
-
-`bool` - True if cache has content
-
-
-
-#### `has_accumulated_json`
-```python
-def has_accumulated_json(self) -> bool
-```
-
-
-Check if accumulated JSON data exists.
-
-Post-processing can use this to decide whether to use accumulated
-data or fall back to computing from pages.
-
-
-
-**Returns**
-
-
-`bool` - True if accumulated JSON data exists
-
-
-
 
 #### `clear_lazy_artifacts`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear_lazy_artifacts(self) -> None
 ```
@@ -265,7 +241,9 @@ cached artifacts like the knowledge graph and content cache.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -273,6 +251,10 @@ cached artifacts like the knowledge graph and content cache.
 
 
 #### `cache_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def cache_content(self, source_path: Path, content: str) -> None
 ```
@@ -298,7 +280,9 @@ checks.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -318,6 +302,10 @@ checks.
 
 
 #### `get_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_content(self, source_path: Path) -> str | None
 ```
@@ -338,7 +326,9 @@ Get cached content without disk I/O.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str | None` - Cached content string, or None if not cached
@@ -358,6 +348,10 @@ Get cached content without disk I/O.
 
 
 #### `get_all_cached_contents`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_all_cached_contents(self) -> dict[str, str]
 ```
@@ -369,7 +363,9 @@ Returns a copy to avoid thread safety issues when iterating.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, str]` - Dictionary mapping source path strings to content
@@ -389,6 +385,10 @@ Returns a copy to avoid thread safety issues when iterating.
 
 
 #### `clear_content_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear_content_cache(self) -> None
 ```
@@ -401,7 +401,9 @@ used by cached file contents.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -409,6 +411,10 @@ used by cached file contents.
 
 
 #### `accumulate_page_json`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def accumulate_page_json(self, json_path: Any, page_data: dict[str, Any]) -> None
 ```
@@ -434,7 +440,9 @@ and double iteration of pages.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -455,6 +463,10 @@ and double iteration of pages.
 
 
 #### `get_accumulated_json`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_accumulated_json(self) -> list[tuple[Any, dict[str, Any]]]
 ```
@@ -466,7 +478,9 @@ Returns a copy to avoid thread safety issues when iterating.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[tuple[Any, dict[str, Any]]]` - List of (json_path, page_data) tuples
@@ -486,6 +500,10 @@ Returns a copy to avoid thread safety issues when iterating.
 
 
 #### `clear_accumulated_json`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear_accumulated_json(self) -> None
 ```
@@ -498,7 +516,9 @@ used by accumulated JSON data.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -506,4 +526,5 @@ used by accumulated JSON data.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/utils/build_context.py`*
+*Generated by Bengal autodoc from `bengal/utils/build_context.py`*
+

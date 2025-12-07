@@ -2,14 +2,14 @@
 ---
 title: "asset"
 type: "python-module"
-source_file: "bengal/bengal/core/asset.py"
+source_file: "bengal/core/asset.py"
 line_number: 1
 description: "Asset handling for static files (images, CSS, JS, fonts, etc.). Provides asset discovery, processing (minification, optimization, bundling), fingerprinting for cache-busting, and atomic output writing..."
 ---
 
 # asset
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/asset.py#L1)
+**Source:** [View source](bengal/core/asset.py#L1)
 
 
 
@@ -56,16 +56,32 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `source_path` | - | Path to the source asset file |
-| `output_path` | - | Path where the asset will be copied |
-| `asset_type` | - | Type of asset (css, js, image, font, etc.) |
-| `fingerprint` | - | Hash-based fingerprint for cache busting |
-| `minified` | - | Whether the asset has been minified |
-| `optimized` | - | Whether the asset has been optimized |
-| `bundled` | - | Whether CSS @import statements have been inlined |
-| `logical_path` | - | *No description provided.* |
+:::{div} api-attributes
+`source_path`
+: Path to the source asset file
+
+`output_path`
+: Path where the asset will be copied
+
+`asset_type`
+: Type of asset (css, js, image, font, etc.)
+
+`fingerprint`
+: Hash-based fingerprint for cache busting
+
+`minified`
+: Whether the asset has been minified
+
+`optimized`
+: Whether the asset has been optimized
+
+`bundled`
+: Whether CSS @import statements have been inlined
+
+`logical_path`
+: 
+
+:::
 
 
 
@@ -78,6 +94,10 @@ This is a dataclass.
 
 
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self) -> None
 ```
@@ -87,7 +107,9 @@ Determine asset type from file extension.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -96,6 +118,10 @@ Determine asset type from file extension.
 
 
 #### `is_css_entry_point`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_css_entry_point(self) -> bool
 ```
@@ -108,7 +134,9 @@ These files typically contain @import statements that pull in other CSS.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if this is a CSS entry point (e.g., style.css)
@@ -116,6 +144,10 @@ These files typically contain @import statements that pull in other CSS.
 
 
 #### `is_css_module`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_css_module(self) -> bool
 ```
@@ -128,7 +160,9 @@ They should be bundled into entry points, not copied separately.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if this is a CSS module (e.g., components/buttons.css)
@@ -136,6 +170,10 @@ They should be bundled into entry points, not copied separately.
 
 
 #### `is_js_entry_point`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_js_entry_point(self) -> bool
 ```
@@ -148,7 +186,9 @@ all theme JavaScript concatenated together.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if this is a JS bundle entry point
@@ -156,6 +196,10 @@ all theme JavaScript concatenated together.
 
 
 #### `is_js_module`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_js_module(self) -> bool
 ```
@@ -172,7 +216,9 @@ Excludes:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if this is a JS module that should be bundled
@@ -180,6 +226,10 @@ Excludes:
 
 
 #### `minify`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def minify(self) -> Asset
 ```
@@ -189,7 +239,9 @@ Minify the asset (for CSS and JS).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Asset` - Self for method chaining
@@ -197,6 +249,10 @@ Minify the asset (for CSS and JS).
 
 
 #### `bundle_css`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def bundle_css(self) -> str
 ```
@@ -211,7 +267,9 @@ Preserves @layer blocks when bundling @import statements.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Bundled CSS content as a string
@@ -222,6 +280,10 @@ Preserves @layer blocks when bundling @import statements.
 
 
 #### `hash`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def hash(self) -> str
 ```
@@ -231,7 +293,9 @@ Generate a hash-based fingerprint for the asset.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Hash string (first 8 characters of SHA256)
@@ -239,6 +303,10 @@ Generate a hash-based fingerprint for the asset.
 
 
 #### `optimize`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def optimize(self) -> Asset
 ```
@@ -248,7 +316,9 @@ Optimize the asset (especially for images).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Asset` - Self for method chaining
@@ -257,6 +327,10 @@ Optimize the asset (especially for images).
 
 
 #### `copy_to_output`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def copy_to_output(self, output_dir: Path, use_fingerprint: bool = True) -> Path
 ```
@@ -278,7 +352,9 @@ Copy the asset to the output directory.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Path` - Path where the asset was copied
@@ -287,6 +363,10 @@ Copy the asset to the output directory.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -296,7 +376,9 @@ def __repr__(self) -> str
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -304,5 +386,5 @@ def __repr__(self) -> str
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/asset.py`*
+*Generated by Bengal autodoc from `bengal/core/asset.py`*
 

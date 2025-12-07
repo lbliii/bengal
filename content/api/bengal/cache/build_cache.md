@@ -2,14 +2,14 @@
 ---
 title: "build_cache"
 type: "python-module"
-source_file: "bengal/bengal/cache/build_cache.py"
+source_file: "bengal/cache/build_cache.py"
 line_number: 1
 description: "Build cache for tracking file changes and dependencies in incremental builds. Maintains file hashes, dependency graphs, taxonomy indexes, and validation results across builds. Uses Zstandard-compresse..."
 ---
 
 # build_cache
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/build_cache.py#L1)
+**Source:** [View source](bengal/cache/build_cache.py#L1)
 
 
 
@@ -72,11 +72,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `mtime` | - | File modification time (seconds since epoch) |
-| `size` | - | File size in bytes |
-| `hash` | - | SHA256 hash (computed lazily, may be None for fast path) Thread Safety: Immutable after creation. Thread-safe for read operations. |
+:::{div} api-attributes
+`mtime`
+: File modification time (seconds since epoch)
+
+`size`
+: File size in bytes
+
+`hash`
+: SHA256 hash (computed lazily, may be None for fast path) Thread Safety: Immutable after creation. Thread-safe for read operations.
+
+:::
 
 
 
@@ -89,6 +95,10 @@ This is a dataclass.
 
 
 #### `matches_stat`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def matches_stat(self, stat_result) -> bool
 ```
@@ -109,7 +119,9 @@ Fast path check: does mtime + size match?
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if mtime and size both match (definitely unchanged)
@@ -117,6 +129,10 @@ Fast path check: does mtime + size match?
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -126,14 +142,20 @@ Serialize to JSON-compatible dict.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @classmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_dict(cls, data: dict[str, Any]) -> FileFingerprint
 ```
@@ -154,14 +176,20 @@ Deserialize from JSON dict.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `FileFingerprint`
 
 
 
-#### `from_path` @classmethod
+#### `from_path`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_path(cls, file_path: Path, compute_hash: bool = True) -> FileFingerprint
 ```
@@ -183,7 +211,9 @@ Create fingerprint from file path.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `FileFingerprint` - FileFingerprint with mtime, size, and optionally hash
@@ -222,24 +252,56 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `VERSION` | - | *No description provided.* |
-| `version` | - | *No description provided.* |
-| `file_hashes` | - | Mapping of file paths to their SHA256 hashes |
-| `file_fingerprints` | - | *No description provided.* |
-| `dependencies` | - | Mapping of pages to their dependencies (templates, partials, etc.) |
-| `output_sources` | - | Mapping of output files to their source files |
-| `taxonomy_deps` | - | Mapping of taxonomy terms to affected pages |
-| `page_tags` | - | Mapping of page paths to their tags (for detecting tag changes) |
-| `tag_to_pages` | - | Inverted index mapping tag slug to page paths (for O(1) reconstruction) |
-| `known_tags` | - | Set of all tag slugs from previous build (for detecting deletions) |
-| `parsed_content` | - | Cached parsed HTML/TOC (Optimization #2) |
-| `rendered_output` | - | *No description provided.* |
-| `synthetic_pages` | - | *No description provided.* |
-| `validation_results` | - | *No description provided.* |
-| `config_hash` | - | Hash of resolved configuration (for auto-invalidation) |
-| `last_build` | - | Timestamp of last successful build |
+:::{div} api-attributes
+`VERSION`
+: 
+
+`version`
+: 
+
+`file_hashes`
+: Mapping of file paths to their SHA256 hashes
+
+`file_fingerprints`
+: 
+
+`dependencies`
+: Mapping of pages to their dependencies (templates, partials, etc.)
+
+`output_sources`
+: Mapping of output files to their source files
+
+`taxonomy_deps`
+: Mapping of taxonomy terms to affected pages
+
+`page_tags`
+: Mapping of page paths to their tags (for detecting tag changes)
+
+`tag_to_pages`
+: Inverted index mapping tag slug to page paths (for O(1) reconstruction)
+
+`known_tags`
+: Set of all tag slugs from previous build (for detecting deletions)
+
+`parsed_content`
+: Cached parsed HTML/TOC (Optimization #2)
+
+`rendered_output`
+: 
+
+`synthetic_pages`
+: 
+
+`validation_results`
+: 
+
+`config_hash`
+: Hash of resolved configuration (for auto-invalidation)
+
+`last_build`
+: Timestamp of last successful build
+
+:::
 
 
 
@@ -252,6 +314,10 @@ This is a dataclass.
 
 
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self) -> None
 ```
@@ -261,14 +327,20 @@ Convert sets from lists after JSON deserialization.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
 
 
 
-#### `load` @classmethod
+#### `load`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache
 ```
@@ -296,7 +368,9 @@ Loader behavior:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `BuildCache` - BuildCache instance (empty if file doesn't exist or is invalid)
@@ -306,6 +380,10 @@ Loader behavior:
 
 
 #### `save`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save(self, cache_path: Path, use_lock: bool = True) -> None
 ```
@@ -333,7 +411,9 @@ Persistence semantics:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -349,6 +429,10 @@ Persistence semantics:
 
 
 #### `hash_file`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def hash_file(self, file_path: Path) -> str
 ```
@@ -369,7 +453,9 @@ Generate SHA256 hash of a file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Hex string of SHA256 hash
@@ -377,6 +463,10 @@ Generate SHA256 hash of a file.
 
 
 #### `is_changed`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_changed(self, file_path: Path) -> bool
 ```
@@ -402,7 +492,9 @@ Performance Optimization (RFC: orchestrator-performance-improvements):
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if file is new or has changed, False if unchanged
@@ -410,6 +502,10 @@ Performance Optimization (RFC: orchestrator-performance-improvements):
 
 
 #### `update_file`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_file(self, file_path: Path) -> None
 ```
@@ -434,7 +530,9 @@ Performance Optimization:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -442,6 +540,10 @@ Performance Optimization:
 
 
 #### `get_cached_validation_results`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_cached_validation_results(self, file_path: Path, validator_name: str) -> list[dict[str, Any]] | None
 ```
@@ -463,7 +565,9 @@ Get cached validation results for a file and validator.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[dict[str, Any]] | None` - List of CheckResult dicts if cached and file unchanged, None otherwise
@@ -471,6 +575,10 @@ Get cached validation results for a file and validator.
 
 
 #### `cache_validation_results`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def cache_validation_results(self, file_path: Path, validator_name: str, results: list[Any]) -> None
 ```
@@ -493,7 +601,9 @@ Cache validation results for a file and validator.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -501,6 +611,10 @@ Cache validation results for a file and validator.
 
 
 #### `invalidate_validation_results`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_validation_results(self, file_path: Path | None = None) -> None
 ```
@@ -521,7 +635,9 @@ Invalidate validation results for a file or all files.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -529,6 +645,10 @@ Invalidate validation results for a file or all files.
 
 
 #### `track_output`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_output(self, source_path: Path, output_path: Path, output_dir: Path) -> None
 ```
@@ -553,7 +673,9 @@ This enables cleanup of output files when source files are deleted.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -561,6 +683,10 @@ This enables cleanup of output files when source files are deleted.
 
 
 #### `add_dependency`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_dependency(self, source: Path, dependency: Path) -> None
 ```
@@ -582,7 +708,9 @@ Record that a source file depends on another file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -590,6 +718,10 @@ Record that a source file depends on another file.
 
 
 #### `add_taxonomy_dependency`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_taxonomy_dependency(self, taxonomy_term: str, page: Path) -> None
 ```
@@ -611,7 +743,9 @@ Record that a taxonomy term affects a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -619,6 +753,10 @@ Record that a taxonomy term affects a page.
 
 
 #### `get_affected_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_affected_pages(self, changed_file: Path) -> set[str]
 ```
@@ -639,7 +777,9 @@ Find all pages that depend on a changed file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of page paths that need to be rebuilt
@@ -647,6 +787,10 @@ Find all pages that depend on a changed file.
 
 
 #### `get_previous_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_previous_tags(self, page_path: Path) -> set[str]
 ```
@@ -667,7 +811,9 @@ Get tags from previous build for a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of tags from previous build (empty set if new page)
@@ -675,6 +821,10 @@ Get tags from previous build for a page.
 
 
 #### `update_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_tags(self, page_path: Path, tags: set[str]) -> None
 ```
@@ -696,7 +846,9 @@ Store current tags for a page (for next build's comparison).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -704,6 +856,10 @@ Store current tags for a page (for next build's comparison).
 
 
 #### `update_page_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def update_page_tags(self, page_path: Path, tags: set[str]) -> set[str]
 ```
@@ -731,7 +887,9 @@ This is the key method that enables O(1) taxonomy reconstruction.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of affected tag slugs (tags added, removed, or modified)
@@ -739,6 +897,10 @@ This is the key method that enables O(1) taxonomy reconstruction.
 
 
 #### `get_pages_for_tag`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_pages_for_tag(self, tag_slug: str) -> set[str]
 ```
@@ -759,7 +921,9 @@ Get all page paths for a given tag.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of page path strings
@@ -767,6 +931,10 @@ Get all page paths for a given tag.
 
 
 #### `get_all_tags`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_all_tags(self) -> set[str]
 ```
@@ -776,7 +944,9 @@ Get all known tag slugs from previous build.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of tag slugs
@@ -784,6 +954,10 @@ Get all known tag slugs from previous build.
 
 
 #### `clear`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear(self) -> None
 ```
@@ -793,7 +967,9 @@ Clear all cache data.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -801,6 +977,10 @@ Clear all cache data.
 
 
 #### `validate_config`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def validate_config(self, current_hash: str) -> bool
 ```
@@ -829,7 +1009,9 @@ This enables automatic cache invalidation when:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if cache is valid (hashes match), False if cache was cleared
@@ -849,6 +1031,10 @@ This enables automatic cache invalidation when:
 
 
 #### `invalidate_file`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_file(self, file_path: Path) -> None
 ```
@@ -869,7 +1055,9 @@ Remove a file from the cache (useful when file is deleted).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -877,6 +1065,10 @@ Remove a file from the cache (useful when file is deleted).
 
 
 #### `get_stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_stats(self) -> dict[str, int]
 ```
@@ -886,7 +1078,9 @@ Get cache statistics with logging.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, int]` - Dictionary with cache stats
@@ -894,6 +1088,10 @@ Get cache statistics with logging.
 
 
 #### `get_page_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_page_cache(self, cache_key: str) -> dict[str, Any] | None
 ```
@@ -914,7 +1112,9 @@ Get cached data for a synthetic page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any] | None` - Cached page data or None if not found
@@ -922,6 +1122,10 @@ Get cached data for a synthetic page.
 
 
 #### `set_page_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def set_page_cache(self, cache_key: str, page_data: dict[str, Any]) -> None
 ```
@@ -943,7 +1147,9 @@ Cache data for a synthetic page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -951,6 +1157,10 @@ Cache data for a synthetic page.
 
 
 #### `invalidate_page_cache`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_page_cache(self, cache_key: str) -> None
 ```
@@ -971,7 +1181,9 @@ Remove cached data for a synthetic page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -979,6 +1191,10 @@ Remove cached data for a synthetic page.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -988,7 +1204,9 @@ def __repr__(self) -> str
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -996,6 +1214,10 @@ def __repr__(self) -> str
 
 
 #### `store_parsed_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def store_parsed_content(self, file_path: Path, html: str, toc: str, toc_items: list[dict[str, Any]], metadata: dict[str, Any], template: str, parser_version: str, ast: list[dict[str, Any]] | None = None) -> None
 ```
@@ -1010,6 +1232,11 @@ Phase 3 Enhancement (RFC-content-ast-architecture):
 - Also caches the true AST for parse-once, use-many patterns
 - AST enables faster TOC/link extraction and plain text generation
 
+
+**Parameters**
+
+::::{dropdown} 8 parameters (click to expand)
+:open: true
 
 **Parameters:**
 
@@ -1026,11 +1253,16 @@ Phase 3 Enhancement (RFC-content-ast-architecture):
 
 
 
+::::
 
 
 
 
-**Returns**
+
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1038,6 +1270,10 @@ Phase 3 Enhancement (RFC-content-ast-architecture):
 
 
 #### `get_parsed_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_parsed_content(self, file_path: Path, metadata: dict[str, Any], template: str, parser_version: str) -> dict[str, Any] | None
 ```
@@ -1068,7 +1304,9 @@ Validates that:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any] | None` - Cached data dict if valid, None if invalid or not found
@@ -1076,6 +1314,10 @@ Validates that:
 
 
 #### `invalidate_parsed_content`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_parsed_content(self, file_path: Path) -> None
 ```
@@ -1096,7 +1338,9 @@ Remove cached parsed content for a file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1104,6 +1348,10 @@ Remove cached parsed content for a file.
 
 
 #### `get_parsed_content_stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_parsed_content_stats(self) -> dict[str, Any]
 ```
@@ -1113,7 +1361,9 @@ Get parsed content cache statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with cache stats
@@ -1121,6 +1371,10 @@ Get parsed content cache statistics.
 
 
 #### `store_rendered_output`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def store_rendered_output(self, file_path: Path, html: str, template: str, metadata: dict[str, Any], dependencies: list[str] | None = None) -> None
 ```
@@ -1149,7 +1403,9 @@ to provide 20-40% faster incremental builds.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1157,6 +1413,10 @@ to provide 20-40% faster incremental builds.
 
 
 #### `get_rendered_output`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_rendered_output(self, file_path: Path, template: str, metadata: dict[str, Any]) -> str | None
 ```
@@ -1186,7 +1446,9 @@ Validates that:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str | None` - Cached HTML string if valid, None if invalid or not found
@@ -1194,6 +1456,10 @@ Validates that:
 
 
 #### `invalidate_rendered_output`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_rendered_output(self, file_path: Path) -> None
 ```
@@ -1214,7 +1480,9 @@ Remove cached rendered output for a file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -1222,6 +1490,10 @@ Remove cached rendered output for a file.
 
 
 #### `get_rendered_output_stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_rendered_output_stats(self) -> dict[str, Any]
 ```
@@ -1231,7 +1503,9 @@ Get rendered output cache statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with cache stats
@@ -1239,5 +1513,5 @@ Get rendered output cache statistics.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/build_cache.py`*
+*Generated by Bengal autodoc from `bengal/cache/build_cache.py`*
 

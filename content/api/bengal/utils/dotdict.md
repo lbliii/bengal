@@ -2,14 +2,14 @@
 ---
 title: "dotdict"
 type: "python-module"
-source_file: "bengal/bengal/utils/dotdict.py"
+source_file: "bengal/utils/dotdict.py"
 line_number: 1
 description: "DotDict - Dictionary with dot notation access. Provides clean attribute-style access to dictionary data while avoiding Jinja2 template gotchas (like .items, .keys, .values accessing methods)."
 ---
 
 # dotdict
 **Type:** Module
-**Source:** [View source](bengal/bengal/utils/dotdict.py#L1)
+**Source:** [View source](bengal/utils/dotdict.py#L1)
 
 
 
@@ -92,6 +92,10 @@ Performance:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, data: dict[str, Any] | None = None)
 ```
@@ -114,6 +118,10 @@ Initialize with a dictionary and a cache for wrapped nested objects.
 
 
 #### `__getattribute__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getattribute__(self, key: str) -> Any
 ```
@@ -141,7 +149,9 @@ This allows templates to safely check `if obj.field` without errors.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any` - The data value if it exists, the attribute, or None
@@ -149,6 +159,10 @@ This allows templates to safely check `if obj.field` without errors.
 
 
 #### `__setattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __setattr__(self, key: str, value: Any) -> None
 ```
@@ -170,7 +184,9 @@ Allow dot notation assignment. Invalidates cache for the key.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -178,6 +194,10 @@ Allow dot notation assignment. Invalidates cache for the key.
 
 
 #### `__delattr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __delattr__(self, key: str) -> None
 ```
@@ -198,7 +218,9 @@ Allow dot notation deletion. Invalidates cache for the key.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -206,6 +228,10 @@ Allow dot notation deletion. Invalidates cache for the key.
 
 
 #### `__getitem__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __getitem__(self, key: str) -> Any
 ```
@@ -226,7 +252,9 @@ Bracket notation access with caching.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -234,6 +262,10 @@ Bracket notation access with caching.
 
 
 #### `__setitem__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __setitem__(self, key: str, value: Any) -> None
 ```
@@ -255,7 +287,9 @@ Bracket notation assignment. Invalidates cache for the key.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -263,6 +297,10 @@ Bracket notation assignment. Invalidates cache for the key.
 
 
 #### `__delitem__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __delitem__(self, key: str) -> None
 ```
@@ -283,7 +321,9 @@ Bracket notation deletion. Invalidates cache for the key.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -291,6 +331,10 @@ Bracket notation deletion. Invalidates cache for the key.
 
 
 #### `__contains__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __contains__(self, key: str) -> bool
 ```
@@ -311,7 +355,9 @@ Check if key exists.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -319,6 +365,10 @@ Check if key exists.
 
 
 #### `__len__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __len__(self) -> int
 ```
@@ -328,7 +378,9 @@ Return number of keys.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int`
@@ -336,6 +388,10 @@ Return number of keys.
 
 
 #### `__iter__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __iter__(self) -> Iterator[str]
 ```
@@ -345,7 +401,9 @@ Iterate over keys.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Iterator[str]`
@@ -353,6 +411,10 @@ Iterate over keys.
 
 
 #### `__repr__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __repr__(self) -> str
 ```
@@ -362,7 +424,9 @@ Custom repr showing it's a DotDict.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -370,6 +434,10 @@ Custom repr showing it's a DotDict.
 
 
 #### `get`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get(self, key: str, default: Any = None) -> Any
 ```
@@ -391,7 +459,9 @@ Get value with default.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `Any`
@@ -399,6 +469,10 @@ Get value with default.
 
 
 #### `keys`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def keys(self)
 ```
@@ -410,6 +484,10 @@ Return dict keys.
 
 
 #### `values`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def values(self)
 ```
@@ -421,6 +499,10 @@ Return dict values.
 
 
 #### `items`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def items(self)
 ```
@@ -431,7 +513,11 @@ Return dict items - note this is the METHOD, not a field.
 
 
 
-#### `from_dict` @classmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_dict(cls, data: dict[str, Any]) -> DotDict
 ```
@@ -452,7 +538,9 @@ Create DotDict from a regular dict, recursively wrapping nested dicts.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `DotDict` - DotDict with all nested dicts also wrapped
@@ -460,6 +548,10 @@ Create DotDict from a regular dict, recursively wrapping nested dicts.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict
 ```
@@ -469,7 +561,9 @@ Convert back to regular dict.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict`
@@ -529,5 +623,5 @@ YAML/JSON files before passing to templates.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/utils/dotdict.py`*
+*Generated by Bengal autodoc from `bengal/utils/dotdict.py`*
 

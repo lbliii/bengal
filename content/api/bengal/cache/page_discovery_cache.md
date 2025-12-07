@@ -2,14 +2,14 @@
 ---
 title: "page_discovery_cache"
 type: "python-module"
-source_file: "bengal/bengal/cache/page_discovery_cache.py"
+source_file: "bengal/cache/page_discovery_cache.py"
 line_number: 1
 description: "Page Discovery Cache for incremental builds. Caches page metadata (title, date, tags, section, slug) to enable lazy loading of full page content. This allows incremental builds to skip discovery of un..."
 ---
 
 # page_discovery_cache
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/page_discovery_cache.py#L1)
+**Source:** [View source](bengal/cache/page_discovery_cache.py#L1)
 
 
 
@@ -52,11 +52,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `metadata` | - | *No description provided.* |
-| `cached_at` | - | *No description provided.* |
-| `is_valid` | - | *No description provided.* |
+:::{div} api-attributes
+`metadata`
+: 
+
+`cached_at`
+: 
+
+`is_valid`
+: 
+
+:::
 
 
 
@@ -69,6 +75,10 @@ This is a dataclass.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -78,14 +88,20 @@ def to_dict(self) -> dict[str, Any]
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @staticmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-staticmethod">staticmethod</span>:::
+
 ```python
 def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry
 ```
@@ -106,7 +122,9 @@ def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageDiscoveryCacheEntry`
@@ -155,6 +173,10 @@ Note: If cache format changes, load will fail and cache rebuilds automatically.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, cache_path: Path | None = None)
 ```
@@ -178,6 +200,10 @@ Initialize cache.
 
 
 #### `save_to_disk`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_to_disk(self) -> None
 ```
@@ -187,7 +213,9 @@ Save cache to disk.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -195,6 +223,10 @@ Save cache to disk.
 
 
 #### `has_metadata`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_metadata(self, source_path: Path) -> bool
 ```
@@ -215,7 +247,9 @@ Check if metadata is cached for a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if valid metadata exists in cache
@@ -223,6 +257,10 @@ Check if metadata is cached for a page.
 
 
 #### `get_metadata`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_metadata(self, source_path: Path) -> PageMetadata | None
 ```
@@ -243,7 +281,9 @@ Get cached metadata for a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `PageMetadata | None` - PageMetadata if found and valid, None otherwise
@@ -251,6 +291,10 @@ Get cached metadata for a page.
 
 
 #### `add_metadata`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_metadata(self, metadata: PageMetadata) -> None
 ```
@@ -271,7 +315,9 @@ Add or update metadata in cache.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -279,6 +325,10 @@ Add or update metadata in cache.
 
 
 #### `invalidate`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate(self, source_path: Path) -> None
 ```
@@ -299,7 +349,9 @@ Mark a cache entry as invalid.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -307,6 +359,10 @@ Mark a cache entry as invalid.
 
 
 #### `invalidate_all`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_all(self) -> None
 ```
@@ -316,7 +372,9 @@ Invalidate all cache entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -324,6 +382,10 @@ Invalidate all cache entries.
 
 
 #### `clear`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear(self) -> None
 ```
@@ -333,7 +395,9 @@ Clear all cache entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -341,6 +405,10 @@ Clear all cache entries.
 
 
 #### `get_valid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_valid_entries(self) -> dict[str, PageMetadata]
 ```
@@ -350,7 +418,9 @@ Get all valid cached metadata entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, PageMetadata]` - Dictionary mapping source_path to PageMetadata for valid entries
@@ -358,6 +428,10 @@ Get all valid cached metadata entries.
 
 
 #### `get_invalid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_invalid_entries(self) -> dict[str, PageMetadata]
 ```
@@ -367,7 +441,9 @@ Get all invalid cached metadata entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, PageMetadata]` - Dictionary mapping source_path to PageMetadata for invalid entries
@@ -375,6 +451,10 @@ Get all invalid cached metadata entries.
 
 
 #### `validate_entry`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def validate_entry(self, source_path: Path, current_file_hash: str) -> bool
 ```
@@ -396,7 +476,9 @@ Validate a cache entry against current file hash.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if cache entry is valid (hash matches), False otherwise
@@ -404,6 +486,10 @@ Validate a cache entry against current file hash.
 
 
 #### `stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def stats(self) -> dict[str, int]
 ```
@@ -413,7 +499,9 @@ Get cache statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, int]` - Dictionary with cache stats (total, valid, invalid)
@@ -421,5 +509,5 @@ Get cache statistics.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/page_discovery_cache.py`*
+*Generated by Bengal autodoc from `bengal/cache/page_discovery_cache.py`*
 

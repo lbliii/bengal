@@ -2,14 +2,14 @@
 ---
 title: "report"
 type: "python-module"
-source_file: "bengal/bengal/health/report.py"
+source_file: "bengal/health/report.py"
 line_number: 1
 description: "Health check report formatting and data structures. Provides structured reporting of health check results with multiple output formats."
 ---
 
 # report
 **Type:** Module
-**Source:** [View source](bengal/bengal/health/report.py#L1)
+**Source:** [View source](bengal/health/report.py#L1)
 
 
 
@@ -62,14 +62,26 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `status` | - | Status level (success, info, warning, error) |
-| `message` | - | Human-readable description of the check result |
-| `recommendation` | - | Optional suggestion for how to fix/improve (shown for warnings/errors) |
-| `details` | - | Optional additional context (list of strings) |
-| `validator` | - | Name of validator that produced this result |
-| `metadata` | - | *No description provided.* |
+:::{div} api-attributes
+`status`
+: Status level (success, info, warning, error)
+
+`message`
+: Human-readable description of the check result
+
+`recommendation`
+: Optional suggestion for how to fix/improve (shown for warnings/errors)
+
+`details`
+: Optional additional context (list of strings)
+
+`validator`
+: Name of validator that produced this result
+
+`metadata`
+: 
+
+:::
 
 
 
@@ -81,7 +93,11 @@ This is a dataclass.
 
 
 
-#### `success` @classmethod
+#### `success`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def success(cls, message: str, validator: str = '') -> CheckResult
 ```
@@ -103,14 +119,20 @@ Create a success result.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult`
 
 
 
-#### `info` @classmethod
+#### `info`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def info(cls, message: str, recommendation: str | None = None, details: list[str] | None = None, validator: str = '', metadata: dict[str, Any] | None = None) -> CheckResult
 ```
@@ -135,14 +157,20 @@ Create an info result.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult`
 
 
 
-#### `suggestion` @classmethod
+#### `suggestion`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def suggestion(cls, message: str, recommendation: str | None = None, details: list[str] | None = None, validator: str = '', metadata: dict[str, Any] | None = None) -> CheckResult
 ```
@@ -167,14 +195,20 @@ Create a suggestion result (quality improvement, not a problem).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult`
 
 
 
-#### `warning` @classmethod
+#### `warning`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def warning(cls, message: str, recommendation: str | None = None, details: list[str] | None = None, validator: str = '', metadata: dict[str, Any] | None = None) -> CheckResult
 ```
@@ -199,14 +233,20 @@ Create a warning result.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult`
 
 
 
-#### `error` @classmethod
+#### `error`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def error(cls, message: str, recommendation: str | None = None, details: list[str] | None = None, validator: str = '', metadata: dict[str, Any] | None = None) -> CheckResult
 ```
@@ -231,7 +271,9 @@ Create an error result.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult`
@@ -239,6 +281,10 @@ Create an error result.
 
 
 #### `is_problem`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_problem(self) -> bool
 ```
@@ -248,7 +294,9 @@ Check if this is a warning or error (vs success/info/suggestion).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -256,6 +304,10 @@ Check if this is a warning or error (vs success/info/suggestion).
 
 
 #### `is_actionable`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def is_actionable(self) -> bool
 ```
@@ -265,7 +317,9 @@ Check if this requires action (error, warning, or suggestion).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -273,6 +327,10 @@ Check if this requires action (error, warning, or suggestion).
 
 
 #### `to_cache_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_cache_dict(self) -> dict[str, Any]
 ```
@@ -282,14 +340,20 @@ Serialize CheckResult to JSON-serializable dict for caching.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with all fields as JSON-serializable types
 
 
 
-#### `from_cache_dict` @classmethod
+#### `from_cache_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_cache_dict(cls, data: dict[str, Any]) -> CheckResult
 ```
@@ -310,7 +374,9 @@ Deserialize CheckResult from cached dict.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `CheckResult` - CheckResult instance
@@ -338,15 +404,29 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `pages_total` | - | Total pages in site |
-| `pages_processed` | - | Pages actually validated |
-| `pages_skipped` | - | Dict of skip reasons and counts |
-| `cache_hits` | - | Number of cache hits (if applicable) |
-| `cache_misses` | - | Number of cache misses (if applicable) |
-| `sub_timings` | - | Dict of sub-operation names to duration_ms |
-| `metrics` | - | Custom metrics (component-specific) |
+:::{div} api-attributes
+`pages_total`
+: Total pages in site
+
+`pages_processed`
+: Pages actually validated
+
+`pages_skipped`
+: Dict of skip reasons and counts
+
+`cache_hits`
+: Number of cache hits (if applicable)
+
+`cache_misses`
+: Number of cache misses (if applicable)
+
+`sub_timings`
+: Dict of sub-operation names to duration_ms
+
+`metrics`
+: Custom metrics (component-specific)
+
+:::
 
 
 
@@ -385,58 +465,11 @@ Total number of skipped items across all reasons.
 
 
 
-#### `cache_hit_rate`
-```python
-def cache_hit_rate(self) -> float
-```
-
-
-Cache hit rate as percentage (0-100).
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `skip_rate`
-```python
-def skip_rate(self) -> float
-```
-
-
-Skip rate as percentage (0-100).
-
-
-
-**Returns**
-
-
-`float`
-
-
-
-#### `total_skipped`
-```python
-def total_skipped(self) -> int
-```
-
-
-Total number of skipped items across all reasons.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
 #### `format_summary`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def format_summary(self) -> str
 ```
@@ -446,7 +479,9 @@ Format stats for debug output.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -454,6 +489,10 @@ Format stats for debug output.
 
 
 #### `to_log_context`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_log_context(self) -> dict[str, int | float | str]
 ```
@@ -463,7 +502,9 @@ Convert to flat dict for structured logging.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, int | float | str]` - Flat dictionary suitable for structured logging kwargs.
@@ -485,12 +526,20 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `validator_name` | - | Name of the validator |
-| `results` | - | List of check results from this validator |
-| `duration_ms` | - | How long the validator took to run |
-| `stats` | - | Optional observability metrics |
+:::{div} api-attributes
+`validator_name`
+: Name of the validator
+
+`results`
+: List of check results from this validator
+
+`duration_ms`
+: How long the validator took to run
+
+`stats`
+: Optional observability metrics
+
+:::
 
 
 
@@ -553,127 +602,6 @@ Get emoji representing overall status.
 
 
 
-## Methods
-
-
-
-#### `passed_count`
-```python
-def passed_count(self) -> int
-```
-
-
-Count of successful checks.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `info_count`
-```python
-def info_count(self) -> int
-```
-
-
-Count of info messages.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `warning_count`
-```python
-def warning_count(self) -> int
-```
-
-
-Count of warnings.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `suggestion_count`
-```python
-def suggestion_count(self) -> int
-```
-
-
-Count of suggestions (quality improvements).
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `error_count`
-```python
-def error_count(self) -> int
-```
-
-
-Count of errors.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `has_problems`
-```python
-def has_problems(self) -> bool
-```
-
-
-Check if this validator found any warnings or errors.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `status_emoji`
-```python
-def status_emoji(self) -> str
-```
-
-
-Get emoji representing overall status.
-
-
-
-**Returns**
-
-
-`str`
-
 
 
 
@@ -691,11 +619,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `validator_reports` | - | Reports from each validator |
-| `timestamp` | - | When the health check was run |
-| `build_stats` | - | Optional build statistics |
+:::{div} api-attributes
+`validator_reports`
+: Reports from each validator
+
+`timestamp`
+: When the health check was run
+
+`build_stats`
+: Optional build statistics
+
+:::
 
 
 
@@ -755,109 +689,11 @@ Total number of checks run.
 
 
 
-#### `total_passed`
-```python
-def total_passed(self) -> int
-```
-
-
-Total successful checks across all validators.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_info`
-```python
-def total_info(self) -> int
-```
-
-
-Total info messages across all validators.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_warnings`
-```python
-def total_warnings(self) -> int
-```
-
-
-Total warnings across all validators.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_suggestions`
-```python
-def total_suggestions(self) -> int
-```
-
-
-Total suggestions (quality improvements) across all validators.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_errors`
-```python
-def total_errors(self) -> int
-```
-
-
-Total errors across all validators.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
-#### `total_checks`
-```python
-def total_checks(self) -> int
-```
-
-
-Total number of checks run.
-
-
-
-**Returns**
-
-
-`int`
-
-
-
 #### `has_errors`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_errors(self) -> bool
 ```
@@ -867,7 +703,9 @@ Check if any errors were found.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -875,6 +713,10 @@ Check if any errors were found.
 
 
 #### `has_warnings`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_warnings(self) -> bool
 ```
@@ -884,7 +726,9 @@ Check if any warnings were found.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -892,6 +736,10 @@ Check if any warnings were found.
 
 
 #### `has_problems`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_problems(self) -> bool
 ```
@@ -901,7 +749,9 @@ Check if any errors or warnings were found.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool`
@@ -909,6 +759,10 @@ Check if any errors or warnings were found.
 
 
 #### `build_quality_score`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def build_quality_score(self) -> int
 ```
@@ -925,7 +779,9 @@ Formula:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `int` - Score from 0-100 (100 = perfect)
@@ -933,6 +789,10 @@ Formula:
 
 
 #### `quality_rating`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def quality_rating(self) -> str
 ```
@@ -942,7 +802,9 @@ Get quality rating based on score.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str`
@@ -950,6 +812,10 @@ Get quality rating based on score.
 
 
 #### `format_console`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def format_console(self, mode: str = 'auto', verbose: bool = False, show_suggestions: bool = False) -> str
 ```
@@ -972,7 +838,9 @@ Format report for console output.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `str` - Formatted string ready to print
@@ -983,6 +851,10 @@ Format report for console output.
 
 
 #### `format_json`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def format_json(self) -> dict[str, Any]
 ```
@@ -992,7 +864,9 @@ Format report as JSON-serializable dictionary.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary suitable for json.dumps()
@@ -1000,4 +874,5 @@ Format report as JSON-serializable dictionary.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/health/report.py`*
+*Generated by Bengal autodoc from `bengal/health/report.py`*
+

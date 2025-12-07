@@ -2,14 +2,14 @@
 ---
 title: "build_stats"
 type: "python-module"
-source_file: "bengal/bengal/utils/build_stats.py"
+source_file: "bengal/utils/build_stats.py"
 line_number: 1
 description: "Build statistics display with colorful output and ASCII art."
 ---
 
 # build_stats
 **Type:** Module
-**Source:** [View source](bengal/bengal/utils/build_stats.py#L1)
+**Source:** [View source](bengal/utils/build_stats.py#L1)
 
 
 
@@ -37,11 +37,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `file_path` | - | *No description provided.* |
-| `message` | - | *No description provided.* |
-| `warning_type` | - | *No description provided.* |
+:::{div} api-attributes
+`file_path`
+: 
+
+`message`
+: 
+
+`warning_type`
+: 
+
+:::
 
 
 
@@ -62,25 +68,6 @@ Get shortened path for display.
 
 
 
-## Methods
-
-
-
-#### `short_path`
-```python
-def short_path(self) -> str
-```
-
-
-Get shortened path for display.
-
-
-
-**Returns**
-
-
-`str`
-
 
 
 
@@ -98,42 +85,110 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `total_pages` | - | *No description provided.* |
-| `regular_pages` | - | *No description provided.* |
-| `generated_pages` | - | *No description provided.* |
-| `tag_pages` | - | *No description provided.* |
-| `archive_pages` | - | *No description provided.* |
-| `pagination_pages` | - | *No description provided.* |
-| `total_assets` | - | *No description provided.* |
-| `total_sections` | - | *No description provided.* |
-| `taxonomies_count` | - | *No description provided.* |
-| `build_time_ms` | - | *No description provided.* |
-| `parallel` | - | *No description provided.* |
-| `incremental` | - | *No description provided.* |
-| `skipped` | - | *No description provided.* |
-| `total_directives` | - | *No description provided.* |
-| `directives_by_type` | - | *No description provided.* |
-| `discovery_time_ms` | - | *No description provided.* |
-| `taxonomy_time_ms` | - | *No description provided.* |
-| `rendering_time_ms` | - | *No description provided.* |
-| `assets_time_ms` | - | *No description provided.* |
-| `postprocess_time_ms` | - | *No description provided.* |
-| `health_check_time_ms` | - | *No description provided.* |
-| `memory_rss_mb` | - | *No description provided.* |
-| `memory_heap_mb` | - | *No description provided.* |
-| `memory_peak_mb` | - | *No description provided.* |
-| `cache_hits` | - | *No description provided.* |
-| `cache_misses` | - | *No description provided.* |
-| `time_saved_ms` | - | *No description provided.* |
-| `menu_time_ms` | - | *No description provided.* |
-| `related_posts_time_ms` | - | *No description provided.* |
-| `fonts_time_ms` | - | *No description provided.* |
-| `output_dir` | - | *No description provided.* |
-| `changed_outputs` | - | *No description provided.* |
-| `warnings` | - | *No description provided.* |
-| `template_errors` | - | *No description provided.* |
+:::{div} api-attributes
+`total_pages`
+: 
+
+`regular_pages`
+: 
+
+`generated_pages`
+: 
+
+`tag_pages`
+: 
+
+`archive_pages`
+: 
+
+`pagination_pages`
+: 
+
+`total_assets`
+: 
+
+`total_sections`
+: 
+
+`taxonomies_count`
+: 
+
+`build_time_ms`
+: 
+
+`parallel`
+: 
+
+`incremental`
+: 
+
+`skipped`
+: 
+
+`total_directives`
+: 
+
+`directives_by_type`
+: 
+
+`discovery_time_ms`
+: 
+
+`taxonomy_time_ms`
+: 
+
+`rendering_time_ms`
+: 
+
+`assets_time_ms`
+: 
+
+`postprocess_time_ms`
+: 
+
+`health_check_time_ms`
+: 
+
+`memory_rss_mb`
+: 
+
+`memory_heap_mb`
+: 
+
+`memory_peak_mb`
+: 
+
+`cache_hits`
+: 
+
+`cache_misses`
+: 
+
+`time_saved_ms`
+: 
+
+`menu_time_ms`
+: 
+
+`related_posts_time_ms`
+: 
+
+`fonts_time_ms`
+: 
+
+`output_dir`
+: 
+
+`changed_outputs`
+: 
+
+`warnings`
+: 
+
+`template_errors`
+: 
+
+:::
 
 
 
@@ -165,41 +220,11 @@ Group warnings by type.
 
 
 
-#### `has_errors`
-```python
-def has_errors(self) -> bool
-```
-
-
-Check if build has any errors.
-
-
-
-**Returns**
-
-
-`bool`
-
-
-
-#### `warnings_by_type`
-```python
-def warnings_by_type(self) -> dict[str, list]
-```
-
-
-Group warnings by type.
-
-
-
-**Returns**
-
-
-`dict[str, list]`
-
-
-
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self)
 ```
@@ -211,6 +236,10 @@ Initialize mutable defaults.
 
 
 #### `add_warning`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_warning(self, file_path: str, message: str, warning_type: str = 'other') -> None
 ```
@@ -233,7 +262,9 @@ Add a warning to the build.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -241,6 +272,10 @@ Add a warning to the build.
 
 
 #### `add_template_error`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_template_error(self, error: Any) -> None
 ```
@@ -261,7 +296,9 @@ Add a rich template error.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -269,6 +306,10 @@ Add a rich template error.
 
 
 #### `add_directive`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_directive(self, directive_type: str) -> None
 ```
@@ -289,7 +330,9 @@ Track a directive usage.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -297,6 +340,10 @@ Track a directive usage.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -306,7 +353,9 @@ Convert stats to dictionary.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -602,5 +651,5 @@ Display all collected template errors.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/utils/build_stats.py`*
+*Generated by Bengal autodoc from `bengal/utils/build_stats.py`*
 

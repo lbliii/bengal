@@ -1,12 +1,11 @@
 {#-
 Class Attributes Component
 
-Renders class attributes in a safe table format.
-Uses the shared parameter table macro for consistency.
+Renders class attributes as a definition list.
+Definition lists handle long descriptions gracefully.
 -#}
 
 {% from 'macros/safe_macros.md.jinja2' import safe_section %}
-{% from 'macros/parameter_table.md.jinja2' import parameter_table %}
 
 {% set attributes = item.children | selectattr('element_type', 'equalto', 'attribute') | list %}
 
@@ -14,14 +13,10 @@ Uses the shared parameter table macro for consistency.
 {% call safe_section("class_attributes") %}
 **Attributes:**
 
-:::{div} api-attributes
 {% for attr in attributes %}
 `{{ attr.name }}`
-: {% if attr.metadata.type_annotation %}`{{ attr.metadata.type_annotation }}`
-{% endif %}{{ attr.description | default('*No description provided.*') | trim | indent(2, first=True) }}
+: {% if attr.metadata.type_annotation %}`{{ attr.metadata.type_annotation }}` — {% endif %}{{ attr.description | default('*No description provided.*') | trim }}
 
 {% endfor %}
-:::
-
 {% endcall %}
 {% endif %}

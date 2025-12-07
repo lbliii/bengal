@@ -2,14 +2,14 @@
 ---
 title: "template_testing"
 type: "python-module"
-source_file: "bengal/bengal/autodoc/template_testing.py"
+source_file: "bengal/autodoc/template_testing.py"
 line_number: 1
 description: "Template testing framework for automated template validation and regression testing. Provides comprehensive testing capabilities for template safety, rendering accuracy, and performance regression det..."
 ---
 
 # template_testing
 **Type:** Module
-**Source:** [View source](bengal/bengal/autodoc/template_testing.py#L1)
+**Source:** [View source](bengal/autodoc/template_testing.py#L1)
 
 
 
@@ -40,16 +40,32 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `name` | - | *No description provided.* |
-| `template_name` | - | *No description provided.* |
-| `element_data` | - | *No description provided.* |
-| `config_data` | - | *No description provided.* |
-| `expected_content` | - | *No description provided.* |
-| `expected_errors` | - | *No description provided.* |
-| `should_fail` | - | *No description provided.* |
-| `performance_threshold_ms` | - | *No description provided.* |
+:::{div} api-attributes
+`name`
+: 
+
+`template_name`
+: 
+
+`element_data`
+: 
+
+`config_data`
+: 
+
+`expected_content`
+: 
+
+`expected_errors`
+: 
+
+`should_fail`
+: 
+
+`performance_threshold_ms`
+: 
+
+:::
 
 
 
@@ -62,6 +78,10 @@ This is a dataclass.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -71,14 +91,20 @@ Convert to dictionary for serialization.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @classmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_dict(cls, data: dict[str, Any]) -> TemplateTestCase
 ```
@@ -99,7 +125,9 @@ Create from dictionary.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TemplateTestCase`
@@ -121,17 +149,35 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `test_case_name` | - | *No description provided.* |
-| `template_name` | - | *No description provided.* |
-| `passed` | - | *No description provided.* |
-| `render_time_ms` | - | *No description provided.* |
-| `content_length` | - | *No description provided.* |
-| `errors` | - | *No description provided.* |
-| `warnings` | - | *No description provided.* |
-| `failure_reason` | - | *No description provided.* |
-| `content_preview` | - | *No description provided.* |
+:::{div} api-attributes
+`test_case_name`
+: 
+
+`template_name`
+: 
+
+`passed`
+: 
+
+`render_time_ms`
+: 
+
+`content_length`
+: 
+
+`errors`
+: 
+
+`warnings`
+: 
+
+`failure_reason`
+: 
+
+`content_preview`
+: 
+
+:::
 
 
 
@@ -144,6 +190,10 @@ This is a dataclass.
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -153,7 +203,9 @@ Convert to dictionary for serialization.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -179,6 +231,10 @@ Test suite for template validation and regression testing.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, renderer: SafeTemplateRenderer, validator: TemplateValidator, sample_generator: SampleDataGenerator | None = None)
 ```
@@ -203,6 +259,10 @@ def __init__(self, renderer: SafeTemplateRenderer, validator: TemplateValidator,
 
 
 #### `add_test_case`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_test_case(self, test_case: TemplateTestCase) -> None
 ```
@@ -223,7 +283,9 @@ Add a test case to the suite.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -231,6 +293,10 @@ Add a test case to the suite.
 
 
 #### `generate_standard_test_cases`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def generate_standard_test_cases(self) -> None
 ```
@@ -240,7 +306,9 @@ Generate standard test cases for all template types.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -249,6 +317,10 @@ Generate standard test cases for all template types.
 
 
 #### `run_test_case`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def run_test_case(self, test_case: TemplateTestCase) -> TemplateTestResult
 ```
@@ -269,7 +341,9 @@ Run a single test case.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `TemplateTestResult` - Test result
@@ -278,6 +352,10 @@ Run a single test case.
 
 
 #### `run_all_tests`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def run_all_tests(self) -> dict[str, Any]
 ```
@@ -287,7 +365,9 @@ Run all test cases in the suite.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Test suite results summary
@@ -295,6 +375,10 @@ Run all test cases in the suite.
 
 
 #### `get_test_summary`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_test_summary(self) -> dict[str, Any]
 ```
@@ -304,7 +388,9 @@ Get summary of test results.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
@@ -312,6 +398,10 @@ Get summary of test results.
 
 
 #### `export_results`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def export_results(self, output_path: Path) -> None
 ```
@@ -332,7 +422,9 @@ Export test results to JSON file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -340,6 +432,10 @@ Export test results to JSON file.
 
 
 #### `load_test_cases`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def load_test_cases(self, input_path: Path) -> None
 ```
@@ -360,7 +456,9 @@ Load test cases from JSON file.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -386,6 +484,10 @@ Detect performance and output regressions in templates.
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, baseline_path: Path | None = None)
 ```
@@ -408,6 +510,10 @@ def __init__(self, baseline_path: Path | None = None)
 
 
 #### `load_baseline`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def load_baseline(self) -> None
 ```
@@ -417,7 +523,9 @@ Load baseline test results.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -425,6 +533,10 @@ Load baseline test results.
 
 
 #### `save_baseline`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_baseline(self, test_results: dict[str, Any]) -> None
 ```
@@ -445,7 +557,9 @@ Save current results as new baseline.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -453,6 +567,10 @@ Save current results as new baseline.
 
 
 #### `detect_regressions`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def detect_regressions(self, current_results: dict[str, Any]) -> dict[str, Any]
 ```
@@ -473,7 +591,9 @@ Detect regressions compared to baseline.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Regression analysis report
@@ -516,5 +636,5 @@ Create a comprehensive template test suite.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/autodoc/template_testing.py`*
+*Generated by Bengal autodoc from `bengal/autodoc/template_testing.py`*
 

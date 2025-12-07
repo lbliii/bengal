@@ -14,24 +14,19 @@ Extends Python base template with function-specific features.
 {% block doc_type %}python-function{% endblock %}
 
 {% block badges %}
-:::{div} api-badge-group
 :::{badge} Function
 :class: api-badge
 :::
-
 {% if element.metadata.is_async %}
 :::{badge} Async
 :class: api-badge api-badge-async
 :::
 {% endif %}
-
 {% if element.metadata.deprecated %}
 :::{badge} Deprecated
 :class: api-badge api-badge-deprecated
 :::
 {% endif %}
-
-:::
 {% endblock %}
 
 {% block content %}

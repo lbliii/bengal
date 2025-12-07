@@ -8,3 +8,5 @@ theme = "default"
 sources = ["src"]
 output_dir = "content/api"
 
+[autodoc.python]
+enabled = true

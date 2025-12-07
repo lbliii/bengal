@@ -2,14 +2,14 @@
 ---
 title: "asset_dependency_map"
 type: "python-module"
-source_file: "bengal/bengal/cache/asset_dependency_map.py"
+source_file: "bengal/cache/asset_dependency_map.py"
 line_number: 1
 description: "Asset Dependency Map for incremental builds. Tracks which pages reference which assets to enable on-demand asset discovery. This allows incremental builds to discover only assets needed for changed pa..."
 ---
 
 # asset_dependency_map
 **Type:** Module
-**Source:** [View source](bengal/bengal/cache/asset_dependency_map.py#L1)
+**Source:** [View source](bengal/cache/asset_dependency_map.py#L1)
 
 
 
@@ -59,11 +59,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `url` | - | *No description provided.* |
-| `type` | - | *No description provided.* |
-| `source_page` | - | *No description provided.* |
+:::{div} api-attributes
+`url`
+: 
+
+`type`
+: 
+
+`source_page`
+: 
+
+:::
 
 
 
@@ -90,11 +96,17 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `assets` | - | *No description provided.* |
-| `tracked_at` | - | *No description provided.* |
-| `is_valid` | - | *No description provided.* |
+:::{div} api-attributes
+`assets`
+: 
+
+`tracked_at`
+: 
+
+`is_valid`
+: 
+
+:::
 
 
 
@@ -107,6 +119,10 @@ This is a dataclass.
 
 
 #### `to_cache_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_cache_dict(self) -> dict[str, Any]
 ```
@@ -116,14 +132,20 @@ Serialize to cache-friendly dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_cache_dict` @classmethod
+#### `from_cache_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_cache_dict(cls, data: dict[str, Any]) -> AssetDependencyEntry
 ```
@@ -144,7 +166,9 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `AssetDependencyEntry`
@@ -152,6 +176,10 @@ Deserialize from cache dictionary (Cacheable protocol).
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict[str, Any]
 ```
@@ -161,14 +189,20 @@ Alias for to_cache_dict (test compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]`
 
 
 
-#### `from_dict` @classmethod
+#### `from_dict`
+
+:::{div} api-badge-group
+<span class="api-badge api-badge-classmethod">classmethod</span>:::
+
 ```python
 def from_dict(cls, data: dict[str, Any]) -> AssetDependencyEntry
 ```
@@ -189,7 +223,9 @@ Alias for from_cache_dict (test compatibility).
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `AssetDependencyEntry`
@@ -237,6 +273,10 @@ Cache Format (JSON):
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self, cache_path: Path | None = None)
 ```
@@ -260,6 +300,10 @@ Initialize asset dependency map.
 
 
 #### `save_to_disk`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def save_to_disk(self) -> None
 ```
@@ -269,7 +313,9 @@ Save asset dependencies to disk.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -277,6 +323,10 @@ Save asset dependencies to disk.
 
 
 #### `track_page_assets`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def track_page_assets(self, source_path: Path, assets: set[str]) -> None
 ```
@@ -298,7 +348,9 @@ Track assets referenced by a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -306,6 +358,10 @@ Track assets referenced by a page.
 
 
 #### `get_page_assets`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_page_assets(self, source_path: Path) -> set[str] | None
 ```
@@ -326,7 +382,9 @@ Get assets referenced by a page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str] | None` - Set of asset URLs if found and valid, None otherwise
@@ -334,6 +392,10 @@ Get assets referenced by a page.
 
 
 #### `has_assets`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def has_assets(self, source_path: Path) -> bool
 ```
@@ -354,7 +416,9 @@ Check if page has tracked assets.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if page has valid asset tracking
@@ -362,6 +426,10 @@ Check if page has tracked assets.
 
 
 #### `get_all_assets`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_all_assets(self) -> set[str]
 ```
@@ -371,7 +439,9 @@ Get all unique assets referenced by any page.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of all asset URLs across all pages
@@ -379,6 +449,10 @@ Get all unique assets referenced by any page.
 
 
 #### `get_assets_for_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_assets_for_pages(self, source_paths: list[Path]) -> set[str]
 ```
@@ -399,7 +473,9 @@ Get all assets referenced by a set of pages.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of all asset URLs referenced by the given pages
@@ -407,6 +483,10 @@ Get all assets referenced by a set of pages.
 
 
 #### `invalidate`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate(self, source_path: Path) -> None
 ```
@@ -427,7 +507,9 @@ Mark a page's asset tracking as invalid.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -435,6 +517,10 @@ Mark a page's asset tracking as invalid.
 
 
 #### `invalidate_all`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def invalidate_all(self) -> None
 ```
@@ -444,7 +530,9 @@ Invalidate all asset tracking entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -452,6 +540,10 @@ Invalidate all asset tracking entries.
 
 
 #### `clear`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def clear(self) -> None
 ```
@@ -461,7 +553,9 @@ Clear all asset tracking.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -469,6 +563,10 @@ Clear all asset tracking.
 
 
 #### `get_valid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_valid_entries(self) -> dict[str, set[str]]
 ```
@@ -478,7 +576,9 @@ Get all valid asset tracking entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, set[str]]` - Dictionary mapping source_path to asset set for valid entries
@@ -486,6 +586,10 @@ Get all valid asset tracking entries.
 
 
 #### `get_invalid_entries`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_invalid_entries(self) -> dict[str, set[str]]
 ```
@@ -495,7 +599,9 @@ Get all invalid asset tracking entries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, set[str]]` - Dictionary mapping source_path to asset set for invalid entries
@@ -503,6 +609,10 @@ Get all invalid asset tracking entries.
 
 
 #### `stats`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def stats(self) -> dict[str, Any]
 ```
@@ -512,7 +622,9 @@ Get asset dependency map statistics.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict[str, Any]` - Dictionary with cache stats
@@ -520,6 +632,10 @@ Get asset dependency map statistics.
 
 
 #### `get_asset_pages`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def get_asset_pages(self, asset_url: str) -> set[str]
 ```
@@ -540,7 +656,9 @@ Get all pages that reference a specific asset.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `set[str]` - Set of page paths that reference this asset
@@ -548,5 +666,5 @@ Get all pages that reference a specific asset.
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/cache/asset_dependency_map.py`*
+*Generated by Bengal autodoc from `bengal/cache/asset_dependency_map.py`*
 

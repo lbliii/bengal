@@ -2,14 +2,14 @@
 ---
 title: "menu"
 type: "python-module"
-source_file: "bengal/bengal/core/menu.py"
+source_file: "bengal/core/menu.py"
 line_number: 1
 description: "Menu system for navigation and site structure. Provides menu building from configuration, page frontmatter, and section hierarchy. Supports hierarchical menus, active state tracking, and i18n localiza..."
 ---
 
 # menu
 **Type:** Module
-**Source:** [View source](bengal/bengal/core/menu.py#L1)
+**Source:** [View source](bengal/core/menu.py#L1)
 
 
 
@@ -66,18 +66,38 @@ This is a dataclass.
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `name` | - | Display name for the menu item |
-| `url` | - | URL path for the menu item |
-| `weight` | - | Sort weight (lower values appear first) |
-| `parent` | - | Parent menu identifier (for hierarchical menus) |
-| `identifier` | - | Unique identifier (auto-generated from name if not provided) |
-| `icon` | - | Icon name from frontmatter (e.g., 'book', 'folder', 'terminal') |
-| `children` | - | Child menu items (populated during menu building) |
-| `active` | - | Whether this item matches the current page URL |
-| `active_trail` | - | Whether this item is in the active path (has active child) |
-| `Relationships` | - | - Used by: MenuBuilder for menu construction - Used by: MenuOrchestrator for menu building - Used in: Templates via site.menu for navigation rendering |
+:::{div} api-attributes
+`name`
+: Display name for the menu item
+
+`url`
+: URL path for the menu item
+
+`weight`
+: Sort weight (lower values appear first)
+
+`parent`
+: Parent menu identifier (for hierarchical menus)
+
+`identifier`
+: Unique identifier (auto-generated from name if not provided)
+
+`icon`
+: Icon name from frontmatter (e.g., 'book', 'folder', 'terminal')
+
+`children`
+: Child menu items (populated during menu building)
+
+`active`
+: Whether this item matches the current page URL
+
+`active_trail`
+: Whether this item is in the active path (has active child)
+
+`Relationships`
+: - Used by: MenuBuilder for menu construction - Used by: MenuOrchestrator for menu building - Used in: Templates via site.menu for navigation rendering
+
+:::
 
 
 
@@ -90,6 +110,10 @@ This is a dataclass.
 
 
 #### `__post_init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __post_init__(self)
 ```
@@ -115,6 +139,10 @@ MenuItem(name="Home Page") → identifier="home-page"
 
 
 #### `add_child`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_child(self, child: MenuItem) -> None
 ```
@@ -138,7 +166,9 @@ by weight (ascending). Lower weights appear first in the list.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -158,6 +188,10 @@ item = MenuItem(name="Parent", url="/parent")
 
 
 #### `mark_active`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def mark_active(self, current_url: str) -> bool
 ```
@@ -183,7 +217,9 @@ comparison.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `bool` - True if this item or any child is active, False otherwise
@@ -206,6 +242,10 @@ item = MenuItem(name="Blog", url="/blog")
 
 
 #### `reset_active`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def reset_active(self) -> None
 ```
@@ -218,7 +258,9 @@ each page render to ensure fresh state for active item detection.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -235,6 +277,10 @@ item.reset_active()  # Clears active flags for item and all descendants
 
 
 #### `to_dict`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def to_dict(self) -> dict
 ```
@@ -247,7 +293,9 @@ and template rendering. Recursively converts children to dictionaries.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `dict` - Dictionary with name, url, icon, active, active_trail, and children fields.
@@ -292,13 +340,23 @@ Creation:
 
 **Attributes:**
 
-| Name | Type | Description |
-|:-----|:-----|:------------|
-| `items` | - | List of MenuItem objects (flat list before hierarchy building) |
-| `_seen_identifiers` | - | Set of seen identifiers for deduplication |
-| `_seen_urls` | - | Set of seen URLs for deduplication |
-| `_seen_names` | - | Set of seen names for deduplication Behavior Notes: - Identifiers: Each MenuItem has an identifier (slug from name by default). Parent references use identifiers. - Cycle detection: build_hierarchy() detects circular references and raises ValueError when a cycle is found. Consumers should surface this early as a configuration error. - Deduplication: Automatically prevents duplicate items by identifier, URL, and name. |
-| `Relationships` | - | - Uses: MenuItem for menu item representation - Used by: MenuOrchestrator for menu building - Used in: Menu building during content discovery phase |
+:::{div} api-attributes
+`items`
+: List of MenuItem objects (flat list before hierarchy building)
+
+`_seen_identifiers`
+: Set of seen identifiers for deduplication
+
+`_seen_urls`
+: Set of seen URLs for deduplication
+
+`_seen_names`
+: Set of seen names for deduplication Behavior Notes: - Identifiers: Each MenuItem has an identifier (slug from name by default). Parent references use identifiers. - Cycle detection: build_hierarchy() detects circular references and raises ValueError when a cycle is found. Consumers should surface this early as a configuration error. - Deduplication: Automatically prevents duplicate items by identifier, URL, and name.
+
+`Relationships`
+: - Uses: MenuItem for menu item representation - Used by: MenuOrchestrator for menu building - Used in: Menu building during content discovery phase
+
+:::
 
 
 
@@ -311,6 +369,10 @@ Creation:
 
 
 #### `__init__`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def __init__(self)
 ```
@@ -324,6 +386,10 @@ def __init__(self)
 
 
 #### `add_from_config`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_from_config(self, menu_config: list[dict]) -> None
 ```
@@ -348,7 +414,9 @@ for skipped items.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -369,6 +437,10 @@ menu_config = [
 
 
 #### `add_from_page`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def add_from_page(self, page: Any, menu_name: str, menu_config: dict) -> None
 ```
@@ -395,7 +467,9 @@ duplicates automatically.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -417,6 +491,10 @@ duplicates automatically.
 
 
 #### `build_hierarchy`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def build_hierarchy(self) -> list[MenuItem]
 ```
@@ -437,7 +515,9 @@ Process:
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `list[MenuItem]` - List of root MenuItem objects (no parent) with children populated.
@@ -466,6 +546,10 @@ builder.add_from_config([{"name": "Home", "url": "/"}])
 
 
 #### `mark_active_items`
+
+:::{div} api-badge-group
+:::
+
 ```python
 def mark_active_items(self, current_url: str, menu_items: list[MenuItem]) -> None
 ```
@@ -491,7 +575,9 @@ Resets all active states before marking to ensure clean state.
 
 
 
-**Returns**
+:::{rubric} Returns
+:class: rubric-returns
+:::
 
 
 `None`
@@ -510,4 +596,5 @@ menu_items = builder.build_hierarchy()
 
 
 ---
-*Generated by Bengal autodoc from `bengal/bengal/core/menu.py`*
+*Generated by Bengal autodoc from `bengal/core/menu.py`*
+
