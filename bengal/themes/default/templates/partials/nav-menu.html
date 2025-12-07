@@ -53,7 +53,7 @@ Args:
     <a href="{{ '/' | absolute_url }}">Home</a>
 </li>
 {% for item in auto_nav %}
-<li class="{{ 'active' if (page_url is string and page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+<li class="{{ 'active' if (page_url is string and item.relative_url is string and page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
     <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
 </li>
 {% endfor %}

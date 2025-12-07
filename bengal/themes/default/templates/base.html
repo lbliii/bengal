@@ -253,7 +253,7 @@ See: plan/active/rfc-template-performance-optimization.md
                     </li>
                     {% for item in _auto_nav %}
                     <li
-                        class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                        class="{{ 'active' if (_page_url is string and item.relative_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                         <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                     </li>
                     {% endfor %}
@@ -376,7 +376,7 @@ See: plan/active/rfc-template-performance-optimization.md
             </li>
             {% for item in _auto_nav %}
             <li
-                class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                class="{{ 'active' if (_page_url is string and item.relative_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}

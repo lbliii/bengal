@@ -692,9 +692,12 @@ class RenderingPipeline:
         Args:
             page: Virtual page with _prerendered_html set
         """
-        # Ensure output path is set
+        # Ensure output path is set and absolute
         if not page.output_path:
             page.output_path = self._determine_output_path(page)
+        elif not page.output_path.is_absolute():
+            # Virtual pages may have relative output paths - make absolute
+            page.output_path = self.site.output_dir / page.output_path
 
         # Use pre-rendered HTML as the parsed content
         page.parsed_ast = page._prerendered_html

@@ -156,6 +156,21 @@ class Section:
         )
 
     @property
+    def slug(self) -> str:
+        """
+        URL-friendly identifier for this section.
+
+        For virtual sections, uses the name directly.
+        For physical sections, uses the directory name.
+
+        Returns:
+            Section slug (e.g., "api", "core", "bengal-core")
+        """
+        if self._virtual:
+            return self.name
+        return self.path.name if self.path else self.name
+
+    @property
     def title(self) -> str:
         """Get section title from metadata or generate from name."""
         return self.metadata.get("title", self.name.replace("-", " ").title())

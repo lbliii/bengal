@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from bengal.autodoc.base import DocElement
-from bengal.autodoc.config import load_autodoc_config
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.core.page import Page
 from bengal.core.section import Section
@@ -55,9 +54,14 @@ class VirtualAutodocOrchestrator:
 
         Args:
             site: Site instance for configuration and context
+
+        Note:
+            Uses the site's already-loaded config, which supports both
+            YAML (config/_default/autodoc.yaml) and TOML (bengal.toml) formats.
         """
         self.site = site
-        self.config = load_autodoc_config(site.root_path)
+        # Use site's config directly (supports both YAML and TOML)
+        self.config = site.config.get("autodoc", {})
         self.python_config = self.config.get("python", {})
         self.template_env = self._create_template_environment()
 
@@ -420,8 +424,10 @@ class VirtualAutodocOrchestrator:
             # Create index page for this section
             html_content = self._render_section_index(section)
 
+            # Use non-index filename to avoid triggering index page detection
+            # in add_page (we set index_page directly below)
             index_page = Page.create_virtual(
-                source_id=f"{section_path}/_index.md",
+                source_id=f"__virtual__/{section_path}/section-index.md",
                 title=section.title,
                 metadata={
                     "type": "api-reference",
@@ -433,8 +439,10 @@ class VirtualAutodocOrchestrator:
                 output_path=Path(f"{section_path}/index.html"),
             )
 
+            # Set as section index directly (don't use add_page which would
+            # trigger index collision detection)
             section.index_page = index_page
-            section.add_page(index_page)
+            section.pages.append(index_page)
 
     def _render_section_index(self, section: Section) -> str:
         """Render section index page HTML."""

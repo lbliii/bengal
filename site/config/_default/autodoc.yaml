@@ -15,6 +15,7 @@ autodoc:
   # Python API Documentation
   python:
     enabled: true
+    virtual_pages: true  # Use new virtual page architecture (no markdown files)
     source_dirs:
       - ../bengal  # Document the main Bengal package
     output_dir: content/api

@@ -1197,12 +1197,20 @@ class Site:
         """
         Recursively register a section and its subsections in the registry.
 
+        Handles both regular sections (with path) and virtual sections (path=None).
+        Virtual sections (e.g., autodoc API sections) are registered by name.
+
         Args:
             section: Section to register (along with all its subsections)
         """
-        # Register this section
-        normalized = self._normalize_section_path(section.path)
-        self._section_registry[normalized] = section
+        # Handle virtual sections (path is None)
+        if section.path is None:
+            # Use section name as registry key for virtual sections
+            self._section_registry[Path(section.name)] = section
+        else:
+            # Register regular section by normalized path
+            normalized = self._normalize_section_path(section.path)
+            self._section_registry[normalized] = section
 
         # Register subsections recursively
         for subsection in section.subsections:

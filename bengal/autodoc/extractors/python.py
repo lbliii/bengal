@@ -104,19 +104,12 @@ class PythonExtractor(Extractor):
         Returns:
             List of DocElement objects
         """
-        # Store source root for module name resolution
-        # Use source_dirs from config if available, otherwise use the source parameter
-        source_dirs = self.config.get("source_dirs", [])
-        if source_dirs:
-            # Use the first source_dir that is a parent of the source
-            source_path = (
-                Path(source_dirs[0]) if isinstance(source_dirs[0], str) else source_dirs[0]
-            )
-            self._source_root = source_path
-        elif source.is_file():
-            self._source_root = source.parent
+        # Store source root for module name resolution (must be absolute)
+        # Always use the source parameter since it's already resolved by the caller
+        if source.is_file():
+            self._source_root = source.parent.resolve()
         else:
-            self._source_root = source
+            self._source_root = source.resolve()
 
         if source.is_file():
             return self._extract_file(source)
@@ -582,6 +575,10 @@ class PythonExtractor(Extractor):
             module_parts = module_parts[:-1]
         elif module_parts[-1].endswith(".py"):
             module_parts[-1] = module_parts[-1][:-3]
+
+        # If module_parts is empty (root __init__.py), use source_root name
+        if not module_parts and self._source_root:
+            module_parts = [self._source_root.name]
 
         return ".".join(module_parts)
 
