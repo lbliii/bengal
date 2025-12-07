@@ -175,8 +175,9 @@ class VirtualAutodocOrchestrator:
         # 4. Create virtual pages
         pages = self._create_pages(all_elements, sections)
 
-        # 5. Create index pages for sections
-        self._create_index_pages(sections)
+        # 5. Create index pages for sections (adds to pages list)
+        index_pages = self._create_index_pages(sections)
+        pages.extend(index_pages)
 
         logger.info(
             "virtual_autodoc_complete",
@@ -418,13 +419,18 @@ class VirtualAutodocOrchestrator:
 </div>
 """
 
-    def _create_index_pages(self, sections: dict[str, Section]) -> None:
+    def _create_index_pages(self, sections: dict[str, Section]) -> list[Page]:
         """
         Create index pages for sections that need them.
 
         Args:
             sections: Section dictionary to process
+
+        Returns:
+            List of created index pages (to add to main pages list)
         """
+        created_pages: list[Page] = []
+        
         for section_path, section in sections.items():
             if section.index_page is not None:
                 continue
@@ -457,6 +463,9 @@ class VirtualAutodocOrchestrator:
             # trigger index collision detection)
             section.index_page = index_page
             section.pages.append(index_page)
+            created_pages.append(index_page)
+        
+        return created_pages
 
     def _render_section_index(self, section: Section) -> str:
         """Render section index page HTML."""
