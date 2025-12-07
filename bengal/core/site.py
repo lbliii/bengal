@@ -139,6 +139,11 @@ class Site:
         if isinstance(self.root_path, str):
             self.root_path = Path(self.root_path)
 
+        # Ensure root_path is always absolute to eliminate CWD-dependent behavior.
+        # See: plan/active/rfc-path-resolution-architecture.md
+        if not self.root_path.is_absolute():
+            self.root_path = self.root_path.resolve()
+
         theme_section = self.config.get("theme", {})
         if isinstance(theme_section, dict):
             self.theme = theme_section.get("name", "default")

@@ -1,6 +1,6 @@
 # RFC: Centralized Path Resolution Architecture
 
-**Status**: Draft  
+**Status**: Implemented  
 **Author**: AI Assistant (based on debugging session 2025-12-07)  
 **Created**: 2025-12-07  
 **Related**: `rfc-api-explorer-layout.md`, virtual pages implementation
@@ -85,6 +85,36 @@ def _register_section_recursive(self, section: Section) -> None:
 
 **Fix required**: Special-case virtual sections with `path=None`.
 
+### Systemic Analysis (Broader Codebase Check)
+
+A broader audit of the codebase reveals this is a **systemic issue** beyond just the core models. Multiple subsystems default to `Path.cwd()` when context is missing, which makes behavior dependent on where the command is run.
+
+#### Affected Subsystems
+
+1.  **Rendering Directives (Critical)**:
+    -   `LiteralIncludeDirective`, `IncludeDirective`, `GlossaryDirective`, and `DataTableDirective` all use a fallback pattern:
+        ```python
+        root_path = getattr(state, "root_path", None)
+        root_path = Path(root_path) if root_path else Path.cwd()  # ❌ CWD Fallback
+        ```
+    -   **Risk**: If `root_path` isn't correctly passed in `state` (e.g., during partial rendering or testing), these directives will resolve paths relative to the *shell* directory, not the *site* directory.
+
+2.  **Autodoc & Extraction**:
+    -   `VirtualAutodocOrchestrator` and `PythonExtractor` call `.resolve()` on paths from config:
+        ```python
+        source_path = source_path.resolve()  # ❌ Resolves config path relative to CWD
+        ```
+    -   If `source_path` is `../src` in config, it resolves differently depending on where `bengal build` is run.
+
+3.  **Health Checks & CLI**:
+    -   `AutoFixer` defaults to `Path.cwd()` if `site_root` isn't provided.
+    -   CLI commands (`sources.py`) default to `Path.cwd()`.
+
+4.  **Theme Resources**:
+    -   `ThemeRegistry` attempts to resolve resources but relies on package location logic that might be fragile if not anchored.
+
+**Conclusion**: The reliance on `Path.cwd()` as a default is pervasive. The architecture must enforce passing `site.root_path` (absolute) to ALL components that perform file I/O.
+
 ---
 
 ## Current Architecture (Problematic)
@@ -144,6 +174,7 @@ def _register_section_recursive(self, section: Section) -> None:
 │  - root_path ALWAYS absolute: Path(root).resolve()              │
 │  - All config paths already absolute                            │
 │  - PathResolver utility for any additional resolution           │
+│  - 🚫 NO Path.cwd() allowed in core/rendering logic             │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
@@ -158,6 +189,12 @@ def _register_section_recursive(self, section: Section) -> None:
                               ▼
                     ✅ CONSISTENT RESULTS
 ```
+
+### Architectural Rules
+
+1.  **No `Path.cwd()`**: Core logic must never call `Path.cwd()` or `os.getcwd()`.
+2.  **Context is Mandatory**: Renderers and directives must receive `site.root_path` in their context/state. Fallback to CWD is forbidden.
+3.  **Absolute Storage**: `Site` and `Config` objects only store absolute paths.
 
 ---
 
@@ -180,6 +217,27 @@ def from_config(cls, root_path: Path, ...) -> Site:
 ```
 
 **Impact**: Minimal - just ensures consistent base.
+
+### Phase 1.5: Audit and Fix Directives (High Priority)
+
+**Modules**: `bengal/rendering/plugins/directives/*.py`
+
+Directives currently fall back to `Path.cwd()` if context is missing. This must be fixed to strictly require `root_path` or fail gracefully.
+
+```python
+# Current (Bad)
+root_path = getattr(state, "root_path", None) or Path.cwd()
+
+# Proposed (Good)
+root_path = getattr(state, "root_path", None)
+if not root_path:
+    logger.warning("directive_missing_context", directive="include", action="skipping")
+    return None  # Or raise error in strict mode
+```
+
+**Action**:
+- Remove `Path.cwd()` fallbacks in `literalinclude.py`, `include.py`, `glossary.py`, `data_table.py`.
+- Update rendering pipeline to ensure `root_path` is always passed in state.
 
 ### Phase 2: Config Path Resolution (Medium Risk)
 
@@ -414,12 +472,29 @@ Each bug required tracing through multiple files to find the resolution point. C
 
 ## Decision
 
-- [ ] Implement Phase 1 (Site.root_path always absolute)
-- [ ] Implement Phase 2 (Config path resolution)
-- [ ] Implement Phase 3 (PathResolver utility)
-- [ ] Implement Phase 4 (Virtual object contracts)
+- [x] Implement Phase 1 (Site.root_path always absolute)
+- [ ] Implement Phase 2 (Config path resolution) - DEFERRED: Not needed at this time
+- [x] Implement Phase 3 (PathResolver utility)
+- [x] Implement Phase 4 (Virtual object contracts) - Already done, verified in Section model
 - [ ] Defer to future work
 - [ ] Reject (document current behavior instead)
+
+### Implementation Notes (2025-12-07)
+
+**Phase 1**: Modified `Site.__post_init__` to resolve relative `root_path` to absolute.
+
+**Phase 1.5**: Removed `Path.cwd()` fallbacks from all directives:
+- `LiteralIncludeDirective._resolve_path`
+- `IncludeDirective._resolve_path`
+- `GlossaryDirective._load_glossary_data`
+- `DataTableDirective._load_data`
+
+**Phase 3**: Created `bengal/utils/path_resolver.py` with:
+- `PathResolver` class for centralized resolution
+- `resolve_path()` convenience function
+- Security methods (`is_within_base`, `relative_to_base`)
+
+**Tests**: Added `tests/unit/test_path_resolver.py` with 20 tests covering all PathResolver functionality.
 
 ---
 

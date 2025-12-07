@@ -213,16 +213,31 @@ class LiteralIncludeDirective(DirectivePlugin):
             - Rejects paths outside site root
             - Rejects symlinks (could escape containment)
 
+        Path Resolution:
+            - root_path MUST be provided via state (set by rendering pipeline)
+            - No fallback to Path.cwd() - eliminates CWD-dependent behavior
+            - See: plan/active/rfc-path-resolution-architecture.md
+
         Args:
             path: Relative or absolute path to file
-            state: Parser state (may contain root_path, source_path)
+            state: Parser state (must contain root_path, may contain source_path)
 
         Returns:
-            Resolved Path object, or None if not found or outside site root
+            Resolved Path object, or None if not found, outside site root,
+            or if root_path is not available in state
         """
-        # Try to get root_path from state (set by rendering pipeline)
+        # Get root_path from state (MUST be set by rendering pipeline)
+        # No CWD fallback - path resolution must be explicit
         root_path = getattr(state, "root_path", None)
-        root_path = Path(root_path) if root_path else Path.cwd()
+        if not root_path:
+            logger.warning(
+                "literalinclude_missing_root_path",
+                path=path,
+                action="skipping",
+                hint="Ensure rendering pipeline passes root_path in state",
+            )
+            return None
+        root_path = Path(root_path)
 
         # Try to get source_path from state (current page being parsed)
         source_path = getattr(state, "source_path", None)

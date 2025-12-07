@@ -326,7 +326,17 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
                         return {"terms": terms}
 
     # Fallback: Load from file using site.root_path
-    root_path = site.root_path if site and hasattr(site, "root_path") else Path.cwd()
+    # No CWD fallback - path resolution must be explicit
+    # See: plan/active/rfc-path-resolution-architecture.md
+    if not site or not hasattr(site, "root_path"):
+        logger.warning(
+            "glossary_missing_site_context",
+            source_path=source_path,
+            action="returning_error",
+            hint="Ensure renderer has _site attribute with root_path",
+        )
+        return {"error": "Site context not available for path resolution"}
+    root_path = site.root_path
 
     file_path = Path(root_path) / source_path
 

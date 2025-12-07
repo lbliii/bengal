@@ -141,15 +141,29 @@ class DataTableDirective(DirectivePlugin):
         """
         Load data from YAML or CSV file.
 
+        Path Resolution:
+            - root_path MUST be provided via state (set by rendering pipeline)
+            - No fallback to Path.cwd() - eliminates CWD-dependent behavior
+            - See: plan/active/rfc-path-resolution-architecture.md
+
         Args:
             path: Relative path to data file
-            state: Parser state (contains site context)
+            state: Parser state (must contain root_path from rendering pipeline)
 
         Returns:
             Dict with 'columns' and 'data' keys, or 'error' key on failure
         """
-        # Try to get root_path from state (set by rendering pipeline)
-        root_path = getattr(state, "root_path", None) or Path.cwd()
+        # Get root_path from state (MUST be set by rendering pipeline)
+        # No CWD fallback - path resolution must be explicit
+        root_path = getattr(state, "root_path", None)
+        if not root_path:
+            logger.warning(
+                "data_table_missing_root_path",
+                path=path,
+                action="returning_error",
+                hint="Ensure rendering pipeline passes root_path in state",
+            )
+            return {"error": "Site context not available for path resolution"}
         file_path = Path(root_path) / path
 
         # Check if file exists
