@@ -1,5 +1,16 @@
 ## Unreleased
 
+### Typed Autodoc Models ✅
+- **autodoc(models)**: create typed metadata dataclasses replacing untyped `metadata: dict[str, Any]`
+- **autodoc(models/common)**: add `SourceLocation` and `QualifiedName` with validation
+- **autodoc(models/python)**: add `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`, `PythonAttributeMetadata`, `PythonAliasMetadata`
+- **autodoc(models/cli)**: add `CLICommandMetadata`, `CLIGroupMetadata`, `CLIOptionMetadata`
+- **autodoc(models/openapi)**: add `OpenAPIEndpointMetadata`, `OpenAPIOverviewMetadata`, `OpenAPISchemaMetadata`
+- **autodoc(base)**: add `typed_metadata` field to `DocElement` with serialization support
+- **autodoc(extractors)**: update Python, CLI, OpenAPI extractors to dual-write typed and untyped metadata
+- **tests**: add 80+ tests for models, serialization, and extractor integration
+- **docs**: RFC and plan moved to implemented
+
 ### Silent Error Elimination ✅
 - **config(env_overrides)**: upgrade exception logging from DEBUG to WARNING for user-impacting failures with helpful hints
 - **utils(theme_registry)**: add structured logging to `assets_exists`, `manifest_exists`, `resolve_resource_path`, and `get_installed_themes` methods
