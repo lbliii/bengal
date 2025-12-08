@@ -79,7 +79,7 @@ def transform_internal_links(html: str, baseurl: str) -> str:
 
         # Skip if path already starts with baseurl
         if path.startswith(baseurl + "/") or path == baseurl:
-            return match.group(0)
+            return str(match.group(0))
 
         # Prepend baseurl
         new_path = f"{baseurl}{path}"
@@ -115,7 +115,9 @@ def should_transform_links(config: dict) -> bool:
     # Allow explicit opt-out via config
     # Default to True if baseurl is set
     build_config = config.get("build", {}) or {}
-    return build_config.get("transform_links", True)
+    if isinstance(build_config, dict):
+        return bool(build_config.get("transform_links", True))
+    return True
 
 
 def get_baseurl(config: dict) -> str:

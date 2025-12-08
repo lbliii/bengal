@@ -484,7 +484,9 @@ class Section:
 
         baseurl = ""
         try:
-            baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
+            site = getattr(self, "_site", None)
+            if site is not None and hasattr(site, "config") and site.config is not None:
+                baseurl = site.config.get("baseurl", "")
         except Exception as e:
             logger.debug("section_baseurl_lookup_failed", section=self.name, error=str(e))
             baseurl = ""

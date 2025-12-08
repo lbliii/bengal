@@ -338,14 +338,16 @@ class Renderer:
             all_posts = (
                 page.metadata.get("_posts", []) if page.metadata is not None else []
             )  # Already filtered & sorted!
-            subsections = page.metadata.get("_subsections", []) if page.metadata is not None else []
-            paginator = page.metadata.get("_paginator")
-            page_num = page.metadata.get("_page_num", 1)
+            page_metadata = page.metadata if page.metadata is not None else {}
+            subsections = page_metadata.get("_subsections", [])
+            paginator = page_metadata.get("_paginator")
+            page_num = page_metadata.get("_page_num", 1)
 
             # Get posts for this page
             if paginator:
                 posts = paginator.page(page_num)
-                pagination = paginator.page_context(page_num, f"/{section.name}/")
+                section_name = section.name if section is not None else ""
+                pagination = paginator.page_context(page_num, f"/{section_name}/")
             else:
                 # Use pre-sorted posts directly (no re-sorting needed)
                 posts = all_posts
@@ -437,7 +439,11 @@ class Renderer:
 
                     for stored_item in stored_posts:
                         resolved_page = None
-                        if hasattr(stored_item, "source_path"):
+                        if (
+                            hasattr(stored_item, "source_path")
+                            and page_map is not None
+                            and str_page_map is not None
+                        ):
                             resolved_page = page_map.get(stored_item.source_path)
                             if not resolved_page:
                                 page_from_str_map = str_page_map.get(str(stored_item.source_path))
@@ -450,7 +456,11 @@ class Renderer:
                                 # Fallback to stored item if resolution fails
                                 all_posts.append(stored_item)
 
-                        elif isinstance(stored_item, str):
+                        elif (
+                            isinstance(stored_item, str)
+                            and page_map is not None
+                            and str_page_map is not None
+                        ):
                             from pathlib import Path
 
                             path_obj = Path(stored_item)
@@ -462,7 +472,8 @@ class Renderer:
                                 all_posts.append(resolved_page)
 
             # Get paginator info from metadata (for per_page setting)
-            paginator = page.metadata.get("_paginator")
+            page_metadata = page.metadata if page.metadata is not None else {}
+            paginator = page_metadata.get("_paginator")
 
             # Get posts for this page
             # Always prefer all_posts from metadata (most reliable)
@@ -503,8 +514,10 @@ class Renderer:
                 # Fallback: use paginator.items if all_posts is empty
                 # Resolve pages from site.pages for reliability (page_map already built above)
                 resolved_items = []
+                if page_map is None:
+                    page_map = {p.source_path: p for p in self.site.pages}
                 for item in paginator.items:
-                    if hasattr(item, "source_path"):
+                    if hasattr(item, "source_path") and page_map is not None:
                         resolved = page_map.get(item.source_path)
                         if resolved:
                             resolved_items.append(resolved)

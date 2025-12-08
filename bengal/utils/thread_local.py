@@ -30,7 +30,7 @@ from __future__ import annotations
 import inspect
 import threading
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -101,7 +101,7 @@ class ThreadLocalCache(Generic[T]):
                 instance = self._factory()  # type: ignore[call-arg]
             setattr(self._local, cache_key, instance)
 
-        return getattr(self._local, cache_key)
+        return cast(T, getattr(self._local, cache_key))
 
     def clear(self, key: str | None = None) -> None:
         """
@@ -117,11 +117,7 @@ class ThreadLocalCache(Generic[T]):
     def clear_all(self) -> None:
         """Clear all cached instances for current thread."""
         # Find all cache keys for this cache name
-        to_delete = [
-            attr
-            for attr in dir(self._local)
-            if attr.startswith(f"_cache_{self._name}_")
-        ]
+        to_delete = [attr for attr in dir(self._local) if attr.startswith(f"_cache_{self._name}_")]
         for attr in to_delete:
             delattr(self._local, attr)
 
@@ -169,4 +165,3 @@ class ThreadSafeSet:
     def __len__(self) -> int:
         with self._lock:
             return len(self._set)
-

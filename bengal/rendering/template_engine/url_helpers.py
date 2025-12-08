@@ -150,6 +150,6 @@ def filter_dateformat(date: Any, format: str = "%Y-%m-%d") -> str:
         return ""
 
     try:
-        return date.strftime(format)
+        return str(date.strftime(format))
     except (AttributeError, ValueError):
         return str(date)

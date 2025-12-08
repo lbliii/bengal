@@ -41,7 +41,10 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     if site_manifest.exists():
         try:
             data = toml.load(str(site_manifest))
-            return data.get("extends")
+            if isinstance(data, dict):
+                extends = data.get("extends")
+                return cast(str | None, extends) if extends is not None else None
+            return None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",

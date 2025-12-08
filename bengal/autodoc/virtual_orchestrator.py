@@ -71,6 +71,39 @@ class VirtualAutodocOrchestrator:
         self.openapi_config = self.config.get("openapi", {})
         self.template_env = self._create_template_environment()
 
+    def _relativize_paths(self, message: str) -> str:
+        """
+        Convert absolute paths in error messages to project-relative paths.
+
+        Makes error messages less noisy by showing paths relative to the
+        project root (e.g., /bengal/themes/... instead of /Users/name/.../bengal/themes/...).
+
+        Args:
+            message: Error message that may contain absolute paths
+
+        Returns:
+            Message with absolute paths converted to project-relative paths
+        """
+        import re
+
+        root_path = str(self.site.root_path)
+        # Also handle bengal package paths
+        import bengal
+
+        bengal_path = str(Path(bengal.__file__).parent.parent)
+
+        # Replace project root path with project name
+        project_name = self.site.root_path.name
+        message = message.replace(root_path, f"/{project_name}")
+
+        # Replace bengal package path with /bengal (for theme paths, etc.)
+        message = message.replace(bengal_path, "")
+
+        # Clean up any double slashes
+        message = re.sub(r"//+", "/", message)
+
+        return message
+
     def _create_template_environment(self) -> Environment:
         """Create Jinja2 environment for HTML templates."""
         import re
@@ -116,28 +149,35 @@ class VirtualAutodocOrchestrator:
         # Add icon function from main template system
         env.globals["icon"] = icon
 
-        # Register essential template functions and filters
-        # Register URL filters (absolute_url, url_encode, etc.)
-        from bengal.rendering.template_functions.urls import register as register_urls
+        # Register ALL template functions (strings, collections, dates, urls, i18n, navigation, seo, etc.)
+        # This ensures autodoc templates have access to the same functions as regular templates
+        from bengal.rendering.template_functions import register_all
 
-        register_urls(env, self.site)
+        register_all(env, self.site)
 
-        # Register date filters (dateformat, date_iso, etc.)
+        # Register dateformat filter (from url_helpers for legacy compatibility)
         from bengal.rendering.template_engine.url_helpers import filter_dateformat
-        from bengal.rendering.template_functions.dates import register as register_dates
 
-        register_dates(env, self.site)
         env.filters["dateformat"] = filter_dateformat
 
-        # Register string filters (truncatewords, slugify, etc.)
-        from bengal.rendering.template_functions.strings import register as register_strings
+        # Register menu functions (required by base.html templates)
+        # These are simplified versions that work without TemplateEngine instance
+        def get_menu(menu_name: str = "main") -> list[dict]:
+            """Get menu items by name."""
+            menu = self.site.menu.get(menu_name, [])
+            return [item.to_dict() for item in menu]
 
-        register_strings(env, self.site)
+        def get_menu_lang(menu_name: str = "main", lang: str = "") -> list[dict]:
+            """Get menu items for a specific language."""
+            if not lang:
+                return get_menu(menu_name)
+            localized = self.site.menu_localized.get(menu_name, {}).get(lang)
+            if localized is None:
+                return get_menu(menu_name)
+            return [item.to_dict() for item in localized]
 
-        # Register collection filters (selectattr, rejectattr, etc.)
-        from bengal.rendering.template_functions.collections import register as register_collections
-
-        register_collections(env, self.site)
+        env.globals["get_menu"] = get_menu
+        env.globals["get_menu_lang"] = get_menu_lang
 
         # Add custom tests for template filtering
         def test_match(value: str | None, pattern: str) -> bool:
@@ -718,8 +758,8 @@ class VirtualAutodocOrchestrator:
                     "autodoc_template_render_failed",
                     element=element.qualified_name,
                     template=template_name,
-                    error=str(e),
-                    fallback_error=str(fallback_error),
+                    error=self._relativize_paths(str(e)),
+                    fallback_error=self._relativize_paths(str(fallback_error)),
                 )
                 # Return minimal fallback HTML
                 return self._render_fallback(element)

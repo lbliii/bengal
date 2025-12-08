@@ -67,7 +67,7 @@ def calculate_backoff(
         jitter_range = delay * 0.25
         delay += random.uniform(-jitter_range, jitter_range)
 
-    return max(0.1, delay)  # Minimum 100ms
+    return float(max(0.1, delay))  # Minimum 100ms
 
 
 def retry_with_backoff(
@@ -179,4 +179,3 @@ async def async_retry_with_backoff(
                 raise
 
     raise last_error  # type: ignore[misc]
-
