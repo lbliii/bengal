@@ -106,7 +106,7 @@ class AppearanceConfig:
     default_mode: str = "system"
     default_palette: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate appearance configuration."""
         valid_modes = {"light", "dark", "system"}
         if self.default_mode not in valid_modes:

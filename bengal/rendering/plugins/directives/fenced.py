@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 from re import Match
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from mistune.directives import FencedDirective as BaseFencedDirective
 from mistune.directives._fenced import _directive_re
@@ -54,7 +54,7 @@ class FencedDirective(BaseFencedDirective):
         ::::
     """
 
-    def __init__(self, plugins, markers=":"):
+    def __init__(self, plugins: list[Any], markers: str = ":") -> None:
         super().__init__(plugins, markers)
 
         # Rebuild pattern to allow indentation for nested directives

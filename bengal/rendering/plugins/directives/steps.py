@@ -23,14 +23,12 @@ Or with numbered list syntax (backward compatibility):
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from re import Match
+from typing import Any
 
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 __all__ = ["StepsDirective", "render_steps", "StepDirective", "render_step"]
 
@@ -54,7 +52,7 @@ class StepDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["step"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse step directive.
 
@@ -83,7 +81,7 @@ class StepDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register step directive."""
         directive.register("step", self.parse)
 
@@ -130,7 +128,7 @@ class StepsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["steps"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse steps directive.
 
@@ -158,7 +156,7 @@ class StepsDirective(DirectivePlugin):
             "children": children,
         }
 
-    def _inject_heading_level(self, children, heading_level: int):
+    def _inject_heading_level(self, children: Any, heading_level: int) -> list[Any]:
         """
         Inject heading_level into step tokens.
 
@@ -166,9 +164,9 @@ class StepsDirective(DirectivePlugin):
         based on the document structure.
         """
         if not isinstance(children, (list, tuple)):
-            return children
+            return list(children) if children else []
 
-        result = []
+        result: list[Any] = []
         for child in children:
             if isinstance(child, dict) and child.get("type") == "step":
                 # Add heading_level to step attrs
@@ -176,7 +174,7 @@ class StepsDirective(DirectivePlugin):
             result.append(child)
         return result
 
-    def _detect_heading_level(self, state) -> int:
+    def _detect_heading_level(self, state: Any) -> int:
         """
         Detect the current heading level from parser state.
 
@@ -203,7 +201,7 @@ class StepsDirective(DirectivePlugin):
         # Default to h2 if no heading context found
         return 2
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register steps directive."""
         directive.register("steps", self.parse)
 
@@ -211,7 +209,7 @@ class StepsDirective(DirectivePlugin):
             md.renderer.register("steps", render_steps)
 
 
-def render_step(renderer, text: str, **attrs) -> str:
+def render_step(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render individual step to HTML.
 
@@ -237,7 +235,7 @@ def render_step(renderer, text: str, **attrs) -> str:
     return f"<li{class_attr}>{text}</li>\n"
 
 
-def _parse_inline_markdown(renderer, text: str) -> str:
+def _parse_inline_markdown(renderer: Any, text: str) -> str:
     """
     Parse inline markdown in step titles.
 
@@ -284,7 +282,7 @@ def _parse_inline_markdown(renderer, text: str) -> str:
     return text
 
 
-def render_steps(renderer, text: str, **attrs) -> str:
+def render_steps(renderer: Any, text: str, **attrs: Any) -> str:
     """Render steps container."""
     css_class = attrs.get("class", "").strip()
     style = attrs.get("style", "default").strip()

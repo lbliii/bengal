@@ -102,7 +102,7 @@ class TabsDirective(DirectivePlugin):
             "children": tabs,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("tabs", self.parse)
 
@@ -149,7 +149,7 @@ class TabSetDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("tab-set", self.parse)
 
@@ -192,7 +192,7 @@ class TabItemDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("tab-item", self.parse)
 
@@ -309,7 +309,7 @@ def _extract_legacy_tab_items(text: str) -> list[tuple[str, str, str]]:
     return matches
 
 
-def render_tab_set(renderer, text: str, **attrs) -> str:
+def render_tab_set(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render tab-set container to HTML.
 
@@ -368,7 +368,7 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
     return nav_html + content_html
 
 
-def render_tab_item(renderer, text: str, **attrs) -> str:
+def render_tab_item(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render individual tab item to HTML.
 
@@ -397,7 +397,7 @@ def render_tab_item(renderer, text: str, **attrs) -> str:
     )
 
 
-def render_legacy_tab_item(renderer, text: str, **attrs) -> str:
+def render_legacy_tab_item(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render legacy tab item to HTML.
 
@@ -424,7 +424,7 @@ def render_legacy_tab_item(renderer, text: str, **attrs) -> str:
     )
 
 
-def render_tabs(renderer, text: str, **attrs) -> str:
+def render_tabs(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render legacy tabs directive to HTML.
 

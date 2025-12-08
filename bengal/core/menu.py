@@ -85,7 +85,7 @@ class MenuItem:
     active: bool = False
     active_trail: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Set identifier from name if not provided.
 
@@ -251,7 +251,7 @@ class MenuBuilder:
         menu_items = builder.build_hierarchy()
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.items: list[MenuItem] = []
         # Track items to prevent duplicates across all add methods
         self._seen_identifiers: set[str] = set()

@@ -19,6 +19,7 @@ See Also:
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ class FileFingerprint:
     size: int
     hash: str | None = None
 
-    def matches_stat(self, stat_result) -> bool:
+    def matches_stat(self, stat_result: os.stat_result) -> bool:
         """
         Fast path check: does mtime + size match?
 

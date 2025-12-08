@@ -20,10 +20,10 @@ logger = get_logger(__name__)
 class TemplateErrorReporter:
     """Collect, analyze, and report template rendering errors."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: list[dict[str, Any]] = []
         self.warnings: list[dict[str, Any]] = []
-        self.stats = {
+        self.stats: dict[str, int] = {
             "total_renders": 0,
             "successful_renders": 0,
             "failed_renders": 0,

@@ -7,6 +7,9 @@ nested directives and code blocks.
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
@@ -35,7 +38,7 @@ class DropdownDirective(DirectivePlugin):
     # "details" is an alias for compatibility
     DIRECTIVE_NAMES = ["dropdown", "details"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse dropdown directive with nested content support."""
         title = self.parse_title(m)
         if not title:
@@ -49,7 +52,7 @@ class DropdownDirective(DirectivePlugin):
 
         return {"type": "dropdown", "attrs": {"title": title, **options}, "children": children}
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive and renderer."""
         directive.register("dropdown", self.parse)
         directive.register("details", self.parse)  # Alias
@@ -58,7 +61,7 @@ class DropdownDirective(DirectivePlugin):
             md.renderer.register("dropdown", render_dropdown)
 
 
-def render_dropdown(renderer, text, **attrs):
+def render_dropdown(renderer: Any, text: str, **attrs: Any) -> str:
     """Render dropdown to HTML."""
     title = attrs.get("title", "Details")
     is_open = attrs.get("open", "").lower() in ("true", "1", "yes")

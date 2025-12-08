@@ -146,7 +146,7 @@ class CLIExtractor(Extractor):
 
         # Add each command as a separate top-level element for individual pages
         # Recursively flatten nested command groups
-        def flatten_commands(children: list[DocElement]):
+        def flatten_commands(children: list[DocElement]) -> None:
             for child in children:
                 # Always add nested command groups (they get _index.md)
                 # Always add regular commands (they get individual pages)
@@ -488,7 +488,7 @@ class CLIExtractor(Extractor):
 
                 # Create a Click group that wraps the Typer app
                 @click.group()
-                def typer_wrapper():
+                def typer_wrapper() -> None:
                     pass
 
                 # Typer apps store their info, we can extract via the callback

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import html as html_lib
 import re
+from re import Match
+from typing import Any
 
 from mistune.directives import DirectivePlugin
 
@@ -51,14 +53,14 @@ class CodeTabsDirective(DirectivePlugin):
     # "code_tabs" (underscore) is an alias
     DIRECTIVE_NAMES = ["code-tabs", "code_tabs"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse code tabs directive."""
         content = self.parse_content(m)
 
         # Split by tab markers (using pre-compiled pattern)
         parts = _CODE_TAB_SPLIT_PATTERN.split(content)
 
-        tabs = []
+        tabs: list[dict[str, Any]] = []
         if len(parts) > 1:
             start_idx = 1 if not parts[0].strip() else 0
 
@@ -75,7 +77,7 @@ class CodeTabsDirective(DirectivePlugin):
 
         return {"type": "code_tabs", "children": tabs}
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive and renderers."""
         directive.register("code-tabs", self.parse)
         directive.register("code_tabs", self.parse)  # Alias
@@ -85,7 +87,7 @@ class CodeTabsDirective(DirectivePlugin):
             md.renderer.register("code_tab_item", render_code_tab_item)
 
 
-def render_code_tabs(renderer, text, **attrs):
+def render_code_tabs(renderer: Any, text: str, **attrs: Any) -> str:
     """Render code tabs to HTML."""
     tab_id = f"code-tabs-{id(text)}"
 
@@ -118,7 +120,7 @@ def render_code_tabs(renderer, text, **attrs):
     return nav_html + content_html
 
 
-def render_code_tab_item(renderer, **attrs):
+def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     """Render code tab item marker (used internally)."""
     lang = attrs.get("lang", "text")
     code = attrs.get("code", "")

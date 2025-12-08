@@ -17,7 +17,7 @@ from bengal.utils.logger import get_logger
 from .base import SiteTemplate, TemplateFile
 
 if TYPE_CHECKING:
-    from bengal.cli.skeleton.schema import Skeleton
+    from bengal.cli.skeleton.schema import Component, Skeleton
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ class TemplateRegistry:
     packages that expose a ``TEMPLATE`` variable.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._templates: dict[str, SiteTemplate] = {}
         self._discover_templates()
 
@@ -116,7 +116,7 @@ class TemplateRegistry:
         additional_dirs = set()
         menu_sections = []
 
-        def process_component(comp, base_path: str = ""):
+        def process_component(comp: Component, base_path: str = "") -> None:
             """Recursively process components to build TemplateFile list."""
             full_path = f"{base_path}/{comp.path}" if base_path else comp.path
 

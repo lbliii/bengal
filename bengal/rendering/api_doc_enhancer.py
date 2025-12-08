@@ -80,7 +80,7 @@ class APIDocEnhancer:
         "cli-reference",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the enhancer."""
         # Compile patterns for performance
         self._compiled_patterns = [

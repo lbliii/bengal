@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         Issue,
         OutputInfo,
         PageExplanation,
+        PerformanceInfo,
         ShortcodeUsage,
         SourceInfo,
         TemplateInfo,
@@ -136,7 +137,7 @@ class ExplanationReporter:
         if lines:
             self.console.print(Panel("\n".join(lines), title="📝 Frontmatter", border_style="green"))
 
-    def _format_value(self, value) -> str:
+    def _format_value(self, value: object) -> str:
         """Format a frontmatter value for display."""
         if isinstance(value, list):
             if len(value) <= 5:
@@ -292,7 +293,7 @@ class ExplanationReporter:
 
             self.console.print()
 
-    def _print_performance(self, performance) -> None:
+    def _print_performance(self, performance: PerformanceInfo) -> None:
         """Print performance timing information."""
         lines = [f"Total: {performance.total_ms:.1f}ms"]
 

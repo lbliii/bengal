@@ -340,7 +340,7 @@ class IncludeDirective(DirectivePlugin):
             logger.warning("include_load_error", path=str(file_path), error=str(e))
             return None
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register include directive."""
         directive.register("include", self.parse)
 
@@ -348,7 +348,7 @@ class IncludeDirective(DirectivePlugin):
             md.renderer.register("include", render_include)
 
 
-def render_include(renderer, text: str, **attrs) -> str:
+def render_include(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render include directive.
 

@@ -7,6 +7,9 @@ with optional titles and custom styling.
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
@@ -35,7 +38,7 @@ class ChecklistDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["checklist"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse checklist directive."""
         title = self.parse_title(m)
         content = self.parse_content(m)
@@ -49,7 +52,7 @@ class ChecklistDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive and renderer."""
         directive.register("checklist", self.parse)
 

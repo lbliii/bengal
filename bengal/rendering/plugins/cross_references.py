@@ -55,7 +55,7 @@ class CrossReferencePlugin:
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> None:
         """
         Register the plugin with Mistune.
 

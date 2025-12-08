@@ -9,6 +9,9 @@ section labels like "Parameters:", "Returns:", "Raises:", etc.
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 __all__ = ["RubricDirective", "render_rubric"]
@@ -38,7 +41,7 @@ class RubricDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["rubric"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse rubric directive.
 
         Rubrics are label-only directives - they ignore any content and
@@ -61,7 +64,7 @@ class RubricDirective(DirectivePlugin):
             "children": [],  # Rubrics never have children
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive and renderer."""
         directive.register("rubric", self.parse)
 
@@ -69,7 +72,7 @@ class RubricDirective(DirectivePlugin):
             md.renderer.register("rubric", render_rubric)
 
 
-def render_rubric(renderer, text, **attrs) -> str:
+def render_rubric(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render rubric to HTML.
 

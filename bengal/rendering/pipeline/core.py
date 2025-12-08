@@ -482,7 +482,15 @@ class RenderingPipeline:
             )
 
     def _process_virtual_page(self, page: Page) -> None:
-        """Process a virtual page with pre-rendered HTML content."""
+        """
+        Process a virtual page with pre-rendered HTML content.
+
+        Virtual pages (like autodoc pages) may have pre-rendered HTML that is either:
+        1. A complete HTML page (extends base.html) - use directly
+        2. A content fragment - wrap with template
+
+        Complete pages start with <!DOCTYPE or <html and should not be wrapped.
+        """
         if not page.output_path:
             page.output_path = determine_output_path(page, self.site)
         elif not page.output_path.is_absolute():
@@ -491,9 +499,25 @@ class RenderingPipeline:
         page.parsed_ast = page._prerendered_html
         page.toc = ""
 
-        html_content = self.renderer.render_content(page.parsed_ast)
-        page.rendered_html = self.renderer.render_page(page, html_content)
-        page.rendered_html = format_html(page.rendered_html, page, self.site)
+        # Check if pre-rendered HTML is already a complete page (extends base.html)
+        # Complete pages should not be wrapped with another template
+        prerendered = page._prerendered_html or ""
+        prerendered_stripped = prerendered.strip()
+        is_complete_page = (
+            prerendered_stripped.startswith("<!DOCTYPE")
+            or prerendered_stripped.startswith("<html")
+            or prerendered_stripped.startswith("<!doctype")
+        )
+
+        if is_complete_page:
+            # Use pre-rendered HTML directly (it's already a complete page)
+            page.rendered_html = prerendered
+            page.rendered_html = format_html(page.rendered_html, page, self.site)
+        else:
+            # Wrap content fragment with template
+            html_content = self.renderer.render_content(page.parsed_ast)
+            page.rendered_html = self.renderer.render_page(page, html_content)
+            page.rendered_html = format_html(page.rendered_html, page, self.site)
 
         write_output(page, self.site, self.dependency_tracker)
 
@@ -501,6 +525,7 @@ class RenderingPipeline:
             "virtual_page_rendered",
             source_path=str(page.source_path),
             output_path=str(page.output_path),
+            is_complete_page=is_complete_page,
         )
 
     def _build_variable_context(self, page: Page) -> dict:

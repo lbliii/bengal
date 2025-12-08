@@ -106,7 +106,7 @@ class VariableSubstitutionPlugin:
         self.errors = []  # Reset errors for new page
         self.escaped_placeholders = {}  # Reset placeholders
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> None:
         """Register the plugin with Mistune."""
         if md.renderer and md.renderer.NAME == "html":
             # Store original text renderer

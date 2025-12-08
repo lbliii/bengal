@@ -363,7 +363,7 @@ class LiteralIncludeDirective(DirectivePlugin):
             logger.warning("literalinclude_load_error", path=str(file_path), error=str(e))
             return None
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register literalinclude directive."""
         directive.register("literalinclude", self.parse)
 
@@ -371,7 +371,7 @@ class LiteralIncludeDirective(DirectivePlugin):
             md.renderer.register("literalinclude", render_literalinclude)
 
 
-def render_literalinclude(renderer, text: str, **attrs) -> str:
+def render_literalinclude(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render literalinclude directive as code block.
 

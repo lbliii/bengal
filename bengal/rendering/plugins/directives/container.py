@@ -12,6 +12,9 @@ Use cases:
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 __all__ = ["ContainerDirective", "render_container"]
@@ -46,7 +49,7 @@ class ContainerDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["container", "div"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse container directive."""
         # Get the class name(s) from the title position
         title = self.parse_title(m) or ""
@@ -73,7 +76,7 @@ class ContainerDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive and renderer."""
         directive.register("container", self.parse)
         directive.register("div", self.parse)  # Alias for convenience
@@ -82,7 +85,7 @@ class ContainerDirective(DirectivePlugin):
             md.renderer.register("container", render_container)
 
 
-def render_container(renderer, text: str, **attrs) -> str:
+def render_container(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render container to HTML.
 

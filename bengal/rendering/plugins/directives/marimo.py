@@ -55,11 +55,11 @@ class MarimoCellDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["marimo"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Marimo directive."""
         self.cell_counter = 0
-        self.generators = {}  # Per-page generators
-        self._marimo_available = None  # Lazy check
+        self.generators: dict[str, Any] = {}  # Per-page generators
+        self._marimo_available: bool | None = None  # Lazy check
 
     def _check_marimo_available(self) -> bool:
         """Check if Marimo is installed."""
