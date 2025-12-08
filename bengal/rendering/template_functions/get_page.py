@@ -41,7 +41,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         return
 
     # Lazy-create parser on site object for reuse
-    if not hasattr(site, "_template_parser"):
+    if site._template_parser is None:
         from bengal.rendering.parsers import create_markdown_parser
 
         # Get parser engine from config (same logic as RenderingPipeline)
@@ -189,7 +189,7 @@ def register(env: Environment, site: Site) -> None:
             return None
 
         # Lazy-build lookup maps on the site object
-        if not hasattr(site, "_page_lookup_maps"):
+        if site._page_lookup_maps is None:
             # Build maps for robust lookup
             # 1. Full source path (str) -> Page
             # 2. Content-relative path (str) -> Page (e.g. "guides/setup.md")

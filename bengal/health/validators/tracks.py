@@ -138,7 +138,7 @@ class TrackValidator(BaseValidator):
             return None
 
         # Build lookup maps if not already built
-        if not hasattr(site, "_page_lookup_maps"):
+        if site._page_lookup_maps is None:
             by_full_path = {}
             by_content_relative = {}
 
