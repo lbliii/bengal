@@ -181,7 +181,7 @@ class LiveReloadMixin:
     def send_error(
         self, code: int, message: str | None = None, explain: str | None = None
     ) -> None: ...
-    def translate_path(self, path: str) -> str: ...  # type: ignore[empty-body]
+    def translate_path(self, path: str) -> str | None: ...  # type: ignore[empty-body]
 
     def handle_sse(self) -> None:
         """
@@ -300,6 +300,10 @@ class LiveReloadMixin:
         """
         # Resolve the actual file path
         path = self.translate_path(self.path)
+
+        # Guard against translate_path returning None (can happen if self.directory is None)
+        if path is None:
+            return False
 
         # If path is a directory, look for index.html
         if os.path.isdir(path):

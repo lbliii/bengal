@@ -49,9 +49,10 @@ class ContentDiscoveryMixin:
     theme: str | None
 
     # Method stubs for type checking (provided by other mixins)
-    def register_sections(self) -> None:
-        """Register all sections in the section registry (from SectionRegistryMixin)."""
-        ...
+    # NOTE: Do NOT add stub methods here that shadow real implementations in other mixins!
+    # Python MRO resolves methods left-to-right, so stubs here would override implementations
+    # in mixins listed later (like SectionRegistryMixin). Use NotImplementedError pattern only
+    # for methods that MUST be overridden by the concrete class.
 
     def _get_theme_assets_chain(self) -> list[Path]:
         """Get theme assets paths in inheritance order (from ThemeIntegrationMixin)."""

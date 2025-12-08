@@ -591,16 +591,12 @@ class Asset:
 
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
-        # Get the CSS content (bundled if this is an entry point)
-        css_content: str | None = None
-        if hasattr(self, "_bundled_content"):
+        # Get the CSS content (bundled if this is an entry point, otherwise read from file)
+        if self._bundled_content is not None:
             css_content = self._bundled_content
         else:
             with open(self.source_path, encoding="utf-8") as f:
                 css_content = f.read()
-
-        if css_content is None:
-            return
 
         try:
             # Transform CSS nesting first (for browser compatibility)
@@ -640,11 +636,11 @@ class Asset:
         Prefers minified (or bundled) content so hashes match the bytes we actually emit.
         Falls back to the original file contents when no in-memory transform exists.
         """
-        if hasattr(self, "_minified_content") and isinstance(self._minified_content, str):
+        if self._minified_content is not None:
             yield self._minified_content.encode("utf-8")
             return
 
-        if hasattr(self, "_bundled_content") and isinstance(self._bundled_content, str):
+        if self._bundled_content is not None:
             yield self._bundled_content.encode("utf-8")
             return
 
@@ -747,12 +743,12 @@ class Asset:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Copy or write optimized/minified content atomically
-        if hasattr(self, "_minified_content") and self._minified_content is not None:
+        if self._minified_content is not None:
             # Write minified content atomically (crash-safe)
             from bengal.utils.atomic_write import atomic_write_text
 
             atomic_write_text(output_path, self._minified_content, encoding="utf-8")
-        elif hasattr(self, "_optimized_image"):
+        elif self._optimized_image is not None:
             # Save optimized image atomically using unique temp file to prevent race conditions
             import os
             import threading

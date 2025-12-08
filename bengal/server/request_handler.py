@@ -102,6 +102,27 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             super().handle()
 
     @override
+    def translate_path(self, path: str) -> str:
+        """
+        Override translate_path to ensure it never returns None.
+
+        In Python 3.14, when self.directory is None and os.getcwd() fails,
+        translate_path returns None. This causes crashes in the parent class's
+        do_GET() -> send_head() -> os.path.isdir(path).
+
+        We guard against this by falling back to the configured directory.
+        """
+        result = super().translate_path(path)
+        if result is None:
+            # Fallback to self.directory if translate_path fails
+            # This can happen if os.getcwd() fails during rebuild
+            if self.directory:
+                return str(self.directory)
+            # Last resort: return current file's directory
+            return str(Path(__file__).parent)
+        return result
+
+    @override
     def do_GET(self) -> None:
         """
         Override GET to support SSE and safe HTML injection via mixin.
