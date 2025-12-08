@@ -251,7 +251,7 @@ class MenuOrchestrator:
 
         # Clear the exclude flag after use
         if (
-            hasattr(self.site, "_dev_menu_metadata")
+            self.site._dev_menu_metadata is not None
             and "exclude_sections" in self.site._dev_menu_metadata
         ):
             del self.site._dev_menu_metadata["exclude_sections"]
@@ -325,7 +325,7 @@ class MenuOrchestrator:
                 seen_names.add(asset_name)
 
             # Store metadata for template
-            if not hasattr(self.site, "_dev_menu_metadata"):
+            if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["github_bundled"] = any(
                 a["type"] == "github" for a in dev_assets
