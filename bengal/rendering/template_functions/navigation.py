@@ -335,8 +335,8 @@ def get_toc_grouped(
     if not toc_items:
         return []
 
-    groups = []
-    current_group = None
+    groups: list[dict[str, Any]] = []
+    current_group: dict[str, Any] | None = None
 
     for item in toc_items:
         item_level = item.get("level", 0)

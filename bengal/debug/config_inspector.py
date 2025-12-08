@@ -624,13 +624,14 @@ class ConfigInspector(DebugTool):
         for key_path in DEPRECATED_KEYS:
             value = self._get_nested_value(config, key_path)
             if value is not None:
-                info = DEPRECATED_KEYS[key_path]
+                # DEPRECATED_KEYS values are tuples: (section, new_key, note)
+                section, new_key, note = DEPRECATED_KEYS[key_path]
                 findings.append(
                     DebugFinding(
                         title=f"Deprecated key: {key_path}",
-                        description=info.get("message", ""),
+                        description=note,
                         severity=Severity.WARNING,
-                        suggestion=info.get("replacement", "Remove this key"),
+                        suggestion=f"Use '{section}.{new_key}' instead",
                     )
                 )
 

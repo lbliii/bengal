@@ -7,7 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from . import Page
+    from bengal.core.section import Section
 
 
 class PageRelationshipsMixin:
@@ -19,6 +22,11 @@ class PageRelationshipsMixin:
     - Section membership
     - Ancestor/descendant relationships
     """
+
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    source_path: "Path"
+    _section: "Section | None"
+    is_section: bool
 
     def eq(self, other: Page) -> bool:
         """
