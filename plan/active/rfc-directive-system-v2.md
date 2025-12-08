@@ -439,12 +439,10 @@ Content
 ```
 
 
-Content here.
-
-[[ /card ]]
-
-[[ /cards ]]
-```
+    Content here.
+    ::: /card
+    ::: /cards
+    ```
 
 #### 3.0.6 Parser Implementation
 
@@ -1967,8 +1965,8 @@ DirectiveToken
 
 ### 8.1 Quantitative
 
-- [ ] **`<< >>` parser implemented** and tested for all container directives
-- [ ] **100% of container directives** support `<< >>` syntax
+- [ ] **Named closer parser implemented** and tested
+- [ ] **100% of directives support** named closers
 - [ ] **100% of directives migrated** to new pattern
 - [ ] **0 duplicated escape_html** implementations
 - [ ] **100% type coverage** on new base classes
@@ -2060,7 +2058,7 @@ Common option patterns across directives:
 
 ## Appendix C: Container vs Leaf Directive Classification
 
-### Container Directives (use `<< >>` syntax)
+### Container Directives (use Named Closers when nested)
 
 These directives MUST contain specific child directives:
 
@@ -2071,7 +2069,7 @@ These directives MUST contain specific child directives:
 | `cards` | `card` | Card grids |
 | `grid` | `grid-item-card` | Flexible grids |
 
-### Leaf Directives (use `:::` syntax)
+### Leaf Directives
 
 These directives contain arbitrary content, not specific child directives:
 
@@ -2104,39 +2102,28 @@ These can appear as children OR standalone:
 ## Appendix D: Syntax Quick Reference
 
 ```markdown
-# Container directives - use << >>
-<< tabs >>
-<< tab >> Title
-content
-<< /tab >>
-<< /tabs >>
-
-# Leaf directives - use :::
-:::{note}
-content
+# Standard syntax (simple)
+::: tabs
+  ::: tab Title
+  content
+  :::
 :::
 
-# Code blocks - use ```
-```python
-code
-```
+# Named closure syntax (complex/nested)
+::: tabs
+  ::: tab Title
+  content
+  ::: /tab
+::: /tabs
 
-# Nesting example
-<< steps >>
-
-<< step >> First Step
-
-:::{tip}
-A tip inside the step
-:::
-
-```bash
-some code
-```
-
-<< /step >>
-
-<< /steps >>
+# Mixed syntax
+::: steps
+  ::: step First
+  :::{note}
+  Simple nested content
+  :::
+  ::: /step
+::: /steps
 ```
 
 ---
