@@ -91,7 +91,7 @@ class BreadcrumbsDirective(DirectivePlugin):
             "children": [],
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("breadcrumbs", self.parse)
 
@@ -99,7 +99,7 @@ class BreadcrumbsDirective(DirectivePlugin):
             md.renderer.register("breadcrumbs", render_breadcrumbs)
 
 
-def render_breadcrumbs(renderer, text: str, **attrs) -> str:
+def render_breadcrumbs(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render breadcrumb navigation from page ancestors.
 
@@ -155,7 +155,7 @@ def render_breadcrumbs(renderer, text: str, **attrs) -> str:
     return f'<nav class="breadcrumbs" aria-label="Breadcrumb">{content}</nav>\n'
 
 
-def _get_section_url(section) -> str:
+def _get_section_url(section: Any) -> str:
     """Get URL for a section."""
     if hasattr(section, "index_page") and section.index_page:
         return getattr(section.index_page, "url", "/")
@@ -205,7 +205,7 @@ class SiblingsDirective(DirectivePlugin):
             "children": [],
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("siblings", self.parse)
 
@@ -213,7 +213,7 @@ class SiblingsDirective(DirectivePlugin):
             md.renderer.register("siblings", render_siblings)
 
 
-def render_siblings(renderer, text: str, **attrs) -> str:
+def render_siblings(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render sibling pages in the same section.
 
@@ -325,7 +325,7 @@ class PrevNextDirective(DirectivePlugin):
             "children": [],
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("prev-next", self.parse)
 
@@ -333,7 +333,7 @@ class PrevNextDirective(DirectivePlugin):
             md.renderer.register("prev_next", render_prev_next)
 
 
-def render_prev_next(renderer, text: str, **attrs) -> str:
+def render_prev_next(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render previous/next navigation links.
 
@@ -431,7 +431,7 @@ class RelatedDirective(DirectivePlugin):
             "children": [],
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("related", self.parse)
 
@@ -439,7 +439,7 @@ class RelatedDirective(DirectivePlugin):
             md.renderer.register("related", render_related)
 
 
-def render_related(renderer, text: str, **attrs) -> str:
+def render_related(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render related content based on tags.
 

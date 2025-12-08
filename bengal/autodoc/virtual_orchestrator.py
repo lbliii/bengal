@@ -197,6 +197,24 @@ class VirtualAutodocOrchestrator:
 
         register_all(env, self.site)
 
+        # Add global variables that base.html templates expect
+        env.globals["site"] = self.site
+        env.globals["config"] = self.site.config
+        env.globals["theme"] = self.site.theme_config
+
+        # Add bengal metadata (used by base.html for generator meta tag)
+        from bengal.utils.metadata import build_template_metadata
+
+        try:
+            env.globals["bengal"] = build_template_metadata(self.site)
+        except Exception as e:
+            logger.debug(
+                "autodoc_template_metadata_build_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
+
         # Register dateformat filter (from url_helpers for legacy compatibility)
         from bengal.rendering.template_engine.url_helpers import filter_dateformat
 
@@ -220,6 +238,44 @@ class VirtualAutodocOrchestrator:
 
         env.globals["get_menu"] = get_menu
         env.globals["get_menu_lang"] = get_menu_lang
+
+        # Register asset_url function (required by base templates)
+        # This is a simplified version that works without full TemplateEngine
+        from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+        from jinja2 import pass_context
+
+        @pass_context
+        def asset_url(ctx, asset_path: str) -> str:
+            """Generate URL for an asset with baseurl handling."""
+            # Normalize path
+            safe_path = (asset_path or "").replace("\\", "/").strip()
+            while safe_path.startswith("/"):
+                safe_path = safe_path[1:]
+            if not safe_path:
+                return "/assets/"
+
+            # In dev server mode, return simple path
+            if self.site.config.get("dev_server", False):
+                return with_baseurl(f"/assets/{safe_path}", self.site)
+
+            # Otherwise, return path with baseurl
+            return with_baseurl(f"/assets/{safe_path}", self.site)
+
+        env.globals["asset_url"] = asset_url
+
+        # Register url_for function (required by base templates)
+        def url_for(page_path: str) -> str:
+            """Generate URL for a page path."""
+            if not page_path:
+                return "/"
+            # Normalize and add baseurl
+            path = page_path.strip()
+            if not path.startswith("/"):
+                path = "/" + path
+            return with_baseurl(path, self.site)
+
+        env.globals["url_for"] = url_for
 
         # Add custom tests for template filtering
         def test_match(value: str | None, pattern: str) -> bool:
