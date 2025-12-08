@@ -582,3 +582,4 @@ This feature was added in v2.1.
 - [Mike (MkDocs versioning)](https://github.com/jimporter/mike)
 - [Read the Docs Versioning](https://docs.readthedocs.io/en/stable/versions.html)
 - [Starlight Versioning](https://starlight.astro.build/guides/versioning/)
+

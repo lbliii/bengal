@@ -555,3 +555,4 @@ autodoc:
 - [Current module template](bengal/autodoc/templates/python/module.md.jinja2)
 - [Search modal design](bengal/themes/default/assets/css/components/search.css)
 
+

@@ -41,3 +41,4 @@ def test_create_synthetic_page_custom() -> None:
     assert page.props["foo"] == "bar"
     assert page.metadata["foo"] == "bar"
 
+

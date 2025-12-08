@@ -450,3 +450,4 @@ Each phase is independent and can be rolled back by reverting the commit. No dat
 - `bengal/utils/text.py` - Existing text utilities (has `slugify`)
 - `bengal/config/merge.py` - Existing deep merge utility
 - `plan/completed/rfc-utility-extraction.md` - Previous utility extraction work
+

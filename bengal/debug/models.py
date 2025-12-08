@@ -181,3 +181,4 @@ class PageExplanation:
     # Optional: Issues (if diagnosed)
     issues: list[Issue] | None = None
 
+

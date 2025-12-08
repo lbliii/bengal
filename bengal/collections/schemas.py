@@ -217,3 +217,4 @@ class Tutorial:
 Post = BlogPost
 Doc = DocPage
 API = APIReference
+

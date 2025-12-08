@@ -7,3 +7,4 @@ base_url = "https://example.com"
 [build]
 output_dir = "public"
 ```
+

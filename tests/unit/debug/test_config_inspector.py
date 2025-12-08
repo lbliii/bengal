@@ -492,3 +492,4 @@ class TestConfigInspectorExplainKey:
 
                 # Should return None for non-existent key
                 assert explanation is None
+

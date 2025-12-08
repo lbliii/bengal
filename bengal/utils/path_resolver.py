@@ -229,3 +229,4 @@ def resolve_path(path: str | Path, base: Path) -> Path:
     resolver = PathResolver(base)
     return resolver.resolve(path)
 
+

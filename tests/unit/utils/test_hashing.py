@@ -235,3 +235,4 @@ class TestEdgeCases:
         without_space = hash_str("hello")
         assert with_space != without_space
 
+

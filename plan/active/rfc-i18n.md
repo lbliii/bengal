@@ -675,3 +675,4 @@ def generate_sitemap_with_i18n(site: Site) -> str:
 - [Next.js Internationalization](https://nextjs.org/docs/advanced-features/i18n-routing)
 - [W3C Internationalization](https://www.w3.org/International/)
 
+

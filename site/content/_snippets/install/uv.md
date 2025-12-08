@@ -7,3 +7,4 @@ Or for a one-time run:
 ```bash
 uvx bengal --version
 ```
+

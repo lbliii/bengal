@@ -192,3 +192,4 @@ class TestConfigValidatorWrapperEdgeCases:
         workers_warnings = [r for r in warning_results if "max_workers" in r.message]
         assert len(workers_warnings) == 0
 
+

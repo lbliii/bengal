@@ -288,3 +288,4 @@ class TestOutputValidatorSilenceIsGolden:
         ]
         assert len(asset_success) == 0
 
+

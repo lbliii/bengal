@@ -363,3 +363,4 @@ class TestShortcodeSandboxCustomContext:
         sandbox = ShortcodeSandbox(mock_context=custom_context)
         assert sandbox._mock_context["page"]["title"] == "Custom Page"
         assert sandbox._mock_context["site"]["title"] == "Custom Site"
+

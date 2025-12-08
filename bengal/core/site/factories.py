@@ -113,13 +113,12 @@ class SiteFactoriesMixin:
             config = loader.load(config_dir, environment=environment, profile=profile)
         else:
             # Fall back to single-file config (legacy)
+            # ConfigLoader.load() handles None config_path by searching for
+            # bengal.toml/yaml and returning defaults if not found
             from bengal.config.loader import ConfigLoader
 
             legacy_loader = ConfigLoader(root_path)
-            if config_path is not None:
-                config = legacy_loader.load(config_path)
-            else:
-                config = {}
+            config = legacy_loader.load(config_path)
 
         return cls(root_path=root_path, config=config)
 

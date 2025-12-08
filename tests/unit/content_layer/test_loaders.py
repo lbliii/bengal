@@ -71,3 +71,4 @@ class TestRemoteLoaderImports:
                 notion_loader(database_id="abc123")
         except ImportError as e:
             assert "aiohttp" in str(e).lower() or "notion" in str(e).lower()
+

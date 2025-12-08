@@ -97,3 +97,4 @@ class ManifestHelpersMixin:
             logical_path=logical_path,
             manifest=str(self._asset_manifest_path),
         )
+

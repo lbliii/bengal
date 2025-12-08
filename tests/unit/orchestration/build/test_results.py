@@ -217,3 +217,4 @@ class TestChangeSummary:
         assert summary.get("Modified content") == [Path("content/post.md")]
         assert summary.get("Nonexistent") is None
         assert summary.get("Nonexistent", []) == []
+

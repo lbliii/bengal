@@ -235,3 +235,4 @@ class TestGetAvailableIcons:
         assert result1 == result2
         assert "terminal" in _icon_cache
 
+

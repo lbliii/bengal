@@ -275,3 +275,4 @@ disallow_incomplete_defs = true     # Requires complete annotations
 - [Bengal Type Safety RFC](plan/active/rfc-type-safety-improvements.md)
 - [Python Style Guide](.cursor/rules/python-style.mdc)
 
+

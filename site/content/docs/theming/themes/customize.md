@@ -273,3 +273,4 @@ bengal new theme my-theme
 - [Templating](/docs/theming/templating/) — Template basics
 - [Assets](/docs/theming/assets/) — Asset pipeline
 - [Variables Reference](/docs/theming/variables/) — Available template variables
+

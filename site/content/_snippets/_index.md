@@ -24,3 +24,4 @@ Include snippets in your content using:
 - `cli/` — CLI command reference snippets
 - `warnings/` — Callout and warning snippets
 - `support/` — Support information snippets
+
