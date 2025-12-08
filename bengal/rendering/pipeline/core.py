@@ -488,6 +488,7 @@ class RenderingPipeline:
         Virtual pages (like autodoc pages) may have pre-rendered HTML that is either:
         1. A complete HTML page (extends base.html) - use directly
         2. A content fragment - wrap with template
+        3. Deferred autodoc page - render now with full context (menus available)
 
         Complete pages start with <!DOCTYPE or <html and should not be wrapped.
         """
@@ -495,6 +496,17 @@ class RenderingPipeline:
             page.output_path = determine_output_path(page, self.site)
         elif not page.output_path.is_absolute():
             page.output_path = self.site.output_dir / page.output_path
+
+        # Check if this is a deferred autodoc page (render with full context)
+        if page.metadata.get("is_autodoc") and page.metadata.get("autodoc_element"):
+            self._render_autodoc_page(page)
+            write_output(page, self.site, self.dependency_tracker)
+            logger.debug(
+                "autodoc_page_rendered",
+                source_path=str(page.source_path),
+                output_path=str(page.output_path),
+            )
+            return
 
         page.parsed_ast = page._prerendered_html
         page.toc = ""
@@ -527,6 +539,42 @@ class RenderingPipeline:
             output_path=str(page.output_path),
             is_complete_page=is_complete_page,
         )
+
+    def _render_autodoc_page(self, page: Page) -> None:
+        """
+        Render an autodoc page using the site's template engine.
+
+        This is called during the rendering phase (after menus are built),
+        ensuring full template context is available for proper header/nav rendering.
+
+        Args:
+            page: Virtual page with autodoc_element in metadata
+        """
+        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+
+        element = page.metadata.get("autodoc_element")
+        template_name = page.metadata.get("_autodoc_template", "api-reference/module")
+        url_path = page.metadata.get("_autodoc_url_path", f"api/{page.title}")
+        page_type = page.metadata.get("_autodoc_page_type", "api-reference")
+
+        # Create autodoc orchestrator to use its rendering logic
+        # This ensures consistent rendering with theme templates
+        orchestrator = VirtualAutodocOrchestrator(self.site)
+
+        # Mark active menu items for this page
+        if hasattr(self.site, "mark_active_menu_items"):
+            self.site.mark_active_menu_items(page)
+
+        # Render using autodoc's template system (which now has menus available)
+        html_content = orchestrator._render_element(
+            element, template_name, url_path, page_type, page._section
+        )
+
+        page._prerendered_html = html_content
+        page.parsed_ast = html_content
+        page.toc = ""
+        page.rendered_html = html_content
+        page.rendered_html = format_html(page.rendered_html, page, self.site)
 
     def _build_variable_context(self, page: Page) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""

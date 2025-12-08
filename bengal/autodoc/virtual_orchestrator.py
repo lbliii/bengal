@@ -712,7 +712,7 @@ class VirtualAutodocOrchestrator:
             source_id = f"{doc_type}/{url_path}.md"
             output_path = self.site.output_dir / f"{url_path}/index.html"
 
-            # Create page with placeholder content - we'll render later
+            # Create page with deferred rendering - HTML rendered in rendering phase
             page = Page.create_virtual(
                 source_id=source_id,
                 title=element.name,
@@ -725,8 +725,12 @@ class VirtualAutodocOrchestrator:
                     "line_number": getattr(element, "line_number", None),
                     "is_autodoc": True,
                     "autodoc_element": element,
+                    # Rendering metadata - used by RenderingPipeline to render with full context
+                    "_autodoc_template": template_name,
+                    "_autodoc_url_path": url_path,
+                    "_autodoc_page_type": page_type,
                 },
-                rendered_html="",  # Placeholder - will be rendered in second pass
+                rendered_html=None,  # Deferred - rendered in rendering phase with full context
                 template_name=template_name,
                 output_path=output_path,
             )
@@ -737,22 +741,15 @@ class VirtualAutodocOrchestrator:
             # Add to section BEFORE rendering (so navigation can see siblings)
             parent_section.add_page(page)
 
-            # Store for second pass
-            page_data.append((page, element, parent_section, template_name, url_path, page_type))
+            # Store page for return (no HTML rendering yet - deferred to rendering phase)
+            page_data.append(page)
 
-        # Second pass: Render HTML now that all pages are in their sections
-        pages: list[Page] = []
-        for page, element, parent_section, template_name, url_path, page_type in page_data:
-            # Now render with full navigation context
-            html_content = self._render_element(
-                element, template_name, url_path, page_type, parent_section
-            )
-            page._prerendered_html = html_content
-            pages.append(page)
+        # Note: HTML rendering is now DEFERRED to the rendering phase
+        # This ensures menus and full template context are available.
+        # See: RenderingPipeline._process_virtual_page() and _render_autodoc_page()
+        logger.debug("autodoc_pages_created", count=len(page_data), type=doc_type)
 
-        logger.debug("autodoc_pages_created", count=len(pages), type=doc_type)
-
-        return pages
+        return page_data
 
     def _find_parent_section(
         self, element: DocElement, sections: dict[str, Section], doc_type: str

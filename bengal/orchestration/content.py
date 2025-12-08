@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
@@ -137,6 +136,9 @@ class ContentOrchestrator:
         )
 
         # Integrate virtual autodoc pages if enabled
+        # Note: Autodoc pages are NOT rendered during discovery. HTML rendering is
+        # deferred to the rendering phase (after menus are built) to ensure full
+        # template context (including navigation) is available.
         autodoc_pages, autodoc_sections = self._discover_autodoc_content()
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
