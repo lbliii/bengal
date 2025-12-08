@@ -218,7 +218,7 @@ class BuildHandler(FileSystemEventHandler):
                 for changed_path in changed_files:
                     path_obj = Path(changed_path)
                     suffix = path_obj.suffix.lower()
-                    
+
                     if suffix in content_extensions:
                         needs_full_rebuild = True
                         logger.debug(
@@ -227,7 +227,7 @@ class BuildHandler(FileSystemEventHandler):
                             file=changed_path,
                         )
                         break
-                    
+
                     # SVG files in theme assets/icons/ are inlined in HTML, so pages need re-rendering
                     if suffix in svg_extensions:
                         # Check if it's in a theme icons directory
@@ -279,7 +279,13 @@ class BuildHandler(FileSystemEventHandler):
                     cfg["dev_server"] = True
                     cfg["fingerprint_assets"] = False
                     cfg.setdefault("minify_assets", False)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "build_handler_dev_config_update_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="continuing_without_update",
+                    )
                     pass
 
                 # Use incremental builds only for file modifications
@@ -322,15 +328,19 @@ class BuildHandler(FileSystemEventHandler):
                             src_only = [
                                 p for p in lower if "/public/" not in p and "\\public\\" not in p
                             ]
-                            
+
                             # Check for SVG icon changes (need full reload because inlined in HTML)
                             has_svg_icons = any(
                                 "/themes/" in p and "/assets/icons/" in p and p.endswith(".svg")
                                 for p in src_only
                             )
-                            
-                            css_only = bool(src_only) and all(p.endswith(".css") for p in src_only) and not has_svg_icons
-                            
+
+                            css_only = (
+                                bool(src_only)
+                                and all(p.endswith(".css") for p in src_only)
+                                and not has_svg_icons
+                            )
+
                             if css_only:
                                 decision = ReloadDecision(
                                     action="reload-css", reason="css-only", changed_paths=[]
@@ -339,7 +349,13 @@ class BuildHandler(FileSystemEventHandler):
                                 decision = ReloadDecision(
                                     action="reload", reason="source-change", changed_paths=[]
                                 )
-                        except Exception:
+                        except Exception as e:
+                            logger.debug(
+                                "build_handler_reload_decision_failed",
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="using_none_decision",
+                            )
                             decision = None
                     else:
                         decision = None

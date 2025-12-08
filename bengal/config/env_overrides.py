@@ -10,6 +10,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     """
@@ -96,9 +100,15 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                     config["baseurl"] = f"/{name}".rstrip("/")
                 return config
 
-    except Exception:
+    except Exception as e:
         # Never fail build due to env override logic
         # Silently continue with original config
+        logger.debug(
+            "env_overrides_application_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="continuing_with_original_config",
+        )
         pass
 
     return config

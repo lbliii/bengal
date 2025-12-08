@@ -8,7 +8,6 @@ Provides a unified interface for all CLI messaging with:
 - Rich/fallback rendering
 """
 
-
 from __future__ import annotations
 
 from enum import Enum
@@ -17,6 +16,10 @@ from typing import Any
 import click
 from rich.panel import Panel
 from rich.table import Table
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class MessageLevel(Enum):
@@ -102,7 +105,13 @@ class CLIOutput:
             self.dev_server = (_os.environ.get("BENGAL_DEV_SERVER") or "") == "1"
             # Phase deduplication window (ms) to suppress duplicate phase lines
             self._phase_dedup_ms = int(_os.environ.get("BENGAL_CLI_PHASE_DEDUP_MS", "1500"))
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "cli_output_env_init_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_defaults",
+            )
             self.dev_server = False
             self._phase_dedup_ms = 1500
 
@@ -540,9 +549,7 @@ class CLIOutput:
 
         self.separator()
         if self.use_rich:
-            self.console.print(
-                f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}"
-            )
+            self.console.print(f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}")
         else:
             click.echo(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
         self.separator()
@@ -582,9 +589,7 @@ class CLIOutput:
 
         if self.use_rich:
             self.console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
-            self.console.print(
-                f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]"
-            )
+            self.console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
         else:
             click.echo(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
             click.echo(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
@@ -759,7 +764,13 @@ class CLIOutput:
             import time as _time
 
             return int(_time.monotonic() * 1000)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "cli_output_now_ms_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_zero",
+            )
             return 0
 
     def _should_dedup_phase(self, line: str) -> bool:

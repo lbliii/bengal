@@ -16,7 +16,6 @@ Performance:
 - Suitable for high-volume build-time validation
 """
 
-
 from __future__ import annotations
 
 from html.parser import HTMLParser
@@ -46,7 +45,7 @@ class NativeHTMLParser(HTMLParser):
         'Hello'  # Code block excluded
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.text_parts: list[str] = []  # Collect text content
         self.in_code_block = False  # Toggle for <code>/<pre> tags

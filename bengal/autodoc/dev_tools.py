@@ -518,7 +518,14 @@ class TemplateProfiler:
         try:
             content = renderer.render_with_boundaries(template_name, context)
             content_size = len(content.encode("utf-8"))
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "autodoc_dev_tools_render_failed",
+                template=template_name,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_zero_size",
+            )
             content_size = 0
 
         render_time = (time.time() - start_time) * 1000

@@ -22,7 +22,7 @@ from html.parser import HTMLParser
 class AssetExtractorParser(HTMLParser):
     """HTML parser for extracting asset references from rendered content."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the asset extractor parser."""
         super().__init__()
         self.assets: set[str] = set()

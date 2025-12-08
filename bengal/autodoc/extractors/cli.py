@@ -14,6 +14,9 @@ import click
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.utils import sanitize_text
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def _is_sentinel_value(value: Any) -> bool:
@@ -510,7 +513,13 @@ class CLIExtractor(Extractor):
 
                 click_app = typer_wrapper
 
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "cli_extractor_typer_wrapper_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_method_2",
+                )
                 pass
 
         # Method 2: Try using Typer's own conversion (most reliable)
@@ -521,7 +530,13 @@ class CLIExtractor(Extractor):
                     click_app = typer.main.get_group(app)
                 elif hasattr(typer.main, "get_command"):
                     click_app = typer.main.get_command(app)
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "cli_extractor_typer_main_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_method_3",
+                )
                 pass
 
         # Method 3: Direct attribute access (older Typer versions)
@@ -555,7 +570,13 @@ class CLIExtractor(Extractor):
                 return typer.main.get_group(typer_app)
             elif hasattr(typer.main, "get_command"):
                 return typer.main.get_command(typer_app)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "cli_extractor_typer_to_click_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_none",
+            )
             pass
 
         return None

@@ -315,7 +315,14 @@ def _checksum_file(path: Path) -> str:
     """Compute truncated checksum of file content."""
     try:
         return hash_file(path, truncate=16)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "swizzle_checksum_file_failed",
+            path=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_empty_string",
+        )
         return ""
 
 

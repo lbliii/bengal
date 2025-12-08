@@ -16,6 +16,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class TracebackStyle(Enum):
     FULL = "full"
@@ -113,8 +117,15 @@ class TracebackConfig:
                 try:
                     mod = __import__(name)
                     suppress_modules.append(mod)
-                except Exception:
+                except Exception as e:
                     # Best-effort; ignore unknown modules
+                    logger.debug(
+                        "traceback_config_module_import_failed",
+                        module_name=name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="skipping_module",
+                    )
                     pass
 
             rich_install(
@@ -124,8 +135,14 @@ class TracebackConfig:
                 max_frames=self.max_frames,
                 width=None,
             )
-        except Exception:
+        except Exception as e:
             # Silently skip if rich not available or any failure during install
+            logger.debug(
+                "traceback_config_rich_install_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_rich_install",
+            )
             return
 
     def get_renderer(self) -> TracebackRenderer:

@@ -8,9 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
+
+logger = get_logger(__name__)
 
 
 class ContentTypeStrategy:
@@ -114,7 +118,14 @@ class ContentTypeStrategy:
             try:
                 template_engine.env.get_template(name)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "content_type_template_check_failed",
+                    template=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="returning_false",
+                )
                 return False
 
         if is_home:

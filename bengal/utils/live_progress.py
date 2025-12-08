@@ -15,8 +15,11 @@ from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.text import Text
 
+from bengal.utils.logger import get_logger
 from bengal.utils.profile import BuildProfile
 from bengal.utils.rich_console import get_console, should_use_rich
+
+logger = get_logger(__name__)
 
 
 class PhaseStatus(Enum):
@@ -127,7 +130,14 @@ class LiveProgressManager:
         min_interval_ms = self.live_config.get("min_interval_ms", 500)
         try:
             self._min_render_interval_sec = max(0.0, float(min_interval_ms) / 1000.0)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "live_progress_interval_parse_failed",
+                min_interval_ms=min_interval_ms,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_default_0_5_sec",
+            )
             self._min_render_interval_sec = 0.5
         self._last_render_ts: float = 0.0
 

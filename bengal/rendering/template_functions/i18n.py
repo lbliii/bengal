@@ -186,7 +186,13 @@ def _make_t(site: Site):
     def format_params(text: str, params: dict[str, Any]) -> str:
         try:
             return text.format(**params)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "i18n_format_params_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_original_text",
+            )
             return text
 
     def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
@@ -229,7 +235,14 @@ def _alternate_links(site: Site, page: Any | None) -> list[dict[str, str]]:
                 href = "/" + str(rel).replace("index.html", "").replace("\\", "/").rstrip("/") + "/"
                 lang = getattr(p, "lang", None) or i18n.get("default_language", "en")
                 alternates.append({"hreflang": lang, "href": href})
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "i18n_alternate_link_failed",
+                    page_path=str(p.output_path) if hasattr(p, "output_path") else None,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_alternate",
+                )
                 continue
     # Add x-default pointing to default language
     default_lang = i18n.get("default_language", "en")
@@ -248,9 +261,21 @@ def _locale_date(date: Any, format: str = "medium", lang: str | None = None) -> 
 
         pattern = _DEF_FORMATS.get(format, format)
         return format_date(date, format=pattern, locale=lang or "en")
-    except Exception:
+    except Exception as e:
         # Fallback to simple strftime
+        logger.debug(
+            "i18n_babel_format_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="trying_strftime_fallback",
+        )
         try:
             return date.strftime("%Y-%m-%d")
-        except Exception:
+        except Exception as e2:
+            logger.debug(
+                "i18n_strftime_failed",
+                error=str(e2),
+                error_type=type(e2).__name__,
+                action="returning_string_representation",
+            )
             return str(date)

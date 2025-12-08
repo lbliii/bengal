@@ -16,7 +16,7 @@ from typing import Any
 class ParsedDocstring:
     """Container for parsed docstring data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.summary: str = ""
         self.description: str = ""
         self.args: dict[str, str] = {}

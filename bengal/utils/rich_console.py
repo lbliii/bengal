@@ -7,13 +7,16 @@ Provides a singleton console instance that respects:
 - CI/CD environments
 """
 
-
 from __future__ import annotations
 
 import os
 
 from rich.console import Console
 from rich.theme import Theme
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Bengal color palette
 PALETTE = {
@@ -184,6 +187,12 @@ def is_live_display_active():
         # Check if _live attribute exists and is not None
         # This is the most reliable way to detect an active Live display
         return getattr(console, "_live", None) is not None
-    except Exception:
+    except Exception as e:
         # Fallback: assume no live display if we can't determine
+        logger.debug(
+            "rich_console_live_display_check_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="assuming_no_live_display",
+        )
         return False

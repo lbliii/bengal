@@ -327,8 +327,15 @@ class GraphVisualizer:
                     css_entry = manifest.get("css/style.css")
                     if css_entry:
                         css_path = f"/{css_entry.output_path}"
-        except Exception:
+        except Exception as e:
             # If manifest lookup fails, use non-fingerprinted paths
+            logger.debug(
+                "graph_visualizer_manifest_lookup_failed",
+                manifest_path=str(manifest_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_non_fingerprinted_paths",
+            )
             pass
 
         # Apply baseurl prefix

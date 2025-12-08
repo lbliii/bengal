@@ -9,7 +9,6 @@ Provides centralized cleanup handling for all termination scenarios:
 - Exceptions (context manager __exit__)
 """
 
-
 from __future__ import annotations
 
 import atexit
@@ -20,6 +19,10 @@ import threading
 import time
 from collections.abc import Callable
 from typing import Any
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ResourceManager:
@@ -131,7 +134,14 @@ class ResourceManager:
             try:
                 if path.exists():
                     path.unlink()
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "resource_manager_cleanup_failed",
+                    path=str(path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_cleanup",
+                )
                 pass
 
         return self.register("PID File", pidfile_path, cleanup)

@@ -6,10 +6,13 @@ Provides safe normalization helpers for section references that may be either
 runtime vs cached/incremental data structures).
 """
 
-
 from __future__ import annotations
 
 from typing import Any
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def resolve_page_section_path(page: Any) -> str | None:
@@ -34,7 +37,13 @@ def resolve_page_section_path(page: Any) -> str | None:
     # Some page proxies may raise on getattr; guard with try/except
     try:
         section_value = getattr(page, "section", None)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "sections_getattr_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_none_section",
+        )
         section_value = None
 
     if not section_value:
@@ -44,8 +53,14 @@ def resolve_page_section_path(page: Any) -> str | None:
     if hasattr(section_value, "path"):
         try:
             return str(section_value.path)
-        except Exception:
+        except Exception as e:
             # Fallback to str(section_value) if `.path` isn't convertible
+            logger.debug(
+                "sections_path_convert_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_string_fallback",
+            )
             return str(section_value)
 
     # Already a string or stringable value

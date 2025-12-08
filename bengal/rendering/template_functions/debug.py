@@ -4,16 +4,19 @@ Debug utility functions for templates.
 Provides 3 functions for debugging templates during development.
 """
 
-
 from __future__ import annotations
 
 import pprint
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from jinja2 import Environment
 
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: Environment, site: Site) -> None:
@@ -106,7 +109,14 @@ def inspect(obj: Any) -> str:
                 methods.append(f"{attr}()")
             else:
                 properties.append(attr)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "debug_function_getattr_failed",
+                attr=attr,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="adding_as_property",
+            )
             properties.append(attr)
 
     result = []

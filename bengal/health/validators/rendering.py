@@ -166,8 +166,14 @@ class RenderingValidator(BaseValidator):
             # Check patterns
             jinja2_patterns = ["{{ page.", "{{ site."]
             return any(pattern in remaining_text for pattern in jinja2_patterns)
-        except Exception:
+        except Exception as e:
             # Fallback regex (no bs4)
+            logger.debug(
+                "rendering_validator_bs4_check_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_regex_fallback",
+            )
             return any(p in html_content for p in ["{{ page.", "{{ site."])
 
     def _check_template_functions(self, site: Site) -> list[CheckResult]:

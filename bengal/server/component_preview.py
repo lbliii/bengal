@@ -288,7 +288,13 @@ class ComponentPreviewServer:
             if themes_root.exists():
                 try:
                     import tomllib
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "component_preview_tomllib_import_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="using_none_fallback",
+                    )
                     tomllib = None  # py<3.11 users won't hit this in tests
 
                 extends_map: dict[str, str | None] = {}
@@ -300,7 +306,14 @@ class ComponentPreviewServer:
                         try:
                             data = tomllib.loads(tt.read_text(encoding="utf-8"))
                             extends = data.get("extends")
-                        except Exception:
+                        except Exception as e:
+                            logger.debug(
+                                "component_preview_theme_toml_parse_failed",
+                                theme_toml=str(tt),
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="using_none_extends",
+                            )
                             extends = None
                     extends_map[slug] = extends
 

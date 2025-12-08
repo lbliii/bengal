@@ -13,6 +13,9 @@ from typing import Any
 
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.error_handlers import get_context_aware_help
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -33,7 +36,13 @@ class FullTracebackRenderer(TracebackRenderer):
                 console = get_console()
                 console.print_exception(show_locals=True, width=None)
                 return
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "traceback_renderer_rich_display_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="falling_back_to_standard",
+            )
             pass
 
         # Fallback to standard Python

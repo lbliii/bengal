@@ -12,8 +12,11 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.health.report import CheckResult
 from bengal.rendering.parsers.factory import ParserFactory
+from bengal.utils.logger import get_logger
 
 from .constants import MAX_DIRECTIVES_PER_PAGE, MAX_TABS_PER_BLOCK
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

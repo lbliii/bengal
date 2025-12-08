@@ -112,8 +112,14 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
         if normalized in _NO_HIGHLIGHT_LANGUAGES:
             try:
                 lexer = get_lexer_by_name("text")
-            except Exception:
+            except Exception as e:
                 # Extremely unlikely, but ensure we return something
+                logger.debug(
+                    "pygments_text_lexer_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="retrying_text_lexer",
+                )
                 lexer = get_lexer_by_name("text")
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
