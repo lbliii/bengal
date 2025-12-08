@@ -72,7 +72,7 @@ def _sanitize_help_text(text: str) -> str:
 class BengalCommand(click.Command):
     """Custom Click command with themed help output."""
 
-    def format_help(self, ctx, formatter):
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help output using our themed CLIOutput."""
         cli = CLIOutput()
 
@@ -145,7 +145,7 @@ class BengalGroup(click.Group):
     # Use our custom command class by default
     command_class = BengalCommand
 
-    def format_help(self, ctx, formatter):
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help output using our themed CLIOutput."""
         cli = CLIOutput()
 
@@ -241,7 +241,7 @@ class BengalGroup(click.Group):
         # Don't let Click write anything else
         formatter.write("")
 
-    def resolve_command(self, ctx, args):
+    def resolve_command(self, ctx: click.Context, args: list[str]) -> tuple[str | None, click.Command | None, list[str]]:
         """Resolve command with fuzzy matching for typos."""
         try:
             return super().resolve_command(ctx, args)
@@ -286,7 +286,7 @@ class BengalGroup(click.Group):
             # Re-raise original error if no suggestions
             raise
 
-    def _get_similar_commands(self, unknown_cmd: str, max_suggestions: int = 3):
+    def _get_similar_commands(self, unknown_cmd: str, max_suggestions: int = 3) -> list[str]:
         """Find similar command names using simple string similarity."""
         from difflib import get_close_matches
 

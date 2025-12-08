@@ -513,7 +513,7 @@ class LiveProgressManager:
         else:
             return " "
 
-    def _print_fallback(self):
+    def _print_fallback(self) -> None:
         """
         Fallback for non-TTY environments (CI, redirected output).
 

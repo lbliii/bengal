@@ -742,6 +742,534 @@ def data_attrs(**attrs: Any) -> str:
     return " ".join(parts)
 ```
 
+#### 3.2.5 DirectiveContract — Nested Directive Validation ⭐ KEY FEATURE
+
+```python
+# bengal/rendering/plugins/directives/contracts.py
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass(frozen=True)
+class DirectiveContract:
+    """
+    Defines valid nesting relationships for a directive.
+    
+    This is the KEY FEATURE that solves the nested directive validation problem.
+    Contracts are checked at parse time to catch invalid nesting early.
+    
+    Attributes:
+        requires_parent: This directive MUST be inside one of these parent types.
+                        Empty list means can appear anywhere (root-level OK).
+        
+        requires_children: This directive MUST contain at least one of these types.
+                          Empty list means no required children.
+        
+        allowed_children: Only these child types are allowed (whitelist).
+                         Empty list means any children allowed.
+        
+        disallowed_children: These child types are NOT allowed (blacklist).
+                            Takes precedence over allowed_children.
+        
+        min_children: Minimum count of required_children types.
+        
+        max_children: Maximum children (0 = unlimited).
+    
+    Example - StepDirective (must be inside steps):
+        CONTRACT = DirectiveContract(
+            requires_parent=["steps"],
+        )
+    
+    Example - StepsDirective (must contain steps):
+        CONTRACT = DirectiveContract(
+            requires_children=["step"],
+            min_children=1,
+            allowed_children=["step"],
+        )
+    
+    Example - TabSetDirective (tabs with items):
+        CONTRACT = DirectiveContract(
+            requires_children=["tab_item"],
+            min_children=1,
+        )
+    """
+    
+    # Parent requirements
+    requires_parent: tuple[str, ...] = ()
+    
+    # Child requirements
+    requires_children: tuple[str, ...] = ()
+    min_children: int = 0
+    max_children: int = 0  # 0 = unlimited
+    
+    # Child filtering
+    allowed_children: tuple[str, ...] = ()  # Empty = allow all
+    disallowed_children: tuple[str, ...] = ()
+    
+    def __post_init__(self) -> None:
+        """Convert any lists to tuples for hashability."""
+        # Handled by frozen=True, but validate min_children
+        if self.min_children < 0:
+            raise ValueError("min_children must be >= 0")
+        if self.max_children < 0:
+            raise ValueError("max_children must be >= 0")
+    
+    @property
+    def has_parent_requirement(self) -> bool:
+        """True if this directive requires a specific parent."""
+        return len(self.requires_parent) > 0
+    
+    @property
+    def has_child_requirement(self) -> bool:
+        """True if this directive requires specific children."""
+        return len(self.requires_children) > 0 or self.min_children > 0
+
+
+@dataclass
+class ContractViolation:
+    """
+    Represents a contract violation found during parsing.
+    
+    Collected violations can be:
+    - Logged as warnings (default)
+    - Raised as errors (strict mode)
+    - Reported in health checks
+    """
+    directive: str
+    violation_type: str  # "invalid_parent", "missing_children", "invalid_children", etc.
+    message: str
+    expected: list[str] | int | None = None
+    found: list[str] | str | int | None = None
+    location: str | None = None  # e.g., "content/guide.md:45"
+    
+    def to_log_dict(self) -> dict[str, Any]:
+        """Convert to structured log format."""
+        result = {
+            "directive": self.directive,
+            "violation": self.violation_type,
+            "message": self.message,
+        }
+        if self.expected is not None:
+            result["expected"] = self.expected
+        if self.found is not None:
+            result["found"] = self.found
+        if self.location:
+            result["location"] = self.location
+        return result
+
+
+class ContractValidator:
+    """
+    Validates directive nesting against contracts.
+    
+    Used by BengalDirective.parse() to check:
+    1. Parent context is valid (if requires_parent specified)
+    2. Children meet requirements (if requires_children specified)
+    3. Children types are allowed (if allowed_children specified)
+    
+    Example usage in BengalDirective:
+        def parse(self, block, m, state):
+            # ... parse content ...
+            
+            # Validate parent
+            if self.CONTRACT:
+                parent_type = self._get_parent_type(state)
+                violations = ContractValidator.validate_parent(
+                    self.CONTRACT, self.TOKEN_TYPE, parent_type
+                )
+                for v in violations:
+                    self.logger.warning(v.violation_type, **v.to_log_dict())
+            
+            # ... parse children ...
+            
+            # Validate children
+            if self.CONTRACT:
+                violations = ContractValidator.validate_children(
+                    self.CONTRACT, self.TOKEN_TYPE, children
+                )
+                for v in violations:
+                    self.logger.warning(v.violation_type, **v.to_log_dict())
+    """
+    
+    @staticmethod
+    def validate_parent(
+        contract: DirectiveContract,
+        directive_type: str,
+        parent_type: str | None,
+        location: str | None = None,
+    ) -> list[ContractViolation]:
+        """
+        Validate that the directive is inside a valid parent.
+        
+        Args:
+            contract: The directive's contract
+            directive_type: The directive being validated (e.g., "step")
+            parent_type: The parent directive type (None if at root)
+            location: Source location for error messages
+        
+        Returns:
+            List of violations (empty if valid)
+        """
+        violations = []
+        
+        if contract.requires_parent:
+            if parent_type not in contract.requires_parent:
+                violations.append(ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_invalid_parent",
+                    message=f"{directive_type} must be inside {contract.requires_parent}, found: {parent_type or '(root)'}",
+                    expected=list(contract.requires_parent),
+                    found=parent_type or "(root)",
+                    location=location,
+                ))
+        
+        return violations
+    
+    @staticmethod
+    def validate_children(
+        contract: DirectiveContract,
+        directive_type: str,
+        children: list[dict[str, Any]],
+        location: str | None = None,
+    ) -> list[ContractViolation]:
+        """
+        Validate that children meet contract requirements.
+        
+        Args:
+            contract: The directive's contract
+            directive_type: The directive being validated (e.g., "steps")
+            children: Parsed child tokens
+            location: Source location for error messages
+        
+        Returns:
+            List of violations (empty if valid)
+        """
+        violations = []
+        
+        # Extract child types
+        child_types = [
+            c.get("type") for c in children 
+            if isinstance(c, dict) and c.get("type")
+        ]
+        
+        # Check required children exist
+        if contract.requires_children:
+            required_found = [t for t in child_types if t in contract.requires_children]
+            
+            if not required_found:
+                violations.append(ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_missing_required_children",
+                    message=f"{directive_type} requires at least one of {contract.requires_children}",
+                    expected=list(contract.requires_children),
+                    found=child_types,
+                    location=location,
+                ))
+            elif len(required_found) < contract.min_children:
+                violations.append(ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_insufficient_children",
+                    message=f"{directive_type} requires at least {contract.min_children} {contract.requires_children}, found {len(required_found)}",
+                    expected=contract.min_children,
+                    found=len(required_found),
+                    location=location,
+                ))
+        
+        # Check max children
+        if contract.max_children > 0 and len(child_types) > contract.max_children:
+            violations.append(ContractViolation(
+                directive=directive_type,
+                violation_type="directive_too_many_children",
+                message=f"{directive_type} allows max {contract.max_children} children, found {len(child_types)}",
+                expected=contract.max_children,
+                found=len(child_types),
+                location=location,
+            ))
+        
+        # Check allowed children (whitelist)
+        if contract.allowed_children:
+            invalid = [t for t in child_types if t and t not in contract.allowed_children]
+            if invalid:
+                violations.append(ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_invalid_child_types",
+                    message=f"{directive_type} does not allow children of type {invalid}",
+                    expected=list(contract.allowed_children),
+                    found=invalid,
+                    location=location,
+                ))
+        
+        # Check disallowed children (blacklist)
+        if contract.disallowed_children:
+            invalid = [t for t in child_types if t in contract.disallowed_children]
+            if invalid:
+                violations.append(ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_disallowed_child_types",
+                    message=f"{directive_type} does not allow children of type {invalid}",
+                    expected=f"not {list(contract.disallowed_children)}",
+                    found=invalid,
+                    location=location,
+                ))
+        
+        return violations
+
+
+# =============================================================================
+# Pre-defined Contracts for Bengal Directives
+# =============================================================================
+
+# Steps directives
+STEPS_CONTRACT = DirectiveContract(
+    requires_children=("step",),
+    min_children=1,
+    allowed_children=("step",),
+)
+
+STEP_CONTRACT = DirectiveContract(
+    requires_parent=("steps",),
+)
+
+# Tabs directives  
+TAB_SET_CONTRACT = DirectiveContract(
+    requires_children=("tab_item",),
+    min_children=1,
+)
+
+TAB_ITEM_CONTRACT = DirectiveContract(
+    requires_parent=("tab_set", "legacy_tabs"),
+)
+
+# Cards directives
+CARDS_CONTRACT = DirectiveContract(
+    # Cards can have card children, but they're optional (child-cards auto-generates)
+    allowed_children=("card",),
+)
+
+CARD_CONTRACT = DirectiveContract(
+    requires_parent=("cards_grid",),
+)
+
+# Code tabs
+CODE_TABS_CONTRACT = DirectiveContract(
+    # Requires code block children
+    min_children=1,
+)
+```
+
+#### 3.2.6 Updated BengalDirective with Contract Validation
+
+The base class now validates contracts automatically:
+
+```python
+# bengal/rendering/plugins/directives/base.py (updated with contracts)
+from __future__ import annotations
+
+from abc import abstractmethod
+from re import Match
+from typing import Any, ClassVar
+
+from mistune.directives import DirectivePlugin
+
+from bengal.utils.logger import get_logger
+
+from .contracts import DirectiveContract, ContractValidator
+from .options import DirectiveOptions
+from .tokens import DirectiveToken
+
+
+class BengalDirective(DirectivePlugin):
+    """
+    Base class for Bengal directives with nesting validation.
+    
+    NEW: Supports DirectiveContract for validating parent-child relationships.
+    
+    Subclass Requirements:
+    - NAMES: list of directive names to register
+    - TOKEN_TYPE: token type string for AST
+    - OPTIONS_CLASS: (optional) typed options dataclass
+    - CONTRACT: (optional) nesting validation contract ⭐ NEW
+    - parse_directive(): build token from parsed components
+    - render(): render token to HTML
+    
+    Example with contract:
+        class StepDirective(BengalDirective):
+            NAMES = ["step"]
+            TOKEN_TYPE = "step"
+            CONTRACT = DirectiveContract(requires_parent=["steps"])
+            
+            def parse_directive(self, ...): ...
+            def render(self, ...): ...
+    """
+    
+    # -------------------------------------------------------------------------
+    # Class Attributes (override in subclass)
+    # -------------------------------------------------------------------------
+    
+    NAMES: ClassVar[list[str]]
+    TOKEN_TYPE: ClassVar[str]
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = DirectiveOptions
+    
+    # NEW: Contract for nesting validation (optional)
+    CONTRACT: ClassVar[DirectiveContract | None] = None
+    
+    # -------------------------------------------------------------------------
+    # Initialization
+    # -------------------------------------------------------------------------
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.logger = get_logger(self.__class__.__module__)
+    
+    # -------------------------------------------------------------------------
+    # Parse Flow with Contract Validation
+    # -------------------------------------------------------------------------
+    
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+        """
+        Standard parse flow with contract validation.
+        
+        Validation steps:
+        1. Validate parent context (if CONTRACT.requires_parent)
+        2. Parse content and children
+        3. Validate children (if CONTRACT.requires_children)
+        """
+        # Get source location for error messages
+        location = self._get_source_location(state)
+        
+        # STEP 1: Validate parent context BEFORE parsing
+        if self.CONTRACT and self.CONTRACT.has_parent_requirement:
+            parent_type = self._get_parent_directive_type(state)
+            violations = ContractValidator.validate_parent(
+                self.CONTRACT, self.TOKEN_TYPE, parent_type, location
+            )
+            for v in violations:
+                self.logger.warning(v.violation_type, **v.to_log_dict())
+        
+        # STEP 2: Parse content
+        title = self.parse_title(m)
+        raw_options = dict(self.parse_options(m))
+        content = self.parse_content(m)
+        children = self.parse_tokens(block, content, state)
+        
+        # Parse options into typed instance
+        options = self.OPTIONS_CLASS.from_raw(raw_options)
+        
+        # STEP 3: Validate children AFTER parsing
+        if self.CONTRACT and self.CONTRACT.has_child_requirement:
+            # Convert children to list of dicts for validation
+            child_dicts = [
+                c if isinstance(c, dict) else {"type": "unknown"}
+                for c in children
+            ]
+            violations = ContractValidator.validate_children(
+                self.CONTRACT, self.TOKEN_TYPE, child_dicts, location
+            )
+            for v in violations:
+                self.logger.warning(v.violation_type, **v.to_log_dict())
+        
+        # Build token via subclass
+        token = self.parse_directive(title, options, content, children, state)
+        
+        # Return dict for mistune compatibility
+        if isinstance(token, DirectiveToken):
+            return token.to_dict()
+        return token
+    
+    def _get_parent_directive_type(self, state: Any) -> str | None:
+        """
+        Extract parent directive type from parser state.
+        
+        Mistune tracks directive nesting in state. This method extracts
+        the immediate parent directive type for contract validation.
+        
+        Returns:
+            Parent directive type (e.g., "steps") or None if at root
+        """
+        # Check for Bengal's directive stack in state
+        directive_stack = getattr(state, "_directive_stack", None)
+        if directive_stack and len(directive_stack) > 0:
+            return directive_stack[-1]
+        
+        # Fallback: check state.env for parent tracking
+        env = getattr(state, "env", {})
+        if isinstance(env, dict):
+            stack = env.get("directive_stack", [])
+            if stack:
+                return stack[-1]
+        
+        return None
+    
+    def _get_source_location(self, state: Any) -> str | None:
+        """
+        Extract source file location from parser state.
+        
+        Returns:
+            Location string like "content/guide.md:45" or None
+        """
+        env = getattr(state, "env", {})
+        if isinstance(env, dict):
+            source_file = env.get("source_file", "")
+            # Line number tracking would require mistune modifications
+            if source_file:
+                return source_file
+        return None
+    
+    @abstractmethod
+    def parse_directive(
+        self,
+        title: str,
+        options: DirectiveOptions,
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken | dict[str, Any]:
+        """Build the token from parsed components."""
+        ...
+    
+    @abstractmethod
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render token to HTML."""
+        ...
+    
+    def __call__(self, directive: Any, md: Any) -> None:
+        """Register directive names and renderer."""
+        for name in self.NAMES:
+            directive.register(name, self.parse)
+        
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register(self.TOKEN_TYPE, self.render)
+    
+    # -------------------------------------------------------------------------
+    # Shared Utilities (unchanged)
+    # -------------------------------------------------------------------------
+    
+    @staticmethod
+    def escape_html(text: str) -> str:
+        """Escape HTML special characters for use in attributes."""
+        if not text:
+            return ""
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#x27;")
+        )
+    
+    @staticmethod
+    def build_class_string(*classes: str) -> str:
+        """Build CSS class string from multiple class sources."""
+        return " ".join(c.strip() for c in classes if c and c.strip())
+    
+    @staticmethod
+    def bool_attr(name: str, value: bool) -> str:
+        """Return HTML boolean attribute string."""
+        return f" {name}" if value else ""
+```
+
 ### 3.3 Example Migration: DropdownDirective
 
 #### Before (Current Implementation)

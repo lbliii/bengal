@@ -189,7 +189,7 @@ class CardsDirective(DirectivePlugin):
         # Default to auto if invalid
         return "auto"
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("cards", self.parse)
 
@@ -292,7 +292,7 @@ class CardDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("card", self.parse)
 
@@ -416,7 +416,7 @@ class GridDirective(DirectivePlugin):
 
         return "medium"
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("grid", self.parse)
 
@@ -542,7 +542,7 @@ class GridItemCardDirective(DirectivePlugin):
 
         return "", title
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("grid-item-card", self.parse)
 
@@ -554,7 +554,7 @@ class GridItemCardDirective(DirectivePlugin):
 # Render functions
 
 
-def render_cards_grid(renderer, text: str, **attrs) -> str:
+def render_cards_grid(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render cards grid container to HTML.
 
@@ -586,7 +586,7 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
     return html
 
 
-def render_card(renderer, text: str, **attrs) -> str:
+def render_card(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render individual card to HTML.
 
@@ -687,7 +687,7 @@ def render_card(renderer, text: str, **attrs) -> str:
     return "\n".join(parts) + "\n"
 
 
-def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, Any]:
+def _pull_from_linked_page(renderer: Any, link: str, fields: list[str]) -> dict[str, Any]:
     """
     Pull metadata from a linked page using the object tree (preferred) or xref_index.
 
@@ -758,7 +758,7 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
     return _extract_page_fields(page, fields)
 
 
-def _extract_page_fields(page, fields: list[str]) -> dict[str, Any]:
+def _extract_page_fields(page: Any, fields: list[str]) -> dict[str, Any]:
     """Extract requested fields from a page object."""
     result: dict[str, Any] = {}
 
@@ -794,7 +794,7 @@ def _extract_page_fields(page, fields: list[str]) -> dict[str, Any]:
     return result
 
 
-def _resolve_page(xref_index: dict, link: str, current_page_dir: str | None = None):
+def _resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | None = None) -> Any:
     """
     Resolve a link to a page object via xref_index.
 
@@ -864,7 +864,7 @@ def _resolve_page(xref_index: dict, link: str, current_page_dir: str | None = No
     return pages[0] if pages else None
 
 
-def _resolve_link_url(renderer, link: str) -> str:
+def _resolve_link_url(renderer: Any, link: str) -> str:
     """
     Resolve a link reference to a URL.
 
@@ -970,7 +970,7 @@ class ChildCardsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["child-cards"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse child-cards directive options."""
         options = dict(self.parse_options(m))
 
@@ -1016,7 +1016,7 @@ class ChildCardsDirective(DirectivePlugin):
             "children": [],
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("child-cards", self.parse)
 
@@ -1024,7 +1024,7 @@ class ChildCardsDirective(DirectivePlugin):
             md.renderer.register("child_cards", render_child_cards)
 
 
-def render_child_cards(renderer, text: str, **attrs) -> str:
+def render_child_cards(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render child cards by walking the page object tree.
 
@@ -1186,7 +1186,7 @@ def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
     return "\n".join(parts) + "\n"
 
 
-def _get_section_url(section) -> str:
+def _get_section_url(section: Any) -> str:
     """Get URL for a section (uses index_page if available)."""
     if hasattr(section, "index_page") and section.index_page:
         return getattr(section.index_page, "url", "/")

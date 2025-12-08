@@ -53,13 +53,14 @@ def _transform_css_nesting(css: str) -> str:
     This is a safety net for any nested CSS that slips through.
     """
     import re
+    from re import Match
 
     result = css
 
     # Pattern to match CSS rule blocks
     rule_pattern = r"([^{]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
 
-    def transform_rule(match):
+    def transform_rule(match: Match[str]) -> str:
         selector = match.group(1).strip()
         block_content = match.group(2)
 
@@ -81,9 +82,9 @@ def _transform_css_nesting(css: str) -> str:
 
         # Find nested & selectors
         nested_pattern = r"&\s*([:.#\[\w\s-]+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
-        nested_rules = []
+        nested_rules: list[str] = []
 
-        def extract_nested(m):
+        def extract_nested(m: Match[str]) -> str:
             nested_selector_part = m.group(1).strip()
             nested_block = m.group(2)
 
@@ -136,12 +137,13 @@ def _remove_duplicate_bare_h1_rules(css: str) -> str:
     This function removes the duplicate bare h1 rules.
     """
     import re
+    from re import Match
 
     # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
     # We need to match the scoped rule, then check if there's a duplicate bare h1
     pattern = r"(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})"
 
-    def remove_duplicate(match):
+    def remove_duplicate(match: Match[str]) -> str:
         scoped_rule = match.group(1)
         bare_rule = match.group(2)
 
@@ -407,10 +409,12 @@ class Asset:
 
         def bundle_imports(css_content: str, base_path: Path) -> str:
             """Recursively resolve @import statements, preserving @layer blocks."""
+            from re import Match
+
             # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
-            def resolve_import_in_context(import_match, layer_name=None):
+            def resolve_import_in_context(import_match: Match[str], layer_name: str | None = None) -> str:
                 """Resolve a single @import statement."""
                 import_path = import_match.group(1)
                 imported_file = base_path / import_path

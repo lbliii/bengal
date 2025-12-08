@@ -60,7 +60,7 @@ class ChecklistDirective(DirectivePlugin):
             md.renderer.register("checklist", render_checklist)
 
 
-def render_checklist(renderer, text: str, **attrs) -> str:
+def render_checklist(renderer: Any, text: str, **attrs: Any) -> str:
     """Render checklist to HTML."""
     title = attrs.get("title", "")
 
