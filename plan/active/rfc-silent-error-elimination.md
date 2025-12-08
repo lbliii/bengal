@@ -110,10 +110,10 @@ Bengal contains numerous exception handlers that silently swallow errors, making
 
 ### Affected Subsystems
 
-- **Config** (`bengal/config/`): 1 file
-  - `env_overrides.py`: Add logging to GitHub Pages detection
+- **Config** (`bengal/bengal/config/`): 1 file
+  - `env_overrides.py`: Upgrade logging to WARNING for GitHub Pages detection
 
-- **Utils** (`bengal/utils/`): 6 files
+- **Utils** (`bengal/bengal/utils/`): 6 files
   - `theme_registry.py`: Add logging to theme discovery (5 locations)
   - `swizzle.py`: Add logging to hash failure
   - `error_handlers.py`: Add logging to help generation
@@ -121,20 +121,20 @@ Bengal contains numerous exception handlers that silently swallow errors, making
   - `traceback_config.py`: Add logging to rich setup
   - `traceback_renderer.py`: Add logging to traceback fallback
 
-- **Health** (`bengal/health/`): 4 files
+- **Health** (`bengal/bengal/health/`): 4 files
   - `validators/rendering.py`: Add logging to SEO check
   - `validators/connectivity.py`: Add logging to graph metrics (5 locations)
   - `validators/directives/checkers.py`: Add logging to validation skip
   - `validators/cache.py`: Add logging to cache check
 
-- **CLI** (`bengal/cli/`): 1 file
+- **CLI** (`bengal/bengal/cli/`): 1 file
   - `commands/theme.py`: Add logging to theme detection (5 locations)
 
-- **Debug** (`bengal/debug/`): 2 files
+- **Debug** (`bengal/bengal/debug/`): 2 files
   - `config_inspector.py`: Add logging to layer inspection
   - `content_migrator.py`: Add logging to migration fallbacks
 
-- **Server** (`bengal/server/`): 3 files
+- **Server** (`bengal/bengal/server/`): 3 files
   - `build_handler.py`: Add logging to build decisions
   - `live_reload.py`: Add logging to websocket detection
   - `resource_manager.py`: Add logging to cleanup
@@ -281,13 +281,17 @@ except Exception as e:
 
 ### Specific Changes
 
-#### 1. `bengal/config/env_overrides.py` (Line 99)
+#### 1. `bengal/bengal/config/env_overrides.py` (Line 103)
 
 ```python
 # Before
-except Exception:
+except Exception as e:
     # Never fail build due to env override logic
     # Silently continue with original config
+    logger.debug(
+        "env_overrides_application_failed",
+        # ...
+    )
     pass
 
 # After
@@ -301,7 +305,7 @@ except Exception as e:
     )
 ```
 
-#### 2. `bengal/utils/theme_registry.py` (Lines 114, 131, 139, 159, 249)
+#### 2. `bengal/bengal/utils/theme_registry.py` (Lines 114, 131, 139, 159, 249)
 
 ```python
 # Before (line 114)
@@ -333,7 +337,7 @@ except Exception as e:
     )
 ```
 
-#### 3. `bengal/health/validators/connectivity.py` (Lines 123, 146, 160, 216, 249)
+#### 3. `bengal/bengal/health/validators/connectivity.py` (Lines 123, 146, 160, 216, 249)
 
 ```python
 # Before (line 160)
@@ -351,7 +355,7 @@ except Exception as e:
     orphans = []
 ```
 
-#### 4. `bengal/health/validators/rendering.py` (Line 256)
+#### 4. `bengal/bengal/health/validators/rendering.py` (Line 256)
 
 ```python
 # Before
@@ -442,25 +446,25 @@ except Exception as e:
 ### Implementation Phases
 
 **Phase 1: Critical Config/User-Facing (Priority)**
-- `bengal/config/env_overrides.py` (1 change)
-- `bengal/utils/theme_registry.py` (5 changes)
+- `bengal/bengal/config/env_overrides.py` (1 change)
+- `bengal/bengal/utils/theme_registry.py` (5 changes)
 - **Estimated**: 30 minutes
 
 **Phase 2: Health Validators**
-- `bengal/health/validators/rendering.py` (1 change)
-- `bengal/health/validators/connectivity.py` (5 changes)
-- `bengal/health/validators/directives/checkers.py` (1 change)
+- `bengal/bengal/health/validators/rendering.py` (1 change)
+- `bengal/bengal/health/validators/connectivity.py` (5 changes)
+- `bengal/bengal/health/validators/directives/checkers.py` (1 change)
 - **Estimated**: 30 minutes
 
 **Phase 3: CLI/Debug/Server**
-- `bengal/cli/commands/theme.py` (5 changes)
-- `bengal/debug/config_inspector.py` (3 changes)
-- `bengal/debug/content_migrator.py` (2 changes)
-- `bengal/server/*.py` (3 changes)
+- `bengal/bengal/cli/commands/theme.py` (5 changes)
+- `bengal/bengal/debug/config_inspector.py` (3 changes)
+- `bengal/bengal/debug/content_migrator.py` (2 changes)
+- `bengal/bengal/server/*.py` (3 changes)
 - **Estimated**: 45 minutes
 
 **Phase 4: Utilities**
-- Remaining `bengal/utils/` files (6 changes)
+- Remaining `bengal/bengal/utils/` files (6 changes)
 - **Estimated**: 30 minutes
 
 ### Rollout Strategy
@@ -479,18 +483,18 @@ except Exception as e:
 
 | File | Silent Handlers | Severity |
 |------|-----------------|----------|
-| `bengal/config/env_overrides.py` | 1 | 🔴 Critical |
-| `bengal/utils/theme_registry.py` | 5 | 🔴 Critical |
-| `bengal/health/validators/connectivity.py` | 5 | 🟠 High |
-| `bengal/health/validators/rendering.py` | 1 | 🟠 High |
-| `bengal/health/validators/directives/checkers.py` | 1 | 🟠 High |
-| `bengal/cli/commands/theme.py` | 5 | 🟡 Medium |
-| `bengal/debug/config_inspector.py` | 3 | 🟡 Medium |
-| `bengal/debug/content_migrator.py` | 2 | 🟡 Medium |
-| `bengal/server/build_handler.py` | 2 | 🟡 Medium |
-| `bengal/server/live_reload.py` | 1 | 🟡 Medium |
-| `bengal/utils/swizzle.py` | 1 | 🟡 Medium |
-| `bengal/utils/error_handlers.py` | 1 | 🟡 Medium |
+| `bengal/bengal/config/env_overrides.py` | 1 | 🔴 Critical |
+| `bengal/bengal/utils/theme_registry.py` | 5 | 🔴 Critical |
+| `bengal/bengal/health/validators/connectivity.py` | 5 | 🟠 High |
+| `bengal/bengal/health/validators/rendering.py` | 1 | 🟠 High |
+| `bengal/bengal/health/validators/directives/checkers.py` | 1 | 🟠 High |
+| `bengal/bengal/cli/commands/theme.py` | 5 | 🟡 Medium |
+| `bengal/bengal/debug/config_inspector.py` | 3 | 🟡 Medium |
+| `bengal/bengal/debug/content_migrator.py` | 2 | 🟡 Medium |
+| `bengal/bengal/server/build_handler.py` | 2 | 🟡 Medium |
+| `bengal/bengal/server/live_reload.py` | 1 | 🟡 Medium |
+| `bengal/bengal/utils/swizzle.py` | 1 | 🟡 Medium |
+| `bengal/bengal/utils/error_handlers.py` | 1 | 🟡 Medium |
 | **Total** | **28** | |
 
 ### Confidence Scoring

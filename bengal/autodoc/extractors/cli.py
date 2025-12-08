@@ -581,7 +581,6 @@ class CLIExtractor(Extractor):
 
         return None
 
-    @override
     def get_template_dir(self) -> str:
         """
         Get the template directory name for this extractor.

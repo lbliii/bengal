@@ -111,12 +111,16 @@ class AssetExtractorParser(HTMLParser):
                 if url:
                     self.assets.add(url)
 
-    def feed(self, data: str) -> AssetExtractorParser:
+    def feed(self, data: str) -> AssetExtractorParser:  # type: ignore[override]
         """
         Parse HTML and return self for chaining.
 
         Returns:
             self to allow parser(html).get_assets() pattern
+
+        Note:
+            HTMLParser.feed returns None, but we return self for chaining.
+            Type ignore is needed for this intentional override.
         """
         from contextlib import suppress
 

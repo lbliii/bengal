@@ -76,12 +76,16 @@ class NativeHTMLParser(HTMLParser):
         if not self.in_code_block and not self.in_script and not self.in_style:
             self.text_parts.append(data)
 
-    def feed(self, data: str) -> NativeHTMLParser:
+    def feed(self, data: str) -> NativeHTMLParser:  # type: ignore[override]
         """
         Parse HTML content and return self for chaining.
 
         Returns:
             self to allow parser(html).get_text() pattern
+
+        Note:
+            HTMLParser.feed returns None, but we return self for chaining.
+            Type ignore is needed for this intentional override.
         """
         super().feed(data)
         return self

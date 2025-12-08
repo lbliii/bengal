@@ -112,9 +112,8 @@ class CodeIndex:
                     elif isinstance(node, ast.Assign):
                         # Check for module-level constants (UPPER_CASE)
                         for target in node.targets:
-                            if isinstance(target, ast.Name):
-                                if target.id.isupper():
-                                    index.constants.add(target.id)
+                            if isinstance(target, ast.Name) and target.id.isupper():
+                                index.constants.add(target.id)
 
                 # Track module path
                 rel_path = py_file.relative_to(source_dir)
@@ -184,12 +183,13 @@ class CrossReferenceValidator(BaseValidator):
         self.deprecated_versions = deprecated_versions or []
         self.code_index: CodeIndex | None = None
 
-    def validate(self, site: Site) -> list[CheckResult]:
+    def validate(self, site: Site, build_context: Any | None = None) -> list[CheckResult]:
         """
         Validate cross-references in all site pages.
 
         Args:
             site: Site to validate
+            build_context: Optional BuildContext (not used by this validator)
 
         Returns:
             List of CheckResults for invalid references
@@ -473,4 +473,3 @@ def create_cross_ref_validator(
         source_dirs=source_dirs,
         config_options=config_options or set(),
     )
-
