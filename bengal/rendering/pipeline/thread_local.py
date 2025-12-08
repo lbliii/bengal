@@ -7,20 +7,22 @@ during parallel page rendering.
 Related Modules:
     - bengal.rendering.parsers: Parser implementations
     - bengal.rendering.pipeline.core: Uses thread-local parsers
+    - bengal.utils.thread_local: Generic thread-local caching utilities
 """
 
 from __future__ import annotations
 
-import threading
-
 from bengal.rendering.parsers import BaseMarkdownParser, create_markdown_parser
+from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 
-# Thread-local storage for parser instances (reuse parsers per thread)
-_thread_local = threading.local()
+# Thread-local cache for parser instances (reuse parsers per thread)
+_parser_cache: ThreadLocalCache[BaseMarkdownParser] = ThreadLocalCache(
+    factory=create_markdown_parser,
+    name="markdown_parser",
+)
 
-# Cache for created directories (reduces syscalls in parallel builds)
-_created_dirs: set = set()
-_created_dirs_lock = threading.Lock()
+# Thread-safe set for created directories (reduces syscalls in parallel builds)
+_created_dirs = ThreadSafeSet()
 
 
 def get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
@@ -59,19 +61,26 @@ def get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
         If you see N parser instances created where N = max_workers,
         this is OPTIMAL behavior, not a bug!
     """
-    # Store parser per engine type
-    cache_key = f"parser_{engine or 'default'}"
-    if not hasattr(_thread_local, cache_key):
-        setattr(_thread_local, cache_key, create_markdown_parser(engine))
-    return getattr(_thread_local, cache_key)
+    return _parser_cache.get(engine)
 
 
-def get_created_dirs() -> set:
-    """Get the set of already created directories."""
+def get_created_dirs() -> ThreadSafeSet:
+    """Get the thread-safe set of already created directories."""
     return _created_dirs
 
 
-def get_created_dirs_lock() -> threading.Lock:
-    """Get the lock for thread-safe directory creation."""
-    return _created_dirs_lock
+def mark_dir_created(dir_path: str) -> bool:
+    """
+    Mark a directory as created, return True if it was new.
+
+    This is the preferred way to track directory creation.
+    Uses atomic check-and-add to prevent race conditions.
+
+    Args:
+        dir_path: Path to directory as string
+
+    Returns:
+        True if directory was newly added, False if already tracked
+    """
+    return _created_dirs.add_if_new(dir_path)
 

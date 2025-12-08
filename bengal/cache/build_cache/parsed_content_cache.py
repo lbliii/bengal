@@ -18,11 +18,12 @@ Related Modules:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from bengal.utils.hashing import hash_str
 
 if TYPE_CHECKING:
     pass
@@ -79,7 +80,7 @@ class ParsedContentCacheMixin:
         """
         # Hash metadata to detect changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
-        metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
+        metadata_hash = hash_str(metadata_str)
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
@@ -137,7 +138,7 @@ class ParsedContentCacheMixin:
 
         # Validate metadata hasn't changed
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
-        metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
+        metadata_hash = hash_str(metadata_str)
         if cached.get("metadata_hash") != metadata_hash:
             return None
 

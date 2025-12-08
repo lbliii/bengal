@@ -5,7 +5,6 @@ Async external link checker with retries, backoff, and concurrency control.
 from __future__ import annotations
 
 import asyncio
-import random
 from typing import Any
 
 import httpx
@@ -13,6 +12,7 @@ import httpx
 from bengal.health.linkcheck.ignore_policy import IgnorePolicy
 from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
 from bengal.utils.logger import get_logger
+from bengal.utils.retry import calculate_backoff
 
 logger = get_logger(__name__)
 
@@ -302,20 +302,21 @@ class AsyncLinkChecker:
         """
         Calculate exponential backoff with jitter.
 
+        Delegates to centralized calculate_backoff utility for consistent
+        backoff behavior across the codebase.
+
         Args:
             attempt: Attempt number (0-indexed)
 
         Returns:
             Backoff time in seconds
         """
-        # Exponential backoff: base * (2 ^ attempt)
-        backoff = self.retry_backoff * (2**attempt)
-
-        # Add jitter (±25%)
-        jitter = backoff * 0.25
-        backoff += random.uniform(-jitter, jitter)
-
-        return max(0.1, backoff)  # Minimum 0.1 seconds
+        return calculate_backoff(
+            attempt=attempt,
+            base=self.retry_backoff,
+            max_delay=10.0,
+            jitter=True,
+        )
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> AsyncLinkChecker:

@@ -17,10 +17,10 @@ Related Modules:
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.hashing import hash_file
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -50,19 +50,16 @@ class FileTrackingMixin:
         """
         Generate SHA256 hash of a file.
 
+        Delegates to centralized hash_file utility for consistent behavior.
+
         Args:
             file_path: Path to file
 
         Returns:
             Hex string of SHA256 hash
         """
-        hasher = hashlib.sha256()
-
         try:
-            with open(file_path, "rb") as f:
-                while chunk := f.read(8192):
-                    hasher.update(chunk)
-            return hasher.hexdigest()
+            return hash_file(file_path)
         except Exception as e:
             logger.warning(
                 "file_hash_failed",

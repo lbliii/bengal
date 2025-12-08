@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.pipeline.thread_local import get_created_dirs, get_created_dirs_lock
+from bengal.rendering.pipeline.thread_local import mark_dir_created
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
@@ -96,19 +96,12 @@ def write_output(
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
     """
-    _created_dirs = get_created_dirs()
-    _created_dirs_lock = get_created_dirs_lock()
-
     # Ensure parent directory exists (with caching to reduce syscalls)
     parent_dir = page.output_path.parent
 
-    # Only create directory if not already done (thread-safe check)
-    if parent_dir not in _created_dirs:
-        with _created_dirs_lock:
-            # Double-check inside lock to avoid race condition
-            if parent_dir not in _created_dirs:
-                parent_dir.mkdir(parents=True, exist_ok=True)
-                _created_dirs.add(parent_dir)
+    # Only create directory if not already done (thread-safe atomic check-and-add)
+    if mark_dir_created(str(parent_dir)):
+        parent_dir.mkdir(parents=True, exist_ok=True)
 
     # Write rendered HTML (atomic for safety, fast mode for performance)
     # Fast mode skips atomic writes for dev server (PERFORMANCE OPTIMIZATION)
