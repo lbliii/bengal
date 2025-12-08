@@ -90,53 +90,45 @@ icons:
 
 ---
 
-## Phase 2: CSS Consolidation (RFC-002)
+## Phase 2: CSS Organization & Pattern Extraction (RFC-002)
 
 **Timeline**: Week 3-4  
 **Priority**: Medium  
 **Dependencies**: None (can run in parallel with Phase 1)  
+**Status**: ✅ **Approach Revised** - Keep modular structure, extract common patterns
 
-### 2.1 Token Consolidation
+### Decision: Modular CSS is Optimal
 
-| Task | Description | Files | Commit |
-|------|-------------|-------|--------|
-| 2.1.1 | Merge `tokens/*.css` into single `tokens.css` with sections | `bengal/themes/default/assets/css/tokens.css` (new) | `themes(css): consolidate token files into tokens.css with section comments` |
-| 2.1.2 | Keep palettes separate (user-switchable) | `bengal/themes/default/assets/css/tokens/palettes/` | `themes(css): preserve palette files as separate switchable themes` |
-| 2.1.3 | Update `style.css` imports | `bengal/themes/default/assets/css/style.css` | `themes(css): update style.css to import consolidated tokens.css` |
+**Analysis:** Consolidating 45 component files would create files of 1,200-3,200 lines each, which is **worse** than the current modular approach.
 
-### 2.2 Component Consolidation
+**New Approach:** Keep modular structure, extract common patterns into reusable utilities.
 
-| Task | Description | Files | Commit |
-|------|-------------|-------|--------|
-| 2.2.1 | Create `navigation.css` (merge 7 files) | `bengal/themes/default/assets/css/components/navigation.css` | `themes(css): consolidate nav components → navigation.css` |
-| 2.2.2 | Create `content.css` (merge 6 files) | `bengal/themes/default/assets/css/components/content.css` | `themes(css): consolidate content components → content.css` |
-| 2.2.3 | Create `interactive.css` (merge 8 files) | `bengal/themes/default/assets/css/components/interactive.css` | `themes(css): consolidate interactive components → interactive.css` |
-| 2.2.4 | Create `feedback.css` (merge 5 files) | `bengal/themes/default/assets/css/components/feedback.css` | `themes(css): consolidate feedback components → feedback.css` |
-| 2.2.5 | Create `media.css` (merge 4 files) | `bengal/themes/default/assets/css/components/media.css` | `themes(css): consolidate media components → media.css` |
-| 2.2.6 | Create `code.css` (merge 3 files) | `bengal/themes/default/assets/css/components/code.css` | `themes(css): consolidate code components → code.css` |
-| 2.2.7 | Keep `api-explorer.css` separate (large, domain-specific) | N/A | N/A |
+**Documentation:**
+- [MODULAR_CSS_RATIONALE.md](../../bengal/themes/default/assets/css/MODULAR_CSS_RATIONALE.md) - Why modular CSS is better
+- [CSS_ARCHITECTURE_EVALUATION.md](../../bengal/themes/default/assets/css/CSS_ARCHITECTURE_EVALUATION.md) - Evaluation of alternatives
 
-### 2.3 Base & Layout Consolidation
+### 2.1 Common Pattern Extraction ✅
 
 | Task | Description | Files | Commit |
 |------|-------------|-------|--------|
-| 2.3.1 | Merge `base/*.css` into `base.css` | `bengal/themes/default/assets/css/base.css` | `themes(css): consolidate base files → base.css` |
-| 2.3.2 | Merge `layouts/*.css` into `layouts.css` | `bengal/themes/default/assets/css/layouts.css` | `themes(css): consolidate layout files → layouts.css` |
-| 2.3.3 | Merge `utilities/*.css` into `utilities.css` | `bengal/themes/default/assets/css/utilities.css` | `themes(css): consolidate utility files → utilities.css` |
+| 2.1.1 | Extract common interactive patterns (focus, hover, transitions) | `bengal/themes/default/assets/css/base/interactive-patterns.css` | `themes(css): extract common interactive patterns to base/interactive-patterns.css` |
+| 2.1.2 | Update style.css to import interactive-patterns | `bengal/themes/default/assets/css/style.css` | `themes(css): add interactive-patterns.css import` |
 
-### 2.4 Migration Tooling
-
-| Task | Description | Files | Commit |
-|------|-------------|-------|--------|
-| 2.4.1 | Create CSS migration script | `bengal/cli/commands/theme_migrate_css.py` (new) | `cli(theme): add 'bengal theme migrate-css' command` |
-| 2.4.2 | Add `--check` dry-run mode | `bengal/cli/commands/theme_migrate_css.py` | `cli(theme): add --check flag for CSS migration dry run` |
-
-### 2.5 Cleanup
+### 2.2 Documentation ✅
 
 | Task | Description | Files | Commit |
 |------|-------------|-------|--------|
-| 2.5.1 | Remove consolidated source files | `bengal/themes/default/assets/css/components/` | `themes(css): remove consolidated source files after migration` |
-| 2.5.2 | Update documentation | `bengal/themes/default/README.md` | `docs(themes): update CSS architecture documentation` |
+| 2.2.1 | Document modular CSS rationale | `bengal/themes/default/assets/css/MODULAR_CSS_RATIONALE.md` | `themes(css): add MODULAR_CSS_RATIONALE.md` |
+| 2.2.2 | Evaluate CSS architecture alternatives | `bengal/themes/default/assets/css/CSS_ARCHITECTURE_EVALUATION.md` | `themes(css): add CSS_ARCHITECTURE_EVALUATION.md` |
+| 2.2.3 | Update README with modular CSS link | `bengal/themes/default/assets/css/README.md` | `themes(css): update README with modular CSS rationale link` |
+
+### 2.3 Future Improvements (Optional)
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 2.3.1 | Expand utility classes if needed | Optional |
+| 2.3.2 | Use native CSS nesting when widely supported | Future |
+| 2.3.3 | Better token usage documentation | Optional |
 
 ### Component Grouping Reference
 
@@ -257,13 +249,13 @@ code.css:
 
 ## Task Summary by Phase
 
-| Phase | Tasks | Est. Hours | Dependencies |
-|-------|-------|------------|--------------|
-| **Phase 1: Config** | 11 tasks | 20-25h | None |
-| **Phase 2: CSS** | 14 tasks | 15-20h | None |
-| **Phase 3: Autodoc** | 17 tasks | 20-25h | Soft dep on Phase 1 |
-| **DOC-001** | 6 tasks | 10-15h | Parallel |
-| **Total** | **48 tasks** | **65-85h** | |
+| Phase | Tasks | Est. Hours | Dependencies | Status |
+|-------|-------|------------|--------------|--------|
+| **Phase 1: Config** | 11 tasks | 20-25h | None | ✅ Complete |
+| **Phase 2: CSS** | 3 tasks | 2-3h | None | ✅ Complete (revised approach) |
+| **Phase 3: Autodoc** | 17 tasks | 20-25h | Soft dep on Phase 1 | ⏳ Pending |
+| **DOC-001** | 6 tasks | 10-15h | Parallel | ⏳ Pending |
+| **Total** | **37 tasks** | **52-68h** | | |
 
 ---
 
@@ -278,11 +270,11 @@ code.css:
 - [ ] All existing tests pass
 
 ### Phase 2 Complete When:
-- [ ] CSS file count: 45 → ~15
-- [ ] `tokens.css` contains all design tokens
-- [ ] No visual regressions (manual check)
-- [ ] `style.css` has clean import structure
-- [ ] Migration tool works (`bengal theme migrate-css --check`)
+- [x] Common patterns extracted to `base/interactive-patterns.css`
+- [x] Modular CSS rationale documented
+- [x] CSS architecture evaluation completed
+- [x] README updated with rationale links
+- [ ] Components can use common patterns (optional migration)
 
 ### Phase 3 Complete When:
 - [ ] API docs render using theme templates
@@ -351,4 +343,3 @@ Week 5-6:                                 │
 - [rfc-theme-001-configuration.md](rfc-theme-001-configuration.md) - Configuration RFC
 - [rfc-theme-002-css-consolidation.md](rfc-theme-002-css-consolidation.md) - CSS RFC
 - [rfc-theme-003-autodoc-integration.md](rfc-theme-003-autodoc-integration.md) - Autodoc RFC
-
