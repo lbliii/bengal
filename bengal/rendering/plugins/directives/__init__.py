@@ -12,6 +12,9 @@ Also provides:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.badge import BadgeDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
@@ -196,7 +199,7 @@ __all__ = [
 ]
 
 
-def create_documentation_directives():
+def create_documentation_directives() -> Callable[[Any], None]:
     """
     Create documentation directives plugin for Mistune.
 
@@ -227,7 +230,7 @@ def create_documentation_directives():
         ImportError: If FencedDirective is not available
     """
 
-    def plugin_documentation_directives(md):
+    def plugin_documentation_directives(md: Any) -> None:
         """Register all documentation directives with Mistune."""
         logger = get_logger(__name__)
 

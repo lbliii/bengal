@@ -49,7 +49,7 @@ class Theme:
     features: list[str] = field(default_factory=list)
     config: dict[str, Any] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate theme configuration."""
         # Validate appearance
         valid_appearances = {"light", "dark", "system"}

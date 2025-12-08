@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import contextlib
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -80,7 +80,7 @@ def cli_error_context(
     operation: str,
     show_art: bool = False,
     show_traceback: bool | None = None,
-):
+) -> Generator[None, None, None]:
     """
     Context manager for error handling within command functions.
 

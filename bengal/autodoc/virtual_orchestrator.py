@@ -47,6 +47,7 @@ class _PageContext:
         relative_url: str = "/",
         variant: str | None = None,
         source_path: str | None = None,
+        section: Section | None = None,
     ) -> None:
         self.title = title
         self.metadata = metadata
@@ -61,8 +62,10 @@ class _PageContext:
         self.prev_in_section: _PageContext | None = None
         self.next_in_section: _PageContext | None = None
 
-        # Section reference (None for autodoc context)
-        self.section = None
+        # Section reference (used by docs-nav.html for sidebar navigation)
+        # Templates check page._section, so we need both aliases
+        self._section = section
+        self.section = section
 
     def __repr__(self) -> str:
         return f"_PageContext(title={self.title!r}, relative_url={self.relative_url!r})"

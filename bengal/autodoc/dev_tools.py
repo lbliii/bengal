@@ -40,7 +40,7 @@ class TemplatePerformanceMetrics:
 class SampleDataGenerator:
     """Generate sample data for testing templates."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.sample_counter = 0
 
     def generate_python_module(self, name: str = "sample_module") -> DocElement:
@@ -490,7 +490,7 @@ class TemplateDebugger:
 class TemplateProfiler:
     """Profile template rendering performance."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.metrics: list[TemplatePerformanceMetrics] = []
 
     def profile_template(
@@ -634,7 +634,7 @@ class TemplateHotReloader:
         import threading
         import time
 
-        def watch_loop():
+        def watch_loop() -> None:
             while True:
                 try:
                     changed_files = self.check_for_changes()

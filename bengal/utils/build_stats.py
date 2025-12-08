@@ -87,7 +87,7 @@ class BuildStats:
     warnings: list = None
     template_errors: list = None  # NEW: Rich template errors
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize mutable defaults."""
         if self.warnings is None:
             self.warnings = []

@@ -13,7 +13,7 @@ Related Modules:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 if TYPE_CHECKING:
     pass
@@ -33,7 +33,7 @@ class SiteFactoriesMixin:
         config_path: Path | None = None,
         environment: str | None = None,
         profile: str | None = None,
-    ):
+    ) -> Self:
         """
         Create a Site instance from configuration.
 
@@ -121,7 +121,7 @@ class SiteFactoriesMixin:
         return cls(root_path=root_path, config=config)
 
     @classmethod
-    def for_testing(cls, root_path: Path | None = None, config: dict[str, Any] | None = None):
+    def for_testing(cls, root_path: Path | None = None, config: dict[str, Any] | None = None) -> Self:
         """
         Create a Site instance for testing without requiring a config file.
 
