@@ -2,7 +2,6 @@
 Utility functions and classes for Bengal SSG.
 """
 
-
 from __future__ import annotations
 
 from bengal.utils import dates, file_io, hashing, retry, text, thread_local
@@ -12,6 +11,7 @@ from bengal.utils.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths import BengalPaths
 from bengal.utils.retry import async_retry_with_backoff, calculate_backoff, retry_with_backoff
 from bengal.utils.sections import resolve_page_section_path
+from bengal.utils.text import humanize_slug
 from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "hash_file_with_stat",
     "hash_str",
     "hashing",
+    "humanize_slug",
     "resolve_path",
     "resolve_page_section_path",
     "retry",

@@ -16,8 +16,8 @@ Themes are complete design packages. Use one as-is, customize it, or build your 
 ```mermaid
 flowchart TB
     A[Request: header.html]
-    B{Your layouts/?}
-    C{Theme layouts/?}
+    B{Your templates/?}
+    C{Theme templates/?}
     D{Bengal default?}
     E[Use your file]
     F[Use theme file]
@@ -89,12 +89,12 @@ custom_css = ["css/custom.css"]
 :::{tab-item} Override Template
 ```
 your-project/
-└── layouts/
+└── templates/
     └── partials/
         └── header.html  # Your version wins
 ```
 
-Copy the original from `themes/default/layouts/`, modify as needed.
+Copy the original from `themes/default/templates/`, modify as needed.
 :::
 ::::
 
@@ -102,7 +102,7 @@ Copy the original from `themes/default/layouts/`, modify as needed.
 
 | Directory | Purpose |
 |-----------|---------|
-| `layouts/` | HTML templates (Jinja2) |
+| `templates/` | HTML templates (Jinja2) |
 | `static/` | CSS, JS, images |
 | `assets/` | Processed assets |
 | `theme.toml` | Theme configuration |
