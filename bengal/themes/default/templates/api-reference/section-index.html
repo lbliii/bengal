@@ -65,6 +65,7 @@ This template receives:
 
             <div class="api-grid api-grid--packages">
               {% for subsection in section.sorted_subsections %}
+              {% if subsection.name %}
               {% set desc = subsection.metadata.description | default('') | first_sentence %}
               {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
               <a href="{{ subsection.relative_url }}" class="api-package-card">

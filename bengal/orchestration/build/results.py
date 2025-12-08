@@ -4,6 +4,10 @@ Result dataclasses for build orchestration phases.
 Replaces complex tuple return values with typed dataclasses for better
 type safety, readability, and IDE support.
 
+All dataclasses support backward compatibility:
+- Tuple unpacking via __iter__() methods
+- Dict-like access for ChangeSummary (to_dict(), items(), get(), __getitem__())
+
 See Also:
     - plan/active/rfc-dataclass-improvements.md - Design rationale
 """
@@ -131,3 +135,7 @@ class ChangeSummary:
             # Return empty list for missing keys to match original dict behavior
             return []
         return result[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Allow 'in' operator for backward compatibility."""
+        return key in self.to_dict()

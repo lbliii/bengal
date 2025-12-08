@@ -282,6 +282,7 @@ class IncrementalOrchestrator:
 
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
+            where change_summary is a ChangeSummary dataclass (supports dict-like access for compatibility)
         """
         # Import here to avoid circular import
         from bengal.orchestration.build.results import ChangeSummary
