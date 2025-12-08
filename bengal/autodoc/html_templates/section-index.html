@@ -3,6 +3,8 @@ API Explorer - Section Index Template
 
 Renders an API section index page showing subsections and modules
 using a card-based layout for better scannability.
+
+Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
 -#}
 
 <div class="api-explorer api-explorer--index">
@@ -43,7 +45,7 @@ using a card-based layout for better scannability.
       {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
       <a href="{{ subsection.relative_url }}" class="api-package-card">
         <div class="api-package-card__header">
-          <span class="api-package-card__icon">📦</span>
+          <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
           <span class="api-package-card__name">{{ subsection.name | title }}</span>
         </div>
         <div class="api-package-card__body">
@@ -82,9 +84,13 @@ using a card-based layout for better scannability.
       <a href="{{ page.relative_url }}" class="api-module-card">
         <div class="api-module-card__header">
           <span class="api-module-card__icon">
-            {%- if page.metadata.element_type == 'class' -%}🏛️
-            {%- elif page.metadata.element_type == 'function' -%}⚡
-            {%- else -%}📄{%- endif -%}
+            {%- if page.metadata.element_type == 'class' -%}
+            {{ icon("layers", size=16, css_class="icon-info") }}
+            {%- elif page.metadata.element_type == 'function' -%}
+            {{ icon("zap", size=16, css_class="icon-success") }}
+            {%- else -%}
+            {{ icon("code", size=16, css_class="icon-muted") }}
+            {%- endif -%}
           </span>
           <span class="api-module-card__name">{{ page.title }}</span>
           {% if page.metadata.element_type %}
@@ -107,7 +113,7 @@ using a card-based layout for better scannability.
   {# Empty State #}
   {% if not section.subsections and not module_pages %}
   <div class="api-empty-state">
-    <div class="api-empty-state__icon">📭</div>
+    <div class="api-empty-state__icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
     <p class="api-empty-state__text">No documentation available in this section yet.</p>
   </div>
   {% endif %}

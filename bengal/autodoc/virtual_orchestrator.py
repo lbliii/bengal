@@ -70,6 +70,7 @@ class VirtualAutodocOrchestrator:
         import re
 
         # Import icon function from main template system
+        # Icons are already preloaded during main template engine initialization
         from bengal.rendering.template_functions.icons import icon
 
         # Template directories in priority order
@@ -552,6 +553,12 @@ class VirtualAutodocOrchestrator:
 
     def _render_section_index_fallback(self, section: Section) -> str:
         """Fallback card-based rendering when template fails."""
+        from bengal.rendering.template_functions.icons import icon
+
+        # SVG icons for cards (already preloaded during site build)
+        folder_icon = icon("folder", size=20, css_class="icon-muted")
+        code_icon = icon("code", size=16, css_class="icon-muted")
+
         subsections_cards = []
         for s in section.sorted_subsections:
             desc = s.metadata.get("description", "")
@@ -562,7 +569,7 @@ class VirtualAutodocOrchestrator:
             child_count = len(s.subsections) + len(s.pages)
             subsections_cards.append(f'''
       <a href="{s.relative_url}" class="api-package-card">
-        <span class="api-package-card__icon">📦</span>
+        <span class="api-package-card__icon">{folder_icon}</span>
         <span class="api-package-card__name">{s.name}</span>
         {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ''}
         <span class="api-package-card__meta">{child_count} item{"s" if child_count != 1 else ""}</span>
@@ -580,7 +587,7 @@ class VirtualAutodocOrchestrator:
             element_type = p.metadata.get("element_type", "")
             module_cards.append(f'''
       <a href="{p.relative_url}" class="api-module-card">
-        <span class="api-module-card__icon">📄</span>
+        <span class="api-module-card__icon">{code_icon}</span>
         <span class="api-module-card__name">{p.title}</span>
         {f'<span class="api-module-card__description">{desc_preview}</span>' if desc_preview else ''}
         {f'<span class="api-module-card__badges"><span class="api-badge--mini">{element_type}</span></span>' if element_type else ''}
