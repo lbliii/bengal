@@ -129,6 +129,8 @@ bengal skeleton apply base.yaml --layer blog.yaml --layer docs.yaml
 - [x] Implement `bengal/cli/skeleton/hydrator.py` (YAML $\to$ Files).
 - [x] Implement `bengal/cli/commands/skeleton.py`.
 - [x] Register command in CLI (`bengal project skeleton apply`).
+- [x] Convert templates to skeleton manifests (`blog`, `docs`, `portfolio`).
+- [x] Update template registry to prefer skeleton manifests with Python fallback.
 
 ### Phase 3: The Theme (Frontend)
 - [ ] Update `base.html` to output `data-variant="{{ page.core.variant }}"`.

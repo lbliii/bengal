@@ -67,6 +67,8 @@ This separation makes it clear what's structural (type, variant) vs what's conte
 
 You can define an entire site structure using a **Skeleton Manifest** (`bengal skeleton apply`).
 
+**Note**: Bengal's built-in templates (`blog`, `docs`, `portfolio`) now use skeleton manifests internally, demonstrating the Component Model in practice. See `bengal/cli/templates/<name>/skeleton.yaml` for examples.
+
 ```yaml
 structure:
   - path: blog/

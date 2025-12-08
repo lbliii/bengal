@@ -160,20 +160,25 @@ class VirtualAutodocOrchestrator:
 
     def is_enabled(self) -> bool:
         """Check if virtual autodoc is enabled for any type."""
+        # Virtual pages are now the default (and only) option
+        # Only check if explicitly disabled via virtual_pages: false
         # Check Python
-        python_enabled = self.python_config.get("virtual_pages", False) and self.python_config.get(
-            "enabled", True
+        python_enabled = (
+            self.python_config.get("virtual_pages", True)  # Default to True
+            and self.python_config.get("enabled", True)
         )
 
         # Check CLI
-        cli_enabled = self.cli_config.get("virtual_pages", False) and self.cli_config.get(
-            "enabled", True
+        cli_enabled = (
+            self.cli_config.get("virtual_pages", True)  # Default to True
+            and self.cli_config.get("enabled", True)
         )
 
         # Check OpenAPI
-        openapi_enabled = self.openapi_config.get(
-            "virtual_pages", False
-        ) and self.openapi_config.get("enabled", True)
+        openapi_enabled = (
+            self.openapi_config.get("virtual_pages", True)  # Default to True
+            and self.openapi_config.get("enabled", True)
+        )
 
         return python_enabled or cli_enabled or openapi_enabled
 
@@ -196,7 +201,8 @@ class VirtualAutodocOrchestrator:
         all_pages: list[Page] = []
 
         # 1. Extract Python documentation
-        if self.python_config.get("virtual_pages", False) and self.python_config.get(
+        # Virtual pages are now the default (and only) option
+        if self.python_config.get("virtual_pages", True) and self.python_config.get(
             "enabled", True
         ):
             python_elements = self._extract_python()
@@ -210,7 +216,8 @@ class VirtualAutodocOrchestrator:
                 all_pages.extend(python_pages)
 
         # 2. Extract CLI documentation
-        if self.cli_config.get("virtual_pages", False) and self.cli_config.get("enabled", True):
+        # Virtual pages are now the default (and only) option
+        if self.cli_config.get("virtual_pages", True) and self.cli_config.get("enabled", True):
             cli_elements = self._extract_cli()
             if cli_elements:
                 all_elements.extend(cli_elements)
@@ -221,7 +228,8 @@ class VirtualAutodocOrchestrator:
 
         # 3. Extract OpenAPI documentation
         # Pass existing sections so OpenAPI can reuse "api" section if Python already created it
-        if self.openapi_config.get("virtual_pages", False) and self.openapi_config.get(
+        # Virtual pages are now the default (and only) option
+        if self.openapi_config.get("virtual_pages", True) and self.openapi_config.get(
             "enabled", True
         ):
             openapi_elements = self._extract_openapi()
