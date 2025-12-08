@@ -165,7 +165,7 @@ def explain(
         data = asdict(explanation)
         # Convert Path objects to strings
         data = _convert_paths_to_strings(data)
-        cli.print(json.dumps(data, indent=2, default=str))
+        click.echo(json.dumps(data, indent=2, default=str))
     else:
         # Rich terminal output
         from bengal.debug import ExplanationReporter
