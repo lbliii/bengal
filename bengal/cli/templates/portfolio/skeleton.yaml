@@ -1,0 +1,115 @@
+name: portfolio
+description: Portfolio site with projects showcase
+version: "1.0"
+
+structure:
+  - path: index.md
+    props:
+      title: Portfolio
+      description: Welcome to my portfolio
+    content: |
+      # Welcome to My Portfolio
+
+      I'm a developer passionate about creating beautiful and functional websites.
+
+      ## Featured Projects
+
+      Check out my latest work in the [projects](/projects/) section.
+
+  - path: about.md
+    props:
+      title: About
+      description: Learn more about me
+    content: |
+      # About Me
+
+      I'm a passionate developer with experience in web development, design, and user experience.
+
+      ## Skills
+
+      - Web Development
+      - UI/UX Design
+      - Project Management
+
+      ## Experience
+
+      I've worked on various projects ranging from small websites to large-scale applications.
+
+  - path: projects/_index.md
+    props:
+      title: Projects
+      description: My portfolio of work
+    content: |
+      # Projects
+
+      A collection of my recent work and projects.
+
+      Browse through the projects below to see examples of my work.
+
+  - path: projects/project-1.md
+    props:
+      title: Project One
+      date: "{{date}}"
+      description: A showcase of my first project
+    content: |
+      # Project One
+
+      This is my first featured project.
+
+      ## Overview
+
+      A brief description of what this project does and why it's important.
+
+      ## Technologies Used
+
+      - Technology A
+      - Technology B
+      - Technology C
+
+      ## Results
+
+      This project achieved great results and made a positive impact.
+
+  - path: projects/project-2.md
+    props:
+      title: Project Two
+      date: "{{date}}"
+      description: Another great project
+    content: |
+      # Project Two
+
+      This is my second featured project.
+
+      ## Overview
+
+      Another project that demonstrates my skills and expertise.
+
+      ## Key Features
+
+      - Feature 1
+      - Feature 2
+      - Feature 3
+
+      ## Impact
+
+      This project had a significant impact on its users.
+
+  - path: contact.md
+    props:
+      title: Contact
+      description: Get in touch
+    content: |
+      # Contact
+
+      Get in touch with me!
+
+      ## Email
+
+      [email@example.com](mailto:email@example.com)
+
+      ## Social Media
+
+      - [Twitter](https://twitter.com/username)
+      - [GitHub](https://github.com/username)
+      - [LinkedIn](https://linkedin.com/in/username)
+

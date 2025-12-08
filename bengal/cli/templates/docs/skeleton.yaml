@@ -1,0 +1,139 @@
+name: docs
+description: Technical documentation with navigation and sections
+version: "1.0"
+
+structure:
+  - path: _index.md
+    type: doc
+    props:
+      title: Documentation
+      description: Welcome to the documentation
+    content: |
+      # Documentation
+
+      Welcome to the documentation. Use the navigation to explore different sections.
+
+  - path: index.md
+    type: doc
+    props:
+      title: Home
+    content: |
+      # Documentation Home
+
+      Start here to learn about the project.
+
+  - path: getting-started/_index.md
+    type: doc
+    props:
+      title: Getting Started
+      description: Get up and running quickly
+      weight: 10
+    cascade:
+      type: doc
+    content: |
+      # Getting Started
+
+      This section will help you get started quickly.
+
+      ## Prerequisites
+
+      Before you begin, ensure you have:
+
+      - Python 3.8 or higher
+      - Basic command line knowledge
+
+      ## Next Steps
+
+      1. [Installation](installation/) - Install the software
+      2. [Quick Start](quickstart/) - Your first project
+
+  - path: getting-started/index.md
+    type: doc
+    props:
+      title: Getting Started Overview
+    content: |
+      # Getting Started Overview
+
+      This is an overview of the getting started section.
+
+  - path: getting-started/installation.md
+    type: doc
+    props:
+      title: Installation
+    content: |
+      # Installation
+
+      Install the software using one of the following methods.
+
+      ## Prerequisites
+
+      - Python 3.8 or higher
+      - pip or your preferred package manager
+
+      ## Install via pip
+
+      ```bash
+      pip install package-name
+      ```
+
+      ## Verify Installation
+
+      ```bash
+      package-name --version
+      ```
+
+  - path: getting-started/quickstart.md
+    type: doc
+    props:
+      title: Quick Start
+    content: |
+      # Quick Start
+
+      Get up and running in minutes.
+
+      ## Step 1: Create a Project
+
+      ```bash
+      package-name init my-project
+      ```
+
+      ## Step 2: Configure
+
+      Edit the configuration file to match your needs.
+
+      ## Step 3: Run
+
+      ```bash
+      package-name serve
+      ```
+
+      You're ready to go!
+
+  - path: guides/_index.md
+    type: doc
+    props:
+      title: Guides
+      description: In-depth guides and tutorials
+    content: |
+      # Guides
+
+      Comprehensive guides to help you master the platform.
+
+      ## Available Guides
+
+      More guides coming soon!
+
+  - path: api/_index.md
+    type: doc
+    props:
+      title: API Reference
+      description: Complete API documentation
+    content: |
+      # API Reference
+
+      Complete reference documentation for the API.
+
+      ## Endpoints
+
+      API endpoints are documented here.
+
