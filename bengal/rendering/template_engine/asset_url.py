@@ -97,16 +97,18 @@ class AssetURLMixin:
     Requires these attributes on the host class:
         - site: Site instance
         - _asset_manifest_path: Path
-        - _get_manifest_entry: Callable (from ManifestHelpersMixin)
-        - _warn_manifest_fallback: Callable (from ManifestHelpersMixin)
+
+    Requires these methods from ManifestHelpersMixin (must come BEFORE this mixin in MRO):
+        - _get_manifest_entry(logical_path: str) -> AssetManifestEntry | None
+        - _warn_manifest_fallback(logical_path: str) -> None
     """
 
     site: Any
     _asset_manifest_path: Path
 
-    # These methods are provided by ManifestHelpersMixin - declare for type checking
-    def _get_manifest_entry(self, logical_path: str) -> AssetManifestEntry | None: ...
-    def _warn_manifest_fallback(self, logical_path: str) -> None: ...
+    # NOTE: Do NOT add stub methods here for _get_manifest_entry, _warn_manifest_fallback.
+    # ManifestHelpersMixin must come BEFORE this mixin in class bases to provide them.
+    # Adding stubs would shadow the real implementations if MRO order is wrong.
 
     def _asset_url(self, asset_path: str, page_context: Any = None) -> str:
         """
