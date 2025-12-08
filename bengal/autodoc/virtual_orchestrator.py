@@ -220,13 +220,14 @@ class VirtualAutodocOrchestrator:
                 all_pages.extend(cli_pages)
 
         # 3. Extract OpenAPI documentation
+        # Pass existing sections so OpenAPI can reuse "api" section if Python already created it
         if self.openapi_config.get("virtual_pages", False) and self.openapi_config.get(
             "enabled", True
         ):
             openapi_elements = self._extract_openapi()
             if openapi_elements:
                 all_elements.extend(openapi_elements)
-                openapi_sections = self._create_openapi_sections(openapi_elements)
+                openapi_sections = self._create_openapi_sections(openapi_elements, all_sections)
                 all_sections.update(openapi_sections)
                 openapi_pages = self._create_pages(
                     openapi_elements, openapi_sections, doc_type="openapi"
@@ -247,8 +248,15 @@ class VirtualAutodocOrchestrator:
             sections=len(all_sections),
         )
 
-        # Return root-level sections only
+        # Return root-level sections only (e.g., "api", "cli")
+        # These are the sections that will appear in the navigation menu
         root_sections = [s for key, s in all_sections.items() if "/" not in key.replace("\\", "/")]
+
+        logger.debug(
+            "virtual_autodoc_root_sections",
+            count=len(root_sections),
+            names=[s.name for s in root_sections],
+        )
 
         return all_pages, root_sections
 
@@ -395,12 +403,15 @@ class VirtualAutodocOrchestrator:
         logger.debug("autodoc_sections_created", count=len(sections), type="cli")
         return sections
 
-    def _create_openapi_sections(self, elements: list[DocElement]) -> dict[str, Section]:
+    def _create_openapi_sections(
+        self, elements: list[DocElement], existing_sections: dict[str, Section] | None = None
+    ) -> dict[str, Section]:
         """Create OpenAPI section hierarchy."""
         sections: dict[str, Section] = {}
+        existing_sections = existing_sections or {}
 
         # Create root API section (or use existing if Python also enabled)
-        if "api" not in sections:
+        if "api" not in existing_sections:
             api_section = Section.create_virtual(
                 name="api",
                 relative_url="/api/",
@@ -414,7 +425,9 @@ class VirtualAutodocOrchestrator:
             )
             sections["api"] = api_section
         else:
-            api_section = sections["api"]
+            # Reuse existing API section from Python
+            api_section = existing_sections["api"]
+            sections["api"] = api_section
 
         # Group endpoints by tags
         tagged_endpoints: dict[str, list[DocElement]] = {}
@@ -824,7 +837,9 @@ class VirtualAutodocOrchestrator:
         <span class="api-package-card__icon">{folder_icon}</span>
         <span class="api-package-card__name">{s.name}</span>
         {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ""}
-        <span class="api-package-card__meta">{child_count} item{"s" if child_count != 1 else ""}</span>
+        <span class="api-package-card__meta">
+          {child_count} item{"s" if child_count != 1 else ""}
+        </span>
       </a>''')
 
         module_cards = []

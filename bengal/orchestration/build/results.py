@@ -123,3 +123,11 @@ class ChangeSummary:
     def get(self, key: str, default: list | None = None) -> list:
         """Allow dict-like get() for backward compatibility."""
         return self.to_dict().get(key, default)
+
+    def __getitem__(self, key: str) -> list:
+        """Allow dict-like indexing for backward compatibility."""
+        result = self.to_dict()
+        if key not in result:
+            # Return empty list for missing keys to match original dict behavior
+            return []
+        return result[key]

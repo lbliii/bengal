@@ -11,7 +11,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from .base import SiteTemplate
+from .base import SiteTemplate, TemplateFile
 
 
 class TemplateRegistry:
@@ -26,14 +26,29 @@ class TemplateRegistry:
         self._discover_templates()
 
     def _discover_templates(self) -> None:
-        """Discover all available templates in the built‑in package tree."""
+        """Discover all available templates in the built‑in package tree.
+
+        Prefers skeleton.yaml manifests when available, falls back to Python templates.
+        """
         templates_dir = Path(__file__).parent
 
         for item in templates_dir.iterdir():
             if not item.is_dir() or item.name.startswith("_"):
                 continue
 
-            # Try to import the template module
+            # Check for skeleton manifest first
+            skeleton_manifest = item / "skeleton.yaml"
+            if skeleton_manifest.exists():
+                try:
+                    template = self._load_skeleton_template(skeleton_manifest, item.name)
+                    if template:
+                        self._templates[template.id] = template
+                        continue
+                except Exception:
+                    # Fall back to Python template if skeleton fails
+                    pass
+
+            # Fall back to Python template
             try:
                 module = importlib.import_module(
                     f".{item.name}.template", package="bengal.cli.templates"
@@ -44,6 +59,112 @@ class TemplateRegistry:
             except (ImportError, AttributeError):
                 # Skip directories that don't contain templates
                 continue
+
+    def _load_skeleton_template(self, skeleton_path: Path, template_id: str) -> SiteTemplate | None:
+        """Load a template from a skeleton manifest.
+
+        Args:
+            skeleton_path: Path to skeleton.yaml file
+            template_id: Template identifier (directory name)
+
+        Returns:
+            SiteTemplate instance or None if loading fails
+        """
+        from datetime import datetime
+
+        from bengal.cli.skeleton.schema import Skeleton
+
+        skeleton_yaml = skeleton_path.read_text()
+
+        # Replace {{date}} placeholders with current date
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        skeleton_yaml = skeleton_yaml.replace("{{date}}", current_date)
+
+        skeleton = Skeleton.from_yaml(skeleton_yaml)
+
+        # Convert Skeleton to SiteTemplate
+        return self._skeleton_to_site_template(skeleton, template_id)
+
+    def _skeleton_to_site_template(self, skeleton: Skeleton, template_id: str) -> SiteTemplate:
+        """Convert a Skeleton manifest to a SiteTemplate.
+
+        Args:
+            skeleton: Skeleton instance from manifest
+            template_id: Template identifier
+
+        Returns:
+            SiteTemplate instance
+        """
+
+        # Convert Component structure to TemplateFile list
+        files = []
+        additional_dirs = set()
+        menu_sections = []
+
+        def process_component(comp, base_path: str = ""):
+            """Recursively process components to build TemplateFile list."""
+            full_path = f"{base_path}/{comp.path}" if base_path else comp.path
+
+            # Build frontmatter from component
+            frontmatter = {}
+            if comp.type:
+                frontmatter["type"] = comp.type
+            if comp.variant:
+                frontmatter["variant"] = comp.variant
+            frontmatter.update(comp.props)
+            if comp.cascade:
+                frontmatter["cascade"] = comp.cascade
+
+            # Generate file content using hydrator's logic
+            import yaml
+
+            yaml_str = yaml.dump(frontmatter, sort_keys=False, default_flow_style=False).strip()
+            body = comp.content or ""
+
+            content = f"---\n{yaml_str}\n---\n\n{body}\n"
+
+            # Determine target_dir (content for markdown files)
+            target_dir = "content"
+            if full_path.endswith(".yaml") or full_path.endswith(".yml"):
+                target_dir = "data"
+
+            files.append(
+                TemplateFile(relative_path=full_path, content=content, target_dir=target_dir)
+            )
+
+            # Track parent directories
+            path_parts = full_path.split("/")
+            for i in range(1, len(path_parts)):
+                dir_path = "/".join(path_parts[:i])
+                additional_dirs.add(f"{target_dir}/{dir_path}")
+
+            # Track sections for menu (extract directory name, not filename)
+            if comp.type in ("blog", "doc", "section") or len(path_parts) > 1:
+                # Extract directory name (first part of path)
+                section_name = path_parts[0] if path_parts else comp.path.split("/")[0]
+                # Remove file extension if present
+                section_name = section_name.rsplit(".", 1)[0] if "." in section_name else section_name
+                if section_name and section_name not in menu_sections:
+                    menu_sections.append(section_name)
+
+            # Process child pages
+            for child in comp.pages:
+                process_component(
+                    child, base_path=full_path.rsplit("/", 1)[0] if "/" in full_path else ""
+                )
+
+        # Process all top-level components
+        for comp in skeleton.structure:
+            process_component(comp)
+
+        return SiteTemplate(
+            id=template_id,
+            name=skeleton.name or template_id.title(),
+            description=skeleton.description or f"{template_id.title()} site template",
+            files=files,
+            additional_dirs=list(additional_dirs),
+            menu_sections=menu_sections,
+        )
 
     def get(self, template_id: str) -> SiteTemplate | None:
         """Get a template by its identifier.

@@ -112,11 +112,13 @@ class TestBuildOrchestrator:
         orchestrator = BuildOrchestrator(mock_site)
 
         # Setup mocks for incremental flow
+        from bengal.orchestration.build.results import ChangeSummary
+
         mock_inc = mock_orchestrators["incremental"].return_value
         mock_inc.initialize.return_value = (Mock(), Mock())
         mock_inc.check_config_changed.return_value = False
         # Simulate finding work
-        mock_inc.find_work_early.return_value = ([Mock()], [], {})
+        mock_inc.find_work_early.return_value = ([Mock()], [], ChangeSummary())
 
         # Run incremental build
         orchestrator.build(incremental=True, parallel=True)
