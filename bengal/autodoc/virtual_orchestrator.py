@@ -900,3 +900,80 @@ class VirtualAutodocOrchestrator:
   {modules_section}
 </div>
 """
+
+    def _extract_python(self) -> list[DocElement]:
+        """Extract Python API documentation."""
+        from bengal.autodoc.extractors.python import PythonExtractor
+
+        source_dirs = self.python_config.get("source_dirs", [])
+        exclude_patterns = self.python_config.get("exclude", [])
+
+        extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=self.python_config)
+        all_elements = []
+
+        for source_dir in source_dirs:
+            source_path = Path(source_dir)
+            if not source_path.exists():
+                logger.warning(
+                    "autodoc_source_dir_not_found",
+                    path=str(source_path),
+                    type="python",
+                )
+                continue
+
+            elements = extractor.extract(source_path)
+            all_elements.extend(elements)
+
+        logger.debug("autodoc_python_extracted", count=len(all_elements))
+        return all_elements
+
+    def _extract_cli(self) -> list[DocElement]:
+        """Extract CLI documentation."""
+        import importlib
+
+        from bengal.autodoc.extractors.cli import CLIExtractor
+
+        app_module = self.cli_config.get("app_module")
+        if not app_module:
+            logger.warning("autodoc_cli_no_app_module")
+            return []
+
+        framework = self.cli_config.get("framework", "click")
+        include_hidden = self.cli_config.get("include_hidden", False)
+
+        # Load CLI app from module path (e.g., "bengal.cli:main")
+        try:
+            module_path, attr_name = app_module.split(":")
+            module = importlib.import_module(module_path)
+            cli_app = getattr(module, attr_name)
+        except (ValueError, ImportError, AttributeError) as e:
+            logger.warning("autodoc_cli_load_failed", app_module=app_module, error=str(e))
+            return []
+
+        # Extract documentation
+        extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
+        elements = extractor.extract(cli_app)
+
+        logger.debug("autodoc_cli_extracted", count=len(elements))
+        return elements
+
+    def _extract_openapi(self) -> list[DocElement]:
+        """Extract OpenAPI documentation."""
+        from bengal.autodoc.extractors.openapi import OpenAPIExtractor
+
+        spec_file = self.openapi_config.get("spec_file")
+        if not spec_file:
+            logger.warning("autodoc_openapi_no_spec_file")
+            return []
+
+        spec_path = Path(spec_file)
+        if not spec_path.exists():
+            logger.warning("autodoc_openapi_spec_not_found", path=str(spec_path))
+            return []
+
+        # Extract documentation
+        extractor = OpenAPIExtractor()
+        elements = extractor.extract(spec_path)
+
+        logger.debug("autodoc_openapi_extracted", count=len(elements))
+        return elements
