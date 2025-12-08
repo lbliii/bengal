@@ -89,6 +89,7 @@ class ContentDiscoveryMixin:
         # MUST come before _setup_page_references (registry needed for lookups)
         self.register_sections()
         self._setup_page_references()
+        self._validate_page_section_references()
         self._apply_cascades()
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
@@ -156,31 +157,49 @@ class ContentDiscoveryMixin:
         building, but before cascade application.
 
         Process:
-            1. Set _site reference on all pages
+            1. Set _site reference on all pages (including top-level pages)
             2. Set _site reference on all sections
-            3. Set _section reference on pages based on their location
+            3. Set _section reference on section index pages
+            4. Set _section reference on pages based on their location
+            5. Recursively process subsections
+
+        Build Ordering Invariant:
+            This method must be called after register_sections() to ensure
+            the section registry is populated for virtual section URL lookups.
 
         Called By:
             discover_content() - Automatically called after content discovery
 
         See Also:
             _setup_section_references(): Sets up section parent-child relationships
+            plan/active/rfc-page-section-reference-contract.md
         """
+        # Set site reference on all pages (including top-level pages not in sections)
         for page in self.pages:
             page._site = self
 
         for section in self.sections:
+            # Set site reference on section
             section._site = self
+
+            # Set section reference on the section's index page (if it has one)
+            if section.index_page:
+                section.index_page._section = section
+
+            # Set section reference on all pages in this section
             for page in section.pages:
                 page._section = section
+
+            # Recursively set for subsections
             self._setup_section_references(section)
 
     def _setup_section_references(self, section: Section) -> None:
         """
         Recursively set up references for a section and its subsections.
 
-        Sets _site reference on subsections and _section reference on pages
-        within subsections. Recursively processes all nested subsections.
+        Sets _site reference on subsections, _section reference on index pages,
+        and _section reference on pages within subsections. Recursively
+        processes all nested subsections.
 
         Args:
             section: Section to set up references for (processes its subsections)
@@ -190,9 +209,14 @@ class ContentDiscoveryMixin:
 
         See Also:
             _setup_page_references(): Main entry point for reference setup
+            plan/active/rfc-page-section-reference-contract.md
         """
         for subsection in section.subsections:
             subsection._site = self
+
+            # Set section reference on the subsection's index page (if it has one)
+            if subsection.index_page:
+                subsection.index_page._section = subsection
 
             # Set section reference on pages in subsection
             for page in subsection.pages:
@@ -200,6 +224,59 @@ class ContentDiscoveryMixin:
 
             # Recurse into deeper subsections
             self._setup_section_references(subsection)
+
+    def _validate_page_section_references(self) -> None:
+        """
+        Validate that pages in sections have correct _section references.
+
+        Logs warnings for pages that are in a section's pages list but have
+        _section = None, which would cause navigation to fall back to flat mode.
+
+        This validation catches bugs like the virtual section path=None issue
+        described in plan/active/rfc-page-section-reference-contract.md.
+
+        Called By:
+            discover_content() - After _setup_page_references()
+        """
+        pages_without_section: list[tuple[Page, Section]] = []
+
+        for section in self.sections:
+            for page in section.pages:
+                if page._section is None:
+                    pages_without_section.append((page, section))
+
+            # Check subsections recursively
+            self._validate_subsection_references(section, pages_without_section)
+
+        if pages_without_section:
+            # Log warning with samples (limit to 5 to avoid log spam)
+            sample_pages = [
+                (str(p.source_path), s.name) for p, s in pages_without_section[:5]
+            ]
+            logger.warning(
+                "pages_missing_section_reference",
+                count=len(pages_without_section),
+                samples=sample_pages,
+                note="These pages are in sections but have _section=None, navigation may be flat",
+            )
+
+    def _validate_subsection_references(
+        self, section: Section, pages_without_section: list[tuple[Page, Section]]
+    ) -> None:
+        """
+        Recursively validate page-section references in subsections.
+
+        Args:
+            section: Section to check subsections of
+            pages_without_section: List to append (page, expected_section) tuples to
+        """
+        for subsection in section.subsections:
+            for page in subsection.pages:
+                if page._section is None:
+                    pages_without_section.append((page, subsection))
+
+            # Recurse into deeper subsections
+            self._validate_subsection_references(subsection, pages_without_section)
 
     def _apply_cascades(self) -> None:
         """
@@ -229,13 +306,3 @@ class ContentDiscoveryMixin:
 
         engine = CascadeEngine(self.pages, self.sections)
         engine.apply()
-
-    # These methods are expected from other mixins - provide stubs for type checking
-    def register_sections(self) -> None:
-        """Build section registry. Provided by SectionRegistryMixin."""
-        raise NotImplementedError("Must be provided by SectionRegistryMixin")
-
-    def _get_theme_assets_chain(self) -> list[Path]:
-        """Get theme assets chain. Provided by ThemeIntegrationMixin."""
-        raise NotImplementedError("Must be provided by ThemeIntegrationMixin")
-
