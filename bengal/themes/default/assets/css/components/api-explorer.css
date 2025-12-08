@@ -600,6 +600,11 @@ details.api-card > summary::marker {
 
 /* ============================================
    API INDEX - Card Grid Layout
+   Integrated with Bengal Design System:
+   - Neumorphic shadows for tactile depth
+   - Luminescent edge accents with breathing glow
+   - Gradient borders (palette-aware)
+   - Motion utilities & stagger animations
    ============================================ */
 
 .api-explorer--index {
@@ -609,14 +614,16 @@ details.api-card > summary::marker {
 .api-section-header {
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: var(--border-refined-subtle);
 }
 
 .api-section-header__title {
   margin: 0 0 var(--space-3) 0;
   font-size: var(--text-3xl);
+  font-family: var(--font-heading-section);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
+  letter-spacing: var(--tracking-heading-large);
 }
 
 .api-section-header__description {
@@ -624,16 +631,27 @@ details.api-card > summary::marker {
   font-size: var(--text-lg);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
+  max-width: var(--prose-max-width);
 }
 
-/* Stats Bar */
+/* Stats Bar - Neumorphic Treatment */
 .api-stats {
   display: flex;
   gap: var(--space-6);
   margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-soft-lg);
+  box-shadow: var(--neumorphic-enhanced-subtle);
+}
+
+[data-theme="dark"] .api-stats {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated),
+    var(--color-bg-secondary));
 }
 
 .api-stat {
@@ -652,25 +670,38 @@ details.api-card > summary::marker {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-widest);
+  font-weight: var(--weight-medium);
 }
 
 /* Section Layout */
 .api-section {
-  margin-bottom: var(--space-10);
+  margin-bottom: var(--space-12);
 }
 
 .api-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   font-size: var(--text-xl);
+  font-family: var(--font-heading-section);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-5) 0;
   padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-border-light);
+  border-bottom: var(--border-refined-base);
+}
+
+.api-section__title::before {
+  content: '';
+  width: 4px;
+  height: 1.2em;
+  background: var(--gradient-border);
+  border-radius: var(--radius-full);
 }
 
 /* ============================================
-   API GRID - Responsive Card Grid
+   API GRID - Responsive Card Grid with Stagger
    ============================================ */
 
 .api-grid {
@@ -687,6 +718,39 @@ details.api-card > summary::marker {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+/* Stagger animation for grid items */
+.api-grid > * {
+  animation: api-card-reveal 0.4s var(--ease-out) backwards;
+}
+
+.api-grid > *:nth-child(1) { animation-delay: 0ms; }
+.api-grid > *:nth-child(2) { animation-delay: 40ms; }
+.api-grid > *:nth-child(3) { animation-delay: 80ms; }
+.api-grid > *:nth-child(4) { animation-delay: 120ms; }
+.api-grid > *:nth-child(5) { animation-delay: 160ms; }
+.api-grid > *:nth-child(6) { animation-delay: 200ms; }
+.api-grid > *:nth-child(7) { animation-delay: 240ms; }
+.api-grid > *:nth-child(8) { animation-delay: 280ms; }
+.api-grid > *:nth-child(9) { animation-delay: 320ms; }
+.api-grid > *:nth-child(n+10) { animation-delay: 360ms; }
+
+@keyframes api-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-3));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-grid > * {
+    animation: none;
+  }
+}
+
 @media (min-width: 1200px) {
   .api-grid--packages {
     grid-template-columns: repeat(3, 1fr);
@@ -694,41 +758,99 @@ details.api-card > summary::marker {
 }
 
 /* ============================================
-   API PACKAGE CARD
+   API PACKAGE CARD - Neumorphic + Luminescent
    ============================================ */
 
+/* Luminescent edge glow animation for package cards */
+@keyframes api-package-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--neumorphic-enhanced-base),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 12%, transparent),
+      -2px 0 6px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--neumorphic-enhanced-base),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 22%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+}
+
+@keyframes api-package-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--neumorphic-enhanced-base),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 18%, transparent),
+      -2px 0 8px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--neumorphic-enhanced-base),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 30%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+}
+
 .api-package-card {
+  --api-card-accent: var(--color-primary);
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-primary)),
+    var(--color-bg-secondary));
+  border: var(--border-refined-base);
+  /* Left edge accent - luminescent glow */
+  border-left: 2px solid color-mix(in srgb, var(--api-card-accent) 50%, transparent);
+  border-radius: 0 var(--radius-soft-xl) var(--radius-soft-xl) 0;
   overflow: hidden;
   text-decoration: none;
   color: inherit;
+  position: relative;
+  /* Neumorphic base with luminescent edge glow */
+  animation: api-package-edge-glow 8s ease-in-out infinite;
   transition: 
-    box-shadow var(--transition-base),
     border-color var(--transition-base),
     transform var(--transition-base);
-  position: relative;
 }
 
+[data-theme="dark"] .api-package-card {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated),
+    var(--color-bg-secondary));
+  border-left-color: color-mix(in srgb, var(--api-card-accent) 40%, transparent);
+  animation-name: api-package-edge-glow-dark;
+}
+
+.api-package-card:hover {
+  border-left-color: color-mix(in srgb, var(--api-card-accent) 70%, transparent);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+  box-shadow: var(--neumorphic-enhanced-hover);
+  animation-play-state: paused;
+}
+
+.api-package-card:active {
+  transform: translate3d(0, 1px, 0) scale(0.99);
+  box-shadow: var(--neumorphic-pressed);
+}
+
+/* Top edge gradient accent (subtle) */
 .api-package-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--api-card-accent) 30%, transparent) 20%,
+    color-mix(in srgb, var(--api-card-accent) 50%, transparent) 50%,
+    color-mix(in srgb, var(--api-card-accent) 30%, transparent) 80%,
+    transparent 100%);
   opacity: 0;
   transition: opacity var(--transition-base);
-}
-
-.api-package-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--elevation-high);
-  transform: translateY(-2px);
+  z-index: 1;
 }
 
 .api-package-card:hover::before {
@@ -740,24 +862,34 @@ details.api-card > summary::marker {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border-light);
+  background: rgba(255, 255, 255, 0.5);
+  border-bottom: var(--border-refined-subtle);
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .api-package-card__header {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .api-package-card__icon {
   font-size: 1.5rem;
   line-height: 1;
+  opacity: 0.8;
 }
 
 .api-package-card__name {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
 }
 
 .api-package-card__body {
   flex: 1;
   padding: var(--space-4) var(--space-5);
+  position: relative;
+  z-index: 1;
 }
 
 .api-package-card__description {
@@ -765,6 +897,10 @@ details.api-card > summary::marker {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .api-package-card__description--empty {
@@ -774,38 +910,82 @@ details.api-card > summary::marker {
 
 .api-package-card__footer {
   padding: var(--space-3) var(--space-5);
-  background: var(--color-bg-tertiary);
-  border-top: 1px solid var(--color-border-light);
+  background: rgba(0, 0, 0, 0.02);
+  border-top: var(--border-refined-subtle);
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .api-package-card__footer {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .api-package-card__meta {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-widest);
+  font-weight: var(--weight-medium);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-package-card {
+    animation: none;
+    box-shadow: var(--elevation-card);
+    border-left: 2px solid var(--color-primary);
+  }
+  
+  .api-package-card:hover {
+    box-shadow: var(--elevation-card-hover);
+  }
 }
 
 /* ============================================
-   API MODULE CARD
+   API MODULE CARD - Compact Neumorphic
    ============================================ */
 
 .api-module-card {
+  --api-card-accent: var(--color-secondary);
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-primary)),
+    var(--color-bg-secondary));
+  border: var(--border-refined-subtle);
+  border-radius: var(--radius-soft-lg);
   overflow: hidden;
   text-decoration: none;
   color: inherit;
+  box-shadow: var(--neumorphic-subtle);
   transition: 
     box-shadow var(--transition-base),
-    border-color var(--transition-base);
+    border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+[data-theme="dark"] .api-module-card {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated),
+    var(--color-bg-secondary));
 }
 
 .api-module-card:hover {
-  border-color: var(--color-primary-light);
-  box-shadow: var(--elevation-medium);
+  border-color: color-mix(in srgb, var(--api-card-accent) 50%, var(--color-border));
+  box-shadow: var(--neumorphic-hover);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-1)), 0);
+}
+
+.api-module-card:active {
+  transform: translate3d(0, 0.5px, 0) scale(0.99);
+  box-shadow: var(--neumorphic-subtle-pressed);
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-module-card:hover {
+    border-color: var(--color-secondary-light);
+    box-shadow: var(--elevation-medium);
+  }
 }
 
 .api-module-card__header {
@@ -813,18 +993,23 @@ details.api-card > summary::marker {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border-light);
+  background: rgba(255, 255, 255, 0.5);
+  border-bottom: var(--border-refined-subtle);
+}
+
+[data-theme="dark"] .api-module-card__header {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .api-module-card__icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1;
+  opacity: 0.7;
 }
 
 .api-module-card__name {
   flex: 1;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   font-family: var(--font-mono);
   color: var(--color-text-primary);
@@ -857,38 +1042,52 @@ details.api-card > summary::marker {
 .api-module-card__badges {
   display: flex;
   gap: var(--space-1);
+  flex-wrap: wrap;
 }
 
-/* Mini Badges */
+/* Mini Badges - Neumorphic Key Style */
 .api-badge--mini {
   display: inline-flex;
   align-items: center;
-  padding: 0.125em 0.5em;
-  border-radius: var(--radius-sm);
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius-soft-sm);
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: var(--color-bg-tertiary);
+  letter-spacing: var(--tracking-wider);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-tertiary));
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .api-badge--module {
-  background: var(--color-primary-light);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-primary) 15%, var(--color-bg-elevated)),
+    color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-secondary)));
+  border-color: color-mix(in srgb, var(--color-primary) 25%, transparent);
   color: var(--color-primary);
 }
 
 .api-badge--class {
-  background: color-mix(in srgb, var(--color-info) 15%, transparent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-info) 15%, var(--color-bg-elevated)),
+    color-mix(in srgb, var(--color-info) 10%, var(--color-bg-secondary)));
+  border-color: color-mix(in srgb, var(--color-info) 25%, transparent);
   color: var(--color-info);
 }
 
 .api-badge--function {
-  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-success) 15%, var(--color-bg-elevated)),
+    color-mix(in srgb, var(--color-success) 10%, var(--color-bg-secondary)));
+  border-color: color-mix(in srgb, var(--color-success) 25%, transparent);
   color: var(--color-success);
 }
 
-/* Empty State */
+/* Empty State - Neumorphic Inset */
 .api-empty-state {
   display: flex;
   flex-direction: column;
@@ -896,14 +1095,27 @@ details.api-card > summary::marker {
   justify-content: center;
   padding: var(--space-12);
   text-align: center;
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg,
+    var(--color-bg-secondary),
+    var(--color-bg-tertiary));
+  border: var(--border-refined-subtle);
+  border-radius: var(--radius-soft-xl);
+  /* Subtle inset for empty state */
+  box-shadow: 
+    inset 1px 1px 3px rgba(0, 0, 0, 0.04),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .api-empty-state {
+  box-shadow: 
+    inset 1px 1px 3px rgba(0, 0, 0, 0.2),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.03);
 }
 
 .api-empty-state__icon {
   font-size: 3rem;
   margin-bottom: var(--space-4);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .api-empty-state__text {
@@ -912,15 +1124,47 @@ details.api-card > summary::marker {
   color: var(--color-text-muted);
 }
 
-/* Dark Mode Adjustments */
-[data-theme="dark"] .api-package-card:hover,
-[data-theme="dark"] .api-module-card:hover {
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .api-package-card:hover {
   box-shadow: 
-    var(--elevation-high),
-    0 0 20px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+    var(--neumorphic-enhanced-hover),
+    0 0 25px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
-/* Mobile Responsive */
+[data-theme="dark"] .api-module-card:hover {
+  box-shadow: 
+    var(--neumorphic-hover),
+    0 0 15px 0 color-mix(in srgb, var(--api-card-accent) 10%, transparent);
+}
+
+/* ============================================
+   RESPONSIVE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+  .api-grid {
+    gap: var(--space-4);
+  }
+  
+  /* Disable lift transforms on mobile for performance */
+  .api-package-card:hover,
+  .api-module-card:hover {
+    transform: none;
+  }
+  
+  /* But keep the shadow enhancement */
+  .api-package-card:hover {
+    box-shadow: var(--neumorphic-enhanced-base);
+  }
+  
+  .api-module-card:hover {
+    box-shadow: var(--neumorphic-subtle);
+  }
+}
+
 @media (max-width: 640px) {
   .api-grid {
     grid-template-columns: 1fr;
@@ -929,10 +1173,41 @@ details.api-card > summary::marker {
   .api-stats {
     flex-direction: column;
     gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
   }
   
   .api-section-header__title {
     font-size: var(--text-2xl);
+  }
+  
+  .api-section-header__title::before {
+    width: 3px;
+  }
+  
+  .api-package-card__header,
+  .api-package-card__body,
+  .api-package-card__footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+/* ============================================
+   REDUCED MOTION - Accessibility
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .api-package-card,
+  .api-module-card {
+    animation: none !important;
+    transition: 
+      box-shadow 0.15s ease-out,
+      border-color 0.15s ease-out;
+  }
+  
+  .api-package-card:hover,
+  .api-module-card:hover {
+    transform: none !important;
   }
 }
 
