@@ -4,9 +4,15 @@
 - **config(env_overrides)**: upgrade exception logging from DEBUG to WARNING for user-impacting failures with helpful hints
 - **utils(theme_registry)**: add structured logging to `assets_exists`, `manifest_exists`, `resolve_resource_path`, and `get_installed_themes` methods
 - **health(rendering)**: add logging to SEO page check failures with page context
-- **cli(theme)**: add structured logging to `_theme_exists` and `_get_template_dir_source_type` helper functions
+- **health(connectivity)**: add logging to 5 graph analysis handlers (hub normalization, metrics, orphans, hubs, percentage)
+- **health(navigation)**: add logging to breadcrumb ancestor check failures
+- **health(cache)**: add logging to cache file read and JSON decode failures
+- **health(assets)**: add logging to CSS/JS minification check failures
+- **cli(theme)**: add structured logging to `_theme_exists`, `_get_template_dir_source_type`, and `features` command handlers
 - **debug(config_inspector)**: add logging to `explain_key` defaults/environment layer loading and YAML parsing failures
 - **debug(content_migrator)**: add logger import; add logging to `split_page` and `merge_pages` frontmatter parsing failures
+- **postprocess(utils)**: add logging to URL extraction failures for callable page URLs
+- **postprocess(llm_generator)**: add logging to existing file read failures in `_write_if_changed`
 - **tests**: update `test_exception_in_env_logic_silent` to use targeted mock for env vars, supporting new warning logging
 - **docs**: RFC moved to implemented
 
