@@ -116,6 +116,11 @@ class VirtualAutodocOrchestrator:
         # Add icon function from main template system
         env.globals["icon"] = icon
 
+        # Register URL filters (absolute_url, url_encode, etc.)
+        from bengal.rendering.template_functions.urls import register as register_urls
+
+        register_urls(env, self.site)
+
         # Add custom tests for template filtering
         def test_match(value: str | None, pattern: str) -> bool:
             """Test if value matches a regex pattern."""
