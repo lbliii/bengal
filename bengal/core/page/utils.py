@@ -64,6 +64,10 @@ def separate_standard_and_custom_fields(
     Standard fields are extracted to PageCore fields.
     Custom fields go into props.
 
+    Note: For markdown files, frontmatter should be flat (no props: nesting).
+    The props: key is primarily for skeleton manifests (bengal skeleton apply),
+    where it helps group custom data separately from structural fields.
+
     Args:
         metadata: Full frontmatter metadata dict (will be modified in place)
 
@@ -71,12 +75,21 @@ def separate_standard_and_custom_fields(
         Tuple of (standard_fields_dict, custom_props_dict)
 
     Example:
-        >>> metadata = {"title": "Page", "icon": "code", "props": {"custom": "value"}}
+        >>> # Markdown file (flat)
+        >>> metadata = {"title": "Page", "icon": "code"}
         >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
         >>> standard
         {'title': 'Page'}
         >>> props
-        {'icon': 'code', 'custom': 'value'}
+        {'icon': 'code'}
+
+        >>> # Skeleton manifest (can use props:)
+        >>> metadata = {"type": "doc", "props": {"icon": "code"}}
+        >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
+        >>> standard
+        {'type': 'doc'}
+        >>> props
+        {'icon': 'code'}
     """
     # Work with a copy to avoid mutating original
     metadata = metadata.copy()

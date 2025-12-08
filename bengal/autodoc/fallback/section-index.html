@@ -38,7 +38,7 @@ Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
   {% if section.sorted_subsections %}
   <section class="api-section api-section--packages">
     <h2 class="api-section__title">Packages</h2>
-    
+
     <div class="api-grid api-grid--packages">
       {% for subsection in section.sorted_subsections %}
       {% set desc = subsection.metadata.description | default('') | first_sentence %}
@@ -73,11 +73,11 @@ Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
       {% set _ = module_pages.append(page) %}
     {% endif %}
   {% endfor %}
-  
+
   {% if module_pages %}
   <section class="api-section api-section--modules">
     <h2 class="api-section__title">Modules</h2>
-    
+
     <div class="api-grid api-grid--modules">
       {% for page in module_pages %}
       {% set desc = page.metadata.description | default('') | first_sentence %}
@@ -118,4 +118,3 @@ Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
   </div>
   {% endif %}
 </div>
-

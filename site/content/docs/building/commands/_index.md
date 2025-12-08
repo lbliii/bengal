@@ -3,9 +3,8 @@ title: CLI Commands
 description: CLI workflow guides for Bengal
 weight: 20
 category: guide
-props:
-  icon: terminal
-  card_color: green
+icon: terminal
+card_color: green
 ---
 # CLI Commands
 

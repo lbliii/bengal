@@ -4,8 +4,7 @@ description: Developer tools, CLI, server, and configuration
 weight: 40
 cascade:
   type: doc
-props:
-  icon: terminal
+icon: terminal
 ---
 # Tooling & CLI
 

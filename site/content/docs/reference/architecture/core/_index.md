@@ -4,8 +4,7 @@ description: Data models, build coordination, and core principles
 weight: 10
 cascade:
   type: doc
-props:
-  icon: bengal-rosette
+icon: bengal-rosette
 ---
 # Core Architecture
 

@@ -6,6 +6,7 @@ import click
 
 from bengal.cli.base import BengalGroup
 from bengal.cli.commands.init import init
+from bengal.cli.commands.skeleton import skeleton_cli
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 
 # User profiles with customization
@@ -56,6 +57,7 @@ def project_cli():
 
     Commands:
         init       Initialize project structure and content sections
+        skeleton   Apply skeleton manifests to create site structure
         profile    Set your working profile (dev, themer, writer, ai)
         validate   Validate configuration and directory structure
         info       Display project information and statistics
@@ -483,6 +485,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
 
 project_cli.add_command(init)
+project_cli.add_command(skeleton_cli)
 
 # Compatibility export for tests expecting validate_command symbol
 # (Click command function is named `validate` in this module.)

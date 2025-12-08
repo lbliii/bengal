@@ -8,8 +8,7 @@ menu:
     weight: 40
 cascade:
   type: doc
-props:
-  icon: info
+icon: info
 ---
 # About
 

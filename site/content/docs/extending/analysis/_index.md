@@ -3,9 +3,8 @@ title: Analysis
 description: Site structure analysis tools
 weight: 20
 category: guide
-props:
-  icon: search
-  card_color: green
+icon: search
+card_color: green
 ---
 # Site Analysis
 

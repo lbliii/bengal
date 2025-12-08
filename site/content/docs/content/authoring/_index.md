@@ -3,9 +3,8 @@ title: Content Authoring
 description: Markdown, MyST directives, and shortcodes
 weight: 20
 category: guide
-props:
-  icon: edit
-  card_color: blue
+icon: edit
+card_color: blue
 ---
 # Writing Content
 

@@ -4,8 +4,7 @@ description: Templates, assets, and visual customization
 weight: 25
 cascade:
   type: doc
-props:
-  icon: palette
+icon: palette
 ---
 # Design & Theming
 

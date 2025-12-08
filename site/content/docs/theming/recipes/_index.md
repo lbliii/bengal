@@ -20,9 +20,8 @@ keywords:
 category: guide
 cascade:
   type: doc
-props:
-  icon: book-open
-  card_color: orange
+icon: book-open
+card_color: orange
 ---
 # Template Cookbook
 

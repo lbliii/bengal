@@ -4,8 +4,7 @@ description: Author, organize, and validate your documentation
 weight: 20
 cascade:
   type: doc
-props:
-  icon: file-text
+icon: file-text
 ---
 # The Content System
 

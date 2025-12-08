@@ -1,5 +1,11 @@
 """
 Documentation generator - renders DocElements to markdown using templates.
+
+DEPRECATED: This markdown-based generator is deprecated in favor of
+VirtualAutodocOrchestrator which generates HTML directly via theme templates.
+
+The markdown templates have been removed. Use virtual_pages: true in autodoc config
+to enable the new HTML-based approach.
 """
 
 from __future__ import annotations

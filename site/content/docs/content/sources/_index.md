@@ -19,9 +19,8 @@ keywords:
 - api
 - external
 category: guide
-props:
-  icon: link
-  card_color: orange
+icon: link
+card_color: orange
 ---
 # Remote Content Sources
 

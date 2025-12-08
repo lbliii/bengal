@@ -1,0 +1,19 @@
+{#
+Raises List Partial
+
+Renders a list of exceptions that may be raised.
+#}
+
+{% if element.metadata.raises %}
+<div class="api-raises">
+  <h4 class="api-label">Raises</h4>
+  <ul class="api-raises__list">
+    {% for exc in element.metadata.raises %}
+    <li>
+      <code>{{ exc.type }}</code>
+      {% if exc.description %} — {{ exc.description }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

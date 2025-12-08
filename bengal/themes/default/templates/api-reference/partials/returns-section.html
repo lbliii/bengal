@@ -1,0 +1,15 @@
+{#
+Returns Section Partial
+
+Renders return type and description.
+#}
+
+{% if element.metadata.returns %}
+<div class="api-returns">
+  <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Returns</h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
+  <p>
+    {% if element.metadata.returns.type %}<code>{{ element.metadata.returns.type }}</code>{% if element.metadata.returns.description %} — {% endif %}{% endif %}
+    {{ element.metadata.returns.description | default('') }}
+  </p>
+</div>
+{% endif %}

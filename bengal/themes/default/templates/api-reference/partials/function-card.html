@@ -1,0 +1,46 @@
+{#
+Function Card Macro
+
+Renders a function as a collapsible card.
+#}
+
+{% macro function_card(func) %}
+<details class="api-card api-card--function">
+  <summary class="api-card__header">
+    <span class="api-card__icon">ƒ</span>
+    <code class="api-card__name">{{ func.name }}</code>
+    <span class="api-card__badges">
+      {% if func.metadata.is_async %}
+      <span class="api-badge--compact api-badge--async">async</span>
+      {% endif %}
+    </span>
+    <span class="api-card__toggle">▸</span>
+  </summary>
+
+  <div class="api-card__content">
+    {% set element = func %}
+    {% include 'api-reference/partials/signature.html' %}
+
+    {% if func.description %}
+    <p class="api-card__description">{{ func.description }}</p>
+    {% endif %}
+
+    {% set element = func %}
+    {% include 'api-reference/partials/parameters-table.html' %}
+    {% set element = func %}
+    {% include 'api-reference/partials/returns-section.html' %}
+    {% set element = func %}
+    {% include 'api-reference/partials/raises-list.html' %}
+
+    {# Examples #}
+    {% if func.metadata.examples %}
+    <div class="api-examples">
+      <h4 class="api-label">Examples</h4>
+      {% for example in func.metadata.examples %}
+      <pre class="api-example"><code class="language-python">{{ example }}</code></pre>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

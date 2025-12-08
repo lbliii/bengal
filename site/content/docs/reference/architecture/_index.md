@@ -19,8 +19,7 @@ keywords:
 category: architecture
 cascade:
   type: doc
-props:
-  icon: folder
+icon: folder
 ---
 # Architecture Overview
 

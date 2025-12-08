@@ -1,0 +1,36 @@
+{#
+Badges Partial
+
+Renders badges for modules, classes, and other elements.
+#}
+
+{% if element.element_type == 'module' %}
+<span class="api-badge api-badge--module">Module</span>
+{% if element.metadata.is_dataclass %}
+<span class="api-badge api-badge--dataclass">dataclass</span>
+{% endif %}
+{% elif element.element_type == 'class' %}
+{% if element.metadata.is_dataclass %}
+<span class="api-badge api-badge--dataclass">dataclass</span>
+{% endif %}
+{% if element.metadata.is_abstract %}
+<span class="api-badge api-badge--abstract">abstract</span>
+{% endif %}
+{% elif element.element_type == 'function' %}
+{% if element.metadata.is_async %}
+<span class="api-badge api-badge--async">async</span>
+{% endif %}
+{% elif element.element_type == 'method' %}
+{% if element.metadata.is_async %}
+<span class="api-badge api-badge--async">async</span>
+{% endif %}
+{% if element.metadata.is_classmethod %}
+<span class="api-badge api-badge--classmethod">classmethod</span>
+{% endif %}
+{% if element.metadata.is_staticmethod %}
+<span class="api-badge api-badge--staticmethod">staticmethod</span>
+{% endif %}
+{% if element.metadata.is_property %}
+<span class="api-badge api-badge--property">property</span>
+{% endif %}
+{% endif %}

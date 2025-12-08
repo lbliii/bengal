@@ -2,8 +2,7 @@
 title: Core Concepts
 description: Foundational concepts for understanding Bengal
 weight: 30
-props:
-  icon: star
+icon: star
 ---
 # Core Concepts
 

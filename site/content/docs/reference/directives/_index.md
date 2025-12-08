@@ -15,8 +15,7 @@ keywords:
 - admonitions
 - tabs
 - cards
-props:
-  icon: code
+icon: code
 ---
 # Directives Reference
 

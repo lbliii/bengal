@@ -1,0 +1,17 @@
+{#
+Signature Partial
+
+Renders a code signature for classes, functions, and methods.
+#}
+
+{% if element.metadata.signature %}
+<div class="api-signature">
+  <pre><code class="language-python">
+    {%- if element.element_type == 'class' -%}
+    class {{ element.name }}{{ element.metadata.signature }}
+    {%- else -%}
+    {{ element.metadata.signature }}
+    {%- endif -%}
+  </code></pre>
+</div>
+{% endif %}

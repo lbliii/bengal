@@ -284,6 +284,11 @@ def _generate_python_docs(
 
     # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
     config = autodoc_config if autodoc_config else {"python": python_config}
+
+    # DEPRECATED: Markdown generation is deprecated. Use virtual_pages: true instead.
+    cli.warn("⚠️  Markdown-based autodoc generation is deprecated.")
+    cli.warn("   Use virtual_pages: true in autodoc config for HTML-based generation.")
+
     generator = DocumentationGenerator(extractor, config)
 
     # Use traditional markdown generation

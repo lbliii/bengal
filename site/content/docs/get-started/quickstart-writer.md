@@ -18,8 +18,7 @@ keywords:
 - frontmatter
 category: onboarding
 id: writer-qs
-props:
-  icon: pencil
+icon: pencil
 ---
 # Writer Quickstart
 

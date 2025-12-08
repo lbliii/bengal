@@ -81,9 +81,9 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `outputs` | list | Output formats (html, rss, json) |
 | `resources` | list | Page bundle resource metadata |
 
-## Custom Fields (Props)
+## Custom Fields
 
-Custom fields that aren't part of Bengal's standard frontmatter should be placed under the `props:` key. This keeps standard fields separate from custom data, following the Component Model pattern.
+Any fields not part of Bengal's standard frontmatter are automatically available as custom fields. Simply add them at the top level of your frontmatter.
 
 **Standard fields** (extracted to PageCore):
 - `title`, `description`, `date`, `draft`, `weight`, `slug`, `url`, `aliases`, `lang`
@@ -91,11 +91,11 @@ Custom fields that aren't part of Bengal's standard frontmatter should be placed
 - `type`, `variant`, `layout`, `template`
 - `canonical`, `noindex`, `og_image`, `og_type`
 - `menu`, `nav_title`, `parent`
-- `cascade`, `outputs`, `resources`
+- `cascade`, `outputs`, `resources`, `toc`
 
-**Custom fields** (go into `props`):
-- Any field not listed above
-- Fields under `props:` in frontmatter
+**Custom fields** (any other fields):
+- Any field not listed above goes into `page.props`
+- Access via `page.metadata.get('field_name')` or `page.props.get('field_name')`
 
 **Example:**
 ```yaml
@@ -104,19 +104,18 @@ title: My Page
 description: Page description
 weight: 10
 type: doc
-props:
-  icon: code
-  card_color: blue
-  custom_setting: value
+icon: code
+card_color: blue
+custom_setting: value
 ---
 ```
 
 Access custom fields via:
-- `page.props.get('icon')` or `page.metadata.get('icon')`
-- `page.props.get('card_color')`
-- `page.props.get('custom_setting')`
+- `page.metadata.get('icon')` or `page.props.get('icon')`
+- `page.metadata.get('card_color')`
+- `page.metadata.get('custom_setting')`
 
-**Note**: You can also put custom fields at the top level (they'll automatically go into props), but using `props:` makes the separation explicit and clearer.
+**Note**: The `props:` key is only used in skeleton manifests (`bengal skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
 
 ## Example
 

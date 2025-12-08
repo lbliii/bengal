@@ -11,7 +11,7 @@ This is the new architecture that replaces markdown-based autodoc generation.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -77,22 +77,22 @@ class VirtualAutodocOrchestrator:
         template_dirs = []
 
         # User templates (highest priority)
-        user_templates = self.site.root_path / "templates" / "api-explorer"
+        user_templates = self.site.root_path / "templates" / "api-reference"
         if user_templates.exists():
             template_dirs.append(str(user_templates))
 
-        # Built-in API Explorer templates
-        import bengal
-
-        builtin_templates = Path(bengal.__file__).parent / "autodoc" / "html_templates"
-        if builtin_templates.exists():
-            template_dirs.append(str(builtin_templates))
-
-        # Theme templates (for inheriting theme styles)
+        # Theme templates (for inheriting theme styles) - prefer theme templates
         if self.site.theme:
             theme_templates = self._get_theme_templates_dir()
             if theme_templates:
                 template_dirs.append(str(theme_templates))
+
+        # Built-in fallback templates (lowest priority)
+        import bengal
+
+        builtin_templates = Path(bengal.__file__).parent / "autodoc" / "fallback"
+        if builtin_templates.exists():
+            template_dirs.append(str(builtin_templates))
 
         if not template_dirs:
             logger.warning("autodoc_no_template_dirs", fallback="inline_templates")
@@ -221,7 +221,7 @@ class VirtualAutodocOrchestrator:
 
         # Count total sections (including nested) for logging
         total_section_count = len(sections)
-        
+
         logger.info(
             "virtual_autodoc_complete",
             pages=len(pages),
@@ -232,7 +232,7 @@ class VirtualAutodocOrchestrator:
         # Nested sections are accessible via parent.subsections
         # This matches how ContentDiscovery handles section hierarchy
         root_sections = [sections["api"]] if "api" in sections else []
-        
+
         return pages, root_sections
 
     def _create_sections(self, elements: list[DocElement]) -> dict[str, Section]:
@@ -293,10 +293,10 @@ class VirtualAutodocOrchestrator:
                     # Create new package section
                     relative_url = f"/{section_path}/"
                     qualified_name = ".".join(parts[: i + 1])
-                    
+
                     # Try to find description from the package's __init__.py
                     description = package_descriptions.get(qualified_name, "")
-                    
+
                     package_section = Section.create_virtual(
                         name=part,
                         relative_url=relative_url,
@@ -344,10 +344,7 @@ class VirtualAutodocOrchestrator:
 
             # Determine section for this module
             parts = element.qualified_name.split(".")
-            if len(parts) > 1:
-                section_path = "api/" + "/".join(parts[:-1])
-            else:
-                section_path = "api"
+            section_path = "api/" + "/".join(parts[:-1]) if len(parts) > 1 else "api"
 
             parent_section = sections.get(section_path, sections["api"])
 
@@ -385,7 +382,7 @@ class VirtualAutodocOrchestrator:
         # Create virtual page with absolute output path
         # (output_path must be absolute for correct URL generation)
         output_path = self.site.output_dir / f"api/{module_path}/index.html"
-        
+
         page = Page.create_virtual(
             source_id=source_id,
             title=element.name,
@@ -395,7 +392,9 @@ class VirtualAutodocOrchestrator:
                 "element_type": element.element_type,
                 "description": element.description or f"API reference for {element.name}",
                 # Convert Path to string for JSON serialization
-                "source_file": str(element.source_file) if hasattr(element, "source_file") and element.source_file else None,
+                "source_file": str(element.source_file)
+                if hasattr(element, "source_file") and element.source_file
+                else None,
                 "line_number": getattr(element, "line_number", None),
                 # Extra metadata for templates
                 "is_autodoc": True,
@@ -406,7 +405,7 @@ class VirtualAutodocOrchestrator:
             section_path=section.path,
             output_path=output_path,
         )
-        
+
         # Set site reference for URL computation
         page._site = self.site
 
@@ -422,21 +421,31 @@ class VirtualAutodocOrchestrator:
         Returns:
             Rendered HTML string
         """
+        # Try theme template first (api-reference/module.html)
         try:
-            template = self.template_env.get_template("module.html")
+            template = self.template_env.get_template("api-reference/module.html")
             return template.render(
                 element=element,
                 config=self.config,
                 site=self.site,
             )
         except Exception as e:
-            logger.warning(
-                "autodoc_template_render_failed",
-                element=element.qualified_name,
-                error=str(e),
-            )
-            # Return minimal fallback HTML
-            return self._render_fallback(element)
+            # Fall back to minimal template or legacy path
+            try:
+                template = self.template_env.get_template("module.html")
+                return template.render(
+                    element=element,
+                    config=self.config,
+                    site=self.site,
+                )
+            except Exception:
+                logger.warning(
+                    "autodoc_template_render_failed",
+                    element=element.qualified_name,
+                    error=str(e),
+                )
+                # Return minimal fallback HTML
+                return self._render_fallback(element)
 
     def _render_fallback(self, element: DocElement) -> str:
         """Render minimal fallback HTML when template fails."""
@@ -455,11 +464,11 @@ class VirtualAutodocOrchestrator:
         </div>
 
         <div class="api-classes">
-            {''.join(self._render_fallback_class(c) for c in classes)}
+            {"".join(self._render_fallback_class(c) for c in classes)}
         </div>
 
         <div class="api-functions">
-            {''.join(self._render_fallback_function(f) for f in functions)}
+            {"".join(self._render_fallback_function(f) for f in functions)}
         </div>
     </div>
 </div>
@@ -494,7 +503,7 @@ class VirtualAutodocOrchestrator:
             List of created index pages (to add to main pages list)
         """
         created_pages: list[Page] = []
-        
+
         for section_path, section in sections.items():
             if section.index_page is not None:
                 continue
@@ -506,7 +515,7 @@ class VirtualAutodocOrchestrator:
             # in add_page (we set index_page directly below)
             # output_path must be absolute for correct URL generation
             output_path = self.site.output_dir / f"{section_path}/index.html"
-            
+
             index_page = Page.create_virtual(
                 source_id=f"__virtual__/{section_path}/section-index.md",
                 title=section.title,
@@ -522,34 +531,43 @@ class VirtualAutodocOrchestrator:
 
             # Set site reference for URL computation
             index_page._site = self.site
-            
+
             # Set as section index directly (don't use add_page which would
             # trigger index collision detection)
             section.index_page = index_page
             section.pages.append(index_page)
             created_pages.append(index_page)
-        
+
         return created_pages
 
     def _render_section_index(self, section: Section) -> str:
         """Render section index page HTML."""
+        # Try theme template first (api-reference/section-index.html)
         try:
-            template = self.template_env.get_template("section-index.html")
+            template = self.template_env.get_template("api-reference/section-index.html")
             return template.render(
                 section=section,
                 config=self.config,
                 site=self.site,
             )
         except Exception as e:
-            # Log the actual error for debugging
-            logger.warning(
-                "autodoc_template_fallback",
-                template="section-index.html",
-                section=section.name,
-                error=str(e),
-            )
-            # Fallback rendering with cards
-            return self._render_section_index_fallback(section)
+            # Fall back to legacy path or minimal template
+            try:
+                template = self.template_env.get_template("section-index.html")
+                return template.render(
+                    section=section,
+                    config=self.config,
+                    site=self.site,
+                )
+            except Exception:
+                logger.warning(
+                    "autodoc_template_fallback",
+                    template="api-reference/section-index.html",
+                    section=section.name,
+                    error=str(e),
+                )
+                # Fallback rendering with cards
+                return self._render_section_index_fallback(section)
 
     def _render_section_index_fallback(self, section: Section) -> str:
         """Fallback card-based rendering when template fails."""
@@ -562,16 +580,13 @@ class VirtualAutodocOrchestrator:
         subsections_cards = []
         for s in section.sorted_subsections:
             desc = s.metadata.get("description", "")
-            if desc:
-                desc_preview = desc[:80] + "..." if len(desc) > 80 else desc
-            else:
-                desc_preview = ""
+            desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
             child_count = len(s.subsections) + len(s.pages)
             subsections_cards.append(f'''
       <a href="{s.relative_url}" class="api-package-card">
         <span class="api-package-card__icon">{folder_icon}</span>
         <span class="api-package-card__name">{s.name}</span>
-        {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ''}
+        {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ""}
         <span class="api-package-card__meta">{child_count} item{"s" if child_count != 1 else ""}</span>
       </a>''')
 
@@ -580,45 +595,42 @@ class VirtualAutodocOrchestrator:
             if p == section.index_page:
                 continue
             desc = p.metadata.get("description", "")
-            if desc:
-                desc_preview = desc[:80] + "..." if len(desc) > 80 else desc
-            else:
-                desc_preview = ""
+            desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
             element_type = p.metadata.get("element_type", "")
             module_cards.append(f'''
       <a href="{p.relative_url}" class="api-module-card">
         <span class="api-module-card__icon">{code_icon}</span>
         <span class="api-module-card__name">{p.title}</span>
-        {f'<span class="api-module-card__description">{desc_preview}</span>' if desc_preview else ''}
-        {f'<span class="api-module-card__badges"><span class="api-badge--mini">{element_type}</span></span>' if element_type else ''}
+        {f'<span class="api-module-card__description">{desc_preview}</span>' if desc_preview else ""}
+        {f'<span class="api-module-card__badges"><span class="api-badge--mini">{element_type}</span></span>' if element_type else ""}
       </a>''')
 
         subsections_section = ""
         if subsections_cards:
-            subsections_section = f'''
+            subsections_section = f"""
   <section class="api-section api-section--packages">
     <h2 class="api-section__title">Packages</h2>
     <div class="api-grid api-grid--packages">
       {"".join(subsections_cards)}
     </div>
-  </section>'''
+  </section>"""
 
         modules_section = ""
         if module_cards:
-            modules_section = f'''
+            modules_section = f"""
   <section class="api-section api-section--modules">
     <h2 class="api-section__title">Modules</h2>
     <div class="api-grid api-grid--modules">
       {"".join(module_cards)}
     </div>
-  </section>'''
+  </section>"""
 
         desc_html = ""
         section_desc = section.metadata.get("description", "")
         if section_desc:
             desc_html = f'<p class="api-section-header__description">{section_desc}</p>'
 
-        return f'''
+        return f"""
 <div class="api-explorer api-explorer--index">
   <header class="api-section-header">
     <h1 class="api-section-header__title">{section.title}</h1>
@@ -627,5 +639,4 @@ class VirtualAutodocOrchestrator:
   {subsections_section}
   {modules_section}
 </div>
-'''
-
+"""

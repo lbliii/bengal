@@ -17,8 +17,7 @@ keywords:
 category: onboarding
 cascade:
   type: doc
-props:
-  icon: arrow-clockwise
+icon: arrow-clockwise
 ---
 # Get Started
 

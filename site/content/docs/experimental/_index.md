@@ -3,9 +3,8 @@ title: Experimental
 description: Experimental components and features for Bengal
 layout: doc
 toc: false
-props:
-  hidden: true
-  icon: atomic
+hidden: true
+icon: atomic
 ---
 # 🧪 Experimental Features
 

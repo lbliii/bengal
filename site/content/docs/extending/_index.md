@@ -4,8 +4,7 @@ description: Autodoc, analysis, validation, and architecture
 weight: 35
 cascade:
   type: doc
-props:
-  icon: starburst
+icon: starburst
 ---
 # Extend Bengal
 

@@ -14,9 +14,8 @@ keywords:
 - contributing
 - development
 category: explanation
-props:
-  icon: layers
-  card_color: orange
+icon: layers
+card_color: orange
 ---
 # Architecture
 

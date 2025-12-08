@@ -17,9 +17,8 @@ keywords:
 - frontmatter
 - types
 category: guide
-props:
-  icon: check-circle
-  card_color: purple
+icon: check-circle
+card_color: purple
 ---
 # Content Collections
 

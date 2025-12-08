@@ -1,0 +1,30 @@
+{#
+Attributes Table Partial
+
+Renders a table of class attributes.
+#}
+
+{% set attributes = element.children | selectattr('element_type', 'eq', 'attribute') | list %}
+{% if attributes %}
+<div class="api-attributes">
+  <h4 class="api-subsection-title">Attributes</h4>
+  <table class="api-table api-table--compact">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for attr in attributes %}
+      <tr>
+        <td><code>{{ attr.name }}</code></td>
+        <td>{% if attr.metadata.type_annotation %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% endif %}</td>
+        <td>{{ attr.description | default('—') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

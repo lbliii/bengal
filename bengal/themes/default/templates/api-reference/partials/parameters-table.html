@@ -1,0 +1,35 @@
+{#
+Parameters Table Partial
+
+Renders a table of function/method parameters.
+#}
+
+{% if element.metadata.parameters %}
+<div class="api-parameters">
+  <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Parameters</h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
+  <table class="api-table {% if element.element_type == 'method' %}api-table--mini{% else %}api-table--compact{% endif %}">
+    {% if element.element_type == 'function' %}
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    {% endif %}
+    <tbody>
+      {% for param in element.metadata.parameters %}
+      <tr>
+        <td><code>{{ param.name }}</code></td>
+        <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
+        {% if element.element_type == 'function' %}
+        <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}</td>
+        {% endif %}
+        <td>{{ param.description | default('') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

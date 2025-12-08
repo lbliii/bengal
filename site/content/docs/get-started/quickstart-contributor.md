@@ -17,8 +17,7 @@ keywords:
 - pull-requests
 category: onboarding
 id: contributor-qs
-props:
-  icon: code
+icon: code
 ---
 # Contributor Quickstart
 

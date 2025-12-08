@@ -1,0 +1,34 @@
+{#
+Method Item Partial
+
+Renders methods within a class card.
+Receives: element (the class element)
+#}
+
+{% set methods = element.children | selectattr('element_type', 'eq', 'method') | list %}
+{% if methods %}
+<div class="api-methods">
+  <h4 class="api-subsection-title">Methods</h4>
+  {% for method in methods %}
+  <details class="api-method">
+    <summary class="api-method__header">
+      <code class="api-method__name">{{ method.name }}</code>
+      {% set element = method %}
+      {% include 'api-reference/partials/badges.html' %}
+    </summary>
+    <div class="api-method__content">
+      {% set element = method %}
+      {% include 'api-reference/partials/signature.html' %}
+      {% if method.description %}
+      <p class="api-method__description">{{ method.description }}</p>
+      {% endif %}
+
+      {% set element = method %}
+      {% include 'api-reference/partials/parameters-table.html' %}
+      {% set element = method %}
+      {% include 'api-reference/partials/returns-section.html' %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% endif %}

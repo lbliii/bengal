@@ -7,8 +7,7 @@ menu:
     weight: 30
 cascade:
   type: doc
-props:
-  icon: bookmark
+icon: bookmark
 ---
 # Reference
 

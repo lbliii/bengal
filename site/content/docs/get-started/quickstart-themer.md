@@ -18,8 +18,7 @@ keywords:
 - design
 category: onboarding
 id: themer-qs
-props:
-  icon: palette
+icon: palette
 ---
 # Themer Quickstart
 

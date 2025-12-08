@@ -17,9 +17,8 @@ keywords:
 - vercel
 - github-pages
 category: guide
-props:
-  icon: rocket
-  card_color: orange
+icon: rocket
+card_color: orange
 ---
 # Deploy Your Site
 

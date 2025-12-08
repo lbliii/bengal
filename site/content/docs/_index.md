@@ -9,19 +9,18 @@ cascade:
 category: documentation
 description: Bengal documentation
 keywords:
-  - documentation
-  - docs
-  - guides
-  - reference
+- documentation
+- docs
+- guides
+- reference
 menu:
   main:
     weight: 10
 tags:
-  - documentation
-  - docs
+- documentation
+- docs
 variant: overview
-props:
-  icon: book-open
+icon: book-open
 ---
 # Documentation
 

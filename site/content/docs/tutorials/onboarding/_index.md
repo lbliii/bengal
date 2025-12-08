@@ -15,8 +15,7 @@ keywords:
 - rst
 - migration
 - onboarding
-props:
-  icon: boomerang
+icon: boomerang
 ---
 # Coming From Another Tool?
 

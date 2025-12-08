@@ -43,19 +43,19 @@ structure:
     # - Sorts by Date (BlogStrategy)
     # - Uses templates/blog/*.html
     type: blog
-    
+
     # 2. MODE (Visual Style)
     # - Sets CSS class .variant-magazine
     # - Selects partials/hero-magazine.html
     variant: magazine
-    
+
     # 3. DATA (Frontmatter)
     # - Merged into page.metadata
     props:
       title: "Engineering Blog"
       description: "Deep dives into our stack."
       banner_image: "/images/team.jpg"
-      
+
     # 4. CASCADE (Inheritance)
     cascade:
       type: blog          # All children are blog posts
@@ -89,7 +89,7 @@ class PageCore(Cacheable):
     # --- Core Props (Promoted for Performance) ---
     title: str
     description: str | None = None  # Critical for SEO/RSS/Listings
-    
+
     # ... date, tags, weight, etc.
 ```
 
@@ -125,9 +125,10 @@ bengal skeleton apply base.yaml --layer blog.yaml --layer docs.yaml
 - [ ] Update `strategies.py` to confirm `type` remains the primary logic driver.
 
 ### Phase 2: The Hydrator (CLI)
-- [ ] Implement `bengal/cli/skeleton/schema.py` (Pydantic/Dataclass model).
-- [ ] Implement `bengal/cli/skeleton/hydrator.py` (YAML $\to$ Files).
-- [ ] Implement `bengal/cli/commands/skeleton.py`.
+- [x] Implement `bengal/cli/skeleton/schema.py` (Dataclass model).
+- [x] Implement `bengal/cli/skeleton/hydrator.py` (YAML $\to$ Files).
+- [x] Implement `bengal/cli/commands/skeleton.py`.
+- [x] Register command in CLI (`bengal project skeleton apply`).
 
 ### Phase 3: The Theme (Frontend)
 - [ ] Update `base.html` to output `data-variant="{{ page.core.variant }}"`.

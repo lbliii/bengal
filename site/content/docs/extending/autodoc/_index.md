@@ -3,9 +3,8 @@ title: Autodoc
 description: Automatic documentation generation
 weight: 10
 category: guide
-props:
-  icon: book
-  card_color: blue
+icon: book
+card_color: blue
 ---
 # Autodoc
 

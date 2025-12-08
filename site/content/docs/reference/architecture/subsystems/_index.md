@@ -4,8 +4,7 @@ description: Specialized feature subsystems
 weight: 30
 cascade:
   type: doc
-props:
-  icon: list
+icon: list
 ---
 # Subsystems
 
