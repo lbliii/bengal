@@ -550,24 +550,41 @@ class RenderingPipeline:
         Args:
             page: Virtual page with autodoc_element in metadata
         """
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
-
         element = page.metadata.get("autodoc_element")
         template_name = page.metadata.get("_autodoc_template", "api-reference/module")
-        url_path = page.metadata.get("_autodoc_url_path", f"api/{page.title}")
-        page_type = page.metadata.get("_autodoc_page_type", "api-reference")
-
-        # Create autodoc orchestrator to use its rendering logic
-        # This ensures consistent rendering with theme templates
-        orchestrator = VirtualAutodocOrchestrator(self.site)
 
         # Mark active menu items for this page
         if hasattr(self.site, "mark_active_menu_items"):
             self.site.mark_active_menu_items(page)
 
-        # Render using autodoc's template system (which now has menus available)
-        html_content = orchestrator._render_element(
-            element, template_name, url_path, page_type, page._section
+        # Use the site's template engine (which has full context: menus, globals, etc.)
+        # This ensures autodoc pages have the same nav/header as regular pages
+        try:
+            template = self.template_engine.env.get_template(f"{template_name}.html")
+        except Exception:
+            # Try without .html extension
+            try:
+                template = self.template_engine.env.get_template(template_name)
+            except Exception as e:
+                logger.warning(
+                    "autodoc_template_not_found",
+                    template=template_name,
+                    error=str(e),
+                )
+                # Fall back to rendering as regular virtual page
+                page._prerendered_html = f"<h1>{page.title}</h1><p>{element.description}</p>"
+                page.parsed_ast = page._prerendered_html
+                page.toc = ""
+                page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
+                page.rendered_html = format_html(page.rendered_html, page, self.site)
+                return
+
+        # Render with full site context (same as regular pages)
+        html_content = template.render(
+            element=element,
+            page=page,
+            site=self.site,
+            config=self.site.config,
         )
 
         page._prerendered_html = html_content
