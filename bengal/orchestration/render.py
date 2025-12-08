@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.utils.build_stats import BuildStats
+    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()
