@@ -727,10 +727,11 @@ class VirtualAutodocOrchestrator:
                 },
                 rendered_html="",  # Placeholder - will be rendered in second pass
                 template_name=template_name,
-                section_path=parent_section.path,
                 output_path=output_path,
             )
             page._site = self.site
+            # Set section reference via setter (handles virtual sections with URL-based lookup)
+            page._section = parent_section
 
             # Add to section BEFORE rendering (so navigation can see siblings)
             parent_section.add_page(page)
@@ -839,12 +840,13 @@ class VirtualAutodocOrchestrator:
             },
             rendered_html=html_content,
             template_name=template_name,
-            section_path=section.path,
             output_path=output_path,
         )
 
         # Set site reference for URL computation
         page._site = self.site
+        # Set section reference via setter (handles virtual sections with URL-based lookup)
+        page._section = section
 
         return page
 
@@ -1035,12 +1037,13 @@ class VirtualAutodocOrchestrator:
                 },
                 rendered_html=html_content,
                 template_name=template_name,
-                section_path=section.path,
                 output_path=output_path,
             )
 
             # Set site reference for URL computation
             index_page._site = self.site
+            # Set section reference via setter (handles virtual sections with URL-based lookup)
+            index_page._section = section
 
             # Set as section index directly (don't use add_page which would
             # trigger index collision detection)

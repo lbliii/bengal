@@ -561,8 +561,8 @@ def autodoc_cli(
     gen_start = time.time()
 
     # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
-    config: dict[str, Any] = autodoc_config if autodoc_config else {"cli": cli_config}
-    generator = DocumentationGenerator(extractor, config)
+    generator_config: dict[str, Any] = autodoc_config if autodoc_config else {"cli": cli_config}
+    generator = DocumentationGenerator(extractor, generator_config)
     generated_files = generator.generate_all(elements, output_dir)
 
     gen_time = time.time() - gen_start

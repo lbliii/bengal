@@ -283,10 +283,47 @@ class Site(
         if self.output_dir.exists():
             # Use debug level to avoid noise in clean command output
             logger.debug("cleaning_output_dir", path=str(self.output_dir))
-            shutil.rmtree(self.output_dir)
+            self._rmtree_robust(self.output_dir)
             logger.debug("output_dir_cleaned", path=str(self.output_dir))
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
+
+    @staticmethod
+    def _rmtree_robust(path: Path, max_retries: int = 3) -> None:
+        """
+        Remove directory tree with retry logic for transient filesystem errors.
+
+        On macOS, shutil.rmtree can fail with Errno 66 (Directory not empty)
+        due to race conditions with Spotlight indexing, Finder metadata files,
+        or other processes briefly accessing the directory during deletion.
+
+        Args:
+            path: Directory to remove
+            max_retries: Number of retry attempts (default 3)
+
+        Raises:
+            OSError: If deletion fails after all retries
+        """
+        import errno
+        import time
+
+        for attempt in range(max_retries):
+            try:
+                shutil.rmtree(path)
+                return
+            except OSError as e:
+                # Errno 66 (ENOTEMPTY) on macOS, Errno 39 (ENOTEMPTY) on Linux
+                if e.errno in (errno.ENOTEMPTY, 66, 39) and attempt < max_retries - 1:
+                    # Brief delay to let filesystem operations settle
+                    time.sleep(0.1 * (attempt + 1))
+                    logger.debug(
+                        "rmtree_retry",
+                        path=str(path),
+                        attempt=attempt + 1,
+                        error=str(e),
+                    )
+                    continue
+                raise
 
     def reset_ephemeral_state(self) -> None:
         """

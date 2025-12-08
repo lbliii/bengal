@@ -389,6 +389,37 @@ class Page(
     def __repr__(self) -> str:
         return f"Page(title='{self.title}', source='{self.source_path}')"
 
+    def _format_path_for_log(self, path: Path | str | None) -> str | None:
+        """
+        Format a path as relative to site root for logging.
+
+        Makes paths relative to the site root directory to avoid showing
+        user-specific absolute paths in logs and warnings.
+
+        Args:
+            path: Path to format (can be Path, str, or None)
+
+        Returns:
+            Relative path string, or None if path was None
+        """
+        if path is None:
+            return None
+
+        p = Path(path) if isinstance(path, str) else path
+
+        # Try to make relative to site root
+        if self._site is not None and hasattr(self._site, "root_path"):
+            try:
+                return str(p.relative_to(self._site.root_path))
+            except ValueError:
+                pass  # Path not relative to site root
+
+        # Fallback: show just parent/filename for readability
+        if p.is_absolute():
+            return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
+
+        return str(p)
+
     @property
     def _section(self) -> Any | None:
         """
@@ -424,8 +455,8 @@ class Page(
                 logger = get_logger(__name__)
                 logger.warning(
                     "page_section_lookup_no_site",
-                    page=str(self.source_path),
-                    section_path=str(self._section_path),
+                    page=self._format_path_for_log(self.source_path),
+                    section_path=self._format_path_for_log(self._section_path),
                     section_url=self._section_url,
                 )
                 # Bound the warning dict to prevent unbounded growth
@@ -457,8 +488,8 @@ class Page(
                 logger = get_logger(__name__)
                 logger.warning(
                     "page_section_not_found",
-                    page=str(self.source_path),
-                    section_path=str(self._section_path) if self._section_path else None,
+                    page=self._format_path_for_log(self.source_path),
+                    section_path=self._format_path_for_log(self._section_path),
                     section_url=self._section_url,
                     count=count + 1,
                 )
@@ -475,8 +506,8 @@ class Page(
                 logger = get_logger(__name__)
                 logger.warning(
                     "page_section_not_found_summary",
-                    page=str(self.source_path),
-                    section_path=str(self._section_path) if self._section_path else None,
+                    page=self._format_path_for_log(self.source_path),
+                    section_path=self._format_path_for_log(self._section_path),
                     section_url=self._section_url,
                     total_warnings=count + 1,
                     note="Further warnings for this section will be suppressed",

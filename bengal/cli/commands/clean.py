@@ -103,9 +103,8 @@ def clean(
     if clean_cache:
         cache_dir = site.root_path / ".bengal"
         if cache_dir.exists():
-            import shutil
-
-            shutil.rmtree(cache_dir)
+            # Use the same robust removal that Site.clean() uses
+            site._rmtree_robust(cache_dir)
             cli.info("   ✓ Removed cache directory")
 
     # Show success

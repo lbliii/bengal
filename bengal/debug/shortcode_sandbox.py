@@ -226,8 +226,7 @@ class ShortcodeSandbox(DebugTool):
                     "html_length": len(result.html),
                 },
             )
-            report.summary = dict(report.summary)
-            report.summary["html"] = result.html
+            report.metadata["html"] = result.html
         else:
             for error in result.errors:
                 report.add_finding("error", error)

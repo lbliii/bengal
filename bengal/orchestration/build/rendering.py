@@ -29,14 +29,14 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
-    from bengal.config.profiles import BuildProfile
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.utils.build_context import BuildContext
     from bengal.utils.cli_output import CLIOutput
-    from bengal.utils.live_progress_manager import LiveProgressManager
-    from bengal.utils.progress_reporter import ProgressReporter
+    from bengal.utils.live_progress import LiveProgressManager
+    from bengal.utils.profile import BuildProfile
+    from bengal.utils.progress import ProgressReporter
 
 
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:

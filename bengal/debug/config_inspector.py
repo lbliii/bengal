@@ -231,8 +231,7 @@ class ConfigInspector(DebugTool):
                         "is_default": explanation.is_default,
                     },
                 )
-                report.summary = dict(report.summary)
-                report.summary["explanation"] = explanation.format()
+                report.metadata["explanation"] = explanation.format()
             else:
                 report.add_finding(
                     "warning",
@@ -265,8 +264,7 @@ class ConfigInspector(DebugTool):
                     f"No differences between {current_env} and {compare_to}",
                 )
 
-            report.summary = dict(report.summary)
-            report.summary["comparison"] = comparison.format_detailed()
+            report.metadata["comparison"] = comparison.format_detailed()
             return report
 
         # Default: show current config summary
