@@ -425,7 +425,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before getting connectivity."
             )
@@ -449,7 +449,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting hubs.")
         return self._analyzer.get_hubs(threshold)
 
@@ -471,7 +471,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting leaves.")
         return self._analyzer.get_leaves(threshold)
 
@@ -490,7 +490,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting orphans.")
         return self._analyzer.get_orphans()
 
@@ -509,7 +509,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before getting connectivity score."
             )
@@ -531,7 +531,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._analyzer is None:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting layers.")
         return self._analyzer.get_layers()
 
@@ -560,7 +560,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._reporter is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before formatting stats."
             )

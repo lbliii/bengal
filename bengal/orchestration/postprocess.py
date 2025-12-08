@@ -197,7 +197,14 @@ class PostprocessOrchestrator:
                         if reporter:
                             try:
                                 reporter.log(f"  ✗ {task_name}: {e}")
-                            except Exception:
+                            except Exception as reporter_error:
+                                logger.debug(
+                                    "postprocess_reporter_log_failed",
+                                    task=task_name,
+                                    reporter_error=str(reporter_error),
+                                    error_type=type(reporter_error).__name__,
+                                    action="falling_back_to_print",
+                                )
                                 print(f"  ✗ {task_name}: {e}")
                         else:
                             print(f"  ✗ {task_name}: {e}")
@@ -247,7 +254,14 @@ class PostprocessOrchestrator:
                         reporter.log(header)
                         for task_name, error in errors:
                             reporter.log(f"    • {task_name}: {error}")
-                    except Exception:
+                    except Exception as reporter_error:
+                        logger.debug(
+                            "postprocess_reporter_error_log_failed",
+                            error_count=len(errors),
+                            reporter_error=str(reporter_error),
+                            error_type=type(reporter_error).__name__,
+                            action="falling_back_to_print",
+                        )
                         print(header)
                         for task_name, error in errors:
                             print(f"    • {task_name}: {error}")

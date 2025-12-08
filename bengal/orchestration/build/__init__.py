@@ -315,7 +315,10 @@ class BuildOrchestrator:
         tag_pages = sum(
             1
             for p in self.site.pages
-            if p.metadata.get("_generated") and "tag" in p.output_path.parts
+            if p.metadata is not None
+            and p.metadata.get("_generated")
+            and p.output_path is not None
+            and "tag" in p.output_path.parts
         )
         archive_pages = sum(
             1

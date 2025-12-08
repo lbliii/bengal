@@ -285,6 +285,8 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
     ]
 
     for page in pages_to_check:
+        if page.output_path is None:
+            continue
         try:
             content = page.output_path.read_text(encoding="utf-8")
 

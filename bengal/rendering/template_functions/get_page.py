@@ -129,7 +129,14 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             page_type = page.metadata.get("type")
             if enhancer and enhancer.should_enhance(page_type):
                 page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "page_enhancement_failed",
+                page_path=str(page.source_path) if hasattr(page, "source_path") else None,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_enhancement",
+            )
             pass  # Enhancement is optional, don't fail if it errors
 
     except Exception as e:

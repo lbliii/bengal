@@ -363,7 +363,13 @@ class ContentLayerManager:
                         "expired": age > self.cache_ttl,
                         "size_bytes": cache_path.stat().st_size if cache_path.exists() else 0,
                     }
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "content_layer_cache_metadata_invalid",
+                        source=name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     status[name] = {"cached": False, "error": "Invalid metadata"}
             else:
                 status[name] = {"cached": False}

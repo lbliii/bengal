@@ -244,6 +244,8 @@ class TaxonomyValidator(BaseValidator):
             paginator = page.metadata.get("_paginator")
             page_num = page.metadata.get("_page_num")
 
+            if page.output_path is None:
+                continue
             if not paginator:
                 issues.append(f"{page.output_path.name}: No paginator in metadata")
             elif not page_num:

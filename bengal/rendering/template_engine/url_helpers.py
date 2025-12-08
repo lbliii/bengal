@@ -34,7 +34,13 @@ def url_for(page: Any, site: Any) -> str:
     try:
         if hasattr(page, "relative_url"):
             url = page.relative_url
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "url_for_relative_url_access_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="trying_url_fallback",
+        )
         pass
 
     # Fallback to page.url if relative_url not available
@@ -46,7 +52,13 @@ def url_for(page: Any, site: Any) -> str:
                 baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
                 if baseurl and url.startswith(baseurl):
                     url = url[len(baseurl) :] or "/"
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "url_for_url_access_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="trying_dict_fallback",
+            )
             pass
 
     # Support dict-like contexts (component preview/demo data)
@@ -59,14 +71,26 @@ def url_for(page: Any, site: Any) -> str:
                     url = str(page["relative_url"])
                 elif "slug" in page:
                     url = f"/{page['slug']}/"
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "url_for_dict_access_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="trying_slug_fallback",
+            )
             pass
 
     # Fallback to slug-based URL for objects
     if url is None:
         try:
             url = f"/{page.slug}/"
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "url_for_slug_access_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_root_fallback",
+            )
             url = "/"
 
     return with_baseurl(url, site)
@@ -90,7 +114,13 @@ def with_baseurl(path: str, site: Any) -> str:
     # Get baseurl from config
     try:
         baseurl_value = (site.config.get("baseurl", "") or "").rstrip("/")
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "with_baseurl_config_access_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_empty_baseurl",
+        )
         baseurl_value = ""
 
     if not baseurl_value:

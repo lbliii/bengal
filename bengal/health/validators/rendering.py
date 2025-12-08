@@ -15,6 +15,9 @@ from typing import TYPE_CHECKING, override
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 from bengal.rendering.parsers.factory import ParserFactory
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -114,8 +117,14 @@ class RenderingValidator(BaseValidator):
                 if has_unrendered:
                     issues.append(page.output_path.name)
 
-            except Exception:
+            except Exception as e:
                 # Skip pages we can't read
+                logger.debug(
+                    "rendering_validator_page_skip",
+                    page=str(page.output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 pass
 
         if issues:

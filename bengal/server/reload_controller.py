@@ -213,7 +213,14 @@ class ReloadController:
             if suspects_hashed:
                 try:
                     cap_hit = suspects_hashed >= self._suspect_hash_limit
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "reload_controller_cap_check_failed",
+                        suspects_hashed=suspects_hashed,
+                        limit=self._suspect_hash_limit,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     cap_hit = False
                 logger.debug(
                     "reload_controller_hash_stats",
@@ -280,7 +287,12 @@ class ReloadController:
             )
             for f in changed[:5]:
                 print(f"    - {f}")
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "reload_controller_debug_output_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         return decision

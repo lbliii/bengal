@@ -64,13 +64,25 @@ class ListTableDirective(DirectivePlugin):
         # Parse options
         try:
             options = dict(self.parse_options(m))
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "list_table_options_parse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_empty_options",
+            )
             options = {}
 
         # Extract content
         try:
             content = self.parse_content(m)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "list_table_content_parse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_empty_content",
+            )
             content = ""
 
         # Parse header rows option
@@ -210,7 +222,9 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
             return '<span class="table-empty">—</span>'
 
         # Parse as full markdown (allows paragraphs, lists, etc.)
-        html = inline_md(cell_content)
+        html_result = inline_md(cell_content)
+        # Ensure html is a string (mistune returns str, but type checker sees union)
+        html = html_result if isinstance(html_result, str) else str(html_result)
         html = html.strip()
 
         # If only a single paragraph, unwrap it for cleaner inline display

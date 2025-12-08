@@ -163,8 +163,15 @@ class SitemapGenerator:
                             link.set("hreflang", "x-default")
                             link.set("href", child.get("href"))
                             break
-            except Exception:
+            except Exception as e:
                 # Keep sitemap resilient
+                self.logger.debug(
+                    "sitemap_hreflang_processing_failed",
+                    page_url=page.relative_url if hasattr(page, "relative_url") else None,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_hreflang",
+                )
                 pass
             included_count += 1
 

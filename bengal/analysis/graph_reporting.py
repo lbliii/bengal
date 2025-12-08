@@ -182,6 +182,9 @@ class GraphReporter:
                 # Compute PageRank if not already computed
                 self._graph.compute_pagerank()
 
+            if self._graph._pagerank_results is None:
+                return []
+
             # Get average PageRank to identify high-value pages
             all_scores = list(self._graph._pagerank_results.scores.values())
             avg_score = sum(all_scores) / len(all_scores) if all_scores else 0
@@ -221,6 +224,9 @@ class GraphReporter:
             if not self._graph._path_results:
                 # Compute path analysis if not already computed
                 self._graph.analyze_paths()
+
+            if self._graph._path_results is None:
+                return []
 
             bridges = self._graph._path_results.get_top_bridges(5)
             if bridges and bridges[0][1] > 0.001:
@@ -308,6 +314,9 @@ class GraphReporter:
         try:
             if not self._graph._pagerank_results:
                 self._graph.compute_pagerank()
+
+            if self._graph._pagerank_results is None:
+                return []
 
             # Find pages with high PageRank but few outgoing links
             high_pagerank_low_outgoing = []

@@ -11,7 +11,11 @@ import re
 from re import Match
 from typing import Any
 
+from bengal.utils.logger import get_logger
+
 __all__ = ["VariableSubstitutionPlugin"]
+
+logger = get_logger(__name__)
 
 
 class VariableSubstitutionPlugin:
@@ -166,8 +170,15 @@ class VariableSubstitutionPlugin:
                     self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
                     return placeholder
                 return str(result)
-            except Exception:
+            except Exception as e:
                 # On error, keep as placeholder for documentation display
+                logger.debug(
+                    "variable_substitution_failed",
+                    expression=expr,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="keeping_as_placeholder",
+                )
                 placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
                 self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
                 return placeholder

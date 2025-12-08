@@ -13,8 +13,12 @@ from __future__ import annotations
 import html as html_module
 import re
 
+from bengal.utils.logger import get_logger
+
 # TOC extraction version - increment when extract_toc_structure() logic changes
 TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for mistune
+
+logger = get_logger(__name__)
 
 
 def extract_toc_structure(toc_html: str) -> list:
@@ -98,7 +102,12 @@ def extract_toc_structure(toc_html: str) -> list:
         parser.feed(toc_html)
         return parser.items
 
-    except Exception:
+    except Exception as e:
         # If parsing fails, return empty list
+        logger.debug(
+            "toc_extraction_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_empty_list",
+        )
         return []
-

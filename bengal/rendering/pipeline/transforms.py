@@ -33,7 +33,13 @@ def escape_template_syntax_in_html(html: str) -> str:
     """
     try:
         return html.replace("{{", "&#123;&#123;").replace("}}", "&#125;&#125;")
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "template_syntax_escape_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_original_html",
+        )
         return html
 
 
@@ -52,7 +58,13 @@ def escape_jinja_blocks(html: str) -> str:
     """
     try:
         return html.replace("{%", "&#123;%").replace("%}", "%&#125;")
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "jinja_block_escape_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_original_html",
+        )
         return html
 
 
@@ -75,6 +87,8 @@ def transform_internal_links(html: str, config: dict[str, Any]) -> str:
         from bengal.rendering.link_transformer import (
             get_baseurl,
             should_transform_links,
+        )
+        from bengal.rendering.link_transformer import (
             transform_internal_links as do_transform,
         )
 
@@ -87,4 +101,3 @@ def transform_internal_links(html: str, config: dict[str, Any]) -> str:
         # Never fail the build on link transformation errors
         logger.debug("link_transformation_error", error=str(e))
         return html
-

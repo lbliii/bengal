@@ -111,7 +111,7 @@ class DirectiveAnalyzer:
 
             try:
                 # Use cached content if available (eliminates disk I/O)
-                if use_cache:
+                if use_cache and build_context is not None:
                     content = build_context.get_content(page.source_path)
                     if content is None:
                         # Fallback to disk if not cached (shouldn't happen normally)
@@ -120,6 +120,7 @@ class DirectiveAnalyzer:
                     else:
                         cache_hits += 1
                 else:
+                    # Read from disk (no cache or no build_context)
                     content = page.source_path.read_text(encoding="utf-8")
                     disk_reads += 1
 

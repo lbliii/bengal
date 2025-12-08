@@ -14,8 +14,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
 from bengal.utils.text import normalize_whitespace
 from bengal.utils.text import strip_html as _strip_html_base
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -92,8 +95,15 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 result = relative_url()
                 if isinstance(result, str):
                     return result
-            except Exception:
+            except Exception as e:
                 # Ignore exceptions from relative_url() to allow fallback to other URL methods
+                logger.debug(
+                    "output_format_relative_url_failed",
+                    page=str(page.source_path) if hasattr(page, "source_path") else None,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_url_fallback",
+                )
                 pass
         elif isinstance(result := relative_url, str):
             return result
@@ -107,20 +117,20 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 url = url()
             except Exception:
                 url = None
-        
+
         if isinstance(url, str):
             # Strip baseurl from url if present
             baseurl = ""
             if site and hasattr(site, "config") and isinstance(site.config, dict):
                 baseurl = site.config.get("baseurl", "") or ""
-            
+
             if baseurl and baseurl != "/" and url.startswith(baseurl):
                 # Remove baseurl prefix to get relative URL
-                url = url[len(baseurl):]
+                url = url[len(baseurl) :]
                 # Ensure leading slash
                 if not url.startswith("/"):
                     url = "/" + url
-            
+
             if url:
                 return url
 

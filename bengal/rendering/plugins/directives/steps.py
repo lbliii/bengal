@@ -250,14 +250,28 @@ def _parse_inline_markdown(renderer, text: str) -> str:
         if hasattr(md_instance, "inline"):
             try:
                 return md_instance.inline(text)
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "steps_inline_parse_failed",
+                    method="_md",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_md_fallback",
+                )
                 pass
     elif hasattr(renderer, "md"):
         md_instance = renderer.md
         if hasattr(md_instance, "inline"):
             try:
                 return md_instance.inline(text)
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "steps_inline_parse_failed",
+                    method="md",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="using_regex_fallback",
+                )
                 pass
 
     # Fallback to simple regex for basic markdown

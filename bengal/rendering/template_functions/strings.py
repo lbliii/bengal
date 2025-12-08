@@ -7,13 +7,15 @@ Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
 """
 
-
 from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
 
 from bengal.utils import text as text_utils
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -49,7 +51,14 @@ def dict_get(obj, key, default=None):
         # Allow attribute access as fallback
         if hasattr(obj, key):
             return getattr(obj, key)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "safe_get_failed",
+            key=key,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_default",
+        )
         pass
     return default
 

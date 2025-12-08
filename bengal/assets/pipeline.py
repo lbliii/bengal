@@ -230,7 +230,13 @@ class NodePipeline:
                 Path(bengal_pkg.__file__).parent / "themes" / self.config.theme_name / "assets"
             )
             return bundled if bundled.exists() else None
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "asset_pipeline_theme_assets_dir_failed",
+                theme=self.config.theme_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return None
 
     def _theme_assets_subdir(self) -> str | None:

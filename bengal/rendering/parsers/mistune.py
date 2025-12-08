@@ -200,7 +200,7 @@ class MistuneParser(BaseMarkdownParser):
                     lexer = get_lexer_cached(language=info_stripped)
 
                     # Count lines to decide on line numbers
-                    line_count = code.count('\n') + 1
+                    line_count = code.count("\n") + 1
 
                     # Format with Pygments using 'highlight' CSS class (matches python-markdown)
                     # Add line numbers for code blocks with 3+ lines (Supabase-style)
@@ -208,7 +208,7 @@ class MistuneParser(BaseMarkdownParser):
                         cssclass="highlight",
                         wrapcode=True,
                         noclasses=False,  # Use CSS classes instead of inline styles
-                        linenos='table' if line_count >= 3 else False,
+                        linenos="table" if line_count >= 3 else False,
                         linenostart=1,
                     )
 
@@ -449,7 +449,13 @@ class MistuneParser(BaseMarkdownParser):
         """
         try:
             return html.replace("{%", "&#123;%").replace("%}", "%&#125;")
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "mistune_jinja_block_escape_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_original_html",
+            )
             return html
 
     def parse_with_toc_and_context(

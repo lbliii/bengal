@@ -169,16 +169,38 @@ class ThemePackage:
                     # Check if it's already a real Path (not in a zip)
                     if hasattr(traversable, "__fspath__"):
                         return Path(traversable)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "theme_resource_path_fspath_failed",
+                        package=self.package,
+                        relative=relative,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="trying_as_file",
+                    )
                     pass
 
                 # For packages in zip files, we need as_file
                 try:
                     with resources.as_file(traversable) as path:
                         return Path(path)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "theme_resource_path_as_file_failed",
+                        package=self.package,
+                        relative=relative,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     pass
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "theme_resource_path_resolve_failed",
+                package=self.package,
+                relative=relative,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         logger.debug("theme_resource_resolve_failed", package=self.package, rel=relative)
@@ -216,7 +238,13 @@ def get_installed_themes() -> dict[str, ThemePackage]:
                 dist_name = owning
                 try:
                     version = metadata.version(dist_name)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "theme_version_lookup_failed",
+                        distribution=dist_name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     version = None
         except Exception:
             pass

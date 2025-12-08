@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Any
 
 from bengal.health.report import CheckResult, HealthReport
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class FixSafety(Enum):
@@ -368,9 +371,15 @@ class AutoFixer:
                 file_path.write_text("\n".join(lines), encoding="utf-8")
                 return True
 
-            except Exception:
+            except Exception as e:
                 import traceback
 
+                logger.error(
+                    "autofix_apply_failed",
+                    file_path=str(file_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 traceback.print_exc()
                 return False
 
@@ -454,12 +463,13 @@ class AutoFixer:
                     closing_backtick = re.match(r"^(\s*)(`{3,})\s*$", line)
 
                     if closing_colon or closing_backtick:
-                        closing_depth = (
-                            len(closing_colon.group(2))
-                            if closing_colon
-                            else len(closing_backtick.group(2))
-                        )
-                        fence_type = "colon" if closing_colon else "backtick"
+                        if closing_colon:
+                            closing_depth = len(closing_colon.group(2))
+                            fence_type = "colon"
+                        else:
+                            assert closing_backtick is not None  # Type narrowing
+                            closing_depth = len(closing_backtick.group(2))
+                            fence_type = "backtick"
 
                         # Find most recent opening fence before this line with matching type and depth
                         for directive in reversed(directives):
@@ -550,9 +560,15 @@ class AutoFixer:
                 file_path.write_text("\n".join(lines), encoding="utf-8")
                 return True
 
-            except Exception:
+            except Exception as e:
                 import traceback
 
+                logger.error(
+                    "autofix_apply_failed",
+                    file_path=str(file_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 traceback.print_exc()
                 return False
 
@@ -627,12 +643,13 @@ class AutoFixer:
             if (closing_backtick or closing_colon) and stack:
                 # Pop matching directive from stack
                 # Match by fence type and depth
-                fence_type = "backtick" if closing_backtick else "colon"
-                closing_depth = (
-                    len(closing_backtick.group(2))
-                    if closing_backtick
-                    else len(closing_colon.group(2))
-                )
+                if closing_backtick:
+                    fence_type = "backtick"
+                    closing_depth = len(closing_backtick.group(2))
+                else:
+                    assert closing_colon is not None  # Type narrowing
+                    fence_type = "colon"
+                    closing_depth = len(closing_colon.group(2))
 
                 # Find matching directive on stack (most recent with same type and depth)
                 for i in range(len(stack) - 1, -1, -1):
@@ -729,7 +746,13 @@ class AutoFixer:
                     applied += 1
                 else:
                     failed += 1
-            except Exception:
+            except Exception as e:
+                logger.error(
+                    "autofix_apply_failed",
+                    fix_type=type(fix).__name__,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 failed += 1
 
         return {"applied": applied, "failed": failed, "skipped": skipped}
