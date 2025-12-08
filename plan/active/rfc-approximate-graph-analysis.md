@@ -267,15 +267,16 @@ For closeness, we estimate based on average distances from pivots - this gives a
 ## 8. Implementation Checklist
 
 - [x] Update RFC to include closeness centrality
-- [ ] Add `k_pivots`, `seed`, `auto_approximate_threshold` to `PathAnalyzer.__init__`
-- [ ] Implement pivot-based betweenness centrality
-- [ ] Implement pivot-based closeness centrality
-- [ ] Add `progress_callback` to `analyze()`
-- [ ] Add `timeout_seconds` and `max_paths` to `find_all_paths()`
-- [ ] Update `KnowledgeGraph.analyze_paths()` to pass parameters
-- [ ] Add tests for approximation accuracy
-- [ ] Add tests for progress callback
-- [ ] Add tests for timeout behavior
+- [x] Add `k_pivots`, `seed`, `auto_approximate_threshold` to `PathAnalyzer.__init__`
+- [x] Implement pivot-based betweenness centrality
+- [x] Implement pivot-based closeness centrality
+- [x] Add `progress_callback` to `analyze()`
+- [x] Add `timeout_seconds` and `max_paths` to `find_all_paths()`
+- [x] Update `KnowledgeGraph.analyze_paths()` to pass parameters
+- [x] Add tests for approximation accuracy
+- [x] Add tests for progress callback
+- [x] Add tests for timeout behavior
+- [x] Update architecture documentation
 
 ---
 
