@@ -34,10 +34,32 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             "source_dirs": ["."],
             # output_dir removed - virtual pages always output to site.output_dir (public/)
             "exclude": [
+                # Tests
                 "*/tests/*",
                 "*/test_*.py",
+                "*_test.py",
+                # Build artifacts and caches
                 "*/__pycache__/*",
                 "*/migrations/*",
+                "*/build/*",
+                "*/dist/*",
+                "*/.eggs/*",
+                "*.egg-info/*",
+                # Virtual environments and dependencies
+                "*/.venv/*",
+                "*/venv/*",
+                "*/.env/*",
+                "*/env/*",
+                "*/site-packages/*",
+                "*/.tox/*",
+                "*/.nox/*",
+                # Common non-API directories
+                "*/scripts/*",
+                "*/benchmarks/*",
+                "*/examples/*",
+                "*/docs/*",
+                # Hidden directories (starting with .)
+                "*/.*",
             ],
             "docstring_style": "auto",
             "include_private": False,

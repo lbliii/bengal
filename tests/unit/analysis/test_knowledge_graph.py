@@ -245,19 +245,19 @@ class TestErrorHandling:
         """Test that analysis methods require build() first."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_hubs()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_leaves()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_orphans()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_layers()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_metrics()
 
     def test_empty_site(self, tmp_path):

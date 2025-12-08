@@ -158,15 +158,49 @@ class PythonExtractor(Extractor):
         return elements
 
     def _should_skip(self, path: Path) -> bool:
-        """Check if file should be skipped."""
-        path_str = str(path)
+        """
+        Check if file should be skipped.
 
+        Handles common exclusion patterns:
+        - Hidden directories (starting with .)
+        - Virtual environments (.venv, venv, env, .env)
+        - Site-packages (dependencies)
+        - Build artifacts (__pycache__, build, dist)
+        - Test files and directories
+        """
+        path_str = str(path)
+        path_parts = path.parts
+
+        # Skip hidden directories (any part starting with .)
+        for part in path_parts:
+            if part.startswith(".") and part not in (".", ".."):
+                return True
+
+        # Skip common virtual environment and dependency directories
+        common_skip_dirs = {
+            "venv", ".venv", "env", ".env",
+            "site-packages", "__pycache__",
+            ".tox", ".nox", ".eggs",
+            "build", "dist", "node_modules",
+        }
+        for part in path_parts:
+            if part in common_skip_dirs:
+                return True
+            # Skip egg-info directories
+            if part.endswith(".egg-info"):
+                return True
+
+        # Apply user-specified exclude patterns
         for pattern in self.exclude_patterns:
-            # Simple pattern matching
-            if pattern.replace("*/", "").replace("/*", "") in path_str:
+            # Simple substring matching (for patterns like "*/tests/*")
+            core_pattern = pattern.replace("*/", "").replace("/*", "").replace("*", "")
+            if core_pattern and core_pattern in path_str:
                 return True
-            if pattern.startswith("*/") and path.name.startswith(pattern[2:].replace("*", "")):
-                return True
+            # Filename matching (for patterns like "test_*.py")
+            if pattern.startswith("*/") and "*" in pattern:
+                suffix = pattern[2:].replace("*", "")
+                if path.name.startswith(suffix) or path.name.endswith(suffix):
+                    return True
 
         return False
 
@@ -568,11 +602,14 @@ class PythonExtractor(Extractor):
         Examples:
             source_root: bengal/
             file_path: bengal/cli/commands/build.py
-            result: cli.commands.build
+            result: bengal.cli.commands.build
         """
+        # Resolve file_path to handle relative paths correctly
+        resolved_file = file_path.resolve()
+
         if self._source_root is None:
             # Fallback to old behavior if source root not set
-            parts = list(file_path.parts)
+            parts = list(resolved_file.parts)
             package_start = 0
             for i in range(len(parts) - 1, -1, -1):
                 parent = Path(*parts[: i + 1])
@@ -583,16 +620,28 @@ class PythonExtractor(Extractor):
         else:
             # Use source root to compute relative path
             try:
-                rel_path = file_path.relative_to(self._source_root)
+                rel_path = resolved_file.relative_to(self._source_root)
                 module_parts = list(rel_path.parts)
             except ValueError:
-                # File not under source root, use absolute path
-                module_parts = list(file_path.parts)
+                # File not under source root - find package root via __init__.py
+                logger.debug(
+                    "file_not_under_source_root",
+                    file=str(resolved_file),
+                    source_root=str(self._source_root),
+                )
+                parts = list(resolved_file.parts)
+                package_start = 0
+                for i in range(len(parts) - 1, -1, -1):
+                    parent = Path(*parts[: i + 1])
+                    if (parent / "__init__.py").exists():
+                        package_start = i
+                        break
+                module_parts = parts[package_start:]
 
         # Handle __init__.py (package) vs regular module
-        if module_parts[-1] == "__init__.py":
+        if module_parts and module_parts[-1] == "__init__.py":
             module_parts = module_parts[:-1]
-        elif module_parts[-1].endswith(".py"):
+        elif module_parts and module_parts[-1].endswith(".py"):
             module_parts[-1] = module_parts[-1][:-3]
 
         # If module_parts is empty (root __init__.py), use source_root name
