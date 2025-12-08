@@ -10,6 +10,9 @@ Key Components:
     - IncrementalBuildDebugger: Debug incremental build issues
     - BuildDeltaAnalyzer: Compare builds and explain changes
     - DependencyVisualizer: Visualize build dependencies
+    - ContentMigrator: Safe content restructuring with link tracking
+    - ShortcodeSandbox: Test directives/shortcodes in isolation
+    - ConfigInspector: Advanced config comparison with origin tracking
 
 Debug Tool Infrastructure:
     - DebugTool: Base class for debug tools
@@ -29,17 +32,6 @@ See Also:
 
 from __future__ import annotations
 
-# Page explanation tools
-from bengal.debug.models import (
-    CacheInfo,
-    DependencyInfo,
-    OutputInfo,
-    PageExplanation,
-    ShortcodeUsage,
-    SourceInfo,
-    TemplateInfo,
-)
-
 # Debug tool infrastructure
 from bengal.debug.base import (
     DebugFinding,
@@ -49,11 +41,21 @@ from bengal.debug.base import (
     Severity,
 )
 
-# Incremental build debugging
-from bengal.debug.incremental_debugger import (
-    IncrementalBuildDebugger,
-    RebuildExplanation,
-    RebuildReason,
+# Configuration inspector
+from bengal.debug.config_inspector import (
+    ConfigComparisonResult,
+    ConfigDiff,
+    ConfigInspector,
+    KeyExplanation,
+)
+
+# Content migration
+from bengal.debug.content_migrator import (
+    ContentMigrator,
+    MoveOperation,
+    MovePreview,
+    PageDraft,
+    Redirect,
 )
 
 # Build comparison
@@ -71,23 +73,42 @@ from bengal.debug.dependency_visualizer import (
     DependencyVisualizer,
 )
 
-# Content migration
-from bengal.debug.content_migrator import (
-    ContentMigrator,
-    MoveOperation,
-    MovePreview,
-    PageDraft,
-    Redirect,
+# Incremental build debugging
+from bengal.debug.incremental_debugger import (
+    IncrementalBuildDebugger,
+    RebuildExplanation,
+    RebuildReason,
 )
+
+# Page explanation tools
+from bengal.debug.models import (
+    CacheInfo,
+    DependencyInfo,
+    OutputInfo,
+    PageExplanation,
+    ShortcodeUsage,
+    SourceInfo,
+    TemplateInfo,
+)
+
+# Shortcode/directive sandbox
+from bengal.debug.shortcode_sandbox import (
+    RenderResult,
+    ShortcodeSandbox,
+    ValidationResult,
+)
+
 
 # Lazy imports for optional components
 def __getattr__(name: str):
     """Lazy import for optional components."""
     if name == "PageExplainer":
         from bengal.debug.explainer import PageExplainer
+
         return PageExplainer
     if name == "ExplanationReporter":
         from bengal.debug.reporter import ExplanationReporter
+
         return ExplanationReporter
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -128,5 +149,13 @@ __all__ = [
     "MovePreview",
     "PageDraft",
     "Redirect",
+    # Shortcode sandbox
+    "ShortcodeSandbox",
+    "RenderResult",
+    "ValidationResult",
+    # Config inspector
+    "ConfigInspector",
+    "ConfigDiff",
+    "ConfigComparisonResult",
+    "KeyExplanation",
 ]
-

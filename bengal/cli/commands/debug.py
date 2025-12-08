@@ -6,6 +6,8 @@ Commands:
     bengal debug delta - Compare builds and explain changes
     bengal debug deps - Visualize build dependencies
     bengal debug migrate - Preview content migrations
+    bengal debug sandbox - Test shortcodes/directives in isolation
+    bengal debug config-inspect - Advanced configuration inspection
 """
 
 from __future__ import annotations
@@ -482,6 +484,297 @@ def migrate(
                 cli.console.print(f"   {finding.format_short()}")
 
 
+@debug_cli.command("sandbox")
+@handle_cli_errors(show_art=False)
+@click.argument("content", required=False)
+@click.option(
+    "--file",
+    "file_path",
+    type=click.Path(exists=True),
+    help="Read content from file",
+)
+@click.option(
+    "--validate-only",
+    is_flag=True,
+    help="Only validate syntax, don't render",
+)
+@click.option(
+    "--list-directives",
+    is_flag=True,
+    help="List all available directives",
+)
+@click.option(
+    "--help-directive",
+    type=str,
+    help="Get detailed help for a directive",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["console", "html", "json"]),
+    default="console",
+    help="Output format",
+)
+@click.option(
+    "--traceback",
+    type=click.Choice([s.value for s in TracebackStyle]),
+    hidden=True,
+    help="Traceback verbosity",
+)
+def sandbox(
+    content: str | None,
+    file_path: str | None,
+    validate_only: bool,
+    list_directives: bool,
+    help_directive: str | None,
+    output_format: str,
+    traceback: str | None,
+) -> None:
+    """
+    Test shortcodes/directives in isolation.
+
+    Renders directives without building the entire site, useful for
+    testing and debugging directive syntax before adding to content.
+
+    Examples:
+        bengal debug sandbox '```{note}\\nThis is a note.\\n```'
+        bengal debug sandbox --file test-directive.md
+        bengal debug sandbox --list-directives
+        bengal debug sandbox --help-directive tabs
+        bengal debug sandbox --validate-only '```{note}\\nTest\\n```'
+    """
+    from bengal.debug import ShortcodeSandbox
+
+    cli = get_cli_output()
+    configure_traceback(debug=False, traceback=traceback)
+
+    cli.header("🧪 Shortcode Sandbox")
+
+    # Create sandbox (no site needed for basic testing)
+    sandbox_tool = ShortcodeSandbox()
+
+    if list_directives:
+        directives = sandbox_tool.list_directives()
+        cli.blank()
+        cli.info(f"Available directives ({len(directives)} types):")
+        cli.blank()
+        for directive in directives:
+            names = ", ".join(directive["names"])
+            cli.console.print(f"  {names}")
+            cli.console.print(f"    {directive['description']}")
+        return
+
+    if help_directive:
+        help_text = sandbox_tool.get_directive_help(help_directive)
+        cli.blank()
+        if help_text:
+            cli.console.print(help_text)
+        else:
+            cli.warning(f"Unknown directive: {help_directive}")
+            cli.info("Use --list-directives to see available directives")
+        return
+
+    # Get content
+    if file_path:
+        content = Path(file_path).read_text()
+    elif not content:
+        cli.warning("No content provided")
+        cli.info("Usage: bengal debug sandbox '<content>' or --file <path>")
+        cli.info("       bengal debug sandbox --list-directives")
+        return
+
+    # Handle escaped newlines from CLI
+    content = content.replace("\\n", "\n")
+
+    if validate_only:
+        validation = sandbox_tool.validate(content)
+        cli.blank()
+        if validation.valid:
+            cli.success("✅ Valid syntax")
+            if validation.directive_name:
+                cli.info(f"   Directive: {validation.directive_name}")
+        else:
+            cli.error("❌ Invalid syntax")
+            for error in validation.errors:
+                cli.console.print(f"   {error}")
+            for suggestion in validation.suggestions:
+                cli.info(f"   💡 {suggestion}")
+        return
+
+    # Render
+    result = sandbox_tool.render(content)
+    cli.blank()
+
+    if result.success:
+        cli.success("✅ Rendered successfully")
+        cli.info(f"   Directive: {result.directive_name or 'none'}")
+        cli.info(f"   Time: {result.parse_time_ms + result.render_time_ms:.2f}ms")
+        cli.blank()
+
+        if output_format == "html":
+            cli.console.print(result.html)
+        elif output_format == "json":
+            data = {
+                "success": True,
+                "directive": result.directive_name,
+                "html": result.html,
+                "parse_time_ms": result.parse_time_ms,
+                "render_time_ms": result.render_time_ms,
+            }
+            cli.console.print(json.dumps(data, indent=2))
+        else:
+            cli.info("Output HTML:")
+            cli.console.print(f"[dim]{result.html}[/dim]")
+    else:
+        cli.error("❌ Render failed")
+        for error in result.errors:
+            cli.console.print(f"   {error}")
+
+
+@debug_cli.command("config-inspect")
+@handle_cli_errors(show_art=False)
+@click.option(
+    "--compare-to",
+    type=str,
+    help="Compare to environment or profile (e.g., 'production', 'profile:dev')",
+)
+@click.option(
+    "--explain-key",
+    type=str,
+    help="Explain how a specific key got its value (e.g., 'site.title')",
+)
+@click.option(
+    "--list-sources",
+    is_flag=True,
+    help="List available configuration sources",
+)
+@click.option(
+    "--find-issues",
+    is_flag=True,
+    help="Find potential configuration issues",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["console", "json"]),
+    default="console",
+    help="Output format",
+)
+@click.option(
+    "--traceback",
+    type=click.Choice([s.value for s in TracebackStyle]),
+    hidden=True,
+    help="Traceback verbosity",
+)
+def config_inspect(
+    compare_to: str | None,
+    explain_key: str | None,
+    list_sources: bool,
+    find_issues: bool,
+    output_format: str,
+    traceback: str | None,
+) -> None:
+    """
+    Advanced configuration inspection and comparison.
+
+    Goes beyond 'bengal config diff' with origin tracking, impact analysis,
+    and key-level value resolution explanations.
+
+    Examples:
+        bengal debug config-inspect --list-sources
+        bengal debug config-inspect --compare-to production
+        bengal debug config-inspect --explain-key site.baseurl
+        bengal debug config-inspect --find-issues
+    """
+    from bengal.debug import ConfigInspector
+
+    cli = get_cli_output()
+    configure_traceback(debug=False, traceback=traceback)
+
+    cli.header("🔬 Config Inspector")
+
+    # Load site
+    cli.info("Loading site...")
+    site = load_site_from_cli(source=".", config=None, environment=None, profile=None, cli=cli)
+    configure_traceback(debug=False, traceback=traceback, site=site)
+
+    # Create inspector
+    inspector = ConfigInspector(site=site)
+
+    if list_sources:
+        sources = inspector._list_available_sources()
+        cli.blank()
+        cli.info("Available configuration sources:")
+        for source in sources:
+            cli.console.print(f"   • {source}")
+        return
+
+    if explain_key:
+        explanation = inspector.explain_key(explain_key)
+        cli.blank()
+        if explanation:
+            cli.console.print(explanation.format())
+        else:
+            cli.warning(f"Key not found: {explain_key}")
+        return
+
+    if compare_to:
+        from bengal.config.environment import detect_environment
+
+        current_env = detect_environment()
+        comparison = inspector.compare(current_env, compare_to)
+
+        cli.blank()
+        if output_format == "json":
+            data = {
+                "source1": comparison.source1,
+                "source2": comparison.source2,
+                "diffs": [
+                    {
+                        "path": d.path,
+                        "type": d.type,
+                        "old_value": d.old_value,
+                        "new_value": d.new_value,
+                        "old_origin": d.old_origin,
+                        "new_origin": d.new_origin,
+                        "impact": d.impact,
+                    }
+                    for d in comparison.diffs
+                ],
+            }
+            cli.console.print(json.dumps(data, indent=2))
+        else:
+            cli.console.print(comparison.format_detailed())
+        return
+
+    if find_issues:
+        findings = inspector.find_issues()
+        cli.blank()
+        if findings:
+            cli.info(f"Found {len(findings)} potential issue(s):")
+            for finding in findings:
+                icon = (
+                    "❌"
+                    if finding.severity == "error"
+                    else "⚠️"
+                    if finding.severity == "warning"
+                    else "ℹ️"
+                )
+                cli.console.print(f"   {icon} {finding.message}")
+                if finding.suggestion:
+                    cli.console.print(f"      💡 {finding.suggestion}")
+        else:
+            cli.success("✅ No issues found")
+        return
+
+    # Default: show usage
+    cli.blank()
+    cli.info("Usage:")
+    cli.info("   --list-sources    List available config sources")
+    cli.info("   --compare-to      Compare current config to another source")
+    cli.info("   --explain-key     Explain how a key got its value")
+    cli.info("   --find-issues     Find potential configuration issues")
+
+
 # Compatibility export
 debug_command = debug_cli
-
