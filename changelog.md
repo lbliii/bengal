@@ -1,5 +1,16 @@
 ## Unreleased
 
+### Autodoc Resilience Improvements ✅
+- **autodoc(virtual_orchestrator)**: add `AutodocRunResult` summary dataclass tracking extraction/rendering successes and failures
+- **autodoc(virtual_orchestrator)**: update `generate()` to return `(pages, sections, result)` tuple for observability
+- **autodoc(config)**: add `autodoc.strict` config flag (default `false`) for fail-fast mode in CI/CD
+- **autodoc(virtual_orchestrator)**: enforce strict mode with partial context (failures recorded before raising)
+- **autodoc(rendering/pipeline)**: tag fallback-rendered pages with `_autodoc_fallback_template: true` in metadata
+- **orchestration(content)**: remove blanket exception swallow; keep `ImportError` handling, allow strict mode exceptions to propagate
+- **orchestration(content)**: add `_log_autodoc_summary()` for structured logging of run results
+- **tests(autodoc)**: add 16 comprehensive resilience tests covering strict mode, failure handling, and summary tracking
+- **docs(autodoc)**: document strict mode, run summaries, and fallback tagging in README
+
 ### Typed Metadata Access (Phase 6) ✅
 - **autodoc(utils)**: add 14 typed metadata access helpers with fallback (`get_python_class_bases`, `get_openapi_tags`, etc.)
 - **autodoc(virtual_orchestrator)**: migrate `.metadata.get()` calls to typed helpers for OpenAPI endpoints

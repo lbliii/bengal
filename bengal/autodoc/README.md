@@ -36,6 +36,9 @@ cli:
   framework: click
   include_hidden: false
   display_name: CLI Reference
+
+# Optional: Enable strict mode for CI/CD
+strict: false  # Set to true to fail builds on autodoc errors
 ```
 
 ### Build with Autodoc
@@ -210,18 +213,83 @@ API templates receive:
 - **Virtual page creation**: Very fast (no I/O)
 - **Incremental builds**: Only regenerates on source changes
 
+## Resilience and Error Handling
+
+### Best-Effort Mode (Default)
+
+By default, autodoc operates in **best-effort mode**: extraction or rendering failures are logged as warnings but don't block the build. Partial successes are preserved.
+
+```yaml
+autodoc:
+  strict: false  # Default: failures logged but don't block build
+```
+
+**Behavior**:
+- Extraction failures: Logged with warning, empty result returned
+- Template failures: Fallback template used, page tagged with `_autodoc_fallback_template: true`
+- Summary logged: Counts of successes, failures, and warnings
+
+### Strict Mode
+
+Enable strict mode for CI/CD to fail builds when autodoc content is expected:
+
+```yaml
+autodoc:
+  strict: true  # Fail build on any extraction or rendering failure
+```
+
+**Behavior**:
+- Extraction failures: `RuntimeError` raised immediately
+- Template failures: `RuntimeError` raised when fallback is used
+- Partial results: Failures recorded before raising (for context)
+
+### Run Summary
+
+Autodoc generation returns a summary with counts and failure details:
+
+```python
+from bengal.autodoc import VirtualAutodocOrchestrator, AutodocRunResult
+
+orchestrator = VirtualAutodocOrchestrator(site)
+pages, sections, result = orchestrator.generate()
+
+# Check summary
+assert isinstance(result, AutodocRunResult)
+print(f"Extracted: {result.extracted}, Rendered: {result.rendered}")
+print(f"Failures: {result.failed_extract} extraction, {result.failed_render} rendering")
+
+if result.has_failures():
+    print(f"Failed extractions: {result.failed_extract_identifiers}")
+    print(f"Failed renders: {result.failed_render_identifiers}")
+    print(f"Fallback pages: {result.fallback_pages}")
+```
+
+### Fallback Template Tagging
+
+Pages rendered via fallback template are tagged in metadata:
+
+```python
+if page.metadata.get("_autodoc_fallback_template"):
+    # This page used fallback template
+    reason = page.metadata.get("_autodoc_fallback_reason", "Unknown")
+    print(f"Fallback used: {reason}")
+```
+
+Use this to detect pages that need custom templates or to assert zero fallbacks in CI.
+
 ## Programmatic Usage
 
 ```python
-from bengal.autodoc import VirtualAutodocOrchestrator
+from bengal.autodoc import VirtualAutodocOrchestrator, AutodocRunResult
 from bengal.core.site import Site
 
 site = Site.from_config(Path("site"))
 orchestrator = VirtualAutodocOrchestrator(site)
 
 if orchestrator.is_enabled():
-    pages, sections = orchestrator.generate()
+    pages, sections, result = orchestrator.generate()
     # pages and sections are virtual - integrate with site
+    # result contains summary of extraction/rendering
 ```
 
 ## License
