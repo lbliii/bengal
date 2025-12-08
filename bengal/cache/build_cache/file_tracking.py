@@ -158,6 +158,18 @@ class FileTrackingMixin:
             # Also update legacy file_hashes for backward compatibility
             self.file_hashes[file_key] = file_hash
 
+        except FileNotFoundError:
+            # File was deleted - remove from tracking silently
+            # This commonly happens when switching from markdown-based autodoc to virtual pages
+            if file_key in self.file_fingerprints:
+                del self.file_fingerprints[file_key]
+            if file_key in self.file_hashes:
+                del self.file_hashes[file_key]
+            logger.debug(
+                "file_removed_from_tracking",
+                file_path=str(file_path),
+                reason="file_not_found",
+            )
         except OSError as e:
             logger.warning(
                 "file_update_failed",
@@ -244,4 +256,3 @@ class FileTrackingMixin:
         # Remove as a dependency from other files
         for deps in self.dependencies.values():
             deps.discard(file_key)
-

@@ -68,6 +68,28 @@ via theme templates without intermediate markdown files. This provides:
 - **Config** (`bengal/autodoc/config.py`): Load and merge configuration
 - **Fallback Templates** (`bengal/autodoc/fallback/`): Minimal templates when theme doesn't provide them
 
+### Build Lifecycle (Deferred Rendering)
+
+Autodoc follows the same pattern as regular pages - data during discovery, HTML during rendering:
+
+```
+1. Discovery Phase (Phase 5)
+   ├─ Extract DocElements from source (Python, CLI, OpenAPI)
+   ├─ Create virtual Page objects with element metadata
+   └─ Store DocElement on page (NO HTML rendering yet)
+
+2. Menu Building Phase (Phase 9)
+   └─ site.menu populated with navigation
+
+3. Rendering Phase (Phase 14)
+   ├─ RenderingPipeline detects autodoc pages (is_autodoc=True)
+   ├─ Calls _render_autodoc_page() with FULL template context
+   ├─ Templates now have access to menus, active states, etc.
+   └─ HTML written to output
+```
+
+This architecture ensures autodoc pages have the same navigation (header, sidebar) as regular pages.
+
 ### DocElement Structure
 
 ```python
