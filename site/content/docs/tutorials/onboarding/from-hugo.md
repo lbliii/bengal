@@ -2,8 +2,16 @@
 title: From Hugo
 description: Onboarding guide for Hugo users migrating to Bengal
 weight: 20
-tags: [tutorial, migration, hugo, shortcodes]
-keywords: [hugo, shortcodes, go templates, migration]
+tags:
+- tutorial
+- migration
+- hugo
+- shortcodes
+keywords:
+- hugo
+- shortcodes
+- go templates
+- migration
 ---
 
 # Bengal for Hugo Users

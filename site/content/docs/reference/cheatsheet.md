@@ -3,7 +3,10 @@ title: Cheatsheet
 description: Quick reference for common Bengal commands, patterns, and configurations
 weight: 1
 type: doc
-tags: [reference, cheatsheet, quick-reference]
+tags:
+- reference
+- cheatsheet
+- quick-reference
 ---
 
 # Cheatsheet
@@ -367,4 +370,3 @@ weight = 2
 - [Full CLI Reference](/cli/) — All commands and options
 - [Template Functions](/docs/reference/template-functions/) — All template helpers
 - [Configuration Reference](/docs/reference/architecture/tooling/config/) — All config options
-

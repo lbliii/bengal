@@ -4,16 +4,19 @@ description: Bengal internals for contributors
 draft: false
 weight: 40
 lang: en
-tags: [architecture, internals, contributing]
+tags:
+- architecture
+- internals
+- contributing
 keywords:
-  - architecture
-  - internals
-  - contributing
-  - development
+- architecture
+- internals
+- contributing
+- development
 category: explanation
-params:
-  card_color: orange
+props:
   icon: layers
+  card_color: orange
 ---
 # Architecture
 

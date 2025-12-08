@@ -5,8 +5,17 @@ weight: 20
 type: doc
 draft: false
 lang: en
-tags: [content, organization, structure, frontmatter]
-keywords: [content organization, frontmatter, sections, pages, structure]
+tags:
+- content
+- organization
+- structure
+- frontmatter
+keywords:
+- content organization
+- frontmatter
+- sections
+- pages
+- structure
 category: documentation
 ---
 

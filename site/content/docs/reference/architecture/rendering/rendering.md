@@ -3,8 +3,25 @@ title: Rendering Pipeline
 description: How Bengal transforms Markdown to HTML
 weight: 10
 category: rendering
-tags: [rendering, pipeline, markdown, templates, jinja2, mistune, parsing, html]
-keywords: [rendering, pipeline, markdown, templates, Jinja2, Mistune, parsing, HTML, directives]
+tags:
+- rendering
+- pipeline
+- markdown
+- templates
+- jinja2
+- mistune
+- parsing
+- html
+keywords:
+- rendering
+- pipeline
+- markdown
+- templates
+- Jinja2
+- Mistune
+- parsing
+- HTML
+- directives
 ---
 
 # Rendering Pipeline

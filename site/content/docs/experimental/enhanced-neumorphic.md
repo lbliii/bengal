@@ -1,6 +1,7 @@
 ---
-title: "Enhanced Neumorphic Components"
-description: "Prototype implementation of enhanced neumorphic shadows with multi-layer depth"
+title: Enhanced Neumorphic Components
+description: Prototype implementation of enhanced neumorphic shadows with multi-layer
+  depth
 layout: doc
 ---
 
@@ -219,4 +220,3 @@ All enhanced tokens include dark mode variants:
 :::{warning}
 **Experimental** - These styles are prototypes and may change. Use with caution in production.
 :::
-

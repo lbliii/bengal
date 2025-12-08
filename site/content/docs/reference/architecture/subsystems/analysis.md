@@ -3,8 +3,20 @@ title: Analysis System
 description: Graph analysis, PageRank, community detection, and link suggestions
 weight: 20
 category: subsystems
-tags: [subsystems, analysis, graph-analysis, pagerank, community-detection, link-suggestions]
-keywords: [analysis, graph analysis, PageRank, community detection, link suggestions, knowledge graph]
+tags:
+- subsystems
+- analysis
+- graph-analysis
+- pagerank
+- community-detection
+- link-suggestions
+keywords:
+- analysis
+- graph analysis
+- PageRank
+- community detection
+- link suggestions
+- knowledge graph
 ---
 
 # Analysis System (`bengal/analysis/`)

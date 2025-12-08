@@ -3,19 +3,25 @@ title: Documentation
 draft: false
 weight: 5
 lang: en
-type: doc
 cascade:
   type: doc
   variant: standard
-params:
-  icon: book-open
-props:
-  category: documentation
-  description: "Bengal documentation"
-  keywords: [documentation, docs, guides, reference]
-  menu: {main: {weight: 10}}
-  tags: [documentation, docs]
+category: documentation
+description: Bengal documentation
+keywords:
+  - documentation
+  - docs
+  - guides
+  - reference
+menu:
+  main:
+    weight: 10
+tags:
+  - documentation
+  - docs
 variant: overview
+props:
+  icon: book-open
 ---
 # Documentation
 

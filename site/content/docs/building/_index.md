@@ -4,7 +4,7 @@ description: Build configuration, CLI usage, and deployment
 weight: 30
 cascade:
   type: doc
-params:
+props:
   icon: settings
 ---
 # Build & Deploy

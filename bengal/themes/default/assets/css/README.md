@@ -52,19 +52,28 @@ Foundation Tokens → Semantic Tokens → Components
 css/
 ├── tokens/
 │   ├── foundation.css    # Primitive values (colors, sizes, fonts)
-│   └── semantic.css       # Purpose-based tokens (THE source of truth)
+│   ├── typography.css    # Typography tokens
+│   ├── semantic.css      # Purpose-based tokens (THE source of truth)
+│   └── palettes/         # Color palette presets (user-switchable)
 ├── base/
 │   ├── reset.css         # CSS reset
 │   ├── typography.css    # Text styling
 │   ├── utilities.css     # Utility classes
+│   ├── interactive-patterns.css  # Common interactive patterns (extracted)
 │   ├── accessibility.css # A11y styles
 │   └── print.css         # Print styles
-├── components/           # UI components (buttons, cards, etc.)
+├── components/           # UI components (buttons, cards, etc.) - MODULAR
+│   ├── buttons.css       # Button component (408 lines)
+│   ├── cards.css         # Card component (1,338 lines)
+│   ├── forms.css         # Form component
+│   └── ... (45 files total, modular architecture)
 ├── layouts/              # Layout patterns (header, footer, grid)
 ├── composition/          # Layout primitives
 ├── pages/                # Page-specific styles
 └── style.css             # Main entry point (imports all)
 ```
+
+**📖 Why Modular CSS?** See [MODULAR_CSS_RATIONALE.md](./MODULAR_CSS_RATIONALE.md) for detailed explanation of why we keep components separate instead of consolidating.
 
 ## Design Token Layers
 

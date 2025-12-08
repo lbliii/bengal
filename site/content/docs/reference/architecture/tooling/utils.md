@@ -3,8 +3,24 @@ title: Utilities
 description: Utility modules for common operations
 weight: 40
 category: tooling
-tags: [tooling, utils, utilities, text, file-io, dates, pagination, helpers]
-keywords: [utilities, utils, text processing, file I/O, dates, pagination, helpers, consolidation]
+tags:
+- tooling
+- utils
+- utilities
+- text
+- file-io
+- dates
+- pagination
+- helpers
+keywords:
+- utilities
+- utils
+- text processing
+- file I/O
+- dates
+- pagination
+- helpers
+- consolidation
 ---
 
 Bengal provides a comprehensive set of utility modules that consolidate common operations across the codebase, eliminating duplication and providing consistent, well-tested implementations.

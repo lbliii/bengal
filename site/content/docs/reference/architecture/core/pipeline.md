@@ -1,12 +1,23 @@
 ---
 title: Reactive Dataflow Pipeline
-description: Declarative dataflow architecture for Bengal builds with automatic dependency tracking
+description: Declarative dataflow architecture for Bengal builds with automatic dependency
+  tracking
 weight: 25
 type: doc
 draft: false
 lang: en
-tags: [pipeline, dataflow, streams, reactive, architecture]
-keywords: [reactive pipeline, dataflow, streams, incremental builds, caching]
+tags:
+- pipeline
+- dataflow
+- streams
+- reactive
+- architecture
+keywords:
+- reactive pipeline
+- dataflow
+- streams
+- incremental builds
+- caching
 category: architecture
 ---
 

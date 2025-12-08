@@ -3,8 +3,22 @@ title: CLI
 description: Modular command-line interface
 weight: 10
 category: tooling
-tags: [tooling, cli, commands, click, command-line, interface]
-keywords: [CLI, command-line interface, Click, commands, build, serve, autodoc, graph]
+tags:
+- tooling
+- cli
+- commands
+- click
+- command-line
+- interface
+keywords:
+- CLI
+- command-line interface
+- Click
+- commands
+- build
+- serve
+- autodoc
+- graph
 ---
 
 # CLI (`bengal/cli/`)

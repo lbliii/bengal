@@ -3,9 +3,9 @@ title: Configuration
 description: Configuring Bengal with bengal.toml
 weight: 10
 category: guide
-params:
-  card_color: blue
+props:
   icon: settings
+  card_color: blue
 ---
 # Configuration
 

@@ -3,9 +3,9 @@ title: Assets
 description: CSS, JavaScript, images, and fonts
 weight: 20
 category: guide
-params:
-  card_color: green
+props:
   icon: image
+  card_color: green
 ---
 # Asset Pipeline
 

@@ -5,8 +5,19 @@ weight: 50
 type: doc
 draft: false
 lang: en
-tags: [reference, templates, filters, jinja2, hugo]
-keywords: [template functions, filters, where, sort, collections, hugo migration]
+tags:
+- reference
+- templates
+- filters
+- jinja2
+- hugo
+keywords:
+- template functions
+- filters
+- where
+- sort
+- collections
+- hugo migration
 category: reference
 ---
 

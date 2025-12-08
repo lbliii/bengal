@@ -4,8 +4,16 @@ description: Query and display recent content using Bengal's filters
 weight: 10
 draft: false
 lang: en
-tags: [cookbook, filters, where, sort]
-keywords: [recent posts, where filter, sort_by, limit]
+tags:
+- cookbook
+- filters
+- where
+- sort
+keywords:
+- recent posts
+- where filter
+- sort_by
+- limit
 category: cookbook
 ---
 

@@ -4,10 +4,11 @@ description: Concepts, benchmarks, and reference
 weight: 5
 layout: list
 menu:
-  main: {weight: 40}
+  main:
+    weight: 40
 cascade:
   type: doc
-params:
+props:
   icon: info
 ---
 # About

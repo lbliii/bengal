@@ -4,7 +4,7 @@ description: Performance, testing, and project structure
 weight: 50
 cascade:
   type: doc
-params:
+props:
   icon: tag
 ---
 # Meta & Operations

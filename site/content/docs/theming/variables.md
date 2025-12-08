@@ -4,8 +4,17 @@ description: Complete reference of all variables available in Jinja2 templates
 weight: 40
 draft: false
 lang: en
-tags: [reference, templates, variables, jinja2]
-keywords: [theme variables, templates, jinja2, site, page]
+tags:
+- reference
+- templates
+- variables
+- jinja2
+keywords:
+- theme variables
+- templates
+- jinja2
+- site
+- page
 category: reference
 ---
 
@@ -141,5 +150,3 @@ You can inspect available variables by printing them in a comment:
 
 - [Template Functions](/docs/theming/templating/functions/) — Filter and function reference
 - [Templating](/docs/theming/templating/) — Template basics
-
-

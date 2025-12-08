@@ -5,8 +5,18 @@ weight: 30
 type: doc
 draft: false
 lang: en
-tags: [output formats, json, llm, api]
-keywords: [output formats, json, llm, api, search, rag]
+tags:
+- output formats
+- json
+- llm
+- api
+keywords:
+- output formats
+- json
+- llm
+- api
+- search
+- rag
 category: documentation
 ---
 

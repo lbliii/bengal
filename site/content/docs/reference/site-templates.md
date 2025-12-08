@@ -4,8 +4,17 @@ description: Complete reference for Bengal's site scaffolding and template syste
 weight: 25
 type: doc
 draft: false
-tags: [reference, templates, scaffolding, cli]
-keywords: [templates, scaffolding, new site, init, skeleton]
+tags:
+- reference
+- templates
+- scaffolding
+- cli
+keywords:
+- templates
+- scaffolding
+- new site
+- init
+- skeleton
 category: reference
 ---
 

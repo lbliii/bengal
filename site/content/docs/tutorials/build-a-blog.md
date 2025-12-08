@@ -4,11 +4,21 @@ description: Create, configure, and customize a personal blog from scratch
 weight: 10
 draft: false
 lang: en
-tags: [tutorial, beginner, blog, setup]
-keywords: [tutorial, blog, getting started, python, ssg, setup]
+tags:
+- tutorial
+- beginner
+- blog
+- setup
+keywords:
+- tutorial
+- blog
+- getting started
+- python
+- ssg
+- setup
 category: tutorial
 aliases:
-  - /docs/guides/blog-from-scratch/
+- /docs/guides/blog-from-scratch/
 ---
 
 # Build a Blog in 15 Minutes

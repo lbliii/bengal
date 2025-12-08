@@ -4,8 +4,17 @@ description: Create a Bengal site from a template in 5 minutes
 weight: 5
 type: doc
 draft: false
-tags: [tutorial, getting-started, scaffolding, templates]
-keywords: [scaffold, template, new site, init, setup]
+tags:
+- tutorial
+- getting-started
+- scaffolding
+- templates
+keywords:
+- scaffold
+- template
+- new site
+- init
+- setup
 category: tutorials
 ---
 

@@ -3,7 +3,9 @@ title: Comparison
 description: How Bengal compares to other static site generators
 weight: 10
 type: doc
-tags: [comparison, benchmarks]
+tags:
+- comparison
+- benchmarks
 ---
 
 # Comparison

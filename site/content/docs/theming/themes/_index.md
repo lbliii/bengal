@@ -3,9 +3,9 @@ title: Themes
 description: Use, customize, or create themes
 weight: 30
 category: guide
-params:
-  card_color: purple
+props:
   icon: palette
+  card_color: purple
 ---
 # Working with Themes
 

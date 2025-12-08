@@ -4,11 +4,20 @@ description: Customize existing themes without breaking updates
 weight: 10
 draft: false
 lang: en
-tags: [themes, customization, templates, css]
-keywords: [themes, customization, templates, css, override]
+tags:
+- themes
+- customization
+- templates
+- css
+keywords:
+- themes
+- customization
+- templates
+- css
+- override
 category: guide
 aliases:
-  - /docs/guides/customizing-themes/
+- /docs/guides/customizing-themes/
 ---
 
 # Customize Themes

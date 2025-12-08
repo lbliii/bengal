@@ -3,8 +3,18 @@ title: Discovery System
 description: How Bengal finds and catalogs content, sections, and assets
 weight: 20
 category: rendering
-tags: [rendering, discovery, content-discovery, asset-discovery, file-scanning]
-keywords: [discovery, content discovery, asset discovery, file scanning, content organization]
+tags:
+- rendering
+- discovery
+- content-discovery
+- asset-discovery
+- file-scanning
+keywords:
+- discovery
+- content discovery
+- asset discovery
+- file scanning
+- content organization
 ---
 
 # Discovery System

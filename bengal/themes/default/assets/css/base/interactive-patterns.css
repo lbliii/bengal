@@ -1,0 +1,158 @@
+/**
+ * Bengal SSG Default Theme
+ * Common Interactive Patterns
+ *
+ * Extracted common patterns used across multiple components to reduce duplication.
+ * These patterns are reusable building blocks for interactive elements.
+ */
+
+/* ============================================
+   COMMON INTERACTIVE STATES
+   ============================================ */
+
+/**
+ * Focus-visible pattern
+ * Used by: buttons, forms, cards, dropdowns, tabs, etc.
+ * Provides consistent focus indication for keyboard navigation.
+ */
+.interactive:focus-visible,
+button:focus-visible,
+a.button:focus-visible,
+.btn:focus-visible,
+.card:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   TOUCH-FRIENDLY INTERACTIVE ELEMENTS
+   ============================================ */
+
+/**
+ * Touch-friendly base pattern
+ * Used by: buttons, cards (as links), interactive elements
+ * Ensures proper touch targets and prevents text selection during interaction.
+ */
+.interactive,
+button,
+.button,
+.btn,
+a.button,
+a.card,
+[role="button"] {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Allow text selection in interactive elements that contain text content */
+.button-text,
+.card-body,
+.interactive-content {
+  user-select: text;
+}
+
+/* ============================================
+   COMMON HOVER PATTERNS
+   ============================================ */
+
+/**
+ * Subtle lift on hover
+ * Used by: buttons, cards, interactive elements
+ * Provides consistent micro-interaction feedback.
+ */
+.hover-lift:hover {
+  transform: translate3d(0, calc(-1 * var(--motion-distance-1)), 0);
+  box-shadow: var(--elevation-medium);
+}
+
+/**
+ * Card hover pattern
+ * Used by: cards, card-like components
+ * Combines elevation change with subtle transform.
+ */
+.hover-card:hover {
+  box-shadow: var(--elevation-high);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+}
+
+/* ============================================
+   COMMON ACTIVE/PRESSED PATTERNS
+   ============================================ */
+
+/**
+ * Pressed state pattern
+ * Used by: buttons, interactive elements
+ * Provides tactile feedback when clicked/pressed.
+ */
+.interactive:active,
+button:active,
+.button:active,
+.btn:active {
+  transform: translate3d(0, 1px, 0) scale(0.98);
+  transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+}
+
+/* ============================================
+   COMMON TRANSITION PATTERNS
+   ============================================ */
+
+/**
+ * Standard interactive transition
+ * Used by: buttons, cards, interactive elements
+ * Provides smooth state changes.
+ */
+.interactive-transition {
+  transition: color var(--transition-base),
+    background-color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+/**
+ * Color-only transition (for text/background changes)
+ * Used by: links, badges, text elements
+ * Lighter transition for color-only changes.
+ */
+.transition-colors {
+  transition: color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+/* ============================================
+   DISABLED STATE PATTERN
+   ============================================ */
+
+/**
+ * Disabled interactive element
+ * Used by: buttons, form inputs, interactive elements
+ * Provides consistent disabled appearance.
+ */
+.interactive:disabled,
+button:disabled,
+.button:disabled,
+.btn:disabled,
+[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================
+   RESPECT REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-transition,
+  .transition-colors,
+  .hover-lift:hover,
+  .hover-card:hover {
+    transition: none !important;
+    transform: none !important;
+  }
+}

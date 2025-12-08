@@ -4,8 +4,15 @@ description: Organize content into groups using Bengal's group_by filter
 weight: 20
 draft: false
 lang: en
-tags: [cookbook, filters, group_by]
-keywords: [group by, category, organize, taxonomy]
+tags:
+- cookbook
+- filters
+- group_by
+keywords:
+- group by
+- category
+- organize
+- taxonomy
 category: cookbook
 ---
 

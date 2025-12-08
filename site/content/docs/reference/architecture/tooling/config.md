@@ -3,8 +3,23 @@ title: Configuration System
 description: Flexible, format-agnostic configuration loading
 weight: 20
 category: tooling
-tags: [tooling, config, configuration, yaml, toml, loading, architecture]
-keywords: [configuration, config, YAML, TOML, loading, site config, content config, params]
+tags:
+- tooling
+- config
+- configuration
+- yaml
+- toml
+- loading
+- architecture
+keywords:
+- configuration
+- config
+- YAML
+- TOML
+- loading
+- site config
+- content config
+- params
 ---
 
 # Configuration System

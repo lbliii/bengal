@@ -3,9 +3,9 @@ title: Validation
 description: Content validation and health checks
 weight: 30
 category: guide
-params:
-  card_color: purple
+props:
   icon: check-circle
+  card_color: purple
 ---
 # Content Validation
 

@@ -4,7 +4,7 @@ description: Guided learning journeys to master Bengal
 weight: 15
 cascade:
   type: doc
-params:
+props:
   icon: notepad
 ---
 # Tutorials

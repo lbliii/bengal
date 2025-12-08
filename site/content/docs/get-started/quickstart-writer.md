@@ -4,19 +4,22 @@ description: Create your first site and start writing content
 draft: false
 weight: 20
 aliases:
-  - /docs/getting-started/writer-quickstart/
+- /docs/getting-started/writer-quickstart/
 lang: en
 type: doc
-tags: [onboarding, writing, quickstart]
+tags:
+- onboarding
+- writing
+- quickstart
 keywords:
-  - writing
-  - content
-  - markdown
-  - frontmatter
+- writing
+- content
+- markdown
+- frontmatter
 category: onboarding
-params:
-  icon: pencil
 id: writer-qs
+props:
+  icon: pencil
 ---
 # Writer Quickstart
 

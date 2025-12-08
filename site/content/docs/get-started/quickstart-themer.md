@@ -4,19 +4,22 @@ description: Customize themes and create your own designs
 draft: false
 weight: 30
 aliases:
-  - /docs/getting-started/themer-quickstart/
+- /docs/getting-started/themer-quickstart/
 lang: en
 type: doc
-tags: [onboarding, theming, quickstart]
+tags:
+- onboarding
+- theming
+- quickstart
 keywords:
-  - theming
-  - templates
-  - css
-  - design
+- theming
+- templates
+- css
+- design
 category: onboarding
-params:
-  icon: palette
 id: themer-qs
+props:
+  icon: palette
 ---
 # Themer Quickstart
 

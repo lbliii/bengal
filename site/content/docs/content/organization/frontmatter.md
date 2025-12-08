@@ -4,8 +4,16 @@ description: Complete reference for all frontmatter fields
 weight: 10
 draft: false
 lang: en
-tags: [frontmatter, reference, metadata]
-keywords: [frontmatter, yaml, metadata, fields, reference]
+tags:
+- frontmatter
+- reference
+- metadata
+keywords:
+- frontmatter
+- yaml
+- metadata
+- fields
+- reference
 category: reference
 ---
 
@@ -72,7 +80,43 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `cascade` | object | Values to cascade to child pages |
 | `outputs` | list | Output formats (html, rss, json) |
 | `resources` | list | Page bundle resource metadata |
-| `params` | object | Custom parameters accessible in templates |
+
+## Custom Fields (Props)
+
+Custom fields that aren't part of Bengal's standard frontmatter should be placed under the `props:` key. This keeps standard fields separate from custom data, following the Component Model pattern.
+
+**Standard fields** (extracted to PageCore):
+- `title`, `description`, `date`, `draft`, `weight`, `slug`, `url`, `aliases`, `lang`
+- `tags`, `categories`, `keywords`, `authors`, `category`
+- `type`, `variant`, `layout`, `template`
+- `canonical`, `noindex`, `og_image`, `og_type`
+- `menu`, `nav_title`, `parent`
+- `cascade`, `outputs`, `resources`
+
+**Custom fields** (go into `props`):
+- Any field not listed above
+- Fields under `props:` in frontmatter
+
+**Example:**
+```yaml
+---
+title: My Page
+description: Page description
+weight: 10
+type: doc
+props:
+  icon: code
+  card_color: blue
+  custom_setting: value
+---
+```
+
+Access custom fields via:
+- `page.props.get('icon')` or `page.metadata.get('icon')`
+- `page.props.get('card_color')`
+- `page.props.get('custom_setting')`
+
+**Note**: You can also put custom fields at the top level (they'll automatically go into props), but using `props:` makes the separation explicit and clearer.
 
 ## Example
 
@@ -89,9 +133,8 @@ authors: [jane-doe]
 layout: tutorial
 cascade:
   type: doc
-params:
-  difficulty: beginner
-  time_estimate: 15 minutes
+difficulty: beginner
+time_estimate: 15 minutes
 ---
 ```
 

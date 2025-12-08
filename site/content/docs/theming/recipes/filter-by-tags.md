@@ -4,8 +4,16 @@ description: Query content matching multiple criteria using Bengal's filters
 weight: 30
 draft: false
 lang: en
-tags: [cookbook, filters, where, tags]
-keywords: [filter, tags, multiple criteria, in operator]
+tags:
+- cookbook
+- filters
+- where
+- tags
+keywords:
+- filter
+- tags
+- multiple criteria
+- in operator
 category: cookbook
 ---
 

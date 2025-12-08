@@ -2,8 +2,19 @@
 title: Layout Directives
 description: Reference for layout directives (cards, tabs, dropdown, grid)
 weight: 12
-tags: [reference, directives, layout, cards, tabs]
-keywords: [cards, tabs, dropdown, grid, layout, directives]
+tags:
+- reference
+- directives
+- layout
+- cards
+- tabs
+keywords:
+- cards
+- tabs
+- dropdown
+- grid
+- layout
+- directives
 ---
 
 # Layout Directives

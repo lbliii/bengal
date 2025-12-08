@@ -1,17 +1,21 @@
 ---
 title: Coming From Another Tool?
-description: Onboarding guides for users migrating from Sphinx, Hugo, Docusaurus, and other documentation tools
+description: Onboarding guides for users migrating from Sphinx, Hugo, Docusaurus,
+  and other documentation tools
 weight: 15
-tags: [tutorial, migration, onboarding]
+tags:
+- tutorial
+- migration
+- onboarding
 keywords:
-  - sphinx
-  - hugo
-  - docusaurus
-  - mdx
-  - rst
-  - migration
-  - onboarding
-params:
+- sphinx
+- hugo
+- docusaurus
+- mdx
+- rst
+- migration
+- onboarding
+props:
   icon: boomerang
 ---
 # Coming From Another Tool?

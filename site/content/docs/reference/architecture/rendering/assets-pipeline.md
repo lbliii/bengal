@@ -3,8 +3,25 @@ title: Asset Pipeline
 description: How Bengal processes and optimizes static assets (CSS, JS, images, fonts)
 weight: 30
 category: rendering
-tags: [rendering, assets, pipeline, minification, optimization, fingerprinting, css, js, images]
-keywords: [assets, asset pipeline, minification, optimization, fingerprinting, CSS, JavaScript, images]
+tags:
+- rendering
+- assets
+- pipeline
+- minification
+- optimization
+- fingerprinting
+- css
+- js
+- images
+keywords:
+- assets
+- asset pipeline
+- minification
+- optimization
+- fingerprinting
+- CSS
+- JavaScript
+- images
 ---
 
 # Asset Pipeline

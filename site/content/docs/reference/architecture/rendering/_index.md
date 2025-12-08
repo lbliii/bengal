@@ -4,7 +4,7 @@ description: How Bengal transforms Markdown to HTML
 weight: 20
 cascade:
   type: doc
-params:
+props:
   icon: arrow-clockwise
 ---
 # Rendering Pipeline

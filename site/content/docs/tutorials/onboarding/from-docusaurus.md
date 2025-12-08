@@ -2,8 +2,19 @@
 title: From Docusaurus/MDX
 description: Onboarding guide for Docusaurus and MDX users migrating to Bengal
 weight: 30
-tags: [tutorial, migration, docusaurus, mdx, react]
-keywords: [docusaurus, mdx, react, jsx, migration, components]
+tags:
+- tutorial
+- migration
+- docusaurus
+- mdx
+- react
+keywords:
+- docusaurus
+- mdx
+- react
+- jsx
+- migration
+- components
 ---
 
 # Bengal for Docusaurus/MDX Users

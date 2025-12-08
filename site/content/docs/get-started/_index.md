@@ -4,15 +4,20 @@ description: Install Bengal and create your first site
 draft: false
 weight: 10
 aliases:
-  - /docs/getting-started/
+- /docs/getting-started/
 lang: en
 type: doc
-tags: [onboarding, quickstart]
-keywords: ["getting started", installation, quickstart]
+tags:
+- onboarding
+- quickstart
+keywords:
+- getting started
+- installation
+- quickstart
 category: onboarding
 cascade:
   type: doc
-params:
+props:
   icon: arrow-clockwise
 ---
 # Get Started

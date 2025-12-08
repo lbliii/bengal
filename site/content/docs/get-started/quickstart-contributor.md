@@ -4,15 +4,21 @@ description: Set up Bengal for development and start contributing
 draft: false
 weight: 40
 aliases:
-  - /docs/getting-started/contributor-quickstart/
+- /docs/getting-started/contributor-quickstart/
 lang: en
 type: doc
-tags: [onboarding, contributing, development]
-keywords: [contributing, development, pull-requests]
+tags:
+- onboarding
+- contributing
+- development
+keywords:
+- contributing
+- development
+- pull-requests
 category: onboarding
-params:
-  icon: code
 id: contributor-qs
+props:
+  icon: code
 ---
 # Contributor Quickstart
 

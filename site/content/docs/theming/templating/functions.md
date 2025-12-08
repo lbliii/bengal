@@ -4,8 +4,17 @@ description: Complete reference for Bengal's template filters and functions
 weight: 30
 draft: false
 lang: en
-tags: [reference, templates, filters, jinja2]
-keywords: [template functions, filters, where, sort, collections]
+tags:
+- reference
+- templates
+- filters
+- jinja2
+keywords:
+- template functions
+- filters
+- where
+- sort
+- collections
 category: reference
 ---
 
@@ -213,5 +222,3 @@ Filters can be chained for powerful queries:
 
 - [Variables Reference](/docs/theming/variables/) — Available template variables
 - [Templating](/docs/theming/templating/) — Template basics
-
-

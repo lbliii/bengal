@@ -1,9 +1,21 @@
 ---
 title: Navigation Directives
-description: Reference for navigation directives (child-cards, breadcrumbs, siblings, prev-next, related)
+description: Reference for navigation directives (child-cards, breadcrumbs, siblings,
+  prev-next, related)
 weight: 15
-tags: [reference, directives, navigation, cards]
-keywords: [child-cards, breadcrumbs, siblings, prev-next, related, navigation, directives]
+tags:
+- reference
+- directives
+- navigation
+- cards
+keywords:
+- child-cards
+- breadcrumbs
+- siblings
+- prev-next
+- related
+- navigation
+- directives
 ---
 
 # Navigation Directives

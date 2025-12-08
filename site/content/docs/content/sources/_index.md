@@ -4,24 +4,24 @@ description: Fetch content from external sources
 draft: false
 weight: 40
 aliases:
-  - /docs/guides/content-sources/
+- /docs/guides/content-sources/
 lang: en
 tags:
-  - sources
-  - remote
-  - github
-  - notion
+- sources
+- remote
+- github
+- notion
 keywords:
-  - sources
-  - remote
-  - github
-  - notion
-  - api
-  - external
+- sources
+- remote
+- github
+- notion
+- api
+- external
 category: guide
-params:
-  card_color: orange
+props:
   icon: link
+  card_color: orange
 ---
 # Remote Content Sources
 

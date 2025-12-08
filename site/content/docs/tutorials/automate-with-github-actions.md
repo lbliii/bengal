@@ -4,11 +4,20 @@ description: Set up automated builds, testing, and deployments using GitHub Acti
 weight: 30
 draft: false
 lang: en
-tags: [tutorial, ci-cd, automation, github-actions]
-keywords: [ci-cd, continuous integration, deployment, github actions, automation]
+tags:
+- tutorial
+- ci-cd
+- automation
+- github-actions
+keywords:
+- ci-cd
+- continuous integration
+- deployment
+- github actions
+- automation
 category: tutorial
 aliases:
-  - /docs/guides/ci-cd-setup/
+- /docs/guides/ci-cd-setup/
 ---
 
 # Automate with GitHub Actions

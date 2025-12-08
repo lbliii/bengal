@@ -3,9 +3,9 @@ title: Performance
 description: Optimize Bengal build performance
 weight: 30
 category: guide
-params:
-  card_color: purple
+props:
   icon: zap
+  card_color: purple
 ---
 # Optimize Build Performance
 

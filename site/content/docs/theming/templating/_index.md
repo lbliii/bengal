@@ -3,9 +3,9 @@ title: Templating
 description: Jinja2 layouts, inheritance, and partials
 weight: 10
 category: guide
-params:
-  card_color: blue
+props:
   icon: code
+  card_color: blue
 ---
 # Jinja2 Templating
 

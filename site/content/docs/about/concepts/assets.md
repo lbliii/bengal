@@ -5,8 +5,17 @@ weight: 20
 type: doc
 draft: false
 lang: en
-tags: [assets, pipeline, optimization]
-keywords: [assets, css, javascript, images, optimization, minification]
+tags:
+- assets
+- pipeline
+- optimization
+keywords:
+- assets
+- css
+- javascript
+- images
+- optimization
+- minification
 category: documentation
 ---
 

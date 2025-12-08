@@ -3,8 +3,21 @@ title: Content Strategies
 description: Flexible strategies for different site types
 weight: 30
 category: core
-tags: [core, content-types, strategies, patterns, blog, docs, portfolio]
-keywords: [content types, strategies, blog, docs, portfolio, content strategy pattern]
+tags:
+- core
+- content-types
+- strategies
+- patterns
+- blog
+- docs
+- portfolio
+keywords:
+- content types
+- strategies
+- blog
+- docs
+- portfolio
+- content strategy pattern
 ---
 
 # Content Types System

@@ -3,10 +3,11 @@ title: Reference
 description: Technical specifications, directives, and architecture
 weight: 40
 menu:
-  main: {weight: 30}
+  main:
+    weight: 30
 cascade:
   type: doc
-params:
+props:
   icon: bookmark
 ---
 # Reference

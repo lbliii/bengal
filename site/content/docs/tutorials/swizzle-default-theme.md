@@ -4,11 +4,21 @@ description: Learn to copy and customize theme templates without breaking update
 weight: 20
 draft: false
 lang: en
-tags: [tutorial, theming, templates, customization]
-keywords: [tutorial, swizzle, theme, templates, customization, default theme]
+tags:
+- tutorial
+- theming
+- templates
+- customization
+keywords:
+- tutorial
+- swizzle
+- theme
+- templates
+- customization
+- default theme
 category: tutorial
 aliases:
-  - /docs/guides/swizzle-theme/
+- /docs/guides/swizzle-theme/
 ---
 
 # Swizzle and Customize the Default Theme
@@ -234,9 +244,9 @@ For example, change the search placeholder:
 
 ```html
 <!-- Find the input field -->
-<input 
-  type="search" 
-  placeholder="Search the site..." 
+<input
+  type="search"
+  placeholder="Search the site..."
   class="search-input"
 >
 ```
@@ -244,9 +254,9 @@ For example, change the search placeholder:
 Change it to:
 
 ```html
-<input 
-  type="search" 
-  placeholder="Find anything..." 
+<input
+  type="search"
+  placeholder="Find anything..."
   class="search-input"
 >
 ```
@@ -507,4 +517,3 @@ Swizzling lets you customize Bengal's default theme safely:
 - **Update** safely with `bengal utils theme swizzle-update`
 
 Your customizations are preserved while you can still benefit from theme updates.
-

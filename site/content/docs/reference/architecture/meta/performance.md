@@ -3,8 +3,22 @@ title: Performance
 description: Benchmarks, optimization strategies, and performance characteristics
 weight: 10
 category: meta
-tags: [meta, performance, benchmarks, optimization, speed, python-3.14, incremental-builds]
-keywords: [performance, benchmarks, optimization, speed, Python 3.14, incremental builds, parallel]
+tags:
+- meta
+- performance
+- benchmarks
+- optimization
+- speed
+- python-3.14
+- incremental-builds
+keywords:
+- performance
+- benchmarks
+- optimization
+- speed
+- Python 3.14
+- incremental builds
+- parallel
 ---
 
 # Performance Considerations

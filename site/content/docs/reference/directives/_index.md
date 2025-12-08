@@ -3,19 +3,19 @@ title: Directives Reference
 description: Complete reference for all available markdown directives in Bengal
 weight: 10
 tags:
-  - reference
-  - directives
-  - markdown
-  - syntax
+- reference
+- directives
+- markdown
+- syntax
 keywords:
-  - directives
-  - markdown
-  - syntax
-  - reference
-  - admonitions
-  - tabs
-  - cards
-params:
+- directives
+- markdown
+- syntax
+- reference
+- admonitions
+- tabs
+- cards
+props:
   icon: code
 ---
 # Directives Reference

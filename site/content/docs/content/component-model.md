@@ -1,6 +1,6 @@
 ---
 title: The Component Model
-description: "Understanding Bengal's Component Model: Identity, Mode, and Data."
+description: 'Understanding Bengal''s Component Model: Identity, Mode, and Data.'
 weight: 20
 type: doc
 variant: editorial
@@ -58,11 +58,11 @@ structure:
   - path: blog/
     type: blog
     variant: magazine
-    
+
     props:
       title: "Engineering Blog"
       description: "Deep dives."
-      
+
     pages:
       - path: post-1.md
         props:
@@ -77,4 +77,3 @@ If you are coming from older Bengal versions:
 *   `metadata` dictionary $\to$ mapped to `props`.
 
 The system automatically normalizes these for you.
-

@@ -3,8 +3,24 @@ title: Object Model
 description: Site, Page, Section, and Asset data models
 weight: 10
 category: core
-tags: [core, data-models, object-model, site, page, section, asset, menu]
-keywords: [object model, data models, site, page, section, asset, menu, relationships]
+tags:
+- core
+- data-models
+- object-model
+- site
+- page
+- section
+- asset
+- menu
+keywords:
+- object model
+- data models
+- site
+- page
+- section
+- asset
+- menu
+- relationships
 ---
 
 # Object Model

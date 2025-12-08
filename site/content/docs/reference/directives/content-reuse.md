@@ -2,8 +2,18 @@
 title: Content Reuse Directives
 description: Reference for content reuse directives (include, literalinclude)
 weight: 15
-tags: [reference, directives, include, literalinclude, content-reuse]
-keywords: [include, literalinclude, content-reuse, snippets, files]
+tags:
+- reference
+- directives
+- include
+- literalinclude
+- content-reuse
+keywords:
+- include
+- literalinclude
+- content-reuse
+- snippets
+- files
 ---
 
 # Content Reuse Directives

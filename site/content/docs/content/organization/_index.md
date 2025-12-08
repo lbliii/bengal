@@ -3,9 +3,9 @@ title: Content Organization
 description: Pages, sections, and bundles explained
 weight: 10
 category: explanation
-params:
-  card_color: green
+props:
   icon: folder
+  card_color: green
 ---
 # How Content is Organized
 

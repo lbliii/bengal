@@ -4,8 +4,15 @@ description: Use Bengal's auto-generated page.toc for navigation
 weight: 50
 draft: false
 lang: en
-tags: [cookbook, toc, navigation]
-keywords: [table of contents, toc, headings, navigation]
+tags:
+- cookbook
+- toc
+- navigation
+keywords:
+- table of contents
+- toc
+- headings
+- navigation
 category: cookbook
 ---
 
@@ -74,7 +81,7 @@ Then in template:
     </nav>
     {% endif %}
   </aside>
-  
+
   <article>
     <h1>{{ page.title }}</h1>
     {{ page.rendered_html | safe }}

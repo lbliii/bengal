@@ -5,8 +5,16 @@ weight: 10
 type: doc
 draft: false
 lang: en
-tags: [configuration, config, reference]
-keywords: [configuration, config, toml, yaml, settings]
+tags:
+- configuration
+- config
+- reference
+keywords:
+- configuration
+- config
+- toml
+- yaml
+- settings
 category: documentation
 ---
 

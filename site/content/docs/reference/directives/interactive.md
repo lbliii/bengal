@@ -2,8 +2,18 @@
 title: Interactive Directives
 description: Reference for interactive directives (code-tabs, data-table)
 weight: 14
-tags: [reference, directives, interactive, code-tabs, data-table]
-keywords: [code-tabs, data-table, interactive, tabs, tables]
+tags:
+- reference
+- directives
+- interactive
+- code-tabs
+- data-table
+keywords:
+- code-tabs
+- data-table
+- interactive
+- tabs
+- tables
 ---
 
 # Interactive Directives

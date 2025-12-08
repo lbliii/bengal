@@ -5,8 +5,17 @@ weight: 25
 type: doc
 draft: false
 lang: en
-tags: [templating, jinja2, templates, variables]
-keywords: [templating, jinja2, templates, variables, context]
+tags:
+- templating
+- jinja2
+- templates
+- variables
+keywords:
+- templating
+- jinja2
+- templates
+- variables
+- context
 category: documentation
 ---
 

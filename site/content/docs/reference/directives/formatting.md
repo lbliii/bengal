@@ -1,9 +1,23 @@
 ---
 title: Formatting Directives
-description: Reference for formatting directives (badge, button, steps, checklist, rubric, list-table)
+description: Reference for formatting directives (badge, button, steps, checklist,
+  rubric, list-table)
 weight: 13
-tags: [reference, directives, formatting, badge, button, steps]
-keywords: [badge, button, steps, checklist, rubric, list-table, formatting]
+tags:
+- reference
+- directives
+- formatting
+- badge
+- button
+- steps
+keywords:
+- badge
+- button
+- steps
+- checklist
+- rubric
+- list-table
+- formatting
 ---
 
 # Formatting Directives

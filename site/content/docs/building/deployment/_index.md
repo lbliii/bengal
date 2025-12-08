@@ -4,19 +4,22 @@ description: Deploy your Bengal site to production
 draft: false
 weight: 40
 aliases:
-  - /docs/guides/deployment/
+- /docs/guides/deployment/
 lang: en
-tags: [deployment, hosting, ci-cd]
+tags:
+- deployment
+- hosting
+- ci-cd
 keywords:
-  - deployment
-  - hosting
-  - netlify
-  - vercel
-  - github-pages
+- deployment
+- hosting
+- netlify
+- vercel
+- github-pages
 category: guide
-params:
-  card_color: orange
+props:
   icon: rocket
+  card_color: orange
 ---
 # Deploy Your Site
 

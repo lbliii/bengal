@@ -3,8 +3,22 @@ title: Testing Strategy
 description: Testing patterns and coverage goals
 weight: 20
 category: meta
-tags: [meta, testing, test-strategy, unit-tests, integration-tests, benchmarks, coverage]
-keywords: [testing, test strategy, unit tests, integration tests, benchmarks, coverage, pytest]
+tags:
+- meta
+- testing
+- test-strategy
+- unit-tests
+- integration-tests
+- benchmarks
+- coverage
+keywords:
+- testing
+- test strategy
+- unit tests
+- integration tests
+- benchmarks
+- coverage
+- pytest
 ---
 
 # Testing Strategy

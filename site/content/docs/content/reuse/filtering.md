@@ -4,11 +4,19 @@ description: Build dynamic pages that filter content by multiple tags or criteri
 weight: 30
 draft: false
 lang: en
-tags: [filtering, taxonomy, jinja]
-keywords: [filtering, taxonomy, tags, intersection, dynamic]
+tags:
+- filtering
+- taxonomy
+- jinja
+keywords:
+- filtering
+- taxonomy
+- tags
+- intersection
+- dynamic
 category: guide
 aliases:
-  - /docs/guides/advanced-filtering/
+- /docs/guides/advanced-filtering/
 ---
 
 # Advanced Content Filtering

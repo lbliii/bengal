@@ -3,8 +3,24 @@ title: Build Cache
 description: How Bengal caches builds for incremental rebuilds
 weight: 20
 category: core
-tags: [core, caching, incremental-builds, performance, dependency-tracking, cache, compression, zstandard]
-keywords: [cache, caching, incremental builds, dependency tracking, file hashing, performance, compression, zstd]
+tags:
+- core
+- caching
+- incremental-builds
+- performance
+- dependency-tracking
+- cache
+- compression
+- zstandard
+keywords:
+- cache
+- caching
+- incremental builds
+- dependency tracking
+- file hashing
+- performance
+- compression
+- zstd
 ---
 
 # Cache System
@@ -84,7 +100,7 @@ flowchart LR
     Data[Cache Data] --> JSON[JSON Serialize]
     JSON --> Zstd[Zstd Compress]
     Zstd --> File[.json.zst File]
-    
+
     File2[.json.zst File] --> Decomp[Zstd Decompress]
     Decomp --> Parse[JSON Parse]
     Parse --> Data2[Cache Data]

@@ -3,7 +3,10 @@ title: Performance Benchmarks
 description: Measured build times for Bengal vs Hugo, Jekyll, and Eleventy
 weight: 15
 type: doc
-tags: [performance, benchmarks, comparison]
+tags:
+- performance
+- benchmarks
+- comparison
 ---
 
 # Performance Benchmarks
@@ -228,4 +231,3 @@ Results may vary based on:
 - [Comparison with Other SSGs](/docs/about/comparison/)
 - [Performance Optimization Guide](/docs/reference/architecture/meta/performance/)
 - [Limitations](/docs/about/limitations/)
-

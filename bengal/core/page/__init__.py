@@ -196,27 +196,36 @@ class Page(
         Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
         should be called before caching to convert to relative paths.
         """
+        # Separate standard fields from custom props (Component Model)
+        from bengal.core.page.utils import separate_standard_and_custom_fields
+
+        standard_fields, custom_props = separate_standard_and_custom_fields(self.metadata)
+
         # Logic to extract variant from legacy fields if needed
         # Component Model: variant (normalized from layout/hero_style)
-        variant = self.metadata.get("variant") or self.metadata.get("layout") or self.metadata.get("hero_style")
-        
+        variant = (
+            standard_fields.get("variant")
+            or standard_fields.get("layout")
+            or self.metadata.get("hero_style")
+        )
+
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially
-            title=self.metadata.get("title", ""),
-            date=self.metadata.get("date"),
+            title=standard_fields.get("title", ""),
+            date=standard_fields.get("date"),
             tags=self.tags or [],
-            slug=self.metadata.get("slug"),
-            weight=self.metadata.get("weight"),
+            slug=standard_fields.get("slug"),
+            weight=standard_fields.get("weight"),
             lang=self.lang,
             # Component Model Fields
-            type=self.metadata.get("type"),
+            type=standard_fields.get("type"),
             variant=variant,
-            description=self.metadata.get("description"),
-            props=self.metadata,  # Pass all metadata as props bucket
+            description=standard_fields.get("description"),
+            props=custom_props,  # Only custom fields go into props
             # Links
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
-            aliases=self.aliases or [],
+            aliases=standard_fields.get("aliases") or self.aliases or [],
         )
 
     def normalize_core_paths(self) -> None:

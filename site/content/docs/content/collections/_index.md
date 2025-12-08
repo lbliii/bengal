@@ -4,19 +4,22 @@ description: Validate frontmatter with typed schemas
 draft: false
 weight: 30
 aliases:
-  - /docs/guides/content-collections/
+- /docs/guides/content-collections/
 lang: en
-tags: [collections, schemas, validation]
+tags:
+- collections
+- schemas
+- validation
 keywords:
-  - collections
-  - schemas
-  - validation
-  - frontmatter
-  - types
+- collections
+- schemas
+- validation
+- frontmatter
+- types
 category: guide
-params:
-  card_color: purple
+props:
   icon: check-circle
+  card_color: purple
 ---
 # Content Collections
 

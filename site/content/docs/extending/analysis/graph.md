@@ -1,14 +1,24 @@
 ---
 title: Graph Analysis
-description: Analyze your site's structure, improve internal linking, and optimize navigation
+description: Analyze your site's structure, improve internal linking, and optimize
+  navigation
 weight: 10
 draft: false
 lang: en
-tags: [analysis, graph, seo, optimization]
-keywords: [graph analysis, pagerank, community detection, link suggestions, seo]
+tags:
+- analysis
+- graph
+- seo
+- optimization
+keywords:
+- graph analysis
+- pagerank
+- community detection
+- link suggestions
+- seo
 category: guide
 aliases:
-  - /docs/guides/graph-analysis/
+- /docs/guides/graph-analysis/
 ---
 
 # Graph Analysis

@@ -1,12 +1,21 @@
 ---
 title: Build Pipeline
-description: How Bengal orchestrates builds, processes content, and performs incremental builds
+description: How Bengal orchestrates builds, processes content, and performs incremental
+  builds
 weight: 30
 type: doc
 draft: false
 lang: en
-tags: [build, pipeline, orchestration, incremental]
-keywords: [build pipeline, orchestration, incremental builds, performance]
+tags:
+- build
+- pipeline
+- orchestration
+- incremental
+keywords:
+- build pipeline
+- orchestration
+- incremental builds
+- performance
 category: documentation
 ---
 
