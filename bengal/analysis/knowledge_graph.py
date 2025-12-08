@@ -772,7 +772,13 @@ class KnowledgeGraph:
         community = self._community_results.get_community_for_page(page)
         return community.id if community else None
 
-    def analyze_paths(self, force_recompute: bool = False) -> PathAnalysisResults:
+    def analyze_paths(
+        self,
+        force_recompute: bool = False,
+        k_pivots: int = 100,
+        seed: int = 42,
+        auto_approximate_threshold: int = 500,
+    ) -> PathAnalysisResults:
         """
         Analyze navigation paths and centrality metrics.
 
@@ -781,8 +787,14 @@ class KnowledgeGraph:
         - Closeness centrality: Pages that are easily accessible
         - Network diameter and average path length
 
+        For large sites (> auto_approximate_threshold pages), uses pivot-based
+        approximation for O(k*N) complexity instead of O(N²).
+
         Args:
             force_recompute: If True, recompute even if cached
+            k_pivots: Number of pivot nodes for approximation (default: 100)
+            seed: Random seed for deterministic results (default: 42)
+            auto_approximate_threshold: Use exact if pages <= this (default: 500)
 
         Returns:
             PathAnalysisResults with centrality metrics
@@ -792,6 +804,7 @@ class KnowledgeGraph:
             >>> graph.build()
             >>> results = graph.analyze_paths()
             >>> bridges = results.get_top_bridges(10)
+            >>> print(f"Approximate: {results.is_approximate}")
         """
         if not self._built:
             raise RuntimeError("Must call build() before analyzing paths")
@@ -804,7 +817,12 @@ class KnowledgeGraph:
         # Import here to avoid circular dependency
         from bengal.analysis.path_analysis import PathAnalyzer
 
-        analyzer = PathAnalyzer(graph=self)
+        analyzer = PathAnalyzer(
+            graph=self,
+            k_pivots=k_pivots,
+            seed=seed,
+            auto_approximate_threshold=auto_approximate_threshold,
+        )
         self._path_results = analyzer.analyze()
         return self._path_results
 
