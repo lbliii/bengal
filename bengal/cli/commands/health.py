@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -276,7 +277,7 @@ def _ensure_site_built(site: Site, cli: CLIOutput) -> None:
 
 
 def _build_config(
-    site_config: dict,
+    site_config: dict[str, Any],
     max_concurrency: int | None,
     per_host_limit: int | None,
     timeout: float | None,
@@ -285,7 +286,7 @@ def _build_config(
     exclude: tuple[str, ...],
     exclude_domain: tuple[str, ...],
     ignore_status: tuple[str, ...],
-) -> dict:
+) -> dict[str, Any]:
     """Build linkcheck config from CLI flags and site config."""
     # Start with site config
     config = site_config.get("health", {}).get("linkcheck", {})

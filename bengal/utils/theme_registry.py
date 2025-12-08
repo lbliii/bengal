@@ -245,7 +245,8 @@ def get_installed_themes() -> dict[str, ThemePackage]:
         eps = metadata.entry_points(group="bengal.themes")
     except Exception as e:
         logger.debug("entry_point_discovery_failed", error=str(e))
-        eps = ()
+        # On error, return empty dict (no themes found)
+        return themes
 
     for ep in eps:
         slug = ep.name
@@ -258,7 +259,8 @@ def get_installed_themes() -> dict[str, ThemePackage]:
             distributions = metadata.packages_distributions()
             # ep.module contains top-level package; use first segment
             top_pkg = package.split(".")[0]
-            owning = (distributions.get(top_pkg) or [None])[0]
+            owning_list = distributions.get(top_pkg) or []
+            owning = owning_list[0] if owning_list else None
             if owning:
                 dist_name = owning
                 try:

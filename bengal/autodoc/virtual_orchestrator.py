@@ -11,7 +11,7 @@ This is the new architecture that replaces markdown-based autodoc generation.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2.runtime import Context

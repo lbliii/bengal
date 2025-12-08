@@ -266,7 +266,7 @@ class CLIExtractor(Extractor):
         arguments = []
 
         for param in cmd.params:
-            param_doc = self._extract_click_parameter(param, qualified_name)
+            param_doc = self._extract_click_parameter(param, qualified_name or "")
 
             if isinstance(param, click.Argument):
                 arguments.append(param_doc)
@@ -295,8 +295,8 @@ class CLIExtractor(Extractor):
         description = sanitize_text(description_text)
 
         return DocElement(
-            name=name,
-            qualified_name=qualified_name,
+            name=name or "",
+            qualified_name=qualified_name or "",
             description=description,
             element_type="command",
             source_file=source_file,
@@ -361,8 +361,8 @@ class CLIExtractor(Extractor):
             metadata["envvar"] = param.envvar
 
         return DocElement(
-            name=param.name,
-            qualified_name=f"{parent_name}.{param.name}",
+            name=param.name or "",
+            qualified_name=f"{parent_name}.{param.name or ''}",
             description=description,
             element_type=element_type,
             source_file=None,

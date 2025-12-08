@@ -27,6 +27,7 @@ import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from bengal.utils.hashing import hash_bytes
 from bengal.utils.logger import get_logger
@@ -280,7 +281,7 @@ class Asset:
     # Processing state (set during asset processing)
     _bundled_content: str | None = None  # CSS content after @import resolution
     _minified_content: str | None = None  # Content after minification
-    _optimized_image: bytes | None = None  # Optimized image bytes
+    _optimized_image: Any = None  # Optimized PIL Image (type deferred to avoid PIL import)
 
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
@@ -525,7 +526,7 @@ class Asset:
 
                     # Extract layer name
                     layer_name_match = re.match(r"@layer\s+(\w+)", layer_decl)
-                    layer_name = layer_name_match.group(1) if layer_name_match else None
+                    layer_name: str = layer_name_match.group(1) if layer_name_match else ""
 
                     # Find the matching closing brace using brace counting
                     content_start = brace_pos + 1
@@ -540,9 +541,14 @@ class Asset:
                     layer_content = css[content_start:content_end]
 
                     # Process @import statements inside this layer
+                    current_layer = layer_name  # Capture for closure
+
+                    def layer_resolver(m: re.Match[str], layer: str = current_layer) -> str:
+                        return resolve_import_in_context(m, layer)
+
                     processed_content = re.sub(
                         import_pattern,
-                        lambda m, layer=layer_name: resolve_import_in_context(m, layer),
+                        layer_resolver,
                         layer_content,
                     )
 
@@ -586,11 +592,15 @@ class Asset:
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
         # Get the CSS content (bundled if this is an entry point)
+        css_content: str | None = None
         if hasattr(self, "_bundled_content"):
             css_content = self._bundled_content
         else:
             with open(self.source_path, encoding="utf-8") as f:
                 css_content = f.read()
+
+        if css_content is None:
+            return
 
         try:
             # Transform CSS nesting first (for browser compatibility)
@@ -737,7 +747,7 @@ class Asset:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Copy or write optimized/minified content atomically
-        if hasattr(self, "_minified_content"):
+        if hasattr(self, "_minified_content") and self._minified_content is not None:
             # Write minified content atomically (crash-safe)
             from bengal.utils.atomic_write import atomic_write_text
 

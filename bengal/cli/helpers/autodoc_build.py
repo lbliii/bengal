@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from contextlib import chdir
 from pathlib import Path
+from typing import Any
 
 
 def should_regenerate_autodoc(
@@ -33,7 +34,9 @@ def should_regenerate_autodoc(
     return check_autodoc_needs_regeneration(config, root_path, quiet)
 
 
-def check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, quiet: bool) -> bool:
+def check_autodoc_needs_regeneration(
+    autodoc_config: dict[str, Any], root_path: Path, quiet: bool
+) -> bool:
     """
     Check if source files are newer than generated docs.
     Returns True if regeneration is needed.

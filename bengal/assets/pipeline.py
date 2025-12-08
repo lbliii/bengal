@@ -191,8 +191,12 @@ class NodePipeline:
     def _find_js_entries(self) -> list[Path]:
         # Heuristic: treat files at assets/js/*.{js,ts} as entries (not nested modules)
         entries: list[Path] = []
-        for base in [self.config.root_path / "assets" / "js", self._theme_assets_dir() / "js"]:
-            if base and base.exists():
+        theme_assets = self._theme_assets_dir()
+        bases = [self.config.root_path / "assets" / "js"]
+        if theme_assets:
+            bases.append(theme_assets / "js")
+        for base in bases:
+            if base.exists():
                 for p in base.glob("*.*"):
                     if p.is_file() and p.suffix.lower() in (".js", ".ts"):
                         entries.append(p)

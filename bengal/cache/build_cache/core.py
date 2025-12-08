@@ -314,7 +314,8 @@ class BuildCache(
         # Fall back to uncompressed
         if cache_path.exists():
             with open(cache_path, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return dict(data) if isinstance(data, dict) else None
 
         return None
 

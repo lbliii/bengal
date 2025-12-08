@@ -126,41 +126,41 @@ class DataLoadingMixin:
         """
         if not isinstance(tracks_data, dict):
             logger.warning(
-                "tracks_invalid_structure",
-                message="tracks.yaml root must be a dictionary",
+                "tracks.yaml root must be a dictionary",
+                event="tracks_invalid_structure",
             )
             return
 
         for track_id, track in tracks_data.items():
             if not isinstance(track, dict):
                 logger.warning(
-                    "track_invalid_structure",
+                    f"Track '{track_id}' must be a dictionary",
+                    event="track_invalid_structure",
                     track_id=track_id,
-                    message=f"Track '{track_id}' must be a dictionary",
                 )
                 continue
 
             # Check required fields
             if "items" not in track:
                 logger.warning(
-                    "track_missing_items",
+                    f"Track '{track_id}' is missing required 'items' field",
+                    event="track_missing_items",
                     track_id=track_id,
-                    message=f"Track '{track_id}' is missing required 'items' field",
                 )
                 continue
 
             if not isinstance(track["items"], list):
                 logger.warning(
-                    "track_items_not_list",
+                    f"Track '{track_id}' has 'items' field that is not a list",
+                    event="track_items_not_list",
                     track_id=track_id,
-                    message=f"Track '{track_id}' has 'items' field that is not a list",
                 )
                 continue
 
             # Warn about empty tracks (may be intentional, but worth noting)
             if len(track["items"]) == 0:
                 logger.debug(
-                    "track_empty_items",
+                    f"Track '{track_id}' has no items",
+                    event="track_empty_items",
                     track_id=track_id,
-                    message=f"Track '{track_id}' has no items",
                 )

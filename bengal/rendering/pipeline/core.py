@@ -528,9 +528,9 @@ class RenderingPipeline:
             is_complete_page=is_complete_page,
         )
 
-    def _build_variable_context(self, page: Page) -> dict:
+    def _build_variable_context(self, page: Page) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
-        context: dict = {}
+        context: dict[str, Any] = {}
 
         # Core objects
         context["page"] = page

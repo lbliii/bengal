@@ -261,7 +261,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
                     {# GitHub link - only show if not bundled in Dev dropdown #}
                     {% set github_bundled = false %}
-                    {% if site._dev_menu_metadata is defined %}
+                    {% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
                     {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
                     {% endif %}
                     {% if site.config.params and site.config.params.repo_url and not github_bundled %}
@@ -384,7 +384,7 @@ See: plan/active/rfc-template-performance-optimization.md
 
             {# GitHub link - only show if not bundled in Dev dropdown #}
             {% set github_bundled = false %}
-            {% if site._dev_menu_metadata is defined %}
+            {% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
             {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
             {% endif %}
             {% if site.config.params and site.config.params.repo_url and not github_bundled %}

@@ -264,14 +264,15 @@ class PageExplainer:
         """Get the template name for a page."""
         # Check for explicit template in metadata
         if page.metadata.get("template"):
-            return page.metadata["template"]
+            return str(page.metadata["template"])
 
         # Check for template override on virtual pages
         if page.is_virtual and page.template_name:
             return page.template_name
 
         # Check page type for template inference
-        page_type = page.metadata.get("type") or page.core.type
+        page_core = page.core if hasattr(page, "core") and page.core else None
+        page_type = page.metadata.get("type") or (page_core.type if page_core else None)
         if page_type:
             return f"{page_type}.html"
 

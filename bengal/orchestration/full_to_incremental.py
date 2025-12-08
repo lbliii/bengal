@@ -40,7 +40,7 @@ def run_incremental_bridge(
     """
     orch = IncrementalOrchestrator(site)
     orch.initialize(enabled=True)
-    normalized = {Path(p) for p in changed_paths}
+    normalized: set[str] = {str(p) for p in changed_paths}
     orch.process(change_type, normalized)
 
 

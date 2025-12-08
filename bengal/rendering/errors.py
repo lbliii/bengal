@@ -548,12 +548,12 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
         for line_num, line_content in ctx.surrounding_lines:
             is_error_line = line_num == ctx.line_number
             prefix = ">" if is_error_line else " "
-            line_style = {"fg": "red", "bold": True} if is_error_line else {"fg": "white"}
+            if is_error_line:
+                styled_line = click.style(line_content, fg="red", bold=True)
+            else:
+                styled_line = click.style(line_content, fg="white")
 
-            click.echo(
-                click.style(f"  {prefix} {line_num:4d} | ", fg="cyan")
-                + click.style(line_content, **line_style)
-            )
+            click.echo(click.style(f"  {prefix} {line_num:4d} | ", fg="cyan") + styled_line)
 
             # Add pointer to error location
             if is_error_line and ctx.source_line:

@@ -242,7 +242,7 @@ class MenuOrchestrator:
 
         # Mark dev sections to exclude from auto-nav
         if dev_sections_to_remove:
-            if not hasattr(self.site, "_dev_menu_metadata"):
+            if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["exclude_sections"] = list(dev_sections_to_remove)
 

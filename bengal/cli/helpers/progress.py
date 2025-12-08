@@ -15,7 +15,7 @@ def cli_progress(
     total: int | None = None,
     cli: CLIOutput | None = None,
     enabled: bool = True,
-) -> Iterator[Callable[[int | None, str | None], None]]:
+) -> Iterator[Callable[..., None]]:
     """
     Context manager for simple progress feedback in CLI commands.
 
@@ -40,7 +40,12 @@ def cli_progress(
     # Disable progress if quiet mode or not a TTY
     if not enabled or cli.quiet or not cli.use_rich or not cli.console.is_terminal:
         # Return a no-op update function
-        yield lambda current=None, item=None: None
+        def noop_update(
+            current: int | None = None, item: str | None = None, advance: int | None = None
+        ) -> None:
+            pass
+
+        yield noop_update
         return
 
     from rich.progress import (
@@ -66,10 +71,14 @@ def cli_progress(
     ) as progress:
         task = progress.add_task(f"[cyan]{description}", total=total)
 
-        def update(current: int | None = None, item: str | None = None) -> None:
+        def update(
+            current: int | None = None, item: str | None = None, advance: int | None = None
+        ) -> None:
             """Update progress."""
             if current is not None:
                 progress.update(task, completed=current)
+            elif advance is not None:
+                progress.update(task, advance=advance)
             elif total:
                 progress.update(task, advance=1)
             else:

@@ -66,9 +66,9 @@ def load_collections(
 
     if not collections_path.exists():
         logger.debug(
-            "no_collections_file",
+            "No collections.py found, skipping schema validation",
+            event="no_collections_file",
             path=str(collections_path),
-            message="No collections.py found, skipping schema validation",
         )
         return {}
 
@@ -91,17 +91,17 @@ def load_collections(
 
         if collections is None:
             logger.warning(
-                "collections_dict_missing",
+                "collections.py found but no 'collections' dict defined",
+                event="collections_dict_missing",
                 path=str(collections_path),
-                message="collections.py found but no 'collections' dict defined",
             )
             return {}
 
         if not isinstance(collections, dict):
             logger.warning(
-                "collections_invalid_type",
+                f"'collections' should be dict, got {type(collections).__name__}",
+                event="collections_invalid_type",
                 path=str(collections_path),
-                message=f"'collections' should be dict, got {type(collections).__name__}",
             )
             return {}
 
@@ -128,8 +128,8 @@ def load_collections(
 def get_collection_for_path(
     file_path: Path,
     content_root: Path,
-    collections: dict[str, CollectionConfig],
-) -> tuple[str | None, CollectionConfig | None]:
+    collections: dict[str, CollectionConfig[Any]],
+) -> tuple[str | None, CollectionConfig[Any] | None]:
     """
     Determine which collection a content file belongs to.
 
@@ -173,7 +173,7 @@ def get_collection_for_path(
 
 
 def validate_collections_config(
-    collections: dict[str, CollectionConfig],
+    collections: dict[str, CollectionConfig[Any]],
     content_root: Path,
 ) -> list[str]:
     """
@@ -191,6 +191,8 @@ def validate_collections_config(
     warnings: list[str] = []
 
     for name, config in collections.items():
+        if config.directory is None:
+            continue
         collection_dir = content_root / config.directory
 
         if not collection_dir.exists():

@@ -234,7 +234,7 @@ class Site(
             profile_templates=profile_templates,
         )
         # Ensure we return BuildStats (orchestrator.build returns Any)
-        from bengal.orchestration.build.results import BuildStats
+        # BuildStats is already imported at top of file
         if isinstance(result, BuildStats):
             return result
         return BuildStats()

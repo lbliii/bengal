@@ -63,7 +63,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
             if manifest_path and manifest_path.exists():
                 try:
                     data = toml.load(str(manifest_path))
-                    return data.get("extends")
+                    extends_val = data.get("extends")
+                    return str(extends_val) if extends_val else None
                 except Exception as e:
                     logger.debug(
                         "theme_manifest_read_failed",
@@ -85,7 +86,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     if bundled_manifest.exists():
         try:
             data = toml.load(str(bundled_manifest))
-            return data.get("extends")
+            extends_val = data.get("extends")
+            return str(extends_val) if extends_val else None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",

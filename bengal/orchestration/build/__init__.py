@@ -30,9 +30,12 @@ from bengal.utils.logger import get_logger
 from . import content, finalization, initialization, rendering
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
     from bengal.utils.build_context import BuildContext
     from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
@@ -408,7 +411,7 @@ class BuildOrchestrator:
 
     def _phase_menus(self, incremental: bool, changed_page_paths: set[Path]) -> None:
         """Phase 9: Menu Building."""
-        content.phase_menus(self, incremental, changed_page_paths)
+        content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
     def _phase_related_posts(
         self, incremental: bool, parallel: bool, pages_to_build: list[Page]
@@ -453,7 +456,7 @@ class BuildOrchestrator:
         reporter: Any | None,
     ) -> None:
         """Phase 14: Render Pages."""
-        return rendering.phase_render(
+        rendering.phase_render(
             self,
             cli,
             incremental,

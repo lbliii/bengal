@@ -69,7 +69,7 @@ Args:
 #}
 {% macro render_github_link(site, is_mobile=false) %}
 {% set github_bundled = false %}
-{% if site._dev_menu_metadata is defined %}
+{% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
 {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
 {% endif %}
 {% if site.config.params and site.config.params.repo_url and not github_bundled %}

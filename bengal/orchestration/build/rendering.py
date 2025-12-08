@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
@@ -278,7 +278,7 @@ def phase_render(
 
 
 def phase_update_site_pages(
-    orchestrator: BuildOrchestrator, incremental: bool, pages_to_build: list
+    orchestrator: BuildOrchestrator, incremental: bool, pages_to_build: list[Page]
 ) -> None:
     """
     Phase 15: Update Site Pages.

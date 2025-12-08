@@ -12,8 +12,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
-from bengal.autodoc.manifest import AutodocManifest
 from bengal.utils.logger import get_logger
+
+# Import AutodocManifest with fallback if module doesn't exist
+try:
+    from bengal.autodoc.manifest import AutodocManifest  # type: ignore[import-not-found]
+except ImportError:
+    AutodocManifest = None  # type: ignore[misc,assignment]
 from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
@@ -201,6 +206,8 @@ class AutodocOrchestrator:
             display_name = title_map.get(section_key, section_key.upper())
 
         # Create virtual index page
+        if section.path is None:
+            raise ValueError(f"Section {section_key} has no path")
         virtual_path = section.path / "_index.md"
 
         # Use appropriate type and template based on section

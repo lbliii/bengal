@@ -231,6 +231,7 @@ class ConfigInspector(DebugTool):
                         "is_default": explanation.is_default,
                     },
                 )
+                report.summary = dict(report.summary)
                 report.summary["explanation"] = explanation.format()
             else:
                 report.add_finding(
@@ -264,6 +265,7 @@ class ConfigInspector(DebugTool):
                     f"No differences between {current_env} and {compare_to}",
                 )
 
+            report.summary = dict(report.summary)
             report.summary["comparison"] = comparison.format_detailed()
             return report
 
@@ -559,7 +561,7 @@ class ConfigInspector(DebugTool):
             effective_value=value,
             origin=origin,
             layer_values=layer_values,
-            is_default=origin and "_default" in origin,
+            is_default=bool(origin and "_default" in origin),
             deprecated=deprecated,
             deprecation_message=deprecation_message,
         )

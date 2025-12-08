@@ -62,7 +62,7 @@ from bengal.cli.helpers import (
 @click.option("--cli-only", is_flag=True, help="Only generate CLI docs (skip others)")
 @click.option("--openapi-only", is_flag=True, help="Only generate OpenAPI docs (skip others)")
 def autodoc(
-    source: tuple,
+    source: tuple[str, ...],
     output: str,
     clean: bool,
     parallel: bool,
@@ -207,14 +207,14 @@ def autodoc(
 
 
 def _generate_python_docs(
-    source: tuple,
+    source: tuple[str, ...],
     output: str,
     clean: bool,
     parallel: bool,
     verbose: bool,
     stats: bool,
-    python_config: dict,
-    autodoc_config: dict | None = None,
+    python_config: dict[str, Any],
+    autodoc_config: dict[str, Any] | None = None,
 ) -> None:
     """Generate Python API documentation."""
     import time
@@ -270,7 +270,7 @@ def _generate_python_docs(
                     f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions"
                 )
 
-            update(item=str(source_path))
+            update(advance=1)
 
     extraction_time = time.time() - start_time
 
@@ -300,7 +300,7 @@ def _generate_python_docs(
         generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
         generated_count = len(generated)
         # Update progress to completion
-        update(current=len(all_elements))
+        update(advance=1)
 
     generation_time = time.time() - gen_start
     total_time = time.time() - start_time
@@ -330,8 +330,8 @@ def _generate_cli_docs(
     include_hidden: bool,
     clean: bool,
     verbose: bool,
-    cli_config: dict,
-    autodoc_config: dict,
+    cli_config: dict[str, Any],
+    autodoc_config: dict[str, Any],
 ) -> None:
     """Generate CLI documentation."""
     import time
@@ -607,8 +607,8 @@ def _generate_openapi_docs(
     parallel: bool,
     verbose: bool,
     stats: bool,
-    openapi_config: dict,
-    autodoc_config: dict | None = None,
+    openapi_config: dict[str, Any],
+    autodoc_config: dict[str, Any] | None = None,
 ) -> None:
     """Generate OpenAPI documentation."""
     import time

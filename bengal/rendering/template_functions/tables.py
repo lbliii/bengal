@@ -4,7 +4,6 @@ Table functions for templates.
 Provides functions for rendering interactive data tables from YAML/CSV files.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -88,7 +87,10 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
         )
 
     # Get site from environment globals
-    site: Site = env.globals["site"]
+    site_obj = env.globals["site"]
+    if not isinstance(site_obj, Site):
+        raise TypeError(f"Expected Site object, got {type(site_obj)}")
+    site: Site = site_obj
 
     # Create a mock state object with root_path
     class State:

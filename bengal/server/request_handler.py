@@ -154,7 +154,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
                 q = parse_qs(urlparse(self.path).query)
                 comp_id = (q.get("c") or [""])[0]
-                variant_id = (q.get("v") or [None])[0]
+                variant_list = q.get("v") or []
+                variant_id = variant_list[0] if variant_list else None
                 html = cps.view_page(comp_id, variant_id)
             else:
                 html = cps.list_page()

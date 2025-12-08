@@ -88,7 +88,7 @@ class StaticOrchestrator:
 
     def is_enabled(self) -> bool:
         """Check if static folder exists and is enabled."""
-        return self.enabled and self.static_dir.exists() and self.static_dir.is_dir()
+        return bool(self.enabled and self.static_dir.exists() and self.static_dir.is_dir())
 
     def get_total_size(self) -> int:
         """Calculate total size of static folder in bytes."""

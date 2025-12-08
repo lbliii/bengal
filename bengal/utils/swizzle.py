@@ -237,7 +237,7 @@ class SwizzleManager:
         current_checksum = _checksum_file(target_path)
         expected_checksum = record.get("local_checksum")
 
-        return current_checksum != expected_checksum
+        return bool(current_checksum != expected_checksum)
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:
@@ -275,7 +275,7 @@ class SwizzleManager:
                     path=str(self.registry_path),
                     record_count=len(data.get("records", [])),
                 )
-                return data
+                return dict(data) if isinstance(data, dict) else {}
         except json.JSONDecodeError as e:
             logger.error(
                 "swizzle_registry_json_invalid",
