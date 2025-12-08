@@ -2,11 +2,11 @@
 title: Tutorials
 description: Guided learning journeys to master Bengal
 weight: 15
-icon: notepad
 cascade:
   type: doc
+params:
+  icon: notepad
 ---
-
 # Tutorials
 
 Hands-on lessons that teach you Bengal step-by-step. Each tutorial starts from scratch and builds to a working result.

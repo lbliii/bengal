@@ -163,7 +163,7 @@ class Site(
             # Fallback for legacy config where theme was a string
             self.theme = theme_section if isinstance(theme_section, str) else "default"
 
-        self._theme_obj = Theme.from_config(self.config)
+        self._theme_obj = Theme.from_config(self.config, root_path=self.root_path)
 
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])

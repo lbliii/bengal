@@ -3,10 +3,10 @@ title: Autodoc
 description: Automatic documentation generation
 weight: 10
 category: guide
-icon: book
-card_color: blue
+params:
+  card_color: blue
+  icon: book
 ---
-
 # Autodoc
 
 Generate documentation automatically from source code.

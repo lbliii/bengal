@@ -3,10 +3,10 @@ title: Templating
 description: Jinja2 layouts, inheritance, and partials
 weight: 10
 category: guide
-icon: code
-card_color: blue
+params:
+  card_color: blue
+  icon: code
 ---
-
 # Jinja2 Templating
 
 Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for all templates. If you know Python, you'll feel at home.

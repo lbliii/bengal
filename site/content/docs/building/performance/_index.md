@@ -3,10 +3,10 @@ title: Performance
 description: Optimize Bengal build performance
 weight: 30
 category: guide
-icon: zap
-card_color: purple
+params:
+  card_color: purple
+  icon: zap
 ---
-
 # Optimize Build Performance
 
 Speed up Bengal with incremental builds, parallel processing, and smart caching.

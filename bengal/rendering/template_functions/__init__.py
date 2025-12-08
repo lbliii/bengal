@@ -39,6 +39,7 @@ from . import (
     seo,
     strings,
     taxonomies,
+    theme,
     urls,
 )
 
@@ -88,7 +89,10 @@ def register_all(env: Environment, site: Site) -> None:
     # Phase 5: Navigation functions
     navigation.register(env, site)
 
-    logger.debug("template_functions_registered", count=18)
+    # Phase 6: Theme functions
+    theme.register(env, site)
+
+    logger.debug("template_functions_registered", count=19)
 
 
 __all__ = [
@@ -111,5 +115,6 @@ __all__ = [
     "seo",
     "strings",
     "taxonomies",
+    "theme",
     "urls",
 ]

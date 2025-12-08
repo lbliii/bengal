@@ -1,20 +1,20 @@
 ---
 title: Get Started
 description: Install Bengal and create your first site
-type: doc
-weight: 10
 draft: false
-lang: en
-tags: [onboarding, quickstart]
-keywords: [getting started, installation, quickstart]
-category: onboarding
-icon: arrow-clockwise
-cascade:
-  type: doc
+weight: 10
 aliases:
   - /docs/getting-started/
+lang: en
+type: doc
+tags: [onboarding, quickstart]
+keywords: ["getting started", installation, quickstart]
+category: onboarding
+cascade:
+  type: doc
+params:
+  icon: arrow-clockwise
 ---
-
 # Get Started
 
 ## Install

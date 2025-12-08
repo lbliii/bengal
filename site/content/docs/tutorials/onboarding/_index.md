@@ -2,11 +2,18 @@
 title: Coming From Another Tool?
 description: Onboarding guides for users migrating from Sphinx, Hugo, Docusaurus, and other documentation tools
 weight: 15
-icon: boomerang
 tags: [tutorial, migration, onboarding]
-keywords: [sphinx, hugo, docusaurus, mdx, rst, migration, onboarding]
+keywords:
+  - sphinx
+  - hugo
+  - docusaurus
+  - mdx
+  - rst
+  - migration
+  - onboarding
+params:
+  icon: boomerang
 ---
-
 # Coming From Another Tool?
 
 Choose the guide that matches your background:
@@ -63,4 +70,3 @@ Bengal combines the **structured directive syntax** of Sphinx, the **file-based 
 :::
 
 Choose your guide above to see specific feature mappings and examples.
-

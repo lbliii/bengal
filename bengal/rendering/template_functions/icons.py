@@ -37,6 +37,9 @@ _preloaded_icons: dict[str, str] = {}
 # Flag to track if icons have been preloaded
 _icons_preloaded: bool = False
 
+# Site instance for theme config access (set during registration)
+_site_instance: Site | None = None
+
 
 def _get_icons_directory() -> Path:
     """Get the icons directory from the default theme."""
@@ -149,6 +152,10 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     Icons are loaded once at startup and rendered output is cached
     by (name, size, css_class, aria_label) to minimize repeated work.
 
+    Icon name mapping priority:
+    1. theme.yaml aliases (if theme config available)
+    2. ICON_MAP (fallback for backwards compatibility)
+
     Args:
         name: Icon name (e.g., "search", "menu", "close", "arrow-up")
         size: Icon size in pixels (default: 24)
@@ -166,8 +173,23 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if not name:
         return Markup("")
 
-    # Map semantic name to Phosphor icon name via ICON_MAP
-    mapped_name = ICON_MAP.get(name, name)
+    # Try theme config aliases first (if available)
+    mapped_name = name
+    if _site_instance:
+        try:
+            theme_config = _site_instance.theme_config
+            icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
+            if icon_aliases and name in icon_aliases:
+                mapped_name = icon_aliases[name]
+            else:
+                # Fall back to ICON_MAP
+                mapped_name = ICON_MAP.get(name, name)
+        except Exception:
+            # Graceful degradation: fall back to ICON_MAP
+            mapped_name = ICON_MAP.get(name, name)
+    else:
+        # No site instance available, use ICON_MAP
+        mapped_name = ICON_MAP.get(name, name)
 
     # Try the mapped name first (uses LRU cache)
     svg_html = _render_icon_cached(mapped_name, size, css_class, aria_label)
@@ -189,8 +211,11 @@ def register(env: Environment, site: Site) -> None:
 
     Args:
         env: Jinja2 environment
-        site: Site instance (unused but required by signature)
+        site: Site instance (stored for theme config access)
     """
+    global _site_instance
+    _site_instance = site
+
     # Pre-load all icons at startup
     _preload_all_icons()
 

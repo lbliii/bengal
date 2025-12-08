@@ -1,0 +1,109 @@
+{#-
+================================================================================
+API Explorer Base Template
+
+Root template for all autodoc HTML output. Provides the core structure and
+blocks that type-specific templates (python/, cli/, openapi/) can extend.
+
+Design Philosophy:
+- Mirrors Bengal's theme template architecture (base.html → extends)
+- Provides sensible defaults with full customization via blocks
+- Integrates with theme CSS via api-explorer.css classes
+- Supports both standalone rendering and theme integration
+
+Block Hierarchy:
+- explorer_wrapper: Outermost container
+- explorer_header: Module/element header with badges and title
+- explorer_stats: Quick stats bar (classes, functions, etc.)
+- explorer_content: Main content area
+- explorer_primary: Primary content (classes, functions)
+- explorer_secondary: Secondary content (examples, notes)
+- explorer_footer: Footer content (source links, related)
+
+Usage:
+{% extends "html/base.html" %}
+{% block explorer_content %}...{% endblock %}
+================================================================================
+-#}
+
+{# Import shared macros #}
+{% from 'html/macros/badges.html' import element_badges, type_badge, status_badge %}
+{% from 'html/macros/code.html' import signature_block, code_example %}
+{% from 'html/macros/tables.html' import parameters_table, returns_section %}
+
+{# Start of template output #}
+{% block explorer_wrapper %}
+<div class="api-explorer api-explorer--{{ element_type | default('generic') }}">
+
+    {# Header Section #}
+    {% block explorer_header %}
+    <header class="api-explorer__header">
+        {# Badges row #}
+        {% block header_badges %}
+        <div class="api-explorer__badges">
+            {% block badges_content %}
+            {{ type_badge(element_type | default('module')) }}
+            {% endblock %}
+        </div>
+        {% endblock %}
+
+        {# Title #}
+        {% block header_title %}
+        <h1 class="api-explorer__title">
+            <code>{{ title | default(element.name if element else 'Untitled') }}</code>
+        </h1>
+        {% endblock %}
+
+        {# Description #}
+        {% block header_description %}
+        {% if description or (element and element.description) %}
+        <p class="api-explorer__description">
+            {{ description | default(element.description) }}
+        </p>
+        {% endif %}
+        {% endblock %}
+
+        {# Source link #}
+        {% block header_source %}
+        {% if source_file or (element and element.source_file) %}
+        {% set _source = source_file | default(element.source_file) %}
+        {% set _line = line_number | default(element.line_number if element else none) %}
+        <div class="api-explorer__source">
+            <a href="{{ config.github_repo | default('#') }}/blob/{{ config.github_branch | default('main') }}/{{ _source }}{% if _line %}#L{{ _line }}{% endif %}"
+                class="api-source-link" target="_blank" rel="noopener">
+                {{ icon('code', size=14) if icon is defined else '' }}
+                <span>View source</span>
+            </a>
+        </div>
+        {% endif %}
+        {% endblock %}
+    </header>
+    {% endblock %}
+
+    {# Stats Bar #}
+    {% block explorer_stats %}
+    {# Override in child templates to show element counts #}
+    {% endblock %}
+
+    {# Main Content Area #}
+    {% block explorer_content %}
+    <div class="api-explorer__content">
+        {# Primary Content (classes, functions, endpoints, etc.) #}
+        {% block explorer_primary %}
+        {# Override in child templates #}
+        {% endblock %}
+
+        {# Secondary Content (examples, notes, related) #}
+        {% block explorer_secondary %}
+        {# Override in child templates #}
+        {% endblock %}
+    </div>
+    {% endblock %}
+
+    {# Footer #}
+    {% block explorer_footer %}
+    {# Override for source links, related pages, etc. #}
+    {% endblock %}
+
+</div>
+{% endblock %}

@@ -3,10 +3,10 @@ title: Configuration
 description: Configuring Bengal with bengal.toml
 weight: 10
 category: guide
-icon: settings
-card_color: blue
+params:
+  card_color: blue
+  icon: settings
 ---
-
 # Configuration
 
 Control Bengal's behavior through `bengal.toml` and environment-specific settings.

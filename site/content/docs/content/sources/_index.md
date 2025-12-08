@@ -1,18 +1,28 @@
 ---
 title: Content Sources
 description: Fetch content from external sources
-weight: 40
 draft: false
-lang: en
-tags: [sources, remote, github, notion]
-keywords: [sources, remote, github, notion, api, external]
-category: guide
-icon: link
-card_color: orange
+weight: 40
 aliases:
   - /docs/guides/content-sources/
+lang: en
+tags:
+  - sources
+  - remote
+  - github
+  - notion
+keywords:
+  - sources
+  - remote
+  - github
+  - notion
+  - api
+  - external
+category: guide
+params:
+  card_color: orange
+  icon: link
 ---
-
 # Remote Content Sources
 
 Fetch content from GitHub, Notion, REST APIs, and more.
@@ -259,4 +269,3 @@ Remote loaders are lazy-loaded only when you import them.
 ## See Also
 
 - [Content Collections](/docs/content/collections/) — Schema validation for any source
-

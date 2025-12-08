@@ -1,0 +1,96 @@
+{#-
+================================================================================
+Code Block Macros
+
+Reusable macros for rendering code signatures, examples, and blocks.
+Provides consistent syntax highlighting and copy functionality.
+
+Usage:
+  {% from 'html/macros/code.html' import signature_block, code_example %}
+  {{ signature_block(element.metadata.signature) }}
+  {{ code_example(example_code, language='python') }}
+================================================================================
+-#}
+
+{#-
+Render a function/method/class signature
+
+Args:
+    signature: The signature string
+    name: Optional element name to prepend
+    element_type: Type of element (class, function, method)
+-#}
+{% macro signature_block(signature, name=none, element_type='function') %}
+{% if signature %}
+<div class="api-signature">
+  <pre><code class="language-python">
+    {%- if element_type == 'class' -%}
+    class {{ name }}{{ signature }}
+    {%- elif name -%}
+    def {{ name }}{{ signature }}
+    {%- else -%}
+    {{ signature }}
+    {%- endif -%}
+  </code></pre>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{#-
+Render a code example with optional title
+
+Args:
+    code: The code content
+    language: Programming language for highlighting
+    title: Optional title for the example
+-#}
+{% macro code_example(code, language='python', title=none) %}
+{% if code %}
+<div class="api-example">
+  {% if title %}
+  <div class="api-example__title">{{ title }}</div>
+  {% endif %}
+  <pre class="api-example__code"><code class="language-{{ language }}">{{ code }}</code></pre>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{#-
+Render multiple code examples
+
+Args:
+    examples: List of example strings or dicts with 'code' and 'title'
+    language: Default language for highlighting
+-#}
+{% macro code_examples(examples, language='python') %}
+{% if examples %}
+<div class="api-examples">
+  <h4 class="api-label">Examples</h4>
+  {% for example in examples %}
+    {% if example is string %}
+      {{ code_example(example, language) }}
+    {% elif example is mapping %}
+      {{ code_example(example.code, example.language | default(language), example.title) }}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{#-
+Render an inline code reference
+
+Args:
+    text: The code text
+    link: Optional link URL
+-#}
+{% macro inline_code(text, link=none) %}
+{% if link %}
+<a href="{{ link }}" class="api-code-link"><code>{{ text }}</code></a>
+{% else %}
+<code>{{ text }}</code>
+{% endif %}
+{% endmacro %}

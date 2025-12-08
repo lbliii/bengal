@@ -1,0 +1,100 @@
+name: default
+version: 2.0.0
+parent: null
+
+features:
+  navigation:
+    breadcrumbs: true
+    toc: true
+    toc.sticky: true
+    prev_next: true
+    tabs: false
+    back_to_top: true
+  content:
+    code.copy: true
+    code.annotate: false
+    tabs.link: false
+    lightbox: true
+    reading_time: true
+    author: true
+    excerpts: true
+    children: true
+  search:
+    suggest: true
+    highlight: true
+    share: false
+  header:
+    autohide: false
+  footer:
+    social: true
+  accessibility:
+    skip_link: true
+
+appearance:
+  default_mode: system
+  default_palette: ""
+
+icons:
+  library: phosphor
+  aliases:
+    # Navigation & Actions
+    arrow-right: arrow-right
+    arrow-left: arrow-left
+    arrow-up: arrow-up
+    arrow-down: arrow-down
+    chevron-right: chevron-right
+    chevron-left: chevron-left
+    chevron-up: chevron-up
+    chevron-down: chevron-down
+    external: arrow-square-out
+    link: link
+    search: magnifying-glass
+    menu: list
+    close: x
+    # Status & Feedback
+    info: info
+    warning: warning
+    error: x-circle
+    check: check
+    success: check-circle
+    # Files & Content
+    file: file
+    file-text: file-text
+    folder: folder
+    document: file
+    code: code
+    copy: copy
+    edit: pencil
+    trash: trash
+    download: download
+    upload: upload
+    # UI & Metadata
+    settings: settings
+    star: star
+    heart: heart
+    bookmark: bookmark
+    tag: tag
+    calendar: calendar
+    clock: clock
+    pin: map-pin
+    user: user
+    arrow-clockwise: arrow-clockwise
+    # Theme
+    sun: sun
+    moon: moon
+    palette: palette
+    # Admonitions
+    tip: tip
+    note: note
+    example: example
+    danger: danger
+    caution: caution
+    lightbulb: tip
+    # Bengal-specific
+    terminal: terminal
+    docs: file-text
+    notepad: note
+    # Mid-century modern (Bengal custom icons)
+    atomic: atomic
+    starburst: starburst
+    boomerang: boomerang

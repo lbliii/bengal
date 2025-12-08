@@ -3,10 +3,10 @@ title: Validation
 description: Content validation and health checks
 weight: 30
 category: guide
-icon: check-circle
-card_color: purple
+params:
+  card_color: purple
+  icon: check-circle
 ---
-
 # Content Validation
 
 Ensure content quality with health checks and automatic fixes.

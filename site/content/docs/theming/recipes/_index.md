@@ -1,20 +1,28 @@
 ---
 title: Template Cookbook
 description: Common templating patterns and Bengal-specific features
-weight: 50
 draft: false
+weight: 50
+aliases: [/docs/recipes/]
 lang: en
-tags: [cookbook, templates, jinja, examples]
-keywords: [cookbook, templates, jinja, examples, bengal]
+tags:
+  - cookbook
+  - templates
+  - jinja
+  - examples
+keywords:
+  - cookbook
+  - templates
+  - jinja
+  - examples
+  - bengal
 category: guide
-icon: book-open
-card_color: orange
-aliases:
-  - /docs/recipes/
 cascade:
   type: doc
+params:
+  card_color: orange
+  icon: book-open
 ---
-
 # Template Cookbook
 
 Practical examples showing how to accomplish common tasks with Bengal's templating system.

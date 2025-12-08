@@ -1,9 +1,9 @@
 /**
  * API Explorer - Premium App-Like Documentation
- * 
+ *
  * A compact, high-signal API documentation layout inspired by
  * Stripe docs, Swagger UI, and modern design systems.
- * 
+ *
  * Design principles:
  * - Cards over prose
  * - Inline metadata badges
@@ -23,7 +23,7 @@
   --api-header-bg: var(--color-surface);
   --api-section-gap: var(--space-2);
   --api-compact-padding: var(--space-3);
-  
+
   font-size: var(--text-sm);
   line-height: 1.5;
 }
@@ -286,21 +286,21 @@
   .api-table td {
     display: block;
   }
-  
+
   .api-table thead {
     display: none;
   }
-  
+
   .api-table tr {
     padding: var(--space-3);
     border-bottom: 1px solid var(--api-card-border);
   }
-  
+
   .api-table td {
     padding: var(--space-1) 0;
     border: none;
   }
-  
+
   .api-table td::before {
     content: attr(data-label);
     font-size: var(--text-xs);
@@ -588,11 +588,11 @@ details.api-card > summary::marker {
     box-shadow: none;
     border: 1px solid #000;
   }
-  
+
   .api-card__body {
     display: block !important;
   }
-  
+
   .api-card__toggle {
     display: none;
   }
@@ -809,7 +809,7 @@ details.api-card > summary::marker {
   position: relative;
   /* Neumorphic base with luminescent edge glow */
   animation: api-package-edge-glow 8s ease-in-out infinite;
-  transition: 
+  transition:
     border-color var(--transition-base),
     transform var(--transition-base);
 }
@@ -935,7 +935,7 @@ details.api-card > summary::marker {
     box-shadow: var(--elevation-card);
     border-left: 2px solid var(--color-primary);
   }
-  
+
   .api-package-card:hover {
     box-shadow: var(--elevation-card-hover);
   }
@@ -958,7 +958,7 @@ details.api-card > summary::marker {
   text-decoration: none;
   color: inherit;
   box-shadow: var(--neumorphic-subtle);
-  transition: 
+  transition:
     box-shadow var(--transition-base),
     border-color var(--transition-base),
     transform var(--transition-base);
@@ -1101,13 +1101,13 @@ details.api-card > summary::marker {
   border: var(--border-refined-subtle);
   border-radius: var(--radius-soft-xl);
   /* Subtle inset for empty state */
-  box-shadow: 
+  box-shadow:
     inset 1px 1px 3px rgba(0, 0, 0, 0.04),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
 }
 
 [data-theme="dark"] .api-empty-state {
-  box-shadow: 
+  box-shadow:
     inset 1px 1px 3px rgba(0, 0, 0, 0.2),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.03);
 }
@@ -1129,15 +1129,128 @@ details.api-card > summary::marker {
    ============================================ */
 
 [data-theme="dark"] .api-package-card:hover {
-  box-shadow: 
+  box-shadow:
     var(--neumorphic-enhanced-hover),
     0 0 25px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 [data-theme="dark"] .api-module-card:hover {
-  box-shadow: 
+  box-shadow:
     var(--neumorphic-hover),
     0 0 15px 0 color-mix(in srgb, var(--api-card-accent) 10%, transparent);
+}
+
+
+/* ============================================
+   MODULE HEADER & CONTENT HELPERS
+   ============================================ */
+
+.api-module-header {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-refined-base);
+}
+
+.api-module-header__badges {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.api-module-header__description {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.api-module-header__source {
+  margin-top: var(--space-2);
+}
+
+.api-source-link {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-border);
+  transition: color 0.15s ease;
+}
+
+.api-source-link:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.api-metadata {
+  margin: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.api-metadata strong {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  margin-right: var(--space-2);
+}
+
+.api-warning,
+.api-info {
+  margin: var(--space-3) var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.api-warning {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text, var(--color-danger));
+  border: 1px solid var(--color-danger-border, transparent);
+}
+
+.api-info {
+  background: var(--color-info-bg);
+  color: var(--color-info-text, var(--color-info));
+  border: 1px solid var(--color-info-border, transparent);
+}
+
+.api-warning strong,
+.api-info strong {
+  font-weight: var(--weight-semibold);
+}
+
+.api-parameters {
+  margin-top: var(--space-4);
+}
+
+.api-label {
+  padding: 0 var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.api-see-also {
+  margin: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-3);
+}
+
+.api-see-also strong {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  margin-right: var(--space-2);
 }
 
 /* ============================================
@@ -1148,18 +1261,18 @@ details.api-card > summary::marker {
   .api-grid {
     gap: var(--space-4);
   }
-  
+
   /* Disable lift transforms on mobile for performance */
   .api-package-card:hover,
   .api-module-card:hover {
     transform: none;
   }
-  
+
   /* But keep the shadow enhancement */
   .api-package-card:hover {
     box-shadow: var(--neumorphic-enhanced-base);
   }
-  
+
   .api-module-card:hover {
     box-shadow: var(--neumorphic-subtle);
   }
@@ -1169,21 +1282,21 @@ details.api-card > summary::marker {
   .api-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .api-stats {
     flex-direction: column;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
   }
-  
+
   .api-section-header__title {
     font-size: var(--text-2xl);
   }
-  
+
   .api-section-header__title::before {
     width: 3px;
   }
-  
+
   .api-package-card__header,
   .api-package-card__body,
   .api-package-card__footer {
@@ -1200,14 +1313,13 @@ details.api-card > summary::marker {
   .api-package-card,
   .api-module-card {
     animation: none !important;
-    transition: 
+    transition:
       box-shadow 0.15s ease-out,
       border-color 0.15s ease-out;
   }
-  
+
   .api-package-card:hover,
   .api-module-card:hover {
     transform: none !important;
   }
 }
-

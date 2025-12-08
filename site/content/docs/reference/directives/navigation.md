@@ -243,7 +243,7 @@ To get the best results, add these fields to your pages' frontmatter:
 title: My Page
 description: A helpful description for cards
 icon: book           # Icon name (book, code, rocket, etc.)
-card_color: blue     # Card color (blue, green, purple, orange, etc.)
+  card_color: blue     # Card color (blue, green, purple, orange, etc.)
 weight: 10           # Sort order (lower = first)
 tags: [guide, python]  # For related pages
 ---

@@ -7,7 +7,6 @@ origin tracking, key explanations, and issue detection.
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -100,7 +99,12 @@ class TestConfigComparisonResult:
             source1="local",
             source2="production",
             diffs=[
-                ConfigDiff(path="site.baseurl", type="changed", old_value="/", new_value="https://example.com"),
+                ConfigDiff(
+                    path="site.baseurl",
+                    type="changed",
+                    old_value="/",
+                    new_value="https://example.com",
+                ),
                 ConfigDiff(path="build.debug", type="removed", old_value=True),
                 ConfigDiff(path="site.analytics_id", type="added", new_value="GA-123456"),
             ],
@@ -267,7 +271,9 @@ class TestConfigInspector:
         (defaults / "site.yaml").write_text("site:\n  title: Test Site\n  baseurl: /\n")
         (defaults / "build.yaml").write_text("build:\n  parallel: true\n  incremental: true\n")
         (envs / "local.yaml").write_text("build:\n  debug: true\n")
-        (envs / "production.yaml").write_text("site:\n  baseurl: https://example.com\nbuild:\n  debug: false\n")
+        (envs / "production.yaml").write_text(
+            "site:\n  baseurl: https://example.com\nbuild:\n  debug: false\n"
+        )
         (profiles / "dev.yaml").write_text("build:\n  verbose: true\n")
 
         return site
@@ -383,7 +389,9 @@ class TestConfigInspector:
     def test_find_issues_deprecated_keys(self, inspector):
         """Test finding deprecated keys."""
         # Patch DEPRECATED_KEYS
-        with patch("bengal.debug.config_inspector.DEPRECATED_KEYS", {"old.key": {"message": "Use new.key"}}):
+        with patch(
+            "bengal.debug.config_inspector.DEPRECATED_KEYS", {"old.key": {"message": "Use new.key"}}
+        ):
             inspector.site.config = {"old": {"key": "value"}}
 
             findings = inspector.find_issues()
@@ -484,4 +492,3 @@ class TestConfigInspectorExplainKey:
 
                 # Should return None for non-existent key
                 assert explanation is None
-

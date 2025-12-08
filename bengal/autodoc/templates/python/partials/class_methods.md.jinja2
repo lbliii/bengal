@@ -18,28 +18,29 @@ parameters, returns, raises, examples, and inherited methods.
   {% call(method_item) safe_for(own_methods, "*No methods found.*") %}
     {% call safe_render("method", method_item) %}
       {% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
-      <details class="api-method">
-        <summary class="api-method__header">
-          <code class="api-method__name">{{ method_item.name }}</code>
-          {% if method_item.metadata.is_async %}
-            <span class="api-badge--tiny api-badge--async">async</span>
-          {% endif %}
-          {% if method_item.metadata.is_classmethod %}
-            <span class="api-badge--tiny api-badge--classmethod">classmethod</span>
-          {% endif %}
-          {% if method_item.metadata.is_staticmethod %}
-            <span class="api-badge--tiny api-badge--staticmethod">staticmethod</span>
-          {% endif %}
+      <details class="api-card api-card--method">
+        <summary class="api-card__header">
+          <code class="api-card__name">{{ method_item.name }}</code>
+          <div class="api-card__badges">
+            {% if method_item.metadata.is_async %}
+              <span class="api-badge--compact api-badge--async">async</span>
+            {% endif %}
+            {% if method_item.metadata.is_classmethod %}
+              <span class="api-badge--compact api-badge--method">classmethod</span>
+            {% endif %}
+            {% if method_item.metadata.is_staticmethod %}
+              <span class="api-badge--compact api-badge--method">staticmethod</span>
+            {% endif %}
+          </div>
+          <span class="api-card__toggle">▸</span>
         </summary>
 
-        <div class="api-method__content">
+        <div class="api-card__body">
           {% if method_item.metadata.signature %}
-          <div class="code-block-wrapper">
-             <pre class="api-method__signature"><code class="language-python">{{ method_item.metadata.signature }}</code></pre>
-          </div>
+             <div class="api-signature">{{ method_item.metadata.signature }}</div>
           {% endif %}
 
-          <p class="api-method__description">
+          <p class="api-card__description">
             {{ method_item.description | default('*No description provided.*') | trim }}
           </p>
 
@@ -85,11 +86,11 @@ parameters, returns, raises, examples, and inherited methods.
           {# Returns #}
           {% if method_item.metadata.returns %}
           <div class="api-returns">
-            <h5 class="api-label">Returns</h5>
-            <p>
-              <code>{{ method_item.metadata.returns }}</code>
+            <span class="api-returns__label">Returns</span>
+            <div class="api-returns__desc">
+              <span class="api-returns__type">{{ method_item.metadata.returns }}</span>
               {% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}
-            </p>
+            </div>
           </div>
           {% endif %}
 

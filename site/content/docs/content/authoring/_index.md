@@ -3,10 +3,10 @@ title: Content Authoring
 description: Markdown, MyST directives, and shortcodes
 weight: 20
 category: guide
-icon: edit
-card_color: blue
+params:
+  card_color: blue
+  icon: edit
 ---
-
 # Writing Content
 
 Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/) extensions for rich documentation.

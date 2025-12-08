@@ -2,11 +2,11 @@
 title: Meta & Operations
 description: Performance, testing, and project structure
 weight: 50
-icon: tag
 cascade:
   type: doc
+params:
+  icon: tag
 ---
-
 # Meta & Operations
 
 Operational details, standards, and project meta-information.
@@ -20,12 +20,12 @@ flowchart LR
         B[Performance]
         C[Organization]
     end
-    
+
     subgraph Extensibility
         D[Extension Points]
         E[Plugin Hooks]
     end
-    
+
     A --> Quality[Quality Assurance]
     B --> Quality
     C --> Maintainability[Maintainability]

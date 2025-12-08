@@ -2,14 +2,13 @@
 title: Reference
 description: Technical specifications, directives, and architecture
 weight: 40
-icon: bookmark
+menu:
+  main: {weight: 30}
 cascade:
   type: doc
-menu:
-  main:
-    weight: 30
+params:
+  icon: bookmark
 ---
-
 # Reference
 
 Complete technical documentation for Bengal's APIs, syntax, and internals.

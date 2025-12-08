@@ -3,10 +3,10 @@ title: Analysis
 description: Site structure analysis tools
 weight: 20
 category: guide
-icon: search
-card_color: green
+params:
+  card_color: green
+  icon: search
 ---
-
 # Site Analysis
 
 Analyze your site's structure to improve navigation and discoverability.

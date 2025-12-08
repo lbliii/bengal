@@ -15,27 +15,28 @@ Handles property signatures and descriptions safely.
 
   {% call(prop_item) safe_for(properties, "*No properties found.*") %}
     {% call safe_render("property", prop_item) %}
-      <details class="api-method api-property">
-        <summary class="api-method__header">
-          <code class="api-method__name">{{ prop_item.name }}</code>
-          <span class="api-badge--tiny api-badge--property">property</span>
+      <details class="api-card api-card--property">
+        <summary class="api-card__header">
+          <code class="api-card__name">{{ prop_item.name }}</code>
+          <div class="api-card__badges">
+            <span class="api-badge--compact api-badge--property">property</span>
+          </div>
+          <span class="api-card__toggle">▸</span>
         </summary>
 
-        <div class="api-method__content">
+        <div class="api-card__body">
             {% if prop_item.metadata.signature %}
-            <div class="code-block-wrapper">
-               <pre class="api-method__signature"><code class="language-python">{{ prop_item.metadata.signature }}</code></pre>
-            </div>
+               <div class="api-signature">{{ prop_item.metadata.signature }}</div>
             {% endif %}
 
-            <p class="api-method__description">
+            <p class="api-card__description">
                 {{ prop_item.description | default('*No description provided.*') | trim }}
             </p>
 
             {% if prop_item.metadata.returns %}
             <div class="api-returns">
-                <h5 class="api-label">Type</h5>
-                <p><code>{{ prop_item.metadata.returns }}</code></p>
+                <span class="api-returns__label">Type</span>
+                <span class="api-returns__type">{{ prop_item.metadata.returns }}</span>
             </div>
             {% endif %}
         </div>

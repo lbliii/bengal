@@ -23,22 +23,24 @@ Uses shared components for consistency with method documentation.
   <div class="api-methods">
     {% call(current_item) safe_for(public_functions, "*No public functions found.*") %}
       {% call safe_render("function", current_item) %}
-        <details class="api-method">
-          <summary class="api-method__header">
-            <code class="api-method__name">{{ current_item.name }}</code>
-            {% if current_item.metadata.is_async %}
-              <span class="api-badge--tiny api-badge--async">async</span>
-            {% endif %}
+        <details class="api-card api-card--method">
+          <summary class="api-card__header">
+            <code class="api-card__name">{{ current_item.name }}</code>
+            <div class="api-card__badges">
+                {% if current_item.metadata.is_async %}
+                  <span class="api-badge--compact api-badge--async">async</span>
+                {% endif %}
+                <span class="api-badge--compact api-badge--function">function</span>
+            </div>
+            <span class="api-card__toggle">▸</span>
           </summary>
 
-          <div class="api-method__content">
+          <div class="api-card__body">
             {% if current_item.metadata.signature %}
-            <div class="code-block-wrapper">
-               <pre class="api-method__signature"><code class="language-python">{{ current_item.metadata.signature }}</code></pre>
-            </div>
+               <div class="api-signature">{{ current_item.metadata.signature }}</div>
             {% endif %}
 
-            <p class="api-method__description">
+            <p class="api-card__description">
               {{ current_item.description | default('*No description provided.*') | trim }}
             </p>
 
@@ -93,11 +95,11 @@ Uses shared components for consistency with method documentation.
             {# Returns #}
             {% if current_item.metadata.returns %}
             <div class="api-returns">
-              <h5 class="api-label">Returns</h5>
-              <p>
-                <code>{{ current_item.metadata.returns }}</code>
-                {% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}
-              </p>
+              <span class="api-returns__label">Returns</span>
+              <div class="api-returns__desc">
+                  <span class="api-returns__type">{{ current_item.metadata.returns }}</span>
+                  {% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}
+              </div>
             </div>
             {% endif %}
 

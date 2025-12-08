@@ -1,19 +1,23 @@
 ---
 title: Themer Quickstart
 description: Customize themes and create your own designs
-id: themer-qs
-icon: palette
-weight: 30
-type: doc
 draft: false
-lang: en
-tags: [onboarding, theming, quickstart]
-keywords: [theming, templates, css, design]
-category: onboarding
+weight: 30
 aliases:
   - /docs/getting-started/themer-quickstart/
+lang: en
+type: doc
+tags: [onboarding, theming, quickstart]
+keywords:
+  - theming
+  - templates
+  - css
+  - design
+category: onboarding
+params:
+  icon: palette
+id: themer-qs
 ---
-
 # Themer Quickstart
 
 Learn to customize Bengal themes and create your own designs.

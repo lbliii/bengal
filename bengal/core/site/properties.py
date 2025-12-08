@@ -142,7 +142,7 @@ class SitePropertiesMixin:
         if self._theme_obj is None:
             from bengal.core.theme import Theme
 
-            self._theme_obj = Theme.from_config(self.config)
+            self._theme_obj = Theme.from_config(self.config, root_path=self.root_path)
         return self._theme_obj
 
     @property
@@ -174,4 +174,3 @@ class SitePropertiesMixin:
             cache_dir = self.root_path / ".bengal" / "indexes"
             self._query_registry = QueryIndexRegistry(self, cache_dir)
         return self._query_registry
-

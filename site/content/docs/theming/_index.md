@@ -2,11 +2,11 @@
 title: Theming
 description: Templates, assets, and visual customization
 weight: 25
-icon: palette
 cascade:
   type: doc
+params:
+  icon: palette
 ---
-
 # Design & Theming
 
 Control how your site looks with Jinja2 templates, CSS/JS assets, and theme packages.

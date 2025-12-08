@@ -252,6 +252,8 @@ def create_jinja_environment(
     # Add global variables
     env.globals["site"] = site
     env.globals["config"] = site.config
+    # Add theme object for template access (alias for site.theme_config)
+    env.globals["theme"] = site.theme_config
 
     try:
         env.globals["bengal"] = build_template_metadata(site)

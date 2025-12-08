@@ -3,10 +3,10 @@ title: Themes
 description: Use, customize, or create themes
 weight: 30
 category: guide
-icon: palette
-card_color: purple
+params:
+  card_color: purple
+  icon: palette
 ---
-
 # Working with Themes
 
 Themes are complete design packages. Use one as-is, customize it, or build your own.
@@ -22,7 +22,7 @@ flowchart TB
     E[Use your file]
     F[Use theme file]
     G[Use default file]
-    
+
     A --> B
     B -->|Found| E
     B -->|Not found| C

@@ -1,19 +1,23 @@
 ---
 title: Writer Quickstart
 description: Create your first site and start writing content
-id: writer-qs
-icon: pencil
-weight: 20
-type: doc
 draft: false
-lang: en
-tags: [onboarding, writing, quickstart]
-keywords: [writing, content, markdown, frontmatter]
-category: onboarding
+weight: 20
 aliases:
   - /docs/getting-started/writer-quickstart/
+lang: en
+type: doc
+tags: [onboarding, writing, quickstart]
+keywords:
+  - writing
+  - content
+  - markdown
+  - frontmatter
+category: onboarding
+params:
+  icon: pencil
+id: writer-qs
 ---
-
 # Writer Quickstart
 
 Get from zero to published content in 5 minutes. This guide is for content creators who want to focus on writing.
@@ -124,5 +128,3 @@ Common frontmatter fields:
 - **[Theming](/docs/theming/)** — Customize appearance
 
 Happy writing! 🎉
-
-
