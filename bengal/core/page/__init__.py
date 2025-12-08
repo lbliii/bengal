@@ -402,23 +402,13 @@ class Page(
         Returns:
             Relative path string, or None if path was None
         """
-        if path is None:
-            return None
+        from bengal.utils.paths import format_path_for_display
 
-        p = Path(path) if isinstance(path, str) else path
-
-        # Try to make relative to site root
+        base_path = None
         if self._site is not None and hasattr(self._site, "root_path"):
-            try:
-                return str(p.relative_to(self._site.root_path))
-            except ValueError:
-                pass  # Path not relative to site root
+            base_path = self._site.root_path
 
-        # Fallback: show just parent/filename for readability
-        if p.is_absolute():
-            return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
-
-        return str(p)
+        return format_path_for_display(path, base_path)
 
     @property
     def _section(self) -> Any | None:

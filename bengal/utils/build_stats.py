@@ -26,12 +26,14 @@ class BuildWarning:
         """Get shortened path for display."""
         from pathlib import Path
 
+        from bengal.utils.paths import format_path_for_display
+
+        # Try CWD first for backward compatibility
         try:
             return str(Path(self.file_path).relative_to(Path.cwd()))
         except (ValueError, OSError):
-            # If not relative to cwd, try to get just the filename with parent
-            p = Path(self.file_path)
-            return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
+            # Use centralized fallback formatting
+            return format_path_for_display(self.file_path) or self.file_path
 
 
 @dataclass
