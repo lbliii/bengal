@@ -18,12 +18,6 @@ For dynamic content, use client-side JavaScript or edge functions.
 
 Bengal doesn't resize or compress images. Use external tools like `sharp` or a CDN with image optimization.
 
-## No i18n (Yet)
-
-No built-in multilingual support. You can manually organize content by language folder.
-
-Planned for a future release.
-
 ## Large Sites
 
 Sites with 10,000+ pages will have slower full builds. Incremental builds stay fast.
