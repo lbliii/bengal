@@ -69,6 +69,9 @@ class VirtualAutodocOrchestrator:
         """Create Jinja2 environment for HTML templates."""
         import re
 
+        # Import icon function from main template system
+        from bengal.rendering.template_functions.icons import icon
+
         # Template directories in priority order
         template_dirs = []
 
@@ -101,6 +104,9 @@ class VirtualAutodocOrchestrator:
             trim_blocks=True,
             lstrip_blocks=True,
         )
+
+        # Add icon function from main template system
+        env.globals["icon"] = icon
 
         # Add custom tests for template filtering
         def test_match(value: str | None, pattern: str) -> bool:

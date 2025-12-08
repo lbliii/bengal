@@ -31,6 +31,7 @@ from bengal.cli.commands.build import build as build_cmd
 from bengal.cli.commands.clean import clean as clean_cmd
 from bengal.cli.commands.collections import collections as collections_cli
 from bengal.cli.commands.config import config_cli
+from bengal.cli.commands.debug import debug_cli
 from bengal.cli.commands.fix import fix as fix_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
@@ -100,6 +101,9 @@ main.add_command(collections_cli)
 
 # Health checks
 main.add_command(health_cli)
+
+# Debug and diagnostic tools
+main.add_command(debug_cli)
 
 # Project scaffolding
 main.add_command(new)
