@@ -8,7 +8,6 @@ No external dependencies required.
 from __future__ import annotations
 
 import fnmatch
-import hashlib
 from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Any
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -160,7 +160,7 @@ class LocalSource(ContentSource):
         frontmatter, body = _parse_frontmatter(content)
 
         # Generate checksum
-        checksum = hashlib.sha256(content.encode()).hexdigest()[:16]
+        checksum = hash_str(content, truncate=16)
 
         # Get file stats
         stat = path.stat()

@@ -5,12 +5,12 @@ Caches parsed directive content by content hash to avoid expensive
 re-parsing of identical directive blocks.
 """
 
-
 from __future__ import annotations
 
-import hashlib
 from collections import OrderedDict
 from typing import Any
+
+from bengal.utils.hashing import hash_str
 
 
 class DirectiveCache:
@@ -52,11 +52,8 @@ class DirectiveCache:
         # Create combined string
         combined = f"{directive_type}:{content}"
 
-        # Hash it
-        content_hash = hashlib.sha256(combined.encode("utf-8")).hexdigest()[:16]
-
-        # Key format: type:hash
-        return f"{directive_type}:{content_hash}"
+        # Hash it and use key format: type:hash
+        return f"{directive_type}:{hash_str(combined, truncate=16)}"
 
     def get(self, directive_type: str, content: str) -> Any | None:
         """

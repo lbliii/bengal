@@ -94,6 +94,17 @@ Controls how Bengal processes and organizes content.
 | `toc_depth` | `3` | Depth of Table of Contents (h1-h3) |
 | `sort_pages_by` | `"weight"` | Default sort key (`weight`, `date`, `title`) |
 
+### `[markdown]`
+
+Configure the Markdown parsing engine.
+
+```toml
+[markdown]
+parser = "mistune"       # "mistune" (fast, default) or "python-markdown" (full-featured)
+```
+
+**Note**: `mistune` is significantly faster (2-5x) and recommended for most sites. Use `python-markdown` only if you rely on specific Python-Markdown extensions.
+
 ### `[build]`
 
 Build process settings.

@@ -5,11 +5,9 @@ Provides interactive tables for hardware/software support matrices and other
 complex tabular data with filtering, sorting, and searching capabilities.
 """
 
-
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from pathlib import Path
 from re import Match
@@ -18,6 +16,7 @@ from typing import Any
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.file_io import load_data_file
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 __all__ = ["DataTableDirective", "render_data_table"]
@@ -289,8 +288,7 @@ class DataTableDirective(DirectivePlugin):
             Unique table ID
         """
         # Use first 8 chars of SHA256 hash
-        hash_obj = hashlib.sha256(path.encode())
-        return f"data-table-{hash_obj.hexdigest()[:8]}"
+        return f"data-table-{hash_str(path, truncate=8)}"
 
     def _parse_bool(self, value: str) -> bool:
         """Parse boolean option value."""

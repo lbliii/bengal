@@ -5,7 +5,6 @@ Documentation generator - renders DocElements to markdown using templates.
 from __future__ import annotations
 
 import concurrent.futures
-import hashlib
 from pathlib import Path
 from typing import Any, Final
 
@@ -19,6 +18,7 @@ from bengal.autodoc.template_safety import (
     TemplateValidator,
     create_safe_environment,
 )
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -92,7 +92,7 @@ class TemplateCache:
                 metadata_hash,
                 len(element.children) if element.children else 0,
             )
-            element_hash = hashlib.sha256(str(element_data).encode()).hexdigest()[:8]
+            element_hash = hash_str(str(element_data), truncate=8)
 
             return f"{template_name}:{element_hash}:{template_hash}"
         except Exception as e:

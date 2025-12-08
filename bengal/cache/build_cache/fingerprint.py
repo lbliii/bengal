@@ -19,11 +19,11 @@ See Also:
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from bengal.utils.hashing import hash_file
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -93,15 +93,10 @@ class FileFingerprint:
         file_hash = None
 
         if compute_hash:
-            hasher = hashlib.sha256()
             try:
-                with open(file_path, "rb") as f:
-                    while chunk := f.read(8192):
-                        hasher.update(chunk)
-                file_hash = hasher.hexdigest()
+                file_hash = hash_file(file_path)
             except Exception as e:
                 # Hash will be None, rely on mtime/size (graceful degradation)
                 logger.debug("file_hash_computation_failed", path=str(file_path), error=str(e))
 
         return cls(mtime=stat.st_mtime, size=stat.st_size, hash=file_hash)
-

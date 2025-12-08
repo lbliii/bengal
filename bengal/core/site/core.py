@@ -24,7 +24,6 @@ See Also:
 from __future__ import annotations
 
 import shutil
-import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -44,18 +43,12 @@ from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.utils.build_stats import BuildStats
-from bengal.utils.dotdict import DotDict
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.utils.profile import BuildProfile
 
 logger = get_logger(__name__)
-
-# Thread-local storage for rendering pipelines.
-# NOTE: Pipelines are reused per thread (not per page) for performance.
-#       Each thread gets its own pipeline instance to avoid contention.
-_thread_local = threading.local()
 
 
 # Thread-safe output lock for parallel processing.
@@ -319,4 +312,3 @@ class Site(
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
-

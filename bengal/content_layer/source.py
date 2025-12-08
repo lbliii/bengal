@@ -6,11 +6,12 @@ Defines the protocol that all content sources must implement.
 
 from __future__ import annotations
 
-import hashlib
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+
+from bengal.utils.hashing import hash_str
 
 if TYPE_CHECKING:
     from bengal.content_layer.entry import ContentEntry
@@ -104,7 +105,7 @@ class ContentSource(ABC):
         """
         # Sort config items for deterministic hashing
         config_str = f"{self.source_type}:{self.name}:{sorted(self.config.items())}"
-        return hashlib.sha256(config_str.encode()).hexdigest()[:16]
+        return hash_str(config_str, truncate=16)
 
     async def get_last_modified(self) -> datetime | None:
         """

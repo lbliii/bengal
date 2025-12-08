@@ -20,10 +20,11 @@ Related:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
+
+from bengal.utils.hashing import hash_str
 
 
 def _json_default(obj: Any) -> str:
@@ -95,5 +96,4 @@ def compute_config_hash(config: dict[str, Any]) -> str:
     )
 
     # Compute SHA-256 and truncate to 16 chars (64 bits - collision-resistant enough)
-    full_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-    return full_hash[:16]
+    return hash_str(serialized, truncate=16)

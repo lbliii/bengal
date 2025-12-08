@@ -23,12 +23,12 @@ See Also:
 
 from __future__ import annotations
 
-import hashlib
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from bengal.utils.hashing import hash_bytes
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -630,12 +630,9 @@ class Asset:
         Returns:
             Hash string (first 8 characters of SHA256)
         """
-        hasher = hashlib.sha256()
-
-        for chunk in self._hash_source_chunks():
-            hasher.update(chunk)
-
-        self.fingerprint = hasher.hexdigest()[:8]
+        # Concatenate all chunks and hash
+        all_bytes = b"".join(self._hash_source_chunks())
+        self.fingerprint = hash_bytes(all_bytes, truncate=8)
         return self.fingerprint
 
     def optimize(self) -> Asset:

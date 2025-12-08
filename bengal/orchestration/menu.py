@@ -22,11 +22,11 @@ See Also:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -200,7 +200,7 @@ class MenuOrchestrator:
 
         # Hash to create cache key
         data_str = json.dumps(cache_data, sort_keys=True)
-        return hashlib.sha256(data_str.encode()).hexdigest()
+        return hash_str(data_str)
 
     def _build_auto_menu_with_dev_bundling(self) -> list[dict]:
         """
