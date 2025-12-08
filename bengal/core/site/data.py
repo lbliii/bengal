@@ -103,7 +103,7 @@ class DataLoadingMixin:
                     error_type=type(e).__name__,
                 )
 
-        wrapped_data = wrap_data(data)
+        wrapped_data: DotDict = wrap_data(data)
 
         if data:
             logger.debug(

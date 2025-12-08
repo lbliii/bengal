@@ -893,7 +893,8 @@ def _resolve_link_url(renderer: Any, link: str) -> str:
 
     page = _resolve_page(xref_index, link, current_page_dir)
     if page and hasattr(page, "url"):
-        return page.url
+        url: str = page.url
+        return url
 
     # Fallback: treat as relative path
     return link

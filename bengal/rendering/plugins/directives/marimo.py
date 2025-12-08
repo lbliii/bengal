@@ -165,7 +165,7 @@ class MarimoCellDirective(DirectivePlugin):
 
             # Build the app and render to HTML
             generator.build()
-            html = generator.render_html()
+            html: str = generator.render_html()
 
             # TODO: Store in cache
             # if use_cache and label:

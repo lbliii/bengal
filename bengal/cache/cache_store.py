@@ -302,7 +302,7 @@ class CacheStore:
         )
         return entries
 
-    def _load_data(self) -> dict | None:
+    def _load_data(self) -> dict[Any, Any] | None:
         """
         Load raw data from cache file with auto-detection.
 
@@ -317,7 +317,8 @@ class CacheStore:
             try:
                 from bengal.cache.compression import ZstdError, load_compressed
 
-                return load_compressed(self._compressed_path)
+                data: dict[Any, Any] | None = load_compressed(self._compressed_path)
+                return data
             except (ZstdError, json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
                 return None
@@ -326,7 +327,8 @@ class CacheStore:
         if self.cache_path.exists():
             try:
                 with open(self.cache_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load cache {self.cache_path}: {e}")
                 return None

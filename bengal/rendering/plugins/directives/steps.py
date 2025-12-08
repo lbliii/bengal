@@ -191,7 +191,7 @@ class StepsDirective(DirectivePlugin):
                 # Look backwards through tokens for the most recent heading
                 for token in reversed(state.tokens):
                     if isinstance(token, dict) and token.get("type") == "heading":
-                        level = token.get("attrs", {}).get("level", 2)
+                        level = int(token.get("attrs", {}).get("level", 2))
                         # Steps should be one level deeper than parent heading
                         return min(level + 1, 6)
         except (AttributeError, TypeError):
@@ -247,7 +247,8 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         md_instance = renderer._md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
+                result: str = md_instance.inline(text)
+                return result
             except Exception as e:
                 logger.debug(
                     "steps_inline_parse_failed",
@@ -261,7 +262,8 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         md_instance = renderer.md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
+                result = str(md_instance.inline(text))
+                return result
             except Exception as e:
                 logger.debug(
                     "steps_inline_parse_failed",

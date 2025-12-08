@@ -439,7 +439,8 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         md_instance = renderer._md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
+                result: str = md_instance.inline(text)
+                return result
             except Exception as e:
                 logger.debug(
                     "glossary_inline_parse_failed",
@@ -453,7 +454,8 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         md_instance = renderer.md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
+                result = str(md_instance.inline(text))
+                return result
             except Exception as e:
                 logger.debug(
                     "glossary_inline_parse_failed",

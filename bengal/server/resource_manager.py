@@ -146,7 +146,8 @@ class ResourceManager:
                 )
                 pass
 
-        return self.register("PID File", pidfile_path, cleanup)
+        self.register("PID File", pidfile_path, cleanup)
+        return pidfile_path
 
     def cleanup(self, signum: int | None = None) -> None:
         """

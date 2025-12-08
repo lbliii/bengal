@@ -631,7 +631,7 @@ class PythonExtractor(Extractor):
 
         # Per-type override
         by_type = self.config.get("include_inherited_by_type", {})
-        return by_type.get(element_type, False)
+        return bool(by_type.get(element_type, False))
 
     def _synthesize_inherited_members(self, class_elem: DocElement) -> None:
         """

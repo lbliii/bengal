@@ -116,7 +116,8 @@ class VariableSubstitutionPlugin:
             def text_with_substitution(text: str) -> str:
                 """Render text with variable substitution."""
                 substituted = self.substitute_variables(text)
-                return original_text(substituted)
+                result: str = original_text(substituted)
+                return result
 
             # Replace text renderer
             md.renderer.text = text_with_substitution

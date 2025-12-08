@@ -78,8 +78,6 @@ class CrossReferencePlugin:
             # Replace text renderer
             md.renderer.text = text_with_xref
 
-        return md
-
     def _substitute_xrefs(self, html: str) -> str:
         """
         Substitute [[link]] patterns in HTML, avoiding code blocks.

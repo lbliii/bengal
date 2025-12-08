@@ -395,7 +395,7 @@ def render_literalinclude(renderer: Any, text: str, **attrs: Any) -> str:
     # Use mistune's block_code renderer if available
     if hasattr(renderer, "block_code"):
         # Render as code block with syntax highlighting
-        html = renderer.block_code(code, language)
+        html: str = renderer.block_code(code, language)
     else:
         # Fallback: simple code block
         lang_attr = f' class="language-{language}"' if language else ""
