@@ -150,9 +150,30 @@ class PythonExtractor(Extractor):
                 file_elements = self._extract_file(py_file)
                 elements.extend(file_elements)
             except SyntaxError as e:
-                print(f"  ⚠️  Syntax error in {py_file}: {e}")
+                logger.warning(
+                    f"Syntax error in {py_file.relative_to(directory) if py_file.is_relative_to(directory) else py_file}\n"
+                    f"  Line {e.lineno}: {e.msg}\n"
+                    f"  Tip: Fix the syntax error or add to exclude patterns"
+                )
             except Exception as e:
-                print(f"  ⚠️  Error extracting {py_file}: {e}")
+                import traceback
+
+                # Get the actual location where error occurred
+                tb = traceback.extract_tb(e.__traceback__)
+                if tb:
+                    last_frame = tb[-1]
+                    error_location = (
+                        f"{last_frame.filename}:{last_frame.lineno} in {last_frame.name}"
+                    )
+                else:
+                    error_location = "unknown location"
+
+                logger.warning(
+                    f"Failed to extract {py_file.relative_to(directory) if py_file.is_relative_to(directory) else py_file}\n"
+                    f"  Error: {type(e).__name__}: {e}\n"
+                    f"  Location: {error_location}\n"
+                    f"  Tip: This may be a bug in the extractor - report if persistent"
+                )
 
         # Second pass: build class index
         for element in elements:
@@ -682,11 +703,17 @@ class PythonExtractor(Extractor):
                     )
                 )
 
-        # Build raises info
+        # Build raises info (parsed.raises is a list of dicts, not a dict)
         raises: list[RaisesInfo] = []
         if hasattr(parsed, "raises") and parsed.raises:
-            for exc_type, exc_desc in parsed.raises.items():
-                raises.append(RaisesInfo(type_name=exc_type, description=exc_desc))
+            for raise_item in parsed.raises:
+                if isinstance(raise_item, dict):
+                    raises.append(
+                        RaisesInfo(
+                            type_name=raise_item.get("type", ""),
+                            description=raise_item.get("description", ""),
+                        )
+                    )
 
         return ParsedDocstring(
             summary=getattr(parsed, "summary", "") or "",
