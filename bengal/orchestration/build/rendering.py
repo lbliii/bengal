@@ -134,20 +134,20 @@ def phase_assets(
 
 def phase_render(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     parallel: bool,
     quiet: bool,
     verbose: bool,
     memory_optimized: bool,
-    pages_to_build: list,
-    tracker,
-    profile,
-    progress_manager,
-    reporter,
+    pages_to_build: list[Page],
+    tracker: DependencyTracker | None,
+    profile: BuildProfile,
+    progress_manager: LiveProgressManager | None,
+    reporter: ProgressReporter | None,
     profile_templates: bool = False,
-    early_context=None,
-):
+    early_context: BuildContext | None = None,
+) -> None:
     """
     Phase 14: Render Pages.
 

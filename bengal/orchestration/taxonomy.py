@@ -810,7 +810,9 @@ class TaxonomyOrchestrator:
             pages_to_create.append(tag_page)
         return pages_to_create
 
-    def generate_tag_pages(self, tags: list, selective: bool = False, context: BuildContext = None):
+    def generate_tag_pages(
+        self, tags: list[str], selective: bool = False, context: BuildContext | None = None
+    ) -> list[Page]:
         if context:
             self.threshold = context.get("threshold", 20)  # DI from context
         if selective and len(tags) < self.threshold:
