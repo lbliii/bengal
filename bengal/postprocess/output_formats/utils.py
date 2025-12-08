@@ -111,7 +111,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
     # Fallback: try url property, but STRIP baseurl if present
     # page.url may include baseurl, so we need to remove it
     if hasattr(page, "url"):
-        url = page.url
+        url: str | None = page.url
         if callable(url):
             try:
                 url = url()

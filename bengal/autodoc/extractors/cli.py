@@ -412,7 +412,7 @@ class CLIExtractor(Extractor):
         lines = docstring.split("\n")
 
         in_example = False
-        current_example = []
+        current_example: list[str] = []
 
         for line in lines:
             stripped = line.strip()

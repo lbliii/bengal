@@ -22,7 +22,7 @@ from .suggest import suggest
 
 
 @click.group("graph", cls=BengalGroup)
-def graph_cli():
+def graph_cli() -> None:
     """Commands for analyzing the site's knowledge graph."""
     pass
 
@@ -128,7 +128,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 tree_root = Tree("📁 [header]Site Structure[/header]")
 
                 # Group pages by section
-                sections_dict = {}
+                sections_dict: dict[str, list[Any]] = {}
                 for page in site.pages:
                     # Get section from page path or use root
                     if hasattr(page, "section") and page.section:

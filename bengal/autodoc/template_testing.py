@@ -30,7 +30,7 @@ class TemplateTestCase:
     element_data: dict[str, Any]
     config_data: dict[str, Any]
     expected_content: str | None = None
-    expected_errors: list[str] = None
+    expected_errors: list[str] | None = None
     should_fail: bool = False
     performance_threshold_ms: float | None = None
 
@@ -389,7 +389,7 @@ class RegressionTester:
         if not self.baseline_data:
             return {"message": "No baseline data available for regression testing"}
 
-        regressions = {
+        regressions: dict[str, Any] = {
             "performance_regressions": [],
             "new_failures": [],
             "fixed_tests": [],

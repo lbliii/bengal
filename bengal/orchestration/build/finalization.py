@@ -7,15 +7,22 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.build_context import BuildContext
+    from bengal.utils.cli_output import CLIOutput
+    from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
 
 
 def phase_postprocess(
-    orchestrator: BuildOrchestrator, cli, parallel: bool, ctx, incremental: bool
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    parallel: bool,
+    ctx: BuildContext | Any | None,
+    incremental: bool,
 ) -> None:
     """
     Phase 17: Post-processing.
@@ -96,9 +103,9 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
 
 def run_health_check(
     orchestrator: BuildOrchestrator,
-    profile: BuildProfile = None,
+    profile: BuildProfile | None = None,
     incremental: bool = False,
-    build_context=None,
+    build_context: BuildContext | Any | None = None,
 ) -> None:
     """
     Run health check system with profile-based filtering.
@@ -195,7 +202,9 @@ def run_health_check(
         )
 
 
-def phase_finalize(orchestrator: BuildOrchestrator, verbose: bool, collector) -> None:
+def phase_finalize(
+    orchestrator: BuildOrchestrator, verbose: bool, collector: PerformanceCollector | None
+) -> None:
     """
     Phase 21: Finalize Build.
 

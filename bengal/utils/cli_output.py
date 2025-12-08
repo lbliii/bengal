@@ -96,7 +96,7 @@ class CLIOutput:
 
             self.console = get_console()
         else:
-            self.console = None
+            self.console = None  # type: ignore[assignment]
 
         # Dev mode detection (set by dev server)
         try:

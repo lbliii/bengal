@@ -623,7 +623,7 @@ def get_nav_tree(
 
     def build_tree_recursive(section: Any, depth: int = 0) -> list[dict[str, Any]]:
         """Recursively build navigation tree."""
-        items = []
+        items: list[dict[str, Any]] = []
 
         # Add section's index page if it exists
         if hasattr(section, "index_page") and section.index_page:

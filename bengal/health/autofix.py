@@ -114,7 +114,7 @@ class AutoFixer:
 
     def _suggest_directive_fixes(self, validator_report: Any) -> list[FixAction]:
         """Suggest fixes for directive validation errors and warnings."""
-        fixes = []
+        fixes: list[FixAction] = []
 
         for result in validator_report.results:
             # Handle both errors and warnings (fence nesting is a warning)
@@ -129,7 +129,7 @@ class AutoFixer:
                 # 1. Try metadata (Precise, Preferred)
                 if result.metadata and "fence_warnings" in result.metadata:
                     fence_warnings = result.metadata["fence_warnings"]
-                    files_to_fix = {}
+                    files_to_fix: dict[str, list[int]] = {}
 
                     for w in fence_warnings:
                         file_path_str = w.get("page")
@@ -203,7 +203,7 @@ class AutoFixer:
                                     found_files = list(self.site_root.rglob(file_name))
 
                                     # Use first found file, or first possible path if exists
-                                    file_path = None
+                                    file_path: Path | None = None
                                     for path in found_files[:1] if found_files else possible_paths:
                                         if path.exists():
                                             file_path = path.resolve()

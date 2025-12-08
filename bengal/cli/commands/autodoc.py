@@ -283,11 +283,11 @@ def _generate_python_docs(
     gen_start = time.time()
 
     # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
-    config = autodoc_config if autodoc_config else {"python": python_config}
+    config: dict[str, Any] = autodoc_config if autodoc_config else {"python": python_config}
 
     # DEPRECATED: Markdown generation is deprecated. Use virtual_pages: true instead.
-    cli.warn("⚠️  Markdown-based autodoc generation is deprecated.")
-    cli.warn("   Use virtual_pages: true in autodoc config for HTML-based generation.")
+    cli.warning("⚠️  Markdown-based autodoc generation is deprecated.")
+    cli.warning("   Use virtual_pages: true in autodoc config for HTML-based generation.")
 
     generator = DocumentationGenerator(extractor, config)
 
@@ -392,7 +392,7 @@ def _generate_cli_docs(
     gen_start = time.time()
 
     # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
-    config = autodoc_config if autodoc_config else {"cli": cli_config}
+    config: dict[str, Any] = autodoc_config if autodoc_config else {"cli": cli_config}
     generator = DocumentationGenerator(extractor, config)
     generated_files = generator.generate_all(elements, output_dir)
 
@@ -560,7 +560,7 @@ def autodoc_cli(
     gen_start = time.time()
 
     # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
-    config = autodoc_config if autodoc_config else {"cli": cli_config}
+    config: dict[str, Any] = autodoc_config if autodoc_config else {"cli": cli_config}
     generator = DocumentationGenerator(extractor, config)
     generated_files = generator.generate_all(elements, output_dir)
 
@@ -666,7 +666,7 @@ def _generate_openapi_docs(
     gen_start = time.time()
 
     # Pass full autodoc_config so templates can access all sections
-    config = autodoc_config if autodoc_config else {"openapi": openapi_config}
+    config: dict[str, Any] = autodoc_config if autodoc_config else {"openapi": openapi_config}
     generator = DocumentationGenerator(extractor, config)
 
     cli.info("📝 Generating markdown files...")

@@ -414,7 +414,9 @@ class Asset:
             # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
-            def resolve_import_in_context(import_match: Match[str], layer_name: str | None = None) -> str:
+            def resolve_import_in_context(
+                import_match: Match[str], layer_name: str | None = None
+            ) -> str:
                 """Resolve a single @import statement."""
                 import_path = import_match.group(1)
                 imported_file = base_path / import_path
@@ -670,8 +672,9 @@ class Asset:
 
         try:
             from PIL import Image
+            from PIL.Image import Image as PILImage
 
-            img = Image.open(self.source_path)
+            img: PILImage = Image.open(self.source_path)
 
             # Basic optimization - could be expanded
             if img.mode in ("RGBA", "LA"):

@@ -9,7 +9,7 @@ Handles generation of special pages that don't come from markdown content:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.page.utils import create_synthetic_page
 from bengal.utils.logger import get_logger
@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class SpecialPagesGenerator:
@@ -46,7 +47,7 @@ class SpecialPagesGenerator:
         """
         self.site = site
 
-    def generate(self, build_context=None) -> None:
+    def generate(self, build_context: BuildContext | Any | None = None) -> None:
         """
         Generate all special pages that are enabled.
 
@@ -278,7 +279,7 @@ class SpecialPagesGenerator:
             )
             return False
 
-    def _generate_graph(self, build_context=None) -> bool:
+    def _generate_graph(self, build_context: BuildContext | Any | None = None) -> bool:
         """
         Generate interactive knowledge graph visualization.
 

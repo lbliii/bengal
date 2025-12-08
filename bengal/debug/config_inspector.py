@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from bengal.debug.base import DebugFinding, DebugReport, DebugTool
+from bengal.debug.base import DebugFinding, DebugReport, DebugTool, Severity
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -194,7 +194,7 @@ class ConfigInspector(DebugTool):
         compare_to: str | None = None,
         explain_key: str | None = None,
         list_sources: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> DebugReport:
         """
         Run config inspection.
@@ -271,6 +271,21 @@ class ConfigInspector(DebugTool):
         report.add_finding(
             "info",
             "Use --compare-to, --explain-key, or --list-sources",
+        )
+        return report
+
+    def analyze(self) -> DebugReport:
+        """
+        Perform analysis and return report.
+
+        This is the abstract method required by DebugTool.
+        For parameterized analysis, use run() instead.
+        """
+        report = self.create_report()
+        report.add_finding(
+            title="No analysis parameters provided",
+            description="Use run() method with compare_to, explain_key, or list_sources parameters",
+            severity=Severity.INFO,
         )
         return report
 
@@ -530,9 +545,14 @@ class ConfigInspector(DebugTool):
 
         if key_path in DEPRECATED_KEYS:
             deprecated = True
-            deprecation_message = DEPRECATED_KEYS.get(key_path, {}).get(
-                "message", "This key is deprecated"
-            )
+            deprecated_info = DEPRECATED_KEYS.get(key_path)
+            if deprecated_info:
+                # deprecated_info is tuple[str, str, str] where third element is the message
+                deprecation_message = (
+                    deprecated_info[2] if len(deprecated_info) > 2 else "This key is deprecated"
+                )
+            else:
+                deprecation_message = "This key is deprecated"
 
         return KeyExplanation(
             key_path=key_path,

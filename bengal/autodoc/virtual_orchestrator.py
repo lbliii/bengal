@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2.runtime import Context
 
 from bengal.autodoc.base import DocElement
 from bengal.core.page import Page
@@ -249,7 +250,7 @@ class VirtualAutodocOrchestrator:
         from bengal.rendering.template_engine.url_helpers import with_baseurl
 
         @pass_context
-        def asset_url(ctx, asset_path: str) -> str:
+        def asset_url(ctx: Context, asset_path: str) -> str:
             """Generate URL for an asset with baseurl handling."""
             # Normalize path
             safe_path = (asset_path or "").replace("\\", "/").strip()
@@ -755,31 +756,44 @@ class VirtualAutodocOrchestrator:
         self, element: DocElement, sections: dict[str, Section], doc_type: str
     ) -> Section:
         """Find the appropriate parent section for an element."""
+        # Ensure we have a default section
+        default_section = sections.get("api") or sections.get("cli")
+        if default_section is None:
+            # Create a fallback section if none exists
+            from bengal.utils.url_normalization import join_url_paths
+
+            default_section = Section.create_virtual(
+                name="api",
+                relative_url=join_url_paths("api"),
+                title="API Reference",
+                metadata={},
+            )
+
         if doc_type == "python":
             parts = element.qualified_name.split(".")
             section_path = "api/" + "/".join(parts[:-1]) if len(parts) > 1 else "api"
-            return sections.get(section_path, sections.get("api"))
+            return sections.get(section_path) or sections.get("api") or default_section
         elif doc_type == "cli":
             if element.element_type == "command-group":
-                return sections.get("cli")
+                return sections.get("cli") or default_section
             parts = element.qualified_name.split(".")
             if len(parts) > 1:
                 section_path = f"cli/{'.'.join(parts[:-1]).replace('.', '/')}"
-                return sections.get(section_path, sections.get("cli"))
-            return sections.get("cli")
+                return sections.get(section_path) or sections.get("cli") or default_section
+            return sections.get("cli") or default_section
         elif doc_type == "openapi":
             if element.element_type == "openapi_overview":
-                return sections.get("api")
+                return sections.get("api") or default_section
             elif element.element_type == "openapi_schema":
-                return sections.get("api/schemas", sections.get("api"))
+                return sections.get("api/schemas") or sections.get("api") or default_section
             elif element.element_type == "openapi_endpoint":
                 tags = element.metadata.get("tags", [])
                 if tags:
                     tag_section = sections.get(f"api/tags/{tags[0]}")
                     if tag_section:
                         return tag_section
-                return sections.get("api")
-        return sections.get("api", sections.get("cli"))
+                return sections.get("api") or default_section
+        return sections.get("api") or sections.get("cli") or default_section
 
     def _create_element_page(
         self,

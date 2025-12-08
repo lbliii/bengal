@@ -155,10 +155,9 @@ class CacheStore:
         self.compress = compress
 
         # Compressed path is .json.zst
+        self._compressed_path: Path | None = None
         if compress:
             self._compressed_path = cache_path.with_suffix(".json.zst")
-        else:
-            self._compressed_path = None
 
     def save(
         self,
@@ -213,9 +212,7 @@ class CacheStore:
             with open(self.cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent)
 
-            logger.debug(
-                f"Saved {len(entries)} entries to {self.cache_path} (version {version})"
-            )
+            logger.debug(f"Saved {len(entries)} entries to {self.cache_path} (version {version})")
 
     def load(
         self,
@@ -266,9 +263,7 @@ class CacheStore:
 
         # Validate structure
         if not isinstance(data, dict):
-            logger.error(
-                f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}"
-            )
+            logger.error(f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}")
             return []
 
         # Check version

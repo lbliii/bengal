@@ -32,7 +32,7 @@ from bengal.utils.cli_output import CLIOutput
 
 
 @click.group("config", cls=BengalGroup)
-def config_cli():
+def config_cli() -> None:
     """
     ⚙️  Configuration management and introspection.
 

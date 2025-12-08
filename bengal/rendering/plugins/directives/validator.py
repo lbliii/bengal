@@ -296,15 +296,15 @@ class DirectiveSyntaxValidator:
 
         # End of file: check for unclosed blocks
         if stack:
-            for line, count, dtype, _ in stack:
-                if count == 3:
+            for unclosed_line, unclosed_count, unclosed_dtype, _marker in stack:
+                if unclosed_count == 3:
                     errors.append(
-                        f"Line {line}: Directive '{dtype}' opened with ````` but never closed. "
+                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with ````` but never closed. "
                         f"Add closing ````` or use 4+ backticks (````) if content contains code blocks."
                     )
                 else:
                     errors.append(
-                        f"Line {line}: Directive '{dtype}' opened with {count} backticks but never closed. "
+                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with {unclosed_count} backticks but never closed. "
                         f"Add matching closing fence."
                     )
 

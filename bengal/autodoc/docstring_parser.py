@@ -506,7 +506,7 @@ class NumpyDocstringParser:
 
     def _parse_raises_section(self, section: str) -> list[dict[str, str]]:
         """Parse Raises section (similar to Parameters)."""
-        raises = []
+        raises: list[dict[str, str]] = []
         if not section:
             return raises
 

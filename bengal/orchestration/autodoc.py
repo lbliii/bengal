@@ -19,6 +19,7 @@ from bengal.utils.url_strategy import URLStrategy
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from bengal.autodoc.manifest import AutodocManifest
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
@@ -112,7 +113,7 @@ class AutodocOrchestrator:
 
         return sections, all_pages
 
-    def _create_autodoc_page(self, manifest_page) -> Page | None:
+    def _create_autodoc_page(self, manifest_page: Any) -> Page | None:
         """
         Create a Page object from manifest entry.
 
@@ -275,9 +276,13 @@ class AutodocOrchestrator:
                     if "/" not in section_key:  # Top-level section (api, cli)
                         autodoc_config = self.site.config.get("autodoc", {})
                         if section_key == "api" and "python" in autodoc_config:
-                            section_title = autodoc_config["python"].get("display_name", "API Reference")
+                            section_title = autodoc_config["python"].get(
+                                "display_name", "API Reference"
+                            )
                         elif section_key == "cli" and "cli" in autodoc_config:
-                            section_title = autodoc_config["cli"].get("display_name", "CLI Reference")
+                            section_title = autodoc_config["cli"].get(
+                                "display_name", "CLI Reference"
+                            )
 
                     section = Section(
                         name=section_path_parts[-1],
@@ -306,9 +311,9 @@ class AutodocOrchestrator:
                     parent_section.add_page(page)
             else:
                 section_key = url_parts[0]
-                section = sections_dict.get(section_key)
-                if section:
-                    section.add_page(page)
+                existing_section = sections_dict.get(section_key)
+                if existing_section:
+                    existing_section.add_page(page)
 
         # Create index pages for top-level sections
         for section_key, section in sections_dict.items():

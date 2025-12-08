@@ -102,6 +102,8 @@ class SitePropertiesMixin:
         """
         if self._config_hash is None:
             self._compute_config_hash()
+        # After _compute_config_hash(), _config_hash is guaranteed to be set
+        assert self._config_hash is not None, "config_hash should be computed"
         return self._config_hash
 
     def _compute_config_hash(self) -> None:

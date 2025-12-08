@@ -121,7 +121,7 @@ class ListTableDirective(DirectivePlugin):
         """
         rows = []
         current_row = []
-        current_cell_lines = []
+        current_cell_lines: list[str] = []
 
         lines = content.split("\n")
         i = 0

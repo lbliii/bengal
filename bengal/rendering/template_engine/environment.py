@@ -16,6 +16,7 @@ from typing import Any
 import toml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
+from jinja2.runtime import Context
 
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
@@ -275,7 +276,7 @@ def create_jinja_environment(
     from jinja2 import pass_context
 
     @pass_context
-    def asset_url_with_context(ctx, asset_path: str) -> str:
+    def asset_url_with_context(ctx: Context, asset_path: str) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         return template_engine._asset_url(asset_path, page_context=page)
 

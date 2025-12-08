@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from types import TracebackType
 from typing import Any
 
 from rich.console import Console, Group, RenderableType
@@ -158,13 +159,18 @@ class LiveProgressManager:
             self.live.__enter__()
         return self
 
-    def __exit__(self, *args: object) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit context manager."""
         if self.live:
             # Final update before closing
             self._update_display(force=True)
             try:
-                self.live.__exit__(*args)
+                self.live.__exit__(exc_type, exc_val, exc_tb)
             finally:
                 # Ensure Live display is fully released
                 self.live = None
@@ -197,7 +203,11 @@ class LiveProgressManager:
             self._update_display(force=True)
 
     def update_phase(
-        self, phase_id: str, current: int | None = None, current_item: str | None = None, **metadata: Any
+        self,
+        phase_id: str,
+        current: int | None = None,
+        current_item: str | None = None,
+        **metadata: Any,
     ) -> None:
         """
         Update phase progress.

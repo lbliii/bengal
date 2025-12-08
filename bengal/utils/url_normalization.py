@@ -95,14 +95,14 @@ def join_url_paths(*parts: str) -> str:
         '/api/bengal/core/'
     """
     # Filter out empty parts
-    parts = [p for p in parts if p]
+    filtered_parts = [p for p in parts if p]
 
-    if not parts:
+    if not filtered_parts:
         return "/"
 
     # Join parts, removing leading/trailing slashes from each part
     cleaned_parts = []
-    for part in parts:
+    for part in filtered_parts:
         cleaned = part.strip("/")
         if cleaned:
             cleaned_parts.append(cleaned)

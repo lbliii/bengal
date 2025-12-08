@@ -63,6 +63,7 @@ class DataTableDirective(DirectivePlugin):
         """
         # Get file path from title
         # Try to use parse_title if parser is available OR if parse_title was mocked/overridden
+        path: Any = None
         try:
             # Check if we can safely call parse_title
             # Either parser exists (real mistune usage) or parse_title was overridden (test mock)
@@ -77,7 +78,8 @@ class DataTableDirective(DirectivePlugin):
             # If parse_title fails, fallback to match.group()
             path = m.group() if hasattr(m, "group") else None
 
-        if not path or not path.strip():
+        path_str: str | None = str(path) if path else None
+        if not path_str or not path_str.strip():
             logger.warning(
                 "data_table_no_path",
                 reason="data-table directive missing file path",

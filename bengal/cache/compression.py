@@ -66,8 +66,8 @@ except ImportError:
             class ZstdError(Exception):
                 pass
 
-        zstd = MockZstd()
-        ZstdError = MockZstd.ZstdError
+        zstd = MockZstd()  # type: ignore[assignment]
+        ZstdError = MockZstd.ZstdError  # type: ignore[assignment]
 
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:

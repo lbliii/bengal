@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.build_context import BuildContext
     from bengal.utils.cli_output import CLIOutput
 
 
@@ -147,7 +148,7 @@ def phase_render(
     reporter: ProgressReporter | None,
     profile_templates: bool = False,
     early_context: BuildContext | None = None,
-) -> None:
+) -> BuildContext:
     """
     Phase 14: Render Pages.
 

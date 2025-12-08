@@ -92,8 +92,8 @@ class VariableSubstitutionPlugin:
             context: Dict with variables (page, site, config, etc.)
         """
         self.context = context
-        self.errors = []  # Track substitution errors
-        self.escaped_placeholders = {}  # Track escaped template syntax
+        self.errors: list[str] = []  # Track substitution errors
+        self.escaped_placeholders: dict[str, str] = {}  # Track escaped template syntax
 
     def update_context(self, context: dict[str, Any]) -> None:
         """
@@ -250,7 +250,7 @@ class VariableSubstitutionPlugin:
                     f"Access to private/protected attributes denied: '{part}' in '{expr}'"
                 )
 
-        result = self.context
+        result: Any = self.context
 
         for part in parts:
             # SECURITY: Double-check dunder blocking on actual attribute access

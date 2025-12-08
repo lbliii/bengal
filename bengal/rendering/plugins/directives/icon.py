@@ -149,9 +149,9 @@ class IconDirective(DirectivePlugin):
         # Parse options
         options = dict(self.parse_options(m))
 
-        size = options.get("size", "24")
+        size_str = options.get("size", "24")
         try:
-            size = int(size)
+            size = int(size_str)
         except ValueError:
             size = 24
 
@@ -249,4 +249,3 @@ def _escape_attr(value: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#x27;")
     )
-

@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
@@ -145,8 +145,8 @@ class DependencyTracker:
         self.lock = threading.Lock()
         # Use thread-local storage for current page to support parallel processing
         self.current_page = threading.local()
-        self.content_paths = []
-        self.template_paths = []
+        self.content_paths: list[Path] = []
+        self.template_paths: list[Path] = []
         self.invalidator = CacheInvalidator(
             self._hash_config(), self.content_paths, self.template_paths
         )

@@ -144,7 +144,9 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Show full traditional output instead of live progress (useful for debugging)",
 )
 @click.option(
-    "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal/logs/build.log)"
+    "--log-file",
+    type=click.Path(),
+    help="Write detailed logs to file (default: .bengal/logs/build.log)",
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
@@ -415,9 +417,9 @@ def build(
                     get_profiler,
                 )
 
-                profiler = get_profiler()
-                if profiler:
-                    report = profiler.get_report()
+                template_profiler = get_profiler()
+                if template_profiler:
+                    report = template_profiler.get_report()
                     cli.blank()
                     cli.header("📊 Template Profiling Report")
                     for line in format_profile_report(report, top_n=20).splitlines():
@@ -444,8 +446,8 @@ def build(
                 from bengal.utils.build_summary import display_build_summary
                 from bengal.utils.rich_console import detect_environment
 
-                environment = detect_environment()
-                display_build_summary(stats, environment=environment)
+                console_env = detect_environment()
+                display_build_summary(stats, environment=console_env)
             else:
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))

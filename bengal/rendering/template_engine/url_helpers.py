@@ -10,14 +10,19 @@ Related Modules:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
 
-def url_for(page: Any, site: Any) -> str:
+def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
     Generate URL for a page with base URL support.
 
@@ -83,7 +88,8 @@ def url_for(page: Any, site: Any) -> str:
     # Fallback to slug-based URL for objects
     if url is None:
         try:
-            url = f"/{page.slug}/"
+            if hasattr(page, "slug"):
+                url = f"/{page.slug}/"
         except Exception as e:
             logger.debug(
                 "url_for_slug_access_failed",
@@ -91,12 +97,17 @@ def url_for(page: Any, site: Any) -> str:
                 error_type=type(e).__name__,
                 action="using_root_fallback",
             )
-            url = "/"
+            if url is None:
+                url = "/"
+
+    # Ensure url is never None (type narrowing)
+    if url is None:
+        url = "/"
 
     return with_baseurl(url, site)
 
 
-def with_baseurl(path: str, site: Any) -> str:
+def with_baseurl(path: str, site: Site) -> str:
     """
     Apply base URL prefix to a path.
 
@@ -135,7 +146,7 @@ def with_baseurl(path: str, site: Any) -> str:
     return f"{base_path}{path}"
 
 
-def filter_dateformat(date: Any, format: str = "%Y-%m-%d") -> str:
+def filter_dateformat(date: datetime | str | None, format: str = "%Y-%m-%d") -> str:
     """
     Format a date using strftime.
 
@@ -150,6 +161,8 @@ def filter_dateformat(date: Any, format: str = "%Y-%m-%d") -> str:
         return ""
 
     try:
-        return str(date.strftime(format))
+        if isinstance(date, datetime):
+            return str(date.strftime(format))
+        return str(date)
     except (AttributeError, ValueError):
         return str(date)

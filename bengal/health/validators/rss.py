@@ -148,7 +148,7 @@ class RSSValidator(BaseValidator):
 
     def _check_feed_items(self, root: ET.Element, total_dated_pages: int) -> list[CheckResult]:
         """Check feed items are present and reasonable."""
-        results = []
+        results: list[CheckResult] = []
 
         channel = root.find("channel")
         if channel is None:
@@ -203,7 +203,7 @@ class RSSValidator(BaseValidator):
 
     def _check_feed_urls(self, root: ET.Element, site: Site) -> list[CheckResult]:
         """Check URLs in feed are properly formatted."""
-        results = []
+        results: list[CheckResult] = []
 
         channel = root.find("channel")
         if channel is None:

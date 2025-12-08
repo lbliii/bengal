@@ -11,7 +11,7 @@ Commands:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 
@@ -25,7 +25,7 @@ from bengal.utils.profile import BuildProfile
 from bengal.utils.traceback_config import TracebackStyle
 
 if TYPE_CHECKING:
-    pass
+    from bengal.core.page import Page
 
 
 @click.command("explain")
@@ -119,7 +119,11 @@ def explain(
 
     cache_dir = site.root_path / ".bengal"
     cache_path = cache_dir / "cache.json"
-    cache = BuildCache.load(cache_path) if cache_path.exists() or (cache_path.with_suffix(".json.zst")).exists() else None
+    cache = (
+        BuildCache.load(cache_path)
+        if cache_path.exists() or (cache_path.with_suffix(".json.zst")).exists()
+        else None
+    )
 
     # Create template engine for template resolution
     template_engine = None
@@ -186,7 +190,7 @@ def explain(
             cli.success("Page explanation complete")
 
 
-def _find_similar_pages(query: str, pages) -> list[str]:
+def _find_similar_pages(query: str, pages: list[Page]) -> list[str]:
     """Find pages with similar paths."""
     query_lower = query.lower()
     matches = []
@@ -200,7 +204,10 @@ def _find_similar_pages(query: str, pages) -> list[str]:
             continue
 
         # Similar filename
-        if page.source_path.stem.lower() in query_lower or query_lower in page.source_path.stem.lower():
+        if (
+            page.source_path.stem.lower() in query_lower
+            or query_lower in page.source_path.stem.lower()
+        ):
             matches.append(str(page.source_path))
 
     # Sort by relevance (shorter paths first, then alphabetically)
@@ -208,7 +215,7 @@ def _find_similar_pages(query: str, pages) -> list[str]:
     return matches
 
 
-def _convert_paths_to_strings(obj):
+def _convert_paths_to_strings(obj: Any) -> Any:
     """Recursively convert Path objects to strings for JSON serialization."""
     if isinstance(obj, Path):
         return str(obj)
@@ -217,4 +224,3 @@ def _convert_paths_to_strings(obj):
     elif isinstance(obj, list):
         return [_convert_paths_to_strings(item) for item in obj]
     return obj
-

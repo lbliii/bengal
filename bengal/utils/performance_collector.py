@@ -16,7 +16,6 @@ Example:
     collector.save(stats)
 """
 
-
 from __future__ import annotations
 
 import json
@@ -67,9 +66,9 @@ class PerformanceCollector:
             metrics_dir: Directory to store metrics (default: .bengal/metrics)
         """
         self.metrics_dir = metrics_dir or Path(".bengal/metrics")
-        self.start_time = None
-        self.start_memory = None
-        self.start_rss = None
+        self.start_time: float | None = None
+        self.start_memory: int | None = None
+        self.start_rss: int | None = None
 
         # Initialize psutil if available
         if HAS_PSUTIL:

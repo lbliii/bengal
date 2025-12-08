@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from bengal.analysis.link_suggestions import LinkSuggestionResults
     from bengal.analysis.page_rank import PageRankResults
     from bengal.analysis.path_analysis import PathAnalysisResults
+    from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
     from bengal.core.site import Site
 
@@ -124,7 +125,7 @@ class KnowledgeGraph:
         # Note: page_by_id no longer needed - pages are directly hashable
 
         # Analysis results
-        self.metrics: GraphMetrics = None
+        self.metrics: GraphMetrics | None = None
         self._built = False
 
         # Analysis results cache
@@ -265,7 +266,7 @@ class KnowledgeGraph:
                     self.incoming_refs[target] += 1  # Direct page reference
                     self.outgoing_refs[page].add(target)  # Direct page reference
 
-    def _resolve_link(self, link: str) -> Page:
+    def _resolve_link(self, link: str) -> Page | None:
         """
         Resolve a link string to a target page.
 
@@ -283,12 +284,14 @@ class KnowledgeGraph:
 
         # Try by ID
         if link.startswith("id:"):
-            return xref.get("by_id", {}).get(link[3:])
+            page = xref.get("by_id", {}).get(link[3:])
+            return page if page is not None else None
 
         # Try by path
         if "/" in link or link.endswith(".md"):
             clean_link = link.replace(".md", "").strip("/")
-            return xref.get("by_path", {}).get(clean_link)
+            page = xref.get("by_path", {}).get(clean_link)
+            return page if page is not None else None
 
         # Try by slug
         pages = xref.get("by_slug", {}).get(link, [])
@@ -515,7 +518,7 @@ class KnowledgeGraph:
             )
         return self._analyzer.get_connectivity_score(page)
 
-    def get_layers(self):
+    def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
 
@@ -548,6 +551,8 @@ class KnowledgeGraph:
         if not self._built:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting metrics.")
 
+        # After build(), metrics is guaranteed to be set
+        assert self.metrics is not None, "metrics should be computed after build()"
         return self.metrics
 
     def format_stats(self) -> str:

@@ -115,13 +115,18 @@ class SiteFactoriesMixin:
             # Fall back to single-file config (legacy)
             from bengal.config.loader import ConfigLoader
 
-            loader = ConfigLoader(root_path)
-            config = loader.load(config_path)
+            legacy_loader = ConfigLoader(root_path)
+            if config_path is not None:
+                config = legacy_loader.load(config_path)
+            else:
+                config = {}
 
         return cls(root_path=root_path, config=config)
 
     @classmethod
-    def for_testing(cls, root_path: Path | None = None, config: dict[str, Any] | None = None) -> Self:
+    def for_testing(
+        cls, root_path: Path | None = None, config: dict[str, Any] | None = None
+    ) -> Self:
         """
         Create a Site instance for testing without requiring a config file.
 
@@ -160,4 +165,3 @@ class SiteFactoriesMixin:
             }
 
         return cls(root_path=root_path, config=config)
-

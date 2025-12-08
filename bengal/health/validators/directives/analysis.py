@@ -65,7 +65,7 @@ class DirectiveAnalyzer:
         Returns:
             Dictionary with directive statistics and issues
         """
-        data = {
+        data: dict[str, Any] = {
             "total_directives": 0,
             "by_type": defaultdict(int),
             "by_page": defaultdict(list),

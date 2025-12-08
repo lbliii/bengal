@@ -8,20 +8,21 @@ at the project root.
 from __future__ import annotations
 
 import importlib.util
-import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
+
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def load_collections(
     project_root: Path,
     collection_file: str = "collections.py",
-) -> dict[str, CollectionConfig]:
+) -> dict[str, CollectionConfig[Any]]:
     """
     Load collection definitions from project's collections.py file.
 
@@ -111,7 +112,8 @@ def load_collections(
             names=list(collections.keys()),
         )
 
-        return collections
+        # Type assertion: collections dict contains CollectionConfig values
+        return cast(dict[str, CollectionConfig[Any]], collections)
 
     except Exception as e:
         logger.error(
@@ -157,6 +159,8 @@ def get_collection_for_path(
 
     # Check each collection's directory
     for name, config in collections.items():
+        if config.directory is None:
+            continue
         try:
             # Check if file is under this collection's directory
             rel_path.relative_to(config.directory)

@@ -108,7 +108,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
 
     # Check for fence nesting warnings
     if fence_warnings:
-        file_groups = {}
+        file_groups: dict[str, list[dict[str, Any]]] = {}
         metadata_warnings = []
 
         for w in fence_warnings:

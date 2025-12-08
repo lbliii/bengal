@@ -7,12 +7,11 @@ from typing import Any
 
 import click
 
-from bengal.cli.base import BengalCommand, BengalGroup
+from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import (
     command_metadata,
     get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
 
 # Template for generated collections.py file
@@ -141,7 +140,9 @@ def collections(ctx: click.Context) -> None:
 )
 @handle_cli_errors(show_art=False)
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing collections.py")
-@click.option("--minimal", "-m", is_flag=True, help="Generate minimal template using built-in schemas")
+@click.option(
+    "--minimal", "-m", is_flag=True, help="Generate minimal template using built-in schemas"
+)
 @click.argument("source", type=click.Path(), default=".")
 def init_collections(force: bool, minimal: bool, source: str) -> None:
     """
@@ -219,7 +220,7 @@ def list_collections(config: str | None, source: str) -> None:
     """
     from dataclasses import fields, is_dataclass
 
-    from bengal.collections import load_collections
+    from bengal.collections import CollectionConfig, load_collections
 
     cli = get_cli_output()
     root_path = Path(source).resolve()
@@ -229,7 +230,7 @@ def list_collections(config: str | None, source: str) -> None:
     cli.blank()
 
     # Load collections
-    loaded = load_collections(root_path)
+    loaded: dict[str, CollectionConfig[Any]] = load_collections(root_path)
 
     if not loaded:
         cli.warning("No collections defined")
@@ -240,14 +241,14 @@ def list_collections(config: str | None, source: str) -> None:
         return
 
     # Display each collection
-    for name, config in loaded.items():
+    for name, coll_config in loaded.items():
         cli.info(f"📁 {name}")
-        cli.detail(f"Directory: content/{config.directory}", indent=1)
-        cli.detail(f"Schema: {config.schema.__name__}", indent=1)
-        cli.detail(f"Strict: {config.strict}", indent=1)
+        cli.detail(f"Directory: content/{coll_config.directory}", indent=1)
+        cli.detail(f"Schema: {coll_config.schema.__name__}", indent=1)
+        cli.detail(f"Strict: {coll_config.strict}", indent=1)
 
         # Show schema fields
-        if is_dataclass(config.schema):
+        if is_dataclass(coll_config.schema):
             cli.detail("Fields:", indent=1)
             for f in fields(config.schema):
                 required = f.default is f.default_factory is type(f.default)
@@ -386,10 +387,9 @@ def validate_collections(collection: str | None, config: str | None, source: str
         cli.blank()
 
         # Show detailed errors
-        for file_path, errors in errors_by_file.items():
-            cli.info(f"  {file_path}")
+        for err_file_path, errors in errors_by_file.items():
+            cli.info(f"  {err_file_path}")
             for error in errors:
                 cli.detail(f"    └─ {error}", indent=0)
 
     cli.blank()
-

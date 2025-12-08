@@ -159,12 +159,12 @@ class LinkCheckOrchestrator:
         class LinkExtractor(HTMLParser):
             """Extract links from HTML, skipping links inside code blocks."""
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.links: list[str] = []
                 self._in_code_block = 0  # Track nesting depth of code blocks
 
-            def handle_starttag(self, tag, attrs):
+            def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
                 # Track code block tags
                 if tag in ("code", "pre"):
                     self._in_code_block += 1
@@ -174,7 +174,7 @@ class LinkCheckOrchestrator:
                         if attr == "href" and value:
                             self.links.append(value)
 
-            def handle_endtag(self, tag):
+            def handle_endtag(self, tag: str) -> None:
                 # Exit code block when closing tag found
                 if tag in ("code", "pre"):
                     self._in_code_block = max(0, self._in_code_block - 1)

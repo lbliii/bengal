@@ -152,7 +152,7 @@ def validate(
             cli.info(f"Found {len(context)} changed file(s)")
 
     # Load cache for incremental validation
-    cache = None
+    cache: BuildCache | None = None
     if incremental or changed:
         from bengal.cache import BuildCache
 
@@ -352,7 +352,7 @@ def _run_watch_mode(
     observer.start()
 
     # Handle Ctrl+C gracefully
-    def signal_handler(sig, frame):
+    def signal_handler(sig: int, frame: Any) -> None:
         cli.blank()
         cli.info("Stopping watch mode...")
         observer.stop()

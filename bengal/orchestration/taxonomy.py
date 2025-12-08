@@ -381,7 +381,7 @@ class TaxonomyOrchestrator:
         self.generate_dynamic_pages_for_tags_with_cache(affected_tags, taxonomy_index=None)
 
     def generate_dynamic_pages_for_tags_with_cache(
-        self, affected_tags: set, taxonomy_index: TaxonomyIndex = None
+        self, affected_tags: set, taxonomy_index: TaxonomyIndex | None = None
     ) -> None:
         """
         Generate dynamic pages only for specific affected tags with TaxonomyIndex optimization (Phase 2c.2).

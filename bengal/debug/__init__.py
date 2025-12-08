@@ -32,6 +32,8 @@ See Also:
 
 from __future__ import annotations
 
+from typing import Any
+
 # Debug tool infrastructure
 from bengal.debug.base import (
     DebugFinding,
@@ -100,7 +102,7 @@ from bengal.debug.shortcode_sandbox import (
 
 
 # Lazy imports for optional components
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy import for optional components."""
     if name == "PageExplainer":
         from bengal.debug.explainer import PageExplainer

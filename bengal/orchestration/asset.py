@@ -377,7 +377,7 @@ class AssetOrchestrator:
                         pending_updates >= 10 or (now - last_update_time) >= update_interval
                     )
 
-                    if should_update:
+                    if should_update and progress_manager is not None:
                         with lock:
                             completed_count += pending_updates
                             progress_manager.update_phase(

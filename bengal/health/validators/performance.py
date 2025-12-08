@@ -106,7 +106,7 @@ class PerformanceValidator(BaseValidator):
 
     def _check_throughput(self, site: Site, build_stats: dict) -> list[CheckResult]:
         """Check pages per second throughput."""
-        results = []
+        results: list[CheckResult] = []
 
         build_time_ms = build_stats.get("build_time_ms", 0)
         total_pages = build_stats.get("total_pages", 0)
@@ -139,7 +139,7 @@ class PerformanceValidator(BaseValidator):
 
     def _check_slow_pages(self, site: Site, build_stats: dict) -> list[CheckResult]:
         """Check for individual slow pages."""
-        results = []
+        results: list[CheckResult] = []
 
         # This would require per-page timing data
         # For now, just check rendering time vs total time

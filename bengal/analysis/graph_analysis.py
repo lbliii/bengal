@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
+    from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
 
 
@@ -193,7 +194,7 @@ class GraphAnalyzer:
 
         return orphans
 
-    def get_layers(self):
+    def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
 

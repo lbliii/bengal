@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -10,7 +11,7 @@ from bengal.cli.commands.skeleton import skeleton_cli
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 
 # User profiles with customization
-PROFILES = {
+PROFILES: dict[str, dict[str, Any]] = {
     "dev": {
         "name": "Developer",
         "emoji": "👨‍💻",
@@ -51,7 +52,7 @@ PROFILES = {
 
 
 @click.group("project", cls=BengalGroup)
-def project_cli():
+def project_cli() -> None:
     """
     📦 Project management and setup commands.
 

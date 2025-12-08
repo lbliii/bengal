@@ -128,7 +128,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
     elif format == "json":
         # Export as JSON
-        data = {
+        data: dict[str, Any] = {
             "avg_path_length": results.avg_path_length,
             "diameter": results.diameter,
             "total_pages": len(results.betweenness_centrality),

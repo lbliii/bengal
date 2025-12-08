@@ -50,7 +50,7 @@ def check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, quie
 
         if output_dir.exists():
             # Get newest source file
-            newest_source = 0
+            newest_source: float = 0
             for source_dir in source_dirs:
                 source_path = root_path / source_dir
                 if source_path.exists():

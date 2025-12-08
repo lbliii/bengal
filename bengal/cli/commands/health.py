@@ -27,7 +27,7 @@ from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.group("health", cls=BengalGroup)
-def health_cli():
+def health_cli() -> None:
     """Health check and validation commands."""
     pass
 
@@ -222,8 +222,8 @@ def linkcheck(
                 cli.console.print(json.dumps(report, indent=2))
 
         else:  # console format
-            report = orchestrator.format_console_report(results, summary)
-            cli.console.print(report)
+            console_report = orchestrator.format_console_report(results, summary)
+            cli.console.print(console_report)
 
         # Exit with appropriate code
         if not summary.passed:

@@ -4,7 +4,7 @@ Build statistics display with colorful output and ASCII art.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from bengal.utils.cli_output import CLIOutput
@@ -51,7 +51,7 @@ class BuildStats:
 
     # Directive statistics
     total_directives: int = 0
-    directives_by_type: dict[str, int] = None
+    directives_by_type: dict[str, int] = field(default_factory=dict)
 
     # Phase timings
     discovery_time_ms: float = 0
@@ -77,24 +77,18 @@ class BuildStats:
     fonts_time_ms: float = 0
 
     # Output directory (for display)
-    output_dir: str = None
+    output_dir: str | None = None
+
+    # Strict mode flag (fail on validation errors)
+    strict_mode: bool = False
 
     # Optional: builder-provided list of changed output paths (relative to output dir)
     # When provided, the dev server will prefer this over snapshot diffing for reload decisions.
     changed_outputs: list[str] | None = None
 
     # Warnings and errors
-    warnings: list = None
-    template_errors: list = None  # NEW: Rich template errors
-
-    def __post_init__(self) -> None:
-        """Initialize mutable defaults."""
-        if self.warnings is None:
-            self.warnings = []
-        if self.template_errors is None:
-            self.template_errors = []
-        if self.directives_by_type is None:
-            self.directives_by_type = {}
+    warnings: list[Any] = field(default_factory=list)
+    template_errors: list[Any] = field(default_factory=list)  # Rich template errors
 
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""
@@ -115,11 +109,11 @@ class BuildStats:
         return len(self.template_errors) > 0
 
     @property
-    def warnings_by_type(self) -> dict[str, list]:
+    def warnings_by_type(self) -> dict[str, list[BuildWarning]]:
         """Group warnings by type."""
         from collections import defaultdict
 
-        grouped = defaultdict(list)
+        grouped: defaultdict[str, list[BuildWarning]] = defaultdict(list)
         for warning in self.warnings:
             grouped[warning.warning_type].append(warning)
         return dict(grouped)

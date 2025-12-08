@@ -121,7 +121,7 @@ class TemplateRegistry:
             full_path = f"{base_path}/{comp.path}" if base_path else comp.path
 
             # Build frontmatter from component
-            frontmatter = {}
+            frontmatter: dict[str, Any] = {}
             if comp.type:
                 frontmatter["type"] = comp.type
             if comp.variant:
@@ -139,7 +139,7 @@ class TemplateRegistry:
             content = f"---\n{yaml_str}\n---\n\n{body}\n"
 
             # Determine target_dir (content for markdown files)
-            target_dir = "content"
+            target_dir: str = "content"
             if full_path.endswith(".yaml") or full_path.endswith(".yml"):
                 target_dir = "data"
 

@@ -23,11 +23,14 @@ See Also:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
 from bengal.utils.logger import get_logger
 from bengal.utils.theme_registry import get_theme_package
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
@@ -68,7 +71,7 @@ def _get_highlighter_version() -> str | None:
         return None
 
 
-def _get_theme_info(site) -> dict[str, Any]:
+def _get_theme_info(site: Site) -> dict[str, Any]:
     theme_name = getattr(site, "theme", None) or "default"
     # Prefer installed theme package metadata when available
     version: str | None = None
@@ -99,7 +102,7 @@ def _get_i18n_info(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_template_metadata(site) -> dict[str, Any]:
+def build_template_metadata(site: Site) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
 

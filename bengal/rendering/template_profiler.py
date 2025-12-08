@@ -213,12 +213,12 @@ class TemplateProfiler:
                     }
 
             functions = {}
-            for name, timings in self._functions.items():
-                if timings.count > 0:
+            for name, func_timings in self._functions.items():
+                if func_timings.count > 0:
                     functions[name] = {
-                        "count": timings.count,
-                        "total_ms": round(timings.total_ms, 2),
-                        "avg_ms": round(timings.avg_ms, 3),
+                        "count": func_timings.count,
+                        "total_ms": round(func_timings.total_ms, 2),
+                        "avg_ms": round(func_timings.avg_ms, 3),
                     }
 
             # Sort by total time (descending)
@@ -258,7 +258,9 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def profile_function(profiler: TemplateProfiler, func_name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def profile_function(
+    profiler: TemplateProfiler, func_name: str
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator factory for profiling template functions.
 

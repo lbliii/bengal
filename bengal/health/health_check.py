@@ -211,7 +211,7 @@ class HealthCheck:
         self,
         build_stats: dict | None = None,
         verbose: bool = False,
-        profile: BuildProfile = None,
+        profile: BuildProfile | None = None,
         incremental: bool = False,
         context: list[Path] | None = None,
         cache: Any = None,

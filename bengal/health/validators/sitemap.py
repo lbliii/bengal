@@ -177,7 +177,7 @@ class SitemapValidator(BaseValidator):
 
     def _check_duplicate_urls(self, root: ET.Element) -> list[CheckResult]:
         """Check for duplicate URLs in sitemap."""
-        results = []
+        results: list[CheckResult] = []
 
         # Find all <url> elements
         urls = root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}url")

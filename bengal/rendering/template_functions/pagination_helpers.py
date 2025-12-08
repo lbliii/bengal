@@ -4,7 +4,6 @@ Pagination helper functions for templates.
 Provides 3 functions for building pagination controls.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -132,7 +131,8 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
 
     # If we can show all pages, do it
     if total_pages <= (window * 2 + 5):
-        return list(range(1, total_pages + 1))
+        # Return list[int] which is compatible with list[int | None]
+        return list(range(1, total_pages + 1))  # type: ignore[return-value]
 
     pages = []
 

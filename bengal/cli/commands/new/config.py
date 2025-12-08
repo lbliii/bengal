@@ -7,6 +7,7 @@ Creates the config/ directory structure with environment-aware configuration fil
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -45,7 +46,7 @@ def create_config_directory(
     site_config = _create_site_config(site_title, baseurl)
     theme_config = _create_theme_config(theme)
     content_config = _create_content_config(template)
-    params_config = {"params": {}}
+    params_config: dict[str, Any] = {"params": {}}
     build_config = _create_build_config()
     features_config = _create_features_config()
 
@@ -127,9 +128,9 @@ def _create_theme_config(theme: str) -> dict:
     }
 
 
-def _create_content_config(template: str) -> dict:
+def _create_content_config(template: str) -> dict[str, Any]:
     """Create content configuration based on template type."""
-    content_config = {"content": {}}
+    content_config: dict[str, Any] = {"content": {}}
 
     if template == "blog":
         content_config["content"] = {
@@ -232,4 +233,3 @@ def _create_production_env_config() -> dict:
             "strict_mode": True,
         },
     }
-

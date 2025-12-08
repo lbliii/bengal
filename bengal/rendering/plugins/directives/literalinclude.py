@@ -99,10 +99,24 @@ class LiteralIncludeDirective(DirectivePlugin):
         # Parse options
         options = dict(self.parse_options(m))
         language = options.get("language")
-        start_line = options.get("start-line")
-        end_line = options.get("end-line")
+        start_line_str = options.get("start-line")
+        end_line_str = options.get("end-line")
         emphasize_lines = options.get("emphasize-lines")
         linenos = options.get("linenos", "false").lower() in ("true", "1", "yes")
+
+        # Convert string line numbers to integers
+        start_line: int | None = None
+        end_line: int | None = None
+        if start_line_str is not None:
+            try:
+                start_line = int(start_line_str)
+            except (ValueError, TypeError):
+                pass
+        if end_line_str is not None:
+            try:
+                end_line = int(end_line_str)
+            except (ValueError, TypeError):
+                pass
 
         # Auto-detect language from file extension if not specified
         if not language:
@@ -342,7 +356,7 @@ class LiteralIncludeDirective(DirectivePlugin):
 
             # Apply emphasis if specified
             if emphasize_lines:
-                emphasize_set = set()
+                emphasize_set: set[int] = set()
                 for part in emphasize_lines.split(","):
                     part = part.strip()
                     if "-" in part:

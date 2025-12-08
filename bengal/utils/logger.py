@@ -15,7 +15,6 @@ Example:
         logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
 """
 
-
 from __future__ import annotations
 
 import json
@@ -26,7 +25,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, TypedDict
 
 
 class LogLevel(Enum):
@@ -229,7 +228,7 @@ class BengalLogger:
         # Get current phase context
         phase_name = None
         phase_depth = len(self._phase_stack)
-        phase_context = {}
+        phase_context: dict[str, Any] = {}
 
         if self._phase_stack:
             phase_name, _, phase_context = self._phase_stack[-1]
@@ -393,7 +392,16 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
 
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
-_global_config = {
+
+
+class _GlobalConfig(TypedDict):
+    level: LogLevel
+    log_file: Path | None
+    verbose: bool
+    quiet_console: bool
+
+
+_global_config: _GlobalConfig = {
     "level": LogLevel.INFO,
     "log_file": None,
     "verbose": False,

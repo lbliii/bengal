@@ -149,12 +149,12 @@ class LiveProgressReporterAdapter:
         if current is None and current_item is None:
             # Nothing to update
             return
-        kwargs = {}
+        kwargs: dict[str, int | str] = {}
         if current is not None:
             kwargs["current"] = current
         if current_item is not None:
             kwargs["current_item"] = current_item
-        self._pm.update_phase(phase_id, **kwargs)
+        self._pm.update_phase(phase_id, **kwargs)  # type: ignore[arg-type]
 
     def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None:
         self._pm.complete_phase(phase_id, elapsed_ms=elapsed_ms)

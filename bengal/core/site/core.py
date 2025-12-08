@@ -115,7 +115,7 @@ class Site(
     theme: str | None = None
     output_dir: Path = field(default_factory=lambda: Path("public"))
     build_time: datetime | None = None
-    taxonomies: dict[str, dict[str, list[Page]]] = field(default_factory=dict)
+    taxonomies: dict[str, dict[str, Any]] = field(default_factory=dict)
     menu: dict[str, list[MenuItem]] = field(default_factory=dict)
     menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
     # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}.
@@ -180,7 +180,7 @@ class Site(
         incremental: bool | None = None,
         verbose: bool = False,
         quiet: bool = False,
-        profile: BuildProfile = None,
+        profile: BuildProfile | None = None,
         memory_optimized: bool = False,
         strict: bool = False,
         full_output: bool = False,
@@ -301,7 +301,7 @@ class Site(
             from contextlib import suppress
 
             with suppress(Exception):
-                self.xref_index = {}
+                self.xref_index: dict[str, Any] = {}
 
         # Cached properties
         self.invalidate_regular_pages_cache()

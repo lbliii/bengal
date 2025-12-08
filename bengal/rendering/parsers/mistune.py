@@ -138,11 +138,11 @@ class MistuneParser(BaseMarkdownParser):
         self._mistune = mistune
 
         # Cache parser with variable substitution (created lazily in parse_with_context)
-        self._var_plugin = None
-        self._md_with_vars = None
+        self._var_plugin: Any = None
+        self._md_with_vars: Any = None
 
         # Cross-reference plugin (added when xref_index is available)
-        self._xref_plugin = None
+        self._xref_plugin: Any = None
         self._xref_enabled = False
 
         # Badge plugin (always enabled)
@@ -153,7 +153,7 @@ class MistuneParser(BaseMarkdownParser):
 
         # AST parser instance (created lazily for parse_to_ast)
         # Uses renderer=None to get raw AST tokens instead of HTML
-        self._ast_parser = None
+        self._ast_parser: Any = None
 
     def _create_syntax_highlighting_plugin(self) -> Callable[[Any], None]:
         """
@@ -740,7 +740,7 @@ class MistuneParser(BaseMarkdownParser):
         # If no blockquotes, use fast path
         if "<blockquote" not in html:
 
-            def replace_heading(match):
+            def replace_heading(match: re.Match[str]) -> str:
                 """Replace heading with ID only (no inline headerlink)."""
                 tag = match.group(1)  # 'h2', 'h3', or 'h4'
                 attrs = match.group(2)  # Existing attributes
@@ -786,7 +786,7 @@ class MistuneParser(BaseMarkdownParser):
 
                 if in_blockquote == 0:
                     # Outside blockquote: add anchors
-                    def replace_heading(m):
+                    def replace_heading(m: re.Match[str]) -> str:
                         tag = m.group(1)
                         attrs = m.group(2)
                         content = m.group(3)
@@ -821,7 +821,7 @@ class MistuneParser(BaseMarkdownParser):
             remaining = html[current_pos:]
             if in_blockquote == 0:
 
-                def replace_heading(m):
+                def replace_heading(m: re.Match[str]) -> str:
                     tag = m.group(1)
                     attrs = m.group(2)
                     content = m.group(3)

@@ -52,7 +52,7 @@ class ResourceManager:
         self._resources: list[tuple[str, Any, Callable[[Any], None]]] = []
         self._cleanup_done = False
         self._lock = threading.Lock()
-        self._original_signals: dict[signal.Signals, signal.Handlers] = {}
+        self._original_signals: dict[signal.Signals, Any] = {}
 
     def register(self, name: str, resource: Any, cleanup_fn: Callable) -> Any:
         """

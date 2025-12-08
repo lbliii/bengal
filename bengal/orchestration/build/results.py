@@ -42,7 +42,7 @@ class ConfigCheckResult:
 
     def __iter__(self) -> tuple[bool, bool]:
         """Allow tuple unpacking for backward compatibility."""
-        return iter((self.incremental, self.config_changed))
+        return (self.incremental, self.config_changed)
 
 
 @dataclass
@@ -71,14 +71,12 @@ class FilterResult:
         self,
     ) -> tuple[list[Page], list[Asset], set[str], set[Path], set[str] | None]:
         """Allow tuple unpacking for backward compatibility."""
-        return iter(
-            (
-                self.pages_to_build,
-                self.assets_to_process,
-                self.affected_tags,
-                self.changed_page_paths,
-                self.affected_sections,
-            )
+        return (
+            self.pages_to_build,
+            self.assets_to_process,
+            self.affected_tags,
+            self.changed_page_paths,
+            self.affected_sections,
         )
 
 
@@ -129,7 +127,8 @@ class ChangeSummary:
 
     def get(self, key: str, default: list | None = None) -> list:
         """Allow dict-like get() for backward compatibility."""
-        return self.to_dict().get(key, default)
+        result = self.to_dict().get(key, default)
+        return result if result is not None else []
 
     def __getitem__(self, key: str) -> list:
         """Allow dict-like indexing for backward compatibility."""

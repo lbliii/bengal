@@ -7,7 +7,6 @@ type coercion, helpful error messages, and support for nested types.
 
 from __future__ import annotations
 
-import logging
 import types
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
@@ -15,8 +14,9 @@ from pathlib import Path
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
+from bengal.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -140,7 +140,7 @@ class SchemaValidator:
             if not self._is_pydantic:
                 raise TypeError("Schema is not a Pydantic model")
             # Type ignore: mypy doesn't know that schema has model_validate when _is_pydantic is True
-            instance = getattr(self.schema, "model_validate")(data)  # type: ignore[attr-defined]
+            instance = self.schema.model_validate(data)  # type: ignore[attr-defined]
             return ValidationResult(
                 valid=True,
                 data=instance,

@@ -686,6 +686,7 @@ class IncrementalOrchestrator:
         import datetime
 
         content_dir = self.site.root_path / "content"
+        rel: Path | str
         try:
             rel = path.relative_to(content_dir)
         except ValueError:

@@ -41,12 +41,12 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _cached_site_root = None
 
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
-    # Key: (file_path, mtime), Value: (modified_content, headers)
-    _html_cache = {}
+    # Key: (file_path, mtime), Value: modified_content bytes
+    _html_cache: dict[tuple[Path, float], bytes] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
 
-    def __init__(self, *args, directory: str | None = None, **kwargs):
+    def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
         Initialize the request handler.
 

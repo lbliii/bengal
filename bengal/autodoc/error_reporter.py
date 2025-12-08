@@ -140,7 +140,7 @@ class TemplateErrorReporter:
             lines.append(f"❌ {len(self.errors)} Template Errors:")
 
             # Group errors by type
-            error_types = {}
+            error_types: dict[str, list[dict[str, Any]]] = {}
             for error in self.errors:
                 error_type = error["error_type"]
                 if error_type not in error_types:

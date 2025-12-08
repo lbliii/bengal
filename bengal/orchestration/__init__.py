@@ -24,6 +24,8 @@ Usage:
 
 from __future__ import annotations
 
+from typing import Any
+
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.incremental import IncrementalOrchestrator
@@ -46,7 +48,7 @@ __all__ = [
 
 # Lazy import BuildOrchestrator to avoid circular import
 # (build/__init__.py imports from other orchestration modules)
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "BuildOrchestrator":
         from bengal.orchestration.build import BuildOrchestrator
 

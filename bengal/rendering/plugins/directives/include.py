@@ -97,8 +97,22 @@ class IncludeDirective(DirectivePlugin):
 
         # Parse options
         options = dict(self.parse_options(m))
-        start_line = options.get("start-line")
-        end_line = options.get("end-line")
+        start_line_str = options.get("start-line")
+        end_line_str = options.get("end-line")
+
+        # Convert string line numbers to integers
+        start_line: int | None = None
+        end_line: int | None = None
+        if start_line_str is not None:
+            try:
+                start_line = int(start_line_str)
+            except (ValueError, TypeError):
+                pass
+        if end_line_str is not None:
+            try:
+                end_line = int(end_line_str)
+            except (ValueError, TypeError):
+                pass
 
         # Resolve file path
         file_path = self._resolve_path(path, state)
@@ -242,7 +256,7 @@ class IncludeDirective(DirectivePlugin):
             except ValueError:
                 logger.warning("include_path_traversal_rejected", path=path)
                 return None
-            file_path = resolved
+            file_path: Path | None = resolved
         else:
             file_path = base_dir / path
 

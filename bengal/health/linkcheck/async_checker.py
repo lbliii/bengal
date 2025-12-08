@@ -120,7 +120,8 @@ class AsyncLinkChecker:
                     error_message=str(result),
                 )
             else:
-                result_dict[url] = result
+                # result is LinkCheckResult when not an exception
+                result_dict[url] = result  # type: ignore[assignment]
 
         return result_dict
 

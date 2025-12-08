@@ -169,7 +169,7 @@ class AssetValidator(BaseValidator):
 
     def _check_duplicate_assets(self, assets_dir: Path) -> list[CheckResult]:
         """Check for duplicate assets (same size and name pattern)."""
-        results = []
+        results: list[CheckResult] = []
 
         # Group files by base name (ignoring hash suffixes)
         # e.g., style.abc123.css and style.def456.css are duplicates

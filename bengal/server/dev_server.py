@@ -386,16 +386,22 @@ class DevServer:
 
         event_handler = BuildHandler(self.site, self.host, actual_port)
 
-        ObserverClass = None
+        ObserverClass: Any = None
         if backend == "polling":
             try:
-                from watchdog.observers.polling import PollingObserver as ObserverClass
+                from watchdog.observers.polling import PollingObserver
+
+                ObserverClass = PollingObserver
             except Exception as e:
                 logger.debug("polling_observer_import_failed", error=str(e))
-                from watchdog.observers import Observer as ObserverClass
+                from watchdog.observers import Observer
+
+                ObserverClass = Observer
         else:
             # auto/default: use native Observer; users can switch with env var
-            from watchdog.observers import Observer as ObserverClass
+            from watchdog.observers import Observer
+
+            ObserverClass = Observer
 
         observer = ObserverClass()
 
@@ -518,7 +524,7 @@ class DevServer:
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
 
-    def _create_server(self):
+    def _create_server(self) -> tuple[socketserver.ThreadingTCPServer, int]:
         """
         Create HTTP server (does not start it).
 
@@ -685,7 +691,7 @@ class DevServer:
         """
         import webbrowser
 
-        def open_browser():
+        def open_browser() -> None:
             time.sleep(0.5)  # Give server time to start
             webbrowser.open(f"http://{self.host}:{port}/")
 

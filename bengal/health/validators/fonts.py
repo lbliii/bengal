@@ -188,7 +188,7 @@ class FontValidator(BaseValidator):
 
     def _check_font_sizes(self, fonts_dir: Path) -> list[CheckResult]:
         """Check font file sizes are reasonable."""
-        results = []
+        results: list[CheckResult] = []
 
         if not fonts_dir.exists():
             return results
@@ -200,7 +200,7 @@ class FontValidator(BaseValidator):
 
         # Check for oversized fonts
         oversized = []
-        total_size_kb = 0
+        total_size_kb: float = 0
 
         for font_file in font_files:
             size_kb = font_file.stat().st_size / 1024

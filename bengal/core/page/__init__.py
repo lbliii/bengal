@@ -123,7 +123,7 @@ class Page(
 
     # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
     # Auto-created in __post_init__ from Page fields for backward compatibility
-    core: PageCore = field(default=None, init=False)
+    core: PageCore | None = field(default=None, init=False)
 
     # Optional fields (with defaults)
     content: str = ""

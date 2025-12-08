@@ -8,6 +8,7 @@ Robustness:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -247,7 +248,7 @@ class ContentDiscovery:
                     and item.name in language_codes
                 ):
                     # Treat children of this directory as top-level within this language
-                    current_lang = item.name
+                    current_lang: str | None = item.name
                     for sub in sorted(item.iterdir()):
                         top_level_results.extend(process_item(sub, current_lang=current_lang))
                     continue
@@ -318,8 +319,10 @@ class ContentDiscovery:
                 # Page is unchanged - create PageProxy instead
                 # Capture page.lang and page._section_path at call time to avoid closure issues
                 # where loop variables would otherwise be shared across iterations
-                def make_loader(source_path, current_lang, section_path):
-                    def loader(_):
+                def make_loader(
+                    source_path: Path, current_lang: str, section_path: Path | None
+                ) -> Callable[[Any], Page]:
+                    def loader(_: Any) -> Page:
                         # Resolve section from path when loading
                         section = (
                             self.site.get_section_by_path(section_path) if section_path else None
@@ -703,12 +706,12 @@ class ContentDiscovery:
                         and content_structure == "dir"
                     ):
                         content_dir = self.content_dir
-                        rel = None
+                        rel: Path | str | None = None
                         try:
                             rel = file_path.relative_to(content_dir)
                         except ValueError:
                             rel = file_path.name
-                        rel_path = Path(rel)
+                        rel_path = Path(rel) if rel else file_path
                         parts = list(rel_path.parts)
                         if parts:
                             # If first part is a language code, strip it

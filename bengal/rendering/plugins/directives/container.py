@@ -66,7 +66,8 @@ class ContainerDirective(DirectivePlugin):
                 classes = options["class"]
 
         # Parse the body content as markdown
-        children = self.parse_tokens(block, m, state)
+        content = self.parse_content(m)
+        children = self.parse_tokens(block, content, state)
 
         return {
             "type": "container",
@@ -103,4 +104,3 @@ def render_container(renderer: Any, text: str, **attrs: Any) -> str:
         return f'<div class="{css_class}">\n{text}</div>\n'
     else:
         return f"<div>\n{text}</div>\n"
-

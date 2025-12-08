@@ -41,7 +41,7 @@ class WeightedPage:
     weight: float = float("inf")
     title_lower: str = ""
 
-    def __lt__(self, other):
+    def __lt__(self, other: WeightedPage) -> bool:
         if self.weight != other.weight:
             return self.weight < other.weight
         return self.title_lower < other.title_lower

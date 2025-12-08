@@ -465,7 +465,7 @@ class MenuBuilder:
                 roots.append(item)
 
         # Detect cycles
-        visited = set()
+        visited: set[str] = set()
         for root in roots:
             if self._has_cycle(root, visited, set()):
                 logger.error(

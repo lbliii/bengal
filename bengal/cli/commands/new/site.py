@@ -7,6 +7,7 @@ Creates new Bengal sites with optional structure initialization.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 import questionary
@@ -18,6 +19,10 @@ from bengal.utils.text import slugify
 
 from .config import create_config_directory
 from .wizard import run_init_wizard, should_run_init_wizard
+
+if TYPE_CHECKING:
+    from bengal.cli.templates.base import SiteTemplate
+    from bengal.utils.cli_output import CLIOutput
 
 # .gitignore content for new sites
 GITIGNORE_CONTENT = """# Bengal build outputs
@@ -131,6 +136,9 @@ def create_site(
 
     # Get the effective template
     site_template = get_template(effective_template)
+    if site_template is None:
+        cli.error(f"Template '{effective_template}' not found")
+        raise click.Abort()
 
     # Show what we're creating
     display_text = site_title
@@ -166,7 +174,7 @@ def create_site(
     _show_post_creation_hints(cli, wizard_selection, init_preset, is_custom, site_dir_name, baseurl)
 
 
-def _prompt_for_baseurl(no_init: bool, cli) -> str:
+def _prompt_for_baseurl(no_init: bool, cli: CLIOutput) -> str:
     """Prompt user for base URL or return default."""
     if no_init:
         return "https://example.com"
@@ -218,7 +226,7 @@ def _determine_template(
     return effective_template, is_custom, wizard_selection
 
 
-def _create_directory_structure(site_path: Path, site_template) -> None:
+def _create_directory_structure(site_path: Path, site_template: SiteTemplate) -> None:
     """Create the site directory structure."""
     site_path.mkdir(parents=True)
     (site_path / "content").mkdir()
@@ -232,7 +240,7 @@ def _create_directory_structure(site_path: Path, site_template) -> None:
         (site_path / additional_dir).mkdir(parents=True, exist_ok=True)
 
 
-def _create_template_files(site_path: Path, site_template) -> int:
+def _create_template_files(site_path: Path, site_template: SiteTemplate) -> int:
     """Create files from template. Returns count of files created."""
     files_created = 0
     for template_file in site_template.files:
@@ -248,7 +256,12 @@ def _create_template_files(site_path: Path, site_template) -> int:
 
 
 def _show_post_creation_hints(
-    cli, wizard_selection, init_preset, is_custom, site_dir_name, baseurl
+    cli: CLIOutput,
+    wizard_selection: str | None,
+    init_preset: str | None,
+    is_custom: bool,
+    site_dir_name: str,
+    baseurl: str,
 ) -> None:
     """Show hints and next steps after site creation."""
     if wizard_selection is None and init_preset is None:

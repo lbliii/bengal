@@ -275,7 +275,7 @@ class PageProxy:
             return self._full_page.metadata
 
         # Build metadata dict from cached PageCore fields
-        cached_metadata = {}
+        cached_metadata: dict[str, Any] = {}
         if self.core.type:
             cached_metadata["type"] = self.core.type
         if self.core.weight is not None:
@@ -435,7 +435,10 @@ class PageProxy:
     def reading_time(self) -> str:
         """Get reading time estimate (lazy-loaded from full page)."""
         self._ensure_loaded()
-        return self._full_page.reading_time if self._full_page else ""
+        if self._full_page:
+            rt = self._full_page.reading_time
+            return str(rt) if isinstance(rt, int) else rt
+        return ""
 
     @property
     def excerpt(self) -> str:

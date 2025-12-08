@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.debug.models import (
     CacheInfo,
@@ -283,6 +283,8 @@ class PageExplainer:
         chain: list[TemplateInfo] = []
 
         # Find the template file
+        if self.template_engine is None:
+            return chain
         template_path = self.template_engine._find_template_path(template_name)
 
         info = TemplateInfo(
@@ -394,7 +396,7 @@ class PageExplainer:
         assets: list[str] = []
 
         # Match markdown images: ![alt](path)
-        img_pattern = re.compile(r'!\[[^\]]*\]\(([^)]+)\)')
+        img_pattern = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
         for match in img_pattern.finditer(content):
             src = match.group(1)
             # Skip external URLs
@@ -534,7 +536,7 @@ class PageExplainer:
 
         # Check internal links
         if page.content:
-            link_pattern = re.compile(r'\[([^\]]+)\]\((/[^)]+)\)')
+            link_pattern = re.compile(r"\[([^\]]+)\]\((/[^)]+)\)")
             for match in link_pattern.finditer(page.content):
                 link_text, link_target = match.groups()
                 line = page.content[: match.start()].count("\n") + 1
@@ -565,7 +567,9 @@ class PageExplainer:
 
                 # Check if asset exists
                 asset_path = self.site.root_path / asset_ref.lstrip("/")
-                content_asset = page.source_path.parent / asset_ref if not asset_ref.startswith("/") else None
+                content_asset = (
+                    page.source_path.parent / asset_ref if not asset_ref.startswith("/") else None
+                )
 
                 if not asset_path.exists() and (not content_asset or not content_asset.exists()):
                     issues.append(
@@ -579,4 +583,3 @@ class PageExplainer:
                     )
 
         return issues
-

@@ -19,9 +19,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
-from bengal.debug.base import DebugFinding, DebugReport, DebugTool
+from bengal.debug.base import DebugReport, DebugTool
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -159,7 +159,7 @@ class ShortcodeSandbox(DebugTool):
         content: str | None = None,
         file_path: Path | None = None,
         validate_only: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> DebugReport:
         """
         Run sandbox testing.
@@ -237,6 +237,21 @@ class ShortcodeSandbox(DebugTool):
         for warning in result.warnings:
             report.add_finding("warning", warning)
 
+        return report
+
+    def analyze(self) -> DebugReport:
+        """
+        Perform analysis and return report.
+
+        This is the abstract method required by DebugTool.
+        For parameterized analysis, use run() instead.
+        """
+        report = self.create_report()
+        report.add_finding(
+            title="No content provided",
+            description="Use run() method with content or file_path parameter for testing",
+            severity=Severity.INFO,
+        )
         return report
 
     def validate(self, content: str) -> ValidationResult:
@@ -427,16 +442,19 @@ class ShortcodeSandbox(DebugTool):
         """
         from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
 
-        directives = []
+        directives: list[dict[str, str]] = []
         for cls in DIRECTIVE_CLASSES:
             names = getattr(cls, "DIRECTIVE_NAMES", [])
             doc = cls.__doc__ or "No description"
             # Extract first line of docstring
             first_line = doc.strip().split("\n")[0]
 
+            # Join names into a comma-separated string
+            names_str = ", ".join(names) if names else "unknown"
+
             directives.append(
                 {
-                    "names": list(names),
+                    "names": names_str,
                     "description": first_line,
                     "class": cls.__name__,
                 }
@@ -462,4 +480,3 @@ class ShortcodeSandbox(DebugTool):
                 return cls.__doc__
 
         return None
-

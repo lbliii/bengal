@@ -192,7 +192,8 @@ class ThemePackage:
                 try:
                     # Check if it's already a real Path (not in a zip)
                     if hasattr(traversable, "__fspath__"):
-                        return Path(traversable)
+                        fspath = traversable.__fspath__()
+                        return Path(fspath)
                 except Exception as e:
                     logger.debug(
                         "theme_resource_path_fspath_failed",
@@ -244,7 +245,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
         eps = metadata.entry_points(group="bengal.themes")
     except Exception as e:
         logger.debug("entry_point_discovery_failed", error=str(e))
-        eps = []
+        eps: EntryPoints = ()
 
     for ep in eps:
         slug = ep.name

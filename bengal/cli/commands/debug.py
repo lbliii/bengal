@@ -28,7 +28,7 @@ from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.group("debug", cls=BengalGroup)
-def debug_cli():
+def debug_cli() -> None:
     """Debug and diagnostic commands for builds."""
     pass
 

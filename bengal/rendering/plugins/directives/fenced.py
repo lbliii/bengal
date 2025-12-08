@@ -132,6 +132,8 @@ class FencedDirective(BaseFencedDirective):
             end_pos = state.cursor_max
 
         # Parse the directive content
+        if text is None:
+            return None
         m = _directive_re.match(text)
         if not m:
             return None

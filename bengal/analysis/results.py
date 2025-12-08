@@ -44,4 +44,4 @@ class PageLayers:
 
     def __iter__(self) -> tuple[list[Page], list[Page], list[Page]]:
         """Allow tuple unpacking for backward compatibility."""
-        return iter((self.hubs, self.mid_tier, self.leaves))
+        return (self.hubs, self.mid_tier, self.leaves)
