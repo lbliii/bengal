@@ -71,6 +71,15 @@ from bengal.debug.dependency_visualizer import (
     DependencyVisualizer,
 )
 
+# Content migration
+from bengal.debug.content_migrator import (
+    ContentMigrator,
+    MoveOperation,
+    MovePreview,
+    PageDraft,
+    Redirect,
+)
+
 # Lazy imports for optional components
 def __getattr__(name: str):
     """Lazy import for optional components."""
@@ -113,5 +122,11 @@ __all__ = [
     "DependencyVisualizer",
     "DependencyGraph",
     "DependencyNode",
+    # Content migration
+    "ContentMigrator",
+    "MoveOperation",
+    "MovePreview",
+    "PageDraft",
+    "Redirect",
 ]
 
