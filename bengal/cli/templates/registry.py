@@ -139,11 +139,17 @@ class TemplateRegistry:
                 additional_dirs.add(f"{target_dir}/{dir_path}")
 
             # Track sections for menu (extract directory name, not filename)
-            if comp.type in ("blog", "doc", "section") or len(path_parts) > 1:
-                # Extract directory name (first part of path)
-                section_name = path_parts[0] if path_parts else comp.path.split("/")[0]
+            # Only add directories, not individual files
+            if len(path_parts) > 1:  # Has subdirectories
+                section_name = path_parts[0]
                 # Remove file extension if present
                 section_name = section_name.rsplit(".", 1)[0] if "." in section_name else section_name
+                # Skip common index files
+                if section_name and section_name not in ("_index", "index") and section_name not in menu_sections:
+                    menu_sections.append(section_name)
+            elif comp.type in ("blog", "doc", "section") and "/" in comp.path:
+                # Component with type and path suggests it's a section
+                section_name = comp.path.split("/")[0]
                 if section_name and section_name not in menu_sections:
                     menu_sections.append(section_name)
 

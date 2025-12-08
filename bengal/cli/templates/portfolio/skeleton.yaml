@@ -7,14 +7,23 @@ structure:
     props:
       title: Portfolio
       description: Welcome to my portfolio
+      layout: home
     content: |
-      # Welcome to My Portfolio
+      # Hi, I'm [Your Name]
 
-      I'm a developer passionate about creating beautiful and functional websites.
+      I'm a [Your Profession] passionate about creating amazing things.
 
       ## Featured Projects
 
-      Check out my latest work in the [projects](/projects/) section.
+      Check out some of my recent work below.
+
+      ---
+
+      ## About Me
+
+      I specialize in [your specialties] and love solving complex problems.
+
+      [View All Projects](/projects) | [About Me](/about) | [Contact](/contact)
 
   - path: about.md
     props:
@@ -23,17 +32,39 @@ structure:
     content: |
       # About Me
 
-      I'm a passionate developer with experience in web development, design, and user experience.
+      I'm a creative professional with a passion for [your passion].
 
       ## Skills
 
-      - Web Development
-      - UI/UX Design
-      - Project Management
+      - **Frontend**: React, Vue, CSS
+      - **Backend**: Python, Node.js
+      - **Tools**: Git, Docker, AWS
 
       ## Experience
 
-      I've worked on various projects ranging from small websites to large-scale applications.
+      ### Current Position
+      **Company Name** - Role (2023 - Present)
+
+      - Achievement or responsibility
+      - Another achievement
+      - Key project
+
+      ### Previous Position
+      **Previous Company** - Role (2021 - 2023)
+
+      - Key accomplishments
+      - Technologies used
+
+      ## Education
+
+      **University Name**
+      Bachelor's Degree in Computer Science (2017-2021)
+
+      ## Let's Connect
+
+      - Email: your.email@example.com
+      - GitHub: github.com/yourusername
+      - LinkedIn: linkedin.com/in/yourprofile
 
   - path: projects/_index.md
     props:
@@ -48,27 +79,50 @@ structure:
 
   - path: projects/project-1.md
     props:
-      title: Project One
+      title: E-Commerce Platform
       date: "{{date}}"
-      description: A showcase of my first project
+      tags:
+        - web
+        - react
+        - node
+      featured: true
+      image: /assets/images/project1.jpg
+      demo_url: https://example.com
+      github_url: https://github.com/yourusername/project
     content: |
-      # Project One
+      # E-Commerce Platform
 
-      This is my first featured project.
+      A full-featured e-commerce platform built with modern web technologies.
 
       ## Overview
 
-      A brief description of what this project does and why it's important.
+      This project demonstrates my ability to build scalable web applications with complex features.
 
       ## Technologies Used
 
-      - Technology A
-      - Technology B
-      - Technology C
+      - **Frontend**: React, TypeScript, Tailwind CSS
+      - **Backend**: Node.js, Express, PostgreSQL
+      - **Infrastructure**: AWS, Docker, Kubernetes
+
+      ## Key Features
+
+      - User authentication and authorization
+      - Product catalog with search and filters
+      - Shopping cart and checkout flow
+      - Order management system
+      - Admin dashboard
+
+      ## Challenges & Solutions
+
+      One of the main challenges was optimizing the search functionality for large product catalogs...
 
       ## Results
 
-      This project achieved great results and made a positive impact.
+      - 100k+ monthly active users
+      - 99.9% uptime
+      - Sub-second page load times
+
+      [View Live Demo](https://example.com) | [View on GitHub](https://github.com/yourusername/project)
 
   - path: projects/project-2.md
     props:
@@ -99,17 +153,25 @@ structure:
       title: Contact
       description: Get in touch
     content: |
-      # Contact
+      # Let's Work Together
 
-      Get in touch with me!
+      I'm always interested in hearing about new projects and opportunities.
 
-      ## Email
+      ## Get in Touch
 
-      [email@example.com](mailto:email@example.com)
+      - **Email**: your.email@example.com
+      - **GitHub**: [github.com/yourusername](https://github.com/yourusername)
+      - **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
+      - **Twitter**: [@yourusername](https://twitter.com/yourusername)
 
-      ## Social Media
+      ## Availability
 
-      - [Twitter](https://twitter.com/username)
-      - [GitHub](https://github.com/username)
-      - [LinkedIn](https://linkedin.com/in/username)
+      I'm currently available for:
+
+      - Freelance projects
+      - Contract work
+      - Consulting opportunities
+      - Open source collaboration
+
+      Feel free to reach out via email or connect on social media!
 
