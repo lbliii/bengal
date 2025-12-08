@@ -26,6 +26,48 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class _PageContext:
+    """
+    Lightweight page-like context for autodoc template rendering.
+
+    Templates extend base.html and include partials that expect a 'page' variable
+    with attributes like metadata, tags, title, and relative_url. This class provides
+    those attributes without requiring a full Page object (which doesn't exist yet
+    during the initial render phase).
+
+    The navigation attributes (prev, next, prev_in_section, next_in_section) are
+    set to None since autodoc virtual pages don't participate in linear navigation.
+    """
+
+    def __init__(
+        self,
+        title: str,
+        metadata: dict,
+        tags: list[str] | None = None,
+        relative_url: str = "/",
+        variant: str | None = None,
+        source_path: str | None = None,
+    ) -> None:
+        self.title = title
+        self.metadata = metadata
+        self.tags = tags or []
+        self.relative_url = relative_url
+        self.variant = variant
+        self.source_path = source_path
+
+        # Navigation attributes (None = autodoc pages don't have linear navigation)
+        self.prev: _PageContext | None = None
+        self.next: _PageContext | None = None
+        self.prev_in_section: _PageContext | None = None
+        self.next_in_section: _PageContext | None = None
+
+        # Section reference (None for autodoc context)
+        self.section = None
+
+    def __repr__(self) -> str:
+        return f"_PageContext(title={self.title!r}, relative_url={self.relative_url!r})"
+
+
 class VirtualAutodocOrchestrator:
     """
     Orchestrate API documentation generation as virtual pages.
@@ -662,7 +704,7 @@ class VirtualAutodocOrchestrator:
         source_id = f"{doc_type}/{url_path}.md"
 
         # Generate HTML content using appropriate template
-        html_content = self._render_element(element, template_name)
+        html_content = self._render_element(element, template_name, url_path, page_type)
 
         # Create virtual page with absolute output path
         output_path = self.site.output_dir / f"{url_path}/index.html"
@@ -724,22 +766,46 @@ class VirtualAutodocOrchestrator:
         # Fallback
         return "api-reference/module", f"api/{element.name}", "api-reference"
 
-    def _render_element(self, element: DocElement, template_name: str) -> str:
+    def _render_element(
+        self, element: DocElement, template_name: str, url_path: str, page_type: str
+    ) -> str:
         """
         Render element documentation to HTML.
 
         Args:
             element: DocElement to render
             template_name: Template name (e.g., "api-reference/module")
+            url_path: URL path for this element (e.g., "cli/bengal/serve")
+            page_type: Page type (e.g., "cli-reference", "api-reference")
 
         Returns:
             Rendered HTML string
         """
+        # Create a page-like context for templates that expect a 'page' variable.
+        # Templates extend base.html and include partials (page-hero, docs-nav, etc.)
+        # that require page.metadata, page.tags, page.title, etc.
+        page_context = _PageContext(
+            title=element.name,
+            metadata={
+                "type": page_type,
+                "qualified_name": element.qualified_name,
+                "element_type": element.element_type,
+                "description": element.description or f"Documentation for {element.name}",
+                "source_file": str(element.source_file) if element.source_file else None,
+                "line_number": getattr(element, "line_number", None),
+                "is_autodoc": True,
+            },
+            tags=element.metadata.get("tags", []) if element.metadata else [],
+            relative_url=f"/{url_path}/",
+            source_path=str(element.source_file) if element.source_file else None,
+        )
+
         # Try theme template first
         try:
             template = self.template_env.get_template(f"{template_name}.html")
             return template.render(
                 element=element,
+                page=page_context,
                 config=self.config,
                 site=self.site,
             )
@@ -750,6 +816,7 @@ class VirtualAutodocOrchestrator:
                 template = self.template_env.get_template(template_name)
                 return template.render(
                     element=element,
+                    page=page_context,
                     config=self.config,
                     site=self.site,
                 )
@@ -866,11 +933,24 @@ class VirtualAutodocOrchestrator:
         section_type = section.metadata.get("type", "api-reference")
         template_name = f"{section_type}/section-index"
 
+        # Create a page-like context for templates that expect a 'page' variable
+        page_context = _PageContext(
+            title=section.title,
+            metadata={
+                "type": section_type,
+                "is_section_index": True,
+                "description": section.metadata.get("description", ""),
+            },
+            tags=[],
+            relative_url=section.relative_url,
+        )
+
         # Try theme template first
         try:
             template = self.template_env.get_template(f"{template_name}.html")
             return template.render(
                 section=section,
+                page=page_context,
                 config=self.config,
                 site=self.site,
             )
@@ -880,6 +960,7 @@ class VirtualAutodocOrchestrator:
                 template = self.template_env.get_template("api-reference/section-index.html")
                 return template.render(
                     section=section,
+                    page=page_context,
                     config=self.config,
                     site=self.site,
                 )
@@ -888,6 +969,7 @@ class VirtualAutodocOrchestrator:
                     template = self.template_env.get_template("section-index.html")
                     return template.render(
                         section=section,
+                        page=page_context,
                         config=self.config,
                         site=self.site,
                     )
@@ -896,9 +978,9 @@ class VirtualAutodocOrchestrator:
                         "autodoc_template_fallback",
                         template=template_name,
                         section=section.name,
-                        error=str(e),
-                        secondary_error=str(e2),
-                        tertiary_error=str(e3),
+                        error=self._relativize_paths(str(e)),
+                        secondary_error=self._relativize_paths(str(e2)),
+                        tertiary_error=self._relativize_paths(str(e3)),
                     )
                     # Fallback rendering with cards
                     return self._render_section_index_fallback(section)

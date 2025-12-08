@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
@@ -144,7 +145,7 @@ class LiveProgressManager:
         # Track last printed state for fallback
         self._last_fallback_phase: str | None = None
 
-    def __enter__(self):
+    def __enter__(self) -> LiveProgressManager:
         """Enter context manager."""
         if self.use_live:
             # Create Live display
@@ -157,7 +158,7 @@ class LiveProgressManager:
             self.live.__enter__()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         """Exit context manager."""
         if self.live:
             # Final update before closing
@@ -168,7 +169,7 @@ class LiveProgressManager:
                 # Ensure Live display is fully released
                 self.live = None
 
-    def add_phase(self, phase_id: str, name: str, total: int | None = None):
+    def add_phase(self, phase_id: str, name: str, total: int | None = None) -> None:
         """
         Register a new phase.
 
@@ -182,7 +183,7 @@ class LiveProgressManager:
             self.phase_order.append(phase_id)
         self._update_display(force=True)
 
-    def start_phase(self, phase_id: str):
+    def start_phase(self, phase_id: str) -> None:
         """
         Mark phase as running.
 
@@ -196,8 +197,8 @@ class LiveProgressManager:
             self._update_display(force=True)
 
     def update_phase(
-        self, phase_id: str, current: int | None = None, current_item: str | None = None, **metadata
-    ):
+        self, phase_id: str, current: int | None = None, current_item: str | None = None, **metadata: Any
+    ) -> None:
         """
         Update phase progress.
 
@@ -234,7 +235,7 @@ class LiveProgressManager:
         # Frequent updates are throttled; no force here
         self._update_display()
 
-    def complete_phase(self, phase_id: str, elapsed_ms: float | None = None):
+    def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None:
         """
         Mark phase as complete.
 
@@ -258,7 +259,7 @@ class LiveProgressManager:
 
             self._update_display(force=True)
 
-    def fail_phase(self, phase_id: str, error: str):
+    def fail_phase(self, phase_id: str, error: str) -> None:
         """
         Mark phase as failed.
 
@@ -272,7 +273,7 @@ class LiveProgressManager:
             phase.metadata["error"] = error
             self._update_display(force=True)
 
-    def _update_display(self, force: bool = False):
+    def _update_display(self, force: bool = False) -> None:
         """Update the live display or print fallback."""
         if self.live:
             now = time.time()

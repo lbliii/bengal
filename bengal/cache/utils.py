@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bengal.utils.logger import BengalLogger
 
 
-def clear_build_cache(site_root_path, logger=None) -> bool:
+def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear Bengal's build cache to force a clean rebuild.
 
@@ -38,7 +42,7 @@ def clear_build_cache(site_root_path, logger=None) -> bool:
         return False
 
 
-def clear_output_directory(output_dir_path, logger=None) -> bool:
+def clear_output_directory(output_dir_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear the output directory (public/) to force complete regeneration.
 

@@ -18,6 +18,8 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from pathlib import Path
+from types import FrameType
 from typing import Any
 
 from bengal.utils.logger import get_logger
@@ -45,12 +47,12 @@ class ResourceManager:
     - Handles all termination scenarios
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize resource manager."""
-        self._resources: list[tuple[str, Any, Callable]] = []
+        self._resources: list[tuple[str, Any, Callable[[Any], None]]] = []
         self._cleanup_done = False
         self._lock = threading.Lock()
-        self._original_signals = {}
+        self._original_signals: dict[signal.Signals, signal.Handlers] = {}
 
     def register(self, name: str, resource: Any, cleanup_fn: Callable) -> Any:
         """
@@ -79,7 +81,7 @@ class ResourceManager:
             The server
         """
 
-        def cleanup(s):
+        def cleanup(s: Any) -> None:
             try:
                 # Shutdown in a thread with timeout to avoid hanging
                 shutdown_thread = threading.Thread(target=s.shutdown)
@@ -107,7 +109,7 @@ class ResourceManager:
             The observer
         """
 
-        def cleanup(o):
+        def cleanup(o: Any) -> None:
             try:
                 o.stop()
                 # Don't hang forever waiting for observer (reduced from 5s to 2s)
@@ -119,7 +121,7 @@ class ResourceManager:
 
         return self.register("File Observer", observer, cleanup)
 
-    def register_pidfile(self, pidfile_path) -> Any:
+    def register_pidfile(self, pidfile_path: Path) -> Path:
         """
         Register PID file for cleanup.
 
@@ -130,7 +132,7 @@ class ResourceManager:
             The path
         """
 
-        def cleanup(path):
+        def cleanup(path: Path) -> None:
             try:
                 if path.exists():
                     path.unlink()
@@ -185,7 +187,7 @@ class ResourceManager:
         if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
             print("  ✅ Server stopped")
 
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle termination signals."""
         # Check if this is the first or second interrupt
         if not self._cleanup_done:
@@ -197,10 +199,10 @@ class ResourceManager:
             print("\n  ⚠️  Force shutdown")
             sys.exit(1)
 
-    def _register_signal_handlers(self):
+    def _register_signal_handlers(self) -> None:
         """Register signal handlers for cleanup."""
         # Store original handlers so we can restore them
-        signals_to_catch = [signal.SIGINT, signal.SIGTERM]
+        signals_to_catch: list[signal.Signals] = [signal.SIGINT, signal.SIGTERM]
 
         # SIGHUP only exists on Unix
         if hasattr(signal, "SIGHUP"):
@@ -213,19 +215,19 @@ class ResourceManager:
                 # Some signals can't be caught (e.g., in threads, Windows limitations)
                 self._original_signals[sig] = signal.signal(sig, self._signal_handler)
 
-    def _restore_signals(self):
+    def _restore_signals(self) -> None:
         """Restore original signal handlers."""
         for sig, handler in self._original_signals.items():
             with contextlib.suppress(OSError, ValueError):
                 signal.signal(sig, handler)
 
-    def __enter__(self):
+    def __enter__(self) -> ResourceManager:
         """Context manager entry."""
         self._register_signal_handlers()
         atexit.register(self.cleanup)
         return self
 
-    def __exit__(self, exc_type, *args):
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> bool:
         """Context manager exit - ensure cleanup runs."""
         self.cleanup()
         return False  # Don't suppress exceptions

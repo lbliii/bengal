@@ -22,6 +22,7 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import IO
 
 from bengal.utils.logger import get_logger
 
@@ -77,7 +78,7 @@ def file_lock(
 
 
 def _acquire_lock(
-    lock_file,
+    lock_file: IO[str],
     exclusive: bool,
     timeout: float,
     lock_path: Path,
@@ -127,7 +128,7 @@ def _acquire_lock(
             retry_interval = min(retry_interval * 1.5, max_retry_interval)
 
 
-def _try_lock_nonblocking(lock_file, exclusive: bool) -> None:
+def _try_lock_nonblocking(lock_file: IO[str], exclusive: bool) -> None:
     """
     Try to acquire lock without blocking.
 
@@ -144,7 +145,7 @@ def _try_lock_nonblocking(lock_file, exclusive: bool) -> None:
         _lock_unix(lock_file, exclusive, blocking=False)
 
 
-def _lock_unix(lock_file, exclusive: bool, blocking: bool) -> None:
+def _lock_unix(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
     """
     Acquire lock on Unix/macOS using fcntl.flock().
 
@@ -171,7 +172,7 @@ def _lock_unix(lock_file, exclusive: bool, blocking: bool) -> None:
         raise
 
 
-def _lock_windows(lock_file, exclusive: bool, blocking: bool) -> None:
+def _lock_windows(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
     """
     Acquire lock on Windows using msvcrt.locking().
 
@@ -199,7 +200,7 @@ def _lock_windows(lock_file, exclusive: bool, blocking: bool) -> None:
         raise
 
 
-def _release_lock(lock_file) -> None:
+def _release_lock(lock_file: IO[str]) -> None:
     """
     Release lock on the file.
 
@@ -212,7 +213,7 @@ def _release_lock(lock_file) -> None:
         _unlock_unix(lock_file)
 
 
-def _unlock_unix(lock_file) -> None:
+def _unlock_unix(lock_file: IO[str]) -> None:
     """Release Unix/macOS lock."""
     import contextlib
     import fcntl
@@ -221,7 +222,7 @@ def _unlock_unix(lock_file) -> None:
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
-def _unlock_windows(lock_file) -> None:
+def _unlock_windows(lock_file: IO[str]) -> None:
     """Release Windows lock."""
     import msvcrt
 

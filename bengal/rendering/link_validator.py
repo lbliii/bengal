@@ -13,6 +13,7 @@ Key features:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
@@ -145,11 +146,19 @@ class LinkValidator:
 
         if self.broken_links:
             pages_affected = len(set(str(page_path) for page_path, _ in self.broken_links))
+
+            def _relative_path(path: Path | str) -> str:
+                """Convert to project-relative path for display."""
+                try:
+                    return str(Path(path).relative_to(site.root_path))
+                except ValueError:
+                    return str(path)
+
             logger.warning(
                 "found_broken_links",
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
-                sample_links=[(str(p), link) for p, link in self.broken_links[:10]],
+                sample_links=[(_relative_path(p), link) for p, link in self.broken_links[:10]],
             )
         else:
             logger.debug(

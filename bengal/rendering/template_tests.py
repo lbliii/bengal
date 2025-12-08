@@ -62,7 +62,7 @@ def test_draft(page: Any) -> bool:
     metadata = safe_get(page, "metadata")
     if not has_value(metadata):
         return False
-    return metadata.get("draft", False)
+    return bool(metadata.get("draft", False))
 
 
 def test_featured(page: Any) -> bool:
@@ -106,8 +106,10 @@ def test_outdated(page: Any, days: int = 90) -> bool:
         return False
 
     try:
+        if not isinstance(page_date, datetime):
+            return False
         age = (datetime.now() - page_date).days
-        return age > days
+        return bool(age > days)
     except (TypeError, AttributeError):
         return False
 

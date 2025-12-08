@@ -210,28 +210,28 @@ class TemplateSectionWrapper:
         return self._section.url if hasattr(self._section, "url") else "/"
 
     @property
-    def pages(self) -> list:
+    def pages(self) -> list[TemplatePageWrapper]:
         """Return wrapped pages."""
         if not hasattr(self._section, "pages"):
             return []
         return [wrap_for_template(p, self._baseurl) for p in self._section.pages]
 
     @property
-    def subsections(self) -> list:
+    def subsections(self) -> list[TemplateSectionWrapper]:
         """Return wrapped subsections."""
         if not hasattr(self._section, "subsections"):
             return []
         return [wrap_for_template(s, self._baseurl) for s in self._section.subsections]
 
     @property
-    def sorted_pages(self) -> list:
+    def sorted_pages(self) -> list[TemplatePageWrapper]:
         """Return wrapped sorted pages."""
         if not hasattr(self._section, "sorted_pages"):
             return []
         return [wrap_for_template(p, self._baseurl) for p in self._section.sorted_pages]
 
     @property
-    def sorted_subsections(self) -> list:
+    def sorted_subsections(self) -> list[TemplateSectionWrapper]:
         """Return wrapped sorted subsections."""
         if not hasattr(self._section, "sorted_subsections"):
             return []
@@ -273,17 +273,17 @@ class TemplateSiteWrapper:
         self._baseurl = baseurl
 
     @property
-    def pages(self) -> list:
+    def pages(self) -> list[TemplatePageWrapper]:
         """Return wrapped pages."""
         return [wrap_for_template(p, self._baseurl) for p in self._site.pages]
 
     @property
-    def sections(self) -> list:
+    def sections(self) -> list[TemplateSectionWrapper]:
         """Return wrapped sections."""
         return [wrap_for_template(s, self._baseurl) for s in self._site.sections]
 
     @property
-    def regular_pages(self) -> list:
+    def regular_pages(self) -> list[TemplatePageWrapper]:
         """Return wrapped regular pages."""
         return [wrap_for_template(p, self._baseurl) for p in self._site.regular_pages]
 

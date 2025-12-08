@@ -109,14 +109,14 @@ def should_use_rich() -> bool:
     return console.is_terminal
 
 
-def detect_environment() -> dict:
+def detect_environment() -> dict[str, bool | str | int | None]:
     """
     Detect terminal and environment capabilities.
 
     Returns:
         Dictionary with environment info
     """
-    env = {}
+    env: dict[str, bool | str | int | None] = {}
 
     # Terminal info
     console = get_console()
@@ -155,13 +155,13 @@ def detect_environment() -> dict:
     return env
 
 
-def reset_console():
+def reset_console() -> None:
     """Reset the console singleton (mainly for testing)."""
     global _console
     _console = None
 
 
-def is_live_display_active():
+def is_live_display_active() -> bool:
     """
     Check if a Live display is currently active on the console.
 

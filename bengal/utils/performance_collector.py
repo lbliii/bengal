@@ -25,8 +25,12 @@ import time
 import tracemalloc
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.orchestration.build.results import BuildStats
 
 logger = get_logger(__name__)
 
@@ -73,7 +77,7 @@ class PerformanceCollector:
         else:
             self.process = None
 
-    def start_build(self):
+    def start_build(self) -> None:
         """Start collecting metrics for a build."""
         self.start_time = time.time()
 
@@ -87,7 +91,7 @@ class PerformanceCollector:
         if self.process:
             self.start_rss = self.process.memory_info().rss
 
-    def end_build(self, stats):
+    def end_build(self, stats: BuildStats) -> BuildStats:
         """
         End collection and update stats with memory metrics.
 
@@ -99,11 +103,11 @@ class PerformanceCollector:
         """
         # Calculate Python heap memory
         current_mem, peak_mem = tracemalloc.get_traced_memory()
-        memory_heap_mb = (current_mem - self.start_memory) / 1024 / 1024
+        memory_heap_mb = (current_mem - (self.start_memory or 0)) / 1024 / 1024
         memory_peak_mb = peak_mem / 1024 / 1024
 
         # Calculate RSS memory if available
-        memory_rss_mb = 0
+        memory_rss_mb = 0.0
         if self.process and self.start_rss:
             current_rss = self.process.memory_info().rss
             memory_rss_mb = (current_rss - self.start_rss) / 1024 / 1024
@@ -115,7 +119,7 @@ class PerformanceCollector:
 
         return stats
 
-    def save(self, stats):
+    def save(self, stats: BuildStats) -> None:
         """
         Save metrics to disk for historical tracking.
 
@@ -150,7 +154,7 @@ class PerformanceCollector:
                 "performance_metrics_save_failed", error=str(e), error_type=type(e).__name__
             )
 
-    def get_summary(self, stats) -> str:
+    def get_summary(self, stats: BuildStats) -> str:
         """
         Generate a one-line summary of build metrics.
 

@@ -198,7 +198,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
         return lexer
 
 
-def clear_cache():
+def clear_cache() -> None:
     """Clear the lexer cache. Useful for testing or memory management."""
     global _lexer_cache, _cache_stats
     with _cache_lock:
@@ -207,7 +207,7 @@ def clear_cache():
     logger.info("lexer_cache_cleared")
 
 
-def get_cache_stats() -> dict:
+def get_cache_stats() -> dict[str, int | float]:
     """
     Get cache statistics for monitoring.
 
@@ -215,14 +215,14 @@ def get_cache_stats() -> dict:
         Dict with hits, misses, guess_calls, hit_rate
     """
     with _cache_lock:
-        stats = _cache_stats.copy()
+        stats: dict[str, int | float] = dict(_cache_stats)
         total = stats["hits"] + stats["misses"]
-        stats["hit_rate"] = stats["hits"] / total if total > 0 else 0
+        stats["hit_rate"] = stats["hits"] / total if total > 0 else 0.0
         stats["cache_size"] = len(_lexer_cache)
     return stats
 
 
-def log_cache_stats():
+def log_cache_stats() -> None:
     """Log cache statistics. Call at end of build for visibility."""
     stats = get_cache_stats()
     logger.info(
