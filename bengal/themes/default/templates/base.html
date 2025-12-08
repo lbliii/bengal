@@ -264,9 +264,10 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
                     {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
                     {% endif %}
-                    {% if site.config.params and site.config.params.repo_url and not github_bundled %}
+                    {% set _params = site.config.get('params', {}) %}
+                    {% if _params.get('repo_url') and not github_bundled %}
                     <li>
-                        <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener"
+                        <a href="{{ _params.repo_url }}" target="_blank" rel="noopener"
                             title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
                             {{ icon('github-logo', size=16) }}
                             <span>GitHub</span>
@@ -387,9 +388,10 @@ See: plan/active/rfc-template-performance-optimization.md
             {% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
             {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
             {% endif %}
-            {% if site.config.params and site.config.params.repo_url and not github_bundled %}
+            {% set _mobile_params = site.config.get('params', {}) %}
+            {% if _mobile_params.get('repo_url') and not github_bundled %}
             <li>
-                <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener">
+                <a href="{{ _mobile_params.repo_url }}" target="_blank" rel="noopener">
                     {{ icon('github-logo', size=16, css_class='nav-icon') }}
                     GitHub
                 </a>
