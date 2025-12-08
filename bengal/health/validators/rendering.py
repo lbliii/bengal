@@ -259,8 +259,14 @@ class RenderingValidator(BaseValidator):
                 if missing_elements:
                     issues.append(f"{page.output_path.name}: missing {', '.join(missing_elements)}")
 
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "health_seo_page_check_skipped",
+                    page=str(getattr(page, "output_path", "unknown")),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_page",
+                )
 
         if issues:
             results.append(

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 from functools import cached_property
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 
 class HasMetadata(Protocol):
@@ -47,8 +47,9 @@ class PageComputedMixin:
             <meta property="og:description" content="{{ page.meta_description }}">
         """
         # Check metadata first (explicit description)
-        if self.metadata.get("description"):
-            return self.metadata["description"]
+        description = self.metadata.get("description")
+        if description:
+            return cast(str, description)
 
         # Generate from content
         text = self.content

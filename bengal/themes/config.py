@@ -70,7 +70,9 @@ class FeatureFlags:
             return False
         category, feature_name = feature.split(".", 1)
         category_dict = getattr(self, category, {})
-        return category_dict.get(feature_name, False)
+        if isinstance(category_dict, dict):
+            return bool(category_dict.get(feature_name, False))
+        return False
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FeatureFlags:

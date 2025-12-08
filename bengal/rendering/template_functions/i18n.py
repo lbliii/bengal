@@ -11,7 +11,7 @@ Provides:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.utils.file_io import load_data_file
 from bengal.utils.logger import get_logger
@@ -33,6 +33,20 @@ logger = get_logger(__name__)
 
 # Track warned translation keys to avoid spamming logs (once per key per build)
 _warned_translation_keys: set[str] = set()
+
+
+class LanguageInfo(TypedDict, total=False):
+    """
+    TypedDict for language information returned by _languages().
+
+    All fields except baseurl are required. baseurl is optional.
+    """
+
+    code: str  # Language code (e.g., 'en', 'fr')
+    name: str  # Display name (e.g., 'English', 'Français')
+    hreflang: str  # hreflang attribute value (usually same as code)
+    baseurl: str  # Base URL for this language (optional)
+    weight: int  # Sort weight (lower = earlier in list)
 
 
 def _warn_missing_translation(key: str, lang: str) -> None:
@@ -97,7 +111,7 @@ def register(env: Environment, site: Site) -> None:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         return _current_lang(site, page)
 
-    def languages() -> list[dict[str, Any]]:
+    def languages() -> list[LanguageInfo]:
         return _languages(site)
 
     def alternate_links(page=None) -> list[dict[str, str]]:
@@ -125,26 +139,32 @@ def _current_lang(site: Site, page: Any | None = None) -> str | None:
     return getattr(site, "current_language", None) or default
 
 
-def _languages(site: Site) -> list[dict[str, Any]]:
+def _languages(site: Site) -> list[LanguageInfo]:
+    """
+    Get normalized list of configured languages.
+
+    Returns:
+        List of LanguageInfo dictionaries with code, name, hreflang, and optional baseurl/weight.
+    """
     i18n = site.config.get("i18n", {}) or {}
     langs = i18n.get("languages") or []
     # Normalize to list of dicts with code and hreflang
-    normalized: list[dict[str, Any]] = []
+    normalized: list[LanguageInfo] = []
     seen = set()
     for entry in langs:
         if isinstance(entry, dict):
             code = entry.get("code")
             if code and code not in seen:
                 seen.add(code)
-                normalized.append(
-                    {
-                        "code": code,
-                        "name": entry.get("name", code),
-                        "hreflang": entry.get("hreflang", code),
-                        "baseurl": entry.get("baseurl"),
-                        "weight": entry.get("weight", 0),
-                    }
-                )
+                lang_info: LanguageInfo = {
+                    "code": code,
+                    "name": entry.get("name", code),
+                    "hreflang": entry.get("hreflang", code),
+                    "weight": entry.get("weight", 0),
+                }
+                if baseurl := entry.get("baseurl"):
+                    lang_info["baseurl"] = baseurl
+                normalized.append(lang_info)
         elif isinstance(entry, str):
             if entry not in seen:
                 seen.add(entry)

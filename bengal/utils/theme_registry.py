@@ -111,8 +111,14 @@ class ThemePackage:
             traversable = resources.files(self.package) / "assets"
             # Try calling is_dir() directly - if it exists, it should work
             return bool(traversable.is_dir())
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_assets_dir_check_failed",
+                package=self.package,
+                method="importlib_resources",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         return False
 
@@ -128,16 +134,28 @@ class ThemePackage:
                 manifest_file = pkg_dir / "theme.toml"
                 if manifest_file.is_file():
                     return True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_manifest_check_failed",
+                package=self.package,
+                method="importlib_import",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         # Try importlib.resources (for properly installed packages)
         try:
             traversable = resources.files(self.package) / "theme.toml"
             # Try calling is_file() directly - if it exists, it should work
             return bool(traversable.is_file())
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_manifest_check_failed",
+                package=self.package,
+                method="importlib_resources",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         return False
 
@@ -156,8 +174,14 @@ class ThemePackage:
                 full_path = pkg_dir / relative
                 if full_path.exists():
                     return full_path
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_resource_path_import_failed",
+                package=self.package,
+                relative=relative,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         # Try importlib.resources (for properly installed packages)
         try:
@@ -246,8 +270,14 @@ def get_installed_themes() -> dict[str, ThemePackage]:
                         error_type=type(e).__name__,
                     )
                     version = None
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_distribution_lookup_failed",
+                slug=slug,
+                package=package,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         themes[slug] = ThemePackage(
             slug=slug, package=package, distribution=dist_name, version=version

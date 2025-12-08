@@ -22,15 +22,15 @@ Bengal contains numerous exception handlers that silently swallow errors, making
 
 1. **Completely Silent Handlers (`except Exception: pass`)**:
    - Found **~12 critical instances** that swallow ALL exceptions with zero feedback
-   - Example from `bengal/config/env_overrides.py:99-102`:
+   - Example from `bengal/bengal/config/env_overrides.py:103-112`:
      ```python
-     except Exception:
-         # Never fail build due to env override logic
-         # Silently continue with original config
+     except Exception as e:
+         # Currently uses DEBUG, which is silent for most users
+         logger.debug("env_overrides_application_failed", ...)
          pass
      ```
 
-2. **Theme Discovery Failures** (`bengal/utils/theme_registry.py`):
+2. **Theme Discovery Failures** (`bengal/bengal/utils/theme_registry.py`):
    - **5 instances** at lines 114, 131, 139, 159, 249
    - Silent failures during theme package discovery
    - Impact: Theme not loaded, user sees "default" theme with no explanation
@@ -40,32 +40,32 @@ Bengal contains numerous exception handlers that silently swallow errors, making
        pass  # User never knows why theme loading failed
    ```
 
-3. **Config Override Detection** (`bengal/config/env_overrides.py`):
-   - GitHub Pages `baseurl` detection silently fails
+3. **Config Override Detection** (`bengal/bengal/config/env_overrides.py`):
+   - GitHub Pages `baseurl` detection fails silently (DEBUG only)
    - Impact: Site may have wrong baseurl in CI/CD, breaking all links
 
-4. **Health Validators** (`bengal/health/validators/`):
+4. **Health Validators** (`bengal/bengal/health/validators/`):
    - `rendering.py:256-257`: SEO metadata check silently skips pages
    - `connectivity.py:123, 146, 160, 216, 249`: Graph metrics silently fall back
    - `directives/checkers.py:313-316`: Directive validation silently skipped
    - Impact: Health checks report "OK" when they actually failed
 
 5. **Debug/CLI Tools**:
-   - `bengal/cli/commands/theme.py`: 5 instances (lines 488, 500, 527, 541, 699)
-   - `bengal/debug/config_inspector.py`: 3 instances (lines 497, 510, 545)
-   - `bengal/debug/content_migrator.py`: 2 instances (lines 393, 512)
+   - `bengal/bengal/cli/commands/theme.py`: 5 instances (lines 488, 500, 527, 541, 699)
+   - `bengal/bengal/debug/config_inspector.py`: 3 instances (lines 497, 510, 545)
+   - `bengal/bengal/debug/content_migrator.py`: 2 instances (lines 393, 512)
    - Impact: CLI commands silently fail to provide accurate info
 
-6. **Server Components** (`bengal/server/`):
+6. **Server Components** (`bengal/bengal/server/`):
    - `build_handler.py:282, 342`: Build decision silently uses fallback
    - `live_reload.py:43`: Live reload detection silently fails
    - Impact: Dev server behavior unexplained
 
 7. **Utility Functions**:
-   - `bengal/utils/swizzle.py:318`: Returns empty string on hash failure
-   - `bengal/utils/error_handlers.py:33`: Context-aware help silently fails
-   - `bengal/utils/sections.py:37-48`: Section resolution silently returns None
-   - `bengal/cache/build_cache/file_tracking.py:68-71`: Returns empty hash
+   - `bengal/bengal/utils/swizzle.py:318`: Returns empty string on hash failure
+   - `bengal/bengal/utils/error_handlers.py:33`: Context-aware help silently fails
+   - `bengal/bengal/utils/sections.py:37-48`: Section resolution silently returns None
+   - `bengal/bengal/cache/build_cache/file_tracking.py:68-71`: Returns empty hash
    - Impact: Asset fingerprinting, caching, navigation can break silently
 
 ### Pain Points

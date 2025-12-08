@@ -485,10 +485,14 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         pkg = get_theme_package(theme_name)
         if pkg:
             return True
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, missing package),
-        # treat as "theme not found"
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_installed_check_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="continuing_to_bundled_check",
+        )
 
     # Bundled theme
     try:
@@ -497,10 +501,14 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         bundled = Path(bengal.__file__).parent / "themes" / theme_name
         if bundled.exists():
             return True
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
-        # treat as "theme not found"
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_bundled_check_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_not_found",
+        )
 
     return False
 
