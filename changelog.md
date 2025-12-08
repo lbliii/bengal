@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Virtual Section Page Reference Fix ✅
+- **core(page)**: fix critical bug where virtual pages had flat navigation instead of hierarchical
+- **core(page)**: add `_section_url` field for URL-based section lookups (virtual sections have `path=None`)
+- **core(page)**: update `_section` setter/getter to use URL for virtual sections, path for regular sections
+- **core(site)**: add `get_section_by_url()` and `_section_url_registry` for O(1) virtual section lookups
+- **core(site)**: consolidate `_setup_page_references` into Site (removed duplicate in ContentOrchestrator)
+- **core(site)**: add `_validate_page_section_references()` for post-discovery validation warnings
+- **tests**: add 6 unit tests for virtual section navigation hierarchy
+- **docs**: RFC moved to implemented
+
 ### Centralized Path Resolution Architecture ✅
 - **utils**: add `PathResolver` utility class for consistent path resolution relative to site root
 - **utils(path_resolver)**: add `resolve()`, `resolve_many()`, `resolve_if_exists()` for flexible resolution
