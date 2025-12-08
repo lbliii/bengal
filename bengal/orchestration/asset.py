@@ -36,6 +36,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.site import Site
+    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
@@ -136,7 +137,12 @@ class AssetOrchestrator:
 
         return self._cached_css_entry_points
 
-    def process(self, assets: list[Asset], parallel: bool = True, progress_manager=None) -> None:
+    def process(
+        self,
+        assets: list[Asset],
+        parallel: bool = True,
+        progress_manager: LiveProgressManager | None = None,
+    ) -> None:
         """
         Process and copy assets to output directory.
 
@@ -312,7 +318,7 @@ class AssetOrchestrator:
         minify: bool,
         optimize: bool,
         fingerprint: bool,
-        progress_manager,
+        progress_manager: LiveProgressManager | None,
         css_modules_count: int,
     ) -> None:
         """
@@ -410,7 +416,7 @@ class AssetOrchestrator:
         minify: bool,
         optimize: bool,
         fingerprint: bool,
-        progress_manager,
+        progress_manager: LiveProgressManager | None,
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
@@ -418,7 +424,7 @@ class AssetOrchestrator:
         completed = 0
 
         # Helper to handle single item
-        def process_one(asset, is_css_entry):
+        def process_one(asset: Asset, is_css_entry: bool) -> None:
             nonlocal completed
             try:
                 if is_css_entry:

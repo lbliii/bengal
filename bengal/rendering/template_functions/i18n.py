@@ -181,7 +181,7 @@ def _languages(site: Site) -> list[LanguageInfo]:
     return normalized
 
 
-def _make_t(site: Site):
+def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None], str]:
     cache: dict[str, dict[str, Any]] = {}
     i18n_dir = site.root_path / "i18n"
 

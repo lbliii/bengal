@@ -334,7 +334,7 @@ class RenderOrchestrator:
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
@@ -434,7 +434,7 @@ class RenderOrchestrator:
         update_interval = 0.1  # Update every 100ms (10 Hz max)
         batch_size = 10  # Or every 10 pages, whichever comes first
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
@@ -525,7 +525,7 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(

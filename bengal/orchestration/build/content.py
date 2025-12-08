@@ -307,7 +307,10 @@ def phase_related_posts(
 
 
 def phase_query_indexes(
-    orchestrator: BuildOrchestrator, cache, incremental: bool, pages_to_build: list
+    orchestrator: BuildOrchestrator,
+    cache: BuildCache,
+    incremental: bool,
+    pages_to_build: list[Any],
 ) -> None:
     """
     Phase 11: Query Indexes.

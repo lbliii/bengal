@@ -10,7 +10,7 @@ to avoid code duplication and ensure consistency.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils import text as text_utils
 from bengal.utils.logger import get_logger
@@ -43,7 +43,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def dict_get(obj, key, default=None):
+def dict_get(obj: Any, key: str, default: Any = None) -> Any:
     """Safe get supporting dict-like objects for component preview contexts."""
     try:
         if isinstance(obj, dict):

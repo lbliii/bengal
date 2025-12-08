@@ -40,7 +40,7 @@ class ConfigCheckResult:
     incremental: bool
     config_changed: bool
 
-    def __iter__(self):
+    def __iter__(self) -> tuple[bool, bool]:
         """Allow tuple unpacking for backward compatibility."""
         return iter((self.incremental, self.config_changed))
 
@@ -67,7 +67,9 @@ class FilterResult:
     changed_page_paths: set[Path]
     affected_sections: set[str] | None
 
-    def __iter__(self):
+    def __iter__(
+        self,
+    ) -> tuple[list[Page], list[Asset], set[str], set[Path], set[str] | None]:
         """Allow tuple unpacking for backward compatibility."""
         return iter(
             (

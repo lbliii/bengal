@@ -14,10 +14,13 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+
+if TYPE_CHECKING:
+    from bengal.utils.build_context import BuildContext
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -48,7 +51,9 @@ class AssetValidator(BaseValidator):
     LARGE_IMAGE_KB = 1000
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
 

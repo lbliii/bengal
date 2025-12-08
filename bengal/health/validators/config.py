@@ -6,7 +6,7 @@ Integrates the existing ConfigValidator into the health check system.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.config.defaults import get_max_workers
 from bengal.health.base import BaseValidator
@@ -14,6 +14,7 @@ from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class ConfigValidatorWrapper(BaseValidator):
@@ -30,7 +31,9 @@ class ConfigValidatorWrapper(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Validate configuration."""
         results = []
 
