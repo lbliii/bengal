@@ -21,7 +21,7 @@ Architecture:
 
 See Also:
     - plan/active/rfc-template-performance-optimization.md
-    - bengal/rendering/template_engine.py
+    - bengal/rendering/template_engine/core.py
 """
 
 from __future__ import annotations

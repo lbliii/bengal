@@ -17,7 +17,7 @@ Related Modules:
 
 See Also:
     - bengal/rendering/template_functions/__init__.py: Template function modules
-    - bengal/rendering/template_engine.py: Template function registration
+    - bengal/rendering/template_engine/core.py: Template function registration
 """
 
 from __future__ import annotations
