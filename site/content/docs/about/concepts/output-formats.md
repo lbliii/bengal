@@ -56,12 +56,28 @@ json_indent = 2                # Pretty-print JSON (use null for compact)
 
 Fetch the site index to implement fast, client-side search without a backend.
 
+:::{note}
+For larger sites, enable the **Pre-built Lunr Index** to improve performance. This requires the `search` optional dependency:
+
+```bash
+pip install bengal[search]
+```
+
+This generates `search-index.json` (a pre-serialized index) instead of just `index.json`, which loads 50% faster in the browser.
+:::
+
 ```html
 <!-- Simple search UI -->
 <input type="text" id="search-input" placeholder="Search...">
 <ul id="search-results"></ul>
 
 <script>
+  // If using pre-built index (requires lunr.js):
+  // fetch('/search-index.json')
+  //   .then(res => res.json())
+  //   .then(data => { searchIndex = lunr.Index.load(data); });
+
+  // Standard JSON index (no dependency):
   const searchInput = document.getElementById('search-input');
   const resultsList = document.getElementById('search-results');
   let searchIndex = [];
