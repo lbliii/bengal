@@ -738,8 +738,34 @@ class VirtualAutodocOrchestrator:
             # Set section reference via setter (handles virtual sections with URL-based lookup)
             page._section = parent_section
 
-            # Add to section BEFORE rendering (so navigation can see siblings)
-            parent_section.add_page(page)
+            # Check if this element corresponds to an existing section (e.g. it's a package)
+            # If so, this page should be the index page of that section
+            target_section = None
+
+            if doc_type == "python" and element.element_type == "module":
+                # Check if we have a section for this module (i.e., it is a package)
+                # Section path format from _create_python_sections: api/part1/part2
+                section_path = f"api/{element.qualified_name.replace('.', '/')}"
+                target_section = sections.get(section_path)
+
+            elif doc_type == "cli" and element.element_type == "command-group":
+                # Section path format from _create_cli_sections: cli/part1/part2
+                section_path = f"cli/{element.qualified_name.replace('.', '/')}"
+                target_section = sections.get(section_path)
+
+            # Add to section
+            if target_section:
+                # This page is the index for target_section
+                # Set section reference to the target section (it belongs TO the section as its index)
+                page._section = target_section
+
+                # Set as index page manually
+                # We don't use add_page() because it relies on filename stem for index detection
+                target_section.index_page = page
+                target_section.pages.append(page)
+            else:
+                # Regular page - add to parent section
+                parent_section.add_page(page)
 
             # Store page for return (no HTML rendering yet - deferred to rendering phase)
             page_data.append(page)
