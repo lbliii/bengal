@@ -13,6 +13,9 @@
 - **debug(content_migrator)**: add logger import; add logging to `split_page` and `merge_pages` frontmatter parsing failures
 - **postprocess(utils)**: add logging to URL extraction failures for callable page URLs
 - **postprocess(llm_generator)**: add logging to existing file read failures in `_write_if_changed`
+- **analysis(graph_visualizer)**: add logging to page URL access fallback chain
+- **core(page/content)**: add logging to AST-to-HTML rendering fallback
+- **rendering(jinja_utils)**: add logging to `safe_getattr` property access failures
 - **tests**: update `test_exception_in_env_logic_silent` to use targeted mock for env vars, supporting new warning logging
 - **docs**: RFC moved to implemented
 
