@@ -135,7 +135,12 @@ class SchemaValidator:
     ) -> ValidationResult:
         """Validate using Pydantic model."""
         try:
-            instance = self.schema.model_validate(data)
+            # Type guard: we know schema is Pydantic if _is_pydantic is True
+            # Use getattr to avoid mypy error - we've already checked _is_pydantic
+            if not self._is_pydantic:
+                raise TypeError("Schema is not a Pydantic model")
+            # Type ignore: mypy doesn't know that schema has model_validate when _is_pydantic is True
+            instance = getattr(self.schema, "model_validate")(data)  # type: ignore[attr-defined]
             return ValidationResult(
                 valid=True,
                 data=instance,

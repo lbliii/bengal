@@ -32,7 +32,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
     from jinja2 import Template
@@ -254,7 +254,11 @@ class TemplateProfiler:
             self._active_renders.clear()
 
 
-def profile_function(profiler: TemplateProfiler, func_name: str) -> Callable:
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def profile_function(profiler: TemplateProfiler, func_name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator factory for profiling template functions.
 
@@ -271,9 +275,9 @@ def profile_function(profiler: TemplateProfiler, func_name: str) -> Callable:
             ...
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             if not profiler.is_enabled():
                 return func(*args, **kwargs)
 
@@ -312,7 +316,7 @@ class ProfiledTemplate:
         """Delegate attribute access to wrapped template."""
         return getattr(self._template, name)
 
-    def render(self, *args, **kwargs) -> str:
+    def render(self, *args: Any, **kwargs: Any) -> str:
         """
         Render template with timing instrumentation.
 

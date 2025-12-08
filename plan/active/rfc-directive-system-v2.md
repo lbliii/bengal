@@ -12,7 +12,7 @@
 
 Redesign Bengal's directive system with three major improvements:
 
-1. **Named Closure Syntax** — Optional `::: /name` closers to eliminate fence-depth counting
+1. **Named Closure Syntax** — Optional `:::{/name}` closers to eliminate fence-depth counting
 2. **Nested Directive Validation** — `DirectiveContract` system catches invalid nesting at parse time
 3. **Cohesive Architecture** — `BengalDirective` base class with typed options and encapsulated rendering
 
@@ -22,7 +22,7 @@ The current system has 20+ directives that work but suffer from:
 - **Duplicated boilerplate** — Same patterns repeated across 24 files
 
 **Key Proposals**:
-- **Named Closers**: `::: /tabs` explicitly closes `::: tabs`, bypassing fence counting
+- **Named Closers**: `:::{/tabs}` explicitly closes `:::{tabs}`, bypassing fence counting
 - **Backward Compatible**: Standard `::::` counting still works for simple cases
 - **Validation**: `DirectiveContract` validates parent-child relationships
 - **Architecture**: `BengalDirective` base class standardizes development
@@ -262,7 +262,7 @@ Content silently disappears
 ### 2.1 Goals
 
 **Primary Goals** (address main pain points):
-1. **🎯 Named closure syntax** — `::: /name` syntax to escape fence-depth hell
+1. **🎯 Named closure syntax** — `:::{/name}` syntax to escape fence-depth hell
 2. **🎯 Nested directive validation** — Invalid nesting produces helpful warnings, not silent failures
 
 **Secondary Goals** (improve DX and maintainability):
@@ -286,7 +286,7 @@ Content silently disappears
 
 ## 3. Proposed Design
 
-### 3.0 Named Closure Syntax: `::: /name` ⭐ KEY FEATURE
+### 3.0 Named Closure Syntax: `:::{/name}` ⭐ KEY FEATURE
 
 #### 3.0.1 The Problem
 
@@ -307,7 +307,7 @@ Important info
 
 #### 3.0.2 The Solution: Optional Named Closers
 
-We introduce **Named Closers** (`::: /name`) as an **optional** alternative to fence counting.
+We introduce **Named Closers** (`:::{/name}`) as an **optional** alternative to fence counting.
 
 You can mix and match: use standard fence counting for simple cases, and named closers when things get deep.
 
@@ -320,23 +320,24 @@ Simple content
 
 **Named Closure (Complex):**
 ```markdown
-::: tab-set
+:::{tab-set}
 
-::: tab Python
+:::{tab} Python
 :::{note}
 No need to count colons! The /tab explicitly closes the tab.
 :::
-::: /tab
+:::{/tab}
 
-::: tab JS
+:::{tab} JS
 Content
-::: /tab
+:::{/tab}
 
-::: /tab-set
+:::{/tab-set}
 ```
 
 **Benefits:**
-- **Zero fence counting** — Use `::: /name` to close exactly what you want
+- **Zero fence counting** — Use `:::{/name}` to close exactly what you want
+- **Symmetry** — `:::{name}` opens, `:::{/name}` closes (perfect match)
 - **Cognitive ease** — Matches HTML mental model (`<tag>` ... `</tag>`)
 - **Tooling friendly** — Uses standard `:::` markers, preserving syntax highlighting
 - **Backward compatible** — Existing fence-counting syntax continues to work perfectly
@@ -346,18 +347,18 @@ Content
 | Style | Opener | Closer | Use Case |
 |-------|--------|--------|----------|
 | **Standard** | `:::{name}` | `:::` (matching length) | Simple, shallow content |
-| **Named** | `:::{name}` | `:::{/name}` or `::: /name` | Deep nesting, complex structures |
+| **Named** | `:::{name}` | `:::{/name}` | Deep nesting, complex structures |
 
-**Note on Syntax**: The closer can be `::: /name` (space) or `:::{/name}` (curly braces) to match the opener style. The parser will accept both.
+**Note on Syntax**: While `::: /name` (space) is also supported for flexibility, the recommended style is `:::{/name}` (curly braces) to strictly match the MyST opening style.
 
 #### 3.0.4 Full Examples
 
 **Example 1: Tabs with Named Closers**
 
 ```markdown
-::: tab-set
+:::{tab-set}
 
-::: tab macOS
+:::{tab} macOS
 
 :::{note}
 Requires Homebrew
@@ -367,9 +368,9 @@ Requires Homebrew
 brew install bengal
 ```
 
-::: /tab
+:::{/tab}
 
-::: tab Linux
+:::{tab} Linux
 
 ```bash
 pip install bengal
@@ -379,29 +380,29 @@ pip install bengal
 Use a virtual environment!
 :::
 
-::: /tab
+:::{/tab}
 
-::: /tab-set
+:::{/tab-set}
 ```
 
 **Example 2: Mixing Styles**
 
 ```markdown
 <!-- Outer container uses named closers -->
-::: steps
+:::{steps}
 
-::: step Install Dependencies
+:::{step} Install Dependencies
 <!-- Inner content uses standard simple fences -->
 :::{note}
 Standard 3-colon fence works fine here
 :::
-::: /step
+:::{/step}
 
-::: step Configure
+:::{step} Configure
 Content
-::: /step
+:::{/step}
 
-::: /steps
+:::{/steps}
 ```
 
 **Example 3: Documentation**
@@ -412,11 +413,11 @@ Documenting directives is easier because you don't need to escalate fence depths
 ## How to Use Tabs
 
 ```markdown
-::: tab-set
-::: tab Tab 1
+:::{tab-set}
+:::{tab} Tab 1
 Content
-::: /tab
-::: /tab-set
+:::{/tab}
+:::{/tab-set}
 ```
 ````
 
@@ -427,21 +428,21 @@ Only **3 backticks** needed for the code block if you use 3 colons inside!
 Unchanged. Options immediately follow the opener.
 
 ```markdown
-::: cards
+:::{cards}
 :columns: 3
 
-::: card Title
+:::{card} Title
 :icon: star
 
 Content
-::: /card
-::: /cards
+:::{/card}
+:::{/cards}
 ```
 
 
     Content here.
-    ::: /card
-    ::: /cards
+    :::{/card}
+    :::{/cards}
     ```
 
 #### 3.0.6 Parser Implementation
@@ -451,14 +452,14 @@ Content
 import re
 from typing import Any
 
-# Standard fence pattern: ::: name
+# Standard fence pattern: :::{name}
 # Matches 3+ colons, optional space, directive name (in {} or bare), optional title
 FENCE_OPEN_PATTERN = re.compile(
     r'^:{3,}\s*(?:\{([a-zA-Z0-9_-]+)\}|([a-zA-Z0-9_-]+))\s*(.*)$',
     re.MULTILINE
 )
 
-# Named closer pattern: ::: /name OR :::{/name}
+# Named closer pattern: :::{/name} OR ::: /name
 # Matches 3+ colons, optional space, /name (in {} or bare)
 NAMED_CLOSE_PATTERN = re.compile(
     r'^:{3,}\s*(?:\{/([a-zA-Z0-9_-]+)\}|/([a-zA-Z0-9_-]+))\s*$',
@@ -480,10 +481,10 @@ def parse_directive(content: str) -> dict[str, Any]:
     
     # Algorithm:
     # 1. Scan for next fence
-    # 2. If named closer (::: /name):
+    # 2. If named closer (:::{/name}):
     #    - Check if it matches current directive name
     #    - If yes, close current directive (ignore nesting depth)
-    # 3. If opener (::: name):
+    # 3. If opener (:::{name}):
     #    - Increment nesting depth
     # 4. If standard closer (:::):
     #    - Decrement nesting depth
@@ -495,7 +496,7 @@ def parse_directive(content: str) -> dict[str, Any]:
 
 #### 3.0.7 Migration Path
 
-1. **Phase 1**: Update parser to recognize `::: /name` pattern
+1. **Phase 1**: Update parser to recognize `:::{/name}` pattern
 2. **Phase 2**: Update documentation to feature named closers for complex examples
 3. **Phase 3**: No deprecation needed (both syntaxes valid)
 
@@ -504,10 +505,10 @@ def parse_directive(content: str) -> dict[str, Any]:
 Named closers bring the **HTML tag metaphor** to Markdown:
 
 ```
-::: tabs            ← <tabs>
-  ::: tab           ← <tab>
-  ::: /tab          ← </tab>
-::: /tabs           ← </tabs>
+:::{tabs}           ← <tabs>
+  :::{tab}          ← <tab>
+  :::{/tab}         ← </tab>
+:::{/tabs}          ← </tabs>
 ```
 
 ---
@@ -1932,7 +1933,7 @@ DirectiveToken
 ### 6.3 API Surface
 
 **New Public API**:
-- `::: /name` - named closure syntax
+- `:::{/name}` - named closure syntax
 - `BengalDirective` - base class
 - `DirectiveContract` - nesting validation
 - `DirectiveOptions` - options base
@@ -1954,7 +1955,7 @@ DirectiveToken
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Named closer collision with existing content | LOW | LOW | Unlikely to have `::: /name` in normal text |
+| Named closer collision with existing content | LOW | LOW | Unlikely to have `:::{/name}` in normal text |
 | Parser complexity for hybrid mode | MEDIUM | MEDIUM | Prioritize named closer matching over depth counting |
 | Regression in standard directive parsing | MEDIUM | HIGH | Extensive regression tests for standard syntax |
 | User confusion with two styles | LOW | LOW | Styles are complementary; one for simple, one for complex |
@@ -2103,27 +2104,27 @@ These can appear as children OR standalone:
 
 ```markdown
 # Standard syntax (simple)
-::: tabs
-  ::: tab Title
+:::{tabs}
+  :::{tab} Title
   content
   :::
 :::
 
 # Named closure syntax (complex/nested)
-::: tabs
-  ::: tab Title
+:::{tabs}
+  :::{tab} Title
   content
-  ::: /tab
-::: /tabs
+  :::{/tab}
+:::{/tabs}
 
 # Mixed syntax
-::: steps
-  ::: step First
+:::{steps}
+  :::{step} First
   :::{note}
   Simple nested content
   :::
-  ::: /step
-::: /steps
+  :::{/step}
+:::{/steps}
 ```
 
 ---

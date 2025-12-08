@@ -82,7 +82,7 @@ class CascadeEngine:
         """
         return page not in self._pages_in_sections
 
-    def apply(self) -> dict[str, int]:
+    def apply(self) -> dict[str, Any]:
         """
         Apply cascade metadata from sections to pages.
 
@@ -97,7 +97,7 @@ class CascadeEngine:
             - root_cascade_pages: Pages affected by root cascade
             - cascade_keys_applied: Count of each cascaded key
         """
-        stats = {
+        stats: dict[str, Any] = {
             "pages_processed": len(self.pages),
             "pages_with_cascade": 0,
             "root_cascade_pages": 0,
@@ -136,7 +136,7 @@ class CascadeEngine:
         self,
         section: Any,
         parent_cascade: dict[str, Any] | None = None,
-        stats: dict[str, int] | None = None,
+        stats: dict[str, Any] | None = None,
     ) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
@@ -150,7 +150,7 @@ class CascadeEngine:
             stats: Statistics dictionary to update (for tracking what was cascaded)
         """
         if stats is None:
-            stats = {}
+            stats = {"pages_with_cascade": 0, "cascade_keys_applied": {}}
 
         # Merge parent cascade with this section's cascade
         accumulated_cascade = {}
@@ -171,9 +171,11 @@ class CascadeEngine:
                     if key not in page.metadata:
                         page.metadata[key] = value
                         stats["pages_with_cascade"] = stats.get("pages_with_cascade", 0) + 1
-                        stats["cascade_keys_applied"][key] = (
-                            stats["cascade_keys_applied"].get(key, 0) + 1
-                        )
+                        cascade_keys = stats.setdefault("cascade_keys_applied", {})
+                        if not isinstance(cascade_keys, dict):
+                            cascade_keys = {}
+                            stats["cascade_keys_applied"] = cascade_keys
+                        cascade_keys[key] = cascade_keys.get(key, 0) + 1
 
         # Recursively apply to subsections with accumulated cascade
         for subsection in section.subsections:

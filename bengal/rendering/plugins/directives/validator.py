@@ -385,7 +385,7 @@ class DirectiveSyntaxValidator:
                 'options': Dict[str, Any]
             }
         """
-        result = {
+        result: dict[str, Any] = {
             "valid": True,
             "errors": [],
             "directive_type": None,
