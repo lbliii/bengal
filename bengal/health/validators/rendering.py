@@ -66,6 +66,8 @@ class RenderingValidator(BaseValidator):
         pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:10]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
 
@@ -110,6 +112,8 @@ class RenderingValidator(BaseValidator):
         pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:20]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
                 has_unrendered = self._detect_unrendered_jinja2(content)
@@ -241,6 +245,8 @@ class RenderingValidator(BaseValidator):
         ][:10]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
 

@@ -28,10 +28,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    pass
 
 
 @dataclass
@@ -281,9 +283,7 @@ class ContentMigrator(DebugTool):
                     )
 
         # Generate redirect
-        preview.redirects_needed.append(
-            Redirect(from_path=source_url, to_path=dest_url)
-        )
+        preview.redirects_needed.append(Redirect(from_path=source_url, to_path=dest_url))
 
         # Check for issues
         dest_path = self.root_path / destination
@@ -336,9 +336,7 @@ class ContentMigrator(DebugTool):
             for link_update in preview.affected_links:
                 if not dry_run:
                     self._update_file_link(link_update)
-                actions.append(
-                    f"Updated link in {link_update.file_path}:{link_update.line}"
-                )
+                actions.append(f"Updated link in {link_update.file_path}:{link_update.line}")
 
         # Create redirects
         if create_redirects and preview.redirects_needed:
@@ -390,8 +388,14 @@ class ContentMigrator(DebugTool):
                 if len(parts) >= 3:
                     frontmatter = yaml.safe_load(parts[1]) or {}
                     body = parts[2]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "debug_migrator_frontmatter_parse_failed",
+                    page=page_path,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="using_raw_content",
+                )
 
         # Split by headings
         # Find all h2 headings
@@ -509,8 +513,14 @@ class ContentMigrator(DebugTool):
                         for key, value in fm.items():
                             if key not in all_frontmatter:
                                 all_frontmatter[key] = value
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(
+                        "debug_migrator_merge_frontmatter_parse_failed",
+                        page=page_path,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="using_raw_content",
+                    )
 
             # Add section heading and content
             page_title = all_frontmatter.get("title", Path(page_path).stem)
@@ -581,10 +591,8 @@ class ContentMigrator(DebugTool):
         orphans = []
         for page in self.site.pages:
             url = getattr(page, "url", "")
-            if url and incoming_links.get(url, 0) == 0:
-                # Check if in navigation
-                if not self._is_in_navigation(page):
-                    orphans.append(str(getattr(page, "source_path", "")))
+            if url and incoming_links.get(url, 0) == 0 and not self._is_in_navigation(page):
+                orphans.append(str(getattr(page, "source_path", "")))
 
         if orphans:
             findings.append(
@@ -624,9 +632,7 @@ class ContentMigrator(DebugTool):
         """Check if page is in site navigation."""
         # Simplified check - would integrate with menu system
         url = getattr(page, "url", "")
-        return url in ("/", "/index.html") or "index" in str(
-            getattr(page, "source_path", "")
-        )
+        return url in ("/", "/index.html") or "index" in str(getattr(page, "source_path", ""))
 
     def _path_to_url(self, path: str) -> str:
         """Convert file path to URL."""
@@ -696,4 +702,3 @@ class ContentMigrator(DebugTool):
             recommendations.append("Content structure looks healthy! ✅")
 
         return recommendations
-

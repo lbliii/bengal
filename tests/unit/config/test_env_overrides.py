@@ -267,11 +267,19 @@ class TestApplyEnvOverridesEdgeCases:
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""
 
-    def test_exception_in_env_logic_silent(self):
-        """Exceptions in env logic are caught silently."""
+    def test_exception_in_env_logic_logged_and_recovered(self):
+        """Exceptions in env logic are caught, logged as warning, and recovered."""
         config = {"baseurl": ""}
-        # Simulate exception by making os.environ.get raise
-        with patch("os.environ.get", side_effect=Exception("Test error")):
+        # Simulate exception by making os.environ.get raise for specific keys
+        original_get = os.environ.get
+
+        def mock_get(key, default=None):
+            # Only raise for keys used in env override logic
+            if key in ("BENGAL_BASEURL", "BENGAL_BASE_URL", "NETLIFY", "VERCEL", "GITHUB_ACTIONS"):
+                raise Exception("Test error")
+            return original_get(key, default)
+
+        with patch.object(os.environ, "get", side_effect=mock_get):
             # Should not raise, should return original config
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""

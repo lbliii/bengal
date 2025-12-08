@@ -494,8 +494,14 @@ class ConfigInspector(DebugTool):
                 default_value = self._get_nested_value(default_config, key_path)
                 if default_value is not None:
                     layer_values.append(("_default", default_value))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "debug_config_defaults_load_failed",
+                key_path=key_path,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_defaults_layer",
+            )
 
         # Layer 2: Environment
         try:
@@ -507,8 +513,15 @@ class ConfigInspector(DebugTool):
                 env_value = self._get_nested_value(env_config, key_path)
                 if env_value is not None:
                     layer_values.append((f"environments/{current_env}", env_value))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "debug_config_env_load_failed",
+                key_path=key_path,
+                environment=current_env,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_environment_layer",
+            )
 
         # Check deprecation
         deprecated = False
@@ -542,8 +555,14 @@ class ConfigInspector(DebugTool):
             try:
                 file_config = yaml.safe_load(yaml_file.read_text()) or {}
                 config = deep_merge(config, file_config)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "debug_config_yaml_parse_failed",
+                    file=str(yaml_file),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_file",
+                )
         return config
 
     def _get_nested_value(self, config: dict[str, Any], key_path: str) -> Any:

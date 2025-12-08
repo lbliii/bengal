@@ -576,7 +576,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._reporter is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before getting recommendations."
             )
@@ -592,7 +592,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._reporter is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before getting SEO insights."
             )
@@ -608,7 +608,7 @@ class KnowledgeGraph:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
+        if not self._built or self._reporter is None:
             raise RuntimeError(
                 "KnowledgeGraph is not built. Call .build() before getting content gaps."
             )
@@ -725,6 +725,8 @@ class KnowledgeGraph:
         if not self._pagerank_results:
             self.compute_pagerank()
 
+        if self._pagerank_results is None:
+            return []
         return self._pagerank_results.get_top_pages(limit)
 
     def get_pagerank_score(self, page: Page) -> float:
@@ -748,6 +750,8 @@ class KnowledgeGraph:
         if not self._pagerank_results:
             self.compute_pagerank()
 
+        if self._pagerank_results is None:
+            return 0.0
         return self._pagerank_results.get_score(page)
 
     def detect_communities(
@@ -813,6 +817,8 @@ class KnowledgeGraph:
         if not self._community_results:
             self.detect_communities()
 
+        if self._community_results is None:
+            return None
         community = self._community_results.get_community_for_page(page)
         return community.id if community else None
 
@@ -885,6 +891,8 @@ class KnowledgeGraph:
         if not self._path_results:
             self.analyze_paths()
 
+        if self._path_results is None:
+            return 0.0
         return self._path_results.get_betweenness(page)
 
     def get_closeness_centrality(self, page: Page) -> float:
@@ -902,6 +910,8 @@ class KnowledgeGraph:
         if not self._path_results:
             self.analyze_paths()
 
+        if self._path_results is None:
+            return 0.0
         return self._path_results.get_closeness(page)
 
     def suggest_links(
@@ -970,5 +980,7 @@ class KnowledgeGraph:
         if not self._link_suggestions:
             self.suggest_links()
 
+        if self._link_suggestions is None:
+            return []
         suggestions = self._link_suggestions.get_suggestions_for_page(page, limit)
         return [(s.target, s.score, s.reasons) for s in suggestions]

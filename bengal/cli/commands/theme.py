@@ -532,10 +532,14 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
         if template_dir.is_relative_to(bengal_themes):
             theme_name = template_dir.relative_to(bengal_themes).parts[0]
             return f"bundled theme: {theme_name}"
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, path resolution),
-        # continue to next check
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_source_bundled_check_failed",
+            template_dir=str(template_dir),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="continuing_to_installed_check",
+        )
 
     # Installed theme (check if it's in a package)
     try:
@@ -546,10 +550,14 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
             resolved = pkg.resolve_resource_path("templates")
             if resolved and template_dir == resolved:
                 return f"installed theme: {theme_slug}"
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, package resolution),
-        # continue to fallback "unknown" return
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_source_installed_check_failed",
+            template_dir=str(template_dir),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_unknown",
+        )
 
     return "unknown"
 
