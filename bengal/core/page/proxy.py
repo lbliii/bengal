@@ -717,7 +717,7 @@ class PageProxy:
 
         # This is mainly for testing - normally you'd create from metadata
         # and load from disk, but we can create from an existing page too
-        def loader(source_path):
+        def loader(source_path: Path) -> Page:
             return page
 
         return cls(page.source_path, metadata, loader)

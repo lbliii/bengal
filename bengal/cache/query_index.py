@@ -63,7 +63,7 @@ class IndexEntry(Cacheable):
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
     content_hash: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Compute content hash if not provided."""
         if not self.content_hash:
             self.content_hash = self._compute_hash()

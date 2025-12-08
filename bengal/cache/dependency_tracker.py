@@ -25,9 +25,13 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
 
 class CacheInvalidator:
@@ -124,7 +128,7 @@ class DependencyTracker:
         tracker.end_page()
     """
 
-    def __init__(self, cache: BuildCache, site=None):
+    def __init__(self, cache: BuildCache, site: Site | None = None) -> None:
         """
         Initialize the dependency tracker.
 

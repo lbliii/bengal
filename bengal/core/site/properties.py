@@ -19,6 +19,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.core.theme import Theme
 
 logger = get_logger(__name__)
@@ -146,7 +147,7 @@ class SitePropertiesMixin:
         return self._theme_obj
 
     @property
-    def indexes(self):
+    def indexes(self) -> QueryIndexRegistry:
         """
         Access to query indexes for O(1) page lookups.
 

@@ -14,6 +14,7 @@ from bengal.health.report import CheckResult
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
@@ -111,9 +112,9 @@ class ConnectivityValidator(BaseValidator):
                 graph.build()
 
             # Normalize helpers to be robust to mocks
-            def _normalize_hubs(h):
+            def _normalize_hubs(h: list[Page] | list[tuple[Page, int]] | None) -> list[Page]:
                 # Accept list[Page] or list[tuple[Page,int]]
-                normalized = []
+                normalized: list[Page] = []
                 try:
                     for item in h or []:
                         if isinstance(item, tuple) and len(item) >= 1:
@@ -130,7 +131,7 @@ class ConnectivityValidator(BaseValidator):
                     return []
                 return normalized
 
-            def _safe_get_metrics():
+            def _safe_get_metrics() -> dict[str, Any]:
                 try:
                     m = graph.get_metrics()
                     if isinstance(m, dict):

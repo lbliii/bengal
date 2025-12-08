@@ -38,6 +38,7 @@ For detailed documentation on each plugin, see:
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 from bengal.rendering.plugins.badges import BadgePlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
@@ -47,7 +48,7 @@ from bengal.rendering.plugins.term import TermPlugin
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
 
 
-def plugin_documentation_directives(md):
+def plugin_documentation_directives(md: Any) -> None:
     """
     DEPRECATED: Use create_documentation_directives() instead.
 
