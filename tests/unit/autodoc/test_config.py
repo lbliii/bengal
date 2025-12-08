@@ -18,7 +18,7 @@ def test_load_default_config_when_no_file(tmp_path):
 
     assert "python" in config
     assert config["python"]["enabled"] is False  # Disabled by default (opt-in)
-    assert config["python"]["output_dir"] == "content/api"
+    # Note: output_dir was removed - virtual pages output directly to site.output_dir
     assert config["python"]["docstring_style"] == "auto"
 
 
@@ -30,7 +30,6 @@ def test_load_config_from_file(tmp_path):
         [autodoc.python]
         enabled = true
         source_dirs = ["src", "lib"]
-        output_dir = "docs/api"
         docstring_style = "google"
         include_private = true
     """)
@@ -39,7 +38,6 @@ def test_load_config_from_file(tmp_path):
     config = load_autodoc_config(config_path)
 
     assert config["python"]["source_dirs"] == ["src", "lib"]
-    assert config["python"]["output_dir"] == "docs/api"
     assert config["python"]["docstring_style"] == "google"
     assert config["python"]["include_private"] is True
 

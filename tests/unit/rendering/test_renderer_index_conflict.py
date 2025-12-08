@@ -23,8 +23,14 @@ class TestRendererIndexConflict(unittest.TestCase):
         self.mock_template_engine.env = self.mock_env
         self.mock_template_engine.site = self.site
 
-        # Mock render to just return the context
-        self.mock_template_engine.render.side_effect = lambda name, ctx: ctx
+        # Capture context passed to render
+        self.captured_context = None
+
+        def capture_context(name, ctx):
+            self.captured_context = ctx
+            return "<html>rendered</html>"
+
+        self.mock_template_engine.render.side_effect = capture_context
 
         self.renderer = Renderer(self.mock_template_engine)
 
@@ -55,7 +61,11 @@ class TestRendererIndexConflict(unittest.TestCase):
         self.assertTrue(tag_page.metadata.get("_generated"))
 
         # Render
-        context = self.renderer.render_page(tag_page)
+        self.renderer.render_page(tag_page)
+
+        # Get the context that was passed to template_engine.render
+        context = self.captured_context
+        self.assertIsNotNone(context, "Context was not captured from render call")
 
         # VERIFY: The posts should be the tagged post, NOT the home page
         posts = context.get("posts", [])

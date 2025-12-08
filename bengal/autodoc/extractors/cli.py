@@ -13,6 +13,7 @@ from typing import Any, override
 import click
 
 from bengal.autodoc.base import DocElement, Extractor
+from bengal.autodoc.models import CLICommandMetadata, CLIGroupMetadata, CLIOptionMetadata
 from bengal.autodoc.utils import sanitize_text
 from bengal.utils.logger import get_logger
 
@@ -218,6 +219,12 @@ class CLIExtractor(Extractor):
         # Clean up description
         description = sanitize_text(group.help)
 
+        # Build typed metadata
+        typed_meta = CLIGroupMetadata(
+            callback=group.callback.__name__ if group.callback else None,
+            command_count=len(children),
+        )
+
         return DocElement(
             name=name,
             qualified_name=qualified_name,
@@ -229,6 +236,7 @@ class CLIExtractor(Extractor):
                 "callback": group.callback.__name__ if group.callback else None,
                 "command_count": len(children),
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=examples,
             see_also=[],
@@ -294,6 +302,18 @@ class CLIExtractor(Extractor):
         # Clean up description
         description = sanitize_text(description_text)
 
+        # Check if hidden
+        is_hidden = hasattr(cmd, "hidden") and cmd.hidden
+
+        # Build typed metadata
+        typed_meta = CLICommandMetadata(
+            callback=cmd.callback.__name__ if cmd.callback else None,
+            option_count=len(options),
+            argument_count=len(arguments),
+            is_group=False,
+            is_hidden=is_hidden,
+        )
+
         return DocElement(
             name=name or "",
             qualified_name=qualified_name or "",
@@ -306,6 +326,7 @@ class CLIExtractor(Extractor):
                 "option_count": len(options),
                 "argument_count": len(arguments),
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=examples,
             see_also=[],
@@ -357,8 +378,25 @@ class CLIExtractor(Extractor):
         }
 
         # Add envvar if present
+        envvar = None
         if hasattr(param, "envvar") and param.envvar:
             metadata["envvar"] = param.envvar
+            envvar = param.envvar
+
+        # Build typed metadata
+        typed_meta = CLIOptionMetadata(
+            name=param.name or "",
+            param_type="argument" if isinstance(param, click.Argument) else "option",
+            type_name=type_name.upper() if type_name else "STRING",
+            required=param.required,
+            default=_format_default_value(param.default),
+            multiple=getattr(param, "multiple", False),
+            is_flag=getattr(param, "is_flag", False),
+            count=getattr(param, "count", False),
+            opts=tuple(param_decls),
+            envvar=envvar,
+            help_text=getattr(param, "help", "") or "",
+        )
 
         return DocElement(
             name=param.name or "",
@@ -368,6 +406,7 @@ class CLIExtractor(Extractor):
             source_file=None,
             line_number=None,
             metadata=metadata,
+            typed_metadata=typed_meta,
             children=[],
             examples=[],
             see_also=[],

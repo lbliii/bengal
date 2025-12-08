@@ -14,6 +14,16 @@ from typing import Any
 import yaml
 
 from bengal.autodoc.base import DocElement, Extractor
+from bengal.autodoc.models import (
+    OpenAPIEndpointMetadata,
+    OpenAPIOverviewMetadata,
+    OpenAPISchemaMetadata,
+)
+from bengal.autodoc.models.openapi import (
+    OpenAPIParameterMetadata,
+    OpenAPIRequestBodyMetadata,
+    OpenAPIResponseMetadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +115,18 @@ class OpenAPIExtractor(Extractor):
         """Extract API overview information."""
         info = spec.get("info", {})
 
+        # Extract server URLs as strings
+        servers = spec.get("servers", [])
+        server_urls = tuple(s.get("url", "") for s in servers if isinstance(s, dict))
+
+        # Build typed metadata
+        typed_meta = OpenAPIOverviewMetadata(
+            version=info.get("version"),
+            servers=server_urls,
+            security_schemes=spec.get("components", {}).get("securitySchemes", {}),
+            tags=tuple(spec.get("tags", [])),
+        )
+
         return DocElement(
             name=info.get("title", "API Documentation"),
             qualified_name="openapi.overview",
@@ -116,7 +138,8 @@ class OpenAPIExtractor(Extractor):
                 "servers": spec.get("servers", []),
                 "security_schemes": spec.get("components", {}).get("securitySchemes", {}),
                 "tags": spec.get("tags", [])
-            }
+            },
+            typed_metadata=typed_meta,
         )
 
     def _extract_endpoints(self, spec: dict[str, Any]) -> list[DocElement]:
@@ -141,6 +164,66 @@ class OpenAPIExtractor(Extractor):
                 # Construct name like "GET /users"
                 name = f"{method.upper()} {path}"
 
+                # Build typed parameters
+                typed_params = tuple(
+                    OpenAPIParameterMetadata(
+                        name=p.get("name", ""),
+                        location=p.get("in", "query"),
+                        required=p.get("required", False),
+                        schema_type=p.get("schema", {}).get("type", "string"),
+                        description=p.get("description", ""),
+                    )
+                    for p in all_params
+                )
+
+                # Build typed request body
+                typed_request_body = None
+                req_body = operation.get("requestBody")
+                if req_body:
+                    content = req_body.get("content", {})
+                    content_type = next(iter(content.keys()), "application/json")
+                    schema_ref = content.get(content_type, {}).get("schema", {}).get("$ref")
+                    typed_request_body = OpenAPIRequestBodyMetadata(
+                        content_type=content_type,
+                        schema_ref=schema_ref,
+                        required=req_body.get("required", False),
+                        description=req_body.get("description", ""),
+                    )
+
+                # Build typed responses
+                typed_responses = tuple(
+                    OpenAPIResponseMetadata(
+                        status_code=str(status),
+                        description=resp.get("description", "") if isinstance(resp, dict) else "",
+                        content_type=next(iter(resp.get("content", {}).keys()), None) if isinstance(resp, dict) else None,
+                        schema_ref=(
+                            resp.get("content", {})
+                            .get(next(iter(resp.get("content", {}).keys()), ""), {})
+                            .get("schema", {})
+                            .get("$ref")
+                            if isinstance(resp, dict)
+                            else None
+                        ),
+                    )
+                    for status, resp in (operation.get("responses") or {}).items()
+                )
+
+                # Build typed metadata
+                typed_meta = OpenAPIEndpointMetadata(
+                    method=method.upper(),  # type: ignore[arg-type]
+                    path=path,
+                    operation_id=operation.get("operationId"),
+                    summary=operation.get("summary"),
+                    tags=tuple(operation.get("tags", [])),
+                    parameters=typed_params,
+                    request_body=typed_request_body,
+                    responses=typed_responses,
+                    security=tuple(
+                        next(iter(s.keys()), "") for s in (operation.get("security") or [])
+                    ),
+                    deprecated=operation.get("deprecated", False),
+                )
+
                 element = DocElement(
                     name=name,
                     qualified_name=f"openapi.paths.{path}.{method}",
@@ -158,6 +241,7 @@ class OpenAPIExtractor(Extractor):
                         "security": operation.get("security"),
                         "deprecated": operation.get("deprecated", False)
                     },
+                    typed_metadata=typed_meta,
                     examples=[],  # Could extract examples from openapi spec
                     deprecated="Deprecated in API spec" if operation.get("deprecated") else None
                 )
@@ -177,6 +261,15 @@ class OpenAPIExtractor(Extractor):
         print(f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}")
 
         for name, schema in schemas.items():
+            # Build typed metadata
+            typed_meta = OpenAPISchemaMetadata(
+                schema_type=schema.get("type"),
+                properties=schema.get("properties", {}),
+                required=tuple(schema.get("required", [])),
+                enum=tuple(schema.get("enum", [])) if schema.get("enum") else None,
+                example=schema.get("example"),
+            )
+
             element = DocElement(
                 name=name,
                 qualified_name=f"openapi.components.schemas.{name}",
@@ -189,7 +282,8 @@ class OpenAPIExtractor(Extractor):
                     "enum": schema.get("enum"),
                     "example": schema.get("example"),
                     "raw_schema": schema  # Keep full schema for complex rendering
-                }
+                },
+                typed_metadata=typed_meta,
             )
             elements.append(element)
 

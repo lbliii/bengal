@@ -13,6 +13,14 @@ from typing import Any, override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
+from bengal.autodoc.models import (
+    PythonAliasMetadata,
+    PythonAttributeMetadata,
+    PythonClassMetadata,
+    PythonFunctionMetadata,
+    PythonModuleMetadata,
+)
+from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring, RaisesInfo
 from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
 from bengal.utils.logger import get_logger
 
@@ -273,6 +281,12 @@ class PythonExtractor(Extractor):
                     line_number = node.lineno
                     break
 
+            # Build typed metadata for alias
+            typed_meta = PythonAliasMetadata(
+                alias_of=canonical_name,
+                alias_kind="assignment",
+            )
+
             alias_elem = DocElement(
                 name=alias_name,
                 qualified_name=f"{module_name}.{alias_name}",
@@ -284,6 +298,7 @@ class PythonExtractor(Extractor):
                     "alias_of": canonical_name,
                     "alias_kind": "assignment",
                 },
+                typed_metadata=typed_meta,
             )
             children.append(alias_elem)
 
@@ -302,6 +317,20 @@ class PythonExtractor(Extractor):
         # Use just the last component for display name (e.g., "cli" instead of "autodoc.extractors.cli")
         display_name = module_name.split(".")[-1] if "." in module_name else module_name
 
+        # Check if this is a package (__init__.py)
+        is_package = file_path.name == "__init__.py"
+
+        # Extract __all__ exports
+        all_exports = self._extract_all_exports(tree)
+
+        # Build typed metadata
+        typed_meta = PythonModuleMetadata(
+            file_path=str(file_path),
+            is_package=is_package,
+            has_all=all_exports is not None,
+            all_exports=tuple(all_exports) if all_exports else (),
+        )
+
         return DocElement(
             name=display_name,
             qualified_name=module_name,
@@ -311,8 +340,9 @@ class PythonExtractor(Extractor):
             line_number=1,
             metadata={
                 "file_path": str(file_path),
-                "has_all": self._extract_all_exports(tree),
+                "has_all": all_exports,
             },
+            typed_metadata=typed_meta,
             children=children,
         )
 
@@ -351,6 +381,12 @@ class PythonExtractor(Extractor):
 
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 # Class variable with type annotation
+                annotation_str = self._annotation_to_string(item.annotation)
+                typed_attr_meta = PythonAttributeMetadata(
+                    annotation=annotation_str,
+                    is_class_var=True,
+                    default_value=self._expr_to_string(item.value) if item.value else None,
+                )
                 var_elem = DocElement(
                     name=item.target.id,
                     qualified_name=f"{qualified_name}.{item.target.id}",
@@ -359,8 +395,9 @@ class PythonExtractor(Extractor):
                     source_file=self._get_relative_source_path(file_path),
                     line_number=item.lineno,
                     metadata={
-                        "annotation": self._annotation_to_string(item.annotation),
+                        "annotation": annotation_str,
                     },
+                    typed_metadata=typed_attr_meta,
                 )
                 class_vars.append(var_elem)
 
@@ -376,6 +413,10 @@ class PythonExtractor(Extractor):
                     code_attrs_by_name[attr_name].description = attr_desc
                 else:
                     # Create attribute element from docstring only
+                    typed_attr_meta = PythonAttributeMetadata(
+                        annotation=None,
+                        is_class_var=False,  # Unknown from docstring only
+                    )
                     var_elem = DocElement(
                         name=attr_name,
                         qualified_name=f"{qualified_name}.{attr_name}",
@@ -386,6 +427,7 @@ class PythonExtractor(Extractor):
                         metadata={
                             "annotation": None,
                         },
+                        typed_metadata=typed_attr_meta,
                     )
                     class_vars.append(var_elem)
 
@@ -395,6 +437,23 @@ class PythonExtractor(Extractor):
         # Use parsed description if available
         raw_description = parsed_doc.description if parsed_doc else docstring
         description = sanitize_text(raw_description)
+
+        # Detect exception and dataclass
+        is_exception = any(b in ("Exception", "BaseException") for b in bases) or any(
+            "Exception" in b for b in bases
+        )
+        is_dataclass = "dataclass" in decorators or any("dataclass" in d for d in decorators)
+        is_abstract = any("ABC" in base for base in bases)
+
+        # Build typed metadata
+        typed_meta = PythonClassMetadata(
+            bases=tuple(bases),
+            decorators=tuple(decorators),
+            is_exception=is_exception,
+            is_dataclass=is_dataclass,
+            is_abstract=is_abstract,
+            parsed_doc=self._to_parsed_docstring(parsed_doc) if parsed_doc else None,
+        )
 
         return DocElement(
             name=node.name,
@@ -406,10 +465,11 @@ class PythonExtractor(Extractor):
             metadata={
                 "bases": bases,
                 "decorators": decorators,
-                "is_dataclass": "dataclass" in decorators,
-                "is_abstract": any("ABC" in base for base in bases),
+                "is_dataclass": is_dataclass,
+                "is_abstract": is_abstract,
                 "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=parsed_doc.examples if parsed_doc else [],
             see_also=parsed_doc.see_also if parsed_doc else [],
@@ -472,6 +532,24 @@ class PythonExtractor(Extractor):
         raw_description = parsed_doc.description if parsed_doc else docstring
         description = sanitize_text(raw_description)
 
+        # Detect generator (simple heuristic - check for yield in body)
+        is_generator = self._has_yield(node)
+
+        # Build typed metadata with ParameterInfo objects
+        typed_params = tuple(self._to_parameter_info(arg) for arg in merged_args)
+        typed_meta = PythonFunctionMetadata(
+            signature=signature,
+            parameters=typed_params,
+            return_type=returns,
+            is_async=is_async,
+            is_classmethod=is_classmethod,
+            is_staticmethod=is_staticmethod,
+            is_property=is_property,
+            is_generator=is_generator,
+            decorators=tuple(decorators),
+            parsed_doc=self._to_parsed_docstring(parsed_doc) if parsed_doc else None,
+        )
+
         return DocElement(
             name=node.name,
             qualified_name=qualified_name,
@@ -490,6 +568,7 @@ class PythonExtractor(Extractor):
                 "is_staticmethod": is_staticmethod,
                 "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
+            typed_metadata=typed_meta,
             examples=parsed_doc.examples if parsed_doc else [],
             see_also=parsed_doc.see_also if parsed_doc else [],
             deprecated=parsed_doc.deprecated if parsed_doc else None,
@@ -564,6 +643,77 @@ class PythonExtractor(Extractor):
                     args[idx]["default"] = self._expr_to_string(default)
 
         return args
+
+    def _to_parsed_docstring(self, parsed: Any) -> ParsedDocstring | None:
+        """
+        Convert ParsedDoc to frozen ParsedDocstring.
+
+        Args:
+            parsed: ParsedDoc from docstring_parser
+
+        Returns:
+            ParsedDocstring dataclass or None
+        """
+        if not parsed:
+            return None
+
+        # Build parameter info from parsed docstring
+        params: list[ParameterInfo] = []
+        if hasattr(parsed, "args") and parsed.args:
+            for name, desc in parsed.args.items():
+                params.append(
+                    ParameterInfo(
+                        name=name,
+                        description=desc,
+                    )
+                )
+
+        # Build raises info
+        raises: list[RaisesInfo] = []
+        if hasattr(parsed, "raises") and parsed.raises:
+            for exc_type, exc_desc in parsed.raises.items():
+                raises.append(RaisesInfo(type_name=exc_type, description=exc_desc))
+
+        return ParsedDocstring(
+            summary=getattr(parsed, "summary", "") or "",
+            description=getattr(parsed, "description", "") or "",
+            params=tuple(params),
+            returns=getattr(parsed, "returns", None),
+            raises=tuple(raises),
+            examples=tuple(getattr(parsed, "examples", []) or []),
+        )
+
+    def _to_parameter_info(self, arg: dict[str, Any]) -> ParameterInfo:
+        """
+        Convert arg dict to ParameterInfo.
+
+        Args:
+            arg: Dict with name, annotation, default, docstring
+
+        Returns:
+            ParameterInfo dataclass
+        """
+        return ParameterInfo(
+            name=arg.get("name", ""),
+            type_hint=arg.get("annotation"),
+            default=arg.get("default"),
+            description=arg.get("docstring"),
+        )
+
+    def _has_yield(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """
+        Check if function contains yield statement.
+
+        Args:
+            node: Function AST node
+
+        Returns:
+            True if function is a generator
+        """
+        for child in ast.walk(node):
+            if isinstance(child, ast.Yield | ast.YieldFrom):
+                return True
+        return False
 
     def _annotation_to_string(self, annotation: ast.expr | None) -> str | None:
         """Convert AST annotation to string."""

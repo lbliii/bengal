@@ -522,7 +522,7 @@ class TestContentGaps:
         """Test that content gaps require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting content gaps."):
             graph.get_content_gaps()
 
 
