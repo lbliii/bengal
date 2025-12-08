@@ -63,7 +63,8 @@ def mock_env(temp_data_dir):
     site = MagicMock()
     site.root_path = temp_data_dir.parent
 
-    env.site = site
+    # Add site to globals (data_table accesses env.globals["site"])
+    env.globals["site"] = site
     return env
 
 

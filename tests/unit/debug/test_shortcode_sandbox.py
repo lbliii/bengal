@@ -227,20 +227,24 @@ class TestShortcodeSandbox:
 
     def test_run_validate_only(self, sandbox):
         """Test run method with validate_only flag."""
+        from bengal.debug.base import Severity
+
         content = "```{note}\nTest content\n```"
         report = sandbox.run(content=content, validate_only=True)
 
         # Should have info finding about valid syntax
-        info_findings = [f for f in report.findings if f.severity == "info"]
+        info_findings = [f for f in report.findings if f.severity == Severity.INFO]
         assert len(info_findings) > 0
 
     def test_run_with_invalid_content(self, sandbox):
         """Test run method with invalid content."""
+        from bengal.debug.base import Severity
+
         content = "```{unknowndirective}\nTest\n```"
         report = sandbox.run(content=content)
 
         # Should have error findings
-        error_findings = [f for f in report.findings if f.severity == "error"]
+        error_findings = [f for f in report.findings if f.severity == Severity.ERROR]
         assert len(error_findings) > 0
 
     def test_run_with_file_path(self, sandbox, tmp_path):
@@ -253,17 +257,24 @@ class TestShortcodeSandbox:
 
     def test_run_with_nonexistent_file(self, sandbox):
         """Test run method with non-existent file."""
+        from bengal.debug.base import Severity
+
         report = sandbox.run(file_path=Path("/nonexistent/file.md"))
 
-        error_findings = [f for f in report.findings if f.severity == "error"]
+        error_findings = [f for f in report.findings if f.severity == Severity.ERROR]
         assert len(error_findings) > 0
-        assert any("not found" in f.message.lower() for f in error_findings)
+        assert any(
+            "not found" in f.description.lower() or "not found" in f.title.lower()
+            for f in error_findings
+        )
 
     def test_run_with_no_content(self, sandbox):
         """Test run method with no content provided."""
+        from bengal.debug.base import Severity
+
         report = sandbox.run()
 
-        warning_findings = [f for f in report.findings if f.severity == "warning"]
+        warning_findings = [f for f in report.findings if f.severity == Severity.WARNING]
         assert len(warning_findings) > 0
 
     def test_batch_test(self, sandbox):

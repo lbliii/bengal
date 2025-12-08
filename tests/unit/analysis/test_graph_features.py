@@ -101,7 +101,7 @@ class TestActionableRecommendations:
         """Test that recommendations require build."""
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_actionable_recommendations()
 
 
@@ -132,7 +132,7 @@ class TestSEOInsights:
         """Test that SEO insights require build."""
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_seo_insights()
 
 
@@ -155,7 +155,7 @@ class TestContentGaps:
         """Test that content gaps require build."""
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_content_gaps()
 
 

@@ -176,17 +176,19 @@ class ShortcodeSandbox(DebugTool):
         if file_path and not content:
             if not file_path.exists():
                 report.add_finding(
-                    "error",
-                    f"File not found: {file_path}",
-                    path=file_path,
+                    title="File not found",
+                    description=f"File not found: {file_path}",
+                    severity=Severity.ERROR,
+                    location=str(file_path),
                 )
                 return report
             content = file_path.read_text()
 
         if not content:
             report.add_finding(
-                "warning",
-                "No content provided for testing",
+                title="No content provided",
+                description="No content provided for testing",
+                severity=Severity.WARNING,
             )
             return report
 
@@ -195,22 +197,25 @@ class ShortcodeSandbox(DebugTool):
         if not validation.valid:
             for error in validation.errors:
                 report.add_finding(
-                    "error",
-                    error,
-                    details={"directive": validation.directive_name},
+                    title="Validation error",
+                    description=error,
+                    severity=Severity.ERROR,
+                    metadata={"directive": validation.directive_name},
                 )
             for suggestion in validation.suggestions:
                 report.add_finding(
-                    "info",
-                    suggestion,
-                    details={"type": "suggestion"},
+                    title="Suggestion",
+                    description=suggestion,
+                    severity=Severity.INFO,
+                    metadata={"type": "suggestion"},
                 )
             return report
 
         if validate_only:
             report.add_finding(
-                "info",
-                f"Syntax valid for directive: {validation.directive_name or 'unknown'}",
+                title="Validation passed",
+                description=f"Syntax valid for directive: {validation.directive_name or 'unknown'}",
+                severity=Severity.INFO,
             )
             return report
 
@@ -219,9 +224,10 @@ class ShortcodeSandbox(DebugTool):
 
         if result.success:
             report.add_finding(
-                "info",
-                f"Rendered successfully ({result.parse_time_ms + result.render_time_ms:.2f}ms)",
-                details={
+                title="Render successful",
+                description=f"Rendered successfully ({result.parse_time_ms + result.render_time_ms:.2f}ms)",
+                severity=Severity.INFO,
+                metadata={
                     "directive": result.directive_name,
                     "html_length": len(result.html),
                 },
@@ -229,10 +235,18 @@ class ShortcodeSandbox(DebugTool):
             report.metadata["html"] = result.html
         else:
             for error in result.errors:
-                report.add_finding("error", error)
+                report.add_finding(
+                    title="Render error",
+                    description=error,
+                    severity=Severity.ERROR,
+                )
 
         for warning in result.warnings:
-            report.add_finding("warning", warning)
+            report.add_finding(
+                title="Render warning",
+                description=warning,
+                severity=Severity.WARNING,
+            )
 
         return report
 

@@ -1,8 +1,9 @@
 # RFC: Typed Autodoc Models
 
-**Status**: Draft  
+**Status**: Draft (Audited)  
 **Author**: AI Assistant  
-**Created**: 2024-12-08  
+**Created**: 2025-12-08  
+**Audited**: 2025-12-08 — 88% confidence, 14/17 claims verified  
 **Related**: Virtual page autodoc system, `bengal/autodoc/`
 
 ---
@@ -23,10 +24,12 @@ The current autodoc system uses a single generic `DocElement` dataclass with an 
 
 **Symptom**: Sidebar navigation showed "Section" instead of "API Reference"
 
-**Root Cause**: The `qualified_name` field contained values like `...bengal.bengal.core` (with leading dots) because:
+**Root Cause** (Historical): The `qualified_name` field contained values like `...bengal.bengal.core` (with leading dots) because:
 - Path resolution was inconsistent between `_source_root` (resolved) and file paths from `rglob` (unresolved)
 - `qualified_name.split(".")` produced empty strings: `['', '', '', 'bengal', 'bengal', 'core']`
 - Section creation code didn't validate parts before creating sections
+
+**Current State**: The `_infer_module_name()` method in `PythonExtractor` (lines 598-651) now resolves paths consistently using `.resolve()`. However, no validation prevents malformed qualified names from being created.
 
 **Type System Failure**: `qualified_name: str` accepts any string. A typed model would enforce:
 ```python
@@ -43,12 +46,14 @@ class ModulePath:
 
 **Symptom**: 2270 pages generated instead of ~500; included PIL, site-packages, .venv
 
-**Root Cause**: The `_should_skip()` method used naive substring matching that didn't catch:
-- Hidden directories (`.venv`, `.env`)
-- Site-packages paths
-- Paths with relative components (`../`)
+**Root Cause** (Historical): The `_should_skip()` method used naive substring matching that didn't catch hidden directories and site-packages paths.
 
-**Type System Failure**: No typed representation of "what should be extracted" vs "what should be skipped". A typed model would make exclusion rules explicit:
+**Current State**: This issue has been **partially addressed** in `PythonExtractor._should_skip()` (lines 160-205), which now includes:
+- Hidden directory detection (`.venv`, `.env`, etc.)
+- Common skip dirs (`site-packages`, `__pycache__`, `node_modules`, etc.)
+- User-specified exclude patterns
+
+**Remaining Gap**: The skip logic is still untyped and scattered. A typed model would make exclusion rules explicit and testable:
 ```python
 @dataclass
 class ExtractionConfig:
@@ -57,12 +62,12 @@ class ExtractionConfig:
     exclude_patterns: list[GlobPattern]
     
     def should_extract(self, path: Path) -> bool:
-        # Type-safe, testable logic
+        # Type-safe, testable, centralized logic
 ```
 
 #### 3. Metadata Key Typos Are Silent
 
-**Current Code**:
+**Illustrative Example** (this specific typo doesn't exist in code, but the risk is real):
 ```python
 # In extractor
 element.metadata["decoraters"] = decorators  # Typo: "decoraters"
@@ -71,30 +76,38 @@ element.metadata["decoraters"] = decorators  # Typo: "decoraters"
 decorators = element.metadata.get("decorators", [])  # Always empty!
 ```
 
+**Evidence of Risk**: There are 18+ `.metadata.get()` patterns in `bengal/autodoc/` that could silently fail on typos. Examples from actual code:
+- `element.metadata.get("method", "").lower()` — `virtual_orchestrator.py:877`
+- `element.metadata.get("tags", [])` — `virtual_orchestrator.py:622`
+- `method.metadata.get("decorators", [])` — `extractors/python.py:347`
+
 **Type System Failure**: `dict[str, Any]` accepts any key. No compile-time or runtime error.
 
 #### 4. Different Doc Types Have Incompatible Structures
 
-**Python Elements** need:
-- `bases`, `decorators`, `signature`, `parameters`, `return_type`
-- `is_async`, `is_classmethod`, `is_staticmethod`, `is_property`
+**Python Elements** (from `extractors/python.py`):
+- Classes: `bases`, `decorators`, `is_dataclass`, `is_abstract`, `parsed_doc`
+- Functions: `signature`, `args`, `returns`, `decorators`, `is_async`, `is_property`, `is_classmethod`, `is_staticmethod`, `parsed_doc`
+- Modules: `file_path`, `has_all`
+- Attributes: `annotation`
 
-**CLI Elements** need:
-- `options`, `arguments`, `subcommands`
-- `help_text`, `deprecated`, `hidden`
+**CLI Elements** (from `extractors/cli.py`):
+- Commands: `callback`, `option_count`, `argument_count`
+- Parameters: `param_type`, `type`, `required`, `default`, `multiple`, `is_flag`, `count`, `opts`, `envvar`
 
-**OpenAPI Elements** need:
-- `method`, `path`, `tags`, `request_body`, `responses`
-- `security`, `deprecated`
+**OpenAPI Elements** (from `extractors/openapi.py`):
+- Overview: `version`, `servers`, `security_schemes`, `tags`
+- Endpoints: `method`, `path`, `summary`, `operation_id`, `tags`, `parameters`, `request_body`, `responses`, `security`, `deprecated`
+- Schemas: `type`, `properties`, `required`, `enum`, `example`, `raw_schema`
 
 **Current Approach**: Everything stuffed into `metadata: dict[str, Any]`
 
 **Result**: Template code is defensive and fragile:
 ```python
-# Have to handle missing keys everywhere
-method = element.metadata.get("method", "").lower()
-bases = element.metadata.get("bases", [])
-tags = element.metadata.get("tags", []) if element.metadata else []
+# Have to handle missing keys everywhere (from virtual_orchestrator.py)
+method = element.metadata.get("method", "").lower()  # line 877
+bases = element.metadata.get("bases", [])             # python.py:697
+tags = element.metadata.get("tags", []) if element.metadata else []  # line 921
 ```
 
 #### 5. Section Hierarchy for Virtual Sections
@@ -112,27 +125,47 @@ tags = element.metadata.get("tags", []) if element.metadata else []
 
 ## Current Architecture
 
+**Verified against codebase** — All structures below confirmed via audit.
+
 ```
-DocElement (single class for everything)
+DocElement (single class for everything)           # base.py:15-83
 ├── name: str
 ├── qualified_name: str  
 ├── description: str
 ├── element_type: str  # "module", "class", "function", "endpoint", "command"
-├── metadata: dict[str, Any]  # 👈 TYPE SAFETY ENDS HERE
+├── metadata: dict[str, Any]  # 👈 TYPE SAFETY ENDS HERE (line 43)
 ├── children: list[DocElement]
-└── ...
+├── source_file: Path | None
+├── line_number: int | None
+├── examples: list[str]
+├── see_also: list[str]
+└── deprecated: str | None
 
 Extractors:
-├── PythonExtractor.extract() -> list[DocElement]
-├── CLIExtractor.extract() -> list[DocElement]  
-└── OpenAPIExtractor.extract() -> list[DocElement]
+├── PythonExtractor.extract() -> list[DocElement]  # extractors/python.py:102
+├── CLIExtractor.extract() -> list[DocElement]     # extractors/cli.py:106
+└── OpenAPIExtractor.extract() -> list[DocElement] # extractors/openapi.py:28
 
-VirtualAutodocOrchestrator:
-├── _extract_python() -> list[DocElement]
-├── _create_python_sections(elements) -> dict[str, Section]
-├── _create_pages(elements, sections) -> list[Page]
-└── ...
+VirtualAutodocOrchestrator:                        # virtual_orchestrator.py:75
+├── _extract_python() -> list[DocElement]          # line 1188
+├── _extract_cli() -> list[DocElement]             # line 1214
+├── _extract_openapi() -> list[DocElement]         # line 1244
+├── _create_python_sections(elements)              # line 436
+├── _create_pages(elements, sections)              # line 665
+└── generate() -> tuple[list[Page], list[Section]] # line 350
 ```
+
+### What Does NOT Exist Yet
+
+The following are **proposed** and do not currently exist in the codebase:
+
+- ❌ `bengal/autodoc/models/` package
+- ❌ `typed_metadata` field on `DocElement`
+- ❌ `QualifiedName` type with validation
+- ❌ `SourceLocation` dataclass
+- ❌ `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`
+- ❌ `CLICommandMetadata`, `CLIOptionMetadata`
+- ❌ `OpenAPIEndpointMetadata`
 
 ---
 
@@ -358,7 +391,7 @@ class VirtualAutodocOrchestrator:
 
 **Option A (Discriminated Union)** for Phase 1:
 - Add typed metadata classes alongside existing `metadata: dict`
-- Migrate extractors to populate `typed_metadata` 
+- Migrate extractors to populate `typed_metadata`
 - Update templates to use typed access
 - Deprecate untyped `metadata` access
 
@@ -527,21 +560,42 @@ class VirtualAutodocOrchestrator:
 
 ## Appendix: Current Pain Points Summary
 
-| Issue | Root Cause | Type System Fix |
-|-------|-----------|-----------------|
-| Empty section names | Unvalidated `qualified_name` | `QualifiedName` with validation |
-| Venv pollution | Naive path filtering | `ExtractionConfig` with typed patterns |
-| Silent key typos | `dict[str, Any]` | Typed metadata dataclasses |
-| Incompatible structures | One class for all | Domain-specific models |
-| Broken section hierarchy | No hierarchy validation | `VirtualSection` with required parent |
-| Template defensiveness | Missing key handling | Type narrowing with guarantees |
+| Issue | Current Status | Root Cause | Type System Fix |
+|-------|----------------|-----------|-----------------|
+| Empty section names | ⚠️ Partially fixed | Unvalidated `qualified_name` | `QualifiedName` with validation |
+| Venv pollution | ✅ Mostly fixed | Naive path filtering | `ExtractionConfig` with typed patterns |
+| Silent key typos | ❌ Still present | `dict[str, Any]` | Typed metadata dataclasses |
+| Incompatible structures | ❌ Still present | One class for all | Domain-specific models |
+| Broken section hierarchy | ⚠️ Partially fixed | No hierarchy validation | `VirtualSection` with required parent |
+| Template defensiveness | ❌ Still present | Missing key handling | Type narrowing with guarantees |
+
+**Legend**: ✅ Fixed, ⚠️ Partially fixed, ❌ Still present
 
 ---
 
 ## References
 
-- `bengal/autodoc/base.py` - Current DocElement
-- `bengal/autodoc/extractors/python.py` - Python extractor
-- `bengal/autodoc/virtual_orchestrator.py` - Virtual page generation
-- `bengal/core/section.py` - Section.create_virtual()
+### Core Files (Verified)
+
+| File | Key Lines | Description |
+|------|-----------|-------------|
+| `bengal/autodoc/base.py` | 15-83 | `DocElement` dataclass with `metadata: dict[str, Any]` (line 43) |
+| `bengal/autodoc/extractors/python.py` | 22-921 | `PythonExtractor` with `extract()` method (line 102) |
+| `bengal/autodoc/extractors/cli.py` | 70-633 | `CLIExtractor` with Click/Typer support |
+| `bengal/autodoc/extractors/openapi.py` | 21-197 | `OpenAPIExtractor` for OpenAPI specs |
+| `bengal/autodoc/virtual_orchestrator.py` | 75-1264 | Orchestrator with `_extract_python()`, `_create_pages()` |
+| `bengal/core/section.py` | 51-769 | `Section` with `create_virtual()` (line 116) |
+
+### Defensive Pattern Locations
+
+Evidence of untyped `.metadata.get()` patterns requiring defensive coding:
+
+```
+bengal/autodoc/virtual_orchestrator.py:622  — tags = element.metadata.get("tags", [])
+bengal/autodoc/virtual_orchestrator.py:877  — method = element.metadata.get("method", "").lower()
+bengal/autodoc/virtual_orchestrator.py:921  — tags=element.metadata.get("tags", []) if element.metadata else []
+bengal/autodoc/extractors/python.py:347    — method.metadata.get("decorators", [])
+bengal/autodoc/extractors/python.py:697    — bases = class_elem.metadata.get("bases", [])
+bengal/autodoc/extractors/openapi.py:84    — element.metadata.get("tags")
+```
 

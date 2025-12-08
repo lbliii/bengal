@@ -81,7 +81,7 @@ class TestGraphAnalyzerDirect:
         graph = KnowledgeGraph(simple_site)
         analyzer = GraphAnalyzer(graph)
 
-        with pytest.raises(ValueError, match="graph.build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             analyzer.get_hubs()
 
     def test_get_connectivity_score(self, simple_site):
@@ -196,23 +196,23 @@ class TestGraphAnalyzerDelegation:
         assert graph_layers.leaves == analyzer_layers.leaves
 
     def test_delegation_error_handling(self, simple_site):
-        """Test that delegated methods still raise ValueError before build."""
+        """Test that delegated methods still raise RuntimeError before build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_hubs()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_leaves()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_orphans()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_layers()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_connectivity_score(simple_site.pages[0])
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_connectivity(simple_site.pages[0])

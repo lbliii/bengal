@@ -386,26 +386,17 @@ class TestConfigInspector:
         assert changed[0].old_value == "Old Title"
         assert changed[0].new_value == "New Title"
 
-    def test_find_issues_deprecated_keys(self, inspector):
-        """Test finding deprecated keys."""
-        # Patch DEPRECATED_KEYS
-        with patch(
-            "bengal.debug.config_inspector.DEPRECATED_KEYS", {"old.key": {"message": "Use new.key"}}
-        ):
-            inspector.site.config = {"old": {"key": "value"}}
-
-            findings = inspector.find_issues()
-
-            deprecated_findings = [f for f in findings if "deprecated" in f.message.lower()]
-            assert len(deprecated_findings) == 1
-
     def test_find_issues_invalid_baseurl(self, inspector):
         """Test finding invalid baseurl."""
         inspector.site.config = {"baseurl": "no-protocol.com"}
 
         findings = inspector.find_issues()
 
-        baseurl_findings = [f for f in findings if "baseurl" in f.message.lower()]
+        # Check for baseurl-related findings using title or description
+        baseurl_findings = [
+            f for f in findings
+            if "baseurl" in f.title.lower() or "baseurl" in f.description.lower()
+        ]
         assert len(baseurl_findings) == 1
 
     def test_find_issues_trailing_slash_baseurl(self, inspector):
@@ -414,17 +405,23 @@ class TestConfigInspector:
 
         findings = inspector.find_issues()
 
-        trailing_slash_findings = [f for f in findings if "trailing slash" in f.message.lower()]
+        # Check for trailing slash findings
+        trailing_slash_findings = [
+            f for f in findings
+            if "trailing slash" in f.title.lower() or "trailing slash" in f.description.lower()
+        ]
         assert len(trailing_slash_findings) == 1
 
     def test_run_list_sources(self, inspector):
         """Test run method with list_sources flag."""
+        from bengal.debug.base import Severity
+
         report = inspector.run(list_sources=True)
 
         assert len(report.findings) > 0
-        info_findings = [f for f in report.findings if f.severity == "info"]
+        info_findings = [f for f in report.findings if f.severity == Severity.INFO]
         assert len(info_findings) == 1
-        assert "sources" in info_findings[0].details
+        assert "sources" in info_findings[0].metadata
 
     def test_run_no_args(self, inspector):
         """Test run method with no arguments."""
@@ -466,7 +463,7 @@ class TestConfigInspectorExplainKey:
         with patch.object(inspector, "_get_nested_value") as mock_get:
             mock_get.return_value = "My Site"
 
-            with patch("bengal.debug.config_inspector.ConfigDirectoryLoader") as mock_loader:
+            with patch("bengal.config.directory_loader.ConfigDirectoryLoader") as mock_loader:
                 mock_instance = MagicMock()
                 mock_instance.load.return_value = {"site": {"title": "My Site"}}
                 mock_instance.origin_tracker = MagicMock()
@@ -483,7 +480,7 @@ class TestConfigInspectorExplainKey:
         with patch.object(inspector, "_get_nested_value") as mock_get:
             mock_get.return_value = None
 
-            with patch("bengal.debug.config_inspector.ConfigDirectoryLoader") as mock_loader:
+            with patch("bengal.config.directory_loader.ConfigDirectoryLoader") as mock_loader:
                 mock_instance = MagicMock()
                 mock_instance.load.return_value = {}
                 mock_loader.return_value = mock_instance

@@ -213,9 +213,10 @@ class ConfigInspector(DebugTool):
         if list_sources:
             sources = self._list_available_sources()
             report.add_finding(
-                "info",
-                f"Available config sources: {', '.join(sources)}",
-                details={"sources": sources},
+                title="Available config sources",
+                description=f"Found sources: {', '.join(sources)}",
+                severity=Severity.INFO,
+                metadata={"sources": sources},
             )
             return report
 
@@ -223,9 +224,10 @@ class ConfigInspector(DebugTool):
             explanation = self.explain_key(explain_key)
             if explanation:
                 report.add_finding(
-                    "info",
-                    f"Key explanation: {explain_key}",
-                    details={
+                    title=f"Key explanation: {explain_key}",
+                    description=f"Value: {explanation.effective_value}",
+                    severity=Severity.INFO,
+                    metadata={
                         "value": explanation.effective_value,
                         "origin": explanation.origin,
                         "is_default": explanation.is_default,
@@ -234,8 +236,9 @@ class ConfigInspector(DebugTool):
                 report.metadata["explanation"] = explanation.format()
             else:
                 report.add_finding(
-                    "warning",
-                    f"Key not found: {explain_key}",
+                    title=f"Key not found: {explain_key}",
+                    description="The requested configuration key does not exist",
+                    severity=Severity.WARNING,
                 )
             return report
 
@@ -248,11 +251,12 @@ class ConfigInspector(DebugTool):
 
             if comparison.has_changes:
                 for diff in comparison.diffs:
-                    severity = "warning" if diff.impact else "info"
+                    severity = Severity.WARNING if diff.impact else Severity.INFO
                     report.add_finding(
-                        severity,
-                        diff.format(),
-                        details={
+                        title=f"Config diff: {diff.path}",
+                        description=diff.format(),
+                        severity=severity,
+                        metadata={
                             "type": diff.type,
                             "path": diff.path,
                             "impact": diff.impact,
@@ -260,8 +264,9 @@ class ConfigInspector(DebugTool):
                     )
             else:
                 report.add_finding(
-                    "info",
-                    f"No differences between {current_env} and {compare_to}",
+                    title="No configuration differences",
+                    description=f"No differences between {current_env} and {compare_to}",
+                    severity=Severity.INFO,
                 )
 
             report.metadata["comparison"] = comparison.format_detailed()
@@ -269,8 +274,9 @@ class ConfigInspector(DebugTool):
 
         # Default: show current config summary
         report.add_finding(
-            "info",
-            "Use --compare-to, --explain-key, or --list-sources",
+            title="No analysis parameters",
+            description="Use --compare-to, --explain-key, or --list-sources",
+            severity=Severity.INFO,
         )
         return report
 
