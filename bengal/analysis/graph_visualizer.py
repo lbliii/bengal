@@ -180,8 +180,15 @@ class GraphVisualizer:
                 try:
                     # page.url returns URL with baseurl already applied
                     page_url = page.url
-                except (AttributeError, Exception):
+                except (AttributeError, Exception) as e:
                     # Fallback: try to compute from output_path if available
+                    logger.debug(
+                        "analysis_graph_page_url_access_failed",
+                        page=str(getattr(page, "source_path", "unknown")),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="trying_output_path_fallback",
+                    )
                     if hasattr(page, "output_path") and page.output_path:
                         try:
                             # Compute relative URL from output_dir

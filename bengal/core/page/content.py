@@ -28,6 +28,10 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     pass
 
@@ -162,8 +166,14 @@ class PageContentMixin:
             renderer = HTMLRenderer()
             state = BlockState()
             return renderer(self._ast_cache, state)
-        except (ImportError, AttributeError, Exception):
+        except (ImportError, AttributeError, Exception) as e:
             # Fallback to empty string if rendering fails
+            logger.debug(
+                "page_ast_to_html_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_empty_string",
+            )
             return ""
 
     def _extract_text_from_ast(self) -> str:
