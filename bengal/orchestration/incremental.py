@@ -805,15 +805,17 @@ class IncrementalOrchestrator:
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / "cache.json"
 
-        # Update all page hashes and tags (skip generated pages - they have virtual paths)
+        # Update all page hashes and tags (skip virtual/generated pages - they have no source files)
         for page in pages_built:
-            if not page.metadata.get("_generated"):
-                self.cache.update_file(page.source_path)
-                # Store tags for next build's comparison
-                if page.tags:
-                    self.cache.update_tags(page.source_path, set(page.tags))
-                else:
-                    self.cache.update_tags(page.source_path, set())
+            # Skip virtual pages (no source file) and generated pages
+            if page.is_virtual or page.metadata.get("_generated"):
+                continue
+            self.cache.update_file(page.source_path)
+            # Store tags for next build's comparison
+            if page.tags:
+                self.cache.update_tags(page.source_path, set(page.tags))
+            else:
+                self.cache.update_tags(page.source_path, set())
 
         # Update all asset hashes
         for asset in assets_processed:

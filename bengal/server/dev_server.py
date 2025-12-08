@@ -526,9 +526,9 @@ class DevServer:
         Raises:
             OSError: If no available port can be found
         """
-        # Change to output directory
-        os.chdir(self.site.output_dir)
-        logger.debug("changed_directory", path=str(self.site.output_dir))
+        # Store output directory for handler (don't rely on CWD - it can become invalid during rebuilds)
+        output_dir = str(self.site.output_dir)
+        logger.debug("serving_directory", path=output_dir)
 
         # Determine port to use
         actual_port = self.port
@@ -581,9 +581,14 @@ class DevServer:
         class BengalThreadingTCPServer(socketserver.ThreadingTCPServer):
             request_queue_size = 128
 
+        # Create handler with directory bound (avoids os.getcwd() which fails if CWD is deleted during rebuild)
+        from functools import partial
+
+        handler = partial(BengalRequestHandler, directory=output_dir)
+
         # Create threaded server so SSE long-lived connections don't block other requests
         # (don't use context manager - ResourceManager handles cleanup)
-        httpd = BengalThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
+        httpd = BengalThreadingTCPServer((self.host, actual_port), handler)
         httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
 
         logger.info(

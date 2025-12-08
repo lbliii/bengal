@@ -46,15 +46,23 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, directory: str | None = None, **kwargs):
         """
         Initialize the request handler.
 
         Pre-initializes headers and request_version to avoid AttributeError
         when tests bypass normal request parsing flow. The parent class will
         properly set these during normal HTTP request handling.
+
+        Args:
+            directory: Directory to serve files from. If provided, passed to parent
+                       to avoid os.getcwd() which can fail if CWD is deleted during rebuilds.
         """
-        super().__init__(*args, **kwargs)
+        # Pass directory to parent to avoid os.getcwd() call (which fails if CWD is deleted during rebuilds)
+        if directory is not None:
+            super().__init__(*args, directory=directory, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
         # Initialize with empty HTTPMessage and default values for testing
         self.headers = HTTPMessage()
         self.request_version = "HTTP/1.1"

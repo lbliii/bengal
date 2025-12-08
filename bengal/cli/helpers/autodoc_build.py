@@ -100,11 +100,6 @@ def run_autodoc_before_build(config_path: Path | None, root_path: Path, quiet: b
 
     cli = get_cli_output(quiet=quiet)
 
-    if not quiet:
-        cli.blank()
-        cli.header("📚 Regenerating documentation...")
-        cli.blank()
-
     # load_autodoc_config can find config automatically if config_path is None
     # It will look for config/ directory or bengal.toml relative to current working directory
     # Since build command runs from site root, this should work
@@ -113,6 +108,18 @@ def run_autodoc_before_build(config_path: Path | None, root_path: Path, quiet: b
         autodoc_config = load_autodoc_config(config_path)
     python_config = autodoc_config.get("python", {})
     cli_config = autodoc_config.get("cli", {})
+
+    # Skip markdown generation if virtual_pages is enabled
+    # Virtual pages are handled during content discovery, not here
+    if python_config.get("virtual_pages", False):
+        if not quiet:
+            cli.info("📚 Autodoc: Using virtual pages (no markdown generation)")
+        return
+
+    if not quiet:
+        cli.blank()
+        cli.header("📚 Regenerating documentation...")
+        cli.blank()
 
     # Determine what to generate
     generate_python = python_config.get("enabled", True)

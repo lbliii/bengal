@@ -239,7 +239,7 @@ class PythonExtractor(Extractor):
                 qualified_name=f"{module_name}.{alias_name}",
                 description=f"Alias of `{canonical_name}`",
                 element_type="alias",
-                source_file=file_path,
+                source_file=self._get_relative_source_path(file_path),
                 line_number=line_number,
                 metadata={
                     "alias_of": canonical_name,
@@ -268,7 +268,7 @@ class PythonExtractor(Extractor):
             qualified_name=module_name,
             description=sanitize_text(docstring),
             element_type="module",
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=1,
             metadata={
                 "file_path": str(file_path),
@@ -317,7 +317,7 @@ class PythonExtractor(Extractor):
                     qualified_name=f"{qualified_name}.{item.target.id}",
                     description="",
                     element_type="attribute",
-                    source_file=file_path,
+                    source_file=self._get_relative_source_path(file_path),
                     line_number=item.lineno,
                     metadata={
                         "annotation": self._annotation_to_string(item.annotation),
@@ -342,7 +342,7 @@ class PythonExtractor(Extractor):
                         qualified_name=f"{qualified_name}.{attr_name}",
                         description=attr_desc,
                         element_type="attribute",
-                        source_file=file_path,
+                        source_file=self._get_relative_source_path(file_path),
                         line_number=node.lineno,
                         metadata={
                             "annotation": None,
@@ -362,7 +362,7 @@ class PythonExtractor(Extractor):
             qualified_name=qualified_name,
             description=description,
             element_type="class",
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=node.lineno,
             metadata={
                 "bases": bases,
@@ -438,7 +438,7 @@ class PythonExtractor(Extractor):
             qualified_name=qualified_name,
             description=description,
             element_type=element_type,
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=node.lineno,
             metadata={
                 "signature": signature,
@@ -581,6 +581,24 @@ class PythonExtractor(Extractor):
             module_parts = [self._source_root.name]
 
         return ".".join(module_parts)
+
+    def _get_relative_source_path(self, file_path: Path) -> Path:
+        """
+        Get source path relative to source root for GitHub links.
+
+        Args:
+            file_path: Absolute file path
+
+        Returns:
+            Path relative to source root (e.g., "bengal/core/page.py")
+        """
+        if self._source_root:
+            try:
+                # Get path relative to source root's parent (to include package name)
+                return file_path.relative_to(self._source_root.parent)
+            except ValueError:
+                pass
+        return file_path
 
     def _should_include_inherited(self, element_type: str = "class") -> bool:
         """
