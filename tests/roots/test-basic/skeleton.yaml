@@ -1,0 +1,12 @@
+name: test-basic
+description: Minimal smoke test site - 1 page (index.md), default config
+version: "1.0"
+
+structure:
+  - path: index.md
+    props:
+      title: Home
+    content: |
+      # Welcome
+
+      This is a minimal test page for the test-basic root.

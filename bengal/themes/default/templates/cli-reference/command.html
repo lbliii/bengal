@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{#
+CLI Reference Command Template
+
+Renders a CLI command's documentation using the API Explorer layout.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+
+This template receives:
+- element: DocElement for the command
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      <div class="docs-content">
+        {# CLI Command Content #}
+        <div class="api-explorer">
+          <header class="api-module-header">
+            <div class="api-module-header__badges">
+              <span class="api-badge api-badge--command">Command</span>
+            </div>
+
+            <h1 class="api-module-header__title">
+              <code>{{ element.name }}</code>
+            </h1>
+
+            {% if element.description %}
+            <p class="api-module-header__description">{{ element.description }}</p>
+            {% endif %}
+
+            {% if element.source_file %}
+            <div class="api-module-header__source">
+              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+                class="api-source-link" target="_blank" rel="noopener">
+                View source
+              </a>
+            </div>
+            {% endif %}
+          </header>
+
+          {# Usage #}
+          {% if element.qualified_name %}
+          <div class="api-usage">
+            <h3 class="api-subsection-title">Usage</h3>
+            <pre class="api-code-block"><code class="language-bash">{{ element.qualified_name }}{% if element.children %} [OPTIONS]{% endif %}</code></pre>
+          </div>
+          {% endif %}
+
+          {# Options #}
+          {% set options = element.children | selectattr('element_type', 'eq', 'option') | list %}
+          {% if options %}
+          <section class="api-section api-section--options">
+            <h2 class="api-section__title">Options</h2>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Option</th>
+                  <th>Type</th>
+                  <th>Default</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for opt in options %}
+                <tr>
+                  <td><code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
+                  <td><code>{{ opt.metadata.type }}</code></td>
+                  <td>{% if opt.metadata.default %}<code>{{ opt.metadata.default }}</code>{% else %}—{% endif %}</td>
+                  <td>{{ opt.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          {% endif %}
+
+          {# Arguments #}
+          {% set arguments = element.children | selectattr('element_type', 'eq', 'argument') | list %}
+          {% if arguments %}
+          <section class="api-section api-section--arguments">
+            <h2 class="api-section__title">Arguments</h2>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Argument</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for arg in arguments %}
+                <tr>
+                  <td><code>{{ arg.name }}</code></td>
+                  <td><code>{{ arg.metadata.type }}</code></td>
+                  <td>{% if arg.metadata.required %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ arg.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          {% endif %}
+
+          {# Examples #}
+          {% if element.examples %}
+          <section class="api-section api-section--examples">
+            <h2 class="api-section__title">Examples</h2>
+            {% for example in element.examples %}
+            <pre class="api-example"><code class="language-bash">{{ example }}</code></pre>
+            {% endfor %}
+          </section>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

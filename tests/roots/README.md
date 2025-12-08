@@ -2,6 +2,8 @@
 
 Minimal, reusable site structures for testing.
 
+**Note**: Some roots now use skeleton manifests (`skeleton.yaml`) for declarative structure definition. The `site_factory` fixture automatically uses skeleton manifests when available, falling back to directory copying for backward compatibility.
+
 ## Available Roots
 
 ### test-basic

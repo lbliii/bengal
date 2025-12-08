@@ -1,0 +1,35 @@
+name: test-taxonomy
+description: Tests taxonomy/tagging - 3 pages with tags (python, testing)
+version: "1.0"
+
+structure:
+  - path: post1.md
+    props:
+      title: Python Testing Post
+      tags:
+        - python
+        - testing
+    content: |
+      # Python Testing
+
+      Content about Python testing.
+
+  - path: post2.md
+    props:
+      title: Python Development Post
+      tags:
+        - python
+    content: |
+      # Python Development
+
+      Content about Python development.
+
+  - path: post3.md
+    props:
+      title: Testing Best Practices
+      tags:
+        - testing
+    content: |
+      # Testing Best Practices
+
+      Content about testing best practices.

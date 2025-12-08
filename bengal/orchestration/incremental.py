@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.orchestration.build.results import ChangeSummary
 
 
 class IncrementalOrchestrator:
@@ -267,7 +268,7 @@ class IncrementalOrchestrator:
 
     def find_work_early(
         self, verbose: bool = False
-    ) -> tuple[list[Page], list[Asset], dict[str, list]]:
+    ) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
 
@@ -282,17 +283,15 @@ class IncrementalOrchestrator:
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
+        # Import here to avoid circular import
+        from bengal.orchestration.build.results import ChangeSummary
+
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
 
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
-        change_summary: dict[str, list] = {
-            "Modified content": [],
-            "Modified assets": [],
-            "Modified templates": [],
-            "Taxonomy changes": [],
-        }
+        change_summary = ChangeSummary()
 
         # OPTIMIZATION: Section-level filtering (RFC 2.3)
         # Skip entire sections if no files changed within them
@@ -342,7 +341,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
-                    change_summary["Modified content"].append(page.source_path)
+                    change_summary.modified_content.append(page.source_path)
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
@@ -367,9 +366,9 @@ class IncrementalOrchestrator:
                     cascade_affected_count += newly_affected
 
                     if verbose and newly_affected > 0:
-                        if "Cascade changes" not in change_summary:
-                            change_summary["Cascade changes"] = []
-                        change_summary["Cascade changes"].append(
+                        if "Cascade changes" not in change_summary.extra_changes:
+                            change_summary.extra_changes["Cascade changes"] = []
+                        change_summary.extra_changes["Cascade changes"].append(
                             f"{changed_path.name} cascade affects {newly_affected} descendant pages"
                         )
 
@@ -398,9 +397,9 @@ class IncrementalOrchestrator:
                         pages_to_rebuild.add(prev_page.source_path)
                         navigation_affected_count += 1
                         if verbose:
-                            if "Navigation changes" not in change_summary:
-                                change_summary["Navigation changes"] = []
-                            change_summary["Navigation changes"].append(
+                            if "Navigation changes" not in change_summary.extra_changes:
+                                change_summary.extra_changes["Navigation changes"] = []
+                            change_summary.extra_changes["Navigation changes"].append(
                                 f"{prev_page.source_path.name} references modified {changed_path.name}"
                             )
 
@@ -414,9 +413,9 @@ class IncrementalOrchestrator:
                         pages_to_rebuild.add(next_page.source_path)
                         navigation_affected_count += 1
                         if verbose:
-                            if "Navigation changes" not in change_summary:
-                                change_summary["Navigation changes"] = []
-                            change_summary["Navigation changes"].append(
+                            if "Navigation changes" not in change_summary.extra_changes:
+                                change_summary.extra_changes["Navigation changes"] = []
+                            change_summary.extra_changes["Navigation changes"].append(
                                 f"{next_page.source_path.name} references modified {changed_path.name}"
                             )
 
@@ -432,7 +431,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
-                    change_summary["Modified assets"].append(asset.source_path)
+                    change_summary.modified_assets.append(asset.source_path)
 
         # Check template/theme directory for changes
         theme_templates_dir = self._get_theme_templates_dir()
@@ -440,7 +439,7 @@ class IncrementalOrchestrator:
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
                     if verbose:
-                        change_summary["Modified templates"].append(template_file)
+                        change_summary.modified_templates.append(template_file)
                     # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
@@ -461,9 +460,9 @@ class IncrementalOrchestrator:
             "incremental_work_detected",
             pages_to_build=len(pages_to_build_list),
             assets_to_process=len(assets_to_process),
-            modified_pages=len(change_summary.get("Modified pages", [])),
-            modified_templates=len(change_summary.get("Modified templates", [])),
-            modified_assets=len(change_summary.get("Modified assets", [])),
+            modified_pages=len(change_summary.modified_content),
+            modified_templates=len(change_summary.modified_templates),
+            modified_assets=len(change_summary.modified_assets),
             total_pages=len(self.site.pages),
         )
 

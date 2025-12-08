@@ -213,9 +213,9 @@ class BuildOrchestrator:
         initialization.phase_cache_metadata(self)
 
         # Phase 4: Config Check and Cleanup
-        incremental, config_changed = initialization.phase_config_check(
-            self, cli, cache, incremental
-        )
+        config_result = initialization.phase_config_check(self, cli, cache, incremental)
+        incremental = config_result.incremental
+        config_changed = config_result.config_changed
 
         # Phase 5: Incremental Filtering (determine what to build)
         filter_result = initialization.phase_incremental_filter(
@@ -224,13 +224,11 @@ class BuildOrchestrator:
         if filter_result is None:
             # No changes detected - early exit
             return self.stats
-        (
-            pages_to_build,
-            assets_to_process,
-            affected_tags,
-            changed_page_paths,
-            affected_sections,
-        ) = filter_result
+        pages_to_build = filter_result.pages_to_build
+        assets_to_process = filter_result.assets_to_process
+        affected_tags = filter_result.affected_tags
+        changed_page_paths = filter_result.changed_page_paths
+        affected_sections = filter_result.affected_sections
 
         # Phase 6: Section Finalization
         content.phase_sections(self, cli, incremental, affected_sections)

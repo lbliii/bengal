@@ -1,0 +1,20 @@
+name: test-baseurl
+description: Tests baseurl handling - 2 pages (index.md, about.md), baseurl="/site"
+version: "1.0"
+
+structure:
+  - path: index.md
+    props:
+      title: Home
+    content: |
+      # Home Page
+
+      Tests baseurl functionality.
+
+  - path: about.md
+    props:
+      title: About
+    content: |
+      # About
+
+      Second page for testing navigation with baseurl.

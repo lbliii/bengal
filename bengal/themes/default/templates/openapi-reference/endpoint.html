@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{#
+OpenAPI Reference Endpoint Template
+
+Renders an OpenAPI endpoint's documentation using the API Explorer layout.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+
+This template receives:
+- element: DocElement for the endpoint
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      <div class="docs-content">
+        {# OpenAPI Endpoint Content #}
+        <div class="api-explorer">
+          <header class="api-module-header">
+            <div class="api-module-header__badges">
+              <span class="api-badge api-badge--{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
+              {% if element.metadata.deprecated %}
+              <span class="api-badge api-badge--deprecated">Deprecated</span>
+              {% endif %}
+            </div>
+
+            <h1 class="api-module-header__title">
+              <code>{{ element.metadata.path }}</code>
+            </h1>
+
+            {% if element.metadata.summary %}
+            <p class="api-module-header__description">{{ element.metadata.summary }}</p>
+            {% elif element.description %}
+            <p class="api-module-header__description">{{ element.description }}</p>
+            {% endif %}
+          </header>
+
+          {# Operation ID #}
+          {% if element.metadata.operation_id %}
+          <div class="api-meta">
+            <span class="api-meta__label">Operation ID:</span>
+            <code>{{ element.metadata.operation_id }}</code>
+          </div>
+          {% endif %}
+
+          {# Parameters #}
+          {% if element.metadata.parameters %}
+          <section class="api-section api-section--parameters">
+            <h2 class="api-section__title">Parameters</h2>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>In</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for param in element.metadata.parameters %}
+                <tr>
+                  <td><code>{{ param.name }}</code></td>
+                  <td><code>{{ param.in }}</code></td>
+                  <td><code>{{ param.schema.type if param.schema else 'string' }}</code></td>
+                  <td>{% if param.required %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ param.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          {% endif %}
+
+          {# Request Body #}
+          {% if element.metadata.request_body %}
+          <section class="api-section api-section--request-body">
+            <h2 class="api-section__title">Request Body</h2>
+            <div class="api-request-body">
+              {{ element.metadata.request_body.description | default('') }}
+              {# TODO: Render schema #}
+            </div>
+          </section>
+          {% endif %}
+
+          {# Responses #}
+          {% if element.metadata.responses %}
+          <section class="api-section api-section--responses">
+            <h2 class="api-section__title">Responses</h2>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Status Code</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for status_code, response in element.metadata.responses.items() %}
+                <tr>
+                  <td><code>{{ status_code }}</code></td>
+                  <td>{{ response.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}
