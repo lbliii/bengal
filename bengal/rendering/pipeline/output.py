@@ -96,6 +96,10 @@ def write_output(
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
     """
+    # Ensure output_path is set
+    if page.output_path is None:
+        return
+
     # Ensure parent directory exists (with caching to reduce syscalls)
     parent_dir = page.output_path.parent
 
@@ -124,9 +128,7 @@ def write_output(
         and hasattr(dependency_tracker, "cache")
         and dependency_tracker.cache
     ):
-        dependency_tracker.cache.track_output(
-            page.source_path, page.output_path, site.output_dir
-        )
+        dependency_tracker.cache.track_output(page.source_path, page.output_path, site.output_dir)
 
 
 def format_html(html: str, page: Page, site: Any) -> str:
@@ -165,7 +167,12 @@ def format_html(html: str, page: Page, site: Any) -> str:
                 "collapse_blank_lines": html_cfg.get("collapse_blank_lines", True),
             }
         return format_html_output(html, mode=mode, options=options)
-    except Exception:
+    except Exception as e:
         # Never fail the build on formatter errors; fall back to raw HTML
+        logger.debug(
+            "html_formatter_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="falling_back_to_raw_html",
+        )
         return html
-

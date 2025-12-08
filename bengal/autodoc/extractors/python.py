@@ -14,6 +14,9 @@ from typing import override
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
 from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class PythonExtractor(Extractor):
@@ -531,15 +534,27 @@ class PythonExtractor(Extractor):
 
         try:
             return ast.unparse(annotation)
-        except Exception:
+        except Exception as e:
             # Fallback for complex annotations
+            logger.debug(
+                "ast_unparse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_ast_dump_fallback",
+            )
             return ast.dump(annotation)
 
     def _expr_to_string(self, expr: ast.expr) -> str:
         """Convert AST expression to string."""
         try:
             return ast.unparse(expr)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "ast_expr_unparse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_ast_dump_fallback",
+            )
             return ast.dump(expr)
 
     def _infer_module_name(self, file_path: Path) -> str:

@@ -384,9 +384,15 @@ class DocumentationGenerator:
                 if current.parent == current:  # Root reached
                     break
                 current = current.parent
-        except Exception:
+        except Exception as e:
             # Intentionally ignore all exceptions here to allow fallback strategies below.
             # Log the exception for debugging purposes.
+            logger.debug(
+                "autodoc_path_resolution_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="trying_fallback_strategies",
+            )
             pass
 
         # 2. Fallback: Try relative to current working directory

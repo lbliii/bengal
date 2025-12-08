@@ -9,7 +9,6 @@ import socket
 import socketserver
 import threading
 import time
-from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -151,7 +150,8 @@ class DevServer:
                 with BengalRequestHandler._html_cache_lock:
                     BengalRequestHandler._html_cache.clear()
                 logger.debug("html_cache_cleared_after_initial_build")
-            except Exception:
+            except Exception as e:
+                logger.debug("html_cache_clear_failed", error=str(e))
                 pass  # Cache might not be initialized yet, ignore
 
             # Initialize reload controller baseline after initial build
@@ -167,7 +167,8 @@ class DevServer:
                         cfg, "reload", "min_notify_interval_ms", default=300
                     )
                     controller.set_min_notify_interval_ms(min_interval)
-                except Exception:
+                except Exception as e:
+                    logger.warning("reload_config_min_interval_failed", error=str(e))
                     pass
                 try:
                     # Provide sensible defaults to suppress known benign churn in dev
@@ -181,9 +182,10 @@ class DevServer:
                         cfg, "reload", "ignore_paths", default=default_ignores
                     )
                     controller.set_ignored_globs(ignore_paths)
-                except Exception:
+                except Exception as e:
+                    logger.warning("reload_config_ignores_failed", error=str(e))
                     pass
-                with suppress(Exception):
+                try:
                     controller.set_hashing_options(
                         hash_on_suspect=bool(
                             get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
@@ -195,6 +197,9 @@ class DevServer:
                             cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
                         ),
                     )
+                except Exception as e:
+                    logger.warning("reload_config_hashing_failed", error=str(e))
+                    pass
 
                 controller.decide_and_update(self.site.output_dir)
                 logger.debug("reload_controller_baseline_initialized")
@@ -371,8 +376,9 @@ class DevServer:
 
                 if hasattr(_sys, "_is_gil_enabled") and not _sys._is_gil_enabled():
                     backend = "polling"
-            except Exception:
+            except Exception as e:
                 # Fall through to auto native backend when detection fails
+                logger.debug("gil_detection_failed", error=str(e))
                 pass
 
         # Import BuildHandler only after GIL check (avoids loading native watchdog at import time)
@@ -384,7 +390,8 @@ class DevServer:
         if backend == "polling":
             try:
                 from watchdog.observers.polling import PollingObserver as ObserverClass
-            except Exception:
+            except Exception as e:
+                logger.debug("polling_observer_import_failed", error=str(e))
                 from watchdog.observers import Observer as ObserverClass
         else:
             # auto/default: use native Observer; users can switch with env var

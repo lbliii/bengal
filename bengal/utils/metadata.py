@@ -72,12 +72,19 @@ def _get_theme_info(site) -> dict[str, Any]:
     theme_name = getattr(site, "theme", None) or "default"
     # Prefer installed theme package metadata when available
     version: str | None = None
+    logger = get_logger(__name__)
     try:
         pkg = get_theme_package(theme_name)
         if pkg and pkg.version:
             version = pkg.version
-    except Exception:
+    except Exception as e:
         # Best-effort; ignore errors and fall back to no version
+        logger.debug(
+            "theme_version_lookup_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         pass
 
     return {"name": theme_name, "version": version}
@@ -112,11 +119,17 @@ def build_template_metadata(site) -> dict[str, Any]:
     theme_info = _get_theme_info(site)
 
     # Build info
+    logger = get_logger(__name__)
     timestamp: str | None
     try:
         bt = getattr(site, "build_time", None)
         timestamp = bt.isoformat() if isinstance(bt, datetime) else None
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "build_timestamp_format_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         timestamp = None
 
     build = {"timestamp": timestamp}

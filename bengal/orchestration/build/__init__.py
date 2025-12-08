@@ -186,7 +186,12 @@ class BuildOrchestrator:
                 else:
                     incremental = False
                     auto_reason = "auto: no cache yet"
-            except Exception:
+            except Exception as e:
+                self.logger.debug(
+                    "incremental_cache_check_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 incremental = False
                 auto_reason = "auto: cache check failed"
 

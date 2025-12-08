@@ -260,7 +260,13 @@ class TemplateValidator:
                 try:
                     source_info = template.get_source(self.env, template.name)
                     source = source_info[0] if source_info else None
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "template_source_extraction_failed",
+                        template=template.name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     pass
 
             if source:

@@ -277,7 +277,12 @@ class Renderer:
                         from bengal.utils.traceback_config import TracebackConfig
 
                         TracebackConfig.from_environment().get_renderer().display_exception(e)
-                    except Exception:
+                    except Exception as traceback_error:
+                        logger.debug(
+                            "traceback_renderer_failed",
+                            error=str(traceback_error),
+                            error_type=type(traceback_error).__name__,
+                        )
                         pass
                 # Wrap in RuntimeError for consistent error handling
                 raise RuntimeError(
@@ -297,7 +302,12 @@ class Renderer:
                     from bengal.utils.traceback_config import TracebackConfig
 
                     TracebackConfig.from_environment().get_renderer().display_exception(e)
-                except Exception:
+                except Exception as traceback_error:
+                    logger.debug(
+                        "traceback_renderer_failed",
+                        error=str(traceback_error),
+                        error_type=type(traceback_error).__name__,
+                    )
                     pass
 
             # Fallback to simple HTML
@@ -324,9 +334,11 @@ class Renderer:
             # Archive/Reference/Blog page context
             # Note: Posts are already filtered and sorted by the content type strategy
             # in the SectionOrchestrator, so we don't need to re-sort here
-            section = page.metadata.get("_section")
-            all_posts = page.metadata.get("_posts", [])  # Already filtered & sorted!
-            subsections = page.metadata.get("_subsections", [])
+            section = page.metadata.get("_section") if page.metadata is not None else None
+            all_posts = (
+                page.metadata.get("_posts", []) if page.metadata is not None else []
+            )  # Already filtered & sorted!
+            subsections = page.metadata.get("_subsections", []) if page.metadata is not None else []
             paginator = page.metadata.get("_paginator")
             page_num = page.metadata.get("_page_num", 1)
 
@@ -415,7 +427,7 @@ class Renderer:
                             all_posts.append(tax_page)
 
             # Fallback: Try to resolve from stored metadata if taxonomy yielded nothing
-            if not all_posts:
+            if not all_posts and page.metadata is not None:
                 stored_posts = page.metadata.get("_posts", [])
                 if stored_posts:
                     # Build lookup map from site.pages for reliable resolution
@@ -428,7 +440,9 @@ class Renderer:
                         if hasattr(stored_item, "source_path"):
                             resolved_page = page_map.get(stored_item.source_path)
                             if not resolved_page:
-                                resolved_page = str_page_map.get(str(stored_item.source_path))
+                                page_from_str_map = str_page_map.get(str(stored_item.source_path))
+                                if page_from_str_map is not None:
+                                    resolved_page = page_from_str_map
 
                             if resolved_page:
                                 all_posts.append(resolved_page)
@@ -670,7 +684,13 @@ class Renderer:
         try:
             self.template_engine.env.get_template(template_name)
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "template_check_failed",
+                template=template_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return False
 
     def _render_fallback(self, page: Page, content: str) -> str:

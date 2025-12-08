@@ -113,8 +113,14 @@ class SpecialPagesGenerator:
             # Check if 404.html template exists
             try:
                 template_engine.env.get_template("404.html")
-            except Exception:
+            except Exception as e:
                 # No 404 template in theme, skip generation
+                logger.debug(
+                    "custom_404_template_missing",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_404_generation",
+                )
                 return False
 
             # Create context for 404 page using factory
@@ -154,8 +160,15 @@ class SpecialPagesGenerator:
                 if existing != rendered_html:
                     with open(output_path, "w", encoding="utf-8") as f:
                         f.write(rendered_html)
-            except Exception:
+            except Exception as e:
                 # Best-effort diff; on any error just write
+                logger.debug(
+                    "special_page_diff_failed",
+                    output_path=str(output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="writing_without_diff",
+                )
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(rendered_html)
 
@@ -212,8 +225,15 @@ class SpecialPagesGenerator:
 
             try:
                 template_engine.env.get_template(template_name)
-            except Exception:
+            except Exception as e:
                 # Template missing → skip
+                logger.debug(
+                    "special_page_template_missing",
+                    template=template_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_generation",
+                )
                 return False
 
             # Build context using factory

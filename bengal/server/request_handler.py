@@ -83,7 +83,12 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                 from bengal.server.utils import apply_dev_no_cache_headers
 
                 apply_dev_no_cache_headers(self)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "dev_cache_header_application_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
         super().end_headers()
 

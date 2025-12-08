@@ -467,7 +467,15 @@ class SchemaValidator:
                 return parse(value), []
             except ImportError:
                 pass
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "datetime_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_iso_fallback",
+                )
                 pass
 
             # Fallback: try ISO format
@@ -505,7 +513,15 @@ class SchemaValidator:
                 return parse(value).date(), []
             except ImportError:
                 pass
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "date_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_iso_fallback",
+                )
                 pass
 
             # Fallback: try ISO format

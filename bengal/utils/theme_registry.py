@@ -57,7 +57,14 @@ class ThemePackage:
                 templates_dir = pkg_dir / "templates"
                 if templates_dir.is_dir():
                     return True
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "theme_templates_dir_check_failed",
+                package=self.package,
+                method="importlib_import",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         # Try importlib.resources (for properly installed packages)
@@ -65,7 +72,14 @@ class ThemePackage:
             traversable = resources.files(self.package) / "templates"
             # Try calling is_dir() directly - if it exists, it should work
             return bool(traversable.is_dir())
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "theme_templates_dir_check_failed",
+                package=self.package,
+                method="importlib_resources",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         return False
@@ -82,7 +96,14 @@ class ThemePackage:
                 assets_dir = pkg_dir / "assets"
                 if assets_dir.is_dir():
                     return True
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "theme_assets_dir_check_failed",
+                package=self.package,
+                method="importlib_import",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         # Try importlib.resources (for properly installed packages)

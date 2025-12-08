@@ -14,8 +14,11 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.utils.logger import get_logger
 from bengal.utils.swizzle import SwizzleManager
 from bengal.utils.theme_registry import get_installed_themes, get_theme_package
+
+logger = get_logger(__name__)
 
 
 @click.group(cls=BengalGroup)
@@ -175,9 +178,15 @@ def list_themes(source: str) -> None:
         pkg_dir = Path(bengal.__file__).parent / "themes"
         if pkg_dir.exists():
             bundled = [p.name for p in pkg_dir.iterdir() if (p / "templates").exists()]
-    except Exception:
+    except Exception as e:
         # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
         # treat as "no bundled themes available"
+        logger.debug(
+            "bundled_themes_discovery_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="treating_as_no_bundled_themes",
+        )
         pass
 
     cli.header("Project themes:")
@@ -258,9 +267,16 @@ def info(slug: str, source: str) -> None:
         bundled = Path(bengal.__file__).parent / "themes" / slug
         if bundled.exists():
             cli.info(f"  Bundled path: {bundled}")
-    except Exception:
+    except Exception as e:
         # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
         # treat as "bundled theme not found"
+        logger.debug(
+            "bundled_theme_path_check_failed",
+            theme_slug=slug,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="treating_as_not_found",
+        )
         pass
 
 

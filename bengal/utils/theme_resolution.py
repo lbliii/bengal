@@ -141,7 +141,8 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
                 if resolved and resolved.exists():
                     dirs.append(resolved)
                     continue
-        except Exception:
+        except Exception as e:
+            logger.debug("installed_theme_assets_resolution_failed", theme=theme_name, error=str(e))
             pass
 
         # Bundled theme assets
@@ -149,7 +150,8 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
             bundled_dir = Path(__file__).parent.parent / "themes" / theme_name / "assets"
             if bundled_dir.exists():
                 dirs.append(bundled_dir)
-        except Exception:
+        except Exception as e:
+            logger.debug("bundled_theme_assets_resolution_failed", theme=theme_name, error=str(e))
             pass
 
     return dirs

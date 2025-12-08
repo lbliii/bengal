@@ -121,3 +121,5 @@ python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+strict_optional = true
+disallow_any_generics = true

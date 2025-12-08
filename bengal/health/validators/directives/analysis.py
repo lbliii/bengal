@@ -20,12 +20,15 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.autodoc import is_autodoc_page
+from bengal.utils.logger import get_logger
 
 from .constants import (
     KNOWN_DIRECTIVES,
     MAX_DIRECTIVES_PER_PAGE,
     MAX_TABS_PER_BLOCK,
 )
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -195,8 +198,14 @@ class DirectiveAnalyzer:
                             }
                         )
 
-            except Exception:
+            except Exception as e:
                 # Skip files we can't read
+                logger.debug(
+                    "directive_analysis_file_skip",
+                    page=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 pass
 
         # Check for performance issues

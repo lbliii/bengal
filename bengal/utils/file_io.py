@@ -154,8 +154,14 @@ def read_text_file(
                     caller=caller or "file_io",
                 )
                 return content
-            except Exception:
-                # Fall through to configured fallback
+            except Exception as sig_error:
+                # Fall through to configured fallback, but log debug
+                logger.debug(
+                    "utf8_sig_fallback_failed",
+                    path=str(file_path),
+                    error=str(sig_error),
+                    caller=caller or "file_io",
+                )
                 pass
 
             logger.warning(

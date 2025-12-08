@@ -178,14 +178,25 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if _site_instance:
         try:
             theme_config = _site_instance.theme_config
-            icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
-            if icon_aliases and name in icon_aliases:
-                mapped_name = icon_aliases[name]
+            if theme_config.config is not None:
+                icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
+                if icon_aliases and name in icon_aliases:
+                    mapped_name = icon_aliases[name]
+                else:
+                    # Fall back to ICON_MAP
+                    mapped_name = ICON_MAP.get(name, name)
             else:
                 # Fall back to ICON_MAP
                 mapped_name = ICON_MAP.get(name, name)
-        except Exception:
+        except Exception as e:
             # Graceful degradation: fall back to ICON_MAP
+            logger.debug(
+                "icon_mapping_failed",
+                icon_name=name,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="falling_back_to_icon_map",
+            )
             mapped_name = ICON_MAP.get(name, name)
     else:
         # No site instance available, use ICON_MAP

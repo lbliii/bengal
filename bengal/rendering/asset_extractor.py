@@ -63,10 +63,12 @@ class AssetExtractorParser(HTMLParser):
             # Extract link href (stylesheets, fonts, etc.)
             if "href" in attrs_dict and attrs_dict["href"]:
                 href = attrs_dict["href"]
-                rel = attrs_dict.get("rel", "").lower()
-                # Track stylesheets, preloads, etc.
-                if "stylesheet" in rel or "preload" in rel or "prefetch" in rel:
-                    self.assets.add(href)
+                rel_value = attrs_dict.get("rel", "")
+                if rel_value is not None:
+                    rel = rel_value.lower()
+                    # Track stylesheets, preloads, etc.
+                    if "stylesheet" in rel or "preload" in rel or "prefetch" in rel:
+                        self.assets.add(href)
 
         elif tag == "source":
             # Extract srcset from picture/video sources

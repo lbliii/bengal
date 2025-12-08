@@ -91,7 +91,11 @@ class ThemeIntegrationMixin:
             from bengal.utils.theme_resolution import resolve_theme_chain
 
             chain = resolve_theme_chain(self.root_path, self.theme)
-        except Exception:
+        except Exception as e:
+            from bengal.utils.logger import get_logger
+
+            logger = get_logger(__name__)
+            logger.debug("theme_chain_resolution_failed", theme=self.theme, error=str(e))
             chain = [self.theme] if self.theme else []
 
         for theme_name in reversed(chain):
@@ -100,4 +104,3 @@ class ThemeIntegrationMixin:
             for d in iter_theme_asset_dirs(self.root_path, [theme_name]):
                 dirs.append(d)
         return dirs
-

@@ -713,12 +713,13 @@ class VirtualAutodocOrchestrator:
                     config=self.config,
                     site=self.site,
                 )
-            except Exception:
+            except Exception as fallback_error:
                 logger.warning(
                     "autodoc_template_render_failed",
                     element=element.qualified_name,
                     template=template_name,
                     error=str(e),
+                    fallback_error=str(fallback_error),
                 )
                 # Return minimal fallback HTML
                 return self._render_fallback(element)
@@ -842,7 +843,7 @@ class VirtualAutodocOrchestrator:
                     config=self.config,
                     site=self.site,
                 )
-            except Exception:
+            except Exception as e2:
                 try:
                     template = self.template_env.get_template("section-index.html")
                     return template.render(
@@ -850,12 +851,14 @@ class VirtualAutodocOrchestrator:
                         config=self.config,
                         site=self.site,
                     )
-                except Exception:
+                except Exception as e3:
                     logger.warning(
                         "autodoc_template_fallback",
                         template=template_name,
                         section=section.name,
                         error=str(e),
+                        secondary_error=str(e2),
+                        tertiary_error=str(e3),
                     )
                     # Fallback rendering with cards
                     return self._render_section_index_fallback(section)

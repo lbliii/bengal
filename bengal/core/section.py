@@ -485,7 +485,8 @@ class Section:
         baseurl = ""
         try:
             baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
-        except Exception:
+        except Exception as e:
+            logger.debug("section_baseurl_lookup_failed", section=self.name, error=str(e))
             baseurl = ""
 
         if not baseurl:

@@ -276,12 +276,13 @@ class AutoFixer:
                         closing_backtick = re.match(r"^(\s*)(`{3,})\s*$", line)
 
                         if closing_colon or closing_backtick:
-                            closing_depth = (
-                                len(closing_colon.group(2))
-                                if closing_colon
-                                else len(closing_backtick.group(2))
-                            )
-                            fence_type = "colon" if closing_colon else "backtick"
+                            if closing_colon:
+                                closing_depth = len(closing_colon.group(2))
+                                fence_type = "colon"
+                            else:
+                                assert closing_backtick is not None  # Type narrowing
+                                closing_depth = len(closing_backtick.group(2))
+                                fence_type = "backtick"
 
                             for directive in reversed(directives):
                                 if (

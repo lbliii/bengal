@@ -41,7 +41,13 @@ def normalize_and_validate_asset_path(raw_path: str) -> str:
 
     try:
         posix_path = PurePosixPath(candidate)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "asset_url_path_parse_failed",
+            candidate=candidate,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         return ""
 
     # Reject absolute paths and traversal segments
@@ -130,8 +136,13 @@ class AssetURLMixin:
         try:
             if self.site.config.get("dev_server", False):
                 return with_baseurl(f"/assets/{safe_asset_path}", self.site)
-        except Exception:
-            logger.debug("Error generating dev server asset URL for %r", safe_asset_path)
+        except Exception as e:
+            logger.debug(
+                "dev_server_asset_url_failed",
+                asset_path=safe_asset_path,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         # Use manifest for fingerprinted asset resolution
         manifest_entry = self._get_manifest_entry(safe_asset_path)

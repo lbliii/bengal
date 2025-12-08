@@ -257,7 +257,13 @@ def create_jinja_environment(
 
     try:
         env.globals["bengal"] = build_template_metadata(site)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "template_metadata_build_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_fallback_metadata",
+        )
         env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
 
     # Add global functions

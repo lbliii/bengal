@@ -106,8 +106,13 @@ class AssetOrchestrator:
         try:
             current_id = id(self.site.assets)
             current_len = len(self.site.assets)
-        except Exception:
+        except Exception as e:
             # Defensive: if site/assets are not available yet
+            self.logger.debug(
+                "css_entry_cache_id_check_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return []
 
         if (
@@ -119,7 +124,12 @@ class AssetOrchestrator:
                 self._cached_css_entry_points = [
                     a for a in self.site.assets if a.is_css_entry_point()
                 ]
-            except Exception:
+            except Exception as e:
+                self.logger.debug(
+                    "css_entry_cache_population_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 self._cached_css_entry_points = []
             self._cached_assets_id = current_id
             self._cached_assets_len = current_len

@@ -98,7 +98,12 @@ class StreamingRenderOrchestrator:
                 from bengal.utils.progress import NoopReporter
 
                 reporter = NoopReporter()
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "noop_reporter_creation_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 reporter = None
 
         if total_pages < WARNING_THRESHOLD:

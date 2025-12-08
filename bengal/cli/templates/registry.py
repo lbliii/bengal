@@ -10,8 +10,16 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+from bengal.utils.logger import get_logger
 
 from .base import SiteTemplate, TemplateFile
+
+if TYPE_CHECKING:
+    from bengal.cli.skeleton.schema import Skeleton
+
+logger = get_logger(__name__)
 
 
 class TemplateRegistry:
@@ -44,8 +52,15 @@ class TemplateRegistry:
                     if template:
                         self._templates[template.id] = template
                         continue
-                except Exception:
+                except Exception as e:
                     # Fall back to Python template if skeleton fails
+                    logger.debug(
+                        "skeleton_template_load_failed",
+                        template_name=item.name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="falling_back_to_python_template",
+                    )
                     pass
 
             # Fall back to Python template
@@ -143,9 +158,15 @@ class TemplateRegistry:
             if len(path_parts) > 1:  # Has subdirectories
                 section_name = path_parts[0]
                 # Remove file extension if present
-                section_name = section_name.rsplit(".", 1)[0] if "." in section_name else section_name
+                section_name = (
+                    section_name.rsplit(".", 1)[0] if "." in section_name else section_name
+                )
                 # Skip common index files
-                if section_name and section_name not in ("_index", "index") and section_name not in menu_sections:
+                if (
+                    section_name
+                    and section_name not in ("_index", "index")
+                    and section_name not in menu_sections
+                ):
                     menu_sections.append(section_name)
             elif comp.type in ("blog", "doc", "section") and "/" in comp.path:
                 # Component with type and path suggests it's a section

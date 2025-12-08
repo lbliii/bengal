@@ -173,7 +173,7 @@ class ReloadController:
                 )
 
                 suppressed_due_to_hash = False
-                if is_suspect and suspects_hashed < self._suspect_hash_limit:
+                if is_suspect and suspects_hashed < self._suspect_hash_limit and centry is not None:
                     try:
                         # Compute current content hash (md5 for speed on large files)
                         abs_path = (output_dir / path).resolve()

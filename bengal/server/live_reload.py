@@ -208,7 +208,8 @@ class LiveReloadMixin:
             try:
                 ka_env = os.environ.get("BENGAL_SSE_KEEPALIVE_SECS", "15").strip()
                 keepalive_interval = max(5, min(120, int(ka_env)))
-            except Exception:
+            except Exception as e:
+                logger.debug("keepalive_env_parse_failed", error=str(e))
                 keepalive_interval = 15
 
             logger.info("sse_stream_started", keepalive_interval_secs=keepalive_interval)
@@ -439,7 +440,13 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
                 "generation": _reload_generation + 1,
             }
         )
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            "reload_payload_serialization_failed",
+            action=action,
+            reason=reason,
+            error=str(e),
+        )
         # Fallback to simple action string on serialization failure
         payload = action
 
