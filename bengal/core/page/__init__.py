@@ -152,6 +152,9 @@ class Page(
     _site: Any | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
     _section_path: Path | None = field(default=None, repr=False)
+    # URL-based section reference for virtual sections (path=None)
+    # See: plan/active/rfc-page-section-reference-contract.md
+    _section_url: str | None = field(default=None, repr=False)
 
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
@@ -380,11 +383,14 @@ class Page(
     @property
     def _section(self) -> Any | None:
         """
-        Get the section this page belongs to (lazy lookup via path).
+        Get the section this page belongs to (lazy lookup via path or URL).
 
-        This property performs a path-based lookup in the site's section registry,
-        enabling stable section references across rebuilds when Section objects
-        are recreated.
+        This property performs a path-based or URL-based lookup in the site's
+        section registry, enabling stable section references across rebuilds
+        when Section objects are recreated.
+
+        Virtual sections (path=None) use URL-based lookups via _section_url.
+        Regular sections use path-based lookups via _section_path.
 
         Returns:
             Section object if found, None if page has no section or section not found
@@ -392,8 +398,12 @@ class Page(
         Implementation Note:
             Uses counter-gated warnings to prevent log spam when sections are
             missing (warns first 3 times, shows summary, then silent).
+
+        See Also:
+            plan/active/rfc-page-section-reference-contract.md
         """
-        if self._section_path is None:
+        # No section reference at all
+        if self._section_path is None and self._section_url is None:
             return None
 
         if self._site is None:
@@ -407,6 +417,7 @@ class Page(
                     "page_section_lookup_no_site",
                     page=str(self.source_path),
                     section_path=str(self._section_path),
+                    section_url=self._section_url,
                 )
                 # Bound the warning dict to prevent unbounded growth
                 if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
@@ -418,12 +429,17 @@ class Page(
                 )
             return None
 
-        # Perform O(1) lookup via site registry
-        section = self._site.get_section_by_path(self._section_path)
+        # Perform O(1) lookup via appropriate registry
+        if self._section_path is not None:
+            # Regular section: path-based lookup
+            section = self._site.get_section_by_path(self._section_path)
+        else:
+            # Virtual section: URL-based lookup
+            section = self._site.get_section_by_url(self._section_url)
 
         if section is None:
             # Counter-gated warning to prevent log spam (class-level counter)
-            warn_key = str(self._section_path)
+            warn_key = str(self._section_path or self._section_url)
             count = self._global_missing_section_warnings.get(warn_key, 0)
 
             if count < 3:
@@ -433,7 +449,8 @@ class Page(
                 logger.warning(
                     "page_section_not_found",
                     page=str(self.source_path),
-                    section_path=str(self._section_path),
+                    section_path=str(self._section_path) if self._section_path else None,
+                    section_url=self._section_url,
                     count=count + 1,
                 )
                 # Bound the warning dict to prevent unbounded growth
@@ -450,7 +467,8 @@ class Page(
                 logger.warning(
                     "page_section_not_found_summary",
                     page=str(self.source_path),
-                    section_path=str(self._section_path),
+                    section_path=str(self._section_path) if self._section_path else None,
+                    section_url=self._section_url,
                     total_warnings=count + 1,
                     note="Further warnings for this section will be suppressed",
                 )
@@ -466,20 +484,32 @@ class Page(
     @_section.setter
     def _section(self, value: Any) -> None:
         """
-        Set the section this page belongs to (stores path, not object).
+        Set the section this page belongs to (stores path or URL, not object).
 
-        This setter extracts the path from the Section object and stores it
-        in _section_path, enabling stable references when Section objects
-        are recreated during incremental rebuilds.
+        This setter extracts the path (or URL for virtual sections) from the
+        Section object and stores it, enabling stable references when Section
+        objects are recreated during incremental rebuilds.
+
+        For virtual sections (path=None), stores relative_url in _section_url.
+        For regular sections, stores path in _section_path.
 
         Args:
             value: Section object or None
+
+        See Also:
+            plan/active/rfc-page-section-reference-contract.md
         """
         if value is None:
             self._section_path = None
-        else:
-            # Extract path from Section object
+            self._section_url = None
+        elif value.path is not None:
+            # Regular section: use path for lookup
             self._section_path = value.path
+            self._section_url = None
+        else:
+            # Virtual section: use relative_url for lookup
+            self._section_path = None
+            self._section_url = value.relative_url
 
 
 __all__ = ["Page", "PageProxy"]

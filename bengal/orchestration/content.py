@@ -248,54 +248,14 @@ class ContentOrchestrator:
         """
         Set up page references for navigation (next, prev, parent, etc.).
 
-        This method sets _site and _section references on all pages to enable
-        navigation properties (next, prev, ancestors, etc.).
+        Delegates to Site._setup_page_references() for the canonical implementation.
+        This ensures a single source of truth for page-section reference setup.
 
-        Top-level pages (those not in any section) will have _section = None.
+        See Also:
+            Site._setup_page_references(): Canonical implementation
+            plan/active/rfc-page-section-reference-contract.md
         """
-        # Set site reference on all pages (including top-level pages)
-        for page in self.site.pages:
-            page._site = self.site
-            # Initialize _section to None for pages not yet assigned
-            if not hasattr(page, "_section"):
-                page._section = None
-
-        # Set section references
-        for section in self.site.sections:
-            # Set site reference on section
-            section._site = self.site
-
-            # Set section reference on the section's index page (if it has one)
-            if section.index_page:
-                section.index_page._section = section
-
-            # Set section reference on all pages in this section
-            for page in section.pages:
-                page._section = section
-
-            # Recursively set for subsections
-            self._setup_section_references(section)
-
-    def _setup_section_references(self, section: Section) -> None:
-        """
-        Recursively set up references for a section and its subsections.
-
-        Args:
-            section: Section to set up references for
-        """
-        for subsection in section.subsections:
-            subsection._site = self.site
-
-            # Set section reference on the subsection's index page (if it has one)
-            if subsection.index_page:
-                subsection.index_page._section = subsection
-
-            # Set section reference on pages in subsection
-            for page in subsection.pages:
-                page._section = subsection
-
-            # Recurse into deeper subsections
-            self._setup_section_references(subsection)
+        self.site._setup_page_references()
 
     def _apply_cascades(self) -> None:
         """

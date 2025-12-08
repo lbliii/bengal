@@ -131,6 +131,10 @@ class Site:
     # Section registry for path-based lookups (O(1) section access by path)
     _section_registry: dict[Path, Section] = field(default_factory=dict, repr=False, init=False)
 
+    # Section URL registry for virtual sections (O(1) section access by URL)
+    # See: plan/active/rfc-page-section-reference-contract.md
+    _section_url_registry: dict[str, Section] = field(default_factory=dict, repr=False, init=False)
+
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
@@ -578,6 +582,7 @@ class Site:
         # MUST come before _setup_page_references (registry needed for lookups)
         self.register_sections()
         self._setup_page_references()
+        self._validate_page_section_references()
         self._apply_cascades()
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
@@ -645,31 +650,49 @@ class Site:
         building, but before cascade application.
 
         Process:
-            1. Set _site reference on all pages
+            1. Set _site reference on all pages (including top-level pages)
             2. Set _site reference on all sections
-            3. Set _section reference on pages based on their location
+            3. Set _section reference on section index pages
+            4. Set _section reference on pages based on their location
+            5. Recursively process subsections
+
+        Build Ordering Invariant:
+            This method must be called after register_sections() to ensure
+            the section registry is populated for virtual section URL lookups.
 
         Called By:
             discover_content() - Automatically called after content discovery
 
         See Also:
             _setup_section_references(): Sets up section parent-child relationships
+            plan/active/rfc-page-section-reference-contract.md
         """
+        # Set site reference on all pages (including top-level pages not in sections)
         for page in self.pages:
             page._site = self
 
         for section in self.sections:
+            # Set site reference on section
             section._site = self
+
+            # Set section reference on the section's index page (if it has one)
+            if section.index_page:
+                section.index_page._section = section
+
+            # Set section reference on all pages in this section
             for page in section.pages:
                 page._section = section
+
+            # Recursively set for subsections
             self._setup_section_references(section)
 
     def _setup_section_references(self, section: Section) -> None:
         """
         Recursively set up references for a section and its subsections.
 
-        Sets _site reference on subsections and _section reference on pages
-        within subsections. Recursively processes all nested subsections.
+        Sets _site reference on subsections, _section reference on index pages,
+        and _section reference on pages within subsections. Recursively
+        processes all nested subsections.
 
         Args:
             section: Section to set up references for (processes its subsections)
@@ -679,9 +702,14 @@ class Site:
 
         See Also:
             _setup_page_references(): Main entry point for reference setup
+            plan/active/rfc-page-section-reference-contract.md
         """
         for subsection in section.subsections:
             subsection._site = self
+
+            # Set section reference on the subsection's index page (if it has one)
+            if subsection.index_page:
+                subsection.index_page._section = subsection
 
             # Set section reference on pages in subsection
             for page in subsection.pages:
@@ -689,6 +717,59 @@ class Site:
 
             # Recurse into deeper subsections
             self._setup_section_references(subsection)
+
+    def _validate_page_section_references(self) -> None:
+        """
+        Validate that pages in sections have correct _section references.
+
+        Logs warnings for pages that are in a section's pages list but have
+        _section = None, which would cause navigation to fall back to flat mode.
+
+        This validation catches bugs like the virtual section path=None issue
+        described in plan/active/rfc-page-section-reference-contract.md.
+
+        Called By:
+            discover_content() - After _setup_page_references()
+        """
+        pages_without_section = []
+
+        for section in self.sections:
+            for page in section.pages:
+                if page._section is None:
+                    pages_without_section.append((page, section))
+
+            # Check subsections recursively
+            self._validate_subsection_references(section, pages_without_section)
+
+        if pages_without_section:
+            # Log warning with samples (limit to 5 to avoid log spam)
+            sample_pages = [
+                (str(p.source_path), s.name) for p, s in pages_without_section[:5]
+            ]
+            logger.warning(
+                "pages_missing_section_reference",
+                count=len(pages_without_section),
+                samples=sample_pages,
+                note="These pages are in sections but have _section=None, navigation may be flat",
+            )
+
+    def _validate_subsection_references(
+        self, section: Section, pages_without_section: list
+    ) -> None:
+        """
+        Recursively validate page-section references in subsections.
+
+        Args:
+            section: Section to check subsections of
+            pages_without_section: List to append (page, expected_section) tuples to
+        """
+        for subsection in section.subsections:
+            for page in subsection.pages:
+                if page._section is None:
+                    pages_without_section.append((page, subsection))
+
+            # Recurse into deeper subsections
+            self._validate_subsection_references(subsection, pages_without_section)
 
     def _apply_cascades(self) -> None:
         """
@@ -1058,8 +1139,9 @@ class Site:
         # Cached properties
         self.invalidate_regular_pages_cache()
 
-        # Section registry (rebuilt from sections)
+        # Section registries (rebuilt from sections)
         self._section_registry = {}
+        self._section_url_registry = {}
 
     def _normalize_section_path(self, path: Path) -> Path:
         """
@@ -1152,20 +1234,56 @@ class Site:
 
         return section
 
+    def get_section_by_url(self, url: str) -> Section | None:
+        """
+        Look up a section by its relative URL (O(1) operation).
+
+        Used for virtual sections that don't have a disk path. Virtual sections
+        are registered by their relative_url during register_sections().
+
+        Args:
+            url: Section relative URL (e.g., "/api/", "/api/core/")
+
+        Returns:
+            Section object if found, None otherwise
+
+        Examples:
+            >>> section = site.get_section_by_url("/api/")
+            >>> section = site.get_section_by_url("/api/core/")
+
+        Performance:
+            O(1) lookup after registry is built (via register_sections)
+
+        See Also:
+            plan/active/rfc-page-section-reference-contract.md
+        """
+        section = self._section_url_registry.get(url)
+
+        if section is None:
+            logger.debug(
+                "section_not_found_in_url_registry",
+                url=url,
+                registry_size=len(self._section_url_registry),
+            )
+
+        return section
+
     def register_sections(self) -> None:
         """
-        Build the section registry for path-based lookups.
+        Build the section registries for path-based and URL-based lookups.
 
-        Scans all sections recursively and populates _section_registry with
-        normalized path → Section mappings. This enables O(1) section lookups
-        without scanning the section hierarchy.
+        Scans all sections recursively and populates:
+        - _section_registry: normalized path → Section mappings
+        - _section_url_registry: relative_url → Section mappings (for virtual sections)
+
+        This enables O(1) section lookups without scanning the section hierarchy.
 
         Must be called after discover_content() and before any code that uses
-        get_section_by_path() or page._section property.
+        get_section_by_path(), get_section_by_url(), or page._section property.
 
         Build ordering invariant:
             1. discover_content()       → Creates Page/Section objects
-            2. register_sections()      → Builds path→section registry (THIS)
+            2. register_sections()      → Builds registries (THIS)
             3. setup_page_references()  → Sets page._section via property setter
             4. apply_cascades()         → Lookups resolve via registry
             5. generate_urls()          → Uses correct section hierarchy
@@ -1175,47 +1293,62 @@ class Site:
 
         Examples:
             >>> site.discover_content()
-            >>> site.register_sections()  # Build registry
+            >>> site.register_sections()  # Build registries
             >>> section = site.get_section_by_path("blog")  # O(1) lookup
+            >>> virtual_section = site.get_section_by_url("/api/")  # O(1) lookup
+
+        See Also:
+            plan/active/rfc-page-section-reference-contract.md
         """
         import time
 
         start = time.time()
         self._section_registry = {}
+        self._section_url_registry = {}
 
         # Register all sections recursively
         for section in self.sections:
             self._register_section_recursive(section)
 
         elapsed_ms = (time.time() - start) * 1000
+        total_registered = len(self._section_registry) + len(self._section_url_registry)
 
         logger.debug(
             "section_registry_built",
-            sections_registered=len(self._section_registry),
+            path_sections=len(self._section_registry),
+            url_sections=len(self._section_url_registry),
+            total_registered=total_registered,
             elapsed_ms=f"{elapsed_ms:.2f}",
-            avg_us_per_section=f"{(elapsed_ms * 1000 / len(self._section_registry)):.2f}"
-            if self._section_registry
+            avg_us_per_section=f"{(elapsed_ms * 1000 / total_registered):.2f}"
+            if total_registered
             else "0",
         )
 
     def _register_section_recursive(self, section: Section) -> None:
         """
-        Recursively register a section and its subsections in the registry.
+        Recursively register a section and its subsections in the registries.
 
         Handles both regular sections (with path) and virtual sections (path=None).
-        Virtual sections (e.g., autodoc API sections) are registered by their
-        full relative_url to avoid name collisions (e.g., /api/cli/templates/docs/
-        vs /docs/).
+
+        Regular sections: Registered in _section_registry by normalized path.
+        Virtual sections: Registered in _section_url_registry by relative_url,
+                         enabling page._section lookups via get_section_by_url().
 
         Args:
             section: Section to register (along with all its subsections)
+
+        See Also:
+            plan/active/rfc-page-section-reference-contract.md
         """
         # Handle virtual sections (path is None)
         if section.path is None:
-            # Use full relative_url as registry key for virtual sections
-            # to avoid name collisions (e.g., /api/cli/templates/docs/ vs /docs/)
-            rel_url = section.relative_url.strip("/") if section.relative_url else section.name
-            self._section_registry[Path(rel_url)] = section
+            # Register in URL registry for virtual section lookups
+            rel_url = section.relative_url if section.relative_url else f"/{section.name}/"
+            self._section_url_registry[rel_url] = section
+
+            # Also register in path registry using URL path as key (for backward compatibility)
+            rel_url_path = rel_url.strip("/") if rel_url else section.name
+            self._section_registry[Path(rel_url_path)] = section
         else:
             # Register regular section by normalized path
             normalized = self._normalize_section_path(section.path)
