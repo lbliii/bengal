@@ -7,7 +7,7 @@ autodoc:
   # Used by "View source" links in generated documentation
   github_repo: "lbliii/bengal"
   github_branch: "main"  # Git branch for source links
-
+  
   # Default description for generated documentation pages
   # If not set, modules will use "{module_name} package" as default
   # default_description: "API Documentation"
@@ -18,7 +18,7 @@ autodoc:
     # virtual_pages: true  # Default: true (virtual pages are now the only option)
     source_dirs:
       - ../bengal  # Document the main Bengal package
-    output_dir: content/api
+    # output_dir: removed - virtual pages always output to site.output_dir (public/)
     docstring_style: auto  # Auto-detect docstring format
 
     # Exclude test, cache, and virtual environment files
@@ -42,4 +42,4 @@ autodoc:
     # virtual_pages: true  # Default: true (virtual pages are now the only option)
     app_module: "bengal.cli:main"
     framework: click
-    output_dir: content/cli
+    # output_dir: removed - virtual pages always output to site.output_dir (public/)

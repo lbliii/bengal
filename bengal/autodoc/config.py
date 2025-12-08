@@ -32,7 +32,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "python": {
             "enabled": False,  # Disabled by default - enable in config
             "source_dirs": ["."],
-            "output_dir": "content/api",
+            # output_dir removed - virtual pages always output to site.output_dir (public/)
             "exclude": [
                 "*/tests/*",
                 "*/test_*.py",
@@ -59,13 +59,13 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "openapi": {
             "enabled": False,
             "spec_file": "api/openapi.yaml",  # Default spec file location
-            "output_dir": "content/api",
+            # output_dir removed - virtual pages always output to site.output_dir (public/)
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config
             "app_module": None,  # e.g., 'bengal.cli:main'
             "framework": "click",  # 'click', 'argparse', 'typer'
-            "output_dir": "content/cli",
+            # output_dir removed - virtual pages always output to site.output_dir (public/)
             "include_hidden": False,
         },
     }
