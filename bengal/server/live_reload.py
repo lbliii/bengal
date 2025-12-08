@@ -173,15 +173,10 @@ class LiveReloadMixin:
     client_address: tuple[str, int]
     wfile: BufferedIOBase
 
-    # Method stubs for the HTTP handler interface
-    # Actual implementations are provided by SimpleHTTPRequestHandler when mixed in
-    def send_response(self, code: int, message: str | None = None) -> None: ...
-    def send_header(self, keyword: str, value: str) -> None: ...
-    def end_headers(self) -> None: ...
-    def send_error(
-        self, code: int, message: str | None = None, explain: str | None = None
-    ) -> None: ...
-    def translate_path(self, path: str) -> str | None: ...  # type: ignore[empty-body]
+    # NOTE: Do NOT add stub methods here for send_response, send_header, etc.!
+    # Python MRO resolves this mixin BEFORE SimpleHTTPRequestHandler, so stubs
+    # would shadow the real implementations. The type checker can find the methods
+    # from SimpleHTTPRequestHandler in the concrete class's MRO.
 
     def handle_sse(self) -> None:
         """
