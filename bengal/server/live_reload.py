@@ -21,11 +21,18 @@ Dev behavior:
   generation so we do not replay the last reload event to the client.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import threading
+from io import BufferedIOBase
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    pass
 
 logger = get_logger(__name__)
 
@@ -159,6 +166,22 @@ class LiveReloadMixin:
                 else:
                     super().do_GET()  # Default file serving
     """
+
+    # Type declarations for attributes provided by SimpleHTTPRequestHandler
+    # These tell mypy what to expect when this mixin is used
+    path: str
+    client_address: tuple[str, int]
+    wfile: BufferedIOBase
+
+    # Method stubs for the HTTP handler interface
+    # Actual implementations are provided by SimpleHTTPRequestHandler when mixed in
+    def send_response(self, code: int, message: str | None = None) -> None: ...
+    def send_header(self, keyword: str, value: str) -> None: ...
+    def end_headers(self) -> None: ...
+    def send_error(
+        self, code: int, message: str | None = None, explain: str | None = None
+    ) -> None: ...
+    def translate_path(self, path: str) -> str: ...  # type: ignore[empty-body]
 
     def handle_sse(self) -> None:
         """

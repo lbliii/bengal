@@ -202,7 +202,7 @@ class MenuOrchestrator:
         data_str = json.dumps(cache_data, sort_keys=True)
         return hash_str(data_str)
 
-    def _build_auto_menu_with_dev_bundling(self) -> list[dict]:
+    def _build_auto_menu_with_dev_bundling(self) -> list[dict[str, Any]]:
         """
         Build auto-discovered menu with dev assets bundled into dropdown.
 

@@ -203,17 +203,17 @@ class AutoFixer:
                                     found_files = list(self.site_root.rglob(file_name))
 
                                     # Use first found file, or first possible path if exists
-                                    file_path: Path | None = None
+                                    found_file_path: Path | None = None
                                     for path in found_files[:1] if found_files else possible_paths:
                                         if path.exists():
-                                            file_path = path.resolve()
+                                            found_file_path = path.resolve()
                                             break
 
                                     if (
-                                        file_path
-                                        and file_path.exists()
+                                        found_file_path
+                                        and found_file_path.exists()
                                         and not any(
-                                            f.file_path == file_path
+                                            f.file_path == found_file_path
                                             and f.fix_type == "directive_fence"
                                             for f in fixes
                                         )
@@ -223,15 +223,15 @@ class AutoFixer:
                                         # Create a single fix action for this file that handles all directives
                                         fixes.append(
                                             FixAction(
-                                                description=f"Fix fence nesting in {file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
-                                                file_path=file_path,
+                                                description=f"Fix fence nesting in {found_file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
+                                                file_path=found_file_path,
                                                 line_number=min(line_numbers)
                                                 if line_numbers
                                                 else None,  # Use first line for reference
                                                 fix_type="directive_fence",
                                                 safety=FixSafety.SAFE,
                                                 apply=self._create_file_fix(
-                                                    file_path, line_numbers
+                                                    found_file_path, line_numbers
                                                 ),
                                                 check_result=result,
                                             )
@@ -392,8 +392,8 @@ class AutoFixer:
         all_directives: list[dict[str, Any]],
     ) -> bool:
         """Check if directive is a descendant of ancestor."""
-        current = directive
-        while current.get("parent"):
+        current: dict[str, Any] | None = directive
+        while current and current.get("parent"):
             if current["parent"] == ancestor["line"]:
                 return True
             current = next((d for d in all_directives if d["line"] == current["parent"]), None)
@@ -404,8 +404,8 @@ class AutoFixer:
     def _get_depth(self, directive: dict[str, Any], all_directives: list[dict[str, Any]]) -> int:
         """Get nesting depth of directive (0 = root, 1 = child, etc.)."""
         depth = 0
-        current = directive
-        while current.get("parent"):
+        current: dict[str, Any] | None = directive
+        while current and current.get("parent"):
             depth += 1
             current = next((d for d in all_directives if d["line"] == current["parent"]), None)
             if not current:

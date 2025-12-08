@@ -97,7 +97,7 @@ class BadgePlugin:
         if "{bdg-" not in html:
             return html
 
-        def replace_html_badge(match: re.Match) -> str:
+        def replace_html_badge(match: re.Match[str]) -> str:
             """Replace HTML badge pattern with badge span."""
             color = match.group(1)
             badge_text = match.group(2)
@@ -115,7 +115,7 @@ class BadgePlugin:
             # So we don't need to escape it again
             return f'<span class="badge badge-{css_class}">{badge_text}</span>'
 
-        def replace_raw_badge(match: re.Match) -> str:
+        def replace_raw_badge(match: re.Match[str]) -> str:
             """Replace raw badge pattern (fallback, shouldn't happen in practice)."""
             color = match.group(1)
             badge_text = match.group(2)

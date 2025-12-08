@@ -65,7 +65,7 @@ class PageRelationshipsMixin:
               <span class="badge">Blog Post</span>
             {% endif %}
         """
-        return self._section == section
+        return bool(self._section == section)
 
     def is_ancestor(self, other: Page) -> bool:
         """
@@ -103,4 +103,7 @@ class PageRelationshipsMixin:
               <p>Part of {{ section.title }}</p>
             {% endif %}
         """
-        return other.is_ancestor(self) if hasattr(other, "is_ancestor") else False
+        from bengal.core.page import Page
+        if hasattr(other, "is_ancestor") and isinstance(other, Page):
+            return other.is_ancestor(self)  # type: ignore[arg-type]
+        return False

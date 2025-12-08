@@ -151,8 +151,8 @@ class PygmentsPatch:
 
             # Restore original functions
             codehilite = cls._codehilite_module
-            codehilite.get_lexer_by_name = cls._originals["get_lexer_by_name"]
-            codehilite.guess_lexer = cls._originals["guess_lexer"]
+            codehilite.get_lexer_by_name = cls._originals["get_lexer_by_name"]  # type: ignore[attr-defined]
+            codehilite.guess_lexer = cls._originals["guess_lexer"]  # type: ignore[attr-defined]
 
             # Clear state
             cls._patched = False

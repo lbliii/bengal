@@ -28,10 +28,15 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
+    from bengal.config.profiles import BuildProfile
     from bengal.core.asset import Asset
+    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.utils.build_context import BuildContext
     from bengal.utils.cli_output import CLIOutput
+    from bengal.utils.live_progress_manager import LiveProgressManager
+    from bengal.utils.progress_reporter import ProgressReporter
 
 
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
@@ -328,7 +333,7 @@ def phase_update_site_pages(
             )
 
 
-def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list) -> None:
+def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any]) -> None:
     """
     Phase 16: Track Asset Dependencies.
 

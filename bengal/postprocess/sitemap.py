@@ -158,12 +158,12 @@ class SitemapGenerator:
                     default_lang = self.site.config.get("i18n", {}).get("default_language", "en")
                     for child in list(url_elem):
                         if child.tag.endswith("link") and child.get("hreflang") == default_lang:
-                            href: str | None = child.get("href")
-                            if href is not None:
+                            default_href: str | None = child.get("href")
+                            if default_href is not None:
                                 link = ET.SubElement(url_elem, "{http://www.w3.org/1999/xhtml}link")
                                 link.set("rel", "alternate")
                                 link.set("hreflang", "x-default")
-                                link.set("href", href)
+                                link.set("href", default_href)
                                 break
             except Exception as e:
                 # Keep sitemap resilient

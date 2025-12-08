@@ -18,7 +18,7 @@ from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    pass
+    from bengal.assets.manifest import AssetManifestEntry
 
 logger = get_logger(__name__)
 
@@ -97,12 +97,16 @@ class AssetURLMixin:
     Requires these attributes on the host class:
         - site: Site instance
         - _asset_manifest_path: Path
-        - _get_manifest_entry: Callable
-        - _warn_manifest_fallback: Callable
+        - _get_manifest_entry: Callable (from ManifestHelpersMixin)
+        - _warn_manifest_fallback: Callable (from ManifestHelpersMixin)
     """
 
     site: Any
     _asset_manifest_path: Path
+
+    # These methods are provided by ManifestHelpersMixin - declare for type checking
+    def _get_manifest_entry(self, logical_path: str) -> AssetManifestEntry | None: ...
+    def _warn_manifest_fallback(self, logical_path: str) -> None: ...
 
     def _asset_url(self, asset_path: str, page_context: Any = None) -> str:
         """

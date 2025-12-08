@@ -64,7 +64,7 @@ class TabsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["tabs"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse legacy tabs directive."""
         options = dict(self.parse_options(m))
         content = self.parse_content(m)
@@ -135,7 +135,7 @@ class TabSetDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["tab-set"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse tab-set directive."""
         options = dict(self.parse_options(m))
 
@@ -174,7 +174,7 @@ class TabItemDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["tab-item"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse tab-item directive."""
         title = self.parse_title(m)
         options = dict(self.parse_options(m))

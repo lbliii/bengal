@@ -43,7 +43,7 @@ class _PageContext:
     def __init__(
         self,
         title: str,
-        metadata: dict,
+        metadata: dict[str, Any],
         tags: list[str] | None = None,
         relative_url: str = "/",
         variant: str | None = None,
@@ -226,12 +226,12 @@ class VirtualAutodocOrchestrator:
 
         # Register menu functions (required by base.html templates)
         # These are simplified versions that work without TemplateEngine instance
-        def get_menu(menu_name: str = "main") -> list[dict]:
+        def get_menu(menu_name: str = "main") -> list[dict[str, Any]]:
             """Get menu items by name."""
             menu = self.site.menu.get(menu_name, [])
             return [item.to_dict() for item in menu]
 
-        def get_menu_lang(menu_name: str = "main", lang: str = "") -> list[dict]:
+        def get_menu_lang(menu_name: str = "main", lang: str = "") -> list[dict[str, Any]]:
             """Get menu items for a specific language."""
             if not lang:
                 return get_menu(menu_name)
@@ -345,7 +345,7 @@ class VirtualAutodocOrchestrator:
             and self.openapi_config.get("enabled", True)
         )
 
-        return python_enabled or cli_enabled or openapi_enabled
+        return bool(python_enabled or cli_enabled or openapi_enabled)
 
     def generate(self) -> tuple[list[Page], list[Section]]:
         """

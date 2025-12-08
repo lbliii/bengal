@@ -40,7 +40,7 @@ try:
     from compression import zstd
 
     # Re-export ZstdError
-    ZstdError = zstd.ZstdError
+    ZstdError: type[Exception] = zstd.ZstdError
 
 except ImportError:
     try:
@@ -48,7 +48,7 @@ except ImportError:
         import zstandard as zstd  # type: ignore
 
         # Re-export ZstdError
-        ZstdError = zstd.ZstdError
+        ZstdError = zstd.ZstdError  # type: ignore[no-redef]
 
     except ImportError:
         # Fallback mock for environments without zstd
@@ -67,7 +67,7 @@ except ImportError:
                 pass
 
         zstd = MockZstd()  # type: ignore[assignment]
-        ZstdError = MockZstd.ZstdError  # type: ignore[assignment]
+        ZstdError = MockZstd.ZstdError  # type: ignore[no-redef]
 
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:

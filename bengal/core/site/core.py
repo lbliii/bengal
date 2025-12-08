@@ -146,6 +146,20 @@ class Site(
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
+    # Dynamic runtime attributes (set by various orchestrators)
+    # Menu metadata for dev server menu items (set by MenuOrchestrator)
+    _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
+    # Affected tags during incremental builds (set by TaxonomyOrchestrator)
+    _affected_tags: set[str] = field(default_factory=set, repr=False, init=False)
+    # Page lookup maps for efficient page resolution (set by template functions)
+    _page_lookup_maps: dict[str, dict[str, Page]] | None = field(
+        default=None, repr=False, init=False
+    )
+    # Last build stats for health check access (set by finalization phase)
+    _last_build_stats: dict[str, Any] | None = field(default=None, repr=False, init=False)
+    # Template parser cache (set by get_page template function)
+    _template_parser: Any = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         if isinstance(self.root_path, str):
@@ -208,7 +222,7 @@ class Site(
         from bengal.orchestration import BuildOrchestrator
 
         orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(
+        result = orchestrator.build(
             parallel=parallel,
             incremental=incremental,
             verbose=verbose,
@@ -219,6 +233,11 @@ class Site(
             full_output=full_output,
             profile_templates=profile_templates,
         )
+        # Ensure we return BuildStats (orchestrator.build returns Any)
+        from bengal.orchestration.build.results import BuildStats
+        if isinstance(result, BuildStats):
+            return result
+        return BuildStats()
 
     def serve(
         self,

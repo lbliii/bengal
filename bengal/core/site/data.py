@@ -114,7 +114,7 @@ class DataLoadingMixin:
 
         return wrapped_data
 
-    def _validate_tracks_structure(self, tracks_data: dict) -> None:
+    def _validate_tracks_structure(self, tracks_data: dict[str, Any]) -> None:
         """
         Validate tracks.yaml structure during data loading.
 
@@ -164,4 +164,3 @@ class DataLoadingMixin:
                     track_id=track_id,
                     message=f"Track '{track_id}' has no items",
                 )
-

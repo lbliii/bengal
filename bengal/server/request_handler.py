@@ -10,7 +10,7 @@ import http.server
 import threading
 from http.client import HTTPMessage
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from bengal.server.component_preview import ComponentPreviewServer
 from bengal.server.live_reload import LiveReloadMixin
@@ -41,8 +41,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _cached_site_root = None
 
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
-    # Key: (file_path, mtime), Value: modified_content bytes
-    _html_cache: dict[tuple[Path, float], bytes] = {}
+    # Key: (file_path_str, mtime), Value: modified_content bytes
+    _html_cache: dict[tuple[str, float], bytes] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
 

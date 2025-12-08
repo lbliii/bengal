@@ -177,7 +177,7 @@ class PostprocessOrchestrator:
 
     def _run_sequential(
         self,
-        tasks: list[tuple[str, Callable]],
+        tasks: list[tuple[str, Callable[[], None]]],
         progress_manager: Any | None = None,
         reporter: Any | None = None,
     ) -> None:
@@ -217,7 +217,7 @@ class PostprocessOrchestrator:
 
     def _run_parallel(
         self,
-        tasks: list[tuple[str, Callable]],
+        tasks: list[tuple[str, Callable[[], None]]],
         progress_manager: Any | None = None,
         reporter: Any | None = None,
     ) -> None:

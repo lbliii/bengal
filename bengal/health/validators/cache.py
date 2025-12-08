@@ -133,7 +133,7 @@ class CacheValidator(BaseValidator):
 
         return results
 
-    def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict]:
+    def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict[str, Any]]:
         """Check if cache file is readable and valid JSON."""
         try:
             with open(cache_path, encoding="utf-8") as f:
@@ -157,7 +157,7 @@ class CacheValidator(BaseValidator):
             )
             return False, {}
 
-    def _check_cache_structure(self, cache_data: dict) -> tuple[bool, list[str]]:
+    def _check_cache_structure(self, cache_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Check if cache has expected structure."""
         issues = []
 
@@ -176,7 +176,7 @@ class CacheValidator(BaseValidator):
 
         return len(issues) == 0, issues
 
-    def _check_cache_size(self, cache_path: Path, cache_data: dict) -> list[CheckResult]:
+    def _check_cache_size(self, cache_path: Path, cache_data: dict[str, Any]) -> list[CheckResult]:
         """Check if cache size is reasonable."""
         results = []
 
@@ -215,7 +215,7 @@ class CacheValidator(BaseValidator):
 
         return results
 
-    def _check_dependencies(self, cache_data: dict) -> list[CheckResult]:
+    def _check_dependencies(self, cache_data: dict[str, Any]) -> list[CheckResult]:
         """Check basic dependency tracking."""
         results = []
 

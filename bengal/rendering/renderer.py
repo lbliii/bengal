@@ -256,7 +256,8 @@ class Renderer:
 
         # Render with template
         try:
-            return self.template_engine.render(template_name, context)
+            result = self.template_engine.render(template_name, context)
+            return str(result) if result else ""
         except Exception as e:
             from bengal.rendering.errors import TemplateRenderError, display_template_error
 
@@ -286,7 +287,7 @@ class Renderer:
                         pass
                 # Wrap in RuntimeError for consistent error handling
                 raise RuntimeError(
-                    f"Template error in strict mode: {truncate_error(rich_error.message)}"
+                    f"Template error in strict mode: {rich_error.message[:200]}"
                 ) from e
 
             # In production mode, collect error and continue
@@ -620,7 +621,7 @@ class Renderer:
         """
         # 1. Explicit template (highest priority)
         if "template" in page.metadata:
-            return page.metadata["template"]
+            return str(page.metadata["template"])
 
         # 2. Get content type strategy and delegate
         page_type = page.metadata.get("type")

@@ -82,7 +82,7 @@ class GlossaryDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["glossary"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse glossary directive options.
 
@@ -363,7 +363,7 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
         return {"error": f"Failed to parse glossary: {e}"}
 
 
-def _filter_terms(terms: list[dict], tags: list[str]) -> list[dict]:
+def _filter_terms(terms: list[dict[str, Any]], tags: list[str]) -> list[dict[str, Any]]:
     """
     Filter terms by tags.
 
@@ -394,7 +394,7 @@ def _filter_terms(terms: list[dict], tags: list[str]) -> list[dict]:
     return filtered
 
 
-def _render_term(renderer: Any, term_data: dict, show_tags: bool) -> str:
+def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> str:
     """Render a single glossary term as dt/dd pair."""
     term = term_data.get("term", "Unknown Term")
     definition = term_data.get("definition", "No definition provided.")

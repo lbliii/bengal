@@ -44,7 +44,7 @@ class PhaseProgress:
     current_item: str = ""
     elapsed_ms: float = 0
     start_time: float | None = None
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     recent_items: list[str] = field(default_factory=list)
 
     def get_percentage(self) -> float | None:

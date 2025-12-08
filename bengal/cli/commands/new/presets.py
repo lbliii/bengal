@@ -11,6 +11,8 @@ Presets define predefined configurations for common site types:
 
 from __future__ import annotations
 
+from typing import Any
+
 # Preset definitions for wizard
 PRESETS = {
     "blog": {
@@ -61,7 +63,7 @@ PRESETS = {
 }
 
 
-def get_preset(name: str) -> dict | None:
+def get_preset(name: str) -> dict[str, Any] | None:
     """
     Get a preset by name.
 

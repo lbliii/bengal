@@ -16,14 +16,16 @@ Architecture:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 from .page_core import PageCore
 
@@ -92,6 +94,9 @@ class PageProxy:
         assert page._lazy_loaded  # True
     """
 
+    # Site reference - set externally during content discovery
+    _site: Site | None
+
     def __init__(
         self,
         source_path: Path,
@@ -112,6 +117,7 @@ class PageProxy:
         self._lazy_loaded = False
         self._full_page: Page | None = None
         self._related_posts_cache: list[Page] | None = None
+        self._site = None  # Site reference - set externally
 
         # Path-based section reference (stable across rebuilds)
         # Initialized from core.section if available

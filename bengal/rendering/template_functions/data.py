@@ -267,7 +267,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
     return []
 
 
-def items_filter(data: dict[str, Any]) -> list[tuple]:
+def items_filter(data: dict[str, Any]) -> list[tuple[str, Any]]:
     """
     Get dictionary items as list of (key, value) tuples.
 

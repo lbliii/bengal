@@ -95,7 +95,7 @@ class BaseValidator(ABC):
         """
         pass
 
-    def is_enabled(self, config: dict) -> bool:
+    def is_enabled(self, config: dict[str, Any]) -> bool:
         """
         Check if this validator is enabled in config.
 

@@ -277,6 +277,11 @@ class Asset:
     bundled: bool = False
     logical_path: Path | None = None
 
+    # Processing state (set during asset processing)
+    _bundled_content: str | None = None  # CSS content after @import resolution
+    _minified_content: str | None = None  # Content after minification
+    _optimized_image: bytes | None = None  # Optimized image bytes
+
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
         if not self.asset_type:

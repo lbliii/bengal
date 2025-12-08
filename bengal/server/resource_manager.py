@@ -54,7 +54,7 @@ class ResourceManager:
         self._lock = threading.Lock()
         self._original_signals: dict[signal.Signals, Any] = {}
 
-    def register(self, name: str, resource: Any, cleanup_fn: Callable) -> Any:
+    def register(self, name: str, resource: Any, cleanup_fn: Callable[[Any], None]) -> Any:
         """
         Register a resource with its cleanup function.
 
@@ -228,7 +228,7 @@ class ResourceManager:
         atexit.register(self.cleanup)
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> bool:
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> None:
         """Context manager exit - ensure cleanup runs."""
         self.cleanup()
-        return False  # Don't suppress exceptions
+        # Don't suppress exceptions (return None implicitly)

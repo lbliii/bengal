@@ -6,7 +6,7 @@ Provides 4 functions for cross-referencing pages and headings with O(1) performa
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
 
@@ -48,7 +48,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> Markup:
+def ref(path: str, index: dict[str, Any], baseurl: str = "", text: str | None = None) -> Markup:
     """
     Generate cross-reference link to a page or heading.
 
@@ -149,7 +149,7 @@ def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> M
     return Markup(f'<a href="{url}">{link_text}</a>')
 
 
-def doc(path: str, index: dict) -> Page | None:
+def doc(path: str, index: dict[str, Any]) -> Page | None:
     """
     Get page object by path.
 
@@ -221,7 +221,9 @@ def doc(path: str, index: dict) -> Page | None:
     return page
 
 
-def anchor(heading: str, index: dict, baseurl: str = "", page_path: str | None = None) -> Markup:
+def anchor(
+    heading: str, index: dict[str, Any], baseurl: str = "", page_path: str | None = None
+) -> Markup:
     """
     Link to a heading (anchor) in a page.
 
@@ -284,7 +286,7 @@ def anchor(heading: str, index: dict, baseurl: str = "", page_path: str | None =
     return Markup(f'<a href="{url}#{anchor_id}">{heading}</a>')
 
 
-def relref(path: str, index: dict, baseurl: str = "") -> str:
+def relref(path: str, index: dict[str, Any], baseurl: str = "") -> str:
     """
     Get relative URL for a page.
 

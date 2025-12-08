@@ -250,7 +250,7 @@ class BuildOrchestrator:
         content.phase_taxonomy_index(self)
 
         # Phase 9: Menus
-        content.phase_menus(self, incremental, changed_page_paths)
+        content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
         # Phase 10: Related Posts Index
         content.phase_related_posts(self, incremental, parallel, pages_to_build)

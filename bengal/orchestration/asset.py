@@ -27,7 +27,7 @@ import concurrent.futures
 import time
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
 from bengal.config.defaults import get_max_workers
@@ -463,7 +463,7 @@ class AssetOrchestrator:
         for asset in other_assets:
             process_one(asset, False)
 
-    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict) -> Asset | None:
+    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict[str, Any]) -> Asset | None:
         """
         Create a bundled JavaScript file from individual JS modules.
 

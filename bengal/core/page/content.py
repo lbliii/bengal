@@ -189,7 +189,7 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        def walk_tokens(tokens: list[dict]) -> str:
+        def walk_tokens(tokens: list[dict[str, Any]]) -> str:
             """Recursively extract text from tokens."""
             parts = []
             for token in tokens:
@@ -228,7 +228,7 @@ class PageContentMixin:
 
         links: list[str] = []
 
-        def walk_tokens(tokens: list[dict]) -> None:
+        def walk_tokens(tokens: list[dict[str, Any]]) -> None:
             """Recursively extract links from tokens."""
             for token in tokens:
                 token_type = token.get("type", "")

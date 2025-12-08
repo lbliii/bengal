@@ -4,7 +4,6 @@ Rich error reporting for directive parsing.
 Provides detailed, helpful error messages when directives fail to parse.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -91,7 +90,7 @@ def format_directive_error(
     error_message: str,
     file_path: Path | None = None,
     line_number: int | None = None,
-    content_lines: list | None = None,
+    content_lines: list[str] | None = None,
     error_line_offset: int = 0,
     suggestion: str | None = None,
 ) -> str:

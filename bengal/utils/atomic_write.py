@@ -175,7 +175,7 @@ class AtomicFile:
         self.file = open(self.tmp_path, self.mode, **open_kwargs)
         return self.file
 
-    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> bool:
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> None:
         """Close temp file and rename atomically if successful."""
         if self.file:
             self.file.close()
@@ -183,9 +183,7 @@ class AtomicFile:
         # If exception occurred, clean up and don't rename
         if exc_type is not None:
             self.tmp_path.unlink(missing_ok=True)
-            return False
+            return
 
         # Success - rename atomically
         self.tmp_path.replace(self.path)
-
-        return False

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
@@ -38,7 +38,9 @@ class PythonExtractor(Extractor):
     - No side effects
     """
 
-    def __init__(self, exclude_patterns: list[str] | None = None, config: dict | None = None):
+    def __init__(
+        self, exclude_patterns: list[str] | None = None, config: dict[str, Any] | None = None
+    ):
         """
         Initialize extractor.
 
@@ -66,7 +68,7 @@ class PythonExtractor(Extractor):
         # Initialize grouping configuration
         self._grouping_config = self._init_grouping()
 
-    def _init_grouping(self) -> dict:
+    def _init_grouping(self) -> dict[str, Any]:
         """
         Initialize grouping configuration.
 
@@ -502,7 +504,9 @@ class PythonExtractor(Extractor):
 
         return signature
 
-    def _extract_arguments(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
+    def _extract_arguments(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
+    ) -> list[dict[str, Any]]:
         """Extract argument information."""
         args = []
 

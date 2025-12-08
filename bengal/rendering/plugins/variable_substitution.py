@@ -128,7 +128,7 @@ class VariableSubstitutionPlugin:
         """
 
         # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
-        def save_escaped(match: Match) -> str:
+        def save_escaped(match: Match[str]) -> str:
             # Preserve the original content without stripping whitespace
             expr = match.group(1)
             placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
@@ -144,7 +144,7 @@ class VariableSubstitutionPlugin:
         """
 
         # Step 2: Normal variable substitution
-        def replace_var(match: Match) -> str:
+        def replace_var(match: Match[str]) -> str:
             expr = match.group(1).strip()
 
             # If expression contains filter syntax (|), control flow ({%), or other

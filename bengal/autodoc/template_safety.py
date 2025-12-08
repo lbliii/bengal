@@ -22,7 +22,9 @@ logger = get_logger(__name__)
 class TemplateRenderingError(Exception):
     """Exception raised when template rendering fails."""
 
-    def __init__(self, template_name: str, original_error: Exception, context: dict | None = None):
+    def __init__(
+        self, template_name: str, original_error: Exception, context: dict[str, Any] | None = None
+    ):
         self.template_name = template_name
         self.original_error = original_error
         self.context = context or {}
@@ -44,7 +46,7 @@ class SafeTemplateRenderer:
         self.errors: list[dict[str, Any]] = []
         self.warnings: list[dict[str, Any]] = []
 
-    def render_with_boundaries(self, template_name: str, context: dict) -> str:
+    def render_with_boundaries(self, template_name: str, context: dict[str, Any]) -> str:
         """
         Render template with error boundaries and fallbacks.
 
@@ -76,7 +78,7 @@ class SafeTemplateRenderer:
             return self._render_emergency_fallback(template_name, context, e)
 
     def _record_error(
-        self, template_name: str, error: Exception, context: dict, error_type: str
+        self, template_name: str, error: Exception, context: dict[str, Any], error_type: str
     ) -> None:
         """Record template error for reporting."""
         self.error_count += 1
@@ -103,7 +105,7 @@ class SafeTemplateRenderer:
             element_name=error_record["element_name"],
         )
 
-    def _render_not_found_fallback(self, template_name: str, context: dict) -> str:
+    def _render_not_found_fallback(self, template_name: str, context: dict[str, Any]) -> str:
         """Generate fallback when template file is not found."""
         element = context.get("element")
         if not element:
@@ -126,7 +128,7 @@ Template Not Found: {template_name}
 """
 
     def _render_undefined_fallback(
-        self, template_name: str, context: dict, error: UndefinedError
+        self, template_name: str, context: dict[str, Any], error: UndefinedError
     ) -> str:
         """Generate fallback when template has undefined variables."""
         element = context.get("element")
@@ -151,7 +153,7 @@ Undefined variable: {str(error)}
 """
 
     def _render_syntax_fallback(
-        self, template_name: str, context: dict, error: TemplateError
+        self, template_name: str, context: dict[str, Any], error: TemplateError
     ) -> str:
         """Generate fallback when template has syntax errors."""
         element = context.get("element")
@@ -176,7 +178,7 @@ Error: {str(error)}
 """
 
     def _render_emergency_fallback(
-        self, template_name: str, context: dict, error: Exception | None
+        self, template_name: str, context: dict[str, Any], error: Exception | None
     ) -> str:
         """Last resort fallback when everything fails."""
         element = context.get("element")
@@ -526,7 +528,7 @@ def _get_safe_filters() -> dict[str, Any]:
 
         return text[:length].rstrip() + suffix
 
-    def format_list(items: list | None, separator: str = ", ", max_items: int = 5) -> str:
+    def format_list(items: list[Any] | None, separator: str = ", ", max_items: int = 5) -> str:
         """Safely format a list of items."""
         if not items:
             return ""

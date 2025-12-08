@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import ItemsView
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
@@ -100,15 +100,15 @@ class ChangeSummary:
     modified_assets: list[Path] = field(default_factory=list)
     modified_templates: list[Path] = field(default_factory=list)
     taxonomy_changes: list[str] = field(default_factory=list)
-    extra_changes: dict[str, list] = field(default_factory=dict)
+    extra_changes: dict[str, list[Any]] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, list]:
+    def to_dict(self) -> dict[str, list[Any]]:
         """
         Convert to dict format for backward compatibility with existing code.
 
         Returns dict with string keys matching the original format.
         """
-        result: dict[str, list] = {}
+        result: dict[str, list[Any]] = {}
         if self.modified_content:
             result["Modified content"] = self.modified_content
         if self.modified_assets:
@@ -121,16 +121,16 @@ class ChangeSummary:
         result.update(self.extra_changes)
         return result
 
-    def items(self) -> ItemsView[str, list]:
+    def items(self) -> ItemsView[str, list[Any]]:
         """Allow dict-like iteration for backward compatibility."""
         return self.to_dict().items()
 
-    def get(self, key: str, default: list | None = None) -> list:
+    def get(self, key: str, default: list[Any] | None = None) -> list[Any]:
         """Allow dict-like get() for backward compatibility."""
         result = self.to_dict().get(key, default)
         return result if result is not None else []
 
-    def __getitem__(self, key: str) -> list:
+    def __getitem__(self, key: str) -> list[Any]:
         """Allow dict-like indexing for backward compatibility."""
         result = self.to_dict()
         if key not in result:

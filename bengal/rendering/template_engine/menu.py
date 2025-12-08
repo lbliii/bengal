@@ -23,7 +23,7 @@ class MenuHelpersMixin:
     """
 
     site: Any
-    _menu_dict_cache: dict[str, list[dict]]
+    _menu_dict_cache: dict[str, list[dict[str, Any]]]
 
     def invalidate_menu_cache(self) -> None:
         """
@@ -33,7 +33,7 @@ class MenuHelpersMixin:
         """
         self._menu_dict_cache.clear()
 
-    def _get_menu(self, menu_name: str = "main") -> list:
+    def _get_menu(self, menu_name: str = "main") -> list[dict[str, Any]]:
         """
         Get menu items as dicts for template access (cached).
 
@@ -64,7 +64,7 @@ class MenuHelpersMixin:
             self._menu_dict_cache[menu_name] = [item.to_dict() for item in menu]
         return self._menu_dict_cache[menu_name]
 
-    def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list:
+    def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list[dict[str, Any]]:
         """
         Get menu items for a specific language (cached).
 

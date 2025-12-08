@@ -187,7 +187,7 @@ class ThemePackage:
         try:
             target = resources.files(self.package)
             traversable = target.joinpath(relative)
-            if traversable.exists():
+            if traversable.exists():  # type: ignore[attr-defined]
                 # Try to get a persistent filesystem path
                 try:
                     # Check if it's already a real Path (not in a zip)
@@ -245,7 +245,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
         eps = metadata.entry_points(group="bengal.themes")
     except Exception as e:
         logger.debug("entry_point_discovery_failed", error=str(e))
-        eps: EntryPoints = ()
+        eps = ()
 
     for ep in eps:
         slug = ep.name

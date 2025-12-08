@@ -55,7 +55,7 @@ def phase_postprocess(
 
 
 def phase_cache_save(
-    orchestrator: BuildOrchestrator, pages_to_build: list, assets_to_process: list
+    orchestrator: BuildOrchestrator, pages_to_build: list[Any], assets_to_process: list[Any]
 ) -> None:
     """
     Phase 18: Save Cache.
@@ -197,7 +197,7 @@ def run_health_check(
     strict_mode = health_config.get("strict_mode", False)
     if strict_mode and report.has_errors():
         raise Exception(
-            f"Build failed health checks: {report.error_count} error(s) found. "
+            f"Build failed health checks: {report.total_errors} error(s) found. "
             "Review output or disable strict_mode."
         )
 

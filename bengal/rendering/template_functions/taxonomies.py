@@ -37,7 +37,7 @@ def register(env: Environment, site: Site) -> None:
     def related_posts_with_site(page: Any, limit: int = 5) -> list[Any]:
         return related_posts(page, site.pages, limit)
 
-    def popular_tags_with_site(limit: int = 10) -> list[tuple]:
+    def popular_tags_with_site(limit: int = 10) -> list[tuple[str, int]]:
         # Transform tags dict to extract pages lists from nested structure
         raw_tags = site.taxonomies.get("tags", {})
         tags_with_pages = {tag_slug: tag_data["pages"] for tag_slug, tag_data in raw_tags.items()}
@@ -189,7 +189,7 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
     return result
 
 
-def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple]:
+def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple[str, int]]:
     """
     Get most popular tags sorted by count.
 

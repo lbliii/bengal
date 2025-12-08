@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from bengal.debug.base import DebugReport, DebugTool
+from bengal.debug.base import DebugReport, DebugTool, Severity
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

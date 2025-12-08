@@ -372,10 +372,9 @@ class BengalLogger:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> bool:
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> None:
         """Context manager exit."""
         self.close()
-        return False
 
 
 def truncate_str(s: str, max_len: int = 500, suffix: str = " ... (truncated)") -> str:

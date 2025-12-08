@@ -38,8 +38,8 @@ logger = get_logger(__name__)
 
 # Check if lunr is available (optional dependency)
 try:
-    from lunr import lunr
-    from lunr.index import Index
+    from lunr import lunr  # type: ignore[import-untyped]
+    from lunr.index import Index  # type: ignore[import-untyped]
 
     LUNR_AVAILABLE = True
 except ImportError:
@@ -229,11 +229,11 @@ class LunrIndexGenerator:
         """Extract author string from page data."""
         author = page.get("author", "")
         if author:
-            return author
+            return str(author)
 
         authors = page.get("authors", [])
         if authors:
-            return " ".join(authors)
+            return " ".join(str(a) for a in authors)
 
         return ""
 
@@ -254,8 +254,8 @@ class LunrIndexGenerator:
             )
             default_in_subdir = bool(i18n.get("default_in_subdir", False))
             if default_in_subdir or current_lang != i18n.get("default_language", "en"):
-                return self.site.output_dir / current_lang / "index.json"
-        return self.site.output_dir / "index.json"
+                return Path(self.site.output_dir) / str(current_lang) / "index.json"
+        return Path(self.site.output_dir) / "index.json"
 
     def _get_output_path(self) -> Path:
         """Get the output path for search-index.json, handling i18n prefixes."""
@@ -266,5 +266,5 @@ class LunrIndexGenerator:
             )
             default_in_subdir = bool(i18n.get("default_in_subdir", False))
             if default_in_subdir or current_lang != i18n.get("default_language", "en"):
-                return self.site.output_dir / current_lang / "search-index.json"
-        return self.site.output_dir / "search-index.json"
+                return Path(self.site.output_dir) / str(current_lang) / "search-index.json"
+        return Path(self.site.output_dir) / "search-index.json"

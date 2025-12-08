@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import frontmatter
+import frontmatter  # type: ignore[import-untyped]
 
 from bengal.config.defaults import get_max_workers
 from bengal.core.page import Page, PageProxy
@@ -48,7 +48,7 @@ class ContentDiscovery:
         content_dir: Path,
         site: Any | None = None,
         *,
-        collections: dict[str, CollectionConfig] | None = None,
+        collections: dict[str, CollectionConfig[Any]] | None = None,
         strict_validation: bool = True,
         build_context: BuildContext | None = None,
     ) -> None:
@@ -128,7 +128,7 @@ class ContentDiscovery:
 
         # One-time performance hint: check if PyYAML has C extensions
         try:
-            import yaml  # noqa: F401
+            import yaml  # type: ignore[import-untyped]  # noqa: F401
 
             has_libyaml = getattr(yaml, "__with_libyaml__", False)
             if not has_libyaml:
@@ -173,7 +173,7 @@ class ContentDiscovery:
 
         # Helper: process a single item with optional current language context
         def process_item(item_path: Path, current_lang: str | None) -> list[Page]:
-            pending_pages: list = []
+            pending_pages: list[Any] = []
             produced_pages: list[Page] = []
             # Skip hidden files and directories
             if item_path.name.startswith((".", "_")) and item_path.name not in (
@@ -320,13 +320,13 @@ class ContentDiscovery:
                 # Capture page.lang and page._section_path at call time to avoid closure issues
                 # where loop variables would otherwise be shared across iterations
                 def make_loader(
-                    source_path: Path, current_lang: str, section_path: Path | None
+                    source_path: Path, current_lang: str | None, section_path: Path | None
                 ) -> Callable[[Any], Page]:
                     def loader(_: Any) -> Page:
                         # Resolve section from path when loading
-                        section = (
-                            self.site.get_section_by_path(section_path) if section_path else None
-                        )
+                        section = None
+                        if section_path and self.site is not None:
+                            section = self.site.get_section_by_path(section_path)
                         # Load full page from disk when needed
                         return self._create_page(
                             source_path, current_lang=current_lang, section=section
@@ -349,8 +349,8 @@ class ContentDiscovery:
                 if page.output_path:
                     proxy.output_path = page.output_path
 
-                # Replace full page with proxy
-                all_discovered_pages[i] = proxy
+                # Replace full page with proxy (PageProxy is compatible with Page)
+                all_discovered_pages[i] = proxy  # type: ignore[call-overload]
                 proxy_count += 1
 
                 self.logger.debug(
@@ -409,7 +409,7 @@ class ContentDiscovery:
         # Section (compare paths, not object identity)
         # Use _section_path directly to avoid triggering lazy lookup
         page_section_str = str(page._section_path) if page._section_path else None
-        return page_section_str == cached_metadata.section
+        return bool(page_section_str == cached_metadata.section)
 
     def _walk_directory(
         self, directory: Path, parent_section: Section, current_lang: str | None = None
@@ -581,7 +581,7 @@ class ContentDiscovery:
 
         if not result.valid:
             error_summary = result.error_summary
-            self._validation_errors.append((file_path, collection_name, result.errors))
+            self._validation_errors.append((file_path, collection_name or "", result.errors))
 
             if self._strict_validation:
                 raise ContentValidationError(
@@ -605,17 +605,17 @@ class ContentDiscovery:
             # Convert validated instance back to dict for Page metadata
             from dataclasses import asdict, is_dataclass
 
-            if is_dataclass(result.data):
-                return asdict(result.data)
+            if is_dataclass(result.data) and not isinstance(result.data, type):
+                return dict(asdict(result.data))
             elif hasattr(result.data, "model_dump"):
                 # Pydantic model
-                return result.data.model_dump()
+                return dict(result.data.model_dump())
 
         return metadata
 
     def _get_collection_for_file(
         self, file_path: Path
-    ) -> tuple[str | None, CollectionConfig | None]:
+    ) -> tuple[str | None, CollectionConfig[Any] | None]:
         """
         Find which collection a file belongs to based on its path.
 
@@ -633,8 +633,9 @@ class ContentDiscovery:
         for name, config in self._collections.items():
             try:
                 # Check if file is under this collection's directory
-                rel_path.relative_to(config.directory)
-                return name, config
+                if config.directory is not None:
+                    rel_path.relative_to(config.directory)
+                    return name, config
             except ValueError:
                 continue
 
@@ -749,7 +750,7 @@ class ContentDiscovery:
             )
             raise
 
-    def _parse_content_file(self, file_path: Path) -> tuple:
+    def _parse_content_file(self, file_path: Path) -> tuple[str, dict[str, Any]]:
         """
         Parse content file with robust error handling.
 
@@ -776,7 +777,7 @@ class ContentDiscovery:
 
         # Cache raw content for validators (build-integrated validation)
         # This eliminates 4+ seconds of redundant disk I/O during health checks
-        if self._build_context is not None:
+        if self._build_context is not None and file_content is not None:
             self._build_context.cache_content(file_path, file_content)
 
         # Parse frontmatter
@@ -798,7 +799,7 @@ class ContentDiscovery:
             )
 
             # Try to extract content (skip broken frontmatter)
-            content = self._extract_content_skip_frontmatter(file_content)
+            content = self._extract_content_skip_frontmatter(file_content or "")
 
             # Create minimal metadata for identification
             from bengal.utils.text import humanize_slug
@@ -832,7 +833,7 @@ class ContentDiscovery:
                 "title": humanize_slug(file_path.stem),
             }
 
-            return file_content, metadata
+            return file_content or "", metadata
 
     def _extract_content_skip_frontmatter(self, file_content: str) -> str:
         """

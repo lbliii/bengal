@@ -188,12 +188,12 @@ def _lock_windows(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
 
     # Windows doesn't support shared locks with msvcrt.locking
     # LK_NBLCK = 2 (non-blocking), LK_LOCK = 1 (blocking)
-    lock_mode = msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK
+    lock_mode = msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK  # type: ignore[attr-defined]
 
     try:
         # Lock first byte (signals file is locked)
         lock_file.seek(0)
-        msvcrt.locking(lock_file.fileno(), lock_mode, 1)
+        msvcrt.locking(lock_file.fileno(), lock_mode, 1)  # type: ignore[attr-defined]
     except OSError as e:
         if e.errno == 36:  # EDEADLOCK - resource busy
             raise BlockingIOError(f"Lock is held by another process: {e}") from e
@@ -228,7 +228,7 @@ def _unlock_windows(lock_file: IO[str]) -> None:
 
     try:
         lock_file.seek(0)
-        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
     except OSError:
         pass  # Ignore unlock errors
 

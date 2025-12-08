@@ -13,7 +13,7 @@ Key Features:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -119,7 +119,7 @@ class ExplanationReporter:
 
         self.console.print(Panel("\n".join(lines), title="📁 Source", border_style="blue"))
 
-    def _print_frontmatter(self, frontmatter: dict) -> None:
+    def _print_frontmatter(self, frontmatter: dict[str, Any]) -> None:
         """Print frontmatter panel."""
         lines = []
         # Show key fields first
@@ -135,7 +135,9 @@ class ExplanationReporter:
                 lines.append(f"{key}: {self._format_value(value)}")
 
         if lines:
-            self.console.print(Panel("\n".join(lines), title="📝 Frontmatter", border_style="green"))
+            self.console.print(
+                Panel("\n".join(lines), title="📝 Frontmatter", border_style="green")
+            )
 
     def _format_value(self, value: object) -> str:
         """Format a frontmatter value for display."""
@@ -323,4 +325,3 @@ class ExplanationReporter:
         )
 
         return f"{title} | template: {template} | cache: {cache} | deps: {deps}"
-

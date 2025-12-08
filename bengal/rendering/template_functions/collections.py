@@ -20,7 +20,7 @@ def register(env: Environment, site: Site) -> None:
     """Register collection functions with Jinja2 environment."""
 
     # Create closure for resolve_pages with access to site
-    def resolve_pages_with_site(page_paths: list[str]) -> list:
+    def resolve_pages_with_site(page_paths: list[str]) -> list[Any]:
         return resolve_pages(page_paths, site)
 
     env.filters.update(
@@ -530,7 +530,7 @@ def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
     return result
 
 
-def resolve_pages(page_paths: list[str], site: Site) -> list:
+def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
     """
     Resolve page paths to Page objects.
 

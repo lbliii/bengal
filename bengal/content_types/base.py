@@ -64,7 +64,7 @@ class ContentTypeStrategy:
             return [p for p in pages if p != index_page]
         return list(pages)
 
-    def should_paginate(self, page_count: int, config: dict) -> bool:
+    def should_paginate(self, page_count: int, config: dict[str, Any]) -> bool:
         """
         Determine if this content type should use pagination.
 

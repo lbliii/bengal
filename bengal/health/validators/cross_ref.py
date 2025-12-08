@@ -359,10 +359,13 @@ class CrossReferenceValidator(BaseValidator):
                 status=severity,
                 validator=self.name,
                 message=message,
-                file_path=ref.file_path,
-                line=ref.line,
-                suggestion=suggestion,
-                metadata={"reference": ref.raw, "type": ref.ref_type},
+                recommendation=suggestion,
+                metadata={
+                    "reference": ref.raw,
+                    "type": ref.ref_type,
+                    "file_path": ref.file_path,
+                    "line": ref.line,
+                },
             )
 
         return None
@@ -440,10 +443,13 @@ class CrossReferenceValidator(BaseValidator):
                         status=CheckStatus.WARNING,
                         validator=self.name,
                         message=f"Anchor link '#{anchor}' points to non-existent heading",
-                        file_path=page_path,
-                        line=line,
-                        suggestion="Check heading exists or fix anchor name",
-                        metadata={"anchor": anchor, "valid_anchors": list(valid_anchors)[:5]},
+                        recommendation="Check heading exists or fix anchor name",
+                        metadata={
+                            "anchor": anchor,
+                            "valid_anchors": list(valid_anchors)[:5],
+                            "file_path": page_path,
+                            "line": line,
+                        },
                     )
                 )
 

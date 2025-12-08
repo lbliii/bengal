@@ -166,7 +166,7 @@ class DevServer:
                     min_interval = get_dev_config(
                         cfg, "reload", "min_notify_interval_ms", default=300
                     )
-                    controller.set_min_notify_interval_ms(min_interval)
+                    controller.set_min_notify_interval_ms(int(min_interval))
                 except Exception as e:
                     logger.warning("reload_config_min_interval_failed", error=str(e))
                     pass
@@ -181,21 +181,23 @@ class DevServer:
                     ignore_paths = get_dev_config(
                         cfg, "reload", "ignore_paths", default=default_ignores
                     )
-                    controller.set_ignored_globs(ignore_paths)
+                    controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
                 except Exception as e:
                     logger.warning("reload_config_ignores_failed", error=str(e))
                     pass
                 try:
+                    suspect_hash_limit = get_dev_config(
+                        cfg, "reload", "suspect_hash_limit", default=200
+                    )
+                    suspect_size_limit = get_dev_config(
+                        cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
+                    )
                     controller.set_hashing_options(
                         hash_on_suspect=bool(
                             get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
                         ),
-                        suspect_hash_limit=get_dev_config(
-                            cfg, "reload", "suspect_hash_limit", default=200
-                        ),
-                        suspect_size_limit_bytes=get_dev_config(
-                            cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
-                        ),
+                        suspect_hash_limit=int(suspect_hash_limit) if suspect_hash_limit is not None else None,
+                        suspect_size_limit_bytes=int(suspect_size_limit) if suspect_size_limit is not None else None,
                     )
                 except Exception as e:
                     logger.warning("reload_config_hashing_failed", error=str(e))
@@ -296,7 +298,7 @@ class DevServer:
 
         return True  # Baseurl was cleared
 
-    def _get_watched_directories(self) -> list:
+    def _get_watched_directories(self) -> list[str]:
         """
         Get list of directories that will be watched.
 

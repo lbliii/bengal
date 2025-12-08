@@ -74,7 +74,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
     if site_manifest.exists():
         try:
             data = toml.load(str(site_manifest))
-            return data.get("extends")
+            extends = data.get("extends")
+            return str(extends) if extends else None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",
@@ -91,7 +92,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
             if manifest_path and manifest_path.exists():
                 try:
                     data = toml.load(str(manifest_path))
-                    return data.get("extends")
+                    extends = data.get("extends")
+                    return str(extends) if extends else None
                 except Exception as e:
                     logger.debug(
                         "theme_manifest_read_failed",
@@ -111,7 +113,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
     if bundled_manifest.exists():
         try:
             data = toml.load(str(bundled_manifest))
-            return data.get("extends")
+            extends = data.get("extends")
+            return str(extends) if extends else None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",
@@ -278,7 +281,8 @@ def create_jinja_environment(
     @pass_context
     def asset_url_with_context(ctx: Context, asset_path: str) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
-        return template_engine._asset_url(asset_path, page_context=page)
+        result = template_engine._asset_url(asset_path, page_context=page)
+        return str(result) if result else ""
 
     env.globals["asset_url"] = asset_url_with_context
 

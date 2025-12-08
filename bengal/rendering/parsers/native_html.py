@@ -52,7 +52,7 @@ class NativeHTMLParser(HTMLParser):
         self.in_script = False  # Track <script> tags
         self.in_style = False  # Track <style> tags
 
-    def handle_starttag(self, tag: str, attrs: list) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         if tag.lower() in ("code", "pre"):
             self.in_code_block = True

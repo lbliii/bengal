@@ -30,7 +30,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) -> dict:
+def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) -> dict[str, Any]:
     """
     Paginate a list of items.
 

@@ -211,11 +211,11 @@ def discover_js_files(
     # First: files in explicit order (using relative paths or filename)
     for name in bundle_order:
         # Try relative path first, then filename
-        js_file: Path | None = all_files.get(name) or files_by_name.get(name)
-        if js_file and name not in excluded:
-            if js_file not in seen_paths:
-                ordered.append(js_file)
-                seen_paths.add(js_file)
+        ordered_js_file: Path | None = all_files.get(name) or files_by_name.get(name)
+        if ordered_js_file and name not in excluded:
+            if ordered_js_file not in seen_paths:
+                ordered.append(ordered_js_file)
+                seen_paths.add(ordered_js_file)
 
     # Then: any remaining files not already added or excluded (alphabetically)
     # Check exclusion using the canonical relative path

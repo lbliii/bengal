@@ -71,7 +71,7 @@ class LiteralIncludeDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["literalinclude"]
 
-    def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
+    def parse(self, block: BlockParser, m: Match[str], state: BlockState) -> dict[str, Any]:
         """
         Parse literalinclude directive.
 

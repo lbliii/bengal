@@ -124,12 +124,12 @@ class InlineIconPlugin:
         if "{icon}" not in html:
             return html
 
-        def replace_html_icon(match: re.Match) -> str:
+        def replace_html_icon(match: re.Match[str]) -> str:
             """Replace HTML icon pattern with SVG."""
             content = match.group(1)
             return self._render_icon(content)
 
-        def replace_raw_icon(match: re.Match) -> str:
+        def replace_raw_icon(match: re.Match[str]) -> str:
             """Replace raw icon pattern (fallback)."""
             content = match.group(1)
             return self._render_icon(content)

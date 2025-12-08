@@ -24,7 +24,7 @@ See Also:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.build_context import BuildContext
 from bengal.utils.logger import get_logger
@@ -469,7 +469,7 @@ class IncrementalOrchestrator:
 
         return pages_to_build_list, assets_to_process, change_summary
 
-    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list]]:
+    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list[Any]]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -487,7 +487,7 @@ class IncrementalOrchestrator:
 
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
-        change_summary: dict[str, list] = {
+        change_summary: dict[str, list[Any]] = {
             "Modified content": [],
             "Modified assets": [],
             "Modified templates": [],
@@ -612,7 +612,7 @@ class IncrementalOrchestrator:
 
         return pages_to_build, assets_to_process, change_summary
 
-    def process(self, change_type: str, changed_paths: set) -> None:
+    def process(self, change_type: str, changed_paths: set[str]) -> None:
         """
         Bridge-style process for testing incremental invalidation.
 
@@ -655,11 +655,13 @@ class IncrementalOrchestrator:
         context = BuildContext(site=self.site, pages=self.site.pages, tracker=self.tracker)
 
         # Invalidate based on change type
+        # Convert string paths to Path objects for invalidator methods
+        path_set: set[Path] = {Path(p) for p in changed_paths}
         invalidated: set[Path]
         if change_type == "content":
-            invalidated = self.tracker.invalidator.invalidate_content(changed_paths)
+            invalidated = self.tracker.invalidator.invalidate_content(path_set)
         elif change_type == "template":
-            invalidated = self.tracker.invalidator.invalidate_templates(changed_paths)
+            invalidated = self.tracker.invalidator.invalidate_templates(path_set)
         elif change_type == "config":
             invalidated = self.tracker.invalidator.invalidate_config()
         else:

@@ -70,7 +70,7 @@ class IncludeDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["include"]
 
-    def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
+    def parse(self, block: BlockParser, m: Match[str], state: BlockState) -> dict[str, Any]:
         """
         Parse include directive.
 
@@ -173,15 +173,15 @@ class IncludeDirective(DirectivePlugin):
         # --- Update state for nested includes ---
         # Track this file to detect cycles
         new_included_files = included_files | {canonical_path}
-        state._included_files = new_included_files
-        state._include_depth = current_depth + 1
+        state._included_files = new_included_files  # type: ignore[attr-defined]
+        state._include_depth = current_depth + 1  # type: ignore[attr-defined]
 
         # Parse included content as markdown
         # Use parse_tokens to allow nested directives in included content
         children = self.parse_tokens(block, content, state)
 
         # Restore depth after parsing (allows sibling includes at same depth)
-        state._include_depth = current_depth
+        state._include_depth = current_depth  # type: ignore[attr-defined]
 
         return {
             "type": "include",
@@ -261,7 +261,7 @@ class IncludeDirective(DirectivePlugin):
             file_path = base_dir / path
 
         # Check if file exists
-        if not file_path.exists():
+        if file_path is None or not file_path.exists():
             # Try with .md extension
             if not path.endswith(".md"):
                 file_path = base_dir / f"{path}.md"

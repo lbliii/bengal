@@ -14,7 +14,7 @@ import contextlib
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
@@ -181,7 +181,7 @@ def map_debug_flag_to_traceback(debug: bool, current: str | None = None) -> None
         os.environ["BENGAL_TRACEBACK"] = TracebackStyle.FULL.value
 
 
-def apply_file_traceback_to_env(site_config: dict | None) -> None:
+def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
     """Apply file-based traceback config ([dev.traceback]) to environment.
 
     Precedence: existing env vars win. Only set if not already present.

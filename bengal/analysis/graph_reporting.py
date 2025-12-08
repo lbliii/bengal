@@ -63,6 +63,7 @@ class GraphReporter:
         self._ensure_built()
 
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         hubs = self._graph.get_hubs()
         orphans = self._graph.get_orphans()
 
@@ -161,6 +162,7 @@ class GraphReporter:
 
         recommendations = []
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         orphans = self._graph.get_orphans()
 
         # Orphaned pages recommendation
@@ -274,6 +276,7 @@ class GraphReporter:
 
         insights = []
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         analysis_pages = getattr(
             self._graph, "_analysis_pages_cache", self._graph.get_analysis_pages()
         )

@@ -15,6 +15,7 @@ Performance Impact (measured on 826-page site):
 from __future__ import annotations
 
 import threading
+from typing import Any
 
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from pygments.util import ClassNotFound
@@ -24,7 +25,7 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Thread-safe lexer cache
-_lexer_cache: dict[str, any] = {}
+_lexer_cache: dict[str, Any] = {}
 _cache_lock = threading.Lock()
 
 # Stats for monitoring
@@ -73,7 +74,7 @@ def _normalize_language(language: str) -> str:
     return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
 
 
-def get_lexer_cached(language: str | None = None, code: str = "") -> any:
+def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
     """
     Get a Pygments lexer with aggressive caching.
 

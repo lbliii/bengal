@@ -390,27 +390,27 @@ class MistuneParser(BaseMarkdownParser):
         # This enables directives (cards, etc.) to access page._section.subsections directly
         # Much cleaner than xref_index lookups!
         current_page = context.get("page") if "page" in context else None
-        self._shared_renderer._current_page = current_page
+        self._shared_renderer._current_page = current_page  # type: ignore[attr-defined]
 
         # Store site on renderer for directive access
         # This enables directives (glossary, data_table, etc.) to access site.data and site.root_path
         site = context.get("site")
-        self._shared_renderer._site = site
+        self._shared_renderer._site = site  # type: ignore[attr-defined]
 
         # Also store content-relative path for backward compatibility
         if current_page and hasattr(current_page, "source_path"):
             page_source = current_page.source_path
             source_str = str(page_source)
             if source_str.endswith("/_index.md"):
-                self._shared_renderer._current_page_dir = source_str[:-10]
+                self._shared_renderer._current_page_dir = source_str[:-10]  # type: ignore[attr-defined]
             elif source_str.endswith("/index.md"):
-                self._shared_renderer._current_page_dir = source_str[:-9]
+                self._shared_renderer._current_page_dir = source_str[:-9]  # type: ignore[attr-defined]
             elif "/" in source_str:
-                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]
+                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]  # type: ignore[attr-defined]
             else:
-                self._shared_renderer._current_page_dir = ""
+                self._shared_renderer._current_page_dir = ""  # type: ignore[attr-defined]
         else:
-            self._shared_renderer._current_page_dir = None
+            self._shared_renderer._current_page_dir = None  # type: ignore[attr-defined]
 
         try:
             # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
@@ -549,7 +549,7 @@ class MistuneParser(BaseMarkdownParser):
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
             # Update shared renderer (automatically available to all Markdown instances)
-            self._shared_renderer._xref_index = xref_index
+            self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
             return
 
         from bengal.rendering.plugins import CrossReferencePlugin
@@ -561,7 +561,7 @@ class MistuneParser(BaseMarkdownParser):
         # Store xref_index on shared renderer for directive access (e.g., cards :pull: option)
         # Because we use a shared renderer, this is automatically available to ALL
         # Markdown instances (self.md, self._md_with_vars, etc.)
-        self._shared_renderer._xref_index = xref_index
+        self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
 
     # =========================================================================
     # AST Support (Phase 3 of RFC)

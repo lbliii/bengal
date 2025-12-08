@@ -48,6 +48,15 @@ class ContentDiscoveryMixin:
     assets: list[Asset]
     theme: str | None
 
+    # Method stubs for type checking (provided by other mixins)
+    def register_sections(self) -> None:
+        """Register all sections in the section registry (from SectionRegistryMixin)."""
+        ...
+
+    def _get_theme_assets_chain(self) -> list[Path]:
+        """Get theme assets paths in inheritance order (from ThemeIntegrationMixin)."""
+        raise NotImplementedError("Implemented by ThemeIntegrationMixin")
+
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -250,9 +259,7 @@ class ContentDiscoveryMixin:
 
         if pages_without_section:
             # Log warning with samples (limit to 5 to avoid log spam)
-            sample_pages = [
-                (str(p.source_path), s.name) for p, s in pages_without_section[:5]
-            ]
+            sample_pages = [(str(p.source_path), s.name) for p, s in pages_without_section[:5]]
             logger.warning(
                 "pages_missing_section_reference",
                 count=len(pages_without_section),

@@ -5,9 +5,12 @@ Build statistics display with colorful output and ASCII art.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.cli_output import CLIOutput
+
+if TYPE_CHECKING:
+    from bengal.health.report import HealthReport
 
 
 @dataclass
@@ -85,6 +88,9 @@ class BuildStats:
     # Optional: builder-provided list of changed output paths (relative to output dir)
     # When provided, the dev server will prefer this over snapshot diffing for reload decisions.
     changed_outputs: list[str] | None = None
+
+    # Health check report (set after health checks run)
+    health_report: HealthReport | None = None
 
     # Warnings and errors
     warnings: list[Any] = field(default_factory=list)

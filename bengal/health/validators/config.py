@@ -48,7 +48,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_essential_fields(self, config: dict) -> list[CheckResult]:
+    def _check_essential_fields(self, config: dict[str, Any]) -> list[CheckResult]:
         """Check that essential config fields are present."""
         results = []
 
@@ -68,7 +68,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_common_issues(self, config: dict) -> list[CheckResult]:
+    def _check_common_issues(self, config: dict[str, Any]) -> list[CheckResult]:
         """Check for common configuration issues."""
         results = []
 

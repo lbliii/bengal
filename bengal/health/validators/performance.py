@@ -67,7 +67,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_build_time(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_build_time(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check if overall build time is reasonable."""
         results = []
 
@@ -104,7 +104,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_throughput(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_throughput(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check pages per second throughput."""
         results: list[CheckResult] = []
 
@@ -137,7 +137,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_slow_pages(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_slow_pages(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check for individual slow pages."""
         results: list[CheckResult] = []
 

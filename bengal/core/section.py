@@ -178,7 +178,7 @@ class Section:
     @property
     def title(self) -> str:
         """Get section title from metadata or generate from name."""
-        return self.metadata.get("title", self.name.replace("-", " ").title())
+        return str(self.metadata.get("title", self.name.replace("-", " ").title()))
 
     @cached_property
     def icon(self) -> str | None:
@@ -212,9 +212,10 @@ class Section:
             and hasattr(self.index_page, "metadata")
             and (icon_value := self.index_page.metadata.get("icon"))
         ):
-            return icon_value
+            return str(icon_value) if icon_value else None
         # Fall back to section metadata (in case copied during add_page)
-        return self.metadata.get("icon")
+        result = self.metadata.get("icon")
+        return str(result) if result else None
 
     @property
     def hierarchy(self) -> list[str]:

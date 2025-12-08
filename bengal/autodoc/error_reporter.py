@@ -41,7 +41,7 @@ class TemplateErrorReporter:
         self,
         template_name: str,
         error: Exception,
-        context: dict,
+        context: dict[str, Any],
         error_type: str = "unknown",
         used_fallback: bool = True,
     ) -> None:
@@ -87,7 +87,9 @@ class TemplateErrorReporter:
             fallback=used_fallback,
         )
 
-    def record_warning(self, template_name: str, message: str, context: dict | None = None) -> None:
+    def record_warning(
+        self, template_name: str, message: str, context: dict[str, Any] | None = None
+    ) -> None:
         """
         Record template rendering warning.
 

@@ -218,7 +218,7 @@ class DotDict:
                 result[key] = value
         return result
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert back to regular dict."""
         return dict(self._data)
 

@@ -112,7 +112,7 @@ class CrossReferencePlugin:
         if "[[" not in text:
             return text
 
-        def replace_xref(match: Match) -> str:
+        def replace_xref(match: Match[str]) -> str:
             ref = match.group(1).strip()
             text = match.group(2).strip() if match.group(2) else None
 

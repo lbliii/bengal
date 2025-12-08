@@ -49,7 +49,7 @@ class LinkValidator:
             site: Optional Site instance for URL resolution
         """
         self.validated_urls: set[str] = set()
-        self.broken_links: list[tuple] = []
+        self.broken_links: list[tuple[Path | None, str]] = []
         self._page_urls: set[str] | None = None
         self._site: Site | None = site
 
@@ -124,7 +124,7 @@ class LinkValidator:
 
         return broken
 
-    def validate_site(self, site: Any) -> list[tuple]:
+    def validate_site(self, site: Any) -> list[tuple[Path | None, str]]:
         """
         Validate all links in the entire site.
 

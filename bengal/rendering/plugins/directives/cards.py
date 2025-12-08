@@ -97,7 +97,7 @@ class CardsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["cards"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse cards directive.
 
@@ -215,7 +215,7 @@ class CardDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["card"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse card directive.
 
@@ -321,7 +321,7 @@ class GridDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["grid"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse grid directive (compatibility mode).
 
@@ -449,7 +449,7 @@ class GridItemCardDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["grid-item-card"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse grid-item-card directive (compatibility mode).
 
@@ -794,7 +794,9 @@ def _extract_page_fields(page: Any, fields: list[str]) -> dict[str, Any]:
     return result
 
 
-def _resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | None = None) -> Any:
+def _resolve_page(
+    xref_index: dict[str, Any], link: str, current_page_dir: str | None = None
+) -> Any:
     """
     Resolve a link to a page object via xref_index.
 
@@ -971,7 +973,7 @@ class ChildCardsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["child-cards"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse child-cards directive options."""
         options = dict(self.parse_options(m))
 
@@ -1142,7 +1144,7 @@ def render_child_cards(renderer: Any, text: str, **attrs: Any) -> str:
     return html
 
 
-def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
+def _render_child_card(child: dict[str, Any], fields: list[str], layout: str) -> str:
     """Render a single card for a child section/page."""
     title = child.get("title", "") if "title" in fields else ""
     description = child.get("description", "") if "description" in fields else ""

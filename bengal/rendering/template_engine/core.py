@@ -124,7 +124,7 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         self._asset_manifest_fallbacks: set[str] = set()
 
         # Menu dict cache
-        self._menu_dict_cache: dict[str, list[dict]] = {}
+        self._menu_dict_cache: dict[str, list[dict[str, Any]]] = {}
 
     def render(self, template_name: str, context: dict[str, Any]) -> str:
         """

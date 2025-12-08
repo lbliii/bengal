@@ -89,9 +89,9 @@ class TaxonomyValidator(BaseValidator):
         # Check for orphaned tag pages
         orphaned_pages = []
         for page in tag_pages:
-            tag_slug: str | None = page.metadata.get("_tag_slug")
-            if tag_slug and tag_slug not in tags:
-                orphaned_pages.append(tag_slug)
+            page_tag_slug: str | None = page.metadata.get("_tag_slug")
+            if page_tag_slug and page_tag_slug not in tags:
+                orphaned_pages.append(page_tag_slug)
 
         # Report results
         if missing_tags:

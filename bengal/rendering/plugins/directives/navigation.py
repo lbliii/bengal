@@ -71,7 +71,7 @@ class BreadcrumbsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["breadcrumbs"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse breadcrumbs directive options."""
         options = dict(self.parse_options(m))
 
@@ -187,7 +187,7 @@ class SiblingsDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["siblings"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse siblings directive options."""
         options = dict(self.parse_options(m))
 
@@ -309,7 +309,7 @@ class PrevNextDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["prev-next"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse prev-next directive options."""
         options = dict(self.parse_options(m))
 
@@ -413,7 +413,7 @@ class RelatedDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["related"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse related directive options."""
         options = dict(self.parse_options(m))
 

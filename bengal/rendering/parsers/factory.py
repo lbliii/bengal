@@ -5,8 +5,10 @@ Returns NativeHTMLParser, optimized for build-time validation and health checks.
 Replaced BeautifulSoup4 for performance (~5-10x faster for text extraction).
 """
 
-
 from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -31,7 +33,7 @@ class ParserFactory:
     """
 
     @staticmethod
-    def get_html_parser(backend: str | None = None) -> callable:
+    def get_html_parser(backend: str | None = None) -> Callable[..., Any]:
         """
         Get HTML parser for build-time validation and health checks.
 
@@ -56,7 +58,7 @@ class ParserFactory:
         return lambda content: NativeHTMLParser().feed(content)
 
     @staticmethod
-    def get_parser_features(backend: str) -> dict:
+    def get_parser_features(backend: str) -> dict[str, Any]:
         """
         Get features/capabilities for a backend.
 

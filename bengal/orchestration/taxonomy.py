@@ -369,7 +369,7 @@ class TaxonomyOrchestrator:
 
         # Handle categories (similar pattern if needed in future)
 
-    def generate_dynamic_pages_for_tags(self, affected_tags: set) -> None:
+    def generate_dynamic_pages_for_tags(self, affected_tags: set[str]) -> None:
         """
         Generate dynamic pages only for specific affected tags (incremental optimization).
 
@@ -381,7 +381,7 @@ class TaxonomyOrchestrator:
         self.generate_dynamic_pages_for_tags_with_cache(affected_tags, taxonomy_index=None)
 
     def generate_dynamic_pages_for_tags_with_cache(
-        self, affected_tags: set, taxonomy_index: TaxonomyIndex | None = None
+        self, affected_tags: set[str], taxonomy_index: TaxonomyIndex | None = None
     ) -> None:
         """
         Generate dynamic pages only for specific affected tags with TaxonomyIndex optimization (Phase 2c.2).
@@ -589,7 +589,7 @@ class TaxonomyOrchestrator:
                 total=generated_count,
             )
 
-    def _generate_tag_pages_sequential(self, locale_tags: dict, lang: str) -> int:
+    def _generate_tag_pages_sequential(self, locale_tags: dict[str, Any], lang: str) -> int:
         """
         Generate tag pages sequentially (original implementation).
 
@@ -612,7 +612,7 @@ class TaxonomyOrchestrator:
                 count += 1
         return count
 
-    def _generate_tag_pages_parallel(self, locale_tags: dict, lang: str) -> int:
+    def _generate_tag_pages_parallel(self, locale_tags: dict[str, Any], lang: str) -> int:
         """
         Generate tag pages in parallel using ThreadPoolExecutor.
 
@@ -814,7 +814,7 @@ class TaxonomyOrchestrator:
         self, tags: list[str], selective: bool = False, context: BuildContext | None = None
     ) -> list[Page]:
         if context:
-            self.threshold = context.get("threshold", 20)  # DI from context
+            self.threshold = getattr(context, "threshold", 20)  # DI from context
         if selective and len(tags) < self.threshold:
             return []  # Skip small
 

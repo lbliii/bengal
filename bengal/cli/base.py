@@ -127,7 +127,7 @@ class BengalCommand(click.Command):
                 cli.subheader("Arguments:", trailing_blank=False)
                 for param in arguments:
                     name = param.human_readable_name.upper()
-                    help_text = param.help or ""
+                    help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
                     if cli.use_rich:
                         cli.console.print(f"  [info]{name:<20}[/info] {help_text}")
                     else:
@@ -203,7 +203,7 @@ class BengalGroup(click.Group):
             cli.subheader("Options:", trailing_blank=False)
             for param in self.params:
                 opts = "/".join(param.opts)
-                help_text = param.help or ""
+                help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
                 cli.console.print(f"  [info]{opts:<20}[/info] {help_text}")
             cli.blank()
 
@@ -318,7 +318,12 @@ class BengalGroup(click.Group):
             # Convert aliases to canonical names
             matches = [get_canonical_name(m) for m in matches]
             # Remove duplicates while preserving order
-            seen = set()
-            matches = [m for m in matches if not (m in seen or seen.add(m))]
+            seen: set[str] = set()
+            unique_matches: list[str] = []
+            for m in matches:
+                if m not in seen:
+                    seen.add(m)
+                    unique_matches.append(m)
+            matches = unique_matches
 
         return matches[:max_suggestions]

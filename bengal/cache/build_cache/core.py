@@ -283,7 +283,7 @@ class BuildCache(
             return cls()
 
     @classmethod
-    def _load_data_auto(cls, cache_path: Path) -> dict | None:
+    def _load_data_auto(cls, cache_path: Path) -> dict[str, Any] | None:
         """
         Load raw data with auto-detection of format.
 
@@ -571,4 +571,3 @@ class BuildCache(
             f"deps={stats['dependencies']}, "
             f"taxonomies={stats['taxonomy_terms']})"
         )
-

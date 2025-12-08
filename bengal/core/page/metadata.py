@@ -32,13 +32,13 @@ class PageMetadataMixin:
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
     metadata: dict[str, Any]
-    source_path: "Path"
-    output_path: "Path | None"
+    source_path: Path
+    output_path: Path | None
     toc: str | None
-    core: "PageCore | None"
+    core: PageCore | None
     _site: Any
     _toc_items_cache: list[dict[str, Any]] | None
-    slug: str  # This is a property but we declare it for type checking
+    # slug is defined as a property below - no declaration needed here
 
     @property
     def title(self) -> str:
@@ -58,7 +58,7 @@ class PageMetadataMixin:
         """
         # Check metadata first (explicit titles always win)
         if "title" in self.metadata:
-            return self.metadata["title"]
+            return str(self.metadata["title"])
 
         # Special handling for index pages - use directory name instead of "Index"
         if self.source_path.stem in ("_index", "index"):
@@ -86,7 +86,7 @@ class PageMetadataMixin:
         """Get URL slug for the page."""
         # Check metadata first
         if "slug" in self.metadata:
-            return self.metadata["slug"]
+            return str(self.metadata["slug"])
 
         # Special handling for _index.md files
         if self.source_path.stem == "_index":
@@ -311,7 +311,9 @@ class PageMetadataMixin:
         Returns:
             Page type or None
         """
-        return self.core.type or self.metadata.get("type")
+        if self.core is not None and self.core.type:
+            return self.core.type
+        return self.metadata.get("type")
 
     @property
     def description(self) -> str:
@@ -321,7 +323,9 @@ class PageMetadataMixin:
         Returns:
             Page description or empty string
         """
-        return self.core.description or self.metadata.get("description", "")
+        if self.core is not None and self.core.description:
+            return self.core.description
+        return str(self.metadata.get("description", ""))
 
     @property
     def variant(self) -> str | None:
@@ -335,7 +339,7 @@ class PageMetadataMixin:
         Returns:
             Variant string or None
         """
-        if self.core.variant:
+        if self.core is not None and self.core.variant:
             return self.core.variant
 
         # Legacy fallbacks
@@ -361,7 +365,7 @@ class PageMetadataMixin:
         Returns:
             True if page is a draft
         """
-        return self.metadata.get("draft", False)
+        return bool(self.metadata.get("draft", False))
 
     @property
     def keywords(self) -> list[str]:
@@ -404,7 +408,7 @@ class PageMetadataMixin:
             ---
             ```
         """
-        return self.metadata.get("hidden", False)
+        return bool(self.metadata.get("hidden", False))
 
     @property
     def visibility(self) -> dict[str, Any]:
@@ -516,7 +520,7 @@ class PageMetadataMixin:
         Returns:
             Robots directive string (e.g., "index, follow" or "noindex, nofollow")
         """
-        return self.visibility["robots"]
+        return str(self.visibility["robots"])
 
     @property
     def should_render(self) -> bool:
@@ -529,7 +533,7 @@ class PageMetadataMixin:
         Returns:
             True if render is not "never"
         """
-        return self.visibility["render"] != "never"
+        return bool(self.visibility["render"] != "never")
 
     def should_render_in_environment(self, is_production: bool = False) -> bool:
         """

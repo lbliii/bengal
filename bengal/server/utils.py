@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from bengal.utils.logger import get_logger
 
@@ -33,7 +33,7 @@ def apply_dev_no_cache_headers(sender: HeaderSender) -> None:
         pass
 
 
-def get_dev_config(site_config: dict, *keys: str, default: object = None) -> object:
+def get_dev_config(site_config: dict[str, Any], *keys: str, default: object = None) -> object:
     """Safely access nested dev config: get_dev_config(cfg, 'watch', 'backend', default='auto')."""
     try:
         node = site_config.get("dev", {})
