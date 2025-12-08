@@ -233,7 +233,7 @@ class GoogleDocstringParser:
             name (type): description
             name: description
         """
-        args = {}
+        args: dict[str, str] = {}
         if not section:
             return args
 
@@ -271,7 +271,7 @@ class GoogleDocstringParser:
         Format:
             ExceptionType: description
         """
-        raises = []
+        raises: list[dict[str, str]] = []
         if not section:
             return raises
 
@@ -303,7 +303,7 @@ class GoogleDocstringParser:
 
     def _parse_examples_section(self, section: str) -> list[str]:
         """Extract code examples."""
-        examples = []
+        examples: list[str] = []
         if not section:
             return examples
 
@@ -343,7 +343,7 @@ class GoogleDocstringParser:
 
     def _parse_see_also_section(self, section: str) -> list[str]:
         """Extract cross-references."""
-        see_also = []
+        see_also: list[str] = []
         if not section:
             return see_also
 
@@ -357,7 +357,7 @@ class GoogleDocstringParser:
 
     def _parse_note_section(self, section: str) -> list[str]:
         """Extract notes or warnings."""
-        notes = []
+        notes: list[str] = []
         if not section:
             return notes
 
@@ -438,7 +438,7 @@ class NumpyDocstringParser:
         ]
 
         current_section = "description"
-        section_buffer = []
+        section_buffer: list[str] = []
         i = 0
 
         while i < len(lines):
@@ -475,13 +475,13 @@ class NumpyDocstringParser:
             name : type
                 description
         """
-        params = {}
+        params: dict[str, str] = {}
         if not section:
             return params
 
         lines = section.split("\n")
-        current_param = None
-        current_desc = []
+        current_param: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             # Check for parameter definition: "name : type"
@@ -511,8 +511,8 @@ class NumpyDocstringParser:
             return raises
 
         lines = section.split("\n")
-        current_exc = None
-        current_desc = []
+        current_exc: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             if not line.startswith(" ") and line.strip():
