@@ -116,10 +116,28 @@ class VirtualAutodocOrchestrator:
         # Add icon function from main template system
         env.globals["icon"] = icon
 
+        # Register essential template functions and filters
         # Register URL filters (absolute_url, url_encode, etc.)
         from bengal.rendering.template_functions.urls import register as register_urls
 
         register_urls(env, self.site)
+
+        # Register date filters (dateformat, date_iso, etc.)
+        from bengal.rendering.template_engine.url_helpers import filter_dateformat
+        from bengal.rendering.template_functions.dates import register as register_dates
+
+        register_dates(env, self.site)
+        env.filters["dateformat"] = filter_dateformat
+
+        # Register string filters (truncatewords, slugify, etc.)
+        from bengal.rendering.template_functions.strings import register as register_strings
+
+        register_strings(env, self.site)
+
+        # Register collection filters (selectattr, rejectattr, etc.)
+        from bengal.rendering.template_functions.collections import register as register_collections
+
+        register_collections(env, self.site)
 
         # Add custom tests for template filtering
         def test_match(value: str | None, pattern: str) -> bool:

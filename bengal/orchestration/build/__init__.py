@@ -350,14 +350,18 @@ class BuildOrchestrator:
         """Phase 3: Cache Discovery Metadata."""
         initialization.phase_cache_metadata(self)
 
-    def _phase_config_check(self, cli, cache, incremental: bool) -> tuple[bool, bool]:
+    def _phase_config_check(self, cli, cache, incremental: bool):
         """Phase 4: Config Check and Cleanup."""
+        from bengal.orchestration.build.results import ConfigCheckResult
+
         return initialization.phase_config_check(self, cli, cache, incremental)
 
     def _phase_incremental_filter(
         self, cli, cache, incremental: bool, verbose: bool, build_start: float
-    ) -> tuple[list, list, set, set, set | None] | None:
+    ):
         """Phase 5: Incremental Filtering."""
+        from bengal.orchestration.build.results import FilterResult
+
         return initialization.phase_incremental_filter(
             self, cli, cache, incremental, verbose, build_start
         )
