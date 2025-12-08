@@ -1,6 +1,15 @@
 ## Unreleased
 
-### Typed Autodoc Models ✅
+### Typed Metadata Access (Phase 6) ✅
+- **autodoc(utils)**: add 14 typed metadata access helpers with fallback (`get_python_class_bases`, `get_openapi_tags`, etc.)
+- **autodoc(virtual_orchestrator)**: migrate `.metadata.get()` calls to typed helpers for OpenAPI endpoints
+- **autodoc(extractors/python)**: use typed helpers for property detection and inheritance
+- **autodoc(extractors/openapi)**: use typed helpers for path/tag determination
+- **autodoc(README)**: document `typed_metadata` field and helper functions
+- **tests**: add 36 comprehensive tests for typed metadata access patterns
+- **docs**: RFC moved to completed
+
+### Typed Autodoc Models (Phase 1) ✅
 - **autodoc(models)**: create typed metadata dataclasses replacing untyped `metadata: dict[str, Any]`
 - **autodoc(models/common)**: add `SourceLocation` and `QualifiedName` with validation
 - **autodoc(models/python)**: add `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`, `PythonAttributeMetadata`, `PythonAliasMetadata`
