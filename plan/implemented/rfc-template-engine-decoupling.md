@@ -7,7 +7,8 @@ Title: Decouple TemplateEngine into Focused Package Structure
 Author: AI + Human reviewer
 Date: 2025-12-08
 Updated: 2025-12-08 (added codebase analysis findings)
-Status: Draft
+Implemented: 2025-12-08
+Status: Implemented
 Confidence: 95%
 ```
 
@@ -259,24 +260,24 @@ html = engine.render("page.html", context)
 # bengal/rendering/template_engine/core.py
 class TemplateEngine:
     """Facade coordinating template rendering components."""
-    
+
     def __init__(self, site: Any, profile_templates: bool = False):
         self.site = site
         self._profile_templates = profile_templates
-        
+
         # Compose helpers
         self._env_factory = EnvironmentFactory(site)
         self._asset_resolver = AssetURLResolver(site)
         self._menu_provider = MenuProvider(site)
         self._manifest_loader = ManifestLoader(site.output_dir)
-        
+
         # Create environment
         self.env = self._env_factory.create()
         self.template_dirs = self._env_factory.template_dirs
-        
+
         # Register globals
         self._register_globals()
-    
+
     def render(self, template_name: str, context: dict) -> str:
         """Render template (unchanged signature)."""
         # ... delegation to env.get_template().render()
@@ -339,10 +340,10 @@ class TestAssetURLResolver:
         """Test asset URL resolution when manifest exists."""
         resolver = AssetURLResolver(mock_site)
         resolver._manifest_loader = MockManifestLoader({"css/style.css": ...})
-        
+
         url = resolver.resolve("css/style.css")
         assert url == "/assets/css/style.abc123.css"
-    
+
     def test_file_protocol_relative_paths(self):
         """Test relative path computation for file:// baseurl."""
         ...
@@ -413,9 +414,9 @@ class TestMenuProvider:
 - Document any gaps between existing modules and inline implementations
 
 **Phase 2: Consolidate Duplicates** (1-2 hours)
-- Delete duplicate `_resolve_theme_chain()` from `template_engine.py` 
+- Delete duplicate `_resolve_theme_chain()` from `template_engine.py`
 - Delete duplicate `_read_theme_extends()` from `template_engine.py`
-- Wire TemplateEngine to use `environment.create_jinja_environment()` 
+- Wire TemplateEngine to use `environment.create_jinja_environment()`
 - Wire TemplateEngine to inherit or compose `AssetURLMixin` from `asset_url.py`
 - Remove pass-through wrappers for url_for/with_baseurl
 
@@ -441,7 +442,7 @@ class TestMenuProvider:
 
 - **Feature flag**: No (internal refactoring)
 - **Beta period**: N/A
-- **Documentation updates**: 
+- **Documentation updates**:
   - Update architecture docs if they reference template_engine.py
   - No user-facing documentation changes needed
 
@@ -467,7 +468,7 @@ class TestMenuProvider:
   - **Recommendation**: Yes, delete duplicates in `template_engine.py`, use extracted modules. This RFC should document migrating to existing modules, not creating new ones.
 
 - [ ] **Q5**: How should `file://` protocol handling be consolidated?
-  - **Context**: Same relative path calculation appears 6× in `_asset_url()` 
+  - **Context**: Same relative path calculation appears 6× in `_asset_url()`
   - **Pattern detected**:
     ```python
     # Repeated at lines 564-576, 599-617, 635-656, 675-698, 706-727
@@ -638,4 +639,3 @@ bengal/rendering/template_engine/
 | `template_engine/menu.py` | N/A | 80 lines | NEW - extract from main |
 | `template_engine/manifest.py` | N/A | 100 lines | NEW - extract from main |
 | `template_engine/url_helpers.py` | 95 lines | 80 lines | KEEP - remove wrappers in main |
-

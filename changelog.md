@@ -1,5 +1,16 @@
 ## Unreleased
 
+### TemplateEngine Package Decoupling ✅
+- **rendering(template_engine)**: decouple 861-line monolithic `template_engine.py` into focused package structure
+- **rendering(template_engine/core)**: create thin facade class composing `MenuHelpersMixin`, `ManifestHelpersMixin`, `AssetURLMixin`
+- **rendering(template_engine/environment)**: extract `create_jinja_environment()`, `resolve_theme_chain()`, `read_theme_extends()`
+- **rendering(template_engine/asset_url)**: consolidate asset URL generation with `file://` protocol support
+- **rendering(template_engine/menu)**: extract menu caching helpers
+- **rendering(template_engine/manifest)**: extract asset manifest loading/caching
+- **rendering(template_engine/url_helpers)**: URL generation utilities (`url_for`, `with_baseurl`, `filter_dateformat`)
+- **docs**: update docstring references in `template_profiler.py` and `template_functions.py`
+- **docs**: RFC moved to implemented
+
 ### Virtual Section Page Reference Fix ✅
 - **core(page)**: fix critical bug where virtual pages had flat navigation instead of hierarchical
 - **core(page)**: add `_section_url` field for URL-based section lookups (virtual sections have `path=None`)
