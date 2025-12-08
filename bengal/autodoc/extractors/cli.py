@@ -194,11 +194,17 @@ class CLIExtractor(Extractor):
 
         # Build children (subcommands)
         children = []
+        seen_command_ids: set[int] = set()
         if isinstance(group, click.Group):
             for _cmd_name, cmd in sorted(group.commands.items()):
                 # Skip hidden commands unless requested
                 if hasattr(cmd, "hidden") and cmd.hidden and not self.include_hidden:
                     continue
+
+                cmd_identity = id(cmd)
+                if cmd_identity in seen_command_ids:
+                    continue
+                seen_command_ids.add(cmd_identity)
 
                 if isinstance(cmd, click.Group):
                     # Nested command group

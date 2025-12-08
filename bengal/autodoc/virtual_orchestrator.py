@@ -10,6 +10,7 @@ This is the new architecture that replaces markdown-based autodoc generation.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,6 +27,40 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class AutodocRunResult:
+    """
+    Summary of an autodoc generation run.
+
+    Tracks successes, failures, and warnings for observability and strict mode enforcement.
+    """
+
+    extracted: int = 0
+    """Number of elements successfully extracted."""
+    rendered: int = 0
+    """Number of pages successfully rendered."""
+    failed_extract: int = 0
+    """Number of extraction failures."""
+    failed_render: int = 0
+    """Number of rendering failures."""
+    warnings: int = 0
+    """Number of warnings emitted."""
+    failed_extract_identifiers: list[str] = field(default_factory=list)
+    """Qualified names of elements that failed extraction."""
+    failed_render_identifiers: list[str] = field(default_factory=list)
+    """Qualified names of elements that failed rendering."""
+    fallback_pages: list[str] = field(default_factory=list)
+    """URL paths of pages rendered via fallback template."""
+
+    def has_failures(self) -> bool:
+        """Check if any failures occurred."""
+        return self.failed_extract > 0 or self.failed_render > 0
+
+    def has_warnings(self) -> bool:
+        """Check if any warnings occurred."""
+        return self.warnings > 0
 
 
 class _PageContext:
@@ -348,19 +383,23 @@ class VirtualAutodocOrchestrator:
 
         return bool(python_enabled or cli_enabled or openapi_enabled)
 
-    def generate(self) -> tuple[list[Page], list[Section]]:
+    def generate(self) -> tuple[list[Page], list[Section], AutodocRunResult]:
         """
         Generate documentation as virtual pages and sections for all enabled types.
 
         Returns:
-            Tuple of (pages, sections) to add to site
+            Tuple of (pages, sections, result) to add to site
 
         Raises:
             ValueError: If autodoc configuration is invalid
+            RuntimeError: If strict mode is enabled and failures occurred
         """
+        result = AutodocRunResult()
+        strict_mode = self.config.get("strict", False)
+
         if not self.is_enabled():
             logger.debug("virtual_autodoc_disabled")
-            return [], []
+            return [], [], result
 
         all_elements: list[DocElement] = []
         all_sections: dict[str, Section] = {}
@@ -371,26 +410,56 @@ class VirtualAutodocOrchestrator:
         if self.python_config.get("virtual_pages", True) and self.python_config.get(
             "enabled", True
         ):
-            python_elements = self._extract_python()
-            if python_elements:
-                all_elements.extend(python_elements)
-                python_sections = self._create_python_sections(python_elements)
-                all_sections.update(python_sections)
-                python_pages = self._create_pages(
-                    python_elements, python_sections, doc_type="python"
+            try:
+                python_elements = self._extract_python()
+                if python_elements:
+                    all_elements.extend(python_elements)
+                    result.extracted += len(python_elements)
+                    python_sections = self._create_python_sections(python_elements)
+                    all_sections.update(python_sections)
+                    python_pages, page_result = self._create_pages(
+                        python_elements, python_sections, doc_type="python", result=result
+                    )
+                    all_pages.extend(python_pages)
+                    result.rendered += len(python_pages)
+            except Exception as e:
+                result.failed_extract += 1
+                result.failed_extract_identifiers.append("python")
+                result.warnings += 1
+                logger.warning(
+                    "autodoc_python_extraction_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
                 )
-                all_pages.extend(python_pages)
+                if strict_mode:
+                    raise RuntimeError(f"Python extraction failed in strict mode: {e}") from e
 
         # 2. Extract CLI documentation
         # Virtual pages are now the default (and only) option
         if self.cli_config.get("virtual_pages", True) and self.cli_config.get("enabled", True):
-            cli_elements = self._extract_cli()
-            if cli_elements:
-                all_elements.extend(cli_elements)
-                cli_sections = self._create_cli_sections(cli_elements)
-                all_sections.update(cli_sections)
-                cli_pages = self._create_pages(cli_elements, cli_sections, doc_type="cli")
-                all_pages.extend(cli_pages)
+            try:
+                cli_elements = self._extract_cli()
+                if cli_elements:
+                    all_elements.extend(cli_elements)
+                    result.extracted += len(cli_elements)
+                    cli_sections = self._create_cli_sections(cli_elements)
+                    all_sections.update(cli_sections)
+                    cli_pages, _ = self._create_pages(
+                        cli_elements, cli_sections, doc_type="cli", result=result
+                    )
+                    all_pages.extend(cli_pages)
+                    result.rendered += len(cli_pages)
+            except Exception as e:
+                result.failed_extract += 1
+                result.failed_extract_identifiers.append("cli")
+                result.warnings += 1
+                logger.warning(
+                    "autodoc_cli_extraction_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                if strict_mode:
+                    raise RuntimeError(f"CLI extraction failed in strict mode: {e}") from e
 
         # 3. Extract OpenAPI documentation
         # Pass existing sections so OpenAPI can reuse "api" section if Python already created it
@@ -398,28 +467,58 @@ class VirtualAutodocOrchestrator:
         if self.openapi_config.get("virtual_pages", True) and self.openapi_config.get(
             "enabled", True
         ):
-            openapi_elements = self._extract_openapi()
-            if openapi_elements:
-                all_elements.extend(openapi_elements)
-                openapi_sections = self._create_openapi_sections(openapi_elements, all_sections)
-                all_sections.update(openapi_sections)
-                openapi_pages = self._create_pages(
-                    openapi_elements, openapi_sections, doc_type="openapi"
+            try:
+                openapi_elements = self._extract_openapi()
+                if openapi_elements:
+                    all_elements.extend(openapi_elements)
+                    result.extracted += len(openapi_elements)
+                    openapi_sections = self._create_openapi_sections(openapi_elements, all_sections)
+                    all_sections.update(openapi_sections)
+                    openapi_pages, _ = self._create_pages(
+                        openapi_elements, openapi_sections, doc_type="openapi", result=result
+                    )
+                    all_pages.extend(openapi_pages)
+                    result.rendered += len(openapi_pages)
+            except Exception as e:
+                result.failed_extract += 1
+                result.failed_extract_identifiers.append("openapi")
+                result.warnings += 1
+                logger.warning(
+                    "autodoc_openapi_extraction_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
                 )
-                all_pages.extend(openapi_pages)
+                if strict_mode:
+                    raise RuntimeError(f"OpenAPI extraction failed in strict mode: {e}") from e
 
         if not all_elements:
             logger.info("autodoc_no_elements_found")
-            return [], []
+            if strict_mode and result.failed_extract > 0:
+                raise RuntimeError(
+                    f"Autodoc strict mode: {result.failed_extract} extraction failures, "
+                    f"no elements produced"
+                )
+            return [], [], result
 
         # 4. Create index pages for all sections
         index_pages = self._create_index_pages(all_sections)
         all_pages.extend(index_pages)
 
+        # Check strict mode after all processing
+        if strict_mode and result.has_failures():
+            raise RuntimeError(
+                f"Autodoc strict mode: {result.failed_extract} extraction failures, "
+                f"{result.failed_render} rendering failures"
+            )
+
         logger.info(
             "virtual_autodoc_complete",
             pages=len(all_pages),
             sections=len(all_sections),
+            extracted=result.extracted,
+            rendered=result.rendered,
+            failed_extract=result.failed_extract,
+            failed_render=result.failed_render,
         )
 
         # Return root-level sections only (e.g., "api", "cli")
@@ -432,7 +531,7 @@ class VirtualAutodocOrchestrator:
             names=[s.name for s in root_sections],
         )
 
-        return all_pages, root_sections
+        return all_pages, root_sections, result
 
     def _create_python_sections(self, elements: list[DocElement]) -> dict[str, Section]:
         """
@@ -668,7 +767,8 @@ class VirtualAutodocOrchestrator:
         elements: list[DocElement],
         sections: dict[str, Section],
         doc_type: str = "python",
-    ) -> list[Page]:
+        result: AutodocRunResult | None = None,
+    ) -> tuple[list[Page], AutodocRunResult]:
         """
         Create virtual pages for documentation elements.
 
@@ -680,12 +780,16 @@ class VirtualAutodocOrchestrator:
             elements: DocElements to create pages for
             sections: Section hierarchy for page placement
             doc_type: Type of documentation ("python", "cli", "openapi")
+            result: AutodocRunResult to track failures and warnings
 
         Returns:
-            List of virtual Page objects
+            Tuple of (list of virtual Page objects, updated result)
         """
+        if result is None:
+            result = AutodocRunResult()
+
         # First pass: Create pages without HTML and add to sections
-        page_data: list[tuple[Page, DocElement, Section, str, str, str]] = []
+        page_data: list[Page] = []
 
         for element in elements:
             # Determine which elements get pages based on type
@@ -775,7 +879,7 @@ class VirtualAutodocOrchestrator:
         # See: RenderingPipeline._process_virtual_page() and _render_autodoc_page()
         logger.debug("autodoc_pages_created", count=len(page_data), type=doc_type)
 
-        return page_data
+        return page_data, result
 
     def _find_parent_section(
         self, element: DocElement, sections: dict[str, Section], doc_type: str
@@ -983,6 +1087,7 @@ class VirtualAutodocOrchestrator:
                     fallback_error=self._relativize_paths(str(fallback_error)),
                 )
                 # Return minimal fallback HTML
+                # Note: In deferred rendering path, fallback tagging happens in RenderingPipeline
                 return self._render_fallback(element)
 
     def _render_fallback(self, element: DocElement) -> str:

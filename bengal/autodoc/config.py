@@ -29,6 +29,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     # Default configuration (all disabled by default - opt-in via config)
     default_config = {
+        "strict": False,  # Strict mode: raise on extraction/render failures
         "python": {
             "enabled": False,  # Disabled by default - enable in config
             "source_dirs": ["."],

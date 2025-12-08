@@ -190,15 +190,71 @@ class ContentOrchestrator:
                 self.logger.debug("virtual_autodoc_not_enabled")
                 return [], []
 
-            pages, sections = orchestrator.generate()
+            # Tolerate both 2-tuple (legacy) and 3-tuple (new) return values
+            result = orchestrator.generate()
+            if len(result) == 3:
+                pages, sections, run_result = result
+                # Log summary if there were failures or warnings
+                if run_result.has_failures() or run_result.has_warnings():
+                    self._log_autodoc_summary(run_result)
+            else:
+                # Legacy 2-tuple return
+                pages, sections = result
+                run_result = None
+
             return pages, sections
 
         except ImportError as e:
             self.logger.debug("autodoc_import_failed", error=str(e))
             return [], []
-        except Exception as e:
-            self.logger.warning("autodoc_generation_failed", error=str(e))
-            return [], []
+        # Note: Other exceptions (e.g., RuntimeError from strict mode) propagate
+        # to allow strict mode enforcement. Non-strict failures are logged in summary.
+
+    def _log_autodoc_summary(self, result: Any) -> None:
+        """
+        Log a summary of autodoc run results.
+
+        Args:
+            result: AutodocRunResult with counts and failure details
+        """
+        if not result.has_failures() and not result.has_warnings():
+            return
+
+        # Build summary message
+        parts = []
+        if result.extracted > 0:
+            parts.append(f"{result.extracted} extracted")
+        if result.rendered > 0:
+            parts.append(f"{result.rendered} rendered")
+        if result.failed_extract > 0:
+            parts.append(f"{result.failed_extract} extraction failures")
+        if result.failed_render > 0:
+            parts.append(f"{result.failed_render} rendering failures")
+        if result.warnings > 0:
+            parts.append(f"{result.warnings} warnings")
+
+        summary = ", ".join(parts)
+
+        # Include sample failures if any
+        failure_details = []
+        if result.failed_extract_identifiers:
+            sample = result.failed_extract_identifiers[:5]
+            failure_details.append(f"Failed extractions: {', '.join(sample)}")
+        if result.failed_render_identifiers:
+            sample = result.failed_render_identifiers[:5]
+            failure_details.append(f"Failed renders: {', '.join(sample)}")
+        if result.fallback_pages:
+            sample = result.fallback_pages[:5]
+            failure_details.append(f"Fallback pages: {', '.join(sample)}")
+
+        if failure_details:
+            summary += f" ({'; '.join(failure_details)})"
+
+        # Log at warning level if failures, info if only warnings
+        if result.has_failures():
+            self.logger.warning("autodoc_run_summary", summary=summary)
+        else:
+            self.logger.info("autodoc_run_summary", summary=summary)
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """

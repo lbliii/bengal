@@ -571,6 +571,9 @@ class RenderingPipeline:
                     template=template_name,
                     error=str(e),
                 )
+                # Tag page metadata to indicate fallback was used
+                page.metadata["_autodoc_fallback_template"] = True
+                page.metadata["_autodoc_fallback_reason"] = str(e)
                 # Fall back to rendering as regular virtual page
                 page._prerendered_html = f"<h1>{page.title}</h1><p>{element.description}</p>"
                 page.parsed_ast = page._prerendered_html
