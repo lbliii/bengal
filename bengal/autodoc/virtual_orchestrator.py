@@ -67,6 +67,8 @@ class VirtualAutodocOrchestrator:
 
     def _create_template_environment(self) -> Environment:
         """Create Jinja2 environment for HTML templates."""
+        import re
+
         # Template directories in priority order
         template_dirs = []
 
@@ -93,12 +95,43 @@ class VirtualAutodocOrchestrator:
             # Use a minimal fallback
             return Environment(autoescape=select_autoescape())
 
-        return Environment(
+        env = Environment(
             loader=FileSystemLoader(template_dirs),
             autoescape=select_autoescape(["html", "htm", "xml"]),
             trim_blocks=True,
             lstrip_blocks=True,
         )
+
+        # Add custom tests for template filtering
+        def test_match(value: str | None, pattern: str) -> bool:
+            """Test if value matches a regex pattern."""
+            if value is None:
+                return False
+            return bool(re.search(pattern, str(value)))
+
+        env.tests["match"] = test_match
+
+        # Add custom filters for description extraction
+        def filter_first_sentence(text: str | None, max_length: int = 120) -> str:
+            """Extract first sentence or truncate description."""
+            if not text:
+                return ""
+            text = text.strip()
+            # Try to get first sentence
+            for end in [". ", ".\n", "!\n", "?\n"]:
+                if end in text:
+                    first = text.split(end)[0] + end[0]
+                    if len(first) <= max_length:
+                        return first
+                    break
+            # Truncate if too long
+            if len(text) > max_length:
+                return text[: max_length - 3].rsplit(" ", 1)[0] + "..."
+            return text
+
+        env.filters["first_sentence"] = filter_first_sentence
+
+        return env
 
     def _get_theme_templates_dir(self) -> Path | None:
         """Get theme templates directory if available."""
@@ -212,6 +245,14 @@ class VirtualAutodocOrchestrator:
         """
         sections: dict[str, Section] = {}
 
+        # Build lookup of package descriptions from __init__.py modules
+        # Key: qualified_name (e.g., "bengal.core"), Value: description
+        package_descriptions: dict[str, str] = {}
+        for element in elements:
+            if element.element_type == "module" and element.description:
+                # This module's description can describe its package
+                package_descriptions[element.qualified_name] = element.description
+
         # Create root API section
         api_section = Section.create_virtual(
             name="api",
@@ -221,6 +262,7 @@ class VirtualAutodocOrchestrator:
                 "type": "api-reference",
                 "weight": 100,
                 "icon": "book",
+                "description": "Browse Bengal's Python API documentation by package.",
             },
         )
         sections["api"] = api_section
@@ -243,13 +285,19 @@ class VirtualAutodocOrchestrator:
                 if section_path not in sections:
                     # Create new package section
                     relative_url = f"/{section_path}/"
+                    qualified_name = ".".join(parts[: i + 1])
+                    
+                    # Try to find description from the package's __init__.py
+                    description = package_descriptions.get(qualified_name, "")
+                    
                     package_section = Section.create_virtual(
                         name=part,
                         relative_url=relative_url,
                         title=part.replace("_", " ").title(),
                         metadata={
                             "type": "api-reference",
-                            "qualified_name": ".".join(parts[: i + 1]),
+                            "qualified_name": qualified_name,
+                            "description": description,
                         },
                     )
                     current_section.add_subsection(package_section)
@@ -485,24 +533,86 @@ class VirtualAutodocOrchestrator:
                 config=self.config,
                 site=self.site,
             )
-        except Exception:
-            # Fallback rendering
-            subsections_html = "\n".join(
-                f'<li><a href="{s.relative_url}">{s.title}</a></li>'
-                for s in section.sorted_subsections
+        except Exception as e:
+            # Log the actual error for debugging
+            logger.warning(
+                "autodoc_template_fallback",
+                template="section-index.html",
+                section=section.name,
+                error=str(e),
             )
-            pages_html = "\n".join(
-                f'<li><a href="{p.relative_url}">{p.title}</a></li>'
-                for p in section.sorted_pages
-                if p != section.index_page
-            )
+            # Fallback rendering with cards
+            return self._render_section_index_fallback(section)
 
-            return f"""
-<div class="api-section-index">
-    <h1>{section.title}</h1>
+    def _render_section_index_fallback(self, section: Section) -> str:
+        """Fallback card-based rendering when template fails."""
+        subsections_cards = []
+        for s in section.sorted_subsections:
+            desc = s.metadata.get("description", "")
+            if desc:
+                desc_preview = desc[:80] + "..." if len(desc) > 80 else desc
+            else:
+                desc_preview = ""
+            child_count = len(s.subsections) + len(s.pages)
+            subsections_cards.append(f'''
+      <a href="{s.relative_url}" class="api-package-card">
+        <span class="api-package-card__icon">📦</span>
+        <span class="api-package-card__name">{s.name}</span>
+        {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ''}
+        <span class="api-package-card__meta">{child_count} item{"s" if child_count != 1 else ""}</span>
+      </a>''')
 
-    {'<h2>Packages</h2><ul>' + subsections_html + '</ul>' if section.subsections else ''}
-    {'<h2>Modules</h2><ul>' + pages_html + '</ul>' if section.pages else ''}
+        module_cards = []
+        for p in section.sorted_pages:
+            if p == section.index_page:
+                continue
+            desc = p.metadata.get("description", "")
+            if desc:
+                desc_preview = desc[:80] + "..." if len(desc) > 80 else desc
+            else:
+                desc_preview = ""
+            element_type = p.metadata.get("element_type", "")
+            module_cards.append(f'''
+      <a href="{p.relative_url}" class="api-module-card">
+        <span class="api-module-card__icon">📄</span>
+        <span class="api-module-card__name">{p.title}</span>
+        {f'<span class="api-module-card__description">{desc_preview}</span>' if desc_preview else ''}
+        {f'<span class="api-module-card__badges"><span class="api-badge--mini">{element_type}</span></span>' if element_type else ''}
+      </a>''')
+
+        subsections_section = ""
+        if subsections_cards:
+            subsections_section = f'''
+  <section class="api-section api-section--packages">
+    <h2 class="api-section__title">Packages</h2>
+    <div class="api-grid api-grid--packages">
+      {"".join(subsections_cards)}
+    </div>
+  </section>'''
+
+        modules_section = ""
+        if module_cards:
+            modules_section = f'''
+  <section class="api-section api-section--modules">
+    <h2 class="api-section__title">Modules</h2>
+    <div class="api-grid api-grid--modules">
+      {"".join(module_cards)}
+    </div>
+  </section>'''
+
+        desc_html = ""
+        section_desc = section.metadata.get("description", "")
+        if section_desc:
+            desc_html = f'<p class="api-section-header__description">{section_desc}</p>'
+
+        return f'''
+<div class="api-explorer api-explorer--index">
+  <header class="api-section-header">
+    <h1 class="api-section-header__title">{section.title}</h1>
+    {desc_html}
+  </header>
+  {subsections_section}
+  {modules_section}
 </div>
-"""
+'''
 
