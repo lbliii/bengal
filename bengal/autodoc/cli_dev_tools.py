@@ -37,7 +37,9 @@ logger = get_logger(__name__)
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
-def template_dev(ctx: click.Context, template_dir: tuple[Path], config: Path | None, verbose: bool):
+def template_dev(
+    ctx: click.Context, template_dir: tuple[Path], config: Path | None, verbose: bool
+) -> None:
     """Template development and validation tools."""
     ctx.ensure_object(dict)
 
@@ -101,7 +103,7 @@ def template_dev(ctx: click.Context, template_dir: tuple[Path], config: Path | N
     "--output", "-o", type=click.Path(path_type=Path), help="Output file for validation report"
 )
 @click.pass_context
-def validate(ctx: click.Context, template_name: str, output: Path | None):
+def validate(ctx: click.Context, template_name: str, output: Path | None) -> None:
     """Validate template syntax and structure."""
     validator = ctx.obj["validator"]
 
@@ -152,7 +154,7 @@ def debug(
     element_type: str,
     output: Path | None,
     show_content: bool,
-):
+) -> None:
     """Debug template rendering with sample data."""
     dev_tools = ctx.obj["dev_tools"]
     config = ctx.obj["config"]
@@ -242,7 +244,7 @@ def debug(
 @click.pass_context
 def profile(
     ctx: click.Context, template_name: str, iterations: int, element_type: str, output: Path | None
-):
+) -> None:
     """Profile template rendering performance."""
     dev_tools = ctx.obj["dev_tools"]
     renderer = ctx.obj["renderer"]
@@ -316,7 +318,9 @@ def profile(
     help="Output format",
 )
 @click.pass_context
-def generate_sample(ctx: click.Context, element_type: str, output: Path | None, output_format: str):
+def generate_sample(
+    ctx: click.Context, element_type: str, output: Path | None, output_format: str
+) -> None:
     """Generate sample data for template testing."""
     dev_tools = ctx.obj["dev_tools"]
     sample_generator = dev_tools["sample_generator"]
@@ -363,7 +367,7 @@ def generate_sample(ctx: click.Context, element_type: str, output: Path | None, 
 @click.option("--check-interval", default=1.0, help="Check interval in seconds")
 @click.option("--command", help="Command to run when templates change")
 @click.pass_context
-def watch(ctx: click.Context, check_interval: float, command: str | None):
+def watch(ctx: click.Context, check_interval: float, command: str | None) -> None:
     """Watch templates for changes and trigger reloads."""
     dev_tools = ctx.obj["dev_tools"]
     template_dirs = ctx.obj["template_dirs"]
@@ -377,7 +381,7 @@ def watch(ctx: click.Context, check_interval: float, command: str | None):
     if command:
         click.echo(f"🚀 Will run command on changes: {command}")
 
-        def run_command(changed_files):
+        def run_command(changed_files: list[str]) -> None:
             import subprocess
 
             click.echo(f"🔄 Running command due to changes in: {changed_files}")
@@ -415,7 +419,7 @@ def watch(ctx: click.Context, check_interval: float, command: str | None):
 
 @template_dev.command()
 @click.pass_context
-def list_templates(ctx: click.Context):
+def list_templates(ctx: click.Context) -> None:
     """List all available templates."""
     template_dirs = ctx.obj["template_dirs"]
 
