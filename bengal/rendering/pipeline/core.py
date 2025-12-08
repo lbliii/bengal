@@ -583,6 +583,7 @@ class RenderingPipeline:
         html_content = template.render(
             element=element,
             page=page,
+            section=page.section,  # Pass section explicitly for section index pages
             site=self.site,
             config=self.site.config,
         )

@@ -1020,11 +1020,6 @@ class VirtualAutodocOrchestrator:
             if section.index_page is not None:
                 continue
 
-            # Create index page for this section
-            html_content = self._render_section_index(section)
-
-            # Use non-index filename to avoid triggering index page detection
-            # in add_page (we set index_page directly below)
             # output_path must be absolute for correct URL generation
             output_path = self.site.output_dir / f"{section_path}/index.html"
 
@@ -1032,14 +1027,21 @@ class VirtualAutodocOrchestrator:
             section_type = section.metadata.get("type", "api-reference")
             template_name = f"{section_type}/section-index"
 
+            # Create page with deferred rendering - HTML rendered in rendering phase
+            # We pass the section as 'autodoc_element' so RenderingPipeline can pass it to template
             index_page = Page.create_virtual(
                 source_id=f"__virtual__/{section_path}/section-index.md",
                 title=section.title,
                 metadata={
                     "type": section_type,
                     "is_section_index": True,
+                    "description": section.metadata.get("description", ""),
+                    # Autodoc deferred rendering metadata
+                    "is_autodoc": True,
+                    "autodoc_element": section,
+                    "_autodoc_template": template_name,
                 },
-                rendered_html=html_content,
+                rendered_html=None,  # Deferred - rendered in rendering phase with full context
                 template_name=template_name,
                 output_path=output_path,
             )
