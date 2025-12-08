@@ -24,9 +24,10 @@ from __future__ import annotations
 import click
 
 from bengal.cli.base import BengalGroup
+from bengal.utils.text import slugify
 
 from .scaffolds import layout_command, page_command, partial_command, theme_command
-from .site import create_site, site_command, slugify
+from .site import create_site, site_command
 
 __all__ = [
     "new",
@@ -61,4 +62,3 @@ new.add_command(page_command, name="page")
 new.add_command(layout_command, name="layout")
 new.add_command(partial_command, name="partial")
 new.add_command(theme_command, name="theme")
-
