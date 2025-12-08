@@ -154,6 +154,9 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
 
+        # Invalidate menu cache to ensure fresh active states for this page
+        self.invalidate_menu_cache()
+
         try:
             template = self.env.get_template(template_name)
 
@@ -203,6 +206,9 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         """
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
+
+        # Invalidate menu cache
+        self.invalidate_menu_cache()
 
         template = self.env.from_string(template_string)
         return template.render(**context)
