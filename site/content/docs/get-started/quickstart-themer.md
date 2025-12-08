@@ -27,9 +27,10 @@ Learn to customize Bengal themes and create your own designs.
 
 Bengal looks for templates in this order:
 
-1. **Your project** — `themes/your-theme/templates/`
-2. **Installed themes** — Via pip/uv
-3. **Default theme** — Built into Bengal
+1. **Your project** — `templates/` (overrides everything)
+2. **Your theme** — `themes/your-theme/templates/`
+3. **Installed themes** — Via pip/uv
+4. **Default theme** — Built into Bengal
 
 You only need to override what you want to change.
 
@@ -72,7 +73,8 @@ You don't need to copy all templates. Extend the default:
 
 ```html
 {# themes/my-theme/templates/base.html #}
-{% extends "default::base.html" %}
+{# Extend the base template if you want to reuse structure #}
+{% extends "base.html" %}
 
 {% block header %}
 <header class="custom-header">
@@ -84,7 +86,7 @@ You don't need to copy all templates. Extend the default:
 {% endblock %}
 ```
 
-Everything not overridden inherits from the default theme.
+Everything not overridden inherits from the default theme (or parent theme).
 
 ## Add Custom CSS
 
@@ -143,5 +145,3 @@ bengal utils theme info default
 - **[Template Functions](/docs/theming/templating/functions/)** — Available filters
 - **[Variables Reference](/docs/theming/variables/)** — All template variables
 - **[Assets](/docs/theming/assets/)** — CSS, JS, and image handling
-
-

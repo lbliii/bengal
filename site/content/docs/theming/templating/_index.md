@@ -15,9 +15,9 @@ Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for all templates. If y
 
 ```mermaid
 flowchart LR
-    A[Page Request] --> B{layouts/ ?}
+    A[Page Request] --> B{templates/ ?}
     B -->|Found| C[Use Your Template]
-    B -->|Not Found| D{Theme layouts/ ?}
+    B -->|Not Found| D{Theme templates/ ?}
     D -->|Found| E[Use Theme Template]
     D -->|Not Found| F[Use Bengal Default]
 ```
@@ -29,7 +29,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 ::::{tab-set}
 :::{tab-item} Basic Template
 ```jinja
-{# layouts/single.html #}
+{# templates/layouts/single.html #}
 {% extends "baseof.html" %}
 
 {% block content %}
@@ -43,7 +43,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
 :::{tab-item} Base Layout
 ```jinja
-{# layouts/baseof.html #}
+{# templates/baseof.html #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -60,7 +60,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
 :::{tab-item} Partial
 ```jinja
-{# layouts/partials/header.html #}
+{# templates/partials/header.html #}
 <header>
   <nav>
     {% for item in site.menus.main %}
@@ -90,7 +90,7 @@ flowchart TB
     B["single.html<br/>(extends baseof)"]
     C["list.html<br/>(extends baseof)"]
     D["doc.html<br/>(extends single)"]
-    
+
     A --> B
     A --> C
     B --> D

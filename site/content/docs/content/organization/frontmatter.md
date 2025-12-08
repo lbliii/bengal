@@ -44,9 +44,9 @@ Complete reference for all frontmatter fields available in Bengal pages.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `layout` | string | `single` | Template to use for rendering |
-| `type` | string | section name | Content type (determines template lookup) |
-| `template` | string | — | Explicit template path |
+| `layout` | string | — | Visual variant (maps to `data-variant` on body). To change the template file, use `template`. |
+| `type` | string | section name | Content type (determines default strategy and template) |
+| `template` | string | — | Explicit template path (e.g., `blog/single.html`) |
 
 ## SEO Fields
 

@@ -335,7 +335,7 @@ weight = 20
 |------|--------|-------|
 | `content/` | `content/` | ✅ Same |
 | `static/` | `assets/` | Different name |
-| `layouts/` | `themes/[name]/templates/` | Template location |
+| `layouts/` | `templates/` | Template location |
 | `themes/` | `themes/` | ✅ Same |
 | `data/` | `data/` | ✅ Same |
 | `config.toml` | `bengal.toml` | Different name |
