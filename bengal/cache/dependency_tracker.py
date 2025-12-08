@@ -149,7 +149,7 @@ class DependencyTracker:
 
     def _hash_config(self) -> str:
         """Hash config for invalidation."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         # Determine config path from site or fallback
         config_path = self.site.root_path / "bengal.toml" if self.site else Path("bengal.toml")

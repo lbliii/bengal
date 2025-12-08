@@ -1,11 +1,14 @@
 """
-Tests for bengal/utils/file_utils.py.
+Tests for bengal/utils/hashing.py hash_file function.
 
 Covers:
 - hash_file function
 - SHA256 hashing
 - Chunked file reading
 - Error handling for non-existent files
+
+Note: These tests were originally for file_utils.hash_file, which was
+deprecated in favor of the more feature-rich hashing.hash_file.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ class TestHashFileBasics:
 
     def test_hashes_file_content(self, tmp_path: Path) -> None:
         """Test that hash_file returns SHA256 hash of content."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         content = b"hello world"
@@ -36,7 +39,7 @@ class TestHashFileBasics:
 
     def test_returns_hexdigest(self, tmp_path: Path) -> None:
         """Test that hash_file returns hexdigest string."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         test_file.write_bytes(b"content")
@@ -53,11 +56,11 @@ class TestHashFileNonExistent:
 
     def test_raises_file_not_found(self, tmp_path: Path) -> None:
         """Test that non-existent file raises FileNotFoundError."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         nonexistent = tmp_path / "nonexistent.txt"
 
-        with pytest.raises(FileNotFoundError, match="File not found"):
+        with pytest.raises(FileNotFoundError):
             hash_file(nonexistent)
 
 
@@ -66,7 +69,7 @@ class TestHashFileDeterminism:
 
     def test_same_content_same_hash(self, tmp_path: Path) -> None:
         """Test that same content produces same hash."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
@@ -82,7 +85,7 @@ class TestHashFileDeterminism:
 
     def test_different_content_different_hash(self, tmp_path: Path) -> None:
         """Test that different content produces different hash."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
@@ -97,7 +100,7 @@ class TestHashFileDeterminism:
 
     def test_multiple_reads_same_hash(self, tmp_path: Path) -> None:
         """Test that multiple reads produce same hash."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         test_file.write_bytes(b"test content")
@@ -114,7 +117,7 @@ class TestHashFileChunkedReading:
 
     def test_small_file_hashed_correctly(self, tmp_path: Path) -> None:
         """Test that small files (< chunk size) are hashed correctly."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "small.txt"
         content = b"small"  # Much smaller than default chunk size
@@ -127,7 +130,7 @@ class TestHashFileChunkedReading:
 
     def test_large_file_hashed_correctly(self, tmp_path: Path) -> None:
         """Test that large files are hashed correctly."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "large.txt"
         # Create content larger than default chunk size (8192)
@@ -141,7 +144,7 @@ class TestHashFileChunkedReading:
 
     def test_custom_chunk_size(self, tmp_path: Path) -> None:
         """Test with custom chunk size."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         content = b"test content"
@@ -155,7 +158,7 @@ class TestHashFileChunkedReading:
 
     def test_chunk_size_larger_than_file(self, tmp_path: Path) -> None:
         """Test with chunk size larger than file."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         content = b"small"
@@ -173,7 +176,7 @@ class TestHashFileEdgeCases:
 
     def test_empty_file(self, tmp_path: Path) -> None:
         """Test hashing empty file."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "empty.txt"
         test_file.write_bytes(b"")
@@ -185,7 +188,7 @@ class TestHashFileEdgeCases:
 
     def test_binary_file(self, tmp_path: Path) -> None:
         """Test hashing binary file."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "binary.bin"
         content = bytes(range(256))  # All byte values
@@ -198,7 +201,7 @@ class TestHashFileEdgeCases:
 
     def test_file_with_null_bytes(self, tmp_path: Path) -> None:
         """Test hashing file with null bytes."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "nulls.bin"
         content = b"\x00\x00\x00hello\x00\x00\x00"
@@ -215,7 +218,7 @@ class TestHashFilePath:
 
     def test_accepts_path_object(self, tmp_path: Path) -> None:
         """Test that Path objects are accepted."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "test.txt"
         test_file.write_bytes(b"content")
@@ -226,7 +229,7 @@ class TestHashFilePath:
 
     def test_accepts_pathlib_path(self, tmp_path: Path) -> None:
         """Test with pathlib.Path explicitly."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = Path(tmp_path) / "test.txt"
         test_file.write_bytes(b"content")
@@ -240,7 +243,7 @@ class TestHashFileSpecificHashes:
 
     def test_known_hash_hello(self, tmp_path: Path) -> None:
         """Test known hash for 'hello'."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "hello.txt"
         test_file.write_bytes(b"hello")
@@ -253,7 +256,7 @@ class TestHashFileSpecificHashes:
 
     def test_known_hash_empty(self, tmp_path: Path) -> None:
         """Test known hash for empty file."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         test_file = tmp_path / "empty.txt"
         test_file.write_bytes(b"")
@@ -263,4 +266,3 @@ class TestHashFileSpecificHashes:
         # Known SHA256 hash of empty string
         expected = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         assert result == expected
-

@@ -16,10 +16,10 @@ import builtins
 import json
 import time
 from dataclasses import dataclass
-from hashlib import sha256
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.utils.hashing import hash_file, hash_str
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -312,12 +312,13 @@ class SwizzleManager:
 
 
 def _checksum_file(path: Path) -> str:
+    """Compute truncated checksum of file content."""
     try:
-        content = path.read_bytes()
-        return sha256(content).hexdigest()[:16]
+        return hash_file(path, truncate=16)
     except Exception:
         return ""
 
 
 def _checksum_str(content: str) -> str:
-    return sha256(content.encode("utf-8")).hexdigest()[:16]
+    """Compute truncated checksum of string content."""
+    return hash_str(content, truncate=16)
