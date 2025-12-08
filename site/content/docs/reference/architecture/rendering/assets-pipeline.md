@@ -292,7 +292,7 @@ formats = ["webp"]  # Generate additional formats
 - Dead code elimination (optional)
 
 ### Implementation
-Uses `lightningcss` for CSS and `rjsmin` for JS (pure Python, no Node.js required)
+Uses a built-in Python minifier for CSS (safe whitespace/comment removal) and `rjsmin` for JS (pure Python, no Node.js required). `lightningcss` was removed to support Python 3.14 free-threading.
 
 ## Image Optimization
 
