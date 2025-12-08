@@ -15,13 +15,16 @@ Confidence: 95%
 ## 1. Problem Statement
 
 ### Current State
+
 The current `PathAnalyzer.analyze()` method uses Brandes' algorithm to compute betweenness centrality. This algorithm runs a Breadth-First Search (BFS) from **every single page** in the graph to count how many shortest paths pass through each node.
 
 **Evidence**:
+
 - `bengal/analysis/path_analysis.py:211`: `for source in pages: ...` (Iterates all pages)
 - `bengal/analysis/path_analysis.py:222`: `while queue: ...` (BFS traversal)
 
 ### Pain Points
+
 - **Complexity**: The complexity is $O(N \cdot E)$, which for sparse graphs is roughly $O(N^2)$.
 - **Scalability**: For a site with 10,000 pages, this requires 10,000 BFS runs. If one BFS takes 10ms, the total analysis takes ~100 seconds. For 100k pages, it takes hours.
 - **User Impact**: Users with large sites cannot use `::analyze` or graph insights features without acceptable delays.
@@ -31,11 +34,13 @@ The current `PathAnalyzer.analyze()` method uses Brandes' algorithm to compute b
 ## 2. Goals & Non-Goals
 
 **Goals**:
+
 - Reduce time complexity of betweenness centrality to $O(k \cdot N)$, where $k \ll N$.
 - Maintain sufficient accuracy to identify "top bridge pages" correctly.
 - Ensure deterministic results by seeding the random pivot selection.
 
 **Non-Goals**:
+
 - We are **not** trying to get *exact* centrality values (relative ranking is sufficient for insights).
 - We are not changing Closeness Centrality at this time (though similar techniques apply).
 
@@ -44,11 +49,13 @@ The current `PathAnalyzer.analyze()` method uses Brandes' algorithm to compute b
 ## 3. Architecture Impact
 
 **Affected Subsystems**:
+
 - **Analysis** (`bengal/analysis/`):
   - `path_analysis.py`: Implementation of `_compute_betweenness_centrality`.
   - `knowledge_graph.py`: Consumer of these metrics.
 
 **Integration Points**:
+
 - `KnowledgeGraph.analyze_paths()` calls `PathAnalyzer.analyze()`.
 - No impact on core build or rendering (analysis is optional).
 
@@ -57,6 +64,7 @@ The current `PathAnalyzer.analyze()` method uses Brandes' algorithm to compute b
 ## 4. Design Options
 
 ### Option A: Pivot-Based Approximation (Recommended)
+
 Run Brandes' algorithm from a small subset of $k$ random nodes (pivots) and extrapolate.
 
 - **Description**: Select $k$ (e.g., 50-100) pivot pages. Run BFS only from these pivots. Accumulate dependencies.
@@ -70,6 +78,7 @@ Run Brandes' algorithm from a small subset of $k$ random nodes (pivots) and extr
 - **Complexity**: Simple modification to existing loop logic.
 
 ### Option B: Parallel Exact Computation
+
 Run the exact algorithm in parallel using `multiprocessing`.
 
 - **Description**: Split the `for source in pages` loop across CPU cores.
@@ -88,6 +97,7 @@ Run the exact algorithm in parallel using `multiprocessing`.
 ## 5. Detailed Design (Option A)
 
 ### API Changes
+
 Update `PathAnalyzer` to accept approximation parameters.
 
 ```python
@@ -103,23 +113,26 @@ class PathAnalyzer:
         # Select pivots
         import random
         random.seed(self.seed)
-
+        
         # If N < k, use exact (all pages)
         if len(pages) <= self.k_pivots:
             sources = pages
         else:
             sources = random.sample(pages, self.k_pivots)
-
+            
         # Run Brandes' only for sources...
 ```
 
 ### Normalization
+
 The normalization factor for exact betweenness is $(N-1)(N-2)$. For approximated, we extrapolate based on the ratio of pivots to total nodes:
 $$ \text{Score} \approx \text{RawScore} \times \frac{N}{k} $$
 (Or simply use raw scores for ranking, as relative order matters most).
 
 ### Configuration
+
 Add configuration to `bengal.toml` (optional):
+
 ```toml
 [analysis]
 approximate_centrality = true
@@ -131,10 +144,12 @@ pivot_count = 100
 ## 6. Tradeoffs & Risks
 
 **Tradeoffs**:
+
 - **Accuracy vs Speed**: We lose precision in the 4th/5th decimal place but gain massive speed.
 - **Stability**: Top 10 lists might fluctuate slightly with different seeds.
 
 **Risks**:
+
 - **Risk 1**: Missing a critical bridge page that isn't reached by pivots.
   - **Likelihood**: Low for well-connected graphs.
   - **Mitigation**: Ensure $k$ is large enough (e.g., 100 covers most structures).

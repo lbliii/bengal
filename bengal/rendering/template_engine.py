@@ -484,61 +484,23 @@ class TemplateEngine:
         """
         Generate URL for a page with base URL support.
 
+        Delegates to url_helpers.url_for for consistent URL generation.
+
         Args:
             page: Page object
 
         Returns:
             URL path (clean, without index.html) with base URL prefix if configured
         """
-        # Get the relative URL first (page.url already includes baseurl, so use relative_url)
-        url = None
+        from bengal.rendering.template_engine.url_helpers import url_for
 
-        # Use the page's relative_url property (doesn't include baseurl)
-        try:
-            if hasattr(page, "relative_url"):
-                url = page.relative_url
-        except Exception:
-            pass
-
-        # Fallback to page.url if relative_url not available (for dict-like contexts)
-        if url is None:
-            try:
-                if hasattr(page, "url"):
-                    url = page.url
-                    # If url already includes baseurl, extract relative part
-                    # This handles cases where page.url is used but we need relative
-                    baseurl = (self.site.config.get("baseurl", "") or "").rstrip("/")
-                    if baseurl and url.startswith(baseurl):
-                        url = url[len(baseurl) :] or "/"
-            except Exception:
-                pass
-
-        # Support dict-like contexts (component preview/demo data)
-        if url is None:
-            try:
-                if isinstance(page, Mapping):
-                    if "url" in page:
-                        url = str(page["url"])
-                    elif "relative_url" in page:
-                        url = str(page["relative_url"])
-                    elif "slug" in page:
-                        url = f"/{page['slug']}/"
-            except Exception:
-                pass
-
-        # Fallback to slug-based URL for objects
-        if url is None:
-            try:
-                url = f"/{page.slug}/"
-            except Exception:
-                url = "/"
-
-        # Apply base URL prefix if configured
-        return self._with_baseurl(url)
+        return url_for(page, self.site)
 
     def _with_baseurl(self, path: str) -> str:
         """
         Apply base URL prefix to a path.
+
+        Delegates to url_helpers.with_baseurl for consistent URL handling.
 
         Args:
             path: Relative path starting with '/'
@@ -546,26 +508,9 @@ class TemplateEngine:
         Returns:
             Path with base URL prefix (absolute or path-only)
         """
-        # Ensure path starts with '/'
-        if not path.startswith("/"):
-            path = "/" + path
+        from bengal.rendering.template_engine.url_helpers import with_baseurl
 
-        # Get baseurl from config
-        try:
-            baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
-        except Exception:
-            baseurl_value = ""
-
-        if not baseurl_value:
-            return path
-
-        # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
-        if baseurl_value.startswith(("http://", "https://", "file://")):
-            return f"{baseurl_value}{path}"
-
-        # Path-only baseurl (e.g., /bengal)
-        base_path = "/" + baseurl_value.lstrip("/")
-        return f"{base_path}{path}"
+        return with_baseurl(path, self.site)
 
     def _asset_url(self, asset_path: str, page_context: Any = None) -> str:
         """
