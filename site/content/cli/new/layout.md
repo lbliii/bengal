@@ -2,6 +2,7 @@
 ---
 title: "layout"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 86
 description: "📋 Create a new layout template. Layouts are reusable HTML templates used by pages. Example: \"article\" → templates/layouts/article.html See also: bengal new partial - Create a partial template bengal n..."

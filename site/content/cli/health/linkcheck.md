@@ -2,6 +2,7 @@
 ---
 title: "linkcheck"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 35
 description: "Check internal and external links in the site. Validates that all links in your site work correctly: - Internal links point to existing pages and anchors - External links return successful HTTP status..."

@@ -2,6 +2,7 @@
 ---
 title: "validate"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 263
 description: "✓ Validate content against collection schemas. Validates all content files against their collection schemas, reporting any validation errors."

@@ -2,6 +2,7 @@
 ---
 title: "profile"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 67
 description: "👤 Set your Bengal working profile / persona. Profiles customize CLI behavior and output format based on your role: dev       👨‍💻  Full debug output, performance metrics, all commands themer    🎨  Focu..."

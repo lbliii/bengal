@@ -2,6 +2,7 @@
 ---
 title: "pagerank"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 19
 description: "🏆 Analyze page importance using PageRank algorithm. Computes PageRank scores for all pages based on their link structure. Pages that are linked to by many important pages receive high scores. Use Page..."

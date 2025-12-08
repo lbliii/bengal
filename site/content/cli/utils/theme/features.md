@@ -2,6 +2,7 @@
 ---
 title: "features"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 626
 description: "📋 List available theme features. Shows all features that can be enabled in [theme.features] config. Feature flags allow declarative control over theme behavior."

@@ -2,6 +2,7 @@
 ---
 title: "theme"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 214
 description: "🎨 Create a new theme scaffold. Themes are self-contained template and asset packages. Example: \"my-theme\" → themes/my-theme/ with templates, partials, and assets See also: bengal new layout - Create a..."

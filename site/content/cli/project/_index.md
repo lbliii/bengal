@@ -2,6 +2,7 @@
 ---
 title: "project"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/project.py"
 line_number: 52
 description: "📦 Project management and setup commands. Commands: init       Initialize project structure and content sections profile    Set your working profile (dev, themer, writer, ai) validate   Validate config..."

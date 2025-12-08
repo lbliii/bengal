@@ -2,14 +2,15 @@
 ---
 title: "sources"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/sources.py"
-line_number: 25
+line_number: 48
 description: "Manage content sources (Content Layer). Content sources can be local directories or remote sources like GitHub repositories, Notion databases, or REST APIs. Use \'bengal sources list\' to see configured..."
 ---
 
 # sources
 **Type:** Command-Group
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/commands/sources.py#L25)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/commands/sources.py#L48)
 
 :::{badge} Command Group
 :class: badge-secondary

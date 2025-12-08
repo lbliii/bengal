@@ -2,6 +2,7 @@
 ---
 title: "list"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 198
 description: "📋 List defined collections and their schemas. Shows all collections defined in collections.py with their directories and schema fields."

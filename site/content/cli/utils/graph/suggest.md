@@ -2,6 +2,7 @@
 ---
 title: "suggest"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 19
 description: "💡 Generate smart link suggestions to improve internal linking. Analyzes your content to recommend links based on: - Topic similarity (shared tags/categories) - Page importance (PageRank scores) - Navi..."

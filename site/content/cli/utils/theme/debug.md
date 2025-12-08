@@ -2,6 +2,7 @@
 ---
 title: "debug"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 305
 description: "🐛 Debug theme resolution and template paths. Shows comprehensive information about: - Active theme chain (inheritance order) - Template resolution paths (priority order) - Template source locations - ..."

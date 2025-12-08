@@ -179,13 +179,21 @@ class VirtualAutodocOrchestrator:
         index_pages = self._create_index_pages(sections)
         pages.extend(index_pages)
 
+        # Count total sections (including nested) for logging
+        total_section_count = len(sections)
+        
         logger.info(
             "virtual_autodoc_complete",
             pages=len(pages),
-            sections=len(sections),
+            sections=total_section_count,
         )
 
-        return pages, list(sections.values())
+        # Only return root-level sections (e.g., "api")
+        # Nested sections are accessible via parent.subsections
+        # This matches how ContentDiscovery handles section hierarchy
+        root_sections = [sections["api"]] if "api" in sections else []
+        
+        return pages, root_sections
 
     def _create_sections(self, elements: list[DocElement]) -> dict[str, Section]:
         """
@@ -331,7 +339,8 @@ class VirtualAutodocOrchestrator:
                 "qualified_name": element.qualified_name,
                 "element_type": element.element_type,
                 "description": element.description or f"API reference for {element.name}",
-                "source_file": getattr(element, "source_file", None),
+                # Convert Path to string for JSON serialization
+                "source_file": str(element.source_file) if hasattr(element, "source_file") and element.source_file else None,
                 "line_number": getattr(element, "line_number", None),
                 # Extra metadata for templates
                 "is_autodoc": True,

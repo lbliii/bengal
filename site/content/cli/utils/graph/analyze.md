@@ -2,6 +2,7 @@
 ---
 title: "analyze"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 30
 description: "📊 Analyze site structure and connectivity."

@@ -2,6 +2,7 @@
 ---
 title: "info"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 253
 description: "ℹ️  Display project information and statistics. Shows: - Site title, baseurl, theme - Content statistics (pages, sections) - Asset counts - Configuration paths"

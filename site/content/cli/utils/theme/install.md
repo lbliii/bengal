@@ -2,6 +2,7 @@
 ---
 title: "install"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 539
 description: "📦 Install a theme via uv pip. Installs a theme package from PyPI. NAME may be a package name or a slug. If a slug without prefix is provided, suggests canonical \'bengal-theme-<slug>\'."

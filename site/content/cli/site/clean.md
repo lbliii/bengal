@@ -2,6 +2,7 @@
 ---
 title: "clean"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 18
 description: "🧹 Clean generated files and stale processes. By default, removes only the output directory (public/). Options: --cache         Also remove build cache --all           Remove both output and cache --st..."

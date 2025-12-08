@@ -2,6 +2,7 @@
 ---
 title: "swizzle-list"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 64
 description: "📋 List swizzled templates. Shows all templates that have been copied from themes to your project, along with their source theme for tracking."

@@ -2,6 +2,7 @@
 ---
 title: "bridges"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 19
 description: "🌉 Identify bridge pages and navigation bottlenecks. Analyzes navigation paths to find: - Bridge pages (high betweenness): Pages that connect different parts of the site - Accessible pages (high closen..."

@@ -2,6 +2,7 @@
 ---
 title: "assets"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/assets.py"
 line_number: 22
 description: "Manage and build assets."

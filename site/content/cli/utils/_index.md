@@ -2,6 +2,7 @@
 ---
 title: "utils"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/utils.py"
 line_number: 13
 description: "Utility commands for development and maintenance."

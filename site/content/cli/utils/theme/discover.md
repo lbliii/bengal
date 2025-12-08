@@ -2,6 +2,7 @@
 ---
 title: "discover"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 267
 description: "🔍 List swizzlable templates from the active theme chain. Shows all templates available in your active theme(s) that can be swizzled (copied) to your project for customization."

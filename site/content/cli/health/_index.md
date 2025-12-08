@@ -2,6 +2,7 @@
 ---
 title: "health"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/health.py"
 line_number: 29
 description: "Health check and validation commands."

@@ -2,6 +2,7 @@
 ---
 title: "site"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/site.py"
 line_number: 14
 description: "Site building and serving commands."

@@ -2,6 +2,7 @@
 ---
 title: "status"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 96
 description: "📋 Display the current asset manifest. Shows the mapping of logical asset paths to fingerprinted output files. Useful for debugging asset references and cache-busting."

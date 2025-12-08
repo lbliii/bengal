@@ -2,6 +2,7 @@
 ---
 title: "list"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 132
 description: "📋 List available themes. Shows themes from three sources: - Project themes: themes/ directory in your site - Installed themes: Themes installed via pip/uv - Bundled themes: Themes included with Bengal"

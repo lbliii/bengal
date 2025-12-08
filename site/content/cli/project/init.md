@@ -2,6 +2,7 @@
 ---
 title: "init"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 83
 description: "🏗️  Initialize site structure. Uses the Component Model to generate sections and pages."

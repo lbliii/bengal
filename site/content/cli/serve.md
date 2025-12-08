@@ -2,6 +2,7 @@
 ---
 title: "serve"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 21
 description: "🚀 Start development server with hot reload. Watches for changes in content, assets, and templates, automatically rebuilding the site when files are modified."

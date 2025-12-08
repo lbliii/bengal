@@ -2,6 +2,7 @@
 ---
 title: "show"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 48
 description: "📋 Display merged configuration. Shows the effective configuration after merging defaults, environment, and profile settings. Use --origin to see which file contributed each config key, useful for debu..."

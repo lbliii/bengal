@@ -2,6 +2,7 @@
 ---
 title: "info"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 207
 description: "ℹ️  Show theme info for a slug. Displays information about a theme including: - Source location (project, installed, or bundled) - Version (if installed) - Template and asset paths"

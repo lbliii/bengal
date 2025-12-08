@@ -2,6 +2,7 @@
 ---
 title: "init"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 396
 description: "✨ Initialize configuration structure. Creates config directory with examples, or a single config file. Use --template to choose a preset (docs, blog, minimal)."

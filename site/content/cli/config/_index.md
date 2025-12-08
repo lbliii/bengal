@@ -2,6 +2,7 @@
 ---
 title: "config"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/config.py"
 line_number: 34
 description: "⚙️  Configuration management and introspection. Commands: show     Display merged configuration doctor   Validate and lint configuration diff     Compare configurations init     Initialize config stru..."

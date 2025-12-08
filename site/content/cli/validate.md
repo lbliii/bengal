@@ -2,6 +2,7 @@
 ---
 title: "validate"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 33
 description: "🔍 Validate site health and content quality. Runs health checks on your site to find errors, warnings, and issues. By default, shows only problems (errors and warnings)."

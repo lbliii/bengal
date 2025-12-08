@@ -2,6 +2,7 @@
 ---
 title: "diff"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 285
 description: "🔍 Compare configurations. Shows differences between two configurations (environments, profiles, or files). Useful for verifying that production settings differ correctly from local/preview."

@@ -2,6 +2,7 @@
 ---
 title: "communities"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 19
 description: "🔍 Discover topical communities in your content. Uses the Louvain algorithm to find natural clusters of related pages. Communities represent topic areas or content groups based on link structure. Use c..."

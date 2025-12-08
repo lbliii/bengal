@@ -2,6 +2,7 @@
 ---
 title: "build"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 28
 description: "🔨 Build assets using the configured pipeline. Processes CSS, JavaScript, and other assets according to your asset pipeline configuration. Use --watch to automatically rebuild on file changes."

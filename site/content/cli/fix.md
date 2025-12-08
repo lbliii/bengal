@@ -2,6 +2,7 @@
 ---
 title: "fix"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 24
 description: "🔧 Auto-fix common health check issues. Analyzes health check results and applies safe fixes automatically. By default, only applies SAFE fixes (reversible, no side effects)."

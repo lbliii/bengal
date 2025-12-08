@@ -2,6 +2,7 @@
 ---
 title: "doctor"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 176
 description: "🩺 Validate and lint configuration. Checks for: - Valid YAML syntax - Type errors (bool, int, str) - Unknown keys (typo detection) - Required fields - Value ranges - Deprecated keys Run this before dep..."

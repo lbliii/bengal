@@ -2,6 +2,7 @@
 ---
 title: "partial"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 150
 description: "🧩 Create a new partial template. Partials are reusable template fragments included in other templates. Example: \"sidebar\" → templates/partials/sidebar.html See also: bengal new layout - Create a layou..."

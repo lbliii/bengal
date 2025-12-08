@@ -2,6 +2,7 @@
 ---
 title: "theme"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/theme.py"
 line_number: 21
 description: "Theme utilities (list/info/discover/install, swizzle)."

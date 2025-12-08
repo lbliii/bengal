@@ -2,6 +2,7 @@
 ---
 title: "autodoc"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 24
 description: "📚 Generate comprehensive API documentation (Python + CLI + OpenAPI). Automatically generates Python API, CLI, and OpenAPI docs based on your bengal.toml configuration. Use --python-only, --cli-only, o..."

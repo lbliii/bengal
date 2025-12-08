@@ -2,6 +2,7 @@
 ---
 title: "init"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 130
 description: "📝 Generate a collections.py file with example schemas. Creates a starter collections.py file at your project root with example schemas for blog posts and documentation pages."

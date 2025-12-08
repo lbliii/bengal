@@ -2,6 +2,7 @@
 ---
 title: "new"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 757
 description: "🎨 Create a new theme scaffold. Creates a new theme with templates, partials, and assets. SLUG is the theme identifier used in config (e.g., [site].theme = SLUG)."

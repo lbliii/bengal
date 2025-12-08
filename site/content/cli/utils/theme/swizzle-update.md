@@ -2,6 +2,7 @@
 ---
 title: "swizzle-update"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 99
 description: "🔄 Update swizzled templates if unchanged locally. Checks swizzled templates and updates them from the theme if you haven\'t modified them locally. Templates you\'ve customized are skipped."

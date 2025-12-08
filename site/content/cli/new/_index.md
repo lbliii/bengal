@@ -2,6 +2,7 @@
 ---
 title: "new"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/new/__init__.py"
 line_number: 43
 description: "✨ Create new site, page, layout, partial, or theme. Subcommands: site      Create a new Bengal site with optional presets page      Create a new page in content directory layout    Create a new layout..."

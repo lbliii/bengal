@@ -2,6 +2,7 @@
 ---
 title: "validate"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 153
 description: "✓ Validate Bengal project configuration and structure. Checks: ✓ bengal.toml exists and is valid ✓ Required configuration fields ✓ Directory structure (content/, templates/, assets/) ✓ Theme configura..."

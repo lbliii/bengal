@@ -2,6 +2,7 @@
 ---
 title: "autodoc-cli"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 420
 description: "⌨️  Generate CLI documentation from Click/argparse/typer apps. Extracts documentation from command-line interfaces to create comprehensive command reference documentation. Useful for documenting custo..."

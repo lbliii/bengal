@@ -2,6 +2,7 @@
 ---
 title: "swizzle"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 27
 description: "🎨 Copy a theme template/partial to project templates. Swizzling copies a template from the active theme to your project\'s templates/ directory, allowing you to customize it while tracking provenance f..."

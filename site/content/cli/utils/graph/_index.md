@@ -2,6 +2,7 @@
 ---
 title: "graph"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/commands/graph/__main__.py"
 line_number: 24
 description: "Commands for analyzing the site\'s knowledge graph."

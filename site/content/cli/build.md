@@ -2,6 +2,7 @@
 ---
 title: "build"
 type: "cli-reference"
+css_class: "api-content"
 source_file: "bengal/cli/helpers/error_handling.py"
 line_number: 34
 description: "🔨 Build the static site. Generates HTML files from your content, applies templates, processes assets, and outputs a production-ready site."
