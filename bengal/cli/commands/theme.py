@@ -712,9 +712,15 @@ def features(source: str, category: str | None, enabled: bool, defaults: bool) -
                 source=source, config=None, environment=None, profile=None, cli=cli
             )
             enabled_features = set(site.theme_config.features)
-        except Exception:
+        except Exception as e:
             # If site can't be loaded, just show all features
-            pass
+            logger.debug(
+                "cli_theme_features_site_load_failed",
+                source=str(source) if source else "current_dir",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="showing_all_features",
+            )
 
     # Get default features
     default_keys = set(get_default_features())

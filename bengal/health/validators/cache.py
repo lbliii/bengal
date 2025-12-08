@@ -16,9 +16,12 @@ from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 class CacheValidator(BaseValidator):
@@ -133,9 +136,22 @@ class CacheValidator(BaseValidator):
             with open(cache_path, encoding="utf-8") as f:
                 cache_data = json.load(f)
             return True, cache_data
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.debug(
+                "health_cache_json_decode_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                action="returning_unreadable",
+            )
             return False, {}
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "health_cache_read_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_unreadable",
+            )
             return False, {}
 
     def _check_cache_structure(self, cache_data: dict) -> tuple[bool, list[str]]:

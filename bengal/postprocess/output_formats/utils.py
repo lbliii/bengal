@@ -115,7 +115,14 @@ def get_page_relative_url(page: Page, site: Any) -> str:
         if callable(url):
             try:
                 url = url()
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "postprocess_page_url_callable_failed",
+                    page=str(getattr(page, "source_path", "unknown")),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="using_none_url",
+                )
                 url = None
 
         if isinstance(url, str):

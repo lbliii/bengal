@@ -18,9 +18,12 @@ from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 class AssetValidator(BaseValidator):
@@ -222,8 +225,14 @@ class AssetValidator(BaseValidator):
                         # If more than 5% newlines, probably not minified
                         if newline_ratio > 0.05:
                             large_unminified_css.append(f"{css_file.name}: {size_kb:.0f} KB")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(
+                            "health_asset_css_check_failed",
+                            file=str(css_file),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="skipping_minification_check",
+                        )
 
         large_unminified_js = []
         for js_file in js_files:
@@ -236,8 +245,14 @@ class AssetValidator(BaseValidator):
 
                         if newline_ratio > 0.05:
                             large_unminified_js.append(f"{js_file.name}: {size_kb:.0f} KB")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(
+                            "health_asset_js_check_failed",
+                            file=str(js_file),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="skipping_minification_check",
+                        )
 
         if large_unminified_css:
             results.append(

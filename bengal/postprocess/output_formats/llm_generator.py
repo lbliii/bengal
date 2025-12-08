@@ -134,9 +134,15 @@ class SiteLlmTxtGenerator:
                 existing = path.read_text(encoding="utf-8")
                 if existing == content:
                     return
-        except Exception:
+        except Exception as e:
             # If we can't read existing file, proceed to write new content
-            pass
+            logger.debug(
+                "postprocess_llm_existing_file_read_failed",
+                path=str(path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="writing_new_content",
+            )
 
         with AtomicFile(path, "w", encoding="utf-8") as f:
             f.write(content)
