@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Silent Error Elimination ✅
+- **config(env_overrides)**: upgrade exception logging from DEBUG to WARNING for user-impacting failures with helpful hints
+- **utils(theme_registry)**: add structured logging to `assets_exists`, `manifest_exists`, `resolve_resource_path`, and `get_installed_themes` methods
+- **health(rendering)**: add logging to SEO page check failures with page context
+- **cli(theme)**: add structured logging to `_theme_exists` and `_get_template_dir_source_type` helper functions
+- **debug(config_inspector)**: add logging to `explain_key` defaults/environment layer loading and YAML parsing failures
+- **debug(content_migrator)**: add logger import; add logging to `split_page` and `merge_pages` frontmatter parsing failures
+- **tests**: update `test_exception_in_env_logic_silent` to use targeted mock for env vars, supporting new warning logging
+- **docs**: RFC moved to implemented
+
 ### TemplateEngine Package Decoupling ✅
 - **rendering(template_engine)**: decouple 861-line monolithic `template_engine.py` into focused package structure
 - **rendering(template_engine/core)**: create thin facade class composing `MenuHelpersMixin`, `ManifestHelpersMixin`, `AssetURLMixin`
