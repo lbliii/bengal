@@ -68,7 +68,7 @@ class Section:
     Virtual sections represent API documentation or other dynamically-generated
     content that doesn't have a corresponding directory on disk. Virtual sections:
     - Have _virtual=True and path=None
-    - Are discovered via AutodocOrchestrator during build
+    - Are discovered via VirtualAutodocOrchestrator during build
     - Work with menu system via name-based lookups
     - Don't write intermediate markdown files
 

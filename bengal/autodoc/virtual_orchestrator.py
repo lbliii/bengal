@@ -76,9 +76,9 @@ class VirtualAutodocOrchestrator:
     """
     Orchestrate API documentation generation as virtual pages.
 
-    Unlike the traditional DocumentationGenerator which writes markdown files,
-    this orchestrator creates virtual Page and Section objects that integrate
-    directly into the site's build pipeline.
+    This orchestrator creates virtual Page and Section objects that integrate
+    directly into the site's build pipeline, rendered via theme templates
+    without intermediate markdown files.
 
     Architecture:
         1. Extract DocElements from source (Python, CLI, or OpenAPI)

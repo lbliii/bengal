@@ -26,7 +26,6 @@ import click
 
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
-from bengal.cli.commands.autodoc import autodoc, autodoc_cli
 from bengal.cli.commands.build import build as build_cmd
 from bengal.cli.commands.clean import clean as clean_cmd
 from bengal.cli.commands.collections import collections as collections_cli
@@ -111,10 +110,6 @@ main.add_command(project_cli)
 
 # Asset management
 main.add_command(assets_cli)
-
-# Documentation generation
-main.add_command(autodoc)
-main.add_command(autodoc_cli)
 
 # Content sources
 main.add_command(sources_group)

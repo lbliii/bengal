@@ -13,8 +13,6 @@ from bengal.cli.helpers import (
     get_cli_output,
     handle_cli_errors,
     load_site_from_cli,
-    run_autodoc_before_build,
-    should_regenerate_autodoc,
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
@@ -125,11 +123,6 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Enable/disable Node-based assets pipeline (overrides config)",
 )
 @click.option(
-    "--autodoc/--no-autodoc",
-    default=None,
-    help="Force regenerate autodoc before building (overrides config)",
-)
-@click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output - only show errors and summary")
@@ -166,7 +159,6 @@ def build(
     traceback: str | None,
     validate: bool,
     assets_pipeline: bool,
-    autodoc: bool,
     config: str,
     quiet: bool,
     fast: bool,
@@ -291,23 +283,8 @@ def build(
             assets_cfg["pipeline"] = bool(assets_pipeline)
             site.config["assets"] = assets_cfg
 
-        # Handle autodoc regeneration
-        root_path = Path(source).resolve()
-        # Find config file if not explicitly provided (same logic as ConfigLoader)
-        if config:
-            config_path = Path(config).resolve()
-        else:
-            # Try to find config file automatically (same as ConfigLoader.load())
-            config_path = None
-            for filename in ["bengal.toml", "bengal.yaml", "bengal.yml"]:
-                candidate = root_path / filename
-                if candidate.exists():
-                    config_path = candidate
-                    break
-        if should_regenerate_autodoc(
-            autodoc_flag=autodoc, config_path=config_path, root_path=root_path, quiet=quiet
-        ):
-            run_autodoc_before_build(config_path=config_path, root_path=root_path, quiet=quiet)
+        # Autodoc virtual pages are now generated during content discovery
+        # No separate pre-build step needed
 
         # Validate templates if requested (via service)
         if validate:

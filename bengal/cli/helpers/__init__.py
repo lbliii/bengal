@@ -1,10 +1,5 @@
 """CLI helper functions."""
 
-from bengal.cli.helpers.autodoc_build import (
-    check_autodoc_needs_regeneration,
-    run_autodoc_before_build,
-    should_regenerate_autodoc,
-)
 from bengal.cli.helpers.cli_app_loader import load_cli_app
 from bengal.cli.helpers.cli_output import get_cli_output
 from bengal.cli.helpers.config_validation import (
@@ -47,8 +42,4 @@ __all__ = [
     "validate_config_types",
     "validate_config_values",
     "check_unknown_keys",
-    # Autodoc build
-    "should_regenerate_autodoc",
-    "check_autodoc_needs_regeneration",
-    "run_autodoc_before_build",
 ]
