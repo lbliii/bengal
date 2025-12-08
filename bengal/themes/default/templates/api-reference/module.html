@@ -81,7 +81,7 @@ This template receives:
 
             <div class="api-cards">
               {% for cls in classes %}
-              {{ class_card(cls) }}
+              {{ class_card(cls, loop.first) }}
               {% endfor %}
             </div>
           </section>

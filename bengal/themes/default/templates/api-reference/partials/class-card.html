@@ -2,10 +2,14 @@
 Class Card Macro
 
 Renders a class as a collapsible card.
+
+Args:
+  cls: The class DocElement to render
+  is_first: Whether this is the first item (to auto-open)
 #}
 
-{% macro class_card(cls) %}
-<details class="api-card api-card--class" {% if loop.first %}open{% endif %}>
+{% macro class_card(cls, is_first=false) %}
+<details class="api-card api-card--class" {% if is_first %}open{% endif %}>
   <summary class="api-card__header">
     <span class="api-card__icon">◆</span>
     <code class="api-card__name">{{ cls.name }}</code>

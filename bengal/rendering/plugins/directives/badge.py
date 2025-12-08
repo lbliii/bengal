@@ -8,6 +8,9 @@ Supports badge syntax with custom CSS classes.
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
@@ -42,7 +45,7 @@ class BadgeDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["badge", "bdg"]
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse badge directive.
 
@@ -98,7 +101,7 @@ class BadgeDirective(DirectivePlugin):
             "children": [],  # Badges don't have children content
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """
         Register badge directive with Mistune.
 
@@ -113,7 +116,7 @@ class BadgeDirective(DirectivePlugin):
             md.renderer.register("badge", render_badge)
 
 
-def render_badge(renderer, text, **attrs) -> str:
+def render_badge(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render badge directive to HTML.
 

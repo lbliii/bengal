@@ -7,6 +7,9 @@ full markdown support.
 
 from __future__ import annotations
 
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
@@ -50,7 +53,7 @@ class AdmonitionDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ADMONITION_TYPES
 
-    def parse(self, block, m, state):
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """Parse admonition directive."""
         admon_type = self.parse_type(m)
         title = self.parse_title(m)
@@ -75,7 +78,7 @@ class AdmonitionDirective(DirectivePlugin):
             "children": children,
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register all admonition types as directives."""
         for admon_type in self.ADMONITION_TYPES:
             directive.register(admon_type, self.parse)
@@ -85,7 +88,7 @@ class AdmonitionDirective(DirectivePlugin):
 
 
 def render_admonition(
-    renderer, text: str, admon_type: str, title: str, extra_class: str = ""
+    renderer: Any, text: str, admon_type: str, title: str, extra_class: str = ""
 ) -> str:
     """Render admonition to HTML."""
     # Map types to CSS classes
