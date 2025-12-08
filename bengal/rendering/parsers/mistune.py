@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+from collections.abc import Callable
 from typing import Any, override
 
 from mistune.renderers.html import HTMLRenderer
@@ -154,7 +155,7 @@ class MistuneParser(BaseMarkdownParser):
         # Uses renderer=None to get raw AST tokens instead of HTML
         self._ast_parser = None
 
-    def _create_syntax_highlighting_plugin(self):
+    def _create_syntax_highlighting_plugin(self) -> Callable[[Any], None]:
         """
         Create a Mistune plugin that adds Pygments syntax highlighting to code blocks.
 
@@ -166,12 +167,12 @@ class MistuneParser(BaseMarkdownParser):
 
         from bengal.rendering.pygments_cache import get_lexer_cached
 
-        def plugin_syntax_highlighting(md):
+        def plugin_syntax_highlighting(md: Any) -> None:
             """Plugin function to add syntax highlighting to Mistune renderer."""
             # Get the original block_code renderer
             original_block_code = md.renderer.block_code
 
-            def highlighted_block_code(code, info=None):
+            def highlighted_block_code(code: str, info: str | None = None) -> str:
                 """Render code block with syntax highlighting."""
                 # If no language specified, use original renderer
                 if not info:

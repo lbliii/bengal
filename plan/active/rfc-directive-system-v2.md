@@ -1,19 +1,35 @@
-# RFC: Directive System v2 — Cohesive Architecture with Nesting Validation
+# RFC: Directive System v2 — Container Syntax, Nesting Validation, and Cohesive Architecture
 
 **Status**: Draft  
 **Author**: Bengal Team  
 **Created**: 2025-12-08  
+**Updated**: 2025-12-08  
 **Target**: Bengal 1.x  
 
 ---
 
 ## Executive Summary
 
-Redesign Bengal's Mistune directive plugins around a cohesive base class architecture with **nested directive validation**, typed options, encapsulated rendering, and reduced boilerplate. The current 20+ directives work but evolved organically, resulting in duplicated code, inconsistent patterns, **silent failures for invalid nesting**, and missed opportunities for type safety.
+Redesign Bengal's directive system with three major improvements:
 
-**Key Proposal**: Introduce `BengalDirective` base class, `DirectiveContract` nesting validation system, `DirectiveOptions` typed options, and `DirectiveToken` structure to standardize directive development while maintaining mistune compatibility.
+1. **`[[ ]]` Container Syntax** — New fence syntax for container directives that eliminates fence-depth counting hell
+2. **Nested Directive Validation** — `DirectiveContract` system catches invalid nesting at parse time
+3. **Cohesive Architecture** — `BengalDirective` base class with typed options and encapsulated rendering
 
-**Primary Value**: **Catch invalid directive nesting at parse time** with helpful warnings instead of silent failures or broken HTML output.
+The current system has 20+ directives that work but suffer from:
+- **Fence-depth cascade** — Adding one admonition inside a tab requires updating 5+ fence depths
+- **Silent nesting failures** — `step` outside `steps` produces broken HTML with no warning
+- **Duplicated boilerplate** — Same patterns repeated across 24 files
+
+**Key Proposals**:
+- `[[ name ]]` ... `[[ /name ]]` syntax for container directives (tabs, steps, cards)
+- `:::{name}` ... `:::` syntax unchanged for leaf directives (admonitions, badges)
+- `DirectiveContract` validates parent-child relationships at parse time
+- `BengalDirective` base class standardizes directive development
+
+**Primary Value**: 
+- **Zero fence counting** — Nest arbitrarily deep with `[[ ]]` containers
+- **Helpful warnings** — Invalid nesting caught at parse time, not in broken output
 
 ---
 
@@ -110,9 +126,53 @@ def parse(self, block, m, state):
 def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
 ```
 
-#### Issue 6: No Nested Directive Validation (HIGH) ⚠️ PRIMARY PAIN POINT
+#### Issue 6: Fence-Depth Cascade (HIGH) ⚠️ PRIMARY PAIN POINT
 
 **This is the primary motivation for this refactor.**
+
+Adding nested content to container directives requires updating ALL parent fence depths:
+
+```markdown
+<!-- BEFORE: Simple tabs -->
+::::{tab-set}
+:::{tab-item} Python
+```python
+print("hello")
+```
+:::
+::::
+
+<!-- AFTER: Want to add ONE admonition inside a tab -->
+<!-- Must update: tab-set (4→5), ALL tab-items (3→4), container closer (4→5) -->
+:::::{tab-set}
+::::{tab-item} Python
+:::{note}
+Python is great!
+:::
+```python
+print("hello")
+```
+::::
+:::::
+```
+
+**The cascade**: Adding 1 admonition = updating 5+ lines of fence syntax.
+
+**Real-world pain** from `site/content/cli/debug/sandbox.md`:
+
+```markdown
+<!-- This is BROKEN - inner code fence closes outer -->
+```markdown
+```{tabs}
+```{tab} Tab 1
+Content
+```
+```
+```
+
+The triple backticks inside conflict with the outer code block. No warning, just broken output.
+
+#### Issue 7: No Nested Directive Validation (HIGH)
 
 Nested directives fail silently or produce broken HTML when used incorrectly:
 
@@ -187,6 +247,7 @@ Content silently disappears
 
 | Issue | Files Affected | Maintenance Cost | Bug Risk |
 |-------|---------------|------------------|----------|
+| **Fence-depth cascade** | **All content** | **HIGH** | **HIGH** ⚠️ |
 | **No nesting validation** | **8** | **HIGH** | **HIGH** ⚠️ |
 | Duplicated boilerplate | 24 | HIGH | LOW |
 | Orphaned render | 24 | MEDIUM | LOW |
@@ -200,22 +261,23 @@ Content silently disappears
 
 ### 2.1 Goals
 
-**Primary Goal** (addresses main pain point):
-1. **🎯 Nested directive validation** — Invalid nesting produces helpful warnings, not silent failures
+**Primary Goals** (address main pain points):
+1. **🎯 `[[ ]]` container syntax** — Eliminate fence-depth counting with named closers
+2. **🎯 Nested directive validation** — Invalid nesting produces helpful warnings, not silent failures
 
 **Secondary Goals** (improve DX and maintainability):
-2. **Reduce boilerplate** — Common patterns should be automatic
-3. **Type safety** — Options and tokens should be typed
-4. **Encapsulation** — Render logic belongs with directive class
-5. **Option validation** — Invalid options should produce helpful errors
-6. **Testability** — Directives should be easy to unit test
-7. **Documentation** — Options and nesting rules should be self-documenting
-8. **Backward compatibility** — Existing directives should continue working during migration
+3. **Reduce boilerplate** — Common patterns should be automatic
+4. **Type safety** — Options and tokens should be typed
+5. **Encapsulation** — Render logic belongs with directive class
+6. **Option validation** — Invalid options should produce helpful errors
+7. **Testability** — Directives should be easy to unit test
+8. **Documentation** — Options and nesting rules should be self-documenting
+9. **Backward compatibility** — Existing directives should continue working during migration
 
 ### 2.2 Non-Goals
 
 1. **Breaking mistune compatibility** — Must work with FencedDirective
-2. **Changing directive syntax** — User-facing markdown syntax unchanged
+2. **Removing existing syntax** — `:::` and `::::` syntax continues to work
 3. **Forcing migration** — Old-style directives should still work
 4. **Adding new directives** — Focus is architecture, not features
 5. **Compile-time errors** — Warnings are sufficient; don't break builds
@@ -223,6 +285,357 @@ Content silently disappears
 ---
 
 ## 3. Proposed Design
+
+### 3.0 Container Syntax: `[[ ]]` Fences ⭐ KEY FEATURE
+
+#### 3.0.1 The Problem
+
+Current MyST-style fence counting is error-prone and tedious:
+
+```markdown
+<!-- Current: Must count and increment fence depths -->
+:::::{tab-set}          ← 5 colons (container)
+::::{tab-item} Python   ← 4 colons (item)
+:::{note}               ← 3 colons (nested content)
+Important info
+:::
+::::
+:::::
+
+<!-- Adding ONE more level requires updating EVERYTHING above -->
+```
+
+**Pain points:**
+- Adding nested content cascades to all parent fence depths
+- Easy to miscount colons
+- Ambiguous which `:::` closes which directive
+- Documenting directives requires even more fence levels
+
+#### 3.0.2 The Solution: `[[ ]]` Container Syntax
+
+Container directives use a distinct fence syntax with **named closers**:
+
+```markdown
+[[ tab-set ]]
+
+[[ tab ]] Python
+
+:::{note}
+Important info
+:::
+
+```python
+print("hello")
+```
+
+[[ /tab ]]
+
+[[ tab ]] JavaScript
+
+```js
+console.log("hello");
+```
+
+[[ /tab ]]
+
+[[ /tab-set ]]
+```
+
+**Benefits:**
+- **Zero fence counting** — Everything uses 3 colons or `[[ ]]`
+- **Self-documenting closers** — `[[ /tab-set ]]` explicitly closes `[[ tab-set ]]`
+- **Visual containers** — `[` brackets literally look like container walls
+- **Arbitrary nesting** — Nest as deep as needed with no ambiguity
+
+#### 3.0.3 Syntax Rules
+
+| Directive Type | Opener | Closer | Example |
+|----------------|--------|--------|---------|
+| **Container** | `[[ name ]]` | `[[ /name ]]` | `[[ tabs ]]` ... `[[ /tabs ]]` |
+| **Leaf** | `:::{name}` | `:::` | `:::{note}` ... `:::` |
+| **Code** | ` ``` ` | ` ``` ` | Unchanged |
+
+**Container directives** (use `[[ ]]`):
+- `tabs` / `tab-set` / `tab` / `tab-item`
+- `steps` / `step`
+- `cards` / `card`
+- `grid` / `grid-item-card`
+
+**Leaf directives** (use `:::`):
+- All admonitions (note, warning, tip, danger, etc.)
+- `dropdown`
+- `badge`
+- `button`
+- `glossary`
+- `include`
+- `literalinclude`
+- etc.
+
+#### 3.0.4 Full Examples
+
+**Example 1: Tabs with Rich Content**
+
+```markdown
+[[ tabs ]]
+
+[[ tab ]] macOS
+
+:::{note}
+Requires Homebrew
+:::
+
+```bash
+brew install bengal
+bengal new site my-docs
+```
+
+[[ /tab ]]
+
+[[ tab ]] Linux
+
+```bash
+pip install bengal
+bengal new site my-docs
+```
+
+:::{tip}
+Use a virtual environment!
+:::
+
+[[ /tab ]]
+
+[[ /tabs ]]
+```
+
+**Example 2: Nested Containers (Steps with Tabs)**
+
+```markdown
+[[ steps ]]
+
+[[ step ]] Install Dependencies
+
+[[ tabs ]]
+
+[[ tab ]] pip
+```bash
+pip install bengal
+```
+[[ /tab ]]
+
+[[ tab ]] pipx
+```bash
+pipx install bengal
+```
+[[ /tab ]]
+
+[[ /tabs ]]
+
+[[ /step ]]
+
+[[ step ]] Configure
+
+:::{warning}
+Never commit credentials!
+:::
+
+```yaml
+database:
+  type: postgres
+```
+
+[[ /step ]]
+
+[[ /steps ]]
+```
+
+**Example 3: Cards Grid**
+
+```markdown
+[[ cards ]]
+:columns: 3
+
+[[ card ]] Getting Started
+:icon: rocket
+:link: /docs/getting-started/
+
+Quick setup in 5 minutes.
+
+[[ /card ]]
+
+[[ card ]] Configuration
+:icon: gear
+
+All the knobs and switches.
+
+[[ /card ]]
+
+[[ /cards ]]
+```
+
+**Example 4: Documenting Directive Syntax**
+
+With `[[ ]]` syntax, documenting directives is simple:
+
+````markdown
+## How to Use Tabs
+
+```markdown
+[[ tabs ]]
+
+[[ tab ]] First Tab
+Content here
+[[ /tab ]]
+
+[[ tab ]] Second Tab
+More content
+[[ /tab ]]
+
+[[ /tabs ]]
+```
+````
+
+Only **3 backticks** needed for the code block because `[[ ]]` doesn't conflict!
+
+#### 3.0.5 Options Syntax
+
+Options work the same as before, on the line after the opener:
+
+```markdown
+[[ cards ]]
+:columns: 3
+:gap: large
+
+[[ card ]] Title
+:icon: star
+:link: /docs/
+
+Content here.
+
+[[ /card ]]
+
+[[ /cards ]]
+```
+
+#### 3.0.6 Parser Implementation
+
+```python
+# bengal/rendering/plugins/directives/container_parser.py
+import re
+from typing import Any
+
+# Pattern for container directive opener: [[ name ]]
+CONTAINER_OPEN_PATTERN = re.compile(
+    r'^\[\[\s*([a-z][a-z0-9-]*)\s*\]\][ ]*(.*)$',
+    re.MULTILINE
+)
+
+# Pattern for container directive closer: [[ /name ]]
+CONTAINER_CLOSE_PATTERN = re.compile(
+    r'^\[\[\s*/([a-z][a-z0-9-]*)\s*\]\][ ]*$',
+    re.MULTILINE
+)
+
+# Pattern for options: :key: value
+OPTIONS_PATTERN = re.compile(r'^:([a-z-]+):\s*(.*)$', re.MULTILINE)
+
+
+def parse_container_directive(content: str) -> dict[str, Any]:
+    """
+    Parse [[ name ]] ... [[ /name ]] container syntax.
+    
+    Returns token dict compatible with mistune AST.
+    """
+    # Match opener
+    opener_match = CONTAINER_OPEN_PATTERN.match(content)
+    if not opener_match:
+        return None
+    
+    name = opener_match.group(1)
+    title = opener_match.group(2).strip()
+    
+    # Find matching closer (handles nesting)
+    depth = 1
+    pos = opener_match.end()
+    closer_pos = None
+    
+    while pos < len(content):
+        # Check for nested opener
+        nested_open = CONTAINER_OPEN_PATTERN.search(content, pos)
+        nested_close = CONTAINER_CLOSE_PATTERN.search(content, pos)
+        
+        if nested_close and (not nested_open or nested_close.start() < nested_open.start()):
+            if nested_close.group(1) == name:
+                depth -= 1
+                if depth == 0:
+                    closer_pos = nested_close.start()
+                    break
+            pos = nested_close.end()
+        elif nested_open:
+            if nested_open.group(1) == name:
+                depth += 1
+            pos = nested_open.end()
+        else:
+            break
+    
+    if closer_pos is None:
+        # Unclosed container - could warn here
+        return None
+    
+    # Extract content between opener and closer
+    inner_content = content[opener_match.end():closer_pos]
+    
+    # Parse options from start of content
+    options = {}
+    lines = inner_content.strip().split('\n')
+    content_start = 0
+    
+    for i, line in enumerate(lines):
+        opt_match = OPTIONS_PATTERN.match(line)
+        if opt_match:
+            options[opt_match.group(1)] = opt_match.group(2)
+            content_start = i + 1
+        else:
+            break
+    
+    body_content = '\n'.join(lines[content_start:])
+    
+    return {
+        'type': f'container_{name.replace("-", "_")}',
+        'name': name,
+        'title': title,
+        'options': options,
+        'raw_content': body_content,
+    }
+```
+
+#### 3.0.7 Migration Path
+
+1. **Phase 1**: Add `[[ ]]` parser alongside existing `:::` parser
+2. **Phase 2**: Update documentation to prefer `[[ ]]` for containers
+3. **Phase 3**: Deprecation warnings for `::::` container syntax
+4. **Phase 4**: (Future) Remove `::::` support
+
+**Backward compatibility**: Existing `::::` syntax continues to work indefinitely.
+
+#### 3.0.8 Visual Metaphor
+
+The `[` brackets are **visual containers** — they look like walls:
+
+```
+[[ tabs ]]          ← "Opening a box called tabs"
+  content           ← stuff inside the box
+[[ /tabs ]]         ← "Closing the box"
+```
+
+Compare to colons which are just dots with no visual meaning:
+
+```
+::::{tabs}          ← Four dots? Fence posts?
+  content
+::::                ← Which directive is this closing?
+```
+
+---
 
 ### 3.1 Architecture Overview
 
@@ -1436,29 +1849,37 @@ bengal/rendering/plugins/directives/cards/
 
 ```
 Phase 1: Foundation (Week 1)
-├── Add base.py, options.py, tokens.py, utils.py
+├── Add base.py, options.py, tokens.py, utils.py, contracts.py
+├── Add container_parser.py for [[ ]] syntax
 ├── Write comprehensive tests for base classes
 └── No changes to existing directives
 
-Phase 2: Simple Directives (Week 2)
+Phase 2: Container Syntax (Week 1-2) ⭐ HIGH PRIORITY
+├── Implement [[ ]] parser for container directives
+├── Add support for: tabs/tab-set, steps, cards, grid
+├── Test nested container scenarios
+├── Both syntaxes work side-by-side
+
+Phase 3: Simple Directives (Week 2)
 ├── Migrate: dropdown, container, rubric, button, badge
 ├── These have simple options and rendering
 └── Validate backward compatibility
 
-Phase 3: Medium Directives (Week 2-3)
+Phase 4: Medium Directives (Week 2-3)
 ├── Migrate: admonitions, checklist, glossary, icon
 ├── AdmonitionDirective needs custom __call__ (multiple token types)
 └── Validate nested directive support
 
-Phase 4: Complex Directives (Week 3-4)
+Phase 5: Complex Directives (Week 3-4)
 ├── Migrate: cards, tabs, steps, navigation
+├── Add DirectiveContract validation
 ├── Consider package structure for cards
 ├── Validate all edge cases
 
-Phase 5: Cleanup (Week 4)
+Phase 6: Cleanup (Week 4)
 ├── Remove duplicated utilities
 ├── Update __init__.py exports
-├── Update documentation
+├── Update documentation (prefer [[ ]] for containers)
 └── Archive old implementations
 ```
 
@@ -1609,6 +2030,9 @@ class DirectiveProtocol(Protocol):
 
 | Module | Change Type | Impact |
 |--------|-------------|--------|
+| `rendering/plugins/directives/container_parser.py` | **NEW** | HIGH |
+| `rendering/plugins/directives/base.py` | **NEW** | HIGH |
+| `rendering/plugins/directives/contracts.py` | **NEW** | HIGH |
 | `rendering/plugins/directives/*.py` | Refactor | HIGH |
 | `rendering/plugins/directives/__init__.py` | Update exports | LOW |
 | `tests/unit/rendering/directives/` | Add tests | MEDIUM |
@@ -1633,17 +2057,21 @@ DirectiveToken
 ### 6.3 API Surface
 
 **New Public API**:
+- `[[ name ]]` ... `[[ /name ]]` - container directive syntax (user-facing)
 - `BengalDirective` - base class
+- `DirectiveContract` - nesting validation
 - `DirectiveOptions` - options base
 - `DirectiveToken` - token structure
 - `StyledOptions` - common option pattern
 - `ContainerOptions` - container option pattern
+- `parse_container_directive()` - container parser
 - Utility functions: `escape_html`, `build_class_string`, `bool_attr`, `data_attrs`
 
 **Unchanged**:
+- `:::{name}` ... `:::` - leaf directive syntax (user-facing, still supported)
+- `::::{name}` ... `::::` - old container syntax (deprecated but still works)
 - All directive classes (just different base)
 - Token format (dicts for mistune)
-- Directive syntax (user-facing)
 
 ---
 
@@ -1662,6 +2090,8 @@ DirectiveToken
 
 ### 8.1 Quantitative
 
+- [ ] **`[[ ]]` parser implemented** and tested for all container directives
+- [ ] **100% of container directives** support `[[ ]]` syntax
 - [ ] **100% of directives migrated** to new pattern
 - [ ] **0 duplicated escape_html** implementations
 - [ ] **100% type coverage** on new base classes
@@ -1669,6 +2099,8 @@ DirectiveToken
 
 ### 8.2 Qualitative
 
+- [ ] **Zero fence counting** — Authors never need to count colons for nested containers
+- [ ] **Clear error messages** — Invalid nesting produces actionable warnings
 - [ ] **New directives are faster to write** (~50% less boilerplate)
 - [ ] **Invalid options produce helpful warnings** (not silent defaults)
 - [ ] **IDE autocomplete works** for options

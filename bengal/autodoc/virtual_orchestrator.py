@@ -763,7 +763,7 @@ class VirtualAutodocOrchestrator:
         source_id = f"{doc_type}/{url_path}.md"
 
         # Generate HTML content using appropriate template
-        html_content = self._render_element(element, template_name, url_path, page_type)
+        html_content = self._render_element(element, template_name, url_path, page_type, section)
 
         # Create virtual page with absolute output path
         output_path = self.site.output_dir / f"{url_path}/index.html"
@@ -826,7 +826,12 @@ class VirtualAutodocOrchestrator:
         return "api-reference/module", f"api/{element.name}", "api-reference"
 
     def _render_element(
-        self, element: DocElement, template_name: str, url_path: str, page_type: str
+        self,
+        element: DocElement,
+        template_name: str,
+        url_path: str,
+        page_type: str,
+        section: Section | None = None,
     ) -> str:
         """
         Render element documentation to HTML.
@@ -836,6 +841,7 @@ class VirtualAutodocOrchestrator:
             template_name: Template name (e.g., "api-reference/module")
             url_path: URL path for this element (e.g., "cli/bengal/serve")
             page_type: Page type (e.g., "cli-reference", "api-reference")
+            section: Parent section (for sidebar navigation)
 
         Returns:
             Rendered HTML string
@@ -857,6 +863,7 @@ class VirtualAutodocOrchestrator:
             tags=element.metadata.get("tags", []) if element.metadata else [],
             relative_url=f"/{url_path}/",
             source_path=str(element.source_file) if element.source_file else None,
+            section=section,
         )
 
         # Try theme template first
@@ -1002,6 +1009,7 @@ class VirtualAutodocOrchestrator:
             },
             tags=[],
             relative_url=section.relative_url,
+            section=section,
         )
 
         # Try theme template first

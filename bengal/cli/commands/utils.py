@@ -11,7 +11,7 @@ from bengal.cli.commands.theme import theme
 
 
 @click.group("utils", cls=BengalGroup)
-def utils_cli():
+def utils_cli() -> None:
     """
     Utility commands for development and maintenance.
     """

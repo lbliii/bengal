@@ -52,7 +52,7 @@ from .base import BengalCommand, BengalGroup
 @click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
 @click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main(ctx) -> None:
+def main(ctx: click.Context) -> None:
     """
     Bengal Static Site Generator CLI.
 
