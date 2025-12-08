@@ -427,9 +427,17 @@ class Asset:
 
                     # Return bundled content so it can replace the @layer block body
                     return bundled_content
-                except Exception as e:
+                except (OSError, PermissionError) as e:
                     logger.warning(
                         "css_import_read_failed",
+                        imported_file=str(imported_file),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return import_match.group(0)
+                except Exception as e:
+                    logger.error(
+                        "css_import_unexpected_error",
                         imported_file=str(imported_file),
                         error=str(e),
                         error_type=type(e).__name__,
@@ -743,7 +751,13 @@ class Asset:
 
                 self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
                 tmp_path.replace(output_path)
-            except Exception:
+            except Exception as e:
+                logger.error(
+                    "atomic_image_save_failed",
+                    path=str(output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 tmp_path.unlink(missing_ok=True)
                 raise
         else:

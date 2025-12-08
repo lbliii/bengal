@@ -4,7 +4,6 @@ URL manipulation functions for templates.
 Provides 4 functions for working with URLs in templates.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -43,6 +42,8 @@ def absolute_url(url: str, base_url: str) -> str:
     """
     Convert relative URL to absolute URL.
 
+    Uses centralized URL normalization to ensure consistency.
+
     Args:
         url: Relative or absolute URL
         base_url: Base URL to prepend
@@ -54,20 +55,33 @@ def absolute_url(url: str, base_url: str) -> str:
         {{ page.url | absolute_url }}
         # Output: https://example.com/posts/my-post/
     """
+    from bengal.utils.url_normalization import normalize_url
+
     if not url:
         return base_url or ""
 
-    # Already absolute
+    # Already absolute (http://, https://, //)
     if url.startswith(("http://", "https://", "//")):
         return url
 
     # Normalize base URL
     base_url = base_url.rstrip("/") if base_url else ""
 
-    # Normalize relative URL
-    url = "/" + url.lstrip("/")
+    # Normalize relative URL first
+    normalized_url = normalize_url(url, ensure_trailing_slash=True)
 
-    return base_url + url
+    # Combine URLs
+    # If base_url is empty or just "/", use normalized_url directly
+    if not base_url or base_url == "/":
+        return normalized_url
+
+    # If normalized_url already starts with base_url, don't duplicate it
+    if normalized_url.startswith(base_url):
+        return normalized_url
+
+    # Combine and normalize again to handle any edge cases
+    result = base_url + normalized_url
+    return normalize_url(result, ensure_trailing_slash=True)
 
 
 def url_encode(text: str) -> str:

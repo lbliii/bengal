@@ -143,14 +143,30 @@ class TestGraphAnalyzerDirect:
 
     def test_get_layers(self, simple_site):
         """Test layer partitioning."""
+        from bengal.analysis.results import PageLayers
+
         graph = KnowledgeGraph(simple_site)
         graph.build()
         analyzer = GraphAnalyzer(graph)
 
-        hubs, mid_tier, leaves = analyzer.get_layers()
+        layers = analyzer.get_layers()
+
+        # Verify it's a PageLayers dataclass
+        assert isinstance(layers, PageLayers)
+
+        # Test attribute access (new way)
+        assert isinstance(layers.hubs, list)
+        assert isinstance(layers.mid_tier, list)
+        assert isinstance(layers.leaves, list)
+
+        # Test tuple unpacking (backward compatibility)
+        hubs, mid_tier, leaves = layers
+        assert hubs == layers.hubs
+        assert mid_tier == layers.mid_tier
+        assert leaves == layers.leaves
 
         # All pages should be in exactly one layer
-        all_in_layers = set(hubs) | set(mid_tier) | set(leaves)
+        all_in_layers = set(layers.hubs) | set(layers.mid_tier) | set(layers.leaves)
         assert len(all_in_layers) == len(simple_site.pages)
 
 
@@ -172,7 +188,12 @@ class TestGraphAnalyzerDelegation:
         assert graph.get_hubs() == analyzer.get_hubs()
         assert graph.get_leaves() == analyzer.get_leaves()
         assert graph.get_orphans() == analyzer.get_orphans()
-        assert graph.get_layers() == analyzer.get_layers()
+        # Both should return PageLayers dataclasses with same content
+        graph_layers = graph.get_layers()
+        analyzer_layers = analyzer.get_layers()
+        assert graph_layers.hubs == analyzer_layers.hubs
+        assert graph_layers.mid_tier == analyzer_layers.mid_tier
+        assert graph_layers.leaves == analyzer_layers.leaves
 
     def test_delegation_error_handling(self, simple_site):
         """Test that delegated methods still raise ValueError before build."""

@@ -199,17 +199,25 @@ class TestLayers:
 
     def test_get_layers(self, site_with_links):
         """Test that pages are partitioned into layers."""
+        from bengal.analysis.results import PageLayers
+
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hubs, mid_tier, leaves = graph.get_layers()
+        layers = graph.get_layers()
+
+        # Verify it's a PageLayers dataclass
+        assert isinstance(layers, PageLayers)
+
+        # Test tuple unpacking (backward compatibility)
+        hubs, mid_tier, leaves = layers
 
         # All pages should be in one of the layers
-        total = len(hubs) + len(mid_tier) + len(leaves)
+        total = len(layers.hubs) + len(layers.mid_tier) + len(layers.leaves)
         assert total == len(site_with_links.pages)
 
         # No page should be in multiple layers
-        all_pages = hubs + mid_tier + leaves
+        all_pages = layers.hubs + layers.mid_tier + layers.leaves
         assert len(all_pages) == len(set(all_pages))
 
     def test_layers_sorted_by_connectivity(self, site_with_links):
@@ -217,13 +225,16 @@ class TestLayers:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hubs, mid_tier, leaves = graph.get_layers()
+        layers = graph.get_layers()
+
+        # Test tuple unpacking (backward compatibility)
+        hubs, mid_tier, leaves = layers
 
         # If we have pages in multiple layers,
         # hubs should have higher connectivity than leaves
-        if hubs and leaves:
-            hub_conn = graph.get_connectivity_score(hubs[0])
-            leaf_conn = graph.get_connectivity_score(leaves[-1])
+        if layers.hubs and layers.leaves:
+            hub_conn = graph.get_connectivity_score(layers.hubs[0])
+            leaf_conn = graph.get_connectivity_score(layers.leaves[-1])
             assert hub_conn >= leaf_conn
 
 

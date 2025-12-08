@@ -163,13 +163,13 @@ class StreamingRenderOrchestrator:
             graph.build()
 
         # Get connectivity-based layers
-        hubs, mid_tier, leaves = graph.get_layers()
+        layers = graph.get_layers()
 
         # Filter to only pages we're rendering
         pages_set = set(pages)
-        hubs_to_render = [p for p in hubs if p in pages_set]
-        mid_to_render = [p for p in mid_tier if p in pages_set]
-        leaves_to_render = [p for p in leaves if p in pages_set]
+        hubs_to_render = [p for p in layers.hubs if p in pages_set]
+        mid_to_render = [p for p in layers.mid_tier if p in pages_set]
+        leaves_to_render = [p for p in layers.leaves if p in pages_set]
 
         total_hubs = len(hubs_to_render)
         total_mid = len(mid_to_render)

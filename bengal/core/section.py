@@ -147,12 +147,17 @@ class Section:
         if title:
             section_metadata["title"] = title
 
+        # Normalize URL at construction time
+        from bengal.utils.url_normalization import normalize_url
+
+        normalized_url = normalize_url(relative_url, ensure_trailing_slash=True)
+
         return cls(
             name=name,
             path=None,
             metadata=section_metadata,
             _virtual=True,
-            _relative_url_override=relative_url,
+            _relative_url_override=normalized_url,
         )
 
     @property
@@ -424,10 +429,21 @@ class Section:
         Always returns a relative path without baseurl.
 
         For virtual sections, uses the _relative_url_override set during creation.
+        Virtual sections MUST have explicit URLs - they never fall back to construction.
         """
-        # Virtual sections use explicit URL override
-        if self._relative_url_override:
-            logger.debug("section_url_from_override", section=self.name, url=self._relative_url_override)
+        from bengal.utils.url_normalization import join_url_paths, normalize_url
+
+        # Virtual sections MUST have explicit URL override
+        # This is a hard requirement - virtual sections are created with explicit URLs
+        if self._virtual:
+            if not self._relative_url_override:
+                raise ValueError(
+                    f"Virtual section '{self.name}' has no _relative_url_override set. "
+                    f"Virtual sections must have explicit URLs set during creation."
+                )
+            logger.debug(
+                "section_url_from_override", section=self.name, url=self._relative_url_override
+            )
             return self._relative_url_override
 
         # If we have an index page with a proper output_path, use its relative_url
@@ -438,14 +454,13 @@ class Section:
         ):
             url = self.index_page.relative_url
             logger.debug("section_url_from_index", section=self.name, url=url)
-            return url
+            # Normalize to ensure consistency
+            return normalize_url(url, ensure_trailing_slash=True)
 
         # Otherwise, construct from section hierarchy
-        # This handles the case before pages have output_paths set
-        # Nested section includes parent URL, top-level section starts with /
-        # Use relative_url to avoid baseurl in parent
+        # This handles regular sections (not virtual) before pages have output_paths set
         parent_rel = self.parent.relative_url if self.parent else "/"
-        url = f"{parent_rel}{self.name}/" if parent_rel != "/" else f"/{self.name}/"
+        url = join_url_paths(parent_rel, self.name)
 
         logger.debug(
             "section_url_constructed", section=self.name, url=url, has_parent=bool(self.parent)
@@ -739,7 +754,10 @@ class Section:
             return NotImplemented
         if self.path is None and other.path is None:
             # Both virtual: compare by name and URL
-            return (self.name, self._relative_url_override) == (other.name, other._relative_url_override)
+            return (self.name, self._relative_url_override) == (
+                other.name,
+                other._relative_url_override,
+            )
         return self.path == other.path
 
     def __repr__(self) -> str:

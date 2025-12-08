@@ -156,7 +156,8 @@ class PageMetadataMixin:
         baseurl = ""
         try:
             baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
-        except Exception:
+        except Exception as e:
+            logger.debug("page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
         if not baseurl:
@@ -321,7 +322,7 @@ class PageMetadataMixin:
         """
         if self.core.variant:
             return self.core.variant
-        
+
         # Legacy fallbacks
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
@@ -460,7 +461,7 @@ class PageMetadataMixin:
     def in_sitemap(self) -> bool:
         """
         Check if page should appear in sitemap.
-        
+
         Excludes drafts and pages with visibility.sitemap=False.
 
         Returns:
@@ -537,6 +538,4 @@ class PageMetadataMixin:
 
         if render == "never":
             return False
-        if render == "local" and is_production:
-            return False
-        return True
+        return not (render == "local" and is_production)

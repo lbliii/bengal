@@ -236,9 +236,7 @@ class RenderingPipeline:
         if not cache or page.metadata.get("_generated"):
             return False
 
-        cached = cache.get_parsed_content(
-            page.source_path, page.metadata, template, parser_version
-        )
+        cached = cache.get_parsed_content(page.source_path, page.metadata, template, parser_version)
         if not cached:
             return False
 
@@ -296,15 +294,11 @@ class RenderingPipeline:
             return False
 
         content_text = page.content or ""
-        likely_has_atx = re.search(
-            r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE
-        )
+        likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if likely_has_atx:
             return True
 
-        likely_has_setext = re.search(
-            r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE
-        )
+        likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
     def _parse_with_mistune(self, page: Page, need_toc: bool) -> None:
@@ -339,8 +333,12 @@ class RenderingPipeline:
                 try:
                     ast_tokens = self.parser.parse_to_ast(page.content, page.metadata)
                     page._ast_cache = ast_tokens
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(
+                        "ast_extraction_failed",
+                        page=str(page.source_path),
+                        error=str(e),
+                    )
 
         page.parsed_ast = parsed_content
         page.toc = toc
@@ -370,7 +368,8 @@ class RenderingPipeline:
                 from bengal.rendering.api_doc_enhancer import get_enhancer
 
                 enhancer = get_enhancer()
-        except Exception:
+        except Exception as e:
+            logger.debug("api_doc_enhancer_init_failed", error=str(e))
             enhancer = None
 
         page_type = page.metadata.get("type")
@@ -479,7 +478,6 @@ class RenderingPipeline:
         page.parsed_ast = page._prerendered_html
         page.toc = ""
 
-        template = determine_template(page)
         html_content = self.renderer.render_content(page.parsed_ast)
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
@@ -588,4 +586,3 @@ class RenderingPipeline:
                     error=truncate_error(e),
                 )
             return page.content
-

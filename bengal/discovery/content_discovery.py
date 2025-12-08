@@ -8,7 +8,6 @@ Robustness:
 
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -136,9 +135,12 @@ class ContentDiscovery:
                     "pyyaml_c_extensions_missing",
                     hint="Install pyyaml[libyaml] for faster frontmatter parsing",
                 )
-        except Exception:
+        except ImportError:
             # If yaml isn't importable here, frontmatter will raise later; do nothing now
             pass
+        except Exception as e:
+            # Unexpected error during yaml import check
+            self.logger.debug("yaml_import_check_failed", error=str(e))
 
         if not self.content_dir.exists():
             self.logger.warning(
@@ -440,6 +442,7 @@ class ContentDiscovery:
                 "directory_stat_failed",
                 path=str(directory),
                 error=str(e),
+                error_type=type(e).__name__,
                 action="skipping",
             )
             return
@@ -609,7 +612,7 @@ class ContentDiscovery:
 
     def _get_collection_for_file(
         self, file_path: Path
-    ) -> tuple[str | None, "CollectionConfig | None"]:
+    ) -> tuple[str | None, CollectionConfig | None]:
         """
         Find which collection a file belongs to based on its path.
 
@@ -718,9 +721,13 @@ class ContentDiscovery:
                                 # Use path without extension for stability
                                 key = str(Path(*key_parts).with_suffix(""))
                                 page.translation_key = key
-            except Exception:
+            except Exception as e:
                 # Do not fail discovery on i18n enrichment errors
-                pass
+                self.logger.debug(
+                    "page_i18n_enrichment_failed",
+                    page=str(file_path),
+                    error=str(e),
+                )
 
             self.logger.debug(
                 "page_created",

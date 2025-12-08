@@ -18,7 +18,6 @@ Example:
     data = load_data_file(path)  # Works for .json, .yaml, .toml
 """
 
-
 from __future__ import annotations
 
 import json
@@ -271,7 +270,7 @@ def load_json(
 
 def load_yaml(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Load YAML file with error handling.
 
@@ -347,7 +346,7 @@ def load_yaml(
 
 def load_toml(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Load TOML file with error handling.
 
@@ -408,7 +407,7 @@ def load_toml(
 
 def load_data_file(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Auto-detect and load JSON/YAML/TOML file.
 

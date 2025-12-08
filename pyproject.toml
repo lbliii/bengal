@@ -66,6 +66,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "hypothesis>=6.92.0",
     "mypy>=1.11.0",
+    "types-PyYAML>=6.0.12",   # Type stubs for yaml library
     "ruff>=0.14.0",           # 0.14+ required for Python 3.14 support
     "beautifulsoup4>=4.12.0", # For HTML validation in integration tests only
     "markdown>=3.5.0",        # Optional parser for tests

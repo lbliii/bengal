@@ -5,7 +5,6 @@ Reads collected metrics from .bengal/metrics/ and provides analysis,
 visualization, and trend detection.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -131,7 +130,7 @@ class PerformanceReport:
 
         return metrics
 
-    def show(self, last: int = 10, format: str = "table"):
+    def show(self, last: int = 10, format: str = "table") -> None:
         """
         Show performance report.
 
@@ -155,7 +154,7 @@ class PerformanceReport:
         else:
             print(f"Unknown format: {format}")
 
-    def _print_table(self, metrics: list[BuildMetric]):
+    def _print_table(self, metrics: list[BuildMetric]) -> None:
         """Print as ASCII table."""
         print("\n📊 Performance History")
         print(f"   Showing {len(metrics)} most recent builds\n")
@@ -190,7 +189,7 @@ class PerformanceReport:
         if len(metrics) >= 2:
             self._print_trends(metrics)
 
-    def _print_trends(self, metrics: list[BuildMetric]):
+    def _print_trends(self, metrics: list[BuildMetric]) -> None:
         """Print trend analysis."""
         # Filter out skipped builds for trend analysis
         valid_metrics = [m for m in metrics if not m.skipped]
@@ -233,7 +232,7 @@ class PerformanceReport:
         if abs(mem_change) > 15:
             print(f"⚠️  Significant memory change: {mem_change:+.1f}%")
 
-    def _print_json(self, metrics: list[BuildMetric]):
+    def _print_json(self, metrics: list[BuildMetric]) -> None:
         """Print as JSON array."""
         data = [
             {
@@ -250,7 +249,7 @@ class PerformanceReport:
         ]
         print(json.dumps(data, indent=2))
 
-    def _print_summary(self, metrics: list[BuildMetric]):
+    def _print_summary(self, metrics: list[BuildMetric]) -> None:
         """Print summary statistics."""
         if not metrics:
             return
@@ -290,7 +289,7 @@ class PerformanceReport:
             print(f"   Assets:     {latest.assets_time_ms:>6.0f}ms")
             print(f"   Postproc:   {latest.postprocess_time_ms:>6.0f}ms")
 
-    def compare(self, build1_idx: int = 0, build2_idx: int = 1):
+    def compare(self, build1_idx: int = 0, build2_idx: int = 1) -> None:
         """
         Compare two builds.
 
@@ -348,7 +347,9 @@ class PerformanceReport:
             b2.pages_per_second,
         )
 
-    def _compare_metric(self, name: str, val1, val2, num1=None, num2=None):
+    def _compare_metric(
+        self, name: str, val1: Any, val2: Any, num1: float | None = None, num2: float | None = None
+    ) -> None:
         """Print comparison row."""
         if num1 is not None and num2 is not None and num1 > 0:
             change_pct = ((num2 - num1) / num1) * 100

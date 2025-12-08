@@ -317,9 +317,11 @@ class VirtualAutodocOrchestrator:
                 package_descriptions[element.qualified_name] = element.description
 
         # Create root API section
+        from bengal.utils.url_normalization import join_url_paths
+
         api_section = Section.create_virtual(
             name="api",
-            relative_url="/api/",
+            relative_url=join_url_paths("api"),
             title="API Reference",
             metadata={
                 "type": "api-reference",
@@ -347,7 +349,10 @@ class VirtualAutodocOrchestrator:
 
                 if section_path not in sections:
                     # Create new package section
-                    relative_url = f"/{section_path}/"
+                    # Use join_url_paths to ensure proper normalization
+                    from bengal.utils.url_normalization import join_url_paths
+
+                    relative_url = join_url_paths("api", *parts[: i + 1])
                     qualified_name = ".".join(parts[: i + 1])
 
                     # Try to find description from the package's __init__.py
@@ -382,9 +387,11 @@ class VirtualAutodocOrchestrator:
         sections: dict[str, Section] = {}
 
         # Create root CLI section
+        from bengal.utils.url_normalization import join_url_paths
+
         cli_section = Section.create_virtual(
             name="cli",
-            relative_url="/cli/",
+            relative_url=join_url_paths("cli"),
             title="CLI Reference",
             metadata={
                 "type": "cli-reference",
@@ -418,11 +425,13 @@ class VirtualAutodocOrchestrator:
             if not commands:
                 continue
 
+            # Build URL path components
+            group_parts = group_name.split(".")
             section_path = f"cli/{group_name.replace('.', '/')}"
             group_section = Section.create_virtual(
-                name=group_name.split(".")[-1],
-                relative_url=f"/{section_path}/",
-                title=group_name.split(".")[-1].replace("_", " ").title(),
+                name=group_parts[-1],
+                relative_url=join_url_paths("cli", *group_parts),
+                title=group_parts[-1].replace("_", " ").title(),
                 metadata={
                     "type": "cli-reference",
                     "qualified_name": group_name,
@@ -442,10 +451,12 @@ class VirtualAutodocOrchestrator:
         existing_sections = existing_sections or {}
 
         # Create root API section (or use existing if Python also enabled)
+        from bengal.utils.url_normalization import join_url_paths
+
         if "api" not in existing_sections:
             api_section = Section.create_virtual(
                 name="api",
-                relative_url="/api/",
+                relative_url=join_url_paths("api"),
                 title="API Reference",
                 metadata={
                     "type": "api-reference",
@@ -482,7 +493,7 @@ class VirtualAutodocOrchestrator:
                 if "api/schemas" not in sections:
                     schemas_section = Section.create_virtual(
                         name="schemas",
-                        relative_url="/api/schemas/",
+                        relative_url=join_url_paths("api", "schemas"),
                         title="Schemas",
                         metadata={
                             "type": "api-reference",
@@ -494,10 +505,9 @@ class VirtualAutodocOrchestrator:
 
         # Create sections for tags
         for tag, _endpoints in tagged_endpoints.items():
-            section_path = f"api/tags/{tag}"
             tag_section = Section.create_virtual(
                 name=tag,
-                relative_url=f"/{section_path}/",
+                relative_url=join_url_paths("api", "tags", tag),
                 title=tag.replace("-", " ").title(),
                 metadata={
                     "type": "api-reference",
@@ -505,7 +515,7 @@ class VirtualAutodocOrchestrator:
                 },
             )
             api_section.add_subsection(tag_section)
-            sections[section_path] = tag_section
+            sections[f"api/tags/{tag}"] = tag_section
 
         logger.debug("autodoc_sections_created", count=len(sections), type="openapi")
         return sections

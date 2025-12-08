@@ -323,7 +323,8 @@ def get_pagination_per_page(config_value: int | None = None) -> int:
         Items per page (default: 10, minimum: 1)
     """
     if config_value is None:
-        return DEFAULTS["pagination"]["per_page"]
+        pagination_defaults: dict[str, Any] = DEFAULTS.get("pagination", {})
+        return int(pagination_defaults.get("per_page", 10))
     return max(1, config_value)
 
 
@@ -445,7 +446,8 @@ def is_feature_enabled(
         return value
 
     if isinstance(value, dict):
-        return value.get("enabled", default)
+        enabled_value: Any = value.get("enabled", default)
+        return bool(enabled_value)
 
     return default
 
