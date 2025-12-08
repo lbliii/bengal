@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bengal.core.theme import Theme
 from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -12,6 +13,11 @@ class DummySite:
         self.output_dir = root_path / "public"
         self.config = {}
         self.theme = "default"
+
+    @property
+    def theme_config(self) -> Theme:
+        """Return a default Theme for testing."""
+        return Theme(name=self.theme)
 
 
 def test_asset_url_prefers_hashed_file(tmp_path: Path):

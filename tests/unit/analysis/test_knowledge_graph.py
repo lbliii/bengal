@@ -456,7 +456,7 @@ class TestActionableRecommendations:
         """Test that recommendations require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting recommendations."):
             graph.get_actionable_recommendations()
 
 
@@ -478,7 +478,7 @@ class TestSEOInsights:
         """Test that SEO insights require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting SEO insights."):
             graph.get_seo_insights()
 
 

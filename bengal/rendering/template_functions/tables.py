@@ -87,10 +87,10 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
         )
 
     # Get site from environment globals
-    site_obj = env.globals["site"]
-    if not isinstance(site_obj, Site):
-        raise TypeError(f"Expected Site object, got {type(site_obj)}")
-    site: Site = site_obj
+    # Use duck typing - only root_path is needed
+    site = env.globals["site"]
+    if not hasattr(site, "root_path"):
+        raise TypeError("Site object missing required 'root_path' attribute")
 
     # Create a mock state object with root_path
     class State:

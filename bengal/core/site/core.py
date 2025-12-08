@@ -61,8 +61,8 @@ class Site(
     SitePropertiesMixin,
     PageCachesMixin,
     SiteFactoriesMixin,
+    ThemeIntegrationMixin,  # Must come before ContentDiscoveryMixin for _get_theme_assets_chain
     ContentDiscoveryMixin,
-    ThemeIntegrationMixin,
     DataLoadingMixin,
     SectionRegistryMixin,
 ):

@@ -197,7 +197,7 @@ class TestDataTableInTemplate:
         """Test using data_table in a Jinja2 template."""
         # Register the function
         site = MagicMock()
-        site.root_path = mock_env.site.root_path
+        site.root_path = mock_env.globals["site"].root_path
         register(mock_env, site)
 
         # Create a template
@@ -212,7 +212,7 @@ class TestDataTableInTemplate:
     def test_use_with_options_in_template(self, mock_env, yaml_data_file):
         """Test using data_table with options in template."""
         site = MagicMock()
-        site.root_path = mock_env.site.root_path
+        site.root_path = mock_env.globals["site"].root_path
         register(mock_env, site)
 
         template = mock_env.from_string(
@@ -228,7 +228,7 @@ class TestDataTableInTemplate:
     def test_conditional_rendering_in_template(self, mock_env, yaml_data_file):
         """Test conditional rendering of data table."""
         site = MagicMock()
-        site.root_path = mock_env.site.root_path
+        site.root_path = mock_env.globals["site"].root_path
         register(mock_env, site)
 
         template = mock_env.from_string(
@@ -253,7 +253,7 @@ class TestDataTableInTemplate:
     def test_multiple_tables_in_template(self, mock_env, yaml_data_file, csv_data_file):
         """Test rendering multiple tables in same template."""
         site = MagicMock()
-        site.root_path = mock_env.site.root_path
+        site.root_path = mock_env.globals["site"].root_path
         register(mock_env, site)
 
         template = mock_env.from_string(
@@ -344,7 +344,7 @@ class TestMarkupSafety:
     def test_markup_is_not_double_escaped(self, mock_env, yaml_data_file):
         """Test that Markup is not double-escaped in templates."""
         site = MagicMock()
-        site.root_path = mock_env.site.root_path
+        site.root_path = mock_env.globals["site"].root_path
         register(mock_env, site)
 
         # Enable auto-escaping

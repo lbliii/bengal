@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bengal.core.theme import Theme
 from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -12,6 +13,11 @@ class DummySite:
         self.theme = theme
         self.config = {}
         self.output_dir = root_path / "public"  # Required by TemplateEngine for bytecode cache
+
+    @property
+    def theme_config(self) -> Theme:
+        """Return a default Theme for testing."""
+        return Theme(name=self.theme)
 
 
 def write_theme(root: Path, name: str, extends: str | None, with_template: bool = False) -> None:
