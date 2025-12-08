@@ -197,7 +197,7 @@ def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, 
         return {}
 
     # Handle both dict and object attributes
-    def get_value(item):
+    def get_value(item: Any) -> Any:
         if isinstance(item, dict):
             return item.get(key)
         return getattr(item, key, None)
@@ -232,7 +232,7 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     if not items:
         return []
 
-    def get_sort_key(item):
+    def get_sort_key(item: Any) -> Any:
         if isinstance(item, dict):
             return item.get(key)
         return getattr(item, key, None)

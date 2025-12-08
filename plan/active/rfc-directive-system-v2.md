@@ -12,7 +12,7 @@
 
 Redesign Bengal's directive system with three major improvements:
 
-1. **`[[ ]]` Container Syntax** — New fence syntax for container directives that eliminates fence-depth counting hell
+1. **Named Closure Syntax** — Optional `::: /name` closers to eliminate fence-depth counting
 2. **Nested Directive Validation** — `DirectiveContract` system catches invalid nesting at parse time
 3. **Cohesive Architecture** — `BengalDirective` base class with typed options and encapsulated rendering
 
@@ -22,13 +22,13 @@ The current system has 20+ directives that work but suffer from:
 - **Duplicated boilerplate** — Same patterns repeated across 24 files
 
 **Key Proposals**:
-- `[[ name ]]` ... `[[ /name ]]` syntax for container directives (tabs, steps, cards)
-- `:::{name}` ... `:::` syntax unchanged for leaf directives (admonitions, badges)
-- `DirectiveContract` validates parent-child relationships at parse time
-- `BengalDirective` base class standardizes directive development
+- **Named Closers**: `::: /tabs` explicitly closes `::: tabs`, bypassing fence counting
+- **Backward Compatible**: Standard `::::` counting still works for simple cases
+- **Validation**: `DirectiveContract` validates parent-child relationships
+- **Architecture**: `BengalDirective` base class standardizes development
 
 **Primary Value**: 
-- **Zero fence counting** — Nest arbitrarily deep with `[[ ]]` containers
+- **Zero fence counting** — Nest arbitrarily deep using named closers when needed
 - **Helpful warnings** — Invalid nesting caught at parse time, not in broken output
 
 ---
@@ -262,7 +262,7 @@ Content silently disappears
 ### 2.1 Goals
 
 **Primary Goals** (address main pain points):
-1. **🎯 `[[ ]]` container syntax** — Eliminate fence-depth counting with named closers
+1. **🎯 Named closure syntax** — `::: /name` syntax to escape fence-depth hell
 2. **🎯 Nested directive validation** — Invalid nesting produces helpful warnings, not silent failures
 
 **Secondary Goals** (improve DX and maintainability):
@@ -286,11 +286,11 @@ Content silently disappears
 
 ## 3. Proposed Design
 
-### 3.0 Container Syntax: `[[ ]]` Fences ⭐ KEY FEATURE
+### 3.0 Named Closure Syntax: `::: /name` ⭐ KEY FEATURE
 
 #### 3.0.1 The Problem
 
-Current MyST-style fence counting is error-prone and tedious:
+Current MyST-style fence counting works well for shallow nesting but becomes "Fence-Depth Hell" for complex content:
 
 ```markdown
 <!-- Current: Must count and increment fence depths -->
@@ -305,80 +305,59 @@ Important info
 <!-- Adding ONE more level requires updating EVERYTHING above -->
 ```
 
-**Pain points:**
-- Adding nested content cascades to all parent fence depths
-- Easy to miscount colons
-- Ambiguous which `:::` closes which directive
-- Documenting directives requires even more fence levels
+#### 3.0.2 The Solution: Optional Named Closers
 
-#### 3.0.2 The Solution: `[[ ]]` Container Syntax
+We introduce **Named Closers** (`::: /name`) as an **optional** alternative to fence counting.
 
-Container directives use a distinct fence syntax with **named closers**:
+You can mix and match: use standard fence counting for simple cases, and named closers when things get deep.
 
+**Standard (Simple):**
 ```markdown
-[[ tab-set ]]
-
-[[ tab ]] Python
-
-:::{note}
-Important info
+::: note
+Simple content
 :::
-
-```python
-print("hello")
 ```
 
-[[ /tab ]]
+**Named Closure (Complex):**
+```markdown
+::: tab-set
 
-[[ tab ]] JavaScript
+::: tab Python
+:::{note}
+No need to count colons! The /tab explicitly closes the tab.
+:::
+::: /tab
 
-```js
-console.log("hello");
-```
+::: tab JS
+Content
+::: /tab
 
-[[ /tab ]]
-
-[[ /tab-set ]]
+::: /tab-set
 ```
 
 **Benefits:**
-- **Zero fence counting** — Everything uses 3 colons or `[[ ]]`
-- **Self-documenting closers** — `[[ /tab-set ]]` explicitly closes `[[ tab-set ]]`
-- **Visual containers** — `[` brackets literally look like container walls
-- **Arbitrary nesting** — Nest as deep as needed with no ambiguity
+- **Zero fence counting** — Use `::: /name` to close exactly what you want
+- **Cognitive ease** — Matches HTML mental model (`<tag>` ... `</tag>`)
+- **Tooling friendly** — Uses standard `:::` markers, preserving syntax highlighting
+- **Backward compatible** — Existing fence-counting syntax continues to work perfectly
 
 #### 3.0.3 Syntax Rules
 
-| Directive Type | Opener | Closer | Example |
-|----------------|--------|--------|---------|
-| **Container** | `[[ name ]]` | `[[ /name ]]` | `[[ tabs ]]` ... `[[ /tabs ]]` |
-| **Leaf** | `:::{name}` | `:::` | `:::{note}` ... `:::` |
-| **Code** | ` ``` ` | ` ``` ` | Unchanged |
+| Style | Opener | Closer | Use Case |
+|-------|--------|--------|----------|
+| **Standard** | `:::{name}` | `:::` (matching length) | Simple, shallow content |
+| **Named** | `:::{name}` | `:::{/name}` or `::: /name` | Deep nesting, complex structures |
 
-**Container directives** (use `[[ ]]`):
-- `tabs` / `tab-set` / `tab` / `tab-item`
-- `steps` / `step`
-- `cards` / `card`
-- `grid` / `grid-item-card`
-
-**Leaf directives** (use `:::`):
-- All admonitions (note, warning, tip, danger, etc.)
-- `dropdown`
-- `badge`
-- `button`
-- `glossary`
-- `include`
-- `literalinclude`
-- etc.
+**Note on Syntax**: The closer can be `::: /name` (space) or `:::{/name}` (curly braces) to match the opener style. The parser will accept both.
 
 #### 3.0.4 Full Examples
 
-**Example 1: Tabs with Rich Content**
+**Example 1: Tabs with Named Closers**
 
 ```markdown
-[[ tabs ]]
+::: tab-set
 
-[[ tab ]] macOS
+::: tab macOS
 
 :::{note}
 Requires Homebrew
@@ -386,128 +365,79 @@ Requires Homebrew
 
 ```bash
 brew install bengal
-bengal new site my-docs
 ```
 
-[[ /tab ]]
+::: /tab
 
-[[ tab ]] Linux
+::: tab Linux
 
 ```bash
 pip install bengal
-bengal new site my-docs
 ```
 
 :::{tip}
 Use a virtual environment!
 :::
 
-[[ /tab ]]
+::: /tab
 
-[[ /tabs ]]
+::: /tab-set
 ```
 
-**Example 2: Nested Containers (Steps with Tabs)**
+**Example 2: Mixing Styles**
 
 ```markdown
-[[ steps ]]
+<!-- Outer container uses named closers -->
+::: steps
 
-[[ step ]] Install Dependencies
-
-[[ tabs ]]
-
-[[ tab ]] pip
-```bash
-pip install bengal
-```
-[[ /tab ]]
-
-[[ tab ]] pipx
-```bash
-pipx install bengal
-```
-[[ /tab ]]
-
-[[ /tabs ]]
-
-[[ /step ]]
-
-[[ step ]] Configure
-
-:::{warning}
-Never commit credentials!
+::: step Install Dependencies
+<!-- Inner content uses standard simple fences -->
+:::{note}
+Standard 3-colon fence works fine here
 :::
+::: /step
 
-```yaml
-database:
-  type: postgres
+::: step Configure
+Content
+::: /step
+
+::: /steps
 ```
 
-[[ /step ]]
+**Example 3: Documentation**
 
-[[ /steps ]]
-```
-
-**Example 3: Cards Grid**
-
-```markdown
-[[ cards ]]
-:columns: 3
-
-[[ card ]] Getting Started
-:icon: rocket
-:link: /docs/getting-started/
-
-Quick setup in 5 minutes.
-
-[[ /card ]]
-
-[[ card ]] Configuration
-:icon: gear
-
-All the knobs and switches.
-
-[[ /card ]]
-
-[[ /cards ]]
-```
-
-**Example 4: Documenting Directive Syntax**
-
-With `[[ ]]` syntax, documenting directives is simple:
+Documenting directives is easier because you don't need to escalate fence depths endlessly:
 
 ````markdown
 ## How to Use Tabs
 
 ```markdown
-[[ tabs ]]
-
-[[ tab ]] First Tab
-Content here
-[[ /tab ]]
-
-[[ tab ]] Second Tab
-More content
-[[ /tab ]]
-
-[[ /tabs ]]
+::: tab-set
+::: tab Tab 1
+Content
+::: /tab
+::: /tab-set
 ```
 ````
 
-Only **3 backticks** needed for the code block because `[[ ]]` doesn't conflict!
+Only **3 backticks** needed for the code block if you use 3 colons inside!
 
 #### 3.0.5 Options Syntax
 
-Options work the same as before, on the line after the opener:
+Unchanged. Options immediately follow the opener.
 
 ```markdown
-[[ cards ]]
+::: cards
 :columns: 3
-:gap: large
 
-[[ card ]] Title
+::: card Title
 :icon: star
-:link: /docs/
+
+Content
+::: /card
+::: /cards
+```
+
 
 Content here.
 
@@ -519,120 +449,67 @@ Content here.
 #### 3.0.6 Parser Implementation
 
 ```python
-# bengal/rendering/plugins/directives/container_parser.py
+# bengal/rendering/plugins/directives/hybrid_parser.py
 import re
 from typing import Any
 
-# Pattern for container directive opener: [[ name ]]
-CONTAINER_OPEN_PATTERN = re.compile(
-    r'^\[\[\s*([a-z][a-z0-9-]*)\s*\]\][ ]*(.*)$',
+# Standard fence pattern: ::: name
+# Matches 3+ colons, optional space, directive name (in {} or bare), optional title
+FENCE_OPEN_PATTERN = re.compile(
+    r'^:{3,}\s*(?:\{([a-zA-Z0-9_-]+)\}|([a-zA-Z0-9_-]+))\s*(.*)$',
     re.MULTILINE
 )
 
-# Pattern for container directive closer: [[ /name ]]
-CONTAINER_CLOSE_PATTERN = re.compile(
-    r'^\[\[\s*/([a-z][a-z0-9-]*)\s*\]\][ ]*$',
+# Named closer pattern: ::: /name OR :::{/name}
+# Matches 3+ colons, optional space, /name (in {} or bare)
+NAMED_CLOSE_PATTERN = re.compile(
+    r'^:{3,}\s*(?:\{/([a-zA-Z0-9_-]+)\}|/([a-zA-Z0-9_-]+))\s*$',
     re.MULTILINE
 )
 
-# Pattern for options: :key: value
-OPTIONS_PATTERN = re.compile(r'^:([a-z-]+):\s*(.*)$', re.MULTILINE)
+# Standard closer pattern: :::
+# Matches 3+ colons only
+STANDARD_CLOSE_PATTERN = re.compile(
+    r'^:{3,}\s*$',
+    re.MULTILINE
+)
 
-
-def parse_container_directive(content: str) -> dict[str, Any]:
+def parse_directive(content: str) -> dict[str, Any]:
     """
-    Parse [[ name ]] ... [[ /name ]] container syntax.
-    
-    Returns token dict compatible with mistune AST.
+    Parse directive with support for both standard and named closers.
     """
-    # Match opener
-    opener_match = CONTAINER_OPEN_PATTERN.match(content)
-    if not opener_match:
-        return None
+    # ... (simplified logic logic) ...
     
-    name = opener_match.group(1)
-    title = opener_match.group(2).strip()
+    # Algorithm:
+    # 1. Scan for next fence
+    # 2. If named closer (::: /name):
+    #    - Check if it matches current directive name
+    #    - If yes, close current directive (ignore nesting depth)
+    # 3. If opener (::: name):
+    #    - Increment nesting depth
+    # 4. If standard closer (:::):
+    #    - Decrement nesting depth
+    # 5. If nesting depth == 0:
+    #    - Close directive
     
-    # Find matching closer (handles nesting)
-    depth = 1
-    pos = opener_match.end()
-    closer_pos = None
-    
-    while pos < len(content):
-        # Check for nested opener
-        nested_open = CONTAINER_OPEN_PATTERN.search(content, pos)
-        nested_close = CONTAINER_CLOSE_PATTERN.search(content, pos)
-        
-        if nested_close and (not nested_open or nested_close.start() < nested_open.start()):
-            if nested_close.group(1) == name:
-                depth -= 1
-                if depth == 0:
-                    closer_pos = nested_close.start()
-                    break
-            pos = nested_close.end()
-        elif nested_open:
-            if nested_open.group(1) == name:
-                depth += 1
-            pos = nested_open.end()
-        else:
-            break
-    
-    if closer_pos is None:
-        # Unclosed container - could warn here
-        return None
-    
-    # Extract content between opener and closer
-    inner_content = content[opener_match.end():closer_pos]
-    
-    # Parse options from start of content
-    options = {}
-    lines = inner_content.strip().split('\n')
-    content_start = 0
-    
-    for i, line in enumerate(lines):
-        opt_match = OPTIONS_PATTERN.match(line)
-        if opt_match:
-            options[opt_match.group(1)] = opt_match.group(2)
-            content_start = i + 1
-        else:
-            break
-    
-    body_content = '\n'.join(lines[content_start:])
-    
-    return {
-        'type': f'container_{name.replace("-", "_")}',
-        'name': name,
-        'title': title,
-        'options': options,
-        'raw_content': body_content,
-    }
+    pass
 ```
 
 #### 3.0.7 Migration Path
 
-1. **Phase 1**: Add `[[ ]]` parser alongside existing `:::` parser
-2. **Phase 2**: Update documentation to prefer `[[ ]]` for containers
-3. **Phase 3**: Deprecation warnings for `::::` container syntax
-4. **Phase 4**: (Future) Remove `::::` support
-
-**Backward compatibility**: Existing `::::` syntax continues to work indefinitely.
+1. **Phase 1**: Update parser to recognize `::: /name` pattern
+2. **Phase 2**: Update documentation to feature named closers for complex examples
+3. **Phase 3**: No deprecation needed (both syntaxes valid)
 
 #### 3.0.8 Visual Metaphor
 
-The `[` brackets are **visual containers** — they look like walls:
+Named closers bring the **HTML tag metaphor** to Markdown:
 
 ```
-[[ tabs ]]          ← "Opening a box called tabs"
-  content           ← stuff inside the box
-[[ /tabs ]]         ← "Closing the box"
-```
-
-Compare to colons which are just dots with no visual meaning:
-
-```
-::::{tabs}          ← Four dots? Fence posts?
-  content
-::::                ← Which directive is this closing?
+::: tabs            ← <tabs>
+  ::: tab           ← <tab>
+  ::: /tab          ← </tab>
+::: /tabs           ← </tabs>
 ```
 
 ---
@@ -679,15 +556,15 @@ from typing import Any
 class DirectiveToken:
     """
     Typed AST token for directives.
-    
+
     Replaces ad-hoc dicts like:
         {"type": "dropdown", "attrs": {...}, "children": [...]}
-    
+
     Benefits:
         - Type checking catches typos
         - IDE autocomplete for fields
         - Consistent structure across all directives
-    
+
     Example:
         token = DirectiveToken(
             type="dropdown",
@@ -699,7 +576,7 @@ class DirectiveToken:
     type: str
     attrs: dict[str, Any] = field(default_factory=dict)
     children: list[Any] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dict for mistune AST compatibility."""
         return {
@@ -707,7 +584,7 @@ class DirectiveToken:
             "attrs": self.attrs,
             "children": self.children,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DirectiveToken:
         """Create from dict (for testing)."""
@@ -736,61 +613,61 @@ logger = get_logger(__name__)
 class DirectiveOptions:
     """
     Base class for typed directive options.
-    
+
     Subclass with typed fields to get automatic:
     - Parsing from :option: syntax
     - Type coercion (str -> bool, str -> int, str -> list)
     - Validation (via __post_init__)
     - Default values
     - Self-documentation
-    
+
     Example:
         @dataclass
         class DropdownOptions(DirectiveOptions):
             open: bool = False
             css_class: str = ""
-            
+
             _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
-        
+
         # Usage:
         opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
         # opts.open = True
         # opts.css_class = "my-class"
     """
-    
+
     # Override in subclass to map :option-name: to field_name
     # e.g., {"class": "css_class"} maps :class: to self.css_class
     _field_aliases: ClassVar[dict[str, str]] = {}
-    
+
     # Override to specify allowed values for string fields
     # e.g., {"gap": ["small", "medium", "large"]}
     _allowed_values: ClassVar[dict[str, list[str]]] = {}
-    
+
     @classmethod
     def from_raw(cls, raw_options: dict[str, str]) -> DirectiveOptions:
         """
         Parse raw string options into typed instance.
-        
+
         Handles:
         - Field aliases (:class: -> css_class)
         - Type coercion (str -> bool, int, list)
         - Validation via _allowed_values and __post_init__
         - Unknown options are logged and ignored
-        
+
         Args:
             raw_options: Dict from mistune's parse_options()
-        
+
         Returns:
             Typed options instance with defaults applied
         """
         kwargs: dict[str, Any] = {}
         hints = get_type_hints(cls)
         known_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
-        
+
         for raw_name, raw_value in raw_options.items():
             # Resolve alias
             field_name = cls._field_aliases.get(raw_name, raw_name.replace("-", "_"))
-            
+
             if field_name not in known_fields:
                 logger.debug(
                     "directive_unknown_option",
@@ -798,14 +675,14 @@ class DirectiveOptions:
                     directive=cls.__name__,
                 )
                 continue
-            
+
             # Get target type
             target_type = hints.get(field_name, str)
-            
+
             # Coerce value
             try:
                 coerced = cls._coerce_value(raw_value, target_type)
-                
+
                 # Validate allowed values
                 if field_name in cls._allowed_values:
                     allowed = cls._allowed_values[field_name]
@@ -818,9 +695,9 @@ class DirectiveOptions:
                             directive=cls.__name__,
                         )
                         continue  # Skip invalid, use default
-                
+
                 kwargs[field_name] = coerced
-                
+
             except (ValueError, TypeError) as e:
                 logger.warning(
                     "directive_option_coerce_failed",
@@ -829,14 +706,14 @@ class DirectiveOptions:
                     target_type=str(target_type),
                     error=str(e),
                 )
-        
+
         return cls(**kwargs)
-    
+
     @classmethod
     def _coerce_value(cls, value: str, target_type: type) -> Any:
         """
         Coerce string value to target type.
-        
+
         Supports:
         - bool: "true", "1", "yes", "" -> True; others -> False
         - int: numeric strings
@@ -849,22 +726,22 @@ class DirectiveOptions:
             # Optional type - extract inner type
             args = get_args(target_type)
             target_type = next((a for a in args if a is not type(None)), str)
-        
+
         if target_type == bool:
             return value.lower() in ("true", "1", "yes", "")
-        
+
         if target_type == int:
             return int(value) if value.lstrip("-").isdigit() else 0
-        
+
         if target_type == float:
             try:
                 return float(value)
             except ValueError:
                 return 0.0
-        
+
         if origin == list or target_type == list:
             return [v.strip() for v in value.split(",") if v.strip()]
-        
+
         return value
 
 
@@ -874,7 +751,7 @@ class DirectiveOptions:
 class StyledOptions(DirectiveOptions):
     """Common options for styled directives."""
     css_class: str = ""
-    
+
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
@@ -884,7 +761,7 @@ class ContainerOptions(StyledOptions):
     columns: str = "auto"
     gap: str = "medium"
     style: str = "default"
-    
+
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "gap": ["small", "medium", "large"],
         "style": ["default", "minimal", "bordered"],
@@ -912,69 +789,69 @@ from .tokens import DirectiveToken
 class BengalDirective(DirectivePlugin):
     """
     Base class for Bengal directives.
-    
+
     Provides:
     - Automatic directive and renderer registration
     - Typed option parsing via OPTIONS_CLASS
     - Shared utility methods (escape_html, build_class_string)
     - Consistent type hints
     - Logger setup
-    
+
     Subclass Requirements:
     - NAMES: list of directive names to register
     - TOKEN_TYPE: token type string for AST
     - OPTIONS_CLASS: (optional) typed options dataclass
     - parse_directive(): build token from parsed components
     - render(): render token to HTML
-    
+
     Example:
         class DropdownDirective(BengalDirective):
             NAMES = ["dropdown", "details"]
             TOKEN_TYPE = "dropdown"
             OPTIONS_CLASS = DropdownOptions
-            
+
             def parse_directive(self, title, options, content, children, state):
                 return DirectiveToken(
                     type=self.TOKEN_TYPE,
                     attrs={"title": title or "Details", "open": options.open},
                     children=children,
                 )
-            
+
             def render(self, renderer, text, **attrs):
                 title = attrs.get("title", "Details")
                 is_open = attrs.get("open", False)
                 return f'<details{" open" if is_open else ""}><summary>{title}</summary>{text}</details>'
     """
-    
+
     # -------------------------------------------------------------------------
     # Class Attributes (override in subclass)
     # -------------------------------------------------------------------------
-    
+
     # Directive names to register (e.g., ["dropdown", "details"])
     NAMES: ClassVar[list[str]]
-    
+
     # Token type for AST (e.g., "dropdown")
     TOKEN_TYPE: ClassVar[str]
-    
+
     # Typed options class (defaults to base DirectiveOptions)
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = DirectiveOptions
-    
+
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------
-    
+
     def __init__(self) -> None:
         super().__init__()
         self.logger = get_logger(self.__class__.__module__)
-    
+
     # -------------------------------------------------------------------------
     # Parse Flow (template method pattern)
     # -------------------------------------------------------------------------
-    
+
     def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Standard parse flow - delegates to parse_directive().
-        
+
         Override parse_directive() instead of this method for most cases.
         Override this method only if you need custom pre/post processing.
         """
@@ -983,18 +860,18 @@ class BengalDirective(DirectivePlugin):
         raw_options = dict(self.parse_options(m))
         content = self.parse_content(m)
         children = self.parse_tokens(block, content, state)
-        
+
         # Parse options into typed instance
         options = self.OPTIONS_CLASS.from_raw(raw_options)
-        
+
         # Delegate to subclass
         token = self.parse_directive(title, options, content, children, state)
-        
+
         # Return dict for mistune compatibility
         if isinstance(token, DirectiveToken):
             return token.to_dict()
         return token  # Allow returning raw dict for flexibility
-    
+
     @abstractmethod
     def parse_directive(
         self,
@@ -1006,66 +883,66 @@ class BengalDirective(DirectivePlugin):
     ) -> DirectiveToken | dict[str, Any]:
         """
         Build the token from parsed components.
-        
+
         Override this method to implement directive-specific logic.
-        
+
         Args:
             title: Directive title (text after directive name)
             options: Parsed and typed options
             content: Raw content string (rarely needed, use children)
             children: Parsed nested content tokens
             state: Parser state (for accessing heading levels, etc.)
-        
+
         Returns:
             DirectiveToken or dict for AST
         """
         ...
-    
+
     # -------------------------------------------------------------------------
     # Render (override in subclass)
     # -------------------------------------------------------------------------
-    
+
     @abstractmethod
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
         """
         Render token to HTML.
-        
+
         Args:
             renderer: Mistune renderer instance
             text: Pre-rendered children HTML
             **attrs: Token attributes
-        
+
         Returns:
             HTML string
         """
         ...
-    
+
     # -------------------------------------------------------------------------
     # Registration
     # -------------------------------------------------------------------------
-    
+
     def __call__(self, directive: Any, md: Any) -> None:
         """
         Register directive names and renderer.
-        
+
         Override only if you need custom registration logic
         (e.g., multiple token types like AdmonitionDirective).
         """
         for name in self.NAMES:
             directive.register(name, self.parse)
-        
+
         if md.renderer and md.renderer.NAME == "html":
             md.renderer.register(self.TOKEN_TYPE, self.render)
-    
+
     # -------------------------------------------------------------------------
     # Shared Utilities
     # -------------------------------------------------------------------------
-    
+
     @staticmethod
     def escape_html(text: str) -> str:
         """
         Escape HTML special characters for use in attributes.
-        
+
         Escapes: & < > " '
         """
         if not text:
@@ -1077,25 +954,25 @@ class BengalDirective(DirectivePlugin):
             .replace('"', "&quot;")
             .replace("'", "&#x27;")
         )
-    
+
     @staticmethod
     def build_class_string(*classes: str) -> str:
         """
         Build CSS class string from multiple class sources.
-        
+
         Filters out empty strings and joins with space.
-        
+
         Example:
             build_class_string("dropdown", "", "my-class")
             # Returns: "dropdown my-class"
         """
         return " ".join(c.strip() for c in classes if c and c.strip())
-    
+
     @staticmethod
     def bool_attr(name: str, value: bool) -> str:
         """
         Return HTML boolean attribute string.
-        
+
         Example:
             bool_attr("open", True)   # Returns: " open"
             bool_attr("open", False)  # Returns: ""
@@ -1142,7 +1019,7 @@ def bool_attr(name: str, value: bool) -> str:
 def data_attrs(**attrs: Any) -> str:
     """
     Build data-* attribute string.
-    
+
     Example:
         data_attrs(columns="auto", gap="medium")
         # Returns: 'data-columns="auto" data-gap="medium"'
@@ -1169,58 +1046,58 @@ from typing import Any
 class DirectiveContract:
     """
     Defines valid nesting relationships for a directive.
-    
+
     This is the KEY FEATURE that solves the nested directive validation problem.
     Contracts are checked at parse time to catch invalid nesting early.
-    
+
     Attributes:
         requires_parent: This directive MUST be inside one of these parent types.
                         Empty list means can appear anywhere (root-level OK).
-        
+
         requires_children: This directive MUST contain at least one of these types.
                           Empty list means no required children.
-        
+
         allowed_children: Only these child types are allowed (whitelist).
                          Empty list means any children allowed.
-        
+
         disallowed_children: These child types are NOT allowed (blacklist).
                             Takes precedence over allowed_children.
-        
+
         min_children: Minimum count of required_children types.
-        
+
         max_children: Maximum children (0 = unlimited).
-    
+
     Example - StepDirective (must be inside steps):
         CONTRACT = DirectiveContract(
             requires_parent=["steps"],
         )
-    
+
     Example - StepsDirective (must contain steps):
         CONTRACT = DirectiveContract(
             requires_children=["step"],
             min_children=1,
             allowed_children=["step"],
         )
-    
+
     Example - TabSetDirective (tabs with items):
         CONTRACT = DirectiveContract(
             requires_children=["tab_item"],
             min_children=1,
         )
     """
-    
+
     # Parent requirements
     requires_parent: tuple[str, ...] = ()
-    
+
     # Child requirements
     requires_children: tuple[str, ...] = ()
     min_children: int = 0
     max_children: int = 0  # 0 = unlimited
-    
+
     # Child filtering
     allowed_children: tuple[str, ...] = ()  # Empty = allow all
     disallowed_children: tuple[str, ...] = ()
-    
+
     def __post_init__(self) -> None:
         """Convert any lists to tuples for hashability."""
         # Handled by frozen=True, but validate min_children
@@ -1228,12 +1105,12 @@ class DirectiveContract:
             raise ValueError("min_children must be >= 0")
         if self.max_children < 0:
             raise ValueError("max_children must be >= 0")
-    
+
     @property
     def has_parent_requirement(self) -> bool:
         """True if this directive requires a specific parent."""
         return len(self.requires_parent) > 0
-    
+
     @property
     def has_child_requirement(self) -> bool:
         """True if this directive requires specific children."""
@@ -1244,7 +1121,7 @@ class DirectiveContract:
 class ContractViolation:
     """
     Represents a contract violation found during parsing.
-    
+
     Collected violations can be:
     - Logged as warnings (default)
     - Raised as errors (strict mode)
@@ -1256,7 +1133,7 @@ class ContractViolation:
     expected: list[str] | int | None = None
     found: list[str] | str | int | None = None
     location: str | None = None  # e.g., "content/guide.md:45"
-    
+
     def to_log_dict(self) -> dict[str, Any]:
         """Convert to structured log format."""
         result = {
@@ -1276,16 +1153,16 @@ class ContractViolation:
 class ContractValidator:
     """
     Validates directive nesting against contracts.
-    
+
     Used by BengalDirective.parse() to check:
     1. Parent context is valid (if requires_parent specified)
     2. Children meet requirements (if requires_children specified)
     3. Children types are allowed (if allowed_children specified)
-    
+
     Example usage in BengalDirective:
         def parse(self, block, m, state):
             # ... parse content ...
-            
+
             # Validate parent
             if self.CONTRACT:
                 parent_type = self._get_parent_type(state)
@@ -1294,9 +1171,9 @@ class ContractValidator:
                 )
                 for v in violations:
                     self.logger.warning(v.violation_type, **v.to_log_dict())
-            
+
             # ... parse children ...
-            
+
             # Validate children
             if self.CONTRACT:
                 violations = ContractValidator.validate_children(
@@ -1305,7 +1182,7 @@ class ContractValidator:
                 for v in violations:
                     self.logger.warning(v.violation_type, **v.to_log_dict())
     """
-    
+
     @staticmethod
     def validate_parent(
         contract: DirectiveContract,
@@ -1315,18 +1192,18 @@ class ContractValidator:
     ) -> list[ContractViolation]:
         """
         Validate that the directive is inside a valid parent.
-        
+
         Args:
             contract: The directive's contract
             directive_type: The directive being validated (e.g., "step")
             parent_type: The parent directive type (None if at root)
             location: Source location for error messages
-        
+
         Returns:
             List of violations (empty if valid)
         """
         violations = []
-        
+
         if contract.requires_parent:
             if parent_type not in contract.requires_parent:
                 violations.append(ContractViolation(
@@ -1337,9 +1214,9 @@ class ContractValidator:
                     found=parent_type or "(root)",
                     location=location,
                 ))
-        
+
         return violations
-    
+
     @staticmethod
     def validate_children(
         contract: DirectiveContract,
@@ -1349,28 +1226,28 @@ class ContractValidator:
     ) -> list[ContractViolation]:
         """
         Validate that children meet contract requirements.
-        
+
         Args:
             contract: The directive's contract
             directive_type: The directive being validated (e.g., "steps")
             children: Parsed child tokens
             location: Source location for error messages
-        
+
         Returns:
             List of violations (empty if valid)
         """
         violations = []
-        
+
         # Extract child types
         child_types = [
-            c.get("type") for c in children 
+            c.get("type") for c in children
             if isinstance(c, dict) and c.get("type")
         ]
-        
+
         # Check required children exist
         if contract.requires_children:
             required_found = [t for t in child_types if t in contract.requires_children]
-            
+
             if not required_found:
                 violations.append(ContractViolation(
                     directive=directive_type,
@@ -1389,7 +1266,7 @@ class ContractValidator:
                     found=len(required_found),
                     location=location,
                 ))
-        
+
         # Check max children
         if contract.max_children > 0 and len(child_types) > contract.max_children:
             violations.append(ContractViolation(
@@ -1400,7 +1277,7 @@ class ContractValidator:
                 found=len(child_types),
                 location=location,
             ))
-        
+
         # Check allowed children (whitelist)
         if contract.allowed_children:
             invalid = [t for t in child_types if t and t not in contract.allowed_children]
@@ -1413,7 +1290,7 @@ class ContractValidator:
                     found=invalid,
                     location=location,
                 ))
-        
+
         # Check disallowed children (blacklist)
         if contract.disallowed_children:
             invalid = [t for t in child_types if t in contract.disallowed_children]
@@ -1426,7 +1303,7 @@ class ContractValidator:
                     found=invalid,
                     location=location,
                 ))
-        
+
         return violations
 
 
@@ -1496,9 +1373,9 @@ from .tokens import DirectiveToken
 class BengalDirective(DirectivePlugin):
     """
     Base class for Bengal directives with nesting validation.
-    
+
     NEW: Supports DirectiveContract for validating parent-child relationships.
-    
+
     Subclass Requirements:
     - NAMES: list of directive names to register
     - TOKEN_TYPE: token type string for AST
@@ -1506,44 +1383,44 @@ class BengalDirective(DirectivePlugin):
     - CONTRACT: (optional) nesting validation contract ⭐ NEW
     - parse_directive(): build token from parsed components
     - render(): render token to HTML
-    
+
     Example with contract:
         class StepDirective(BengalDirective):
             NAMES = ["step"]
             TOKEN_TYPE = "step"
             CONTRACT = DirectiveContract(requires_parent=["steps"])
-            
+
             def parse_directive(self, ...): ...
             def render(self, ...): ...
     """
-    
+
     # -------------------------------------------------------------------------
     # Class Attributes (override in subclass)
     # -------------------------------------------------------------------------
-    
+
     NAMES: ClassVar[list[str]]
     TOKEN_TYPE: ClassVar[str]
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = DirectiveOptions
-    
+
     # NEW: Contract for nesting validation (optional)
     CONTRACT: ClassVar[DirectiveContract | None] = None
-    
+
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------
-    
+
     def __init__(self) -> None:
         super().__init__()
         self.logger = get_logger(self.__class__.__module__)
-    
+
     # -------------------------------------------------------------------------
     # Parse Flow with Contract Validation
     # -------------------------------------------------------------------------
-    
+
     def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Standard parse flow with contract validation.
-        
+
         Validation steps:
         1. Validate parent context (if CONTRACT.requires_parent)
         2. Parse content and children
@@ -1551,7 +1428,7 @@ class BengalDirective(DirectivePlugin):
         """
         # Get source location for error messages
         location = self._get_source_location(state)
-        
+
         # STEP 1: Validate parent context BEFORE parsing
         if self.CONTRACT and self.CONTRACT.has_parent_requirement:
             parent_type = self._get_parent_directive_type(state)
@@ -1560,16 +1437,16 @@ class BengalDirective(DirectivePlugin):
             )
             for v in violations:
                 self.logger.warning(v.violation_type, **v.to_log_dict())
-        
+
         # STEP 2: Parse content
         title = self.parse_title(m)
         raw_options = dict(self.parse_options(m))
         content = self.parse_content(m)
         children = self.parse_tokens(block, content, state)
-        
+
         # Parse options into typed instance
         options = self.OPTIONS_CLASS.from_raw(raw_options)
-        
+
         # STEP 3: Validate children AFTER parsing
         if self.CONTRACT and self.CONTRACT.has_child_requirement:
             # Convert children to list of dicts for validation
@@ -1582,22 +1459,22 @@ class BengalDirective(DirectivePlugin):
             )
             for v in violations:
                 self.logger.warning(v.violation_type, **v.to_log_dict())
-        
+
         # Build token via subclass
         token = self.parse_directive(title, options, content, children, state)
-        
+
         # Return dict for mistune compatibility
         if isinstance(token, DirectiveToken):
             return token.to_dict()
         return token
-    
+
     def _get_parent_directive_type(self, state: Any) -> str | None:
         """
         Extract parent directive type from parser state.
-        
+
         Mistune tracks directive nesting in state. This method extracts
         the immediate parent directive type for contract validation.
-        
+
         Returns:
             Parent directive type (e.g., "steps") or None if at root
         """
@@ -1605,20 +1482,20 @@ class BengalDirective(DirectivePlugin):
         directive_stack = getattr(state, "_directive_stack", None)
         if directive_stack and len(directive_stack) > 0:
             return directive_stack[-1]
-        
+
         # Fallback: check state.env for parent tracking
         env = getattr(state, "env", {})
         if isinstance(env, dict):
             stack = env.get("directive_stack", [])
             if stack:
                 return stack[-1]
-        
+
         return None
-    
+
     def _get_source_location(self, state: Any) -> str | None:
         """
         Extract source file location from parser state.
-        
+
         Returns:
             Location string like "content/guide.md:45" or None
         """
@@ -1629,7 +1506,7 @@ class BengalDirective(DirectivePlugin):
             if source_file:
                 return source_file
         return None
-    
+
     @abstractmethod
     def parse_directive(
         self,
@@ -1641,24 +1518,24 @@ class BengalDirective(DirectivePlugin):
     ) -> DirectiveToken | dict[str, Any]:
         """Build the token from parsed components."""
         ...
-    
+
     @abstractmethod
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
         """Render token to HTML."""
         ...
-    
+
     def __call__(self, directive: Any, md: Any) -> None:
         """Register directive names and renderer."""
         for name in self.NAMES:
             directive.register(name, self.parse)
-        
+
         if md.renderer and md.renderer.NAME == "html":
             md.renderer.register(self.TOKEN_TYPE, self.render)
-    
+
     # -------------------------------------------------------------------------
     # Shared Utilities (unchanged)
     # -------------------------------------------------------------------------
-    
+
     @staticmethod
     def escape_html(text: str) -> str:
         """Escape HTML special characters for use in attributes."""
@@ -1671,12 +1548,12 @@ class BengalDirective(DirectivePlugin):
             .replace('"', "&quot;")
             .replace("'", "&#x27;")
         )
-    
+
     @staticmethod
     def build_class_string(*classes: str) -> str:
         """Build CSS class string from multiple class sources."""
         return " ".join(c.strip() for c in classes if c and c.strip())
-    
+
     @staticmethod
     def bool_attr(name: str, value: bool) -> str:
         """Return HTML boolean attribute string."""
@@ -1754,11 +1631,11 @@ __all__ = ["DropdownDirective", "DropdownOptions"]
 class DropdownOptions(DirectiveOptions):
     """
     Options for dropdown directive.
-    
+
     Attributes:
         open: Whether dropdown is initially open
         css_class: Additional CSS classes
-    
+
     Example:
         :::{dropdown} My Title
         :open: true
@@ -1768,27 +1645,27 @@ class DropdownOptions(DirectiveOptions):
     """
     open: bool = False
     css_class: str = ""
-    
+
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
 class DropdownDirective(BengalDirective):
     """
     Collapsible dropdown directive with markdown support.
-    
+
     Syntax:
         :::{dropdown} Title
         :open: true
         :class: custom-class
-        
+
         Content with **markdown**, code blocks, etc.
         :::
-    
+
     Aliases:
         - dropdown
         - details (HTML5 semantic alias)
     """
-    
+
     NAMES = ["dropdown", "details"]
     TOKEN_TYPE = "dropdown"
     OPTIONS_CLASS = DropdownOptions
@@ -1815,7 +1692,7 @@ class DropdownDirective(BengalDirective):
         title = attrs.get("title", "Details")
         is_open = attrs.get("open", False)
         css_class = self.build_class_string("dropdown", attrs.get("css_class", ""))
-        
+
         return (
             f'<details class="{css_class}"{self.bool_attr("open", is_open)}>\n'
             f"  <summary>{self.escape_html(title)}</summary>\n"
@@ -1918,13 +1795,13 @@ def test_options_type_coercion():
         flag: bool = False
         count: int = 0
         items: list[str] = field(default_factory=list)
-    
+
     opts = TestOptions.from_raw({
         "flag": "true",
         "count": "42",
         "items": "a, b, c",
     })
-    
+
     assert opts.flag is True
     assert opts.count == 42
     assert opts.items == ["a", "b", "c"]
@@ -1938,11 +1815,11 @@ def test_options_validation():
         _allowed_values: ClassVar[dict[str, list[str]]] = {
             "size": ["small", "medium", "large"],
         }
-    
+
     # Valid value
     opts = TestOptions.from_raw({"size": "small"})
     assert opts.size == "small"
-    
+
     # Invalid value uses default
     opts = TestOptions.from_raw({"size": "invalid"})
     assert opts.size == "medium"
@@ -1983,7 +1860,7 @@ class DropdownDirective:
     @options
     class Options:
         open: bool = False
-    
+
     def parse(self, ...): ...
     def render(self, ...): ...
 ```
@@ -2007,7 +1884,7 @@ class DropdownDirective:
 class DirectiveProtocol(Protocol):
     NAMES: ClassVar[list[str]]
     TOKEN_TYPE: ClassVar[str]
-    
+
     def parse(self, ...): ...
     def render(self, ...): ...
 ```
@@ -2057,7 +1934,7 @@ DirectiveToken
 ### 6.3 API Surface
 
 **New Public API**:
-- `[[ name ]]` ... `[[ /name ]]` - container directive syntax (user-facing)
+- `::: /name` - named closure syntax
 - `BengalDirective` - base class
 - `DirectiveContract` - nesting validation
 - `DirectiveOptions` - options base
@@ -2079,10 +1956,10 @@ DirectiveToken
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Breaking mistune compatibility | LOW | HIGH | Extensive testing, token format unchanged |
-| Regression in nested directives | MEDIUM | HIGH | Test matrix for all nesting combinations |
-| Performance regression | LOW | MEDIUM | Profile before/after, caching options |
-| Migration takes too long | MEDIUM | LOW | Phased approach, old style still works |
+| Named closer collision with existing content | LOW | LOW | Unlikely to have `::: /name` in normal text |
+| Parser complexity for hybrid mode | MEDIUM | MEDIUM | Prioritize named closer matching over depth counting |
+| Regression in standard directive parsing | MEDIUM | HIGH | Extensive regression tests for standard syntax |
+| User confusion with two styles | LOW | LOW | Styles are complementary; one for simple, one for complex |
 
 ---
 
@@ -2090,8 +1967,8 @@ DirectiveToken
 
 ### 8.1 Quantitative
 
-- [ ] **`[[ ]]` parser implemented** and tested for all container directives
-- [ ] **100% of container directives** support `[[ ]]` syntax
+- [ ] **`<< >>` parser implemented** and tested for all container directives
+- [ ] **100% of container directives** support `<< >>` syntax
 - [ ] **100% of directives migrated** to new pattern
 - [ ] **0 duplicated escape_html** implementations
 - [ ] **100% type coverage** on new base classes
@@ -2127,6 +2004,7 @@ DirectiveToken
 ## 10. References
 
 - **Evidence**: `bengal/rendering/plugins/directives/*.py`
+- **Pain Point Example**: `site/content/cli/debug/sandbox.md:74-87`
 - **Mistune Directives**: [mistune docs](https://mistune.lepture.com/en/latest/directives.html)
 - **Bengal Architecture**: `bengal/.cursor/rules/architecture-patterns.mdc`
 - **Dataclass Conventions**: `bengal/.cursor/rules/dataclass-conventions.mdc`
@@ -2178,5 +2056,89 @@ Common option patterns across directives:
 
 ---
 
-**End of RFC**
+---
 
+## Appendix C: Container vs Leaf Directive Classification
+
+### Container Directives (use `<< >>` syntax)
+
+These directives MUST contain specific child directives:
+
+| Directive | Required Children | Use Case |
+|-----------|------------------|----------|
+| `tab-set` / `tabs` | `tab-item` / `tab` | Tabbed content |
+| `steps` | `step` | Step-by-step guides |
+| `cards` | `card` | Card grids |
+| `grid` | `grid-item-card` | Flexible grids |
+
+### Leaf Directives (use `:::` syntax)
+
+These directives contain arbitrary content, not specific child directives:
+
+| Directive | Content Type | Use Case |
+|-----------|-------------|----------|
+| `note`, `tip`, `warning`, etc. | Markdown | Admonitions/callouts |
+| `dropdown` / `details` | Markdown | Collapsible sections |
+| `badge` | Text | Status badges |
+| `button` | Text | CTA buttons |
+| `glossary` | Auto-generated | Term definitions |
+| `include` | File reference | Content reuse |
+| `literalinclude` | File reference | Code inclusion |
+| `checklist` | List items | Task lists |
+| `rubric` | Text | Pseudo-headings |
+| `container` / `div` | Markdown | Generic wrapper |
+| `code-tabs` | Code blocks | Multi-language code |
+
+### Hybrid Directives
+
+These can appear as children OR standalone:
+
+| Directive | Parent Context | Standalone |
+|-----------|---------------|------------|
+| `tab-item` / `tab` | Inside `tab-set` | ❌ Invalid |
+| `step` | Inside `steps` | ❌ Invalid |
+| `card` | Inside `cards`/`grid` | ⚠️ Works but no grid |
+
+---
+
+## Appendix D: Syntax Quick Reference
+
+```markdown
+# Container directives - use << >>
+<< tabs >>
+<< tab >> Title
+content
+<< /tab >>
+<< /tabs >>
+
+# Leaf directives - use :::
+:::{note}
+content
+:::
+
+# Code blocks - use ```
+```python
+code
+```
+
+# Nesting example
+<< steps >>
+
+<< step >> First Step
+
+:::{tip}
+A tip inside the step
+:::
+
+```bash
+some code
+```
+
+<< /step >>
+
+<< /steps >>
+```
+
+---
+
+**End of RFC**

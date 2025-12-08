@@ -11,8 +11,12 @@ from typing import TYPE_CHECKING, Any
 try:
     from jinja2 import pass_context
 except Exception:  # pragma: no cover
+    from collections.abc import Callable
+    from typing import Any, TypeVar
 
-    def pass_context(fn):
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def pass_context(fn: F) -> F:
         return fn
 
 
@@ -40,7 +44,7 @@ def register(env: Environment, site: Site) -> None:
         return popular_tags(tags_with_pages, limit)
 
     @pass_context
-    def tag_url_with_site(ctx, tag: str) -> str:
+    def tag_url_with_site(ctx: Any, tag: str) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         # Locale-aware prefix for i18n prefix strategy
         i18n = site.config.get("i18n", {}) or {}

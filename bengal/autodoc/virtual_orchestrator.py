@@ -244,9 +244,9 @@ class VirtualAutodocOrchestrator:
 
         # Register asset_url function (required by base templates)
         # This is a simplified version that works without full TemplateEngine
-        from bengal.rendering.template_engine.url_helpers import with_baseurl
-
         from jinja2 import pass_context
+
+        from bengal.rendering.template_engine.url_helpers import with_baseurl
 
         @pass_context
         def asset_url(ctx, asset_path: str) -> str:
@@ -670,6 +670,10 @@ class VirtualAutodocOrchestrator:
         """
         Create virtual pages for documentation elements.
 
+        This uses a two-pass approach to ensure navigation works correctly:
+        1. First pass: Create all Page objects and add them to sections
+        2. Second pass: Render HTML (now sections have all their pages)
+
         Args:
             elements: DocElements to create pages for
             sections: Section hierarchy for page placement
@@ -678,7 +682,8 @@ class VirtualAutodocOrchestrator:
         Returns:
             List of virtual Page objects
         """
-        pages: list[Page] = []
+        # First pass: Create pages without HTML and add to sections
+        page_data: list[tuple[Page, DocElement, Section, str, str, str]] = []
 
         for element in elements:
             # Determine which elements get pages based on type
@@ -700,10 +705,47 @@ class VirtualAutodocOrchestrator:
             # Determine section for this element
             parent_section = self._find_parent_section(element, sections, doc_type)
 
-            # Create page
-            page = self._create_element_page(element, parent_section, doc_type)
-            pages.append(page)
+            # Create page metadata without rendering HTML yet
+            template_name, url_path, page_type = self._get_element_metadata(element, doc_type)
+            source_id = f"{doc_type}/{url_path}.md"
+            output_path = self.site.output_dir / f"{url_path}/index.html"
+
+            # Create page with placeholder content - we'll render later
+            page = Page.create_virtual(
+                source_id=source_id,
+                title=element.name,
+                metadata={
+                    "type": page_type,
+                    "qualified_name": element.qualified_name,
+                    "element_type": element.element_type,
+                    "description": element.description or f"Documentation for {element.name}",
+                    "source_file": str(element.source_file) if element.source_file else None,
+                    "line_number": getattr(element, "line_number", None),
+                    "is_autodoc": True,
+                    "autodoc_element": element,
+                },
+                rendered_html="",  # Placeholder - will be rendered in second pass
+                template_name=template_name,
+                section_path=parent_section.path,
+                output_path=output_path,
+            )
+            page._site = self.site
+
+            # Add to section BEFORE rendering (so navigation can see siblings)
             parent_section.add_page(page)
+
+            # Store for second pass
+            page_data.append((page, element, parent_section, template_name, url_path, page_type))
+
+        # Second pass: Render HTML now that all pages are in their sections
+        pages: list[Page] = []
+        for page, element, parent_section, template_name, url_path, page_type in page_data:
+            # Now render with full navigation context
+            html_content = self._render_element(
+                element, template_name, url_path, page_type, parent_section
+            )
+            page._prerendered_html = html_content
+            pages.append(page)
 
         logger.debug("autodoc_pages_created", count=len(pages), type=doc_type)
 

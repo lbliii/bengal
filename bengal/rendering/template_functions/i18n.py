@@ -19,8 +19,12 @@ from bengal.utils.logger import get_logger
 try:
     from jinja2 import pass_context  # Jinja2 >=3
 except Exception:  # pragma: no cover - fallback, tests ensure availability
+    from collections.abc import Callable
+    from typing import Any, TypeVar
 
-    def pass_context(fn):
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def pass_context(fn: F) -> F:
         return fn
 
 
@@ -101,23 +105,23 @@ def register(env: Environment, site: Site) -> None:
     base_translate = _make_t(site)
 
     @pass_context
-    def t(ctx, key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
+    def t(ctx: Any, key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         use_lang = lang or getattr(page, "lang", None)
         return base_translate(key, params=params, lang=use_lang)
 
     @pass_context
-    def current_lang(ctx) -> str | None:
+    def current_lang(ctx: Any) -> str | None:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         return _current_lang(site, page)
 
     def languages() -> list[LanguageInfo]:
         return _languages(site)
 
-    def alternate_links(page=None) -> list[dict[str, str]]:
+    def alternate_links(page: Any = None) -> list[dict[str, str]]:
         return _alternate_links(site, page)
 
-    def locale_date(date, format="medium", lang=None) -> str:
+    def locale_date(date: Any, format: str = "medium", lang: str | None = None) -> str:
         return _locale_date(date, format, lang)
 
     env.globals.update(

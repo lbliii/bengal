@@ -7,14 +7,19 @@ Phases 6-11: Sections, taxonomies, menus, related posts, query indexes, update p
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.cli_output import CLIOutput
 
 
 def phase_sections(
-    orchestrator: BuildOrchestrator, cli, incremental: bool, affected_sections: set | None
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    incremental: bool,
+    affected_sections: set[str] | None,
 ) -> None:
     """
     Phase 6: Section Finalization.
@@ -68,11 +73,11 @@ def phase_sections(
 
 def phase_taxonomies(
     orchestrator: BuildOrchestrator,
-    cache,
+    cache: BuildCache,
     incremental: bool,
     parallel: bool,
-    pages_to_build: list,
-) -> set:
+    pages_to_build: list[Any],
+) -> set[str]:
     """
     Phase 7: Taxonomies & Dynamic Pages.
 

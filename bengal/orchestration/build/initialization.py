@@ -14,11 +14,13 @@ from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
 from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.utils.build_context import BuildContext
+    from bengal.utils.cli_output import CLIOutput
 
 
-def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
+def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     """
     Phase 1: Font Processing.
 
@@ -74,7 +76,7 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
 
 def phase_discovery(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     build_context: BuildContext | None = None,
 ) -> None:
@@ -189,7 +191,7 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
 
 
 def phase_config_check(
-    orchestrator: BuildOrchestrator, cli, cache, incremental: bool
+    orchestrator: BuildOrchestrator, cli: CLIOutput, cache: BuildCache, incremental: bool
 ) -> ConfigCheckResult:
     """
     Phase 4: Config Check and Cleanup.
@@ -257,8 +259,8 @@ def phase_config_check(
 
 def phase_incremental_filter(
     orchestrator: BuildOrchestrator,
-    cli,
-    cache,
+    cli: CLIOutput,
+    cache: BuildCache,
     incremental: bool,
     verbose: bool,
     build_start: float,

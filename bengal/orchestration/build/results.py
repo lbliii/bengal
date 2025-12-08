@@ -14,6 +14,7 @@ See Also:
 
 from __future__ import annotations
 
+from collections.abc import ItemsView
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -120,7 +121,7 @@ class ChangeSummary:
         result.update(self.extra_changes)
         return result
 
-    def items(self):
+    def items(self) -> ItemsView[str, list]:
         """Allow dict-like iteration for backward compatibility."""
         return self.to_dict().items()
 
