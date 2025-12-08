@@ -28,7 +28,9 @@ import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bengal.core.asset import Asset
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.cli_output import CLIOutput
 
 
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
@@ -70,11 +72,11 @@ def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
 
 def phase_assets(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     parallel: bool,
-    assets_to_process: list,
-) -> list:
+    assets_to_process: list[Asset],
+) -> list[Asset]:
     """
     Phase 13: Process Assets.
 

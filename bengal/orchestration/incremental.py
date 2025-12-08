@@ -710,7 +710,7 @@ class IncrementalOrchestrator:
         )
         output_path.write_text(diagnostic_content)
 
-    def full_rebuild(self, pages: list, context: BuildContext):
+    def full_rebuild(self, pages: list[Any], context: BuildContext) -> None:
         # ... existing logic ...
         pass
 
