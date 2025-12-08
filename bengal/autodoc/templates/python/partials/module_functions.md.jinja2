@@ -5,82 +5,121 @@ Renders all public functions in the module with comprehensive documentation.
 Uses shared components for consistency with method documentation.
 -#}
 
-{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, rubric_shell, section_shell, subsection_shell %}
-{% from 'macros/code_blocks.md.jinja2' import signature_block %}
-{% from 'macros/parameter_table.md.jinja2' import parameter_table %}
+{% from 'macros/safe_macros.md.jinja2' import safe_render, safe_for %}
 
-{% set all_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
-{% set public_functions = [] %}
-{% for func in all_functions %}
-  {% if not func.name.startswith('_') %}
-    {% set _ = public_functions.append(func) %}
-  {% endif %}
-{% endfor %}
+{% if not public_functions %}
+  {% set all_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
+  {% set public_functions = [] %}
+  {% for func in all_functions %}
+    {% if not func.name.startswith('_') %}
+      {% set _ = public_functions.append(func) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
 
-{#- Note: No trailing newline - root layout controls spacing -#}
 {% if public_functions %}
-{% call section_shell() %}
-## Functions
-{% endcall %}
-{% call(current_item) safe_for(public_functions, "*No public functions found.*") %}
-{% call safe_render("function", current_item) %}
-{% call subsection_shell() %}
-### `{{ current_item.name }}`{% if current_item.metadata.is_async %} @async{% endif %}
-{% endcall %}
+<section class="api-section api-section--functions">
+  <h2 class="api-section__title">Functions</h2>
+  <div class="api-methods">
+    {% call(current_item) safe_for(public_functions, "*No public functions found.*") %}
+      {% call safe_render("function", current_item) %}
+        <details class="api-method">
+          <summary class="api-method__header">
+            <code class="api-method__name">{{ current_item.name }}</code>
+            {% if current_item.metadata.is_async %}
+              <span class="api-badge--tiny api-badge--async">async</span>
+            {% endif %}
+          </summary>
 
-{% if current_item.metadata.aliases %}
-:::{note} Also known as
-This function has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-:::
+          <div class="api-method__content">
+            {% if current_item.metadata.signature %}
+            <div class="code-block-wrapper">
+               <pre class="api-method__signature"><code class="language-python">{{ current_item.metadata.signature }}</code></pre>
+            </div>
+            {% endif %}
 
-{% endif %}
-{{ signature_block(current_item.metadata.signature | default(''), 'function') }}
+            <p class="api-method__description">
+              {{ current_item.description | default('*No description provided.*') | trim }}
+            </p>
 
+            {% if current_item.metadata.aliases %}
+            <div class="api-metadata">
+                <strong>Aliases:</strong>
+                {%- for alias in current_item.metadata.aliases -%}
+                <code>{{ alias }}</code>{%- if not loop.last -%}, {% endif -%}
+                {%- endfor -%}
+            </div>
+            {% endif %}
 
-{% if current_item.description %}
-{{ current_item.description | trim }}
+            {% if current_item.metadata.parsed_doc.deprecated %}
+            <div class="api-warning">
+               <strong>Deprecated:</strong> {{ current_item.metadata.parsed_doc.deprecated }}
+            </div>
+            {% endif %}
 
-{% else %}
-*No description provided.*
+            {% if current_item.metadata.is_async %}
+            <div class="api-info">
+               <strong>Async Function:</strong> This is an asynchronous function. Use <code>await</code> when calling.
+            </div>
+            {% endif %}
 
-{% endif %}
-{% if current_item.metadata.parsed_doc.deprecated %}
-:::{warning} Deprecated
-{{- current_item.metadata.parsed_doc.deprecated -}}
-:::
+            {# Parameters #}
+            {% if current_item.metadata.args %}
+            <div class="api-parameters">
+              <h5 class="api-label">Parameters</h5>
+              <table class="api-table api-table--compact">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Default</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for arg in current_item.metadata.args %}
+                  <tr>
+                    <td><code>{{ arg.name }}</code></td>
+                    <td>{% if arg.type %}<code>{{ arg.type }}</code>{% else %}—{% endif %}</td>
+                    <td>{% if arg.default %}<code>{{ arg.default }}</code>{% else %}—{% endif %}</td>
+                    <td>{{ arg.description | default('') | trim }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
 
-{% endif %}
-{% if current_item.metadata.is_async %}
-:::{info} Async Function
-This is an asynchronous function. Use `await` when calling.
-:::
+            {# Returns #}
+            {% if current_item.metadata.returns %}
+            <div class="api-returns">
+              <h5 class="api-label">Returns</h5>
+              <p>
+                <code>{{ current_item.metadata.returns }}</code>
+                {% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}
+              </p>
+            </div>
+            {% endif %}
 
-{% endif %}
-{#- Parameters section -#}
-{% if current_item.metadata.args %}
-{{ parameter_table(current_item.metadata.args, "Parameters", show_types=true, show_defaults=true) }}
+            {# Includes #}
+            {% with item = current_item %}
+              {% include 'python/partials/method_raises.md.jinja2' %}
+              {% include 'python/partials/method_examples.md.jinja2' %}
+              {% include 'python/partials/method_notes.md.jinja2' %}
+            {% endwith %}
 
-{% endif %}
-{#- Returns section -#}
-{% if current_item.metadata.returns %}
-{% call rubric_shell() %}
-**Returns**
-{% endcall %}
-
-`{{ current_item.metadata.returns }}`{% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}
-
-{% endif %}
-
-{#- Reuse shared method components -#}
-{% with item = current_item %}
-{% include 'python/partials/method_raises.md.jinja2' %}
-{% include 'python/partials/method_examples.md.jinja2' %}
-{% include 'python/partials/method_notes.md.jinja2' %}
-{% endwith %}
-
-{% if current_item.metadata.parsed_doc.see_also %}
-**See Also:** {%- for ref in current_item.metadata.parsed_doc.see_also -%}{{- ref -}}{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-{% endif %}
-{% endcall %}
-{% endcall %}
+            {% if current_item.metadata.parsed_doc.see_also %}
+            <div class="api-see-also">
+              <strong>See Also:</strong>
+              {%- for ref in current_item.metadata.parsed_doc.see_also -%}
+              {{- ref -}}{%- if not loop.last -%}, {% endif -%}
+              {%- endfor -%}
+            </div>
+            {% endif %}
+          </div>
+        </details>
+      {% endcall %}
+    {% endcall %}
+  </div>
+</section>
 {% endif %}

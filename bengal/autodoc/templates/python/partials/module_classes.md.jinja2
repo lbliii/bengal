@@ -7,59 +7,71 @@ Includes class descriptions, inheritance, and nested components.
 
 {% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, section_shell, subsection_shell %}
 
-{% set all_classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
-{% set public_classes = [] %}
-{% for cls in all_classes %}
-  {% if not cls.name.startswith('_') %}
-    {% set _ = public_classes.append(cls) %}
-  {% endif %}
-{% endfor %}
+{% if not public_classes %}
+  {% set all_classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
+  {% set public_classes = [] %}
+  {% for cls in all_classes %}
+    {% if not cls.name.startswith('_') %}
+      {% set _ = public_classes.append(cls) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
 
 {% if public_classes %}
-{% call section_shell() %}
-## Classes
-{% endcall %}
+<section class="api-section api-section--classes">
+  <h2 class="api-section__title">Classes</h2>
 
-{% call(current_item) safe_for(public_classes, "*No public classes found.*") %}
-{% call safe_render("class", current_item) %}
-{% call subsection_shell() %}
-### `{{ current_item.name }}`
-{% endcall %}
+  <div class="api-cards">
+    {% call(current_item) safe_for(public_classes, "*No public classes found.*") %}
+      {% call safe_render("class", current_item) %}
+        <details class="api-card api-card--class" open>
+          <summary class="api-card__header">
+            <span class="api-card__icon">◆</span>
+            <code class="api-card__name">{{ current_item.name }}</code>
+            <span class="api-card__badges">
+              {% if current_item.metadata.is_dataclass %}
+              <span class="api-badge--compact api-badge--dataclass">dataclass</span>
+              {% endif %}
+            </span>
+            <span class="api-card__toggle">▸</span>
+          </summary>
 
-{% if current_item.metadata.aliases %}
-:::{note} Also known as
-This element has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-:::
+          <div class="api-card__content">
+            <p class="api-card__description">
+              {% if current_item.description %}
+              {{ current_item.description | trim }}
+              {% else %}
+              *No class description provided.*
+              {% endif %}
+            </p>
 
-{% endif %}
-{% if current_item.metadata.bases %}
-**Inherits from:** {%- for base in current_item.metadata.bases -%}`{{- base -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
+            {% if current_item.metadata.aliases %}
+            <div class="api-metadata">
+                <strong>Aliases:</strong>
+                {%- for alias in current_item.metadata.aliases -%}
+                <code>{{ alias }}</code>{%- if not loop.last -%}, {% endif -%}
+                {%- endfor -%}
+            </div>
+            {% endif %}
 
-{% endif %}
-{% if current_item.description %}
-{{ current_item.description | trim }}
+            {% if current_item.metadata.bases %}
+            <div class="api-metadata">
+                <strong>Inherits from:</strong>
+                {%- for base in current_item.metadata.bases -%}
+                <code>{{ base }}</code>{%- if not loop.last -%}, {% endif -%}
+                {%- endfor -%}
+            </div>
+            {% endif %}
 
-{% else %}
-*No class description provided.*
-
-{% endif %}
-{% if current_item.metadata.is_dataclass %}
-
-:::{info}
-This is a dataclass.
-:::
-
-{% endif %}
-
-{#- Include class components with proper context -#}
-{#- Note: Blank lines between includes ensure proper spacing between sections -#}
-{% with item = current_item %}
-{% include 'python/partials/class_attributes.md.jinja2' %}
-
-{% include 'python/partials/class_properties.md.jinja2' %}
-
-{% include 'python/partials/class_methods.md.jinja2' %}
-{% endwith %}
-{% endcall %}
-{% endcall %}
+            {% with item = current_item %}
+              {% include 'python/partials/class_attributes.md.jinja2' %}
+              {% include 'python/partials/class_properties.md.jinja2' %}
+              {% include 'python/partials/class_methods.md.jinja2' %}
+            {% endwith %}
+          </div>
+        </details>
+      {% endcall %}
+    {% endcall %}
+  </div>
+</section>
 {% endif %}

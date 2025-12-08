@@ -5,105 +5,140 @@ Renders class methods with comprehensive documentation including
 parameters, returns, raises, examples, and inherited methods.
 -#}
 
-{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, rubric_shell %}
-{% from 'macros/code_blocks.md.jinja2' import signature_block %}
-{% from 'macros/parameter_table.md.jinja2' import parameter_table %}
+{% from 'macros/safe_macros.md.jinja2' import safe_render, safe_for %}
 
 {% set all_methods = item.children | selectattr('element_type', 'equalto', 'method') | list %}
 {% set own_methods = all_methods | rejectattr('metadata.synthetic') | rejectattr('metadata.is_property') | list %}
 {% set inherited_methods = all_methods | selectattr('metadata.synthetic') | list %}
 
 {% if own_methods %}
-{% call safe_section("class_methods") %}
-{% call rubric_shell() %}
-:::{rubric} Methods
-:class: rubric-methods
-:::
-{% endcall %}
+<div class="api-methods">
+  <h4 class="api-subsection-title">Methods</h4>
 
-{% call(method_item) safe_for(own_methods, "*No methods found.*") %}
-{% call safe_render("method", method_item) %}
-{% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
+  {% call(method_item) safe_for(own_methods, "*No methods found.*") %}
+    {% call safe_render("method", method_item) %}
+      {% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
+      <details class="api-method">
+        <summary class="api-method__header">
+          <code class="api-method__name">{{ method_item.name }}</code>
+          {% if method_item.metadata.is_async %}
+            <span class="api-badge--tiny api-badge--async">async</span>
+          {% endif %}
+          {% if method_item.metadata.is_classmethod %}
+            <span class="api-badge--tiny api-badge--classmethod">classmethod</span>
+          {% endif %}
+          {% if method_item.metadata.is_staticmethod %}
+            <span class="api-badge--tiny api-badge--staticmethod">staticmethod</span>
+          {% endif %}
+        </summary>
 
-#### `{{ method_item.name }}`{% if method_item.metadata.is_async %} <span class="api-badge api-badge-async">async</span>{% endif %}{% if method_item.metadata.is_classmethod %} <span class="api-badge api-badge-classmethod">classmethod</span>{% endif %}{% if method_item.metadata.is_staticmethod %} <span class="api-badge api-badge-staticmethod">staticmethod</span>{% endif %}
+        <div class="api-method__content">
+          {% if method_item.metadata.signature %}
+          <div class="code-block-wrapper">
+             <pre class="api-method__signature"><code class="language-python">{{ method_item.metadata.signature }}</code></pre>
+          </div>
+          {% endif %}
 
+          <p class="api-method__description">
+            {{ method_item.description | default('*No description provided.*') | trim }}
+          </p>
 
-{{ signature_block(method_item.metadata.signature | default(''), 'method') }}
+          {% if method_item.metadata.parsed_doc.deprecated %}
+          <div class="api-warning">
+             <strong>Deprecated:</strong> {{ method_item.metadata.parsed_doc.deprecated }}
+          </div>
+          {% endif %}
 
-{% if method_item.description %}
-{{ method_item.description | trim }}
+          {% if method_item.metadata.is_async %}
+          <div class="api-info">
+             <strong>Async Method:</strong> This is an asynchronous method. Use <code>await</code> when calling.
+          </div>
+          {% endif %}
 
-{% else %}
-*No description provided.*
+          {# Parameters #}
+          {% if method_item.metadata.args %}
+          <div class="api-parameters">
+            <h5 class="api-label">Parameters</h5>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Default</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for arg in method_item.metadata.args %}
+                <tr>
+                  <td><code>{{ arg.name }}</code></td>
+                  <td>{% if arg.type %}<code>{{ arg.type }}</code>{% else %}—{% endif %}</td>
+                  <td>{% if arg.default %}<code>{{ arg.default }}</code>{% else %}—{% endif %}</td>
+                  <td>{{ arg.description | default('') | trim }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
 
+          {# Returns #}
+          {% if method_item.metadata.returns %}
+          <div class="api-returns">
+            <h5 class="api-label">Returns</h5>
+            <p>
+              <code>{{ method_item.metadata.returns }}</code>
+              {% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}
+            </p>
+          </div>
+          {% endif %}
+
+          {# Includes #}
+          {% with item = method_item %}
+            {% include 'python/partials/method_raises.md.jinja2' %}
+            {% include 'python/partials/method_examples.md.jinja2' %}
+            {% include 'python/partials/method_notes.md.jinja2' %}
+          {% endwith %}
+
+          {% if method_item.metadata.parsed_doc.see_also %}
+          <div class="api-see-also">
+            <strong>See Also:</strong>
+            {%- for ref in method_item.metadata.parsed_doc.see_also -%}
+            {{- ref -}}{%- if not loop.last -%}, {% endif -%}
+            {%- endfor -%}
+          </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endif %}
+    {% endcall %}
+  {% endcall %}
+</div>
 {% endif %}
-{% if method_item.metadata.parsed_doc.deprecated %}
-:::{warning} Deprecated
-{{- method_item.metadata.parsed_doc.deprecated -}}
-:::
 
-{% endif %}
-{% if method_item.metadata.is_async %}
-:::{info} Async Method
-This is an asynchronous method. Use `await` when calling.
-:::
-
-{% endif %}
-{#- Parameters section -#}
-{% if method_item.metadata.args %}
-{{ parameter_table(method_item.metadata.args, "Parameters", show_types=true, show_defaults=true) }}
-
-{% endif %}
-{#- Returns section -#}
-{% if method_item.metadata.returns %}
-{% call rubric_shell() %}
-:::{rubric} Returns
-:class: rubric-returns
-:::
-{% endcall %}
-
-`{{ method_item.metadata.returns }}`{% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}
-
-{% endif %}
-
-{#- Include shared documentation components -#}
-{% with item = method_item %}
-{% include 'python/partials/method_raises.md.jinja2' %}
-{% include 'python/partials/method_examples.md.jinja2' %}
-{% include 'python/partials/method_notes.md.jinja2' %}
-{% endwith %}
-
-{% if method_item.metadata.parsed_doc.see_also %}
-**See Also:** {%- for ref in method_item.metadata.parsed_doc.see_also -%}{{- ref -}}{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-{% endif %}
-{% endif %}
-{% endcall %}
-{% endcall %}
-{% endcall %}
-{% endif %}
-
-{#- Inherited methods section -#}
 {% if inherited_methods %}
-{% call safe_section("inherited_methods") %}
-:::{rubric} Inherited Members
-:class: rubric-inherited
-:::
-
-::::{dropdown} {{ inherited_methods | length }} inherited members (click to expand)
-:open: false
-
-{% for base_class, methods in inherited_methods | groupby('metadata.inherited_from') %}
-**From `{{ base_class.split('.')[-1] }}`:**
-
-{% for method in methods %}
-{% if not method.name.startswith('_') or method.name.startswith('__') %}
-- **`{{ method.name }}`**{% if method.metadata.is_async %} (async){% endif %}{% if method.metadata.is_classmethod %} (classmethod){% endif %}{% if method.metadata.is_staticmethod %} (staticmethod){% endif %}
-  - {{ method.description | safe_text }}
-{% endif %}
-{% endfor %}
-
-{% endfor %}
-
-::::
-{% endcall %}
+<div class="api-inherited-methods">
+  <h4 class="api-subsection-title">Inherited Members</h4>
+  <details class="api-dropdown">
+    <summary>{{ inherited_methods | length }} inherited members (click to expand)</summary>
+    <div class="api-dropdown__content">
+        {% for base_class, methods in inherited_methods | groupby('metadata.inherited_from') %}
+        <p><strong>From <code>{{ base_class.split('.')[-1] }}</code>:</strong></p>
+        <ul>
+        {% for method in methods %}
+        {% if not method.name.startswith('_') or method.name.startswith('__') %}
+        <li>
+            <code>{{ method.name }}</code>
+            {% if method.metadata.is_async %}(async){% endif %}
+            {% if method.metadata.is_classmethod %}(classmethod){% endif %}
+            {% if method.metadata.is_staticmethod %}(staticmethod){% endif %}
+             - {{ method.description | default('') | trim }}
+        </li>
+        {% endif %}
+        {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+  </details>
+</div>
 {% endif %}
