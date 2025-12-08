@@ -755,12 +755,12 @@ def config_inspect(
             for finding in findings:
                 icon = (
                     "❌"
-                    if finding.severity == "error"
+                    if finding.severity.value == "error"
                     else "⚠️"
-                    if finding.severity == "warning"
+                    if finding.severity.value == "warning"
                     else "ℹ️"
                 )
-                cli.console.print(f"   {icon} {finding.message}")
+                cli.console.print(f"   {icon} {finding.title}")
                 if finding.suggestion:
                     cli.console.print(f"      💡 {finding.suggestion}")
         else:

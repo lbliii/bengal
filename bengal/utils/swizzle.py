@@ -17,7 +17,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.hashing import hash_file, hash_str
 from bengal.utils.logger import get_logger
@@ -266,7 +266,7 @@ class SwizzleManager:
         data["records"] = filtered
         self._write_registry(data)
 
-    def _load_registry(self) -> dict[str, object]:
+    def _load_registry(self) -> dict[str, Any]:
         try:
             if self.registry_path.exists():
                 data = json.loads(self.registry_path.read_text(encoding="utf-8"))
@@ -292,7 +292,7 @@ class SwizzleManager:
             )
         return {"records": []}
 
-    def _write_registry(self, data: dict[str, object]) -> None:
+    def _write_registry(self, data: dict[str, Any]) -> None:
         try:
             self.registry_path.parent.mkdir(parents=True, exist_ok=True)
             self.registry_path.write_text(json.dumps(data, indent=2), encoding="utf-8")

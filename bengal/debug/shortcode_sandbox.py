@@ -146,12 +146,9 @@ class ShortcodeSandbox(DebugTool):
     def _get_parser(self) -> Any:
         """Get or create markdown parser."""
         if self._markdown_parser is None:
-            from bengal.rendering.parsers import create_parser
+            from bengal.rendering.parsers import create_markdown_parser
 
-            self._markdown_parser = create_parser(
-                parser_type="mistune",
-                context=self._mock_context,
-            )
+            self._markdown_parser = create_markdown_parser(engine="mistune")
         return self._markdown_parser
 
     def run(
@@ -398,7 +395,7 @@ class ShortcodeSandbox(DebugTool):
 
         except Exception as e:
             result.errors.append(f"Render error: {e}")
-            logger.exception("sandbox_render_error", error=str(e))
+            logger.error("sandbox_render_error", error=str(e), error_type=type(e).__name__)
 
         return result
 

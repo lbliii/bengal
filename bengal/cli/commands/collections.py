@@ -250,7 +250,7 @@ def list_collections(config: str | None, source: str) -> None:
         # Show schema fields
         if is_dataclass(coll_config.schema):
             cli.detail("Fields:", indent=1)
-            for f in fields(config.schema):
+            for f in fields(coll_config.schema):
                 required = f.default is f.default_factory is type(f.default)
                 marker = "*" if required else " "
                 cli.detail(f"  {marker} {f.name}: {f.type}", indent=1)

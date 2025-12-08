@@ -6,9 +6,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.core.page.page_core import PageCore
 
 logger = get_logger(__name__)
 
@@ -24,6 +29,16 @@ class PageMetadataMixin:
     - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
     """
+
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    metadata: dict[str, Any]
+    source_path: "Path"
+    output_path: "Path | None"
+    toc: str | None
+    core: "PageCore | None"
+    _site: Any
+    _toc_items_cache: list[dict[str, Any]] | None
+    slug: str  # This is a property but we declare it for type checking
 
     @property
     def title(self) -> str:

@@ -5,10 +5,18 @@ Page Operations Mixin - Operations and transformations on pages.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class PageOperationsMixin:
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    content: str
+    rendered_html: str
+    links: list[str]
+    source_path: "Path"
     """
     Mixin providing operations for pages.
 

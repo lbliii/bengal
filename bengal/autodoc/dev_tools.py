@@ -12,7 +12,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.template_safety import SafeTemplateRenderer, TemplateValidator
@@ -53,7 +53,7 @@ class SampleDataGenerator:
             element_type="module",
             qualified_name=f"sample.{name}",
             description=f"Sample module for testing template rendering. This is module #{self.sample_counter}.",
-            source_file=f"sample/{name}.py",
+            source_file=Path(f"sample/{name}.py"),
             line_number=1,
         )
 
@@ -63,7 +63,7 @@ class SampleDataGenerator:
             element_type="class",
             qualified_name=f"sample.{name}.SampleClass",
             description="A sample class for testing class documentation templates.",
-            source_file=f"sample/{name}.py",
+            source_file=Path(f"sample/{name}.py"),
             line_number=10,
             metadata={"bases": ["BaseClass", "Mixin"], "is_dataclass": False, "aliases": ["SC"]},
         )
@@ -74,7 +74,7 @@ class SampleDataGenerator:
             element_type="method",
             qualified_name=f"sample.{name}.SampleClass.sample_method",
             description="A sample method with parameters and return value.",
-            source_file=f"sample/{name}.py",
+            source_file=Path(f"sample/{name}.py"),
             line_number=15,
             metadata={
                 "signature": "def sample_method(self, param1: str, param2: int = 42) -> bool:",
@@ -119,7 +119,7 @@ class SampleDataGenerator:
             element_type="method",
             qualified_name=f"sample.{name}.SampleClass.sample_property",
             description="A sample property with getter and setter.",
-            source_file=f"sample/{name}.py",
+            source_file=Path(f"sample/{name}.py"),
             line_number=25,
             metadata={
                 "signature": "@property\ndef sample_property(self) -> str:",
@@ -135,7 +135,7 @@ class SampleDataGenerator:
             element_type="function",
             qualified_name=f"sample.{name}.sample_function",
             description="A sample standalone function for testing function templates.",
-            source_file=f"sample/{name}.py",
+            source_file=Path(f"sample/{name}.py"),
             line_number=35,
             metadata={
                 "signature": "def sample_function(data: List[str]) -> Dict[str, int]:",
@@ -168,7 +168,7 @@ class SampleDataGenerator:
             element_type="command",
             qualified_name=name,
             description=f"Sample CLI command for testing command templates. Command #{self.sample_counter}.",
-            source_file="cli/commands.py",
+            source_file=Path("cli/commands.py"),
             line_number=50,
             metadata={
                 "usage": f"{name} [OPTIONS] <input-file>",
@@ -234,7 +234,7 @@ class SampleDataGenerator:
             element_type="endpoint",
             qualified_name=f"{method.lower()}_{path.replace('/', '_').strip('_')}",
             description=f"Sample API endpoint for testing OpenAPI templates. Endpoint #{self.sample_counter}.",
-            source_file="api/openapi.yaml",
+            source_file=Path("api/openapi.yaml"),
             line_number=100,
             metadata={
                 "method": method.lower(),
@@ -377,7 +377,7 @@ class TemplateDebugger:
         Returns:
             Debug information including validation, rendering results, and errors
         """
-        debug_info = {
+        debug_info: dict[str, Any] = {
             "template_name": template_name,
             "timestamp": datetime.now().isoformat(),
             "validation": {},
@@ -423,6 +423,7 @@ class TemplateDebugger:
                 "error_type": type(e).__name__,
                 "render_time_ms": render_time,
                 "content_length": 0,
+                "errors": [],
             }
 
         # Collect renderer errors
@@ -582,9 +583,9 @@ class TemplateHotReloader:
     def __init__(self, template_dirs: list[Path]):
         self.template_dirs = template_dirs
         self.file_timestamps: dict[str, float] = {}
-        self.reload_callbacks: list[callable] = []
+        self.reload_callbacks: list[Callable[[list[str]], None]] = []
 
-    def register_reload_callback(self, callback: callable) -> None:
+    def register_reload_callback(self, callback: Callable[[list[str]], None]) -> None:
         """Register callback to be called when templates are reloaded."""
         self.reload_callbacks.append(callback)
 

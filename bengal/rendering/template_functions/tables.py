@@ -87,12 +87,15 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
             "</div>"
         )
 
+    # Get site from environment globals
+    site: Site = env.globals["site"]
+
     # Create a mock state object with root_path
     class State:
-        pass
+        root_path: Any = None
 
     state = State()
-    state.root_path = env.site.root_path
+    state.root_path = site.root_path
 
     # Create directive instance to use its parsing logic
     directive = DataTableDirective()

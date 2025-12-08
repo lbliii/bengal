@@ -627,10 +627,10 @@ class ConfigInspector(DebugTool):
                 info = DEPRECATED_KEYS[key_path]
                 findings.append(
                     DebugFinding(
-                        severity="warning",
-                        message=f"Deprecated key: {key_path}",
+                        title=f"Deprecated key: {key_path}",
+                        description=info.get("message", ""),
+                        severity=Severity.WARNING,
                         suggestion=info.get("replacement", "Remove this key"),
-                        details={"message": info.get("message", "")},
                     )
                 )
 
@@ -639,8 +639,9 @@ class ConfigInspector(DebugTool):
         if baseurl and not baseurl.startswith(("http://", "https://")):
             findings.append(
                 DebugFinding(
-                    severity="warning",
-                    message=f"baseurl should start with http:// or https://: {baseurl}",
+                    title=f"baseurl should start with http:// or https://: {baseurl}",
+                    description="The baseurl should include the protocol prefix",
+                    severity=Severity.WARNING,
                     suggestion="Add protocol to baseurl",
                 )
             )
@@ -648,8 +649,9 @@ class ConfigInspector(DebugTool):
         if baseurl and baseurl.endswith("/"):
             findings.append(
                 DebugFinding(
-                    severity="info",
-                    message="baseurl ends with trailing slash",
+                    title="baseurl ends with trailing slash",
+                    description="Trailing slash can cause URL concatenation issues",
+                    severity=Severity.INFO,
                     suggestion="Consider removing trailing slash for consistency",
                 )
             )
