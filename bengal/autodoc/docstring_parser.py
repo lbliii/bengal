@@ -199,7 +199,7 @@ class GoogleDocstringParser:
         ]
 
         current_section = "description"
-        section_buffer = []
+        section_buffer: list[str] = []
 
         for line in lines:
             stripped = line.strip()
@@ -238,8 +238,8 @@ class GoogleDocstringParser:
             return args
 
         lines = section.split("\n")
-        current_arg = None
-        current_desc = []
+        current_arg: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             # Check if this is a new argument
@@ -276,8 +276,8 @@ class GoogleDocstringParser:
             return raises
 
         lines = section.split("\n")
-        current_exc = None
-        current_desc = []
+        current_exc: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             match = re.match(r"^\s*(\w+)\s*:\s*(.+)?", line)
