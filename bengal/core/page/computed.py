@@ -2,11 +2,18 @@
 Page Computed Properties Mixin - Cached expensive computations.
 """
 
-
 from __future__ import annotations
 
 import re
 from functools import cached_property
+from typing import Any, Protocol
+
+
+class HasMetadata(Protocol):
+    """Protocol for objects that have metadata and content attributes."""
+
+    metadata: dict[str, Any]
+    content: str
 
 
 class PageComputedMixin:
@@ -20,7 +27,7 @@ class PageComputedMixin:
     """
 
     @cached_property
-    def meta_description(self) -> str:
+    def meta_description(self: HasMetadata) -> str:
         """
         Generate SEO-friendly meta description (computed once, cached).
 
@@ -75,7 +82,7 @@ class PageComputedMixin:
         return truncated + "…"
 
     @cached_property
-    def reading_time(self) -> int:
+    def reading_time(self: HasMetadata) -> int:
         """
         Calculate reading time in minutes (computed once, cached).
 
@@ -106,7 +113,7 @@ class PageComputedMixin:
         return max(1, round(minutes))
 
     @cached_property
-    def excerpt(self) -> str:
+    def excerpt(self: HasMetadata) -> str:
         """
         Extract content excerpt (computed once, cached).
 

@@ -314,10 +314,10 @@ class RenderingPipeline:
         else:
             context = self._build_variable_context(page)
 
-            # Type narrowing: parser should be BaseMarkdownParser at this point
-            from bengal.rendering.parsers.base import BaseMarkdownParser
-
-            if isinstance(self.parser, BaseMarkdownParser):
+            # Type narrowing: check if parser supports context methods (MistuneParser)
+            if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
+                self.parser, "parse_with_context"
+            ):
                 if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(
                         page.content, page.metadata, context
@@ -328,10 +328,14 @@ class RenderingPipeline:
                     )
                     toc = ""
             else:
-                # Fallback for Any type (shouldn't happen in practice)
-                parsed_content = str(self.parser.parse(page.content, page.metadata))
-                parsed_content = escape_template_syntax_in_html(parsed_content)
-                toc = ""
+                # Fallback for parsers without context support (e.g., PythonMarkdownParser)
+                if need_toc:
+                    parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+                    parsed_content = escape_template_syntax_in_html(parsed_content)
+                else:
+                    parsed_content = self.parser.parse(page.content, page.metadata)
+                    parsed_content = escape_template_syntax_in_html(parsed_content)
+                    toc = ""
 
             # Extract AST for caching
             if (
