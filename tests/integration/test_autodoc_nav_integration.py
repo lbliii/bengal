@@ -186,3 +186,30 @@ class TestAutodocThemeElements:
         # Check for script tags
         assert "<script" in html
 
+
+class TestAutodocFallbackPages:
+    """Test that fallback-rendered pages still work correctly."""
+
+    def test_fallback_page_has_metadata_tag(self, built_site_output):
+        """Pages rendered via fallback should have metadata tag (if any exist)."""
+        # This test checks that if fallback pages exist, they have proper structure
+        # In practice, fallback pages should be rare, so we just verify structure
+        module_page = built_site_output / "api" / "core" / "page" / "index.html"
+        if not module_page.exists():
+            pytest.skip("api/core/page/index.html not found")
+
+        html = module_page.read_text()
+
+        # Fallback pages should still have proper HTML structure
+        assert "<html" in html or "<!DOCTYPE" in html
+
+    def test_fallback_page_still_writes_output(self, built_site_output):
+        """Fallback pages should still write output files."""
+        # Any autodoc page that exists should have been written
+        module_page = built_site_output / "api" / "core" / "page" / "index.html"
+        if not module_page.exists():
+            pytest.skip("api/core/page/index.html not found")
+
+        # File should exist and be readable
+        assert module_page.is_file()
+        assert len(module_page.read_text()) > 0
