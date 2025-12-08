@@ -21,7 +21,13 @@ from bengal.autodoc.models import (
     PythonModuleMetadata,
 )
 from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring, RaisesInfo
-from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
+from bengal.autodoc.utils import (
+    apply_grouping,
+    auto_detect_prefix_map,
+    get_python_class_bases,
+    get_python_function_is_property,
+    sanitize_text,
+)
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -186,10 +192,18 @@ class PythonExtractor(Extractor):
 
         # Skip common virtual environment and dependency directories
         common_skip_dirs = {
-            "venv", ".venv", "env", ".env",
-            "site-packages", "__pycache__",
-            ".tox", ".nox", ".eggs",
-            "build", "dist", "node_modules",
+            "venv",
+            ".venv",
+            "env",
+            ".env",
+            "site-packages",
+            "__pycache__",
+            ".tox",
+            ".nox",
+            ".eggs",
+            "build",
+            "dist",
+            "node_modules",
         }
         for part in path_parts:
             if part in common_skip_dirs:
@@ -373,8 +387,8 @@ class PythonExtractor(Extractor):
             if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
                 method = self._extract_function(item, file_path, qualified_name)
                 if method:
-                    # Check if it's a property
-                    if any("property" in d for d in method.metadata.get("decorators", [])):
+                    # Check if it's a property using typed accessor
+                    if get_python_function_is_property(method):
                         properties.append(method)
                     else:
                         methods.append(method)
@@ -710,10 +724,7 @@ class PythonExtractor(Extractor):
         Returns:
             True if function is a generator
         """
-        for child in ast.walk(node):
-            if isinstance(child, ast.Yield | ast.YieldFrom):
-                return True
-        return False
+        return any(isinstance(child, ast.Yield | ast.YieldFrom) for child in ast.walk(node))
 
     def _annotation_to_string(self, annotation: ast.expr | None) -> str | None:
         """Convert AST annotation to string."""
@@ -843,8 +854,8 @@ class PythonExtractor(Extractor):
         Args:
             class_elem: Class DocElement to augment with inherited members
         """
-        # Get base classes
-        bases = class_elem.metadata.get("bases", [])
+        # Get base classes using typed accessor
+        bases = get_python_class_bases(class_elem)
         if not bases:
             return
 
@@ -888,9 +899,10 @@ class PythonExtractor(Extractor):
                     continue
 
                 # Only inherit methods and properties
-                if member.element_type not in ("method", "function") and not member.metadata.get(
-                    "is_property"
-                ):
+                if member.element_type not in (
+                    "method",
+                    "function",
+                ) and not get_python_function_is_property(member):
                     continue
 
                 # Create inherited member entry

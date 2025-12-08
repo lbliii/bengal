@@ -79,12 +79,41 @@ class DocElement:
     element_type: str                   # module, class, function, method
     source_file: Path                   # Source file path
     line_number: int                    # Line number in source
-    metadata: dict[str, Any]            # Type-specific metadata
+    metadata: dict[str, Any]            # Type-specific metadata (legacy)
+    typed_metadata: DocMetadata | None  # Typed metadata (preferred)
     children: list[DocElement]          # Nested elements (methods, etc.)
     examples: list[str]                 # Example code blocks
     see_also: list[str]                 # Cross-references
     deprecated: str | None              # Deprecation notice
 ```
+
+### Typed Metadata (Recommended)
+
+Extractors populate `typed_metadata` with domain-specific dataclasses for
+type-safe access with IDE autocomplete:
+
+```python
+from bengal.autodoc.utils import (
+    get_python_class_bases,
+    get_python_function_is_property,
+    get_openapi_tags,
+    get_openapi_method,
+)
+
+# Type-safe access with fallback to metadata dict
+bases = get_python_class_bases(class_element)  # tuple[str, ...]
+is_prop = get_python_function_is_property(method)  # bool
+tags = get_openapi_tags(endpoint)  # tuple[str, ...]
+method = get_openapi_method(endpoint)  # str (e.g., "GET")
+```
+
+**Available Metadata Types**:
+
+- **Python**: `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`
+- **CLI**: `CLICommandMetadata`, `CLIGroupMetadata`, `CLIOptionMetadata`
+- **OpenAPI**: `OpenAPIEndpointMetadata`, `OpenAPIOverviewMetadata`, `OpenAPISchemaMetadata`
+
+See `bengal/autodoc/models/` for full type definitions.
 
 ## Python Extractor
 

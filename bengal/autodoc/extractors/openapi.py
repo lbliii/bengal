@@ -24,6 +24,12 @@ from bengal.autodoc.models.openapi import (
     OpenAPIRequestBodyMetadata,
     OpenAPIResponseMetadata,
 )
+from bengal.autodoc.utils import (
+    get_openapi_method,
+    get_openapi_operation_id,
+    get_openapi_path,
+    get_openapi_tags,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +37,7 @@ logger = logging.getLogger(__name__)
 class OpenAPIExtractor(Extractor):
     """
     Extracts documentation from OpenAPI specifications.
-    
+
     Supports OpenAPI 3.0 and 3.1 (YAML or JSON).
     """
 
@@ -79,7 +85,7 @@ class OpenAPIExtractor(Extractor):
     def get_output_path(self, element: DocElement) -> Path | None:
         """
         Determine output path for OpenAPI elements.
-        
+
         Structure:
         - Overview: index.md
         - Endpoints: endpoints/{tag}/{operation_id}.md
@@ -90,18 +96,18 @@ class OpenAPIExtractor(Extractor):
 
         elif element.element_type == "openapi_endpoint":
             # Group by first tag if available, else 'default'
-            tag = "default"
-            if element.metadata.get("tags"):
-                tag = element.metadata["tags"][0]
+            tags = get_openapi_tags(element)
+            tag = tags[0] if tags else "default"
 
             # Use operationId if available, else sanitized path
             name = element.name.replace(" ", "_").lower()
-            if element.metadata.get("operation_id"):
-                name = element.metadata["operation_id"]
+            operation_id = get_openapi_operation_id(element)
+            if operation_id:
+                name = operation_id
             else:
                 # Fallback: GET /users -> get_users
-                method = element.metadata.get("method", "op")
-                path = element.metadata.get("path", "path").strip("/")
+                method = get_openapi_method(element) or "op"
+                path = get_openapi_path(element).strip("/") or "path"
                 name = f"{method}_{path}".replace("/", "_").replace("{", "").replace("}", "")
 
             return Path(f"endpoints/{tag}/{name}.md")
@@ -137,7 +143,7 @@ class OpenAPIExtractor(Extractor):
                 "version": info.get("version"),
                 "servers": spec.get("servers", []),
                 "security_schemes": spec.get("components", {}).get("securitySchemes", {}),
-                "tags": spec.get("tags", [])
+                "tags": spec.get("tags", []),
             },
             typed_metadata=typed_meta,
         )
@@ -195,7 +201,9 @@ class OpenAPIExtractor(Extractor):
                     OpenAPIResponseMetadata(
                         status_code=str(status),
                         description=resp.get("description", "") if isinstance(resp, dict) else "",
-                        content_type=next(iter(resp.get("content", {}).keys()), None) if isinstance(resp, dict) else None,
+                        content_type=next(iter(resp.get("content", {}).keys()), None)
+                        if isinstance(resp, dict)
+                        else None,
                         schema_ref=(
                             resp.get("content", {})
                             .get(next(iter(resp.get("content", {}).keys()), ""), {})
@@ -239,11 +247,11 @@ class OpenAPIExtractor(Extractor):
                         "request_body": operation.get("requestBody"),
                         "responses": operation.get("responses"),
                         "security": operation.get("security"),
-                        "deprecated": operation.get("deprecated", False)
+                        "deprecated": operation.get("deprecated", False),
                     },
                     typed_metadata=typed_meta,
                     examples=[],  # Could extract examples from openapi spec
-                    deprecated="Deprecated in API spec" if operation.get("deprecated") else None
+                    deprecated="Deprecated in API spec" if operation.get("deprecated") else None,
                 )
                 elements.append(element)
 
@@ -255,10 +263,14 @@ class OpenAPIExtractor(Extractor):
         elements = []
         components = spec.get("components", {})
         print(f"DEBUG: Components type: {type(components)}")
-        print(f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}")
+        print(
+            f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}"
+        )
         schemas = components.get("schemas", {})
         print(f"DEBUG: Schemas type: {type(schemas)}")
-        print(f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}")
+        print(
+            f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}"
+        )
 
         for name, schema in schemas.items():
             # Build typed metadata
@@ -281,7 +293,7 @@ class OpenAPIExtractor(Extractor):
                     "required": schema.get("required", []),
                     "enum": schema.get("enum"),
                     "example": schema.get("example"),
-                    "raw_schema": schema  # Keep full schema for complex rendering
+                    "raw_schema": schema,  # Keep full schema for complex rendering
                 },
                 typed_metadata=typed_meta,
             )

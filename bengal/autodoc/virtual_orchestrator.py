@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2.runtime import Context
 
 from bengal.autodoc.base import DocElement
+from bengal.autodoc.utils import get_openapi_method, get_openapi_path, get_openapi_tags
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
@@ -619,7 +620,7 @@ class VirtualAutodocOrchestrator:
 
         for element in elements:
             if element.element_type == "openapi_endpoint":
-                tags = element.metadata.get("tags", [])
+                tags = get_openapi_tags(element)
                 if tags:
                     for tag in tags:
                         if tag not in tagged_endpoints:
@@ -788,7 +789,7 @@ class VirtualAutodocOrchestrator:
             elif element.element_type == "openapi_schema":
                 return sections.get("api/schemas") or sections.get("api") or default_section
             elif element.element_type == "openapi_endpoint":
-                tags = element.metadata.get("tags", [])
+                tags = get_openapi_tags(element)
                 if tags:
                     tag_section = sections.get(f"api/tags/{tags[0]}")
                     if tag_section:
@@ -873,8 +874,8 @@ class VirtualAutodocOrchestrator:
                     "api-reference",
                 )
             elif element.element_type == "openapi_endpoint":
-                method = element.metadata.get("method", "").lower()
-                path = element.metadata.get("path", "").strip("/").replace("/", "-")
+                method = get_openapi_method(element).lower()
+                path = get_openapi_path(element).strip("/").replace("/", "-")
                 return (
                     "openapi-reference/endpoint",
                     f"api/endpoints/{method}-{path}",
@@ -907,6 +908,12 @@ class VirtualAutodocOrchestrator:
         # Create a page-like context for templates that expect a 'page' variable.
         # Templates extend base.html and include partials (page-hero, docs-nav, etc.)
         # that require page.metadata, page.tags, page.title, etc.
+        # Get tags: use typed helper for OpenAPI, fall back to metadata dict for others
+        if element.element_type == "openapi_endpoint":
+            element_tags = list(get_openapi_tags(element))
+        else:
+            element_tags = element.metadata.get("tags", []) if element.metadata else []
+
         page_context = _PageContext(
             title=element.name,
             metadata={
@@ -918,7 +925,7 @@ class VirtualAutodocOrchestrator:
                 "line_number": getattr(element, "line_number", None),
                 "is_autodoc": True,
             },
-            tags=element.metadata.get("tags", []) if element.metadata else [],
+            tags=element_tags,
             relative_url=f"/{url_path}/",
             source_path=str(element.source_file) if element.source_file else None,
             section=section,

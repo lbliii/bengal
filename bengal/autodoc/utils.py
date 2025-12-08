@@ -2,6 +2,10 @@
 Utility functions for autodoc system.
 
 Provides text sanitization and common helpers for all extractors.
+
+Typed Metadata Access:
+    Helper functions for type-safe access to DocElement.typed_metadata
+    with fallback to untyped metadata dict. See get_* functions below.
 """
 
 from __future__ import annotations
@@ -9,7 +13,10 @@ from __future__ import annotations
 import re
 import textwrap
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.autodoc.base import DocElement
 
 
 def _convert_sphinx_roles(text: str) -> str:
@@ -285,3 +292,255 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
     remaining = qualified_name[len(best_match) :].lstrip(".")
 
     return group_name, remaining
+
+
+# =============================================================================
+# Typed Metadata Access Helpers
+# =============================================================================
+#
+# These functions provide type-safe access to DocElement.typed_metadata with
+# automatic fallback to the untyped metadata dict. Use these instead of
+# direct .metadata.get() calls for better IDE support and type safety.
+
+
+def get_python_class_bases(element: DocElement) -> tuple[str, ...]:
+    """
+    Get class base classes with type-safe access.
+
+    Args:
+        element: DocElement with element_type "class"
+
+    Returns:
+        Tuple of base class names (e.g., ("ABC", "Mixin"))
+
+    Example:
+        >>> bases = get_python_class_bases(class_element)
+        >>> if "ABC" in bases:
+        ...     print("Abstract class")
+    """
+    from bengal.autodoc.models import PythonClassMetadata
+
+    if isinstance(element.typed_metadata, PythonClassMetadata):
+        return element.typed_metadata.bases
+    return tuple(element.metadata.get("bases", []))
+
+
+def get_python_class_decorators(element: DocElement) -> tuple[str, ...]:
+    """
+    Get class decorators with type-safe access.
+
+    Args:
+        element: DocElement with element_type "class"
+
+    Returns:
+        Tuple of decorator names (e.g., ("dataclass", "frozen"))
+    """
+    from bengal.autodoc.models import PythonClassMetadata
+
+    if isinstance(element.typed_metadata, PythonClassMetadata):
+        return element.typed_metadata.decorators
+    return tuple(element.metadata.get("decorators", []))
+
+
+def get_python_class_is_dataclass(element: DocElement) -> bool:
+    """
+    Check if class is a dataclass with type-safe access.
+
+    Args:
+        element: DocElement with element_type "class"
+
+    Returns:
+        True if class has @dataclass decorator
+    """
+    from bengal.autodoc.models import PythonClassMetadata
+
+    if isinstance(element.typed_metadata, PythonClassMetadata):
+        return element.typed_metadata.is_dataclass
+    return element.metadata.get("is_dataclass", False)
+
+
+def get_python_function_decorators(element: DocElement) -> tuple[str, ...]:
+    """
+    Get function/method decorators with type-safe access.
+
+    Args:
+        element: DocElement with element_type "function" or "method"
+
+    Returns:
+        Tuple of decorator names (e.g., ("classmethod", "override"))
+    """
+    from bengal.autodoc.models import PythonFunctionMetadata
+
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        return element.typed_metadata.decorators
+    return tuple(element.metadata.get("decorators", []))
+
+
+def get_python_function_is_property(element: DocElement) -> bool:
+    """
+    Check if function is a property with type-safe access.
+
+    Args:
+        element: DocElement with element_type "function" or "method"
+
+    Returns:
+        True if function has @property decorator
+    """
+    from bengal.autodoc.models import PythonFunctionMetadata
+
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        return element.typed_metadata.is_property
+    return element.metadata.get("is_property", False)
+
+
+def get_python_function_signature(element: DocElement) -> str:
+    """
+    Get function signature with type-safe access.
+
+    Args:
+        element: DocElement with element_type "function" or "method"
+
+    Returns:
+        Signature string (e.g., "def build(force: bool = False) -> None")
+    """
+    from bengal.autodoc.models import PythonFunctionMetadata
+
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        return element.typed_metadata.signature
+    return element.metadata.get("signature", "")
+
+
+def get_python_function_return_type(element: DocElement) -> str | None:
+    """
+    Get function return type with type-safe access.
+
+    Args:
+        element: DocElement with element_type "function" or "method"
+
+    Returns:
+        Return type string or None
+    """
+    from bengal.autodoc.models import PythonFunctionMetadata
+
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        return element.typed_metadata.return_type
+    return element.metadata.get("returns")
+
+
+def get_cli_command_callback(element: DocElement) -> str | None:
+    """
+    Get CLI command callback name with type-safe access.
+
+    Args:
+        element: DocElement with element_type "command"
+
+    Returns:
+        Callback function name or None
+    """
+    from bengal.autodoc.models import CLICommandMetadata
+
+    if isinstance(element.typed_metadata, CLICommandMetadata):
+        return element.typed_metadata.callback
+    return element.metadata.get("callback")
+
+
+def get_cli_command_option_count(element: DocElement) -> int:
+    """
+    Get CLI command option count with type-safe access.
+
+    Args:
+        element: DocElement with element_type "command"
+
+    Returns:
+        Number of options
+    """
+    from bengal.autodoc.models import CLICommandMetadata
+
+    if isinstance(element.typed_metadata, CLICommandMetadata):
+        return element.typed_metadata.option_count
+    return element.metadata.get("option_count", 0)
+
+
+def get_cli_group_command_count(element: DocElement) -> int:
+    """
+    Get CLI group command count with type-safe access.
+
+    Args:
+        element: DocElement with element_type "command-group"
+
+    Returns:
+        Number of subcommands
+    """
+    from bengal.autodoc.models import CLIGroupMetadata
+
+    if isinstance(element.typed_metadata, CLIGroupMetadata):
+        return element.typed_metadata.command_count
+    return element.metadata.get("command_count", 0)
+
+
+def get_openapi_tags(element: DocElement) -> tuple[str, ...]:
+    """
+    Get OpenAPI endpoint tags with type-safe access.
+
+    Args:
+        element: DocElement with element_type "openapi_endpoint"
+
+    Returns:
+        Tuple of tag names (e.g., ("users", "admin"))
+    """
+    from bengal.autodoc.models import OpenAPIEndpointMetadata
+
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        return element.typed_metadata.tags
+    return tuple(element.metadata.get("tags", []))
+
+
+def get_openapi_method(element: DocElement) -> str:
+    """
+    Get OpenAPI HTTP method with type-safe access.
+
+    Args:
+        element: DocElement with element_type "openapi_endpoint"
+
+    Returns:
+        HTTP method string (e.g., "GET", "POST")
+    """
+    from bengal.autodoc.models import OpenAPIEndpointMetadata
+
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        return element.typed_metadata.method
+    return element.metadata.get("method", "").upper()
+
+
+def get_openapi_path(element: DocElement) -> str:
+    """
+    Get OpenAPI endpoint path with type-safe access.
+
+    Args:
+        element: DocElement with element_type "openapi_endpoint"
+
+    Returns:
+        Path string (e.g., "/users/{id}")
+    """
+    from bengal.autodoc.models import OpenAPIEndpointMetadata
+
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        return element.typed_metadata.path
+    return element.metadata.get("path", "")
+
+
+def get_openapi_operation_id(element: DocElement) -> str | None:
+    """
+    Get OpenAPI operation ID with type-safe access.
+
+    Args:
+        element: DocElement with element_type "openapi_endpoint"
+
+    Returns:
+        Operation ID string or None
+    """
+    from bengal.autodoc.models import OpenAPIEndpointMetadata
+
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        return element.typed_metadata.operation_id
+    return element.metadata.get("operation_id")
