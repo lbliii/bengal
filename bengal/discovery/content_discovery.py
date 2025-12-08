@@ -791,11 +791,13 @@ class ContentDiscovery:
             content = self._extract_content_skip_frontmatter(file_content)
 
             # Create minimal metadata for identification
+            from bengal.utils.text import humanize_slug
+
             metadata = {
                 "_parse_error": str(e),
                 "_parse_error_type": "yaml",
                 "_source_file": str(file_path),
-                "title": file_path.stem.replace("-", " ").replace("_", " ").title(),
+                "title": humanize_slug(file_path.stem),
             }
 
             return content, metadata
@@ -811,11 +813,13 @@ class ContentDiscovery:
             )
 
             # Use entire file as content
+            from bengal.utils.text import humanize_slug
+
             metadata = {
                 "_parse_error": str(e),
                 "_parse_error_type": "unknown",
                 "_source_file": str(file_path),
-                "title": file_path.stem.replace("-", " ").replace("_", " ").title(),
+                "title": humanize_slug(file_path.stem),
             }
 
             return file_content, metadata
