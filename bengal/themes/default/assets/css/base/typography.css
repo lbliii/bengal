@@ -574,16 +574,31 @@ table {
   display: table;
 }
 
-/* Make tables scrollable when they exceed container width */
+/* Table wrapper for horizontal scrolling on overflow */
+.table-wrapper {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  margin: var(--space-8) 0;
+}
+
+.table-wrapper table {
+  display: table;
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+}
+
+/* Content tables - maintain native table display for full-width fill */
 .prose table,
 article table,
 main table,
 section table,
 .content table {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  display: table;
   width: 100%;
+  min-width: 100%;
   margin: var(--space-8) 0;
 }
 

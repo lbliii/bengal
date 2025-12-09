@@ -272,7 +272,7 @@ class DirectiveSyntaxValidator:
                         errors.append(
                             f"Line {line_num}: Nested directive '{dtype}' uses same fence length ({count}) "
                             f"as parent '{parent_type}' (line {parent_line}). "
-                            f"Recommended: Use named closers for clarity: :::{{{dtype}}} ... :::{{{'/'+dtype}}}. "
+                            f"Recommended: Use named closers for clarity: :::{{{dtype}}} ... :::{{{'/' + dtype}}}. "
                             "Alternative: Use variable fence lengths (e.g. :::: for parent)."
                         )
 
@@ -334,15 +334,15 @@ class DirectiveSyntaxValidator:
 
         # End of file: check for unclosed blocks
         if stack:
-            for unclosed_line, unclosed_count, unclosed_dtype, _marker in stack:
+            for unclosed_line, unclosed_count, unclosed_dtype, _is_indented, _uses_named in stack:
                 if unclosed_count == 3:
                     errors.append(
-                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with ````` but never closed. "
-                        f"Add closing ````` or use 4+ backticks (````) if content contains code blocks."
+                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with ::: but never closed. "
+                        f"Add closing ::: fence."
                     )
                 else:
                     errors.append(
-                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with {unclosed_count} backticks but never closed. "
+                        f"Line {unclosed_line}: Directive '{unclosed_dtype}' opened with {unclosed_count} colons but never closed. "
                         f"Add matching closing fence."
                     )
 
