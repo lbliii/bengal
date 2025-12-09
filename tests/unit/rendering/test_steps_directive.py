@@ -10,8 +10,88 @@ import pytest
 
 import bengal
 from bengal.rendering.parsers import MistuneParser
+from bengal.rendering.plugins.directives.steps import (
+    StepOptions,
+    StepsOptions,
+)
 
 print(f"DEBUG: bengal imported from {bengal.__file__}", file=sys.stderr)
+
+
+# =============================================================================
+# StepOptions Tests
+# =============================================================================
+
+
+class TestStepOptions:
+    """Tests for StepOptions dataclass."""
+
+    def test_default_values(self) -> None:
+        """Test default option values."""
+        options = StepOptions()
+
+        assert options.css_class == ""
+        assert options.description == ""
+        assert options.optional is False
+        assert options.duration == ""
+
+    def test_custom_values(self) -> None:
+        """Test setting custom option values."""
+        options = StepOptions(
+            css_class="my-step",
+            description="This is the description.",
+            optional=True,
+            duration="5 min",
+        )
+
+        assert options.css_class == "my-step"
+        assert options.description == "This is the description."
+        assert options.optional is True
+        assert options.duration == "5 min"
+
+    def test_class_alias(self) -> None:
+        """Test that 'class' is aliased to 'css_class'."""
+        # The alias is defined in _field_aliases
+        assert StepOptions._field_aliases.get("class") == "css_class"
+
+
+# =============================================================================
+# StepsOptions Tests
+# =============================================================================
+
+
+class TestStepsOptions:
+    """Tests for StepsOptions dataclass."""
+
+    def test_default_values(self) -> None:
+        """Test default option values."""
+        options = StepsOptions()
+
+        assert options.css_class == ""
+        assert options.style == "default"
+        assert options.start == 1
+
+    def test_custom_values(self) -> None:
+        """Test setting custom option values."""
+        options = StepsOptions(
+            css_class="my-steps",
+            style="compact",
+            start=5,
+        )
+
+        assert options.css_class == "my-steps"
+        assert options.style == "compact"
+        assert options.start == 5
+
+    def test_allowed_styles(self) -> None:
+        """Test that style has allowed values."""
+        assert "default" in StepsOptions._allowed_values.get("style", [])
+        assert "compact" in StepsOptions._allowed_values.get("style", [])
+
+
+# =============================================================================
+# StepsDirective Rendering Tests
+# =============================================================================
 
 
 class TestStepsDirective:

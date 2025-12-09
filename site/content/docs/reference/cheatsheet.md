@@ -41,7 +41,7 @@ bengal clean --cache                   # Also clear build cache
 ```bash
 # New project
 bengal new site mysite                 # Interactive wizard
-bengal new site mysite --preset blog   # Skip wizard
+bengal new site mysite --init-preset blog   # Skip wizard
 
 # New content
 bengal new page my-page                # Page at content/my-page.md

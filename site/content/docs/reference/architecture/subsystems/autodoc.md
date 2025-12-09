@@ -115,10 +115,14 @@ docstring_style = "google"  # google, numpy, sphinx
 
 ## CLI Support
 
-We currently support **Click** applications.
+We currently support **Click** applications via configuration.
 
-```bash
-bengal autodoc-cli --app myapp.cli:main
+```toml
+# bengal.toml
+[autodoc.cli]
+enabled = true
+app = "myapp.cli:main"
+output_dir = "content/cli-reference"
 ```
 
 This generates command references including arguments, options, and hierarchy.

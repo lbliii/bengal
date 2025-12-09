@@ -51,7 +51,8 @@ _snippets/
 
 Include in any page:
 ```markdown
-{{< include "_snippets/install/pip.md" >}}
+:::{include} _snippets/install/pip.md
+:::
 ```
 :::
 
