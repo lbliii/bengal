@@ -333,39 +333,39 @@ Create the new infrastructure files without changing any existing code.
 
 ---
 
-## Phase 4: Polish (3 tasks)
+## Phase 4: Polish (3 tasks) ✅
 
 ### Documentation
 
-#### Task 4.1: Update rendering architecture docs
-- **Files**: `architecture/rendering.md` or create `architecture/directives.md`
+#### Task 4.1: Update rendering architecture docs ✅
+- **Files**: `bengal/rendering/plugins/directives/README.md`
 - **Action**:
-  - Document `BengalDirective` base class pattern
-  - Document `DirectiveContract` system
-  - Document named closure syntax
-  - Add migration guide for new directives
+  - Documented `BengalDirective` base class pattern with examples
+  - Documented `DirectiveContract` system with validation rules
+  - Added migration guide from legacy to new directives
+  - Documented all available directives with quick reference table
 - **Dependencies**: Phase 3 complete
-- **Status**: pending
-- **Commit**: `docs(architecture): add directive system v2 documentation`
+- **Status**: completed
+- **Commit**: `docs(directives): add README with architecture overview and migration guide`
 
-#### Task 4.2: Update directive README
-- **Files**: `bengal/rendering/plugins/directives/README.md` (create if needed)
+#### Task 4.2: Update directive README ✅
+- **Files**: `bengal/rendering/plugins/directives/README.md`
 - **Action**:
-  - Document available directives
-  - Document options for each directive
-  - Add examples with named closers
+  - Documented all 19+ directives with descriptions
+  - Added options documentation and examples
+  - Created file structure reference
 - **Dependencies**: Task 4.1
-- **Status**: pending
-- **Commit**: `docs(directives): add README with usage examples`
+- **Status**: completed (combined with 4.1)
 
-#### Task 4.3: Update changelog
+#### Task 4.3: Update changelog ✅
 - **Files**: `changelog.md`
 - **Action**:
-  - Add entry for directive system v2
-  - Document new features: named closers, nesting validation
-  - Note any breaking changes (if any)
+  - Added comprehensive entry for directive system v2
+  - Documented new features: typed tokens, options, contracts
+  - Noted 19 migrated directives and 90+ new tests
+  - No breaking changes (backward compatible)
 - **Dependencies**: Phase 4 tasks complete
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `docs: update changelog for directive system v2`
 
 ---
@@ -376,13 +376,13 @@ Create the new infrastructure files without changing any existing code.
 |------|-------|--------|
 | Foundation | 6 | ✅ completed |
 | Tests (Foundation) | 2 | ✅ completed |
-| Parser | 2 | pending |
-| Migration (Simple) | 5 | 1/5 completed |
-| Migration (Container) | 3 | pending |
-| Migration (Remaining) | 2 | pending |
-| Validation | 5 | pending |
-| Documentation | 3 | pending |
-| **Total** | **28** | **9 completed, 19 pending** |
+| Parser | 2 | ⏸️ deferred (named closers optional) |
+| Migration (Simple) | 5 | ✅ completed |
+| Migration (Container) | 3 | ✅ completed |
+| Migration (Remaining) | 2 | ✅ completed |
+| Validation | 5 | ✅ completed |
+| Documentation | 3 | ✅ completed |
+| **Total** | **28** | **26 completed, 2 deferred** |
 
 ---
 
