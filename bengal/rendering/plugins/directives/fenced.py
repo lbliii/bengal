@@ -104,9 +104,6 @@ class FencedDirective(BaseFencedDirective):
             r"\{[a-zA-Z0-9_-]+\}"
         )
 
-        # Store markers for named closer pattern building
-        self._markers = markers
-
     def parse_directive(self, block: BlockParser, m: Match[str], state: BlockState) -> int | None:
         marker = m.group("fenced_directive_mark")
         # Use the start of the marker group, not the whole match (which includes indent)
@@ -246,7 +243,7 @@ class FencedDirective(BaseFencedDirective):
         events.sort(key=lambda x: x[0])
 
         # Process events to find matching closer
-        for pos, event_type, match in events:
+        for _pos, event_type, match in events:
             if event_type == "open":
                 nesting_depth += 1
             elif event_type == "close":

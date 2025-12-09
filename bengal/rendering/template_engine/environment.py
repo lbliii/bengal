@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import toml
+import tomllib
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
@@ -73,7 +73,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
     site_manifest = site.root_path / "themes" / theme_name / "theme.toml"
     if site_manifest.exists():
         try:
-            data = toml.load(str(site_manifest))
+            with open(site_manifest, "rb") as f:
+                data = tomllib.load(f)
             extends = data.get("extends")
             return str(extends) if extends else None
         except Exception as e:
@@ -91,7 +92,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
             manifest_path = pkg.resolve_resource_path("theme.toml")
             if manifest_path and manifest_path.exists():
                 try:
-                    data = toml.load(str(manifest_path))
+                    with open(manifest_path, "rb") as f:
+                        data = tomllib.load(f)
                     extends = data.get("extends")
                     return str(extends) if extends else None
                 except Exception as e:
@@ -112,7 +114,8 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
     bundled_manifest = Path(__file__).parent.parent.parent / "themes" / theme_name / "theme.toml"
     if bundled_manifest.exists():
         try:
-            data = toml.load(str(bundled_manifest))
+            with open(bundled_manifest, "rb") as f:
+                data = tomllib.load(f)
             extends = data.get("extends")
             return str(extends) if extends else None
         except Exception as e:

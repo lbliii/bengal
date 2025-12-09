@@ -27,7 +27,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import cast
 
-import toml
+import tomllib
 
 from bengal.utils.logger import get_logger
 from bengal.utils.theme_registry import get_theme_package
@@ -41,7 +41,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     site_manifest = site_root / "themes" / theme_name / "theme.toml"
     if site_manifest.exists():
         try:
-            data = toml.load(str(site_manifest))
+            with open(site_manifest, "rb") as f:
+                data = tomllib.load(f)
             if isinstance(data, dict):
                 extends = data.get("extends")
                 return cast(str | None, extends) if extends is not None else None
@@ -62,7 +63,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
             manifest_path = pkg.resolve_resource_path("theme.toml")
             if manifest_path and manifest_path.exists():
                 try:
-                    data = toml.load(str(manifest_path))
+                    with open(manifest_path, "rb") as f:
+                        data = tomllib.load(f)
                     extends_val = data.get("extends")
                     return str(extends_val) if extends_val else None
                 except Exception as e:
@@ -85,7 +87,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     bundled_manifest = Path(__file__).parent.parent / "themes" / theme_name / "theme.toml"
     if bundled_manifest.exists():
         try:
-            data = toml.load(str(bundled_manifest))
+            with open(bundled_manifest, "rb") as f:
+                data = tomllib.load(f)
             extends_val = data.get("extends")
             return str(extends_val) if extends_val else None
         except Exception as e:

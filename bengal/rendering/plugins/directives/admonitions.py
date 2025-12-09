@@ -125,13 +125,12 @@ class AdmonitionDirective(BengalDirective):
         """
         Build admonition token from parsed components.
 
-        Note: The admonition type comes from parse_type(), which is called
-        in the base class parse() method. We need to access it from the match.
+        Note: The admonition type is passed through state to avoid instance
+        attribute mutation which could cause issues in concurrent scenarios.
         """
-        # The admon_type is captured by the base class but we need to get it
-        # This is a limitation of the current base class design
-        # We'll store it during parse() and retrieve it here
-        admon_type = getattr(self, "_current_admon_type", "note")
+        # Retrieve admonition type from state (set during parse())
+        # Using state avoids concurrency issues with instance attributes
+        admon_type = getattr(state, "_admon_type", "note")
 
         # Use type as title if no title provided
         display_title = title if title else admon_type.capitalize()
@@ -151,9 +150,10 @@ class AdmonitionDirective(BengalDirective):
         Override parse to capture admonition type before calling parent.
 
         The admonition type (note, tip, warning, etc.) comes from parse_type().
+        State is used instead of instance attributes to avoid concurrency issues.
         """
-        # Capture the admonition type
-        self._current_admon_type = self.parse_type(m)
+        # Store admonition type in state (thread-safe, avoids instance mutation)
+        state._admon_type = self.parse_type(m)
 
         # Call parent parse which handles options, content, children
         return super().parse(block, m, state)

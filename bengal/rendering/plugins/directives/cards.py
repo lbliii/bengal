@@ -24,6 +24,7 @@ Syntax:
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from re import Match
 from typing import Any, ClassVar
@@ -850,7 +851,7 @@ def _render_child_card(
     child: dict[str, Any],
     fields: list[str],
     layout: str,
-    escape_html: Any,
+    escape_html: Callable[[str], str],
 ) -> str:
     """Render a single card for a child section/page."""
     title = child.get("title", "") if "title" in fields else ""

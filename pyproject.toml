@@ -55,29 +55,7 @@ notion = ["aiohttp>=3.9.0"]
 rest = ["aiohttp>=3.9.0"]
 all-sources = ["aiohttp>=3.9.0"]  # All remote sources
 
-# CSS optimization removed - lightningcss not supported for Python 3.14 minimum version
-# CSS minification uses fallback lossless minifier
-dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=4.1.0",
-    "pytest-mock>=3.11.0",
-    "pytest-xdist>=3.3.0",
-    "pytest-timeout>=2.2.0",
-    "pytest-asyncio>=0.23.0",
-    "hypothesis>=6.92.0",
-    "mypy>=1.11.0",
-    "types-PyYAML>=6.0.12",        # Type stubs for yaml library
-    "types-psutil>=5.9.0",         # Type stubs for psutil
-    "types-toml>=0.10.0",          # Type stubs for toml
-    "types-Pygments>=2.18.0",      # Type stubs for pygments
-    "types-python-dateutil>=2.9.0", # Type stubs for dateutil.parser
-    "types-Markdown>=3.5.0",       # Type stubs for markdown
-    "ruff>=0.14.0",               # 0.14+ required for Python 3.14 support
-    "beautifulsoup4>=4.12.0",      # For HTML validation in integration tests only
-    "markdown>=3.5.0",             # Optional parser for tests
-]
-# Note: parsing extra removed - Bengal uses stdlib html.parser (NativeHTMLParser)
-# for build-time validation. BS4/lxml were removed for performance.
+# Note: Dev dependencies are defined in [dependency-groups] section below (PEP 735)
 
 [project.scripts]
 bengal = "bengal.cli:main"
@@ -132,6 +110,7 @@ disallow_incomplete_defs = true
 
 [dependency-groups]
 dev = [
+    # Testing
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
@@ -139,15 +118,17 @@ dev = [
     "pytest-timeout>=2.2.0",
     "pytest-asyncio>=0.23.0",
     "hypothesis>=6.92.0",
+    # Linting & Type Checking
     "mypy>=1.11.0",
-    "ruff>=0.14.0",
-    "beautifulsoup4>=4.12.0",
-    "markdown>=3.5.0",
-    # Type stubs
-    "types-markdown>=3.10.0.20251106",
-    "types-psutil>=7.1.3.20251202",
-    "types-pygments>=2.19.0.20251121",
-    "types-python-dateutil>=2.9.0.20251115",
+    "ruff>=0.14.0",                        # 0.14+ required for Python 3.14 support
+    # Test Utilities
+    "beautifulsoup4>=4.12.0",              # HTML validation in integration tests
+    "markdown>=3.5.0",                     # Optional python-markdown parser for tests
+    # Type Stubs
     "types-pyyaml>=6.0.12",
-    "types-toml>=0.10.8.20240310",
+    "types-psutil>=5.9.0",
+    "types-toml>=0.10.0",
+    "types-pygments>=2.18.0",
+    "types-python-dateutil>=2.9.0",
+    "types-markdown>=3.5.0",
 ]
