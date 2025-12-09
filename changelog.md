@@ -1,5 +1,24 @@
 ## Unreleased
 
+### Media Embed Directives ✅
+- **rendering(directives/video)**: add `YouTubeDirective` with privacy-enhanced mode (youtube-nocookie.com) by default
+- **rendering(directives/video)**: add `VimeoDirective` with Do Not Track mode by default
+- **rendering(directives/video)**: add `SelfHostedVideoDirective` for native HTML5 video playback
+- **rendering(directives/embed)**: add `GistDirective` for GitHub Gist embeds with file selection
+- **rendering(directives/embed)**: add `CodePenDirective` with tab/theme/height customization
+- **rendering(directives/embed)**: add `CodeSandboxDirective` with module/view customization
+- **rendering(directives/embed)**: add `StackBlitzDirective` with file/view customization
+- **rendering(directives/terminal)**: add `AsciinemaDirective` for terminal recording playback with ARIA accessibility
+- **rendering(directives/figure)**: add `FigureDirective` for semantic images with captions (`<figure>`/`<figcaption>`)
+- **rendering(directives/figure)**: add `AudioDirective` for native HTML5 audio playback
+- **themes(css)**: add responsive CSS for video embeds with aspect-ratio support (`_video-embed.css`)
+- **themes(css)**: add CSS for code playground embeds (`_code-embed.css`)
+- **themes(css)**: add CSS for terminal recording embeds (`_terminal-embed.css`)
+- **themes(css)**: add CSS for semantic figures and audio (`_figure.css`)
+- **tests**: add 71 unit tests for media embed directives including security validation
+- **docs(hugo-migration)**: update with media embed directive equivalents and migration table
+- **docs(rfc)**: RFC moved to implemented
+
 ### Directive System v2 ✅
 - **rendering(directives)**: add named closer syntax `:::{/name}` for closing directives without fence-depth counting
 - **rendering(directives)**: add `BengalDirective` base class for typed directives with standardized parsing and rendering

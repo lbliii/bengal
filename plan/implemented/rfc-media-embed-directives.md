@@ -1,8 +1,9 @@
 # RFC: Media Embed Directives
 
-**Status**: Draft  
+**Status**: Implemented ✅  
 **Created**: 2025-12-09  
 **Updated**: 2025-12-09  
+**Implemented**: 2025-12-09  
 **Author**: AI Assistant  
 **Related**: `plan/implemented/rfc-directive-system-v2.md`, Hugo migration guide  
 **Confidence**: 88% 🟢

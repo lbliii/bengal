@@ -137,8 +137,9 @@ class FigureDirective(BengalDirective):
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["figure"]
 
     # Image path pattern: relative or absolute paths, or URLs
+    # Rejects path traversal (../) for security
     PATH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
-        r"^(?:https?://|/|\./)[\w\-./]+\.(?:png|jpg|jpeg|gif|webp|svg|avif)$",
+        r"^(?:https?://[\w\-./]+|(?:/|\./)(?:(?!\.\./)[a-zA-Z0-9_\-/])+)\.(?:png|jpg|jpeg|gif|webp|svg|avif)$",
         re.IGNORECASE,
     )
 
