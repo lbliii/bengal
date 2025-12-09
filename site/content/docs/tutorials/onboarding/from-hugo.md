@@ -132,9 +132,9 @@ console.log("Hello");
 
 ### Code Highlighting
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* highlight python "linenos=table,hl_lines=2" */>}}
 def hello():
@@ -142,9 +142,9 @@ def hello():
     return True
 {{</* /highlight */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ````markdown
 ```python
 def hello():
@@ -152,21 +152,21 @@ def hello():
     return True
 ```
 ````
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Figure / Image
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* figure src="/static/images/photo.jpg" title="My Photo" caption="A description" */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
 ![My Photo](./images/photo.jpg)
 
@@ -179,21 +179,21 @@ def hello():
 A description
 :::
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### YouTube Embed
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* youtube dQw4w9WgXcQ */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
 <iframe
   width="560"
@@ -203,9 +203,9 @@ A description
   allowfullscreen>
 </iframe>
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 :::{note}
 Bengal doesn't have a built-in YouTube shortcode. Use standard HTML embeds or create a custom template partial.
@@ -267,9 +267,9 @@ This is unique to Bengal—Hugo only supports variables in templates, not conten
 
 ### Basic Site Config
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo (config.toml)
+:::{tab} Hugo (config.toml)
 ```toml
 baseURL = "https://example.com"
 title = "My Site"
@@ -280,9 +280,9 @@ theme = "docsy"
   description = "My awesome site"
   github_repo = "https://github.com/user/repo"
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal (bengal.toml)
+:::{tab} Bengal (bengal.toml)
 ```toml
 [site]
 baseurl = "https://example.com"
@@ -294,15 +294,15 @@ theme = "bengal"
 description = "My awesome site"
 github_repo = "https://github.com/user/repo"
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Menu Configuration
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```toml
 [[menu.main]]
   name = "Docs"
@@ -314,9 +314,9 @@ github_repo = "https://github.com/user/repo"
   url = "/blog/"
   weight = 20
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```toml
 [[site.menu.main]]
 name = "Docs"
@@ -328,9 +328,9 @@ name = "Blog"
 url = "/blog/"
 weight = 20
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ---
 
