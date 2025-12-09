@@ -93,6 +93,5 @@ def get_preset_template_id(name: str) -> str:
     """
     preset = PRESETS.get(name)
     if preset:
-        template_id = preset.get("template_id", "default")
-        return str(template_id) if template_id is not None else "default"
+        return str(preset.get("template_id", "default"))
     return "default"

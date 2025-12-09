@@ -63,7 +63,7 @@ class FileFingerprint:
         Returns:
             True if mtime and size both match (definitely unchanged)
         """
-        return bool(self.mtime == stat_result.st_mtime and self.size == stat_result.st_size)
+        return self.mtime == stat_result.st_mtime and self.size == stat_result.st_size
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to JSON-compatible dict."""

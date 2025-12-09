@@ -799,6 +799,8 @@
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: var(--leading-normal);
+  /* Make description column greedy - takes remaining space, stretches table to full width */
+  width: 100%;
 }
 
 .api-table__desc > p {

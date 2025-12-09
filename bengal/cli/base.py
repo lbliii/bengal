@@ -315,15 +315,7 @@ class BengalGroup(click.Group):
                 n=max_suggestions,
                 cutoff=0.5,
             )
-            # Convert aliases to canonical names
-            matches = [get_canonical_name(m) for m in matches]
-            # Remove duplicates while preserving order
-            seen: set[str] = set()
-            unique_matches: list[str] = []
-            for m in matches:
-                if m not in seen:
-                    seen.add(m)
-                    unique_matches.append(m)
-            matches = unique_matches
+            # Convert aliases to canonical names and deduplicate while preserving order
+            matches = list(dict.fromkeys(get_canonical_name(m) for m in matches))
 
         return matches[:max_suggestions]
