@@ -34,44 +34,53 @@ This template receives:
             <div class="docs-content">
                 {# API Explorer Module Content #}
                 <div class="api-explorer">
-                    {# Module Header #}
+                    {# Module Header - Editorial Bengal Design #}
                     <header class="api-module-header">
-                        <div class="api-module-header__badges">
-                            {% set element = element %}
-                            {% include 'api-reference/partials/badges.html' %}
+                        {# Name Block - Vertical letterform display #}
+                        <div class="api-module-header__name-block">
+                            <code>{{ element.name }}</code>
                         </div>
 
-                        <h1 class="api-module-header__title">
-                            <code>{{ element.qualified_name }}</code>
-                        </h1>
+                        {# Content Area #}
+                        <div class="api-module-header__content">
+                            <div class="api-module-header__badges">
+                                {% set element = element %}
+                                {% include 'api-reference/partials/badges.html' %}
+                            </div>
 
-                        {% if element.description %}
-                        <p class="api-module-header__description">{{ element.description }}</p>
-                        {% endif %}
+                            <h1 class="api-module-header__title">
+                                <code>{{ element.qualified_name }}</code>
+                            </h1>
 
-                        {% if element.source_file %}
-                        <div class="api-module-header__source">
-                            <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
-                                class="api-source-link" target="_blank" rel="noopener">
-                                View source
-                            </a>
+                            {% if element.description %}
+                            <p class="api-module-header__description">{{ element.description }}</p>
+                            {% endif %}
+
+                            {% if element.source_file %}
+                            <div class="api-module-header__source">
+                                <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+                                    class="api-source-link" target="_blank" rel="noopener">
+                                    {{ icon('file-code', size=14) }}
+                                    <span>View source</span>
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </header>
 
-                    {# Module Stats #}
+                    {# Module Stats - Neumorphic Bar #}
                     {% set classes = element.children | selectattr('element_type', 'eq', 'class') | list %}
                     {% set functions = element.children | selectattr('element_type', 'eq', 'function') | list %}
 
-                    <div class="api-stats">
-                        <span class="api-stat">
-                            <span class="api-stat__count">{{ classes | length }}</span>
-                            <span class="api-stat__label">Classes</span>
-                        </span>
-                        <span class="api-stat">
-                            <span class="api-stat__count">{{ functions | length }}</span>
-                            <span class="api-stat__label">Functions</span>
-                        </span>
+                    <div class="api-stats-bar">
+                        <div class="api-stat-item">
+                            <span class="api-stat-item__value">{{ classes | length }}</span>
+                            <span class="api-stat-item__label">Classes</span>
+                        </div>
+                        <div class="api-stat-item">
+                            <span class="api-stat-item__value">{{ functions | length }}</span>
+                            <span class="api-stat-item__label">Functions</span>
+                        </div>
                     </div>
 
                     {# Classes Section #}

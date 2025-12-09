@@ -43,6 +43,7 @@ def absolute_url(url: str, base_url: str) -> str:
     Convert relative URL to absolute URL.
 
     Uses centralized URL normalization to ensure consistency.
+    Detects file URLs (with extensions) and does not add trailing slashes to them.
 
     Args:
         url: Relative or absolute URL
@@ -54,6 +55,8 @@ def absolute_url(url: str, base_url: str) -> str:
     Example:
         {{ page.url | absolute_url }}
         # Output: https://example.com/posts/my-post/
+        {{ '/index.json' | absolute_url }}
+        # Output: /index.json (no trailing slash for file URLs)
     """
     from bengal.utils.url_normalization import normalize_url
 
@@ -67,8 +70,14 @@ def absolute_url(url: str, base_url: str) -> str:
     # Normalize base URL
     base_url = base_url.rstrip("/") if base_url else ""
 
-    # Normalize relative URL first
-    normalized_url = normalize_url(url, ensure_trailing_slash=True)
+    # Detect if this is a file URL (has a file extension)
+    # File URLs should NOT get trailing slashes
+    # Common file extensions: .json, .xml, .txt, .js, .css, .html, etc.
+    last_segment = url.rsplit("/", 1)[-1] if "/" in url else url
+    has_file_extension = "." in last_segment and not last_segment.startswith(".")
+
+    # Normalize relative URL - don't add trailing slash for file URLs
+    normalized_url = normalize_url(url, ensure_trailing_slash=not has_file_extension)
 
     # Combine URLs
     # If base_url is empty or just "/", use normalized_url directly
@@ -81,7 +90,7 @@ def absolute_url(url: str, base_url: str) -> str:
 
     # Combine and normalize again to handle any edge cases
     result = base_url + normalized_url
-    return normalize_url(result, ensure_trailing_slash=True)
+    return normalize_url(result, ensure_trailing_slash=not has_file_extension)
 
 
 def url_encode(text: str) -> str:

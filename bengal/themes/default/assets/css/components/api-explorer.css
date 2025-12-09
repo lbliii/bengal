@@ -29,20 +29,147 @@
 }
 
 /* ============================================
-   API CARDS - The Core Unit
+   API CARDS - The Core Unit (Bengal Design System)
+   
+   Collapsible cards with:
+   - Neumorphic depth and tactile feel
+   - Luminescent left-edge glow when open (Bengal signature)
+   - Stagger animation on reveal
+   - Type-specific accent colors
    ============================================ */
 
+/* Luminescent edge glow for open cards */
+@keyframes api-card-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--api-card-accent, var(--color-primary)) 20%, transparent),
+      -2px 0 8px 0 color-mix(in srgb, var(--api-card-accent, var(--color-primary)) 10%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--api-card-accent, var(--color-primary)) 30%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--api-card-accent, var(--color-primary)) 15%, transparent);
+  }
+}
+
 .api-card {
-  background: var(--api-card-bg);
+  --api-card-accent: var(--color-primary);
+  position: relative;
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--api-card-bg)) 0%,
+    var(--color-bg-secondary) 100%);
   border: 1px solid var(--api-card-border);
-  border-radius: var(--api-card-radius);
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--api-card-radius) var(--api-card-radius) 0;
   margin-bottom: var(--space-4);
   overflow: hidden;
-  box-shadow: var(--elevation-subtle);
+  box-shadow: var(--neumorphic-subtle);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+/* Type-specific accent colors */
+.api-card--class {
+  --api-card-accent: var(--color-info);
+}
+
+.api-card--function {
+  --api-card-accent: var(--color-success);
+}
+
+.api-card--method {
+  --api-card-accent: var(--color-text-muted);
+}
+
+/* Open state - luminescent edge glow */
+.api-card[open] {
+  border-left-color: color-mix(in srgb, var(--api-card-accent) 50%, transparent);
+  animation: api-card-edge-glow 6s ease-in-out infinite;
+}
+
+/* Hover state */
+.api-card:hover:not([open]) {
+  border-left-color: color-mix(in srgb, var(--api-card-accent) 30%, transparent);
+  box-shadow: var(--neumorphic-hover);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .api-card {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%);
+}
+
+[data-theme="dark"] .api-card[open] {
+  border-left-color: color-mix(in srgb, var(--api-card-accent) 40%, transparent);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-card {
+    border-left: 2px solid transparent;
+    box-shadow: var(--elevation-subtle);
+  }
+  
+  .api-card[open] {
+    border-left-color: var(--color-primary);
+    animation: none;
+    box-shadow: var(--elevation-card);
+  }
+  
+  .api-card--class[open] {
+    border-left-color: var(--color-info);
+  }
+  
+  .api-card--function[open] {
+    border-left-color: var(--color-success);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .api-card {
+    transition: none;
+  }
+  
+  .api-card[open] {
+    animation: none !important;
+    box-shadow:
+      var(--elevation-card),
+      -2px 0 8px 0 color-mix(in srgb, var(--api-card-accent) 12%, transparent);
+  }
 }
 
 .api-card + .api-card {
   margin-top: var(--space-3);
+}
+
+/* Cards container - stagger reveal */
+.api-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.api-cards > .api-card {
+  margin-bottom: 0;
+  animation: api-card-reveal 0.4s var(--ease-out) backwards;
+}
+
+.api-cards > .api-card:nth-child(1) { animation-delay: 0ms; }
+.api-cards > .api-card:nth-child(2) { animation-delay: 50ms; }
+.api-cards > .api-card:nth-child(3) { animation-delay: 100ms; }
+.api-cards > .api-card:nth-child(4) { animation-delay: 150ms; }
+.api-cards > .api-card:nth-child(5) { animation-delay: 200ms; }
+.api-cards > .api-card:nth-child(n+6) { animation-delay: 250ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .api-cards > .api-card {
+    animation: none;
+  }
 }
 
 /* Card Header - Always visible */
@@ -761,25 +888,49 @@ details.api-card > summary::marker {
   margin-bottom: var(--space-12);
 }
 
+/* Section types */
+.api-section--classes {
+  --api-section-accent: var(--color-info);
+}
+
+.api-section--functions {
+  --api-section-accent: var(--color-success);
+}
+
+.api-section--methods {
+  --api-section-accent: var(--color-secondary);
+}
+
 .api-section__title {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   font-size: var(--text-xl);
-  font-family: var(--font-heading-section);
+  font-family: var(--font-heading-section, var(--font-heading));
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-5) 0;
   padding-bottom: var(--space-3);
-  border-bottom: var(--border-refined-base);
+  border-bottom: 2px solid var(--color-border);
+  letter-spacing: var(--tracking-tight);
 }
 
 .api-section__title::before {
   content: '';
   width: 4px;
   height: 1.2em;
-  background: var(--gradient-border);
+  background: linear-gradient(180deg,
+    var(--api-section-accent, var(--color-primary)) 0%,
+    color-mix(in srgb, var(--api-section-accent, var(--color-primary)) 60%, var(--color-secondary)) 100%);
   border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-section__title::before {
+    background: var(--gradient-border, linear-gradient(180deg, var(--color-primary) 0%, var(--color-secondary) 100%));
+  }
 }
 
 /* ============================================
@@ -1224,43 +1375,385 @@ details.api-card > summary::marker {
 
 
 /* ============================================
-   MODULE HEADER & CONTENT HELPERS
+   MODULE HEADER - Bengal Editorial Hero
+   
+   Premium header for module detail pages featuring:
+   - Editorial typography with display font
+   - Luminescent left-edge glow (Bengal signature)
+   - Organic blob background option
+   - Neumorphic depth for badges
    ============================================ */
 
+/* Luminescent edge glow animation for module headers */
+@keyframes api-module-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--color-primary) 8%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--color-primary) 4%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 25%, transparent),
+      -3px 0 14px 0 color-mix(in srgb, var(--color-primary) 12%, transparent),
+      -1px 0 20px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
+  }
+}
+
+@keyframes api-module-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 20%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--color-primary) 12%, transparent),
+      -1px 0 18px 0 color-mix(in srgb, var(--color-primary) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--color-primary) 35%, transparent),
+      -3px 0 16px 0 color-mix(in srgb, var(--color-primary) 18%, transparent),
+      -1px 0 24px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+}
+
 .api-module-header {
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-4);
-  border-bottom: var(--border-refined-base);
+  --api-header-accent: var(--color-primary);
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: linear-gradient(135deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%);
+  /* Luminescent left edge - Bengal signature */
+  border-left: 3px solid color-mix(in srgb, var(--api-header-accent) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  /* Peaceful glow animation */
+  animation: api-module-edge-glow 8s ease-in-out infinite;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .api-module-header {
+  background: linear-gradient(135deg,
+    var(--color-bg-primary) 0%,
+    rgba(33, 150, 243, 0.05) 100%);
+  border-left-color: color-mix(in srgb, var(--api-header-accent) 50%, transparent);
+  animation-name: api-module-edge-glow-dark;
+}
+
+/* Blob background for module headers (opt-in) */
+.api-module-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -15%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(circle at 35% 35%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 30%,
+    color-mix(in srgb, var(--blob-color-3) 2%, transparent) 55%,
+    transparent 70%);
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow, 20s) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+.api-module-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-module-header {
+    border-left: 3px solid var(--color-primary);
+    animation: none;
+    box-shadow: var(--elevation-card);
+  }
+  
+  .api-module-header::before {
+    background: radial-gradient(circle at 35% 35%,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(76, 175, 80, 0.04) 30%,
+      rgba(255, 152, 0, 0.02) 55%,
+      transparent 70%);
+  }
+}
+
+/* Reduced motion - static subtle glow */
+@media (prefers-reduced-motion: reduce) {
+  .api-module-header {
+    animation: none !important;
+    box-shadow:
+      var(--elevation-card),
+      -3px 0 12px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+  
+  .api-module-header::before {
+    animation: none !important;
+  }
+}
+
+/* Name Block - Vertical letterform display inspired by editorial design */
+.api-module-header__name-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  max-width: 140px;
+  padding: var(--space-4);
+  background: linear-gradient(180deg,
+    var(--color-surface) 0%,
+    var(--color-bg-secondary) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neumorphic-enhanced-subtle);
+  flex-shrink: 0;
+}
+
+.api-module-header__name-block code {
+  font-family: var(--font-family-display, var(--font-heading));
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  color: var(--color-text-primary);
+  background: none;
+  padding: 0;
+  word-break: break-all;
+  text-align: center;
+}
+
+/* Content area - holds badges, title, description, source link */
+.api-module-header__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .api-module-header__badges {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+}
+
+/* Title - Editorial heading with code inside */
+.api-module-header__title {
+  margin: 0;
+  font-family: var(--font-heading-display, var(--font-heading));
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
+  color: var(--color-text-primary);
+  /* Allow long module names to wrap gracefully */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.api-module-header__title code {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  background: none;
+  padding: 0;
+  color: var(--color-primary);
+  /* CRITICAL: Ensure horizontal display */
+  display: inline;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .api-module-header__description {
-  margin-bottom: var(--space-4);
-  font-size: var(--text-base);
+  margin: 0;
+  font-size: var(--text-lg);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
+  max-width: 65ch;
 }
 
 .api-module-header__source {
-  margin-top: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
 }
 
-.api-source-link {
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .api-module-header {
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+  
+  .api-module-header__name-block {
+    width: 100%;
+    max-width: none;
+    padding: var(--space-3);
+  }
+  
+  .api-module-header__name-block code {
+    font-size: var(--text-3xl);
+  }
+  
+  .api-module-header__title {
+    font-size: var(--text-2xl);
+  }
+  
+  .api-module-header__description {
+    font-size: var(--text-base);
+  }
+}
+
+/* ============================================
+   API STATS BAR - Neumorphic Inset Display
+   
+   Compact stats display with Bengal's tactile depth
+   ============================================ */
+
+.api-stats-bar {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: center;
+  margin-bottom: var(--space-8);
+  padding: var(--space-5) var(--space-6);
+  background: linear-gradient(180deg,
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-tertiary) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  /* Subtle inset for contained feel */
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.04),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .api-stats-bar {
+  background: linear-gradient(180deg,
+    var(--color-bg-secondary) 0%,
+    var(--color-bg-primary) 100%);
+  box-shadow:
+    inset 1px 1px 3px rgba(0, 0, 0, 0.2),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.02),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.api-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(180deg,
+    var(--color-surface) 0%,
+    var(--color-bg-secondary) 100%);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neumorphic-subtle);
+  min-width: 100px;
+}
+
+[data-theme="dark"] .api-stat-item {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%);
+}
+
+.api-stat-item__value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.api-stat-item__label {
   font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .api-stats-bar {
+    gap: var(--space-4);
+    padding: var(--space-4);
+    flex-wrap: wrap;
+  }
+  
+  .api-stat-item {
+    flex: 1;
+    min-width: 80px;
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  .api-stat-item__value {
+    font-size: var(--text-2xl);
+  }
+}
+
+/* Source Link - Neumorphic Button Style */
+.api-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
   text-decoration: none;
-  border-bottom: 1px dotted var(--color-border);
-  transition: color 0.15s ease;
+  background: linear-gradient(180deg,
+    var(--color-surface) 0%,
+    var(--color-bg-secondary) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--neumorphic-subtle);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .api-source-link:hover {
   color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  box-shadow: var(--neumorphic-hover);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-1)), 0);
+}
+
+.api-source-link:active {
+  transform: translate3d(0, 0.5px, 0) scale(0.98);
+  box-shadow: var(--neumorphic-subtle-pressed);
+}
+
+[data-theme="dark"] .api-source-link {
+  background: linear-gradient(180deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .api-source-link:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--elevation-medium);
+  }
 }
 
 .api-metadata {
