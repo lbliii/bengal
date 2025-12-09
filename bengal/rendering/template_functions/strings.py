@@ -1,7 +1,7 @@
 """
 String manipulation functions for templates.
 
-Provides 11 essential string functions for text processing in templates.
+Provides 14 essential string functions for text processing in templates.
 
 Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
@@ -40,6 +40,7 @@ def register(env: Environment, site: Site) -> None:
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
             "first_sentence": first_sentence,
+            "filesize": filesize,
         }
     )
 
@@ -87,10 +88,12 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
 
 def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
-    Truncate HTML text to word count, preserving HTML tags.
+    Truncate HTML text to word count, preserving HTML structure.
 
-    This is more sophisticated than truncatewords - it preserves HTML structure
-    and properly closes tags.
+    Uses a tag-aware approach that:
+    1. Counts only text content words (not tag content)
+    2. Keeps track of open tags
+    3. Closes any unclosed tags at truncation point
 
     Args:
         html: HTML text to truncate
@@ -102,21 +105,92 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
 
     Example:
         {{ post.html_content | truncatewords_html(50) }}
+        {{ "<p>Hello <strong>world</strong></p>" | truncatewords_html(1) }}  # "<p>Hello...</p>"
     """
     if not html:
         return ""
 
-    # Strip HTML to count words
+    # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
-    words = text_only.split()
-
-    if len(words) <= count:
+    if len(text_only.split()) <= count:
         return html
 
-    # Simple implementation: strip HTML, truncate, add suffix
-    # A more sophisticated version would preserve HTML structure
-    truncated_text = " ".join(words[:count])
-    return truncated_text + suffix
+    # HTML5 void elements (no closing tag needed)
+    void_elements = frozenset({
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "source",
+        "track",
+        "wbr",
+    })
+
+    # Tag-aware truncation
+    result: list[str] = []
+    word_count = 0
+    open_tags: list[str] = []
+    i = 0
+
+    while i < len(html) and word_count < count:
+        if html[i] == "<":
+            # Find end of tag
+            tag_end = html.find(">", i)
+            if tag_end == -1:
+                break
+            tag = html[i : tag_end + 1]
+            result.append(tag)
+
+            # Track open/close tags
+            if tag.startswith("</"):
+                # Closing tag
+                tag_name = tag[2:-1].split()[0].lower() if len(tag) > 3 else ""
+                if open_tags and open_tags[-1] == tag_name:
+                    open_tags.pop()
+            elif not tag.endswith("/>") and not tag.startswith("<!"):
+                # Opening tag (not self-closing, not comment/doctype)
+                tag_content = tag[1:-1]
+                tag_name = tag_content.split()[0].lower() if tag_content else ""
+                if tag_name and tag_name not in void_elements:
+                    open_tags.append(tag_name)
+
+            i = tag_end + 1
+        else:
+            # Find next tag or end
+            next_tag = html.find("<", i)
+            if next_tag == -1:
+                text = html[i:]
+            else:
+                text = html[i:next_tag]
+
+            # Count and truncate words in this text segment
+            words = text.split()
+            remaining = count - word_count
+
+            if len(words) <= remaining:
+                result.append(text)
+                word_count += len(words)
+                i = next_tag if next_tag != -1 else len(html)
+            else:
+                # Truncate within this segment
+                result.append(" ".join(words[:remaining]))
+                word_count = count
+                break
+
+    # Add suffix
+    result.append(suffix)
+
+    # Close any unclosed tags (in reverse order)
+    for tag in reversed(open_tags):
+        result.append(f"</{tag}>")
+
+    return "".join(result)
 
 
 def slugify(text: str) -> str:
@@ -295,8 +369,14 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
 
     try:
         return re.sub(pattern, replacement, text)
-    except re.error:
-        # Return original text if regex is invalid
+    except re.error as e:
+        # Log warning for invalid regex (developer error)
+        logger.warning(
+            "replace_regex_invalid_pattern",
+            pattern=pattern,
+            error=str(e),
+            caller="template",
+        )
         return text
 
 
@@ -442,3 +522,22 @@ def first_sentence(text: str, max_length: int = 120) -> str:
         return truncated + "..."
 
     return text
+
+
+def filesize(size_bytes: int) -> str:
+    """
+    Format bytes as human-readable file size.
+
+    Wraps bengal.utils.text.humanize_bytes for template use.
+
+    Args:
+        size_bytes: Size in bytes
+
+    Returns:
+        Human-readable size string (e.g., "1.5 MB", "256 KB")
+
+    Example:
+        {{ asset.size | filesize }}
+        {{ page.content | length | filesize }}
+    """
+    return text_utils.humanize_bytes(size_bytes)
