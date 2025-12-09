@@ -1,32 +1,88 @@
 {#
 Method Item Partial
 
-Renders methods within a class card using semantic CSS patterns.
-Uses api-card and api-method classes from api-explorer.css.
+Renders methods within a class card using Bengal's design system.
+Information-rich preview: icon, name, params, return type, description snippet.
 Receives: element (the class element)
 #}
 
-{% set methods = element.children | selectattr('element_type', 'eq', 'method') | list %}
+{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list %}
 {% if methods %}
 <div class="api-methods">
-  <h4 class="api-label">Methods</h4>
+  <h4 class="api-label">Methods <span class="api-label__count">{{ methods | length }}</span></h4>
   {% for method in methods %}
-  <details class="api-card api-card--method api-card--nested">
-    <summary class="api-card__header">
-      <code class="api-card__name">{{ method.name }}</code>
-      <span class="api-card__badges">
-        {% set element = method %}
-        {% include 'api-reference/partials/badges.html' %}
+  {# Compute preview info #}
+  {% set params = method.metadata.parameters or [] %}
+  {% set param_count = params | length %}
+  {% set return_type = method.metadata.return_type or 'None' %}
+  {% set is_async = method.metadata.is_async | default(false) %}
+  {% set is_property = method.metadata.is_property | default(false) %}
+  {% set is_classmethod = method.metadata.is_classmethod | default(false) %}
+  {% set is_staticmethod = method.metadata.is_staticmethod | default(false) %}
+  {% set first_sentence = ((method.description or '') | truncate(80, True, '…')) %}
+  
+  <details class="api-member api-member--method{% if is_property %} api-member--property{% endif %}{% if is_async %} api-member--async{% endif %}{% if method.name.startswith('_') %} api-member--private{% endif %}">
+    <summary class="api-member__summary">
+      {# Icon based on type #}
+      <span class="api-member__icon">
+        {% if is_property %}
+        {{ icon('tag', size=16) }}
+        {% elif is_async %}
+        {{ icon('lightning', size=16) }}
+        {% elif is_classmethod or is_staticmethod %}
+        {{ icon('cube', size=16) }}
+        {% else %}
+        {{ icon('function', size=16) }}
+        {% endif %}
       </span>
-      <span class="api-card__toggle">▸</span>
+      
+      {# Name + signature preview #}
+      <div class="api-member__info">
+        <div class="api-member__name-row">
+          <code class="api-member__name">{{ method.name }}</code>
+          {# Inline badges #}
+          {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
+          {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
+          {% if is_classmethod %}<span class="api-badge--inline api-badge--classmethod">classmethod</span>{% endif %}
+          {% if is_staticmethod %}<span class="api-badge--inline api-badge--staticmethod">staticmethod</span>{% endif %}
+        </div>
+        {# Description preview #}
+        {% if first_sentence %}
+        <span class="api-member__desc-preview">{{ first_sentence }}</span>
+        {% endif %}
+      </div>
+      
+      {# Meta info: params + return #}
+      <div class="api-member__meta">
+        {% if not is_property %}
+        <span class="api-member__params" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">
+          {{ icon('brackets-curly', size=12) }}
+          <span>{{ param_count }}</span>
+        </span>
+        {% endif %}
+        <span class="api-member__return" title="Returns {{ return_type }}">
+          {{ icon('arrow-right', size=12) }}
+          <code>{{ return_type | truncate(20, True, '…') }}</code>
+        </span>
+      </div>
+      
+      {# Expand indicator #}
+      <span class="api-member__toggle">
+        {{ icon('caret-right', size=14) }}
+      </span>
     </summary>
-    <div class="api-card__content">
+    
+    <div class="api-member__content">
+      {# Full signature #}
       {% set element = method %}
       {% include 'api-reference/partials/signature.html' %}
+      
+      {# Full description #}
       {% if method.description %}
-      <p class="api-card__description">{{ method.description }}</p>
+      <p class="api-member__description">{{ method.description }}</p>
       {% endif %}
 
+      {# Parameters, Returns, Raises #}
       {% set element = method %}
       {% include 'api-reference/partials/parameters-table.html' %}
       {% set element = method %}

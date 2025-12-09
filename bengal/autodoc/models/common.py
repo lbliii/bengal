@@ -134,3 +134,4 @@ class QualifiedName:
             return None
         return QualifiedName(parts=self.parts[:-1])
 
+

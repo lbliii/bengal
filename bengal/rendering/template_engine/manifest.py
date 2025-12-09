@@ -98,3 +98,4 @@ class ManifestHelpersMixin:
             manifest=str(self._asset_manifest_path),
         )
 
+

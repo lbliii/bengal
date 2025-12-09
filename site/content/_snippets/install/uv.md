@@ -8,3 +8,4 @@ Or for a one-time run:
 uvx bengal --version
 ```
 
+

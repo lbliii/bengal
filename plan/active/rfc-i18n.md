@@ -676,3 +676,4 @@ def generate_sitemap_with_i18n(site: Site) -> str:
 - [W3C Internationalization](https://www.w3.org/International/)
 
 
+

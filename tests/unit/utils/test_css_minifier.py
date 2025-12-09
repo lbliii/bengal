@@ -487,3 +487,4 @@ class TestMinifyCssEdgeCases:
         assert isinstance(result, str)
 
 
+

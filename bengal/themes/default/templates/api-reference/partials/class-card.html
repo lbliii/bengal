@@ -1,8 +1,9 @@
 {#
 Class Card Macro
 
-Renders a class as a collapsible card using semantic CSS patterns.
-Uses api-card classes from api-explorer.css.
+Renders a class as an information-rich collapsible card.
+Shows: icon, name, badges, method/attribute counts, description preview.
+Uses api-member classes from api-explorer.css.
 
 Args:
 cls: The class DocElement to render
@@ -10,24 +11,74 @@ is_first: Whether this is the first item (to auto-open)
 #}
 
 {% macro class_card(cls, is_first=false) %}
-<details class="api-card api-card--class" {% if is_first %}open{% endif %}>
-  <summary class="api-card__header">
-    <span class="api-card__icon">◆</span>
-    <code class="api-card__name">{{ cls.name }}</code>
-    <span class="api-card__badges">
-      {% if cls.metadata.is_dataclass %}
-      <span class="api-badge--compact api-badge--dataclass">dataclass</span>
-      {% endif %}
-      {% if cls.metadata.is_abstract %}
-      <span class="api-badge--compact api-badge--abstract">abstract</span>
+{# Compute preview info #}
+{% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
+{% set is_abstract = cls.metadata.is_abstract | default(false) %}
+{% set methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{% set method_count = methods | length %}
+{% set attrs = cls.metadata.attributes or [] %}
+{% set attr_count = attrs | length %}
+{% set first_sentence = ((cls.description or '') | truncate(100, True, '…')) %}
+{% set bases = cls.metadata.bases or [] %}
+
+<details
+  class="api-member api-member--class{% if is_dataclass %} api-member--dataclass{% endif %}{% if is_abstract %} api-member--abstract{% endif %}">
+  <summary class="api-member__summary">
+    {# Icon #}
+    <span class="api-member__icon">
+      {% if is_dataclass %}
+      {{ icon('database', size=18) }}
+      {% else %}
+      {{ icon('cube', size=18) }}
       {% endif %}
     </span>
-    <span class="api-card__toggle">▸</span>
+
+    {# Name + description preview #}
+    <div class="api-member__info">
+      <div class="api-member__name-row">
+        <code class="api-member__name">{{ cls.name }}</code>
+        {% if is_dataclass %}<span class="api-badge--inline api-badge--dataclass">dataclass</span>{% endif %}
+        {% if is_abstract %}<span class="api-badge--inline api-badge--abstract">abstract</span>{% endif %}
+      </div>
+      {% if first_sentence %}
+      <span class="api-member__desc-preview">{{ first_sentence }}</span>
+      {% endif %}
+    </div>
+
+    {# Meta: attributes + methods #}
+    <div class="api-member__meta">
+      {% if attr_count > 0 %}
+      <span class="api-member__count" title="{{ attr_count }} attribute{% if attr_count != 1 %}s{% endif %}">
+        {{ icon('list-bullets', size=12) }}
+        <span>{{ attr_count }} attr</span>
+      </span>
+      {% endif %}
+      <span class="api-member__count" title="{{ method_count }} method{% if method_count != 1 %}s{% endif %}">
+        {{ icon('function', size=12) }}
+        <span>{{ method_count }}</span>
+      </span>
+    </div>
+
+    {# Toggle #}
+    <span class="api-member__toggle">
+      {{ icon('caret-right', size=14) }}
+    </span>
   </summary>
 
-  <div class="api-card__content">
+  <div class="api-member__content">
+    {# Full description #}
     {% if cls.description %}
-    <p class="api-card__description">{{ cls.description }}</p>
+    <p class="api-member__description">{{ cls.description }}</p>
+    {% endif %}
+
+    {# Inheritance #}
+    {% if bases %}
+    <div class="api-class__bases">
+      <span class="api-label">Inherits from</span>
+      {% for base in bases %}
+      <code class="api-class__base">{{ base }}</code>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </div>
     {% endif %}
 
     {# Class Signature #}

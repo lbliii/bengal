@@ -556,3 +556,4 @@ autodoc:
 - [Search modal design](bengal/themes/default/assets/css/components/search.css)
 
 
+

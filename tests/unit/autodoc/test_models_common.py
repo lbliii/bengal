@@ -179,3 +179,4 @@ class TestQualifiedName:
         assert qn.parts == ("a", "b", "c")
         assert str(qn) == "a.b.c"  # str always uses dots
 
+

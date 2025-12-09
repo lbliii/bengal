@@ -218,3 +218,4 @@ class TestChangeSummary:
         assert summary.get("Nonexistent") is None
         assert summary.get("Nonexistent", []) == []
 
+

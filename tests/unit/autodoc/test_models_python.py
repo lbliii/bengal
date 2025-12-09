@@ -318,3 +318,4 @@ class TestPythonAliasMetadata:
         with pytest.raises(AttributeError):
             meta.alias_of = "other"  # type: ignore[misc]
 
+

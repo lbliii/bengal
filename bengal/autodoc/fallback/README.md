@@ -15,3 +15,4 @@ These templates are intentionally minimal (no styling, basic structure) and serv
 - `templates/api-reference/module.html`
 - `templates/api-reference/section-index.html`
 
+

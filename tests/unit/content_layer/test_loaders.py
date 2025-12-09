@@ -72,3 +72,4 @@ class TestRemoteLoaderImports:
         except ImportError as e:
             assert "aiohttp" in str(e).lower() or "notion" in str(e).lower()
 
+

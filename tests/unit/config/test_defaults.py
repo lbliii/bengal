@@ -303,3 +303,4 @@ class TestDefaults:
         assert features["search"] is True
 
 
+

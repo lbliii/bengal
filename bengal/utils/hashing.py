@@ -164,3 +164,4 @@ def hash_file_with_stat(
     return hash_str(combined, truncate=truncate, algorithm=algorithm)
 
 
+

@@ -42,3 +42,4 @@ def test_create_synthetic_page_custom() -> None:
     assert page.metadata["foo"] == "bar"
 
 
+

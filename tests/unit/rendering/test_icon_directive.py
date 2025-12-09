@@ -236,3 +236,4 @@ class TestGetAvailableIcons:
         assert "terminal" in _icon_cache
 
 
+

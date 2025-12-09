@@ -558,3 +558,4 @@ TYPE_ICONS = {
 
 **Recommendation**: Start with **Option A (Inline)** for Phase 1, with CSS hooks to easily switch to **Option D (Morph)** for a future premium enhancement.
 
+

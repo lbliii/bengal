@@ -450,10 +450,14 @@ class IncrementalOrchestrator:
                     self.cache.update_file(template_file)
 
         # Convert to Page objects
+        # Include autodoc pages in every incremental build since they have virtual paths
+        # that aren't tracked by file system watching. Their source is Python/OpenAPI/CLI
+        # files which may have changed, and deferred rendering needs full template context.
         pages_to_build_list = [
             page
             for page in self.site.pages
-            if page.source_path in pages_to_rebuild and not page.metadata.get("_generated")
+            if (page.source_path in pages_to_rebuild and not page.metadata.get("_generated"))
+            or page.metadata.get("is_autodoc")  # Always rebuild autodoc pages
         ]
 
         # Log what changed for debugging
@@ -608,7 +612,11 @@ class IncrementalOrchestrator:
                         pages_to_rebuild.add(page.source_path)
 
         # Convert page paths back to Page objects
-        pages_to_build = [page for page in self.site.pages if page.source_path in pages_to_rebuild]
+        # Include autodoc pages in every build since they have virtual paths
+        pages_to_build = [
+            page for page in self.site.pages
+            if page.source_path in pages_to_rebuild or page.metadata.get("is_autodoc")
+        ]
 
         return pages_to_build, assets_to_process, change_summary
 

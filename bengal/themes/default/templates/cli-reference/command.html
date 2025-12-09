@@ -70,7 +70,7 @@ This template receives:
           {% endif %}
 
           {# Options #}
-          {% set options = element.children | selectattr('element_type', 'eq', 'option') | list %}
+          {% set options = element.children | default([]) | selectattr('element_type', 'eq', 'option') | list %}
           {% if options %}
           <section class="api-section api-section--options">
             <h2 class="api-section__title">Options</h2>
@@ -104,7 +104,7 @@ This template receives:
           {% endif %}
 
           {# Arguments #}
-          {% set arguments = element.children | selectattr('element_type', 'eq', 'argument') | list %}
+          {% set arguments = element.children | default([]) | selectattr('element_type', 'eq', 'argument') | list %}
           {% if arguments %}
           <section class="api-section api-section--arguments">
             <h2 class="api-section__title">Arguments</h2>

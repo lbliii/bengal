@@ -51,3 +51,4 @@ Implementation sketch
 ### Risks & Mitigations
 - Risk: Missing parent sections could cause `_find_parent_section` fallback; mitigate by creating all ancestors.
 - Risk: Performance on very large CLIs; mitigated by O(n) section creation with caching in `sections` dict.
+

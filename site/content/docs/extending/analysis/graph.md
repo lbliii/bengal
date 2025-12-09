@@ -208,3 +208,4 @@ bengal utils graph pagerank site/ --format csv > pagerank-$(date +%Y%m%d).csv
 - [CLI Graph Commands](/cli/utils/graph/) — Complete CLI reference
 - [Analysis API](/api/analysis/) — Programmatic access
 
+

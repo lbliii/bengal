@@ -121,10 +121,11 @@ def write_output(
         atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
 
     # Track source→output mapping for cleanup on deletion
-    # (Skip generated pages - they have virtual paths)
+    # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
     if (
         dependency_tracker
         and not page.metadata.get("_generated")
+        and not page.metadata.get("is_autodoc")
         and hasattr(dependency_tracker, "cache")
         and dependency_tracker.cache
     ):

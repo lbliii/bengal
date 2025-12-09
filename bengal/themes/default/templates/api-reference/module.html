@@ -34,28 +34,32 @@ This template receives:
             <div class="docs-content">
                 {# API Explorer Module Content #}
                 <div class="api-explorer">
-                    {# Module Header - Editorial Bengal Design #}
-                    <header class="api-module-header">
-                        {# Name Block - Vertical letterform display #}
-                        <div class="api-module-header__name-block">
-                            <code>{{ element.name }}</code>
-                        </div>
+                    {# Module Header - Compact Vertical Stack #}
+                    {% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
+                    {% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
 
-                        {# Content Area #}
-                        <div class="api-module-header__content">
+                    <header class="api-module-header">
+                        {# Top row: Badge + Short name #}
+                        <div class="api-module-header__top-row">
                             <div class="api-module-header__badges">
                                 {% set element = element %}
                                 {% include 'api-reference/partials/badges.html' %}
                             </div>
+                            <span class="api-module-header__short-name">{{ element.name }}</span>
+                        </div>
 
-                            <h1 class="api-module-header__title">
-                                <code>{{ element.qualified_name }}</code>
-                            </h1>
+                        {# Full qualified name #}
+                        <h1 class="api-module-header__title">
+                            <code>{{ element.qualified_name }}</code>
+                        </h1>
 
-                            {% if element.description %}
-                            <p class="api-module-header__description">{{ element.description }}</p>
-                            {% endif %}
+                        {# Description #}
+                        {% if element.description %}
+                        <p class="api-module-header__description">{{ element.description }}</p>
+                        {% endif %}
 
+                        {# Bottom row: Source link + Stats #}
+                        <div class="api-module-header__bottom-row">
                             {% if element.source_file %}
                             <div class="api-module-header__source">
                                 <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
@@ -65,23 +69,19 @@ This template receives:
                                 </a>
                             </div>
                             {% endif %}
+
+                            <div class="api-module-header__stats">
+                                <span class="api-module-header__stat">
+                                    <span class="api-module-header__stat-value">{{ classes | length }}</span>
+                                    <span class="api-module-header__stat-label">Classes</span>
+                                </span>
+                                <span class="api-module-header__stat">
+                                    <span class="api-module-header__stat-value">{{ functions | length }}</span>
+                                    <span class="api-module-header__stat-label">Functions</span>
+                                </span>
+                            </div>
                         </div>
                     </header>
-
-                    {# Module Stats - Neumorphic Bar #}
-                    {% set classes = element.children | selectattr('element_type', 'eq', 'class') | list %}
-                    {% set functions = element.children | selectattr('element_type', 'eq', 'function') | list %}
-
-                    <div class="api-stats-bar">
-                        <div class="api-stat-item">
-                            <span class="api-stat-item__value">{{ classes | length }}</span>
-                            <span class="api-stat-item__label">Classes</span>
-                        </div>
-                        <div class="api-stat-item">
-                            <span class="api-stat-item__value">{{ functions | length }}</span>
-                            <span class="api-stat-item__label">Functions</span>
-                        </div>
-                    </div>
 
                     {# Classes Section #}
                     {% if classes %}

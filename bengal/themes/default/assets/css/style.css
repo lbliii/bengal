@@ -227,6 +227,10 @@
 }
 
 @layer components {
+  @import url('components/api-explorer.css');
+}
+
+@layer components {
   @import url('components/tutorial.css');
 }
 

@@ -8,3 +8,4 @@ base_url = "https://example.com"
 output_dir = "public"
 ```
 
+

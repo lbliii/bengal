@@ -452,3 +452,4 @@ class TestRoundTrip:
         # Unknown type should be deserialized as None
         assert element.typed_metadata is None
 
+

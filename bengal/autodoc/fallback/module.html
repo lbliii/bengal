@@ -34,8 +34,8 @@ progressive disclosure (collapsed by default).
     </header>
 
     {# Module Stats #}
-    {% set classes = element.children | selectattr('element_type', 'eq', 'class') | list %}
-    {% set functions = element.children | selectattr('element_type', 'eq', 'function') | list %}
+    {% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
+    {% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
 
     <div class="api-stats">
         <span class="api-stat">
@@ -55,7 +55,7 @@ progressive disclosure (collapsed by default).
 
         <div class="api-cards">
             {% for cls in classes %}
-            <details class="api-card api-card--class" {% if loop.first %}open{% endif %}>
+            <details class="api-card api-card--class">
                 <summary class="api-card__header">
                     <span class="api-card__icon">◆</span>
                     <code class="api-card__name">{{ cls.name }}</code>
@@ -83,7 +83,7 @@ progressive disclosure (collapsed by default).
                     {% endif %}
 
                     {# Attributes #}
-                    {% set attributes = cls.children | selectattr('element_type', 'eq', 'attribute') | list %}
+                    {% set attributes = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
                     {% if attributes %}
                     <div class="api-attributes">
                         <h4 class="api-subsection-title">Attributes</h4>
@@ -110,7 +110,7 @@ progressive disclosure (collapsed by default).
                     {% endif %}
 
                     {# Methods #}
-                    {% set methods = cls.children | selectattr('element_type', 'eq', 'method') | list %}
+                    {% set methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
                     {% if methods %}
                     <div class="api-methods">
                         <h4 class="api-subsection-title">Methods</h4>
