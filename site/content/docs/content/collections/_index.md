@@ -184,5 +184,3 @@ See [Content Sources](/docs/content/sources/) for GitHub, Notion, REST API loade
 ## See Also
 
 - [Content Sources](/docs/content/sources/) — GitHub, Notion, REST API loaders
-- [CLI Reference: collections](/cli/collections/) — Command details
-- [API Reference: collections](/api/collections/) — Schema and validator API

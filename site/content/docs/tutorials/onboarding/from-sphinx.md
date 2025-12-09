@@ -317,7 +317,7 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 
 :::{checklist} Content Migration
 - [ ] Convert `.. directive::` to `:::{directive}`
-- [ ] Convert `:ref:` links to `[text](path.md)`
+- [ ] Convert `:ref:` links to markdown link syntax
 - [ ] Update code blocks to fenced syntax
 - [ ] Add `weight` frontmatter for ordering
 :::
@@ -345,7 +345,7 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 | Include file | `.. include::` | `:::{include}` |
 | Include code | `.. literalinclude::` | `:::{literalinclude}` |
 | Cross-reference | `:ref:\`label\`` | `[[label]]` |
-| Link to doc | `:doc:\`path\`` | `[text](path.md)` |
+| Link to doc | `:doc:\`path\`` | Standard markdown links |
 | Build | `make html` | `bengal site build` |
 | Serve | `sphinx-autobuild` | `bengal site serve` |
 | Check | `sphinx-build -W` | `bengal health check` |
