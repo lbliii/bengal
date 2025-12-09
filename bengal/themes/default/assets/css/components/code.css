@@ -666,12 +666,19 @@ pre code {
 
 /* Code cell */
 .highlight td.code {
+  width: 100%;
   padding: 0;
   vertical-align: top;
 }
 
+/* Pygments wraps pre in a div - ensure it fills the cell */
+.highlight td.code > div {
+  width: 100%;
+}
+
 /* Code pre inside table */
 .highlight td.code pre {
+  width: 100%;
   padding: var(--space-6);
   padding-left: var(--space-4);
 }
