@@ -55,13 +55,16 @@ class BlogPost:
         excerpt: Manual excerpt (auto-generated from content if not set)
 
     Example frontmatter:
-        ---
-        title: Getting Started with Bengal
-        date: 2025-01-15
-        author: Jane Doe
-        tags: [tutorial, beginner]
-        description: Learn how to build your first Bengal site
-        ---
+
+    ```yaml
+    ---
+    title: Getting Started with Bengal
+    date: 2025-01-15
+    author: Jane Doe
+    tags: [tutorial, beginner]
+    description: Learn how to build your first Bengal site
+    ---
+    ```
     """
 
     title: str
@@ -92,12 +95,15 @@ class DocPage:
         since: Version when feature was introduced (e.g., "1.2.0")
 
     Example frontmatter:
-        ---
-        title: Configuration Reference
-        weight: 10
-        category: Reference
-        toc: true
-        ---
+
+    ```yaml
+    ---
+    title: Configuration Reference
+    weight: 10
+    category: Reference
+    toc: true
+    ---
+    ```
     """
 
     title: str
@@ -128,14 +134,17 @@ class APIReference:
         description: Endpoint description
 
     Example frontmatter:
-        ---
-        title: List Users
-        endpoint: /api/v1/users
-        method: GET
-        version: v1
-        auth_required: true
-        rate_limit: 100 req/min
-        ---
+
+    ```yaml
+    ---
+    title: List Users
+    endpoint: /api/v1/users
+    method: GET
+    version: v1
+    auth_required: true
+    rate_limit: 100 req/min
+    ---
+    ```
     """
 
     title: str
@@ -164,13 +173,16 @@ class Changelog:
         summary: Short release summary
 
     Example frontmatter:
-        ---
-        title: Version 1.2.0
-        date: 2025-01-15
-        version: 1.2.0
-        breaking: false
-        summary: New features and bug fixes
-        ---
+
+    ```yaml
+    ---
+    title: Version 1.2.0
+    date: 2025-01-15
+    version: 1.2.0
+    breaking: false
+    summary: New features and bug fixes
+    ---
+    ```
     """
 
     title: str
