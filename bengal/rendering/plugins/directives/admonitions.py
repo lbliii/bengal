@@ -22,18 +22,20 @@ __all__ = ["AdmonitionDirective", "AdmonitionOptions"]
 
 
 # All supported admonition types
-ADMONITION_TYPES = frozenset([
-    "note",
-    "tip",
-    "warning",
-    "danger",
-    "error",
-    "info",
-    "example",
-    "success",
-    "caution",
-    "seealso",
-])
+ADMONITION_TYPES = frozenset(
+    [
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
+        "seealso",
+    ]
+)
 
 # Map types to CSS classes (caution maps to warning)
 TYPE_TO_CSS = {

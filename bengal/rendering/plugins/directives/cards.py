@@ -57,9 +57,9 @@ __all__ = [
 VALID_LAYOUTS = frozenset(["default", "horizontal", "portrait", "compact"])
 VALID_GAPS = frozenset(["small", "medium", "large"])
 VALID_STYLES = frozenset(["default", "minimal", "bordered"])
-VALID_COLORS = frozenset([
-    "blue", "green", "red", "yellow", "orange", "purple", "gray", "pink", "indigo"
-])
+VALID_COLORS = frozenset(
+    ["blue", "green", "red", "yellow", "orange", "purple", "gray", "pink", "indigo"]
+)
 
 
 # =============================================================================
@@ -776,34 +776,34 @@ def _render_icon(icon_name: str) -> str:
     return render_icon(icon_name, size=20)
 
 
-def _collect_children(
-    section: Any, current_page: Any, include: str
-) -> list[dict[str, Any]]:
+def _collect_children(section: Any, current_page: Any, include: str) -> list[dict[str, Any]]:
     """Collect child sections/pages from section."""
     children: list[dict[str, Any]] = []
 
     if include in ("sections", "all"):
         for subsection in getattr(section, "subsections", []):
-            children.append({
-                "type": "section",
-                "title": getattr(subsection, "title", subsection.name),
-                "description": (
-                    subsection.metadata.get("description", "")
-                    if hasattr(subsection, "metadata")
-                    else ""
-                ),
-                "icon": (
-                    subsection.metadata.get("icon", "")
-                    if hasattr(subsection, "metadata")
-                    else ""
-                ),
-                "url": _get_section_url(subsection),
-                "weight": (
-                    subsection.metadata.get("weight", 0)
-                    if hasattr(subsection, "metadata")
-                    else 0
-                ),
-            })
+            children.append(
+                {
+                    "type": "section",
+                    "title": getattr(subsection, "title", subsection.name),
+                    "description": (
+                        subsection.metadata.get("description", "")
+                        if hasattr(subsection, "metadata")
+                        else ""
+                    ),
+                    "icon": (
+                        subsection.metadata.get("icon", "")
+                        if hasattr(subsection, "metadata")
+                        else ""
+                    ),
+                    "url": _get_section_url(subsection),
+                    "weight": (
+                        subsection.metadata.get("weight", 0)
+                        if hasattr(subsection, "metadata")
+                        else 0
+                    ),
+                }
+            )
 
     if include in ("pages", "all"):
         for page in getattr(section, "pages", []):
@@ -816,18 +816,18 @@ def _collect_children(
                 and page.source_path == current_page.source_path
             ):
                 continue
-            children.append({
-                "type": "page",
-                "title": getattr(page, "title", ""),
-                "description": (
-                    page.metadata.get("description", "")
-                    if hasattr(page, "metadata")
-                    else ""
-                ),
-                "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
-                "url": getattr(page, "url", ""),
-                "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
-            })
+            children.append(
+                {
+                    "type": "page",
+                    "title": getattr(page, "title", ""),
+                    "description": (
+                        page.metadata.get("description", "") if hasattr(page, "metadata") else ""
+                    ),
+                    "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
+                    "url": getattr(page, "url", ""),
+                    "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
+                }
+            )
 
     # Sort by weight, then title
     children.sort(key=lambda c: (c.get("weight", 0), c.get("title", "").lower()))

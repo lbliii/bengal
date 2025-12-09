@@ -254,9 +254,7 @@ class SiblingsDirective(BengalDirective):
                 description = page.metadata.get("description", "")
 
             parts.append("  <li>")
-            parts.append(
-                f'    <a href="{self.escape_html(url)}">{self.escape_html(title)}</a>'
-            )
+            parts.append(f'    <a href="{self.escape_html(url)}">{self.escape_html(title)}</a>')
             if description:
                 parts.append(
                     f'    <span class="sibling-description">{self.escape_html(description)}</span>'
@@ -347,9 +345,7 @@ class PrevNextDirective(BengalDirective):
 
         if prev_page:
             prev_url = getattr(prev_page, "url", "/")
-            prev_title = (
-                getattr(prev_page, "title", "Previous") if show_title else "Previous"
-            )
+            prev_title = getattr(prev_page, "title", "Previous") if show_title else "Previous"
             parts.append(
                 f'  <a class="prev-next-link prev-link" href="{self.escape_html(prev_url)}">'
             )
@@ -364,9 +360,7 @@ class PrevNextDirective(BengalDirective):
 
         if next_page:
             next_url = getattr(next_page, "url", "/")
-            next_title = (
-                getattr(next_page, "title", "Next") if show_title else "Next"
-            )
+            next_title = getattr(next_page, "title", "Next") if show_title else "Next"
             parts.append(
                 f'  <a class="prev-next-link next-link" href="{self.escape_html(next_url)}">'
             )
@@ -476,8 +470,7 @@ class RelatedDirective(BengalDirective):
 
             parts.append("    <li>")
             parts.append(
-                f'      <a href="{self.escape_html(page_url)}">'
-                f"{self.escape_html(page_title)}</a>"
+                f'      <a href="{self.escape_html(page_url)}">{self.escape_html(page_title)}</a>'
             )
 
             if show_tags and page_tags:
