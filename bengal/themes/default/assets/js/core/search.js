@@ -600,21 +600,44 @@
     }
 
     /**
-     * Highlight query terms in text
-     * @param {string} text - Text to highlight
+     * Highlight query terms in text (HTML-aware)
+     * @param {string} text - Text to highlight (may contain HTML)
      * @param {Array} terms - Terms to highlight
-     * @returns {string} Text with highlights
+     * @returns {string} Text with highlights applied only to text content, not HTML tags
      */
     function highlightMatches(text, terms) {
         if (!text || !terms.length) return text;
 
-        let highlighted = text;
-        terms.forEach(term => {
-            const regex = new RegExp(`(${escapeRegex(term)})`, 'gi');
-            highlighted = highlighted.replace(regex, `<mark class="${CONFIG.highlightClass}">$1</mark>`);
-        });
+        // Build a combined regex for all terms
+        const escapedTerms = terms.map(term => escapeRegex(term)).join('|');
+        const termRegex = new RegExp(`(${escapedTerms})`, 'gi');
 
-        return highlighted;
+        // Split text into HTML tags and text content
+        // This regex matches HTML tags (including closing tags and self-closing)
+        const htmlTagRegex = /<[^>]+>/g;
+
+        let result = '';
+        let lastIndex = 0;
+        let match;
+
+        while ((match = htmlTagRegex.exec(text)) !== null) {
+            // Process text before this tag (this is safe to highlight)
+            const textBefore = text.slice(lastIndex, match.index);
+            if (textBefore) {
+                result += textBefore.replace(termRegex, `<mark class="${CONFIG.highlightClass}">$1</mark>`);
+            }
+            // Add the HTML tag unchanged
+            result += match[0];
+            lastIndex = htmlTagRegex.lastIndex;
+        }
+
+        // Process any remaining text after the last tag
+        const remainingText = text.slice(lastIndex);
+        if (remainingText) {
+            result += remainingText.replace(termRegex, `<mark class="${CONFIG.highlightClass}">$1</mark>`);
+        }
+
+        return result;
     }
 
     /**
