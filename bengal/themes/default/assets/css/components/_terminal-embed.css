@@ -1,0 +1,175 @@
+/**
+ * Terminal Embed Styles
+ *
+ * Styles for terminal recording embeds (Asciinema).
+ *
+ * Classes:
+ *   .terminal-embed - Base container for terminal embeds
+ *   .terminal-embed.asciinema - Asciinema-specific styling
+ *   .terminal-embed.terminal-error - Error state styling
+ *
+ * Usage:
+ *   :::{asciinema} 590029
+ *   :title: Installation Demo
+ *   :cols: 80
+ *   :rows: 24
+ *   :::
+ */
+
+/* =============================================================================
+   Base Terminal Container
+   ============================================================================= */
+
+.terminal-embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-block: var(--spacing-4, 1rem);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+/* =============================================================================
+   Asciinema Player Overrides
+   ============================================================================= */
+
+.terminal-embed.asciinema {
+  background-color: var(--color-surface-secondary, #1a1a2e);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+/* Override asciinema player default styles */
+.terminal-embed.asciinema .asciinema-player-wrapper {
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.terminal-embed.asciinema .asciinema-terminal {
+  font-family: var(--font-family-mono, 'JetBrains Mono', 'Fira Code', monospace) !important;
+}
+
+/* Control bar styling */
+.terminal-embed.asciinema .asciinema-control-bar {
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.5)) !important;
+}
+
+/* Progress bar */
+.terminal-embed.asciinema .asciinema-progress {
+  background-color: var(--color-primary, #4fc3f7) !important;
+}
+
+/* Play button */
+.terminal-embed.asciinema .asciinema-start-prompt {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.terminal-embed.asciinema .asciinema-start-prompt svg {
+  fill: var(--color-primary, #4fc3f7) !important;
+}
+
+/* =============================================================================
+   Error States
+   ============================================================================= */
+
+.terminal-embed.terminal-error {
+  padding: var(--spacing-4, 1rem);
+  background-color: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  border: 1px solid var(--color-error-border, rgba(220, 53, 69, 0.3));
+  border-radius: var(--radius-md, 8px);
+}
+
+.terminal-embed.terminal-error .error {
+  margin: 0 0 var(--spacing-2, 0.5rem);
+  color: var(--color-error, #dc3545);
+  font-weight: 600;
+}
+
+.terminal-embed.terminal-error code {
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* =============================================================================
+   Noscript Fallback
+   ============================================================================= */
+
+.terminal-embed noscript {
+  display: block;
+  padding: var(--spacing-4, 1rem);
+  text-align: center;
+  background-color: var(--color-surface-secondary, #1a1a2e);
+  border-radius: var(--radius-md, 8px);
+}
+
+.terminal-embed noscript a {
+  color: var(--color-link, #4fc3f7);
+  text-decoration: underline;
+}
+
+.terminal-embed noscript a:hover {
+  color: var(--color-link-hover, #81d4fa);
+}
+
+/* =============================================================================
+   Accessibility
+   ============================================================================= */
+
+.terminal-embed[role="img"] {
+  /* Semantic styling for ARIA role */
+}
+
+/* Focus indicator for keyboard navigation */
+.terminal-embed.asciinema:focus-within {
+  outline: 2px solid var(--color-focus, #4fc3f7);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   Responsive Adjustments
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .terminal-embed.asciinema {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .terminal-embed.asciinema {
+    font-size: 10px;
+  }
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+  .terminal-embed {
+    page-break-inside: avoid;
+  }
+
+  .terminal-embed.asciinema script {
+    display: none;
+  }
+
+  .terminal-embed noscript {
+    display: block !important;
+    padding: var(--spacing-4, 1rem);
+    border: 1px solid var(--color-border, #ccc);
+    background-color: var(--color-surface-secondary, #f5f5f5);
+  }
+}
+
+/* =============================================================================
+   Reduced Motion
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-embed.asciinema .asciinema-progress {
+    transition: none !important;
+  }
+}
+

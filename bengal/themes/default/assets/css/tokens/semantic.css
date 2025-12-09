@@ -83,6 +83,11 @@
   --color-info-border: var(--blue-300);
   --color-info-text: var(--blue-900);
 
+  --color-example: var(--violet-600);
+  --color-example-bg: var(--violet-50);
+  --color-example-border: var(--violet-300);
+  --color-example-text: var(--violet-900);
+
   /* Alert-specific semantic tokens (for alert component) */
   --color-alert-info: var(--color-info-text);
   --color-alert-info-bg: var(--color-info-bg);
@@ -111,6 +116,9 @@
 
   /* Warning alias (for badge consistency) */
   --color-warning-light: var(--orange-300);
+
+  /* Example alias (for badge consistency) */
+  --color-example-light: var(--violet-300);
 
   /* API Documentation Colors */
   --color-code-type: var(--blue-700);
@@ -655,6 +663,11 @@
   --color-info-border: var(--blue-700);
   --color-info-text: var(--blue-200);
 
+  --color-example: var(--violet-400);
+  --color-example-bg: rgba(139, 92, 246, 0.1);
+  --color-example-border: var(--violet-700);
+  --color-example-text: var(--violet-300);
+
   /* Danger/Error alias (for consistency) */
   --color-danger: var(--red-400);
   --color-danger-bg: rgba(239, 68, 68, 0.1);
@@ -669,6 +682,9 @@
 
   /* Warning alias (for badge consistency) */
   --color-warning-light: var(--orange-700);
+
+  /* Example alias (for badge consistency) */
+  --color-example-light: var(--violet-700);
 
   /* API Documentation Colors (dark mode) */
   --color-code-type: var(--blue-400);

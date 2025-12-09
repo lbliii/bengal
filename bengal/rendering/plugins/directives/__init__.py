@@ -60,7 +60,14 @@ from bengal.rendering.plugins.directives.contracts import (
 )
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
+from bengal.rendering.plugins.directives.embed import (
+    CodePenDirective,
+    CodeSandboxDirective,
+    GistDirective,
+    StackBlitzDirective,
+)
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
 from bengal.rendering.plugins.directives.icon import IconDirective
@@ -87,7 +94,13 @@ from bengal.rendering.plugins.directives.tabs import (
     TabsDirective,
     TabSetDirective,
 )
+from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
 from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.rendering.plugins.directives.video import (
+    SelfHostedVideoDirective,
+    VimeoDirective,
+    YouTubeDirective,
+)
 from bengal.rendering.plugins.directives.utils import (
     attr_str,
     bool_attr,
@@ -161,6 +174,23 @@ DIRECTIVE_CLASSES: list[type] = [
     RelatedDirective,
     # Marimo (marimo) - optional, works even if marimo package not installed
     MarimoCellDirective,
+    # ==========================================================================
+    # Media Embed Directives (RFC: plan/active/rfc-media-embed-directives.md)
+    # ==========================================================================
+    # Video embeds (youtube, vimeo, video)
+    YouTubeDirective,
+    VimeoDirective,
+    SelfHostedVideoDirective,
+    # Developer tool embeds (gist, codepen, codesandbox, stackblitz)
+    GistDirective,
+    CodePenDirective,
+    CodeSandboxDirective,
+    StackBlitzDirective,
+    # Terminal recording embeds (asciinema)
+    AsciinemaDirective,
+    # Figure and audio embeds (figure, audio)
+    FigureDirective,
+    AudioDirective,
 ]
 
 
@@ -260,6 +290,17 @@ __all__ = [
     "format_directive_error",
     "get_cache",
     "get_cache_stats",
+    # Media Embed Directives
+    "YouTubeDirective",
+    "VimeoDirective",
+    "SelfHostedVideoDirective",
+    "GistDirective",
+    "CodePenDirective",
+    "CodeSandboxDirective",
+    "StackBlitzDirective",
+    "AsciinemaDirective",
+    "FigureDirective",
+    "AudioDirective",
 ]
 
 
@@ -333,6 +374,23 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 SiblingsDirective(),  # Show other pages in same section
                 PrevNextDirective(),  # Section-aware prev/next navigation
                 RelatedDirective(),  # Related content based on tags
+                # ==========================================================
+                # Media Embed Directives
+                # ==========================================================
+                # Video embeds
+                YouTubeDirective(),  # YouTube with privacy mode (youtube-nocookie.com)
+                VimeoDirective(),  # Vimeo with Do Not Track mode
+                SelfHostedVideoDirective(),  # Native HTML5 video for local files
+                # Developer tool embeds
+                GistDirective(),  # GitHub Gists
+                CodePenDirective(),  # CodePen pens
+                CodeSandboxDirective(),  # CodeSandbox projects
+                StackBlitzDirective(),  # StackBlitz projects
+                # Terminal recording embeds
+                AsciinemaDirective(),  # Terminal recordings from asciinema.org
+                # Figure and audio
+                FigureDirective(),  # Semantic images with captions
+                AudioDirective(),  # Self-hosted audio files
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)
