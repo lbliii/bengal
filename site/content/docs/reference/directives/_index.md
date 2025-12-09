@@ -274,5 +274,5 @@ terms:
 ## Next Steps
 
 - Browse directive categories above for detailed syntax
-- See [Content Reuse](/docs/content/reuse/) for include/literalinclude strategies
-- Check [Writer Quickstart](/docs/get-started/quickstart-writer/) for markdown basics
+- See [[docs/content/reuse|Content Reuse]] for include/literalinclude strategies
+- Check [[docs/get-started/quickstart-writer|Writer Quickstart]] for markdown basics

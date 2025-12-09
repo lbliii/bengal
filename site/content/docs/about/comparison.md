@@ -29,5 +29,5 @@ tags:
 
 ## See Also
 
-- [Benchmarks](/docs/about/benchmarks/)
-- [Limitations](/docs/about/limitations/)
+- [[docs/about/benchmarks|Benchmarks]]
+- [[docs/about/limitations|Limitations]]

@@ -25,10 +25,10 @@ Complete technical documentation for Bengal's APIs, syntax, and internals.
 
 | Looking for... | Go to... |
 |----------------|----------|
-| "How do I use tabs?" | [Directives Reference](./directives/) |
-| "How do I build a tabbed interface?" | [Theming → Templating](/docs/theming/templating/) |
-| "What's the build pipeline?" | [Architecture](./architecture/) |
-| "How do I speed up builds?" | [Building → Performance](/docs/building/performance/) |
+| "How do I use tabs?" | [[docs/reference/directives|Directives Reference]] |
+| "How do I build a tabbed interface?" | [[docs/theming/templating|Theming → Templating]] |
+| "What's the build pipeline?" | [[docs/reference/architecture|Architecture]] |
+| "How do I speed up builds?" | [[docs/building/performance|Building → Performance]] |
 
 :::{note}
 **Reference** documents *what* is available (exhaustive, lookup-oriented). **Guides** explain *how* to accomplish tasks (goal-oriented). Use reference when you know what you're looking for.
