@@ -10,10 +10,14 @@ from __future__ import annotations
 from itertools import groupby
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from jinja2 import Environment
 
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: Environment, site: Site) -> None:
@@ -239,8 +243,15 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
 
     try:
         return sorted(items, key=get_sort_key, reverse=reverse)
-    except (TypeError, AttributeError):
-        # If sorting fails, return original list
+    except (TypeError, AttributeError) as e:
+        # Log debug for sort failures (expected edge case with heterogeneous data)
+        logger.debug(
+            "sort_by_failed",
+            key=key,
+            error=str(e),
+            item_count=len(items),
+            caller="template",
+        )
         return items
 
 
@@ -538,6 +549,9 @@ def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
         {% set blog_paths = site.indexes.section.get('blog') %}
         {% set blog_pages = blog_paths | resolve_pages %}
 
+    PERFORMANCE: Uses cached page path map from Site for O(1) lookups.
+    The cache is automatically invalidated when pages are added/removed.
+
     Args:
         page_paths: List of page source paths (strings)
         site: Site instance with pages
@@ -555,8 +569,8 @@ def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
     if not page_paths:
         return []
 
-    # Build lookup map: path -> page (O(n) once, then O(1) per lookup)
-    page_map = {str(p.source_path): p for p in site.pages}
+    # Use cached lookup map from Site (O(1) per lookup after first call)
+    page_map = site.get_page_path_map()
 
     # Resolve paths to pages
     pages = []
