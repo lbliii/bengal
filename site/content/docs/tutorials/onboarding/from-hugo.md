@@ -91,9 +91,9 @@ Pro tip here.
 
 ### Tabs
 
-::::::{tab-set}
+:::{tab-set}
 
-:::::{tab-item} Hugo
+:::{tab} Hugo
 ````markdown
 {{</* tabs */>}}
 {{</* tab "Python" */>}}
@@ -108,30 +108,27 @@ console.log("Hello");
 {{</* /tab */>}}
 {{</* /tabs */>}}
 ````
-:::::
+:::{/tab}
 
-:::::{tab-item} Bengal
+:::{tab} Bengal
 ````markdown
-::::{tab-set}
-
-:::{tab-item} Python
+:::{tab-set}
+:::{tab} Python
 ```python
 print("Hello")
 ```
-:::
-
-:::{tab-item} JavaScript
+:::{/tab}
+:::{tab} JavaScript
 ```javascript
 console.log("Hello");
 ```
-:::
-
-::::
+:::{/tab}
+:::{/tab-set}
 ````
 
-:::::
+:::{/tab}
 
-::::::
+:::{/tab-set}
 
 ### Code Highlighting
 

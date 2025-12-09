@@ -58,8 +58,8 @@ def hello():
 
 Directives add rich components to your Markdown:
 
-::::::{tab-set}
-:::::{tab-item} Admonitions
+:::{tab-set}
+:::{tab} Admonitions
 ```markdown
 :::{note}
 Informational callout.
@@ -73,40 +73,40 @@ Important warning!
 Helpful suggestion.
 :::
 ```
-:::::
+:::{/tab}
 
-:::::{tab-item} Tabs
+:::{tab} Tabs
 ```markdown
-::::{tab-set}
-:::{tab-item} Python
+:::{tab-set}
+:::{tab} Python
 print("Hello")
-:::
-:::{tab-item} JavaScript
+:::{/tab}
+:::{tab} JavaScript
 console.log("Hello")
-:::
-::::
+:::{/tab}
+:::{/tab-set}
 ```
-:::::
+:::{/tab}
 
-:::::{tab-item} Cards
+:::{tab} Cards
 ```markdown
-::::{cards}
+:::{cards}
 :::{card} Title
 :link: ./path/
 Description here
-:::
-::::
+:::{/card}
+:::{/cards}
 ```
-:::::
+:::{/tab}
 
-:::::{tab-item} Dropdowns
+:::{tab} Dropdowns
 ```markdown
 :::{dropdown} Click to expand
 Hidden content here.
 :::
 ```
-:::::
-::::::
+:::{/tab}
+:::{/tab-set}
 
 ## Syntax Overview
 

@@ -90,7 +90,8 @@ class TabItemDirective(BengalDirective):
         MUST be nested inside a :::{tab-set} or legacy {tabs} directive.
     """
 
-    NAMES: ClassVar[list[str]] = ["tab-item"]
+    # Support both "tab-item" and shorter "tab" alias
+    NAMES: ClassVar[list[str]] = ["tab-item", "tab"]
     TOKEN_TYPE: ClassVar[str] = "tab_item"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = TabItemOptions
 
@@ -98,7 +99,7 @@ class TabItemDirective(BengalDirective):
     CONTRACT: ClassVar[DirectiveContract] = TAB_ITEM_CONTRACT
 
     # For backward compatibility with health check introspection
-    DIRECTIVE_NAMES: ClassVar[list[str]] = ["tab-item"]
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["tab-item", "tab"]
 
     def parse_directive(
         self,
