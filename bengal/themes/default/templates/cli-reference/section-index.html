@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {#
-API Reference Section Index Template
+CLI Reference Section Index Template
 
-Renders an API section index page showing subsections and modules
+Renders a CLI section index page showing command groups and commands
 using a card-based layout. Extends base.html to inherit theme navigation.
 
 This template receives:
-- section: Section object for the API section
+- section: Section object for the CLI section
 - config: Autodoc configuration
 - site: Site instance
 #}
@@ -18,7 +18,7 @@ This template receives:
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
 
@@ -30,14 +30,14 @@ This template receives:
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <div class="docs-content">
-        {# API Explorer Section Index Content #}
+        {# CLI Explorer Section Index Content #}
         <div class="api-explorer api-explorer--index">
           <header class="api-section-header">
             <h1 class="api-section-header__title">{{ section.title }}</h1>
             {% if section.metadata.description %}
             <p class="api-section-header__description">{{ section.metadata.description | first_sentence }}</p>
             {% else %}
-            <p class="api-section-header__description">Browse {{ section.name }} packages and modules.</p>
+            <p class="api-section-header__description">Browse {{ section.name }} commands and subcommands.</p>
             {% endif %}
           </header>
 
@@ -46,74 +46,74 @@ This template receives:
             {% if section.subsections %}
             <span class="api-stat">
               <span class="api-stat__count">{{ section.subsections | length }}</span>
-              <span class="api-stat__label">Packages</span>
+              <span class="api-stat__label">Command Groups</span>
             </span>
             {% endif %}
-            {% set module_pages = section.sorted_pages | selectattr('metadata.element_type', 'defined') | list %}
-            {% if module_pages %}
+            {% set command_pages = section.sorted_pages | selectattr('metadata.element_type', 'defined') | list %}
+            {% if command_pages %}
             <span class="api-stat">
-              <span class="api-stat__count">{{ module_pages | length }}</span>
-              <span class="api-stat__label">Modules</span>
+              <span class="api-stat__count">{{ command_pages | length }}</span>
+              <span class="api-stat__label">Commands</span>
             </span>
             {% endif %}
           </div>
 
-          {# Subsections (Packages) - Card Grid #}
+          {# Subsections (Command Groups) - Card Grid #}
           {% if section.sorted_subsections %}
           <section class="api-section api-section--packages">
-            <h2 class="api-section__title">Packages</h2>
+            <h2 class="api-section__title">Command Groups</h2>
 
             <div class="api-grid api-grid--packages">
               {% for subsection in section.sorted_subsections %}
+              {% if subsection.name %}
               {% set desc = subsection.metadata.description | default('') | first_sentence %}
               {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
               <a href="{{ subsection.relative_url }}" class="api-package-card">
                 <div class="api-package-card__header">
-                  <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
-                  <span class="api-package-card__name">{{ subsection.name | title }}</span>
+                  <span class="api-package-card__icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
+                  <span class="api-package-card__name">{{ subsection.name }}</span>
                 </div>
                 <div class="api-package-card__body">
                   {% if desc %}
                   <p class="api-package-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name | title }} package</p>
+                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name }} commands</p>
                   {% endif %}
                 </div>
                 <div class="api-package-card__footer">
                   <span class="api-package-card__meta">
-                    {{ child_count }} item{{ 's' if child_count != 1 else '' }}
+                    {{ child_count }} command{{ 's' if child_count != 1 else '' }}
                   </span>
                 </div>
               </a>
+              {% endif %}
               {% endfor %}
             </div>
           </section>
           {% endif %}
 
-          {# Module Pages - Card Grid #}
-          {% set module_pages = [] %}
+          {# Command Pages - Card Grid #}
+          {% set command_pages = [] %}
           {% for page in section.sorted_pages %}
             {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-              {% set _ = module_pages.append(page) %}
+              {% set _ = command_pages.append(page) %}
             {% endif %}
           {% endfor %}
 
-          {% if module_pages %}
+          {% if command_pages %}
           <section class="api-section api-section--modules">
-            <h2 class="api-section__title">Modules</h2>
+            <h2 class="api-section__title">Commands</h2>
 
             <div class="api-grid api-grid--modules">
-              {% for page in module_pages %}
+              {% for page in command_pages %}
               {% set desc = page.metadata.description | default('') | first_sentence %}
               <a href="{{ page.relative_url }}" class="api-module-card">
                 <div class="api-module-card__header">
                   <span class="api-module-card__icon">
-                    {%- if page.metadata.element_type == 'class' -%}
-                    {{ icon("layers", size=16, css_class="icon-info") }}
-                    {%- elif page.metadata.element_type == 'function' -%}
-                    {{ icon("zap", size=16, css_class="icon-success") }}
+                    {%- if page.metadata.element_type == 'group' -%}
+                    {{ icon("folder", size=16, css_class="icon-info") }}
                     {%- else -%}
-                    {{ icon("code", size=16, css_class="icon-muted") }}
+                    {{ icon("terminal", size=16, css_class="icon-success") }}
                     {%- endif -%}
                   </span>
                   <span class="api-module-card__name">{{ page.title }}</span>
@@ -135,10 +135,10 @@ This template receives:
           {% endif %}
 
           {# Empty State #}
-          {% if not section.subsections and not module_pages %}
+          {% if not section.subsections and not command_pages %}
           <div class="api-empty-state">
-            <div class="api-empty-state__icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
-            <p class="api-empty-state__text">No documentation available in this section yet.</p>
+            <div class="api-empty-state__icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
+            <p class="api-empty-state__text">No CLI documentation available in this section yet.</p>
           </div>
           {% endif %}
         </div>

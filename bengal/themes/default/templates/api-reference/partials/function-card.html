@@ -1,7 +1,8 @@
 {#
 Function Card Macro
 
-Renders a function as a collapsible card.
+Renders a function as a collapsible card using semantic CSS patterns.
+Uses api-card classes from api-explorer.css.
 #}
 
 {% macro function_card(func) %}
@@ -37,7 +38,12 @@ Renders a function as a collapsible card.
     <div class="api-examples">
       <h4 class="api-label">Examples</h4>
       {% for example in func.metadata.examples %}
-      <pre class="api-example"><code class="language-python">{{ example }}</code></pre>
+      <div class="code-block-wrapper">
+        <div class="code-header-inline">
+          <span class="code-language">Python</span>
+        </div>
+        <pre><code class="language-python">{{ example }}</code></pre>
+      </div>
       {% endfor %}
     </div>
     {% endif %}

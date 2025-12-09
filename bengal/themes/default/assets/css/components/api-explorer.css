@@ -165,6 +165,27 @@
   color: var(--color-danger);
 }
 
+.api-badge--abstract {
+  background: rgba(128, 128, 128, 0.15);
+  color: var(--color-text-muted);
+}
+
+.api-badge--classmethod,
+.api-badge--staticmethod {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.api-badge--command {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.api-badge--command-group {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
 /* ============================================
    SIGNATURE BLOCK - Compact Code Display
    ============================================ */
@@ -274,6 +295,29 @@
 .api-table__desc {
   color: var(--color-text-secondary);
   line-height: 1.4;
+}
+
+/* Mini table variant for nested contexts (methods) */
+.api-table--mini {
+  font-size: var(--text-xs);
+}
+
+.api-table--mini th,
+.api-table--mini td {
+  padding: var(--space-1) var(--space-2);
+}
+
+.api-table--mini thead {
+  display: none; /* Hide header for more compact display */
+}
+
+/* Usage section styling */
+.api-usage {
+  margin: var(--space-4) 0 var(--space-6) 0;
+}
+
+.api-usage .code-block-wrapper {
+  margin: var(--space-2) 0;
 }
 
 /* Responsive stacking */
@@ -390,6 +434,44 @@
 .api-raises {
   border-left: 3px solid var(--color-danger);
   background: var(--color-danger-bg);
+}
+
+/* Returns/Raises block styling */
+.api-returns,
+.api-raises {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-3) 0;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+.api-returns {
+  background: var(--color-info-bg);
+  border-left: 3px solid var(--color-info);
+}
+
+.api-returns__content,
+.api-raises__content {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Raises list styling */
+.api-raises__list {
+  list-style: none;
+  margin: var(--space-2) 0 0 0;
+  padding: 0;
+}
+
+.api-raises__list li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.api-raises__list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 /* ============================================

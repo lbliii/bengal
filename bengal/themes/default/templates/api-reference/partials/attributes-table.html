@@ -1,13 +1,14 @@
 {#
 Attributes Table Partial
 
-Renders a table of class attributes.
+Renders a table of class attributes using semantic CSS tokens.
+Uses api-table classes with responsive mobile labels.
 #}
 
 {% set attributes = element.children | selectattr('element_type', 'eq', 'attribute') | list %}
 {% if attributes %}
 <div class="api-attributes">
-  <h4 class="api-subsection-title">Attributes</h4>
+  <h4 class="api-label">Attributes</h4>
   <table class="api-table api-table--compact">
     <thead>
       <tr>
@@ -19,13 +20,20 @@ Renders a table of class attributes.
     <tbody>
       {% for attr in attributes %}
       <tr>
-        <td><code>{{ attr.name }}</code></td>
-        <td>{% if attr.metadata.type_annotation %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% endif %}</td>
-        <td>{{ attr.description | default('—') }}</td>
+        <td data-label="Name" class="api-table__name"><code>{{ attr.name }}</code></td>
+        <td data-label="Type" class="api-table__type">
+          {%- if attr.metadata.annotation -%}
+          <code>{{ attr.metadata.annotation }}</code>
+          {%- elif attr.metadata.type_annotation -%}
+          <code>{{ attr.metadata.type_annotation }}</code>
+          {%- else -%}
+          <span class="table-empty">—</span>
+          {%- endif -%}
+        </td>
+        <td data-label="Description" class="api-table__desc">{{ attr.description | default('—') }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endif %}
-

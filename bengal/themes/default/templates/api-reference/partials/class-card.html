@@ -1,7 +1,8 @@
 {#
 Class Card Macro
 
-Renders a class as a collapsible card.
+Renders a class as a collapsible card using semantic CSS patterns.
+Uses api-card classes from api-explorer.css.
 
 Args:
 cls: The class DocElement to render
@@ -10,36 +11,36 @@ is_first: Whether this is the first item (to auto-open)
 
 {% macro class_card(cls, is_first=false) %}
 <details class="api-card api-card--class" {% if is_first %}open{% endif %}>
-    <summary class="api-card__header">
-        <span class="api-card__icon">◆</span>
-        <code class="api-card__name">{{ cls.name }}</code>
-        <span class="api-card__badges">
-            {% if cls.metadata.is_dataclass %}
-            <span class="api-badge--compact api-badge--dataclass">dataclass</span>
-            {% endif %}
-            {% if cls.metadata.is_abstract %}
-            <span class="api-badge--compact api-badge--abstract">abstract</span>
-            {% endif %}
-        </span>
-        <span class="api-card__toggle">▸</span>
-    </summary>
+  <summary class="api-card__header">
+    <span class="api-card__icon">◆</span>
+    <code class="api-card__name">{{ cls.name }}</code>
+    <span class="api-card__badges">
+      {% if cls.metadata.is_dataclass %}
+      <span class="api-badge--compact api-badge--dataclass">dataclass</span>
+      {% endif %}
+      {% if cls.metadata.is_abstract %}
+      <span class="api-badge--compact api-badge--abstract">abstract</span>
+      {% endif %}
+    </span>
+    <span class="api-card__toggle">▸</span>
+  </summary>
 
-    <div class="api-card__content">
-        {% if cls.description %}
-        <p class="api-card__description">{{ cls.description }}</p>
-        {% endif %}
+  <div class="api-card__content">
+    {% if cls.description %}
+    <p class="api-card__description">{{ cls.description }}</p>
+    {% endif %}
 
-        {# Class Signature #}
-        {% set element = cls %}
-        {% include 'api-reference/partials/signature.html' %}
+    {# Class Signature #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/signature.html' %}
 
-        {# Attributes #}
-        {% set element = cls %}
-        {% include 'api-reference/partials/attributes-table.html' %}
+    {# Attributes #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/attributes-table.html' %}
 
-        {# Methods #}
-        {% set element = cls %}
-        {% include 'api-reference/partials/method-item.html' %}
-    </div>
+    {# Methods #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/method-item.html' %}
+  </div>
 </details>
 {% endmacro %}

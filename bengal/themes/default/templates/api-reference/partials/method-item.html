@@ -1,32 +1,38 @@
 {#
 Method Item Partial
 
-Renders methods within a class card.
+Renders methods within a class card using semantic CSS patterns.
+Uses api-card and api-method classes from api-explorer.css.
 Receives: element (the class element)
 #}
 
 {% set methods = element.children | selectattr('element_type', 'eq', 'method') | list %}
 {% if methods %}
 <div class="api-methods">
-  <h4 class="api-subsection-title">Methods</h4>
+  <h4 class="api-label">Methods</h4>
   {% for method in methods %}
-  <details class="api-method">
-    <summary class="api-method__header">
-      <code class="api-method__name">{{ method.name }}</code>
-      {% set element = method %}
-      {% include 'api-reference/partials/badges.html' %}
+  <details class="api-card api-card--method api-card--nested">
+    <summary class="api-card__header">
+      <code class="api-card__name">{{ method.name }}</code>
+      <span class="api-card__badges">
+        {% set element = method %}
+        {% include 'api-reference/partials/badges.html' %}
+      </span>
+      <span class="api-card__toggle">▸</span>
     </summary>
-    <div class="api-method__content">
+    <div class="api-card__content">
       {% set element = method %}
       {% include 'api-reference/partials/signature.html' %}
       {% if method.description %}
-      <p class="api-method__description">{{ method.description }}</p>
+      <p class="api-card__description">{{ method.description }}</p>
       {% endif %}
 
       {% set element = method %}
       {% include 'api-reference/partials/parameters-table.html' %}
       {% set element = method %}
       {% include 'api-reference/partials/returns-section.html' %}
+      {% set element = method %}
+      {% include 'api-reference/partials/raises-list.html' %}
     </div>
   </details>
   {% endfor %}

@@ -2,19 +2,19 @@
 Raises List Partial
 
 Renders a list of exceptions that may be raised.
+Uses semantic CSS tokens from api-docs.css and api-explorer.css.
 #}
 
 {% if element.metadata.raises %}
 <div class="api-raises">
-  <h4 class="api-label">Raises</h4>
+  <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Raises</h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
   <ul class="api-raises__list">
     {% for exc in element.metadata.raises %}
     <li>
-      <code>{{ exc.type }}</code>
-      {% if exc.description %} — {{ exc.description }}{% endif %}
+      <code class="api-raises__type">{{ exc.type_name | default(exc.type, true) }}</code>
+      {% if exc.description %}<span class="api-raises__desc"> — {{ exc.description }}</span>{% endif %}
     </li>
     {% endfor %}
   </ul>
 </div>
 {% endif %}
-

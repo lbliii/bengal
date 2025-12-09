@@ -5,6 +5,7 @@ CLI Reference Command Template
 
 Renders a CLI command's documentation using the API Explorer layout.
 Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses semantic CSS tokens and patterns from api-explorer.css.
 
 This template receives:
 - element: DocElement for the command
@@ -34,10 +35,10 @@ This template receives:
         <div class="api-explorer">
           <header class="api-module-header">
             <div class="api-module-header__badges">
-              <span class="api-badge api-badge--command">Command</span>
+              <span class="api-badge--compact api-badge--command">Command</span>
             </div>
 
-            <h1 class="api-module-header__title">
+            <h1 class="api-module-header__title api-title-wrap">
               <code>{{ element.name }}</code>
             </h1>
 
@@ -58,8 +59,13 @@ This template receives:
           {# Usage #}
           {% if element.qualified_name %}
           <div class="api-usage">
-            <h3 class="api-subsection-title">Usage</h3>
-            <pre class="api-code-block"><code class="language-bash">{{ element.qualified_name }}{% if element.children %} [OPTIONS]{% endif %}</code></pre>
+            <h3 class="api-label">Usage</h3>
+            <div class="code-block-wrapper">
+              <div class="code-header-inline">
+                <span class="code-language">Bash</span>
+              </div>
+              <pre><code class="language-bash">{{ element.qualified_name }}{% if element.children %} [OPTIONS]{% endif %}</code></pre>
+            </div>
           </div>
           {% endif %}
 
@@ -80,10 +86,16 @@ This template receives:
               <tbody>
                 {% for opt in options %}
                 <tr>
-                  <td><code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
-                  <td><code>{{ opt.metadata.type }}</code></td>
-                  <td>{% if opt.metadata.default %}<code>{{ opt.metadata.default }}</code>{% else %}—{% endif %}</td>
-                  <td>{{ opt.description | default('—') }}</td>
+                  <td data-label="Option" class="api-table__name"><code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
+                  <td data-label="Type" class="api-table__type"><code>{{ opt.metadata.type }}</code></td>
+                  <td data-label="Default" class="api-table__default">
+                    {%- if opt.metadata.default -%}
+                    <code>{{ opt.metadata.default }}</code>
+                    {%- else -%}
+                    <span class="table-empty">—</span>
+                    {%- endif -%}
+                  </td>
+                  <td data-label="Description" class="api-table__desc">{{ opt.description | default('—') }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -108,10 +120,10 @@ This template receives:
               <tbody>
                 {% for arg in arguments %}
                 <tr>
-                  <td><code>{{ arg.name }}</code></td>
-                  <td><code>{{ arg.metadata.type }}</code></td>
-                  <td>{% if arg.metadata.required %}Yes{% else %}No{% endif %}</td>
-                  <td>{{ arg.description | default('—') }}</td>
+                  <td data-label="Argument" class="api-table__name"><code>{{ arg.name }}</code></td>
+                  <td data-label="Type" class="api-table__type"><code>{{ arg.metadata.type }}</code></td>
+                  <td data-label="Required" class="api-table__default">{% if arg.metadata.required %}Yes{% else %}No{% endif %}</td>
+                  <td data-label="Description" class="api-table__desc">{{ arg.description | default('—') }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -124,7 +136,12 @@ This template receives:
           <section class="api-section api-section--examples">
             <h2 class="api-section__title">Examples</h2>
             {% for example in element.examples %}
-            <pre class="api-example"><code class="language-bash">{{ example }}</code></pre>
+            <div class="code-block-wrapper">
+              <div class="code-header-inline">
+                <span class="code-language">Bash</span>
+              </div>
+              <pre><code class="language-bash">{{ example }}</code></pre>
+            </div>
             {% endfor %}
           </section>
           {% endif %}
@@ -158,4 +175,3 @@ This template receives:
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
-

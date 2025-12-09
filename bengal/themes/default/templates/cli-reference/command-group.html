@@ -5,6 +5,7 @@ CLI Reference Command Group Template
 
 Renders a CLI command group's documentation showing nested commands and groups.
 Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses semantic CSS tokens and patterns from api-explorer.css.
 
 This template receives:
 - element: DocElement for the command group
@@ -34,10 +35,10 @@ This template receives:
         <div class="api-explorer">
           <header class="api-module-header">
             <div class="api-module-header__badges">
-              <span class="api-badge api-badge--command-group">Command Group</span>
+              <span class="api-badge--compact api-badge--command-group">Command Group</span>
             </div>
 
-            <h1 class="api-module-header__title">
+            <h1 class="api-module-header__title api-title-wrap">
               <code>{{ element.name }}</code>
             </h1>
 
@@ -58,8 +59,13 @@ This template receives:
           {# Usage #}
           {% if element.qualified_name %}
           <div class="api-usage">
-            <h3 class="api-subsection-title">Usage</h3>
-            <pre class="api-code-block"><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+            <h3 class="api-label">Usage</h3>
+            <div class="code-block-wrapper">
+              <div class="code-header-inline">
+                <span class="code-language">Bash</span>
+              </div>
+              <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+            </div>
           </div>
           {% endif %}
 
@@ -67,27 +73,41 @@ This template receives:
           {% if element.children %}
           <section class="api-section api-section--commands">
             <h2 class="api-section__title">Commands</h2>
-            <div class="api-grid api-grid--commands">
+            <div class="api-grid api-grid--modules">
               {% for child in element.children %}
               {% if child.element_type == "command" %}
-              <div class="api-card api-card--command">
-                <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-card__link">
-                  <h3 class="api-card__title"><code>{{ child.name }}</code></h3>
+              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-module-card">
+                <div class="api-module-card__header">
+                  <span class="api-module-card__icon">{{ icon("terminal", size=16, css_class="icon-success") }}</span>
+                  <span class="api-module-card__name">{{ child.name }}</span>
+                </div>
+                <div class="api-module-card__body">
                   {% if child.description %}
-                  <p class="api-card__description">{{ child.description | truncatewords(15) }}</p>
+                  <p class="api-module-card__description">{{ child.description | truncatewords(15) }}</p>
+                  {% else %}
+                  <p class="api-module-card__description api-module-card__description--empty">No description available</p>
                   {% endif %}
-                </a>
-              </div>
+                </div>
+              </a>
               {% elif child.element_type == "command-group" %}
-              <div class="api-card api-card--command-group">
-                <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-card__link">
-                  <h3 class="api-card__title"><code>{{ child.name }}</code></h3>
+              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-package-card">
+                <div class="api-package-card__header">
+                  <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
+                  <span class="api-package-card__name">{{ child.name }}</span>
+                </div>
+                <div class="api-package-card__body">
                   {% if child.description %}
-                  <p class="api-card__description">{{ child.description | truncatewords(15) }}</p>
+                  <p class="api-package-card__description">{{ child.description | truncatewords(15) }}</p>
+                  {% else %}
+                  <p class="api-package-card__description api-package-card__description--empty">{{ child.name }} commands</p>
                   {% endif %}
-                  <span class="api-card__meta">{{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}</span>
-                </a>
-              </div>
+                </div>
+                <div class="api-package-card__footer">
+                  <span class="api-package-card__meta">
+                    {{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}
+                  </span>
+                </div>
+              </a>
               {% endif %}
               {% endfor %}
             </div>

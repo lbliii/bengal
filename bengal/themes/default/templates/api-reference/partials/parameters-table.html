@@ -1,7 +1,9 @@
 {#
 Parameters Table Partial
 
-Renders a table of function/method parameters.
+Renders a table of function/method parameters using semantic CSS tokens.
+Handles both ParameterInfo objects and simple string parameter names.
+Uses api-table classes with responsive mobile labels.
 #}
 
 {% if element.metadata.parameters %}
@@ -21,16 +23,40 @@ Renders a table of function/method parameters.
     <tbody>
       {% for param in element.metadata.parameters %}
       <tr>
-        <td><code>{{ param.name }}</code></td>
-        <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
+        {# Handle both object params (with .name) and string params #}
+        {% if param is mapping or param is not string %}
+        <td data-label="Name" class="api-table__name"><code>{{ param.name }}</code></td>
+        <td data-label="Type" class="api-table__type">
+          {%- if param.type_hint -%}
+          <code>{{ param.type_hint }}</code>
+          {%- elif param.type -%}
+          <code>{{ param.type }}</code>
+          {%- else -%}
+          <span class="table-empty">—</span>
+          {%- endif -%}
+        </td>
         {% if element.element_type == 'function' %}
-        <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}</td>
+        <td data-label="Default" class="api-table__default">
+          {%- if param.default -%}
+          <code>{{ param.default }}</code>
+          {%- else -%}
+          <span class="table-empty">—</span>
+          {%- endif -%}
+        </td>
         {% endif %}
-        <td>{{ param.description | default('') }}</td>
+        <td data-label="Description" class="api-table__desc">{{ param.description | default('') }}</td>
+        {% else %}
+        {# param is a simple string - just show the name #}
+        <td data-label="Name" class="api-table__name"><code>{{ param }}</code></td>
+        <td data-label="Type" class="api-table__type"><span class="table-empty">—</span></td>
+        {% if element.element_type == 'function' %}
+        <td data-label="Default" class="api-table__default"><span class="table-empty">—</span></td>
+        {% endif %}
+        <td data-label="Description" class="api-table__desc"></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endif %}
-
