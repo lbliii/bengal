@@ -388,11 +388,11 @@ def load_toml(
     if not content:
         return {} if on_error == "return_empty" else None
 
-    # Parse TOML
+    # Parse TOML (using stdlib tomllib - Python 3.11+)
     try:
-        import toml
+        import tomllib
 
-        data_raw = toml.loads(content)
+        data_raw = tomllib.loads(content)
 
         # TOML should always return a dict, but type checker sees Any
         data = cast(dict[str, Any], data_raw) if isinstance(data_raw, dict) else {}
@@ -406,7 +406,7 @@ def load_toml(
         )
         return data
 
-    except Exception as e:  # toml.TomlDecodeError or AttributeError
+    except Exception as e:  # tomllib.TOMLDecodeError or AttributeError
         logger.error(
             "toml_parse_error",
             path=str(file_path),

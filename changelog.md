@@ -1,5 +1,41 @@
 ## Unreleased
 
+### Media Embed Directives ✅
+- **rendering(directives/video)**: add `YouTubeDirective` with privacy-enhanced mode (youtube-nocookie.com) by default
+- **rendering(directives/video)**: add `VimeoDirective` with Do Not Track mode by default
+- **rendering(directives/video)**: add `SelfHostedVideoDirective` for native HTML5 video playback
+- **rendering(directives/embed)**: add `GistDirective` for GitHub Gist embeds with file selection
+- **rendering(directives/embed)**: add `CodePenDirective` with tab/theme/height customization
+- **rendering(directives/embed)**: add `CodeSandboxDirective` with module/view customization
+- **rendering(directives/embed)**: add `StackBlitzDirective` with file/view customization
+- **rendering(directives/terminal)**: add `AsciinemaDirective` for terminal recording playback with ARIA accessibility
+- **rendering(directives/figure)**: add `FigureDirective` for semantic images with captions (`<figure>`/`<figcaption>`)
+- **rendering(directives/figure)**: add `AudioDirective` for native HTML5 audio playback
+- **themes(css)**: add responsive CSS for video embeds with aspect-ratio support (`_video-embed.css`)
+- **themes(css)**: add CSS for code playground embeds (`_code-embed.css`)
+- **themes(css)**: add CSS for terminal recording embeds (`_terminal-embed.css`)
+- **themes(css)**: add CSS for semantic figures and audio (`_figure.css`)
+- **tests**: add 71 unit tests for media embed directives including security validation
+- **docs(hugo-migration)**: update with media embed directive equivalents and migration table
+- **docs(rfc)**: RFC moved to implemented
+
+### Directive System v2 ✅
+- **rendering(directives)**: add named closer syntax `:::{/name}` for closing directives without fence-depth counting
+- **rendering(directives)**: add `BengalDirective` base class for typed directives with standardized parsing and rendering
+- **rendering(directives)**: add `DirectiveToken` dataclass for typed AST tokens replacing ad-hoc dictionaries
+- **rendering(directives)**: add `DirectiveOptions` base class with automatic type coercion (bool, int, str)
+- **rendering(directives)**: add `DirectiveContract` system for validating parent-child nesting relationships
+- **rendering(directives)**: add `ContractValidator` with warning logs for nesting violations (non-blocking)
+- **rendering(directives)**: add `utils.py` with shared HTML utilities (`escape_html`, `build_class_string`, `bool_attr`, etc.)
+- **rendering(directives)**: migrate 19 directive classes to `BengalDirective` base class
+- **rendering(directives)**: add preset options: `StyledOptions`, `TitledOptions`, `ContainerOptions`
+- **rendering(directives)**: add preset contracts: `STEPS_CONTRACT`, `STEP_CONTRACT`, `TAB_SET_CONTRACT`, `TAB_ITEM_CONTRACT`, `CARDS_CONTRACT`, `CARD_CONTRACT`
+- **health(validators)**: fix `ADMONITION_TYPES` and `CODE_BLOCK_DIRECTIVES` import from rendering package (single source of truth)
+- **tests**: add 80+ unit tests for foundation components (`test_foundation.py`, `test_contracts.py`)
+- **tests**: add 18 unit tests for named closer syntax (`test_named_closers.py`)
+- **tests**: add 11 integration tests for directive nesting validation (`test_directive_nesting.py`)
+- **docs**: add comprehensive `README.md` for directive system with named closers and migration guide
+
 ### Template Functions Robustness ✅
 - **rendering(strings)**: fix `truncatewords_html` to preserve HTML structure and close tags properly
 - **rendering(strings)**: add `filesize` filter wrapping `humanize_bytes` for human-readable file sizes

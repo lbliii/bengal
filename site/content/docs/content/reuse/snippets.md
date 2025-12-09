@@ -14,8 +14,6 @@ keywords:
 - reuse
 - dry
 category: guide
-aliases:
-- /docs/guides/content-reuse/
 ---
 
 # Content Snippets

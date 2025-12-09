@@ -4,7 +4,6 @@ Test navigation directives (breadcrumbs, siblings, prev-next, related).
 These directives leverage the pre-computed site tree via renderer._current_page.
 """
 
-
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -383,4 +382,3 @@ class TestRelatedDirective:
 
         # Should return empty string
         assert result.strip() == ""
-

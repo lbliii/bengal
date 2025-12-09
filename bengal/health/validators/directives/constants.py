@@ -19,6 +19,16 @@ from bengal.rendering.plugins.directives import (
 # These are now imported from the rendering package
 KNOWN_DIRECTIVES = KNOWN_DIRECTIVE_NAMES
 
+# Re-export type-specific constants
+__all__ = [
+    "KNOWN_DIRECTIVES",
+    "ADMONITION_TYPES",
+    "CODE_BLOCK_DIRECTIVES",
+    "MAX_DIRECTIVES_PER_PAGE",
+    "MAX_NESTING_DEPTH",
+    "MAX_TABS_PER_BLOCK",
+]
+
 # Performance thresholds
 MAX_DIRECTIVES_PER_PAGE = 10  # Warn if page has more than this
 MAX_NESTING_DEPTH = 5  # Warn if nesting deeper than this

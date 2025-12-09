@@ -7,7 +7,6 @@ and various template patterns to ensure ALL URLs are correct throughout.
 This is the ultimate regression test - if this passes, URLs work everywhere.
 """
 
-
 import pytest
 
 

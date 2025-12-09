@@ -471,7 +471,9 @@ class HealthCheck:
         if use_cache:
             # Try to get cached results for unchanged files
             for page in self.site.pages:
-                if not page.source_path or (files_to_validate is not None and page.source_path in files_to_validate):
+                if not page.source_path or (
+                    files_to_validate is not None and page.source_path in files_to_validate
+                ):
                     continue  # Skip changed files or pages without source
 
                 cached = cache.get_cached_validation_results(page.source_path, validator.name)
@@ -610,7 +612,9 @@ class HealthCheck:
                     if verbose:
                         print(f"  ❌ {validator.name}: execution failed - {e}")
 
-    def run_and_print(self, build_stats: dict[str, Any] | None = None, verbose: bool = False) -> HealthReport:
+    def run_and_print(
+        self, build_stats: dict[str, Any] | None = None, verbose: bool = False
+    ) -> HealthReport:
         """
         Run health checks and print console output.
 

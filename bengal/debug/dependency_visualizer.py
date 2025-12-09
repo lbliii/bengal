@@ -25,11 +25,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
 
 if TYPE_CHECKING:
-    from bengal.cache.build_cache import BuildCache
-    from bengal.core.site import Site
+    pass
 
 
 @dataclass
@@ -176,9 +175,7 @@ class DependencyGraph:
         all_affected = self.get_dependents(path, recursive=True)
 
         # Filter to only content pages
-        pages = {
-            p for p in all_affected if p.endswith((".md", ".markdown", ".rst"))
-        }
+        pages = {p for p in all_affected if p.endswith((".md", ".markdown", ".rst"))}
 
         # Include the file itself if it's a page
         if path.endswith((".md", ".markdown", ".rst")):
@@ -452,9 +449,7 @@ class DependencyVisualizer(DebugTool):
 
         # Find isolated pages
         isolated = [
-            path
-            for path, node in graph.nodes.items()
-            if node.node_type == "page" and node.is_leaf
+            path for path, node in graph.nodes.items() if node.node_type == "page" and node.is_leaf
         ]
         if isolated:
             report.add_finding(
@@ -586,9 +581,7 @@ class DependencyVisualizer(DebugTool):
             return "data"
         return "unknown"
 
-    def _generate_recommendations(
-        self, graph: DependencyGraph, report: DebugReport
-    ) -> list[str]:
+    def _generate_recommendations(self, graph: DependencyGraph, report: DebugReport) -> list[str]:
         """Generate recommendations based on analysis."""
         recommendations: list[str] = []
 
@@ -604,6 +597,3 @@ class DependencyVisualizer(DebugTool):
             recommendations.append("Dependency structure looks healthy! ✅")
 
         return recommendations
-
-
-

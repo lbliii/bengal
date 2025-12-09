@@ -32,7 +32,8 @@ Content
         errors = DirectiveSyntaxValidator.validate_nested_fences(content)
         assert len(errors) > 0
         assert "same fence length" in errors[0]
-        assert "parsing ambiguity" in errors[0]
+        # The error recommends using named closers for clarity
+        assert "Use named closers" in errors[0] or "Recommended" in errors[0]
 
     def test_unclosed_fence(self):
         """Test detection of unclosed fences."""

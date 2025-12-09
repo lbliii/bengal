@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import toml
+import tomllib
 
 
 def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
@@ -109,7 +109,8 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
         elif config_path.exists():
             try:
-                file_config = toml.load(config_path)
+                with open(config_path, "rb") as f:
+                    file_config = tomllib.load(f)
 
                 # Merge with defaults
                 if "autodoc" in file_config:
@@ -144,7 +145,8 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
 
     if config_path.exists():
         try:
-            file_config = toml.load(config_path)
+            with open(config_path, "rb") as f:
+                file_config = tomllib.load(f)
 
             # Merge with defaults
             if "autodoc" in file_config:

@@ -105,7 +105,11 @@ class OutputValidator(BaseValidator):
             if page.output_path and page.output_path.exists():
                 size = page.output_path.stat().st_size
                 if size < min_size:
-                    relative_path = page.output_path.relative_to(site.output_dir)
+                    try:
+                        relative_path = page.output_path.relative_to(site.output_dir)
+                    except ValueError:
+                        # output_path not under output_dir (e.g., '.' or absolute path)
+                        relative_path = page.output_path
                     small_pages.append(f"{relative_path} ({size} bytes)")
 
         if small_pages:

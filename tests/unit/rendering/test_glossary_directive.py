@@ -1,6 +1,5 @@
 """Tests for glossary directive."""
 
-
 from unittest.mock import MagicMock
 
 import pytest

@@ -3,8 +3,6 @@ title: Themer Quickstart
 description: Customize themes and create your own designs
 draft: false
 weight: 30
-aliases:
-- /docs/getting-started/themer-quickstart/
 lang: en
 type: doc
 tags:

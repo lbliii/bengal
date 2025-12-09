@@ -445,7 +445,12 @@ Content
         output_file.write_text("<html><body>Content</body></html>")
 
         # Mark as generated page
-        page = MockPage(title="Generated", source_path=source_file, output_path=output_file, metadata={"_generated": True})
+        page = MockPage(
+            title="Generated",
+            source_path=source_file,
+            output_path=output_file,
+            metadata={"_generated": True},
+        )
         site = MockSite(pages=[page])
 
         analyzer = DirectiveAnalyzer()

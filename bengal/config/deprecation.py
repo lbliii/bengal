@@ -229,4 +229,3 @@ def get_deprecation_summary() -> str:
             lines.append(f"| `{old_key}` | `{new_key}` | {note} |")
 
     return "\n".join(lines)
-

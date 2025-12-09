@@ -1,0 +1,231 @@
+/**
+ * Video Embed Styles
+ *
+ * Responsive video containers with aspect ratio support for
+ * YouTube, Vimeo, and self-hosted video embeds.
+ *
+ * Classes:
+ *   .video-embed - Base container for all video embeds
+ *   .video-embed.youtube - YouTube-specific styling
+ *   .video-embed.vimeo - Vimeo-specific styling
+ *   .video-embed.self-hosted - Self-hosted video styling
+ *   .video-embed.video-error - Error state styling
+ *
+ * Usage:
+ *   :::{youtube} dQw4w9WgXcQ
+ *   :title: Video Title
+ *   :::
+ */
+
+/* =============================================================================
+   Base Video Container
+   ============================================================================= */
+
+.video-embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-block: var(--spacing-4, 1rem);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.video-embed iframe,
+.video-embed video {
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--video-aspect, 16/9);
+  border: 0;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--color-surface-secondary, #1a1a2e);
+}
+
+/* =============================================================================
+   Aspect Ratio Variants
+   ============================================================================= */
+
+.video-embed[data-aspect="16/9"] {
+  --video-aspect: 16/9;
+}
+
+.video-embed[data-aspect="4/3"] {
+  --video-aspect: 4/3;
+}
+
+.video-embed[data-aspect="1/1"] {
+  --video-aspect: 1/1;
+}
+
+.video-embed[data-aspect="9/16"] {
+  --video-aspect: 9/16;
+}
+
+.video-embed[data-aspect="21/9"] {
+  --video-aspect: 21/9;
+}
+
+/* =============================================================================
+   Service-Specific Styles
+   ============================================================================= */
+
+/* YouTube */
+.video-embed.youtube {
+  --video-brand-color: #ff0000;
+}
+
+.video-embed.youtube iframe {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-secondary, #1a1a2e) 0%,
+    var(--color-surface-primary, #0d0d1a) 100%
+  );
+}
+
+/* Vimeo */
+.video-embed.vimeo {
+  --video-brand-color: #1ab7ea;
+}
+
+.video-embed.vimeo iframe {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-secondary, #1a1a2e) 0%,
+    var(--color-surface-primary, #0d0d1a) 100%
+  );
+}
+
+/* Self-hosted */
+.video-embed.self-hosted {
+  margin: 0;
+}
+
+.video-embed.self-hosted video {
+  display: block;
+  max-width: 100%;
+  background-color: var(--color-surface-secondary, #1a1a2e);
+}
+
+/* =============================================================================
+   Error States
+   ============================================================================= */
+
+.video-embed.video-error {
+  padding: var(--spacing-4, 1rem);
+  background-color: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  border: 1px solid var(--color-error-border, rgba(220, 53, 69, 0.3));
+  border-radius: var(--radius-md, 8px);
+}
+
+.video-embed.video-error .error {
+  margin: 0 0 var(--spacing-2, 0.5rem);
+  color: var(--color-error, #dc3545);
+  font-weight: 600;
+}
+
+.video-embed.video-error code {
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* =============================================================================
+   Noscript Fallback
+   ============================================================================= */
+
+.video-embed noscript {
+  display: block;
+  padding: var(--spacing-4, 1rem);
+  text-align: center;
+  background-color: var(--color-surface-secondary, #1a1a2e);
+  border-radius: var(--radius-md, 8px);
+}
+
+.video-embed noscript p {
+  margin: 0;
+}
+
+.video-embed noscript a {
+  color: var(--color-link, #4fc3f7);
+  text-decoration: underline;
+}
+
+.video-embed noscript a:hover {
+  color: var(--color-link-hover, #81d4fa);
+}
+
+/* =============================================================================
+   Loading State
+   ============================================================================= */
+
+.video-embed iframe[loading="lazy"] {
+  background: var(--color-surface-secondary, #1a1a2e)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23666' stroke-width='2'%3E%3Ccircle cx='20' cy='20' r='18'/%3E%3Cpath d='M20 10v10l8 4'/%3E%3C/g%3E%3C/svg%3E")
+    center center no-repeat;
+}
+
+/* =============================================================================
+   Fallback for Older Browsers (no aspect-ratio support)
+   ============================================================================= */
+
+@supports not (aspect-ratio: 16/9) {
+  .video-embed {
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+  }
+
+  .video-embed[data-aspect="4/3"] {
+    padding-bottom: 75%; /* 4:3 */
+  }
+
+  .video-embed[data-aspect="1/1"] {
+    padding-bottom: 100%; /* 1:1 */
+  }
+
+  .video-embed[data-aspect="9/16"] {
+    padding-bottom: 177.78%; /* 9:16 */
+  }
+
+  .video-embed[data-aspect="21/9"] {
+    padding-bottom: 42.86%; /* 21:9 */
+  }
+
+  .video-embed iframe,
+  .video-embed video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+  .video-embed {
+    page-break-inside: avoid;
+  }
+
+  .video-embed iframe {
+    display: none;
+  }
+
+  .video-embed noscript {
+    display: block !important;
+  }
+}
+
+/* =============================================================================
+   Reduced Motion
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .video-embed iframe,
+  .video-embed video {
+    /* Disable autoplay hint */
+  }
+}
+

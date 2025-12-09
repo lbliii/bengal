@@ -172,9 +172,9 @@ class TestArchiveWithCascade:
 
         # All should have full path /docs/guides/
         for guide in guides:
-            assert guide.url.startswith(
-                "/docs/guides/"
-            ), f"Cascaded archive child wrong URL: {guide.url}"
+            assert guide.url.startswith("/docs/guides/"), (
+                f"Cascaded archive child wrong URL: {guide.url}"
+            )
             # Type should be cascaded
             assert guide.metadata.get("type") == "doc"
 
@@ -214,9 +214,9 @@ class TestNestedArchives:
         assert len(endpoints) >= 2
 
         for endpoint in endpoints:
-            assert endpoint.url.startswith(
-                "/api/v2/endpoints/"
-            ), f"Nested archive child wrong URL: {endpoint.url}"
+            assert endpoint.url.startswith("/api/v2/endpoints/"), (
+                f"Nested archive child wrong URL: {endpoint.url}"
+            )
 
 
 class TestMixedArchiveContent:
@@ -268,13 +268,13 @@ class TestMixedArchiveContent:
 
             # Check each subsection
             if "with-index" in path_str:
-                assert page.url.startswith(
-                    "/mixed/with-index/"
-                ), f"Manual section wrong URL: {page.url}"
+                assert page.url.startswith("/mixed/with-index/"), (
+                    f"Manual section wrong URL: {page.url}"
+                )
             elif "without-index" in path_str:
-                assert page.url.startswith(
-                    "/mixed/without-index/"
-                ), f"Auto-archive section wrong URL: {page.url}"
+                assert page.url.startswith("/mixed/without-index/"), (
+                    f"Auto-archive section wrong URL: {page.url}"
+                )
             elif page.source_path.stem == "page-1":
                 assert page.url.startswith("/mixed/"), f"Root section page wrong URL: {page.url}"
 

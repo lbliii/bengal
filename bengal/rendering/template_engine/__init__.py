@@ -25,5 +25,3 @@ from __future__ import annotations
 from bengal.rendering.template_engine.core import TemplateEngine
 
 __all__ = ["TemplateEngine"]
-
-

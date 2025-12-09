@@ -106,10 +106,10 @@ class GraphRelatedResult:
 
 class GraphRelatedEngine:
     """Compute graph-aware related pages."""
-    
+
     def __init__(self, graph: KnowledgeGraph):
         self.graph = graph
-        
+
     def get_related(
         self,
         page: Page,
@@ -118,7 +118,7 @@ class GraphRelatedEngine:
     ) -> list[GraphRelatedResult]:
         """
         Get related pages using graph intelligence.
-        
+
         Scoring formula:
           score = (
               0.30 * community_match +      # Same cluster
@@ -235,11 +235,11 @@ class CommunityInfo:
     name: str | None  # Auto-generated or user-defined
     size: int
     top_pages: list[Page]  # Most connected in cluster
-    
+
 def get_community_name(community: Community, graph: KnowledgeGraph) -> str:
     """
     Auto-generate community name from shared tags/categories.
-    
+
     Heuristic:
     1. Find most common tag among community pages
     2. If >50% share a tag, use it: "Python Tutorial Cluster"
@@ -396,11 +396,11 @@ High-importance pages that could use more incoming links:
 
 class InsightsPageGenerator:
     """Generate /insights/ dashboard from graph analysis."""
-    
+
     def __init__(self, site: Site, graph: KnowledgeGraph):
         self.site = site
         self.graph = graph
-        
+
     def generate(self) -> str:
         """Generate insights markdown content."""
         sections = [
@@ -436,12 +436,12 @@ require_auth = false  # Or true for private sites
 @dataclass
 class BuildContext:
     # Existing fields...
-    
+
     # Add computed graph artifacts
     _pagerank_results: PageRankResults | None = None
     _community_results: CommunityDetectionResults | None = None
     _path_results: PathAnalysisResults | None = None
-    
+
     @property
     def pagerank(self) -> PageRankResults | None:
         """Lazy-computed PageRank (cached for build duration)."""
@@ -462,7 +462,7 @@ def _build_page_context(self, page: Page, ctx: BuildContext) -> dict:
         "site": self.site,
         # ... existing context
     }
-    
+
     # Add graph intelligence if available
     if ctx.knowledge_graph and ctx.knowledge_graph._built:
         context["page_graph"] = {
@@ -472,7 +472,7 @@ def _build_page_context(self, page: Page, ctx: BuildContext) -> dict:
             "is_orphan": self._is_orphan(page, ctx),
             "related": self._get_graph_related(page, ctx),
         }
-    
+
     return context
 ```
 
@@ -614,4 +614,3 @@ include_in_sitemap = false
 ## Changelog
 
 - **2025-12-05**: Initial draft
-

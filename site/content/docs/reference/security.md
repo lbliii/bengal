@@ -3,10 +3,7 @@ title: Security Hardening
 description: Best practices for deploying Bengal sites securely
 weight: 50
 type: doc
-tags:
-- security
-- production
-- hardening
+tags: [security, production, hardening]
 ---
 
 # Security Hardening
@@ -181,7 +178,13 @@ frame-ancestors 'none';
 | Google Analytics | `script-src 'self' www.googletagmanager.com; connect-src www.google-analytics.com` |
 | Plausible | `script-src 'self' plausible.io; connect-src plausible.io` |
 | External images | `img-src 'self' data: https:` |
-| Embedded videos | `frame-src youtube.com www.youtube.com` |
+| YouTube embeds | `frame-src www.youtube-nocookie.com www.youtube.com` |
+| Vimeo embeds | `frame-src player.vimeo.com` |
+| CodePen embeds | `frame-src codepen.io` |
+| CodeSandbox embeds | `frame-src codesandbox.io` |
+| StackBlitz embeds | `frame-src stackblitz.com` |
+| GitHub Gist | `script-src 'self' gist.github.com` |
+| Asciinema | `script-src 'self' asciinema.org` |
 
 ### Testing CSP
 
@@ -316,6 +319,56 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 :::{warning}
 Only enable HSTS after confirming HTTPS works correctly. HSTS is cached by browsers and difficult to undo.
 :::
+
+---
+
+## Media Embed Security
+
+Bengal's media directives (`{youtube}`, `{vimeo}`, `{gist}`, etc.) include built-in security protections:
+
+### Input Validation
+
+All embed IDs and paths are validated:
+
+| Directive | Validation |
+|-----------|------------|
+| `{youtube}` | 11-character alphanumeric ID only |
+| `{vimeo}` | Numeric ID only |
+| `{gist}` | `username/hash` format only |
+| `{figure}` | Safe paths, no `../` traversal |
+| `{video}` / `{audio}` | Extension whitelist |
+
+Malicious inputs are rejected with clear error messages:
+
+```markdown
+:::{youtube} <script>alert(1)</script>
+:title: Test
+:::
+```
+
+Renders as an error block, not an embed.
+
+### Privacy by Default
+
+External embeds use privacy-respecting modes:
+
+- **YouTube**: Uses `youtube-nocookie.com` by default
+- **Vimeo**: Enables Do Not Track (`dnt=1`) by default
+
+### Iframe Sandboxing
+
+External iframes include restricted sandbox attributes to limit capabilities.
+
+### CSP for Media Embeds
+
+If using media embeds, add these frame sources to your CSP:
+
+```text
+frame-src 'self' www.youtube-nocookie.com www.youtube.com player.vimeo.com codepen.io codesandbox.io stackblitz.com;
+script-src 'self' gist.github.com asciinema.org;
+```
+
+Or selectively based on which directives you use.
 
 ---
 

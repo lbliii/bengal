@@ -8,6 +8,14 @@ Also provides:
 - Directive caching for performance
 - Error handling and validation
 - KNOWN_DIRECTIVE_NAMES: Single source of truth for all registered directive names
+
+Directive System v2:
+- BengalDirective: Base class for typed directives with contract validation
+- DirectiveToken: Typed AST token structure
+- DirectiveOptions: Typed option parsing with coercion
+- DirectiveContract: Nesting validation for parent-child relationships
+
+See: plan/active/rfc-directive-system-v2.md for architecture details.
 """
 
 from __future__ import annotations
@@ -17,6 +25,9 @@ from typing import Any
 
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.badge import BadgeDirective
+
+# Directive System v2 - Foundation Classes
+from bengal.rendering.plugins.directives.base import BengalDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
@@ -35,9 +46,28 @@ from bengal.rendering.plugins.directives.cards import (
 from bengal.rendering.plugins.directives.checklist import ChecklistDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.container import ContainerDirective
+from bengal.rendering.plugins.directives.contracts import (
+    CARD_CONTRACT,
+    CARDS_CONTRACT,
+    CODE_TABS_CONTRACT,
+    STEP_CONTRACT,
+    STEPS_CONTRACT,
+    TAB_ITEM_CONTRACT,
+    TAB_SET_CONTRACT,
+    ContractValidator,
+    ContractViolation,
+    DirectiveContract,
+)
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
+from bengal.rendering.plugins.directives.embed import (
+    CodePenDirective,
+    CodeSandboxDirective,
+    GistDirective,
+    StackBlitzDirective,
+)
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
 from bengal.rendering.plugins.directives.icon import IconDirective
@@ -51,12 +81,33 @@ from bengal.rendering.plugins.directives.navigation import (
     RelatedDirective,
     SiblingsDirective,
 )
+from bengal.rendering.plugins.directives.options import (
+    ContainerOptions,
+    DirectiveOptions,
+    StyledOptions,
+    TitledOptions,
+)
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabsDirective,
     TabSetDirective,
+)
+from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.rendering.plugins.directives.video import (
+    SelfHostedVideoDirective,
+    VimeoDirective,
+    YouTubeDirective,
+)
+from bengal.rendering.plugins.directives.utils import (
+    attr_str,
+    bool_attr,
+    build_class_string,
+    class_attr,
+    data_attrs,
+    escape_html,
 )
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.logger import get_logger
@@ -77,7 +128,7 @@ from bengal.utils.logger import get_logger
 # =============================================================================
 
 DIRECTIVE_CLASSES: list[type] = [
-    # Admonitions (10 types: note, tip, warning, danger, error, info, example, success, caution, seealso)
+    # Admonitions (note, tip, warning, danger, error, info, example, success, etc.)
     AdmonitionDirective,
     # Badges (badge, bdg)
     BadgeDirective,
@@ -123,6 +174,23 @@ DIRECTIVE_CLASSES: list[type] = [
     RelatedDirective,
     # Marimo (marimo) - optional, works even if marimo package not installed
     MarimoCellDirective,
+    # ==========================================================================
+    # Media Embed Directives (RFC: plan/active/rfc-media-embed-directives.md)
+    # ==========================================================================
+    # Video embeds (youtube, vimeo, video)
+    YouTubeDirective,
+    VimeoDirective,
+    SelfHostedVideoDirective,
+    # Developer tool embeds (gist, codepen, codesandbox, stackblitz)
+    GistDirective,
+    CodePenDirective,
+    CodeSandboxDirective,
+    StackBlitzDirective,
+    # Terminal recording embeds (asciinema)
+    AsciinemaDirective,
+    # Figure and audio embeds (figure, audio)
+    FigureDirective,
+    AudioDirective,
 ]
 
 
@@ -185,7 +253,33 @@ __all__ = [
     "get_known_directive_names",
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
-    # Classes and functions
+    # Directive System v2 - Foundation Classes
+    "BengalDirective",
+    "DirectiveToken",
+    "DirectiveOptions",
+    "DirectiveContract",
+    "ContractValidator",
+    "ContractViolation",
+    # Preset Options
+    "StyledOptions",
+    "ContainerOptions",
+    "TitledOptions",
+    # Preset Contracts
+    "STEPS_CONTRACT",
+    "STEP_CONTRACT",
+    "TAB_SET_CONTRACT",
+    "TAB_ITEM_CONTRACT",
+    "CARDS_CONTRACT",
+    "CARD_CONTRACT",
+    "CODE_TABS_CONTRACT",
+    # Utilities
+    "escape_html",
+    "build_class_string",
+    "bool_attr",
+    "data_attrs",
+    "attr_str",
+    "class_attr",
+    # Legacy Classes and functions
     "DirectiveCache",
     "DirectiveError",
     "DirectiveSyntaxValidator",
@@ -196,6 +290,17 @@ __all__ = [
     "format_directive_error",
     "get_cache",
     "get_cache_stats",
+    # Media Embed Directives
+    "YouTubeDirective",
+    "VimeoDirective",
+    "SelfHostedVideoDirective",
+    "GistDirective",
+    "CodePenDirective",
+    "CodeSandboxDirective",
+    "StackBlitzDirective",
+    "AsciinemaDirective",
+    "FigureDirective",
+    "AudioDirective",
 ]
 
 
@@ -269,6 +374,23 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 SiblingsDirective(),  # Show other pages in same section
                 PrevNextDirective(),  # Section-aware prev/next navigation
                 RelatedDirective(),  # Related content based on tags
+                # ==========================================================
+                # Media Embed Directives
+                # ==========================================================
+                # Video embeds
+                YouTubeDirective(),  # YouTube with privacy mode (youtube-nocookie.com)
+                VimeoDirective(),  # Vimeo with Do Not Track mode
+                SelfHostedVideoDirective(),  # Native HTML5 video for local files
+                # Developer tool embeds
+                GistDirective(),  # GitHub Gists
+                CodePenDirective(),  # CodePen pens
+                CodeSandboxDirective(),  # CodeSandbox projects
+                StackBlitzDirective(),  # StackBlitz projects
+                # Terminal recording embeds
+                AsciinemaDirective(),  # Terminal recordings from asciinema.org
+                # Figure and audio
+                FigureDirective(),  # Semantic images with captions
+                AudioDirective(),  # Self-hosted audio files
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)

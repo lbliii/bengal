@@ -1,7 +1,7 @@
 /**
  * Scroll-Driven Animations
  * Modern CSS animations that respond to scroll position
- * 
+ *
  * Browser Support: Chrome 115+, Firefox (experimental)
  * Falls back gracefully for unsupported browsers
  */
@@ -206,4 +206,3 @@
     transform: none !important;
   }
 }
-

@@ -27,26 +27,26 @@ body {
 
 /* ============================================
    HEADINGS
-   ============================================ 
-   
+   ============================================
+
    Font families:
    - h1, h2: Use --font-heading (Instrument Serif by default)
    - h3-h6: Use inherited body font
-   
+
    Weight gradient (heavier at top for strong hierarchy):
    - h1: extrabold (800)
    - h2: bold (700)
    - h3, h4: semibold (600)
    - h5, h6: medium (500)
-   
+
    Tracking gradient: Larger headings get tighter tracking
    for improved visual cohesion at display sizes.
-   
+
    h1:      --tracking-display  (-0.04em) - display/hero
    h2:      --tracking-tighter  (-0.05em) - section headers
    h3, h4:  --tracking-tight    (-0.025em) - subsections
    h5, h6:  --tracking-normal   (0) - body-adjacent
-   
+
    Exception: h6 uses uppercase with --tracking-wide
 */
 
@@ -574,16 +574,31 @@ table {
   display: table;
 }
 
-/* Make tables scrollable when they exceed container width */
+/* Table wrapper for horizontal scrolling on overflow */
+.table-wrapper {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  margin: var(--space-8) 0;
+}
+
+.table-wrapper table {
+  display: table;
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+}
+
+/* Content tables - maintain native table display for full-width fill */
 .prose table,
 article table,
 main table,
 section table,
 .content table {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  display: table;
   width: 100%;
+  min-width: 100%;
   margin: var(--space-8) 0;
 }
 

@@ -169,12 +169,14 @@ class OpenAPIOverviewMetadata:
 
     def __hash__(self) -> int:
         """Hash based on immutable fields only."""
-        return hash((
-            self.version,
-            self.servers,
-            tuple(self.security_schemes.keys()),
-            len(self.tags),
-        ))
+        return hash(
+            (
+                self.version,
+                self.servers,
+                tuple(self.security_schemes.keys()),
+                len(self.tags),
+            )
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,10 +208,11 @@ class OpenAPISchemaMetadata:
 
     def __hash__(self) -> int:
         """Hash based on immutable fields only."""
-        return hash((
-            self.schema_type,
-            tuple(self.properties.keys()),
-            self.required,
-            self.enum,
-        ))
-
+        return hash(
+            (
+                self.schema_type,
+                tuple(self.properties.keys()),
+                self.required,
+                self.enum,
+            )
+        )

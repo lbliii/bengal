@@ -2,13 +2,13 @@
    BENGAL ICON SYSTEM
    ============================================
    Custom SVG icons with theme-aware styling.
-   
+
    Usage in Markdown:
      :::{icon} terminal
      :size: 24
      :class: text-primary
      :::
-   
+
    The icon directive inlines SVGs for full CSS control.
    ============================================ */
 
@@ -19,12 +19,12 @@
   justify-content: center;
   vertical-align: middle;
   flex-shrink: 0;
-  
+
   /* Inherit text color by default */
   color: currentColor;
-  
+
   /* Smooth transitions for hover effects */
-  transition: 
+  transition:
     color var(--transition-fast, 150ms) ease,
     transform var(--transition-fast, 150ms) ease,
     opacity var(--transition-fast, 150ms) ease;
@@ -68,54 +68,61 @@
   height: 64px;
 }
 
-/* Color variants using semantic tokens */
-.bengal-icon.icon-primary {
-  color: var(--color-accent, #D4850F);
+/* Color variants using semantic tokens
+   Use modifier classes (icon--*) to avoid conflicts with icon names
+   e.g., icon--info applies color, icon-info is just the icon name */
+.bengal-icon.icon--primary {
+  color: var(--color-accent);
 }
 
-.bengal-icon.icon-secondary {
-  color: var(--color-text-secondary, #6B7280);
+.bengal-icon.icon--secondary {
+  color: var(--color-text-secondary);
 }
 
-.bengal-icon.icon-muted {
-  color: var(--color-text-tertiary, #9CA3AF);
+.bengal-icon.icon--muted {
+  color: var(--color-text-tertiary);
   opacity: 0.7;
 }
 
-.bengal-icon.icon-success {
-  color: var(--color-success, #10B981);
+.bengal-icon.icon--success {
+  color: var(--color-success);
 }
 
-.bengal-icon.icon-warning {
-  color: var(--color-warning, #F59E0B);
+.bengal-icon.icon--warning {
+  color: var(--color-warning);
 }
 
-.bengal-icon.icon-danger {
-  color: var(--color-danger, #EF4444);
+.bengal-icon.icon--danger,
+.bengal-icon.icon--error {
+  color: var(--color-error);
 }
 
-.bengal-icon.icon-info {
-  color: var(--color-info, #3B82F6);
+.bengal-icon.icon--info {
+  color: var(--color-info);
+}
+
+.bengal-icon.icon--example {
+  color: var(--color-example);
 }
 
 /* Interactive states */
-.bengal-icon.icon-interactive {
+.bengal-icon.icon--interactive {
   cursor: pointer;
 }
 
-.bengal-icon.icon-interactive:hover {
-  color: var(--color-accent, #D4850F);
+.bengal-icon.icon--interactive:hover {
+  color: var(--color-accent);
   transform: scale(1.1);
 }
 
-.bengal-icon.icon-interactive:active {
+.bengal-icon.icon--interactive:active {
   transform: scale(0.95);
 }
 
 /* Error/missing icon states */
-.bengal-icon.bengal-icon-error,
-.bengal-icon.bengal-icon-missing {
-  color: var(--color-warning, #F59E0B);
+.bengal-icon.bengal-icon--error,
+.bengal-icon.bengal-icon--missing {
+  color: var(--color-warning);
   font-size: inherit;
 }
 
@@ -154,7 +161,7 @@
 
 /* Icon in cards */
 .card .bengal-icon.card-icon {
-  color: var(--color-accent, #D4850F);
+  color: var(--color-accent);
   margin-block-end: var(--space-3, 0.75rem);
 }
 
@@ -204,42 +211,42 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5, 1.25rem);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--color-surface-elevated, #F9FAFB);
-  border: 1px solid var(--color-border-subtle, #E5E7EB);
-  transition: all var(--transition-fast, 150ms) ease;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-light);
+  transition: all var(--transition-fast) ease;
   text-align: center;
 }
 
 [data-theme="dark"] .icon-gallery-item {
-  background: var(--color-surface-elevated, #1F2937);
-  border-color: var(--color-border-subtle, #374151);
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-light);
 }
 
 .icon-gallery-item:hover {
-  border-color: var(--color-accent, #D4850F);
-  box-shadow: var(--neumorphic-hover, 0 4px 12px rgba(0, 0, 0, 0.08));
+  border-color: var(--color-accent);
+  box-shadow: var(--neumorphic-hover);
   transform: translateY(-2px);
 }
 
 .icon-gallery-item .bengal-icon {
-  margin-block-end: var(--space-3, 0.75rem);
-  color: var(--color-text-primary, #111827);
+  margin-block-end: var(--space-3);
+  color: var(--color-text-primary);
 }
 
 [data-theme="dark"] .icon-gallery-item .bengal-icon {
-  color: var(--color-text-primary, #F9FAFB);
+  color: var(--color-text-primary);
 }
 
 .icon-gallery-item:hover .bengal-icon {
-  color: var(--color-accent, #D4850F);
+  color: var(--color-accent);
 }
 
 .icon-gallery-item .icon-name {
-  font-family: var(--font-family-mono, monospace);
-  font-size: var(--font-size-xs, 0.75rem);
-  color: var(--color-text-secondary, #6B7280);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 /* Size comparison row */
@@ -259,8 +266,8 @@
 }
 
 .icon-size-demo .icon-size-label {
-  font-size: var(--font-size-xs, 0.75rem);
-  color: var(--color-text-secondary, #6B7280);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 /* Reduced motion support */
@@ -268,12 +275,9 @@
   .bengal-icon {
     transition: none;
   }
-  
+
   .bengal-icon.icon-spin,
   .bengal-icon.icon-pulse {
     animation: none;
   }
 }
-
-
-

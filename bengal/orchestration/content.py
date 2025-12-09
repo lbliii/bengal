@@ -173,9 +173,7 @@ class ContentOrchestrator:
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
 
-    def _discover_autodoc_content(
-        self, cache: Any | None = None
-    ) -> tuple[list[Any], list[Any]]:
+    def _discover_autodoc_content(self, cache: Any | None = None) -> tuple[list[Any], list[Any]]:
         """
         Generate virtual autodoc pages if enabled.
 

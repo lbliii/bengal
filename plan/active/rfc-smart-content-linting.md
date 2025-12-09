@@ -93,24 +93,24 @@ Documentation accumulates quality issues invisibly. By the time users complain, 
 
 class OrphanLinter(Linter):
     """Detect pages with no incoming links."""
-    
+
     id = "orphan-pages"
     severity = "warning"
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
-        
+
         # Build incoming link map
         incoming: dict[str, set[str]] = defaultdict(set)
         for page in site.pages:
             for link in page.internal_links:
                 incoming[link.target].add(page.path)
-        
+
         # Find orphans (excluding index pages)
         for page in site.pages:
             if page.is_index:
                 continue
-            
+
             # Check incoming links
             if not incoming.get(page.path):
                 # Also check if in navigation
@@ -123,7 +123,7 @@ class OrphanLinter(Linter):
                         suggestion="Add links from related pages or include in navigation",
                         metadata={"incoming_count": 0},
                     ))
-        
+
         return issues
 ```
 
@@ -136,19 +136,19 @@ class OrphanLinter(Linter):
 
 class SEOConflictLinter(Linter):
     """Detect SEO conflicts between pages."""
-    
+
     id = "seo-conflicts"
     severity = "warning"
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
-        
+
         # Group pages by title similarity
         title_groups = self._group_by_similarity(
             [(p, p.title) for p in site.pages],
             threshold=0.85,  # 85% similar
         )
-        
+
         for pages in title_groups:
             if len(pages) > 1:
                 issues.append(LintIssue(
@@ -162,13 +162,13 @@ class SEOConflictLinter(Linter):
                         "titles": [p.title for p in pages],
                     },
                 ))
-        
+
         # Check for duplicate meta descriptions
         desc_map: dict[str, list[Page]] = defaultdict(list)
         for page in site.pages:
             if page.description:
                 desc_map[page.description.lower()].append(page)
-        
+
         for desc, pages in desc_map.items():
             if len(pages) > 1:
                 issues.append(LintIssue(
@@ -179,7 +179,7 @@ class SEOConflictLinter(Linter):
                     suggestion="Write unique descriptions for each page",
                     metadata={"duplicate_pages": [p.path for p in pages]},
                 ))
-        
+
         return issues
 ```
 
@@ -192,31 +192,31 @@ class SEOConflictLinter(Linter):
 
 class FreshnessLinter(Linter):
     """Detect potentially stale content."""
-    
+
     id = "stale-content"
     severity = "info"
-    
+
     def __init__(self, stale_threshold_days: int = 180):
         self.stale_threshold = timedelta(days=stale_threshold_days)
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
         now = datetime.now()
-        
+
         for page in site.pages:
             # Check last modified date
             last_modified = page.last_modified or page.date
             if not last_modified:
                 continue
-            
+
             age = now - last_modified
-            
+
             if age > self.stale_threshold:
                 # Check if page has high traffic (more important to update)
                 importance = self._calculate_importance(page, site)
-                
+
                 severity = "warning" if importance > 0.7 else "info"
-                
+
                 issues.append(LintIssue(
                     rule=self.id,
                     severity=severity,
@@ -229,20 +229,20 @@ class FreshnessLinter(Linter):
                         "importance_score": importance,
                     },
                 ))
-        
+
         return issues
-    
+
     def _calculate_importance(self, page: Page, site: Site) -> float:
         """Calculate page importance based on links and position."""
         # Incoming links indicate importance
         incoming_count = len(site.get_incoming_links(page))
         max_incoming = max(len(site.get_incoming_links(p)) for p in site.pages)
-        
+
         link_score = incoming_count / max(max_incoming, 1)
-        
+
         # Top-level pages are more important
         depth_score = 1 / (page.depth + 1)
-        
+
         return (link_score + depth_score) / 2
 ```
 
@@ -255,21 +255,21 @@ class FreshnessLinter(Linter):
 
 class CodeSyncLinter(Linter):
     """Validate code references against source code."""
-    
+
     id = "code-sync"
     severity = "error"
-    
+
     def __init__(self, source_dirs: list[Path]):
         self.source_dirs = source_dirs
         self.code_index = self._build_code_index()
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
-        
+
         for page in site.pages:
             # Extract code references from content
             refs = self._extract_code_refs(page)
-            
+
             for ref in refs:
                 if ref.type == "function":
                     if not self._function_exists(ref.name, ref.module):
@@ -282,7 +282,7 @@ class CodeSyncLinter(Linter):
                             suggestion="Update reference or check function name",
                             metadata={"reference": ref.raw},
                         ))
-                
+
                 elif ref.type == "class":
                     if not self._class_exists(ref.name, ref.module):
                         issues.append(LintIssue(
@@ -293,7 +293,7 @@ class CodeSyncLinter(Linter):
                             message=f"Class '{ref.name}' not found in source code",
                             suggestion="Update reference or check class name",
                         ))
-                
+
                 elif ref.type == "config":
                     if not self._config_option_exists(ref.name):
                         issues.append(LintIssue(
@@ -304,13 +304,13 @@ class CodeSyncLinter(Linter):
                             message=f"Config option '{ref.name}' may not exist",
                             suggestion="Verify config option name",
                         ))
-        
+
         return issues
-    
+
     def _extract_code_refs(self, page: Page) -> list[CodeReference]:
         """Extract code references from page content."""
         refs = []
-        
+
         # Inline code that looks like function calls
         for match in re.finditer(r'`(\w+)\(\)`', page.content):
             refs.append(CodeReference(
@@ -319,7 +319,7 @@ class CodeSyncLinter(Linter):
                 raw=match.group(0),
                 line=page.content[:match.start()].count('\n') + 1,
             ))
-        
+
         # Class references (CamelCase in backticks)
         for match in re.finditer(r'`([A-Z][a-zA-Z]+)`', page.content):
             refs.append(CodeReference(
@@ -328,7 +328,7 @@ class CodeSyncLinter(Linter):
                 raw=match.group(0),
                 line=page.content[:match.start()].count('\n') + 1,
             ))
-        
+
         # Config options (snake_case in backticks)
         for match in re.finditer(r'`([a-z][a-z_]+)`', page.content):
             refs.append(CodeReference(
@@ -337,7 +337,7 @@ class CodeSyncLinter(Linter):
                 raw=match.group(0),
                 line=page.content[:match.start()].count('\n') + 1,
             ))
-        
+
         return refs
 ```
 
@@ -350,23 +350,23 @@ class CodeSyncLinter(Linter):
 
 class VersionLinter(Linter):
     """Detect version mismatches in content."""
-    
+
     id = "version-mismatch"
     severity = "warning"
-    
+
     def __init__(self, current_version: str, deprecated_versions: list[str]):
         self.current_version = current_version
         self.deprecated_versions = deprecated_versions
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
-        
+
         version_pattern = re.compile(r'v?(\d+\.\d+(?:\.\d+)?)')
-        
+
         for page in site.pages:
             for match in version_pattern.finditer(page.content):
                 version = match.group(1)
-                
+
                 if version in self.deprecated_versions:
                     issues.append(LintIssue(
                         rule=self.id,
@@ -380,7 +380,7 @@ class VersionLinter(Linter):
                             "current_version": self.current_version,
                         },
                     ))
-        
+
         return issues
 ```
 
@@ -393,27 +393,27 @@ class VersionLinter(Linter):
 
 class CoverageLinter(Linter):
     """Check documentation coverage of public APIs."""
-    
+
     id = "api-coverage"
     severity = "warning"
-    
+
     def __init__(self, api_source: Path):
         self.api_source = api_source
         self.public_apis = self._discover_public_apis()
-    
+
     def lint(self, site: Site) -> list[LintIssue]:
         issues = []
-        
+
         # Find documented APIs
         documented = set()
         for page in site.pages:
             if page.section.path.startswith("api/"):
                 # Extract API references from page
                 documented.update(self._extract_documented_apis(page))
-        
+
         # Find undocumented APIs
         undocumented = self.public_apis - documented
-        
+
         for api in undocumented:
             issues.append(LintIssue(
                 rule=self.id,
@@ -423,7 +423,7 @@ class CoverageLinter(Linter):
                 suggestion=f"Create documentation for {api}",
                 metadata={"api": api},
             ))
-        
+
         # Summary issue
         coverage = len(documented) / len(self.public_apis) * 100
         if coverage < 80:
@@ -439,7 +439,7 @@ class CoverageLinter(Linter):
                     "total_count": len(self.public_apis),
                 },
             ))
-        
+
         return issues
 ```
 
@@ -453,24 +453,24 @@ class CoverageLinter(Linter):
 bengal lint
 
 # Output:
-# 
+#
 # 🔍 Content Lint Results
-# 
+#
 # ❌ Errors: 2
 #   docs/api/deprecated.md:45 - Function 'old_api()' not found in source
 #   docs/api/removed.md:12 - Class 'RemovedClass' not found in source
-# 
+#
 # ⚠️ Warnings: 5
 #   docs/hidden-guide.md - Page has no incoming links (orphan)
 #   docs/setup.md - Title too similar to "docs/installation.md"
 #   docs/old-feature.md - Content not updated in 245 days
 #   docs/config.md:78 - References deprecated version '1.0'
 #   (summary) - API documentation coverage is 72%
-# 
+#
 # ℹ️ Info: 3
 #   docs/advanced/edge-cases.md - Content not updated in 190 days
 #   ...
-# 
+#
 # Summary: 2 errors, 5 warnings, 3 info
 ```
 
@@ -507,16 +507,16 @@ bengal lint --output lint-report.json
 bengal lint --interactive
 
 # Output:
-# 
+#
 # [1/5] docs/hidden-guide.md
 #   ⚠️ Page has no incoming links (orphan)
-#   
+#  
 #   Suggestions:
 #   [a] Add to navigation (docs/_index.md)
 #   [l] Show pages that could link here
 #   [s] Skip
 #   [q] Quit
-#   
+#  
 #   Choice: a
 #   ✅ Added to docs/_index.md navigation
 ```
@@ -604,6 +604,3 @@ minimum_coverage = 80
 - [markdownlint](https://github.com/DavidAnson/markdownlint)
 - [Lighthouse SEO Audits](https://developer.chrome.com/docs/lighthouse/seo/)
 - [Documentation Coverage Tools](https://coverage.readthedocs.io/)
-
-
-

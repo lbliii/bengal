@@ -120,17 +120,17 @@
     if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
       return false;
     }
-    
+
     // Relative paths (starting with / or ./ or ../) are always internal
     if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) {
       return false;
     }
-    
+
     try {
       // Parse URL - if href is relative, resolve it relative to current page
       const url = new URL(href, window.location.href);
       const currentOrigin = window.location.origin;
-      
+
       // Compare origins - must match exactly (including protocol)
       return url.origin !== currentOrigin;
     } catch (e) {
@@ -259,4 +259,3 @@
 
   log('Utilities initialized');
 })();
-

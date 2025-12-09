@@ -66,6 +66,3 @@ All icons must:
 - **Location**: `bengal/themes/default/assets/icons/`
 - **Format**: SVG with `currentColor` for theme awareness
 - **System**: Centralized via `icon()` template function and `render_icon()` Python function
-
-
-

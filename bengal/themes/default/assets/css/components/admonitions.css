@@ -130,7 +130,7 @@
   }
 
   .admonition.example {
-    border-inline-start-color: #8b5cf6;
+    border-inline-start-color: var(--color-example-border);
   }
 }
 
@@ -406,13 +406,13 @@
 
 /* Example */
 .admonition.example {
-  --admonition-color: #8b5cf6; /* violet-500 */
-  border-inline-start-color: color-mix(in srgb, #8b5cf6 60%, transparent);
-  background-color: #f5f3ff; /* violet-50 */
+  --admonition-color: var(--color-example);
+  border-inline-start-color: color-mix(in srgb, var(--color-example) 60%, transparent);
+  background-color: var(--color-example-bg);
 }
 
 .admonition.example .admonition-title {
-  color: #7c3aed; /* violet-600 */
+  color: var(--color-example-text);
 }
 
 /* Example icon: Notepad */
@@ -422,14 +422,14 @@
 }
 
 [data-theme="dark"] .admonition.example {
-  --admonition-color: #a78bfa; /* violet-400 */
-  border-inline-start-color: color-mix(in srgb, #a78bfa 50%, transparent);
-  background-color: rgba(139, 92, 246, 0.1);
+  --admonition-color: var(--color-example);
+  border-inline-start-color: color-mix(in srgb, var(--color-example) 50%, transparent);
+  background-color: var(--color-example-bg);
   animation-name: admonition-edge-glow-dark;
 }
 
 [data-theme="dark"] .admonition.example .admonition-title {
-  color: #c4b5fd; /* violet-300 */
+  color: var(--color-example-text);
 }
 
 /* ============================================

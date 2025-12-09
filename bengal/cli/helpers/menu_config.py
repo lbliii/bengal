@@ -6,7 +6,6 @@ configuration entries from site sections, similar to how sidebars
 and TOC are automatically generated.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path

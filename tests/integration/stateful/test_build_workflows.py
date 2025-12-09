@@ -33,6 +33,7 @@ def _status(msg: str) -> None:
     """Print status message to stderr for visibility during long tests."""
     print(f"  → {msg}", file=sys.stderr, flush=True)
 
+
 # Configure Hypothesis profiles for different environments
 # Dev: Faster feedback with fewer examples (20)
 # CI: Balanced testing with moderate examples (50) to reduce timing flakiness
@@ -86,7 +87,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
         self.last_build_output = None
         self.build_count = 0
         self.last_action_was_build = False
-        _status(f"[PageLifecycle] Site initialized")
+        _status("[PageLifecycle] Site initialized")
 
     @rule(name=page_names(), title=page_titles())
     def create_page(self, name, title):
@@ -219,9 +220,9 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
         if not self.last_action_was_build:
             return
         if self.last_build_output:
-            assert self.last_build_output[
-                "success"
-            ], f"Build failed with errors: {self.last_build_output['errors']}"
+            assert self.last_build_output["success"], (
+                f"Build failed with errors: {self.last_build_output['errors']}"
+            )
 
     @invariant()
     def active_pages_have_output(self):
@@ -394,9 +395,12 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
 
         Only compares if both builds are from the same content state.
         """
-        if (self.full_build_hashes and self.incremental_build_hashes and
-            getattr(self, 'full_build_content_version', -1) ==
-            getattr(self, 'incremental_build_content_version', -2)):
+        if (
+            self.full_build_hashes
+            and self.incremental_build_hashes
+            and getattr(self, "full_build_content_version", -1)
+            == getattr(self, "incremental_build_content_version", -2)
+        ):
             # Compare file sets
             full_files = set(self.full_build_hashes.keys())
             inc_files = set(self.incremental_build_hashes.keys())
@@ -412,9 +416,11 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 # Skip files with dynamic content:
                 # - site-wide LLM/JSON (build timestamps, page ordering)
                 # - per-page JSON/txt (can have timestamps, not critical for determinism)
-                if (file_path in ("llm-full.txt", "index.json") or
-                    file_path.endswith("/index.json") or
-                    file_path.endswith("/index.txt")):
+                if (
+                    file_path in ("llm-full.txt", "index.json")
+                    or file_path.endswith("/index.json")
+                    or file_path.endswith("/index.txt")
+                ):
                     continue
                 full_hash = self.full_build_hashes[file_path]
                 inc_hash = self.incremental_build_hashes[file_path]

@@ -4,7 +4,6 @@ Math functions for templates.
 Provides 6 essential mathematical operations for calculations in templates.
 """
 
-
 from __future__ import annotations
 
 import math

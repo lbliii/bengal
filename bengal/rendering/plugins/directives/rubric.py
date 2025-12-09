@@ -4,96 +4,109 @@ Rubric directive for Mistune.
 Provides styled text that looks like a heading but isn't part of the
 document hierarchy or table of contents. Perfect for API documentation
 section labels like "Parameters:", "Returns:", "Raises:", etc.
-"""
 
+Architecture:
+    Migrated to BengalDirective base class as part of directive system v2.
+"""
 
 from __future__ import annotations
 
-from re import Match
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from mistune.directives import DirectivePlugin
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
 
-__all__ = ["RubricDirective", "render_rubric"]
+__all__ = ["RubricDirective", "RubricOptions"]
 
 
-class RubricDirective(DirectivePlugin):
+@dataclass
+class RubricOptions(DirectiveOptions):
+    """
+    Options for rubric directive.
+
+    Attributes:
+        css_class: Additional CSS classes
+
+    Example:
+        :::{rubric} Parameters
+        :class: rubric-parameters
+        :::
+    """
+
+    css_class: str = ""
+
+    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
+
+class RubricDirective(BengalDirective):
     """
     Rubric directive for pseudo-headings.
 
     Syntax:
-        ```{rubric} Parameters
+        :::{rubric} Parameters
         :class: rubric-parameters
-        ```
-
-    Or with content (content is ignored, only title/class are used):
-        ```{rubric} Returns
-        :class: rubric-returns
-
-        Ignored content
-        ```
+        :::
 
     Creates styled text that looks like a heading but doesn't appear in TOC.
-    The rubric renders immediately with no content inside - content after
-    the directive is parsed as separate markdown.
+    The rubric renders immediately with no content inside - any content is ignored.
+
+    Use cases:
+        - API documentation section labels (Parameters, Returns, Raises)
+        - Section dividers that shouldn't be in navigation
+        - Styled labels without heading semantics
     """
 
-    # Directive names this class registers (for health check introspection)
-    DIRECTIVE_NAMES = ["rubric"]
+    NAMES: ClassVar[list[str]] = ["rubric"]
+    TOKEN_TYPE: ClassVar[str] = "rubric"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = RubricOptions
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
-        """Parse rubric directive.
+    # For backward compatibility with health check introspection
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["rubric"]
 
-        Rubrics are label-only directives - they ignore any content and
-        just render the title as a styled heading.
+    def parse_directive(
+        self,
+        title: str,
+        options: RubricOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
         """
-        title = self.parse_title(m)
-        if not title:
-            title = ""
+        Build rubric token from parsed components.
 
-        options = dict(self.parse_options(m))
-        # Note: We extract content but don't parse it - rubrics don't contain content
-        # Any content after the rubric directive is separate markdown
-
-        return {
-            "type": "rubric",
-            "attrs": {
-                "title": title,
-                "class": options.get("class", ""),
+        Rubrics are label-only - children are always empty.
+        """
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "title": title or "",
+                "css_class": options.css_class,
             },
-            "children": [],  # Rubrics never have children
-        }
+            children=[],  # Rubrics never have children
+        )
 
-    def __call__(self, directive: Any, md: Any) -> None:
-        """Register the directive and renderer."""
-        directive.register("rubric", self.parse)
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """
+        Render rubric to HTML.
 
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("rubric", render_rubric)
+        Renders as a styled div with role="heading" for accessibility.
+        Uses aria-level="5" to not interfere with document outline.
+        """
+        title = attrs.get("title", "")
+        css_class = attrs.get("css_class", "")
+
+        # Build class list
+        class_str = self.build_class_string("rubric", css_class)
+
+        return (
+            f'<div class="{class_str}" role="heading" aria-level="5">'
+            f"{self.escape_html(title)}</div>\n"
+        )
 
 
+# Backward compatibility
 def render_rubric(renderer: Any, text: str, **attrs: Any) -> str:
-    """
-    Render rubric to HTML.
-
-    Renders as a styled div that looks like a heading but is
-    semantically different (not part of document outline).
-
-    Args:
-        renderer: Mistune renderer
-        text: Rendered children content (unused for rubrics)
-        **attrs: Directive attributes (title, class, etc.)
-    """
-    title = attrs.get("title", "")
-    css_class = attrs.get("class", "")
-
-    # Build class list
-    classes = ["rubric"]
-    if css_class:
-        classes.append(css_class)
-
-    class_attr = " ".join(classes)
-
-    html = f'<div class="{class_attr}" role="heading" aria-level="5">{title}</div>\n'
-
-    return html
+    """Legacy render function for backward compatibility."""
+    return RubricDirective().render(renderer, text, **attrs)

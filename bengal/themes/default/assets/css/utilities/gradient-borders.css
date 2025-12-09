@@ -1,7 +1,7 @@
 /**
  * Bengal SSG - Gradient Border Utilities
  * Theme-aware gradient borders that adapt to each palette
- * 
+ *
  * Usage: Add .gradient-border class to cards, code blocks, buttons, etc.
  */
 
@@ -17,7 +17,7 @@
     var(--color-accent) 50%,
     var(--color-primary) 100%
   );
-  
+
   /* Subtle gradient (lighter, more muted) */
   --gradient-border-subtle: linear-gradient(
     135deg,
@@ -25,7 +25,7 @@
     var(--color-accent-light) 50%,
     var(--color-primary-light) 100%
   );
-  
+
   /* Strong gradient (darker, more vibrant) */
   --gradient-border-strong: linear-gradient(
     135deg,
@@ -33,7 +33,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   /* Hover gradient (enhanced) */
   --gradient-border-hover: linear-gradient(
     135deg,
@@ -41,7 +41,7 @@
     var(--color-accent-hover) 50%,
     var(--color-primary-hover) 100%
   );
-  
+
   /* Primary button gradient */
   --button-primary-gradient: var(--gradient-border);
 }
@@ -62,8 +62,8 @@
   border-radius: inherit;
   padding: 1px;
   background: var(--gradient-border);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -109,14 +109,14 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
     #B4CFE6 50%,
     var(--color-primary-light) 100%
   );
-  
+
   --button-primary-gradient: linear-gradient(
     135deg,
     var(--color-primary) 0%,
@@ -132,14 +132,14 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
     #FFC266 50%,
     var(--color-primary-light) 100%
   );
-  
+
   --button-primary-gradient: linear-gradient(
     135deg,
     var(--color-primary) 0%,
@@ -155,14 +155,14 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
     var(--color-accent-light) 50%,
     var(--color-primary-light) 100%
   );
-  
+
   --button-primary-gradient: linear-gradient(
     135deg,
     var(--color-primary) 0%,
@@ -178,14 +178,14 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
     var(--color-accent-light) 50%,
     var(--color-primary-light) 100%
   );
-  
+
   --button-primary-gradient: linear-gradient(
     135deg,
     var(--color-primary) 0%,
@@ -230,7 +230,7 @@
     border: 1px solid var(--color-primary);
     border-image: var(--gradient-border) 1;
   }
-  
+
   .gradient-border::before {
     display: none;
   }
@@ -252,4 +252,3 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
-

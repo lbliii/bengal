@@ -314,5 +314,3 @@
   log('[BengalTheme] Initialized');
 
 })();
-
-

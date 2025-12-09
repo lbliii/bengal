@@ -4,7 +4,6 @@ Date and time functions for templates.
 Provides 3 functions for date formatting and display.
 """
 
-
 from __future__ import annotations
 
 from datetime import datetime

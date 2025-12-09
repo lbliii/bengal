@@ -3,8 +3,6 @@ title: Deployment
 description: Deploy your Bengal site to production
 draft: false
 weight: 40
-aliases:
-- /docs/guides/deployment/
 lang: en
 tags:
 - deployment

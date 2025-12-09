@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
 
@@ -376,9 +376,7 @@ class IncrementalBuildDebugger(DebugTool):
 
         # Build dependency chain for changed deps
         if changed_deps:
-            explanation.dependency_chain = self._build_dependency_chain(
-                page_path, changed_deps[0]
-            )
+            explanation.dependency_chain = self._build_dependency_chain(page_path, changed_deps[0])
 
         # If no reasons found, it's unknown
         if not explanation.reasons:
@@ -407,10 +405,7 @@ class IncrementalBuildDebugger(DebugTool):
             explanation = self.explain_rebuild(page_path)
 
             # If the only reason is UNKNOWN, it's a phantom rebuild
-            if (
-                len(explanation.reasons) == 1
-                and explanation.reasons[0] == RebuildReason.UNKNOWN
-            ):
+            if len(explanation.reasons) == 1 and explanation.reasons[0] == RebuildReason.UNKNOWN:
                 phantom = PhantomRebuild(
                     page_path=page_path,
                     suspected_causes=["Missing dependency tracking"],
@@ -437,9 +432,7 @@ class IncrementalBuildDebugger(DebugTool):
             return report
 
         # Check file fingerprints
-        all_cached = set(self.cache.file_fingerprints.keys()) | set(
-            self.cache.file_hashes.keys()
-        )
+        all_cached = set(self.cache.file_fingerprints.keys()) | set(self.cache.file_hashes.keys())
         report.total_entries = len(all_cached)
 
         for path_str in all_cached:
@@ -601,6 +594,3 @@ class IncrementalBuildDebugger(DebugTool):
             recommendations.append("Incremental build configuration looks healthy! ✅")
 
         return recommendations
-
-
-

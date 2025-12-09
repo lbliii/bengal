@@ -3,8 +3,6 @@ title: Get Started
 description: Install Bengal and create your first site
 draft: false
 weight: 10
-aliases:
-- /docs/getting-started/
 lang: en
 type: doc
 tags:

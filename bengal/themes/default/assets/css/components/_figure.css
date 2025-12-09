@@ -1,0 +1,283 @@
+/**
+ * Figure and Audio Embed Styles
+ *
+ * Semantic styles for figures with captions and audio embeds.
+ *
+ * Classes:
+ *   .figure - Semantic figure container
+ *   .figure.align-left - Left-aligned figure
+ *   .figure.align-center - Center-aligned figure
+ *   .figure.align-right - Right-aligned figure
+ *   .figure.figure-error - Error state styling
+ *   .audio-embed - Audio player container
+ *   .audio-embed.audio-error - Audio error state
+ *
+ * Usage:
+ *   :::{figure} /images/architecture.png
+ *   :alt: System Architecture
+ *   :caption: High-level system architecture
+ *   :align: center
+ *   :::
+ */
+
+/* =============================================================================
+   Base Figure Container
+   ============================================================================= */
+
+.figure {
+  margin-block: var(--spacing-4, 1rem);
+  margin-inline: 0;
+  padding: 0;
+}
+
+.figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* =============================================================================
+   Figure Alignment
+   ============================================================================= */
+
+.figure.align-left {
+  margin-right: auto;
+  text-align: left;
+}
+
+.figure.align-center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.figure.align-right {
+  margin-left: auto;
+  text-align: right;
+}
+
+/* Float variants for inline figures */
+@media (min-width: 768px) {
+  .figure.float-left {
+    float: left;
+    margin-right: var(--spacing-4, 1rem);
+    margin-bottom: var(--spacing-2, 0.5rem);
+    max-width: 50%;
+  }
+
+  .figure.float-right {
+    float: right;
+    margin-left: var(--spacing-4, 1rem);
+    margin-bottom: var(--spacing-2, 0.5rem);
+    max-width: 50%;
+  }
+}
+
+/* =============================================================================
+   Figure Caption
+   ============================================================================= */
+
+.figure figcaption {
+  margin-top: var(--spacing-2, 0.5rem);
+  padding-inline: var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #888);
+  line-height: var(--line-height-relaxed, 1.6);
+}
+
+.figure.align-center figcaption {
+  text-align: center;
+}
+
+.figure.align-left figcaption {
+  text-align: left;
+}
+
+.figure.align-right figcaption {
+  text-align: right;
+}
+
+/* =============================================================================
+   Figure with Link
+   ============================================================================= */
+
+.figure a {
+  display: block;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.figure a:hover {
+  opacity: 0.9;
+}
+
+.figure a:focus {
+  outline: 2px solid var(--color-focus, #4fc3f7);
+  outline-offset: 4px;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* =============================================================================
+   Error States
+   ============================================================================= */
+
+.figure.figure-error {
+  padding: var(--spacing-4, 1rem);
+  background-color: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  border: 1px solid var(--color-error-border, rgba(220, 53, 69, 0.3));
+  border-radius: var(--radius-md, 8px);
+}
+
+.figure.figure-error .error {
+  margin: 0 0 var(--spacing-2, 0.5rem);
+  color: var(--color-error, #dc3545);
+  font-weight: 600;
+}
+
+.figure.figure-error code {
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* =============================================================================
+   Audio Embed Container
+   ============================================================================= */
+
+.audio-embed {
+  margin-block: var(--spacing-4, 1rem);
+  margin-inline: 0;
+  padding: 0;
+}
+
+.audio-embed audio {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Custom audio player styling (for browsers that support it) */
+.audio-embed audio::-webkit-media-controls-panel {
+  background-color: var(--color-surface-secondary, #1a1a2e);
+}
+
+.audio-embed audio::-webkit-media-controls-play-button,
+.audio-embed audio::-webkit-media-controls-mute-button {
+  filter: invert(0.8);
+}
+
+/* =============================================================================
+   Audio Error States
+   ============================================================================= */
+
+.audio-embed.audio-error {
+  padding: var(--spacing-4, 1rem);
+  background-color: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  border: 1px solid var(--color-error-border, rgba(220, 53, 69, 0.3));
+  border-radius: var(--radius-md, 8px);
+}
+
+.audio-embed.audio-error .error {
+  margin: 0 0 var(--spacing-2, 0.5rem);
+  color: var(--color-error, #dc3545);
+  font-weight: 600;
+}
+
+.audio-embed.audio-error code {
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* =============================================================================
+   Audio Fallback
+   ============================================================================= */
+
+.audio-embed audio p {
+  padding: var(--spacing-4, 1rem);
+  text-align: center;
+  background-color: var(--color-surface-secondary, #1a1a2e);
+  border-radius: var(--radius-md, 8px);
+}
+
+.audio-embed audio a {
+  color: var(--color-link, #4fc3f7);
+  text-decoration: underline;
+}
+
+.audio-embed audio a:hover {
+  color: var(--color-link-hover, #81d4fa);
+}
+
+/* =============================================================================
+   Responsive Adjustments
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .figure.float-left,
+  .figure.float-right {
+    float: none;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+  .figure {
+    page-break-inside: avoid;
+    margin-block: 1em;
+  }
+
+  .figure img {
+    max-width: 80%;
+    margin-inline: auto;
+  }
+
+  .figure figcaption {
+    font-style: italic;
+  }
+
+  .audio-embed {
+    display: none;
+  }
+
+  .audio-embed::after {
+    content: "[Audio content - see online version]";
+    display: block;
+    font-style: italic;
+    color: #666;
+  }
+}
+
+/* =============================================================================
+   Dark Mode Adjustments
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .figure img {
+    /* Slight opacity reduction for better contrast */
+    opacity: 0.95;
+  }
+
+  .figure figcaption {
+    color: var(--color-text-muted, #aaa);
+  }
+}
+
+/* =============================================================================
+   Reduced Motion
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .figure a {
+    transition: none;
+  }
+}
+

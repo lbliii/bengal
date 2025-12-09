@@ -12,8 +12,6 @@ from __future__ import annotations
 from io import StringIO
 from unittest.mock import patch
 
-import pytest
-
 from bengal.config.deprecation import (
     DEPRECATED_KEYS,
     RENAMED_KEYS,
@@ -259,6 +257,3 @@ class TestRenamedKeys:
             new_key, note = value
             assert isinstance(new_key, str)
             assert isinstance(note, str)
-
-
-

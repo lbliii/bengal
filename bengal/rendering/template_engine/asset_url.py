@@ -18,7 +18,7 @@ from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.assets.manifest import AssetManifestEntry
+    pass
 
 logger = get_logger(__name__)
 

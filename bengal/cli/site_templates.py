@@ -5,7 +5,6 @@ This module provides backward-compatible imports for the site templates system.
 The actual templates are now organized in bengal/cli/templates/ as separate modules.
 """
 
-
 from __future__ import annotations
 
 from bengal.cli.templates import (

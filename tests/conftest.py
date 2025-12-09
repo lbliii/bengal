@@ -94,6 +94,7 @@ def test_progress(request):
 
     return TestProgressReporter(verbose=verbose, prefix=test_name)
 
+
 # ============================================================================
 # COLLECTION HOOKS
 # ============================================================================

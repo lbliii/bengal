@@ -251,10 +251,14 @@
   }
 
   // Auto-initialize when DOM is ready
+  // Use setTimeout(0) to defer init until after all bundled scripts have executed.
+  // This ensures enhancement registrations (which come later in the bundle) complete
+  // before we scan for data-bengal elements, preventing unnecessary 404s from
+  // lazy-loading files that are already bundled.
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 0));
   } else {
-    init();
+    setTimeout(init, 0);
   }
 
   // Export API
@@ -312,4 +316,3 @@
   log('Bengal enhance API ready');
 
 })();
-

@@ -27,7 +27,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
@@ -107,11 +107,7 @@ class BuildSnapshot:
             BuildSnapshot capturing cached state
         """
         # Extract content pages from cache
-        pages = {
-            path
-            for path in cache.file_hashes
-            if path.endswith((".md", ".markdown", ".rst"))
-        }
+        pages = {path for path in cache.file_hashes if path.endswith((".md", ".markdown", ".rst"))}
 
         # Parse last build timestamp
         timestamp = datetime.now()
@@ -233,11 +229,7 @@ class BuildDelta:
     @property
     def is_significant(self) -> bool:
         """Check if delta represents significant changes."""
-        return (
-            self.page_change_count > 0
-            or abs(self.time_change_pct) > 10
-            or self.config_changed
-        )
+        return self.page_change_count > 0 or abs(self.time_change_pct) > 10 or self.config_changed
 
     def format_summary(self) -> str:
         """Format as brief summary."""
@@ -293,7 +285,9 @@ class BuildDelta:
         # Timing changes
         if self.before.build_time_ms > 0 or self.after.build_time_ms > 0:
             lines.append("⏱️ Timing Changes:")
-            lines.append(f"   Total: {self._format_time_change(self.time_change_ms, self.time_change_pct)}")
+            lines.append(
+                f"   Total: {self._format_time_change(self.time_change_ms, self.time_change_pct)}"
+            )
 
             if self.phase_changes:
                 for phase, change in sorted(self.phase_changes.items(), key=lambda x: -abs(x[1])):
@@ -370,7 +364,7 @@ class BuildHistory:
         self.snapshots.append(snapshot)
         # Trim to max
         if len(self.snapshots) > self.max_snapshots:
-            self.snapshots = self.snapshots[-self.max_snapshots:]
+            self.snapshots = self.snapshots[-self.max_snapshots :]
         self._save()
 
     def get_latest(self, n: int = 1) -> list[BuildSnapshot]:
@@ -540,9 +534,7 @@ class BuildDeltaAnalyzer(DebugTool):
 
         return report
 
-    def compare_snapshots(
-        self, before: BuildSnapshot, after: BuildSnapshot
-    ) -> BuildDelta:
+    def compare_snapshots(self, before: BuildSnapshot, after: BuildSnapshot) -> BuildDelta:
         """
         Compare two specific snapshots.
 
@@ -624,6 +616,3 @@ class BuildDeltaAnalyzer(DebugTool):
             recommendations.append("Build comparison looks healthy! ✅")
 
         return recommendations
-
-
-

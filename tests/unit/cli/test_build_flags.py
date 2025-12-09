@@ -74,9 +74,7 @@ class TestProfilePrecedence:
         # Would need to mock BuildProfile.from_cli_args to test this properly
         from bengal.utils.profile import BuildProfile
 
-        profile = BuildProfile.from_cli_args(
-            dev=True, theme_dev=True, profile="writer"
-        )
+        profile = BuildProfile.from_cli_args(dev=True, theme_dev=True, profile="writer")
 
         assert profile == BuildProfile.DEVELOPER
 
@@ -84,9 +82,7 @@ class TestProfilePrecedence:
         """Test that --theme-dev takes precedence over --profile."""
         from bengal.utils.profile import BuildProfile
 
-        profile = BuildProfile.from_cli_args(
-            dev=False, theme_dev=True, profile="writer"
-        )
+        profile = BuildProfile.from_cli_args(dev=False, theme_dev=True, profile="writer")
 
         assert profile == BuildProfile.THEME_DEV
 
@@ -112,9 +108,7 @@ class TestProfilePrecedence:
         """Test that default profile is WRITER."""
         from bengal.utils.profile import BuildProfile
 
-        profile = BuildProfile.from_cli_args(
-            dev=False, theme_dev=False, profile=None, debug=False
-        )
+        profile = BuildProfile.from_cli_args(dev=False, theme_dev=False, profile=None, debug=False)
 
         assert profile == BuildProfile.WRITER
 

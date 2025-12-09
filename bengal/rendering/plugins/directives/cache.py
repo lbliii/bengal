@@ -152,7 +152,10 @@ class DirectiveCache:
     def __repr__(self) -> str:
         """String representation."""
         stats = self.stats()
-        return f"<DirectiveCache: {stats['size']}/{stats['max_size']} items, {stats['hit_rate']:.1%} hit rate>"
+        size = stats["size"]
+        max_size = stats["max_size"]
+        hit_rate = stats["hit_rate"]
+        return f"<DirectiveCache: {size}/{max_size} items, {hit_rate:.1%} hit rate>"
 
 
 # Global cache instance (shared across all threads)

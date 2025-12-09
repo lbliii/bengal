@@ -53,9 +53,9 @@ This is a warning
 
 ### Callout Boxes
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* notice note */>}}
 This is a note with **bold** text.
@@ -69,9 +69,9 @@ Be careful!
 Pro tip here.
 {{</* /notice */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
 :::{note}
 This is a note with **bold** text.
@@ -85,15 +85,15 @@ Be careful!
 Pro tip here.
 :::
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Tabs
 
-::::::{tab-set}
+:::{tab-set}
 
-:::::{tab-item} Hugo
+:::{tab} Hugo
 ````markdown
 {{</* tabs */>}}
 {{</* tab "Python" */>}}
@@ -108,36 +108,33 @@ console.log("Hello");
 {{</* /tab */>}}
 {{</* /tabs */>}}
 ````
-:::::
+:::{/tab}
 
-:::::{tab-item} Bengal
+:::{tab} Bengal
 ````markdown
-::::{tab-set}
-
-:::{tab-item} Python
+:::{tab-set}
+:::{tab} Python
 ```python
 print("Hello")
 ```
-:::
-
-:::{tab-item} JavaScript
+:::{/tab}
+:::{tab} JavaScript
 ```javascript
 console.log("Hello");
 ```
-:::
-
-::::
+:::{/tab}
+:::{/tab-set}
 ````
 
-:::::
+:::{/tab}
 
-::::::
+:::{/tab-set}
 
 ### Code Highlighting
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* highlight python "linenos=table,hl_lines=2" */>}}
 def hello():
@@ -145,9 +142,9 @@ def hello():
     return True
 {{</* /highlight */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ````markdown
 ```python
 def hello():
@@ -155,64 +152,81 @@ def hello():
     return True
 ```
 ````
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Figure / Image
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* figure src="/static/images/photo.jpg" title="My Photo" caption="A description" */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
-![My Photo](./images/photo.jpg)
-
-*A description*
-
-<!-- Or use a card for more styling -->
-:::{card} My Photo
-:img-top: ./images/photo.jpg
-
-A description
+:::{figure} /images/photo.jpg
+:alt: My Photo
+:caption: A description
+:align: center
 :::
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
+
+:::{tip}
+Bengal's `{figure}` directive produces semantic HTML (`<figure>` + `<figcaption>`) with proper accessibility support. The `:alt:` option is required for images. Use `:alt:` with an empty value for decorative images.
+:::
 
 ### YouTube Embed
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* youtube dQw4w9WgXcQ */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-  frameborder="0"
-  allowfullscreen>
-</iframe>
-```
-::::
-
-:::::
-
-:::{note}
-Bengal doesn't have a built-in YouTube shortcode. Use standard HTML embeds or create a custom template partial.
+:::{youtube} dQw4w9WgXcQ
+:title: Video Title (required for accessibility)
 :::
+```
+:::{/tab}
+
+:::{/tab-set}
+
+:::{tip}
+Bengal's `{youtube}` directive uses **privacy-enhanced mode** by default (`youtube-nocookie.com`), which is better for GDPR compliance.
+:::
+
+### All Media Embed Directives
+
+Bengal provides built-in directives for all common media embeds:
+
+| Hugo Shortcode | Bengal Directive | Notes |
+|----------------|------------------|-------|
+| `{{</* youtube id */>}}` | `:::{youtube} id` | Privacy-enhanced by default |
+| `{{</* youtube id autoplay="true" */>}}` | `:::{youtube} id`<br>`:autoplay: true` | Options as directive options |
+| `{{</* vimeo id */>}}` | `:::{vimeo} id`<br>`:title: Title` | DNT mode by default |
+| `{{</* gist user id */>}}` | `:::{gist} user/id` | Combined user/id format |
+| `{{</* gist user id "file.py" */>}}` | `:::{gist} user/id`<br>`:file: file.py` | File as option |
+| `{{</* figure src="..." */>}}` | `:::{figure} path`<br>`:alt: Alt text` | Semantic HTML output |
+| `{{</* figure src="..." caption="..." */>}}` | `:::{figure} path`<br>`:caption: ...` | Caption as option |
+| N/A | `:::{video} /path.mp4` | Self-hosted video |
+| N/A | `:::{audio} /path.mp3` | Self-hosted audio |
+| N/A | `:::{codepen} user/pen` | CodePen embeds |
+| N/A | `:::{codesandbox} id` | CodeSandbox embeds |
+| N/A | `:::{stackblitz} id` | StackBlitz embeds |
+| N/A | `:::{asciinema} id` | Terminal recordings |
+
+**All directives with iframes require `:title:` for accessibility.**
 
 ---
 
@@ -270,9 +284,9 @@ This is unique to Bengal—Hugo only supports variables in templates, not conten
 
 ### Basic Site Config
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo (config.toml)
+:::{tab} Hugo (config.toml)
 ```toml
 baseURL = "https://example.com"
 title = "My Site"
@@ -283,9 +297,9 @@ theme = "docsy"
   description = "My awesome site"
   github_repo = "https://github.com/user/repo"
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal (bengal.toml)
+:::{tab} Bengal (bengal.toml)
 ```toml
 [site]
 baseurl = "https://example.com"
@@ -297,15 +311,15 @@ theme = "bengal"
 description = "My awesome site"
 github_repo = "https://github.com/user/repo"
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Menu Configuration
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```toml
 [[menu.main]]
   name = "Docs"
@@ -317,9 +331,9 @@ github_repo = "https://github.com/user/repo"
   url = "/blog/"
   weight = 20
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```toml
 [[site.menu.main]]
 name = "Docs"
@@ -331,9 +345,9 @@ name = "Blog"
 url = "/blog/"
 weight = 20
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ---
 

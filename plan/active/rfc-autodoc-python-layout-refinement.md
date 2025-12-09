@@ -275,11 +275,11 @@ For attributes with descriptions > 100 chars, use definition list format:
 **Attributes:**
 
 `source_path`
-: Path to source markdown file (relative to content dir). Used as cache key 
+: Path to source markdown file (relative to content dir). Used as cache key
   and for file change detection.
 
 `title`
-: Page title from frontmatter or filename. Required field, defaults to 
+: Page title from frontmatter or filename. Required field, defaults to
   "Untitled" if not provided.
 ```
 
@@ -289,8 +289,8 @@ For attributes with descriptions > 100 chars, use definition list format:
 
 Update `class_methods.md.jinja2` to explicitly filter:
 ```jinja2
-{% set own_methods = all_methods 
-   | rejectattr('metadata.synthetic') 
+{% set own_methods = all_methods
+   | rejectattr('metadata.synthetic')
    | rejectattr('metadata.is_property')  {# ADD THIS #}
    | list %}
 ```
@@ -317,7 +317,7 @@ Convert inline decorator text to visual badges:
 
 **Current**: `#### \`method_name\` @async @classmethod`
 
-**Proposed**: 
+**Proposed**:
 ```markdown
 #### `method_name`
 
@@ -339,7 +339,7 @@ Current threshold for dropdown: not implemented (always table).
 
 #### 5.3.4 Returns Section
 
-**Current**: 
+**Current**:
 ```markdown
 **Returns**
 
@@ -541,4 +541,3 @@ Add snapshot tests for key combinations to catch rendering regressions.
 
 **Architecture Docs**:
 - `bengal/autodoc/README.md` - Autodoc system overview
-

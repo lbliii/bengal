@@ -490,10 +490,7 @@ class IncrementalOrchestrator:
         # - Include autodoc pages whose source files changed (selective, not all)
         # - If no dependency tracking yet, include all autodoc pages (first build)
         has_autodoc_tracking = False
-        if (
-            self.cache
-            and hasattr(self.cache, "autodoc_dependencies")
-        ):
+        if self.cache and hasattr(self.cache, "autodoc_dependencies"):
             try:
                 has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
             except (TypeError, AttributeError):
@@ -527,7 +524,9 @@ class IncrementalOrchestrator:
 
         return pages_to_build_list, assets_to_process, change_summary
 
-    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list[Any]]]:
+    def find_work(
+        self, verbose: bool = False
+    ) -> tuple[list[Page], list[Asset], dict[str, list[Any]]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -696,10 +695,7 @@ class IncrementalOrchestrator:
             if page.source_path in pages_to_rebuild
             or (
                 page.metadata.get("is_autodoc")
-                and (
-                    str(page.source_path) in autodoc_pages_to_rebuild
-                    or not has_autodoc_tracking
-                )
+                and (str(page.source_path) in autodoc_pages_to_rebuild or not has_autodoc_tracking)
             )
         ]
 

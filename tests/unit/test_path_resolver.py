@@ -112,6 +112,7 @@ class TestPathResolver:
 
     def test_from_site(self, tmp_path: Path) -> None:
         """Create resolver from Site instance."""
+
         # Create a minimal mock site
         class MockSite:
             root_path = tmp_path
@@ -170,6 +171,3 @@ class TestSiteRootPathAbsolute:
         site = Site.from_config(tmp_path)
         assert site.root_path.is_absolute()
         assert site.root_path == tmp_path
-
-
-

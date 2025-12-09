@@ -3,8 +3,6 @@ title: Contributor Quickstart
 description: Set up Bengal for development and start contributing
 draft: false
 weight: 40
-aliases:
-- /docs/getting-started/contributor-quickstart/
 lang: en
 type: doc
 tags:

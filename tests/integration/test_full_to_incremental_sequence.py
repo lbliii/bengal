@@ -205,7 +205,8 @@ class TestIncrementalBuildRegression:
         assert stats1.cache_hits == 0, "First build should have no cache hits"
 
         # Step 2: Check cache exists (this would fail with the bug) - new location since v0.1.2
-        cache_file = site_root / ".bengal" / "cache.json"
+        # Note: Cache is now compressed with Zstandard (.json.zst)
+        cache_file = site_root / ".bengal" / "cache.json.zst"
         assert cache_file.exists(), "BUG: Cache not saved after full build with incremental=False"
 
         # Step 3: Incremental build should use cache
@@ -240,11 +241,11 @@ class TestIncrementalBuildRegression:
         site.build(parallel=False, incremental=False)
 
         # Check that config is in cache (new location since v0.1.2)
-        import json
+        # Note: Cache is now compressed with Zstandard (.json.zst)
+        from bengal.cache.compression import load_compressed
 
-        cache_file = site_root / ".bengal" / "cache.json"
-        with open(cache_file) as f:
-            cache_data = json.load(f)
+        cache_file = site_root / ".bengal" / "cache.json.zst"
+        cache_data = load_compressed(cache_file)
 
         config_path = str(config_file)
         assert any(config_path in key for key in cache_data["file_hashes"]), (

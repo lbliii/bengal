@@ -26,4 +26,3 @@ def test_safe_int_variants():
     assert safe_int(150, 0) == 150
     assert safe_int("bad", 42) == 42
     assert safe_int(None, 7) == 7
-

@@ -276,7 +276,7 @@ def markdownify(text: str) -> str:
     Render Markdown text to HTML.
 
     Pre-processes Google-style docstrings to markdown, then converts to HTML
-    using Python-Markdown with extensions for tables, code highlighting, etc.
+    using mistune (production dependency) with table support.
 
     Args:
         text: Markdown or docstring text
@@ -293,26 +293,12 @@ def markdownify(text: str) -> str:
     # Pre-process docstring-style text to markdown
     text = _convert_docstring_to_markdown(text)
 
-    try:
-        import markdown
+    import mistune
 
-        # Note: Intentionally NOT using codehilite extension here.
-        # codehilite produces <div class="highlight"><pre><span>... structure
-        # which loses the language-X class needed for JS language labels.
-        # fenced_code alone produces <pre><code class="language-X">... which
-        # matches Bengal's standard code block structure and allows JS
-        # (main.js) to detect language and add proper labels.
-        md = markdown.Markdown(
-            extensions=[
-                "extra",
-                "tables",
-                "fenced_code",
-            ],
-        )
-        return md.convert(text)
-    except ImportError:
-        # Fallback if markdown not installed
-        return text
+    # Use lightweight mistune instance with table support
+    # This avoids the full Bengal parser overhead while using a production dependency
+    md = mistune.create_markdown(plugins=["table", "strikethrough"])
+    return md(text)
 
 
 def strip_html(text: str) -> str:

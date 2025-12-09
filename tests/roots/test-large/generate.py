@@ -66,24 +66,30 @@ SECTIONS = [
 ]
 
 TAGS = [
-    "python", "web", "api", "tutorial", "reference",
-    "beginner", "advanced", "performance", "testing",
-    "configuration", "deployment", "security", "database"
+    "python",
+    "web",
+    "api",
+    "tutorial",
+    "reference",
+    "beginner",
+    "advanced",
+    "performance",
+    "testing",
+    "configuration",
+    "deployment",
+    "security",
+    "database",
 ]
 
 LOREM_PARAGRAPHS = [
     "This page demonstrates the capabilities of the Bengal static site generator. "
     "It includes various content types and formatting options commonly used in documentation.",
-
     "The content structure follows best practices for technical documentation, "
     "ensuring consistent formatting across all generated pages.",
-
     "Each page includes metadata, code examples, and cross-references to other pages "
     "to provide a realistic testing environment.",
-
     "Performance testing requires realistic content distribution across multiple sections "
     "and varying page sizes to accurately measure build times.",
-
     "The generated content includes typical elements found in documentation sites: "
     "headings, lists, code blocks, and internal links.",
 ]
@@ -95,11 +101,7 @@ LIST_TEMPLATES = [
 ]
 
 
-def generate_page(
-    section: str,
-    page_num: int,
-    total_pages: int
-) -> tuple[str, str]:
+def generate_page(section: str, page_num: int, total_pages: int) -> tuple[str, str]:
     """Generate a single page with realistic content."""
     title = f"{section.title()} Page {page_num}"
     description = f"Generated page {page_num} in {section} section for testing"
@@ -197,4 +199,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

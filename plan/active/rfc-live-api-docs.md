@@ -163,14 +163,14 @@ class Endpoint:
 
 class OpenAPIParser:
     """Parse OpenAPI specs from various sources."""
-    
+
     @classmethod
     async def from_server(cls, base_url: str, spec_path: str = "/openapi.json") -> OpenAPISpec:
         """Fetch and parse spec from running server."""
         async with httpx.AsyncClient() as client:
             # Try common spec paths
             paths_to_try = [spec_path, "/openapi.json", "/swagger.json", "/api/openapi.json"]
-            
+
             for path in paths_to_try:
                 try:
                     resp = await client.get(f"{base_url}{path}")
@@ -178,9 +178,9 @@ class OpenAPIParser:
                         return cls.parse(resp.json())
                 except:
                     continue
-            
+
             raise ValueError(f"Could not find OpenAPI spec at {base_url}")
-    
+
     @classmethod
     def from_file(cls, path: Path) -> OpenAPISpec:
         """Parse spec from local file."""
@@ -190,7 +190,7 @@ class OpenAPIParser:
         else:
             data = json.loads(content)
         return cls.parse(data)
-    
+
     @classmethod
     def parse(cls, data: dict) -> OpenAPISpec:
         """Parse OpenAPI spec dictionary."""
@@ -203,7 +203,7 @@ class OpenAPIParser:
             schemas=cls._parse_schemas(data.get("components", {}).get("schemas", {})),
             security_schemes=cls._parse_security(data.get("components", {}).get("securitySchemes", {})),
         )
-    
+
     @classmethod
     def _parse_paths(cls, paths: dict) -> dict[str, PathItem]:
         """Parse path items into endpoints."""
@@ -235,49 +235,49 @@ class OpenAPIParser:
 
 class APIDocGenerator:
     """Generate markdown documentation from OpenAPI spec."""
-    
+
     def __init__(self, spec: OpenAPISpec, options: GeneratorOptions):
         self.spec = spec
         self.options = options
-    
+
     def generate(self, output_dir: Path) -> list[Path]:
         """Generate all documentation files."""
         files = []
-        
+
         # Generate index
         files.append(self._generate_index(output_dir))
-        
+
         # Generate endpoint pages
         for endpoint in self.spec.endpoints:
             files.append(self._generate_endpoint(endpoint, output_dir))
-        
+
         # Generate schema pages
         for name, schema in self.spec.schemas.items():
             files.append(self._generate_schema(name, schema, output_dir))
-        
+
         return files
-    
+
     def _generate_endpoint(self, endpoint: Endpoint, output_dir: Path) -> Path:
         """Generate documentation for a single endpoint."""
-        
+
         # Determine output path from tags/path
         if endpoint.tags:
             section = endpoint.tags[0].lower().replace(" ", "-")
         else:
             section = "endpoints"
-        
+
         filename = self._endpoint_to_filename(endpoint)
         path = output_dir / section / filename
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         content = self._render_endpoint(endpoint)
         path.write_text(content)
-        
+
         return path
-    
+
     def _render_endpoint(self, endpoint: Endpoint) -> str:
         """Render endpoint to markdown."""
-        
+
         lines = [
             "---",
             f"title: \"{endpoint.summary or endpoint.operation_id}\"",
@@ -289,34 +289,34 @@ class APIDocGenerator:
             f"# {endpoint.method} {endpoint.path}",
             "",
         ]
-        
+
         if endpoint.description:
             lines.extend([endpoint.description, ""])
-        
+
         # Parameters
         if endpoint.parameters:
             lines.extend(self._render_parameters(endpoint.parameters))
-        
+
         # Request body
         if endpoint.request_body:
             lines.extend(self._render_request_body(endpoint.request_body))
-        
+
         # Responses
         lines.extend(self._render_responses(endpoint.responses))
-        
+
         # Example
         lines.extend(self._render_example(endpoint))
-        
+
         # Try It (if live mode)
         if self.options.live_server:
             lines.extend(self._render_try_it(endpoint))
-        
+
         return "\n".join(lines)
-    
+
     def _render_example(self, endpoint: Endpoint) -> list[str]:
         """Generate example request/response."""
         lines = ["## Example", ""]
-        
+
         # Generate curl example
         curl = self._generate_curl(endpoint)
         lines.extend([
@@ -327,7 +327,7 @@ class APIDocGenerator:
             "```",
             "",
         ])
-        
+
         # Generate example response
         if "200" in endpoint.responses:
             response = endpoint.responses["200"]
@@ -340,33 +340,33 @@ class APIDocGenerator:
                 "```",
                 "",
             ])
-        
+
         return lines
-    
+
     def _generate_curl(self, endpoint: Endpoint) -> str:
         """Generate curl command for endpoint."""
         parts = [f"curl -X {endpoint.method}"]
-        
+
         url = f"{self.options.base_url}{endpoint.path}"
-        
+
         # Add path parameters as placeholders
         for param in endpoint.parameters:
             if param.location == "path":
                 url = url.replace(f"{{{param.name}}}", f"<{param.name}>")
-        
+
         parts.append(f'  "{url}"')
-        
+
         # Add headers
         if endpoint.request_body:
             parts.append('  -H "Content-Type: application/json"')
-        
+
         # Add body
         if endpoint.request_body:
             example = self._generate_request_example(endpoint.request_body)
             parts.append(f"  -d '{json.dumps(example)}'")
-        
+
         return " \\\n".join(parts)
-    
+
     def _render_try_it(self, endpoint: Endpoint) -> list[str]:
         """Render interactive Try It section."""
         return [
@@ -385,11 +385,11 @@ class APIDocGenerator:
 
 class APITester:
     """Execute live API requests from documentation."""
-    
+
     def __init__(self, base_url: str, auth_token: str | None = None):
         self.base_url = base_url
         self.auth_token = auth_token
-    
+
     async def execute(
         self,
         method: str,
@@ -399,21 +399,21 @@ class APITester:
         headers: dict | None = None,
     ) -> APIResponse:
         """Execute API request and return response."""
-        
+
         url = f"{self.base_url}{path}"
-        
+
         # Replace path parameters
         if params:
             for key, value in params.items():
                 url = url.replace(f"{{{key}}}", str(value))
-        
+
         request_headers = headers or {}
         if self.auth_token:
             request_headers["Authorization"] = f"Bearer {self.auth_token}"
-        
+
         async with httpx.AsyncClient() as client:
             start = time.perf_counter()
-            
+
             response = await client.request(
                 method=method,
                 url=url,
@@ -421,9 +421,9 @@ class APITester:
                 headers=request_headers,
                 timeout=30,
             )
-            
+
             duration = time.perf_counter() - start
-        
+
         return APIResponse(
             status_code=response.status_code,
             headers=dict(response.headers),
@@ -439,25 +439,25 @@ class APITester:
 
 class APITesterShortcode(Shortcode):
     """Interactive API testing component."""
-    
+
     name = "api-tester"
-    
+
     def render(self, endpoint: str, **kwargs) -> str:
         method, path = endpoint.split(" ", 1)
-        
+
         return f'''
 <div class="api-tester" data-method="{method}" data-path="{path}">
     <div class="api-tester-params">
         <!-- Parameter inputs generated from schema -->
     </div>
-    
+
     <div class="api-tester-body">
         <label>Request Body</label>
         <textarea class="api-tester-body-input" placeholder="{{}}"></textarea>
     </div>
-    
+
     <button class="api-tester-send">Send Request</button>
-    
+
     <div class="api-tester-response" style="display: none;">
         <div class="api-tester-status"></div>
         <div class="api-tester-time"></div>
@@ -470,10 +470,10 @@ class APITesterShortcode(Shortcode):
     const tester = document.currentScript.previousElementSibling;
     const sendBtn = tester.querySelector('.api-tester-send');
     const responseDiv = tester.querySelector('.api-tester-response');
-    
+
     sendBtn.addEventListener('click', async () => {{
         const body = tester.querySelector('.api-tester-body-input').value;
-        
+
         try {{
             const resp = await fetch('/_bengal/api-test', {{
                 method: 'POST',
@@ -484,9 +484,9 @@ class APITesterShortcode(Shortcode):
                     body: body ? JSON.parse(body) : null,
                 }}),
             }});
-            
+
             const result = await resp.json();
-            
+
             responseDiv.style.display = 'block';
             tester.querySelector('.api-tester-status').textContent = `Status: ${{result.status_code}}`;
             tester.querySelector('.api-tester-time').textContent = `Time: ${{result.duration_ms.toFixed(0)}}ms`;
@@ -642,4 +642,3 @@ generate_fake_data = true
 - [Swagger UI](https://swagger.io/tools/swagger-ui/)
 - [Redoc](https://redocly.com/redoc/)
 - [Stoplight Elements](https://stoplight.io/open-source/elements)
-

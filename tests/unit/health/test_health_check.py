@@ -67,9 +67,7 @@ class TestHealthCheckParallelExecution:
     def test_parallel_execution_runs_all_validators(self, mock_site):
         """Test that parallel execution runs all validators."""
         # Create 4 validators (above PARALLEL_THRESHOLD of 3)
-        validators = [
-            MockValidator(f"Validator{i}", sleep_time=0.01) for i in range(4)
-        ]
+        validators = [MockValidator(f"Validator{i}", sleep_time=0.01) for i in range(4)]
 
         health_check = HealthCheck(mock_site, auto_register=False)
         for v in validators:
@@ -88,9 +86,7 @@ class TestHealthCheckParallelExecution:
     def test_parallel_execution_faster_than_sequential(self, mock_site):
         """Test that parallel execution is faster than sequential for slow validators."""
         # Create 4 validators that each take 50ms
-        validators = [
-            MockValidator(f"SlowValidator{i}", sleep_time=0.05) for i in range(4)
-        ]
+        validators = [MockValidator(f"SlowValidator{i}", sleep_time=0.05) for i in range(4)]
 
         health_check = HealthCheck(mock_site, auto_register=False)
         for v in validators:
@@ -125,16 +121,12 @@ class TestHealthCheckParallelExecution:
         assert len(report.validator_reports) == 4
 
         # Find the bad validator's report
-        bad_report = next(
-            r for r in report.validator_reports if r.validator_name == "Bad"
-        )
+        bad_report = next(r for r in report.validator_reports if r.validator_name == "Bad")
         assert bad_report.error_count == 1
         assert "crashed" in bad_report.results[0].message.lower()
 
         # Good validators should have succeeded
-        good_reports = [
-            r for r in report.validator_reports if r.validator_name.startswith("Good")
-        ]
+        good_reports = [r for r in report.validator_reports if r.validator_name.startswith("Good")]
         for gr in good_reports:
             assert gr.error_count == 0
 
@@ -148,11 +140,10 @@ class TestHealthCheckParallelExecution:
             health_check.register(v)
 
         # Patch to verify sequential method is called
-        with patch.object(
-            health_check, "_run_validators_sequential"
-        ) as mock_sequential, patch.object(
-            health_check, "_run_validators_parallel"
-        ) as mock_parallel:
+        with (
+            patch.object(health_check, "_run_validators_sequential") as mock_sequential,
+            patch.object(health_check, "_run_validators_parallel") as mock_parallel,
+        ):
             mock_sequential.return_value = None
             health_check.run()
 
@@ -169,11 +160,10 @@ class TestHealthCheckParallelExecution:
             health_check.register(v)
 
         # Patch to verify parallel method is called
-        with patch.object(
-            health_check, "_run_validators_sequential"
-        ) as mock_sequential, patch.object(
-            health_check, "_run_validators_parallel"
-        ) as mock_parallel:
+        with (
+            patch.object(health_check, "_run_validators_sequential") as mock_sequential,
+            patch.object(health_check, "_run_validators_parallel") as mock_parallel,
+        ):
             mock_parallel.return_value = None
             health_check.run()
 
@@ -191,18 +181,14 @@ class TestHealthCheckParallelExecution:
         ]
 
         # Run with parallel (4 validators)
-        validators_parallel = [
-            MockValidator(f"V{i}", results=results_data[i]) for i in range(4)
-        ]
+        validators_parallel = [MockValidator(f"V{i}", results=results_data[i]) for i in range(4)]
         health_check_parallel = HealthCheck(mock_site, auto_register=False)
         for v in validators_parallel:
             health_check_parallel.register(v)
         report_parallel = health_check_parallel.run()
 
         # Run with sequential (2 validators, below threshold)
-        validators_sequential = [
-            MockValidator(f"V{i}", results=results_data[i]) for i in range(2)
-        ]
+        validators_sequential = [MockValidator(f"V{i}", results=results_data[i]) for i in range(2)]
         health_check_sequential = HealthCheck(mock_site, auto_register=False)
         for v in validators_sequential:
             health_check_sequential.register(v)
@@ -471,4 +457,3 @@ class TestHealthCheckIntegration:
         health_check.run(build_context=build_context)
 
         assert ContextCheckingValidator.received_context is build_context
-

@@ -89,7 +89,7 @@ def _section(self) -> Any | None:
     """Get the section this page belongs to (lazy lookup via path)."""
     if self._section_path is None:  # ← Always true for virtual pages!
         return None  # ← Returns None, navigation breaks
-    
+
     # ... lookup logic never reached for virtual pages
 ```
 
@@ -262,11 +262,11 @@ def _section(self) -> Any | None:
     """Get the section this page belongs to."""
     if self._section_path is None and self._section_url is None:
         return None
-    
+
     if self._site is None:
         # ... warning logic
         return None
-    
+
     if self._section_path is not None:
         # Regular section: path-based lookup
         return self._site.get_section_by_path(self._section_path)
@@ -340,14 +340,14 @@ def _section(self, value: Any) -> None:
        """Autodoc pages should have hierarchical navigation, not flat."""
        site = Site.from_config(Path("site"))
        ContentOrchestrator(site).discover()
-       
+
        # Find a deeply nested autodoc page
        cascade_page = next(p for p in site.pages if "cascade_engine" in p.title)
-       
+
        # Verify it has a section
        assert cascade_page._section is not None
        assert cascade_page._section.name == "core"
-       
+
        # Verify hierarchical root
        assert cascade_page._section.root.name == "api"
    ```
@@ -409,4 +409,3 @@ print(f"api._virtual={api_section._virtual}")  # True
 - [architecture/object-model.md](../architecture/object-model.md) - Page/Section relationships
 - [bengal/core/page/page_core.py](../../bengal/core/page/page_core.py) - Cache contract (why path-based lookup exists)
 - [tests/unit/core/test_page_section_references.py](../../tests/unit/core/test_page_section_references.py) - Existing tests
-

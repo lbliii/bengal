@@ -456,4 +456,3 @@ class TestRSSGeneratorLinkGeneration:
         link = f"{baseurl}/{page.slug}/"
 
         assert link == "https://example.com/test-post/"
-

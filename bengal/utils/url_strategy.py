@@ -5,7 +5,6 @@ Provides pure utility functions for computing output paths and URLs.
 Used by orchestrators to ensure consistent path generation across the system.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,9 +31,7 @@ class URLStrategy:
     """
 
     @staticmethod
-    def compute_regular_page_output_path(
-        page: Page, site: Site, pre_cascade: bool = False
-    ) -> Path:
+    def compute_regular_page_output_path(page: Page, site: Site, pre_cascade: bool = False) -> Path:
         """
         Compute output path for a regular content page.
 

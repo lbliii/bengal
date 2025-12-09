@@ -1,30 +1,69 @@
 """
 Button directive for Mistune.
 
-Provides clean button syntax for CTAs and navigation:
+Provides clean button syntax for CTAs and navigation.
 
-    :::{button} /get-started/
-    :color: primary
-    :style: pill
-    :size: large
-
-    Get Started
-    :::
-
-Provides a simple button directive for creating styled button links.
+Architecture:
+    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
 
-from re import Match
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from mistune.directives import DirectivePlugin
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
 
-__all__ = ["ButtonDirective"]
+__all__ = ["ButtonDirective", "ButtonOptions"]
 
 
-class ButtonDirective(DirectivePlugin):
+# Valid option values
+VALID_COLORS = frozenset(
+    ["primary", "secondary", "success", "danger", "warning", "info", "light", "dark"]
+)
+VALID_STYLES = frozenset(["default", "pill", "outline"])
+VALID_SIZES = frozenset(["small", "medium", "large"])
+
+
+@dataclass
+class ButtonOptions(DirectiveOptions):
+    """
+    Options for button directive.
+
+    Attributes:
+        color: Button color theme (primary, secondary, success, danger, etc.)
+        style: Button style (default, pill, outline)
+        size: Button size (small, medium, large)
+        icon: Optional icon name
+        target: Link target (_blank for external links)
+
+    Example:
+        :::{button} /get-started/
+        :color: primary
+        :style: pill
+        :size: large
+        :icon: rocket
+
+        Get Started
+        :::
+    """
+
+    color: str = "primary"
+    style: str = "default"
+    size: str = "medium"
+    icon: str = ""
+    target: str = ""
+
+    _allowed_values: ClassVar[dict[str, list[str]]] = {
+        "color": list(VALID_COLORS),
+        "style": list(VALID_STYLES),
+        "size": list(VALID_SIZES),
+    }
+
+
+class ButtonDirective(BengalDirective):
     """
     Button directive for creating styled link buttons.
 
@@ -60,171 +99,117 @@ class ButtonDirective(DirectivePlugin):
 
         Sign Up Free
         :::
-
-        # External link
-        :::{button} https://github.com/yourproject
-        :color: secondary
-        :target: _blank
-
-        View on GitHub
-        :::
     """
 
-    # Directive names this class registers (for health check introspection)
-    DIRECTIVE_NAMES = ["button"]
+    NAMES: ClassVar[list[str]] = ["button"]
+    TOKEN_TYPE: ClassVar[str] = "button"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = ButtonOptions
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+    # For backward compatibility with health check introspection
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["button"]
+
+    def parse_directive(
+        self,
+        title: str,
+        options: ButtonOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
         """
-        Parse button directive.
+        Build button token from parsed components.
 
-        Args:
-            block: Block parser
-            m: Regex match object
-            state: Parser state
-
-        Returns:
-            Token dict with type 'button'
+        Title is the URL, content is the button text.
+        Note: Uses 'label' instead of 'text' to avoid conflict with mistune's
+        render signature which passes text as positional argument.
         """
-        # Get URL/path from title
-        url = self.parse_title(m).strip()
-
-        # Parse options
-        options = dict(self.parse_options(m))
-
-        # Parse button text content
-        content = self.parse_content(m).strip()
-
-        # Extract options with defaults
-        color = options.get("color", "primary").strip()
-        style = options.get("style", "default").strip()
-        size = options.get("size", "medium").strip()
-        icon = options.get("icon", "").strip()
-        target = options.get("target", "").strip()
-
-        return {
-            "type": "button",
-            "attrs": {
-                "url": url,
-                "text": content,
-                "color": color,
-                "style": style,
-                "size": size,
-                "icon": icon,
-                "target": target,
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "url": title.strip() if title else "#",
+                "label": content.strip() if content else "Button",  # 'label' avoids conflict
+                "color": options.color,
+                "style": options.style,
+                "size": options.size,
+                "icon": options.icon,
+                "target": options.target,
             },
-        }
+            children=[],  # Buttons don't have parsed children
+        )
 
-    def __call__(self, directive: Any, md: Any) -> None:
-        """Register the directive with mistune."""
-        directive.register("button", self.parse)
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """
+        Render button as HTML link.
 
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("button", render_button)
+        Renders as an <a> tag with button styling classes.
+
+        Note: Button text is in attrs['label'] (not 'text') to avoid
+        conflict with mistune's render signature.
+        """
+        url = attrs.get("url", "#")
+        button_text = attrs.get("label", "Button")  # Use 'label', not 'text'
+        color = attrs.get("color", "primary")
+        style = attrs.get("style", "default")
+        size = attrs.get("size", "medium")
+        icon = attrs.get("icon", "")
+        target = attrs.get("target", "")
+
+        # Build CSS classes
+        classes = ["button"]
+
+        # Color class
+        if color in VALID_COLORS:
+            classes.append(f"button-{color}")
+        else:
+            classes.append("button-primary")
+
+        # Style class
+        if style == "pill":
+            classes.append("button-pill")
+        elif style == "outline":
+            classes.append("button-outline")
+
+        # Size class
+        if size == "small":
+            classes.append("button-sm")
+        elif size == "large":
+            classes.append("button-lg")
+
+        class_str = " ".join(classes)
+
+        # Build HTML attributes
+        attrs_parts = [f'class="{class_str}"', f'href="{self.escape_html(url)}"']
+
+        if target:
+            attrs_parts.append(f'target="{self.escape_html(target)}"')
+            if target == "_blank":
+                attrs_parts.append('rel="noopener noreferrer"')
+
+        attrs_str = " ".join(attrs_parts)
+
+        # Build button content (optional icon + text)
+        content_parts = []
+
+        if icon:
+            rendered_icon = self._render_icon(icon)
+            if rendered_icon:
+                content_parts.append(f'<span class="button-icon">{rendered_icon}</span>')
+
+        content_parts.append(f'<span class="button-text">{self.escape_html(button_text)}</span>')
+
+        content_html = "".join(content_parts)
+
+        return f"<a {attrs_str}>{content_html}</a>\n"
+
+    @staticmethod
+    def _render_icon(icon_name: str) -> str:
+        """Render icon for button using Bengal SVG icons."""
+        from bengal.rendering.plugins.directives._icons import render_icon
+
+        return render_icon(icon_name, size=18)
 
 
+# Backward compatibility
 def render_button(renderer: Any, text: str, **attrs: Any) -> str:
-    """
-    Render button as HTML link.
-
-    Args:
-        renderer: Mistune renderer
-        text: Button text (content between :::{button} and :::)
-        **attrs: Button attributes (url, color, style, size, icon, target)
-
-    Returns:
-        HTML string for button
-    """
-    url = attrs.get("url", "#")
-    button_text = attrs.get("text", text or "Button")
-    color = attrs.get("color", "primary")
-    style = attrs.get("style", "default")
-    size = attrs.get("size", "medium")
-    icon = attrs.get("icon", "")
-    target = attrs.get("target", "")
-
-    # Build CSS classes
-    classes = ["button"]
-
-    # Color class
-    valid_colors = ["primary", "secondary", "success", "danger", "warning", "info", "light", "dark"]
-    if color in valid_colors:
-        classes.append(f"button-{color}")
-    else:
-        classes.append("button-primary")  # Fallback
-
-    # Style class
-    if style == "pill":
-        classes.append("button-pill")
-    elif style == "outline":
-        classes.append("button-outline")
-    # 'default' style has no extra class
-
-    # Size class
-    if size == "small":
-        classes.append("button-sm")
-    elif size == "large":
-        classes.append("button-lg")
-    # 'medium' is default, no extra class
-
-    class_str = " ".join(classes)
-
-    # Build HTML attributes
-    attrs_parts = [f'class="{class_str}"', f'href="{_escape_html(url)}"']
-
-    if target:
-        attrs_parts.append(f'target="{_escape_html(target)}"')
-        if target == "_blank":
-            attrs_parts.append('rel="noopener noreferrer"')
-
-    attrs_str = " ".join(attrs_parts)
-
-    # Build button content (optional icon + text)
-    content_parts = []
-
-    if icon:
-        rendered_icon = _render_icon(icon)
-        if rendered_icon:
-            content_parts.append(f'<span class="button-icon">{rendered_icon}</span>')
-
-    content_parts.append(f'<span class="button-text">{_escape_html(button_text)}</span>')
-
-    content_html = "".join(content_parts)
-
-    return f"<a {attrs_str}>{content_html}</a>\n"
-
-
-def _render_icon(icon_name: str) -> str:
-    """
-    Render icon for button using Bengal SVG icons with emoji fallback.
-
-    Args:
-        icon_name: Name of the icon (e.g., "terminal", "download", "external")
-
-    Returns:
-        HTML for icon (inline SVG preferred, emoji fallback)
-    """
-    from bengal.rendering.plugins.directives._icons import render_icon
-
-    return render_icon(icon_name, size=18)
-
-
-def _escape_html(text: str) -> str:
-    """
-    Escape HTML special characters.
-
-    Args:
-        text: Text to escape
-
-    Returns:
-        Escaped text
-    """
-    if not text:
-        return ""
-
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#x27;")
-    )
+    """Legacy render function for backward compatibility."""
+    return ButtonDirective().render(renderer, text, **attrs)

@@ -256,4 +256,3 @@ class TestCodeBlockSkipping:
         result = parser.parse(markdown, {})
         # Only 1 SVG - from the actual table, not the code example
         assert result.count("<svg") == 1
-

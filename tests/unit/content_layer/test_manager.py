@@ -220,4 +220,3 @@ class TestContentLayerManager:
 
         assert "uncached" in status
         assert status["uncached"]["cached"] is False
-

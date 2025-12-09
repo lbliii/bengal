@@ -14,5 +14,3 @@ These templates are intentionally minimal (no styling, basic structure) and serv
 **For site developers**: Override these by creating templates in your site at:
 - `templates/api-reference/module.html`
 - `templates/api-reference/section-index.html`
-
-

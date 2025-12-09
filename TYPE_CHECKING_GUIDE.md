@@ -64,7 +64,7 @@ from typing import reveal_type
 def example_function(data: dict[str, Any]) -> None:
     result = data.get("key")
     reveal_type(result)  # Shows: Revealed type is "Any | None"
-    
+
     # After fixing:
     result: str | None = data.get("key")
     reveal_type(result)  # Shows: Revealed type is "str | None"
@@ -274,6 +274,3 @@ disallow_incomplete_defs = true     # Requires complete annotations
 - [Python Type Hints (PEP 484)](https://peps.python.org/pep-0484/)
 - [Bengal Type Safety RFC](plan/active/rfc-type-safety-improvements.md)
 - [Python Style Guide](.cursor/rules/python-style.mdc)
-
-
-

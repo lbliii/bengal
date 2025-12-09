@@ -1,6 +1,6 @@
 /**
  * Bengal SSG - Typography Token System
- * 
+ *
  * Clean, systematic typography scale with fluid sizing.
  * Single source of truth for all text sizing and weights.
  */
@@ -13,7 +13,7 @@
    /**
    * Type Scale: Major Third (1.25 ratio)
    * Base: 16px (1rem)
-   * 
+   *
    * Scale progression:
    * xs:  0.75rem  (12px)
    * sm:  0.875rem (14px)
@@ -88,7 +88,7 @@
    /**
    * Tracking scale for optical adjustment at different sizes.
    * Larger type needs tighter tracking for visual cohesion.
-   * 
+   *
    * display: -0.04em  (40px+ display/hero text)
    * tighter: -0.05em  (h1/h2 headings)
    * tight:   -0.025em (h3/h4 headings)
@@ -120,34 +120,34 @@
 
    /**
    * Display/Heading font - Distinctive typeface for h1/h2/hero text.
-   * 
+   *
    * DEFAULT: Instrument Serif (loaded via base/fonts.css)
-   * 
+   *
    * OVERRIDE OPTIONS:
-   * 
+   *
    * Option 1: Configure in bengal.toml (recommended)
    * ------------------------------------------------
    * [fonts]
    * display = "Fraunces:400,700"
-   * 
+   *
    * This automatically:
    * - Downloads the font from Google Fonts
    * - Generates @font-face rules in fonts.css
    * - Creates --font-display CSS variable
    * - Falls back gracefully if font fails to load
-   * 
+   *
    * Option 2: Override in custom CSS
    * ---------------------------------
    * :root {
    *   --font-family-display: 'Your Font', Georgia, serif;
    * }
-   * 
+   *
    * Recommended fonts (all OFL licensed, available via Google Fonts):
    *   - Instrument Serif: Refined, modern (~25KB) [DEFAULT]
    *   - Fraunces: Soft, optical sizing (~35KB variable)
    *   - DM Serif Display: Classic, bold (~15KB)
    *   - Newsreader: Editorial clarity (~30KB)
-   * 
+   *
    * FALLBACK CHAIN:
    *   1. --font-display (from bengal.toml [fonts] config)
    *   2. --font-display-default (Instrument Serif from fonts.css)

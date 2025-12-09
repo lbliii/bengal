@@ -118,7 +118,7 @@ class TunnelClient:
         self.local_port = local_port
         self.config = config
         self.public_url: str | None = None
-    
+
     async def connect(self) -> str:
         """Connect to relay and get public URL."""
         async with websockets.connect(self.config.relay_url) as ws:
@@ -127,21 +127,21 @@ class TunnelClient:
                 "type": "register",
                 "token": self.config.auth_token,
             }))
-            
+
             # Receive assigned URL
             response = json.loads(await ws.recv())
             self.public_url = response["url"]
-            
+
             # Handle incoming requests
             await self._handle_requests(ws)
-        
+
         return self.public_url
-    
+
     async def _handle_requests(self, ws):
         """Forward requests from relay to local server."""
         async for message in ws:
             request = json.loads(message)
-            
+
             # Forward to local server
             async with aiohttp.ClientSession() as session:
                 async with session.request(
@@ -171,16 +171,16 @@ tunnels: dict[str, WebSocket] = {}
 @app.websocket("/tunnel")
 async def tunnel_endpoint(ws: WebSocket):
     await ws.accept()
-    
+
     # Assign unique subdomain
     tunnel_id = uuid.uuid4().hex[:8]
     tunnels[tunnel_id] = ws
-    
+
     await ws.send_json({
         "type": "registered",
         "url": f"https://{tunnel_id}.preview.bengal.dev",
     })
-    
+
     try:
         await ws.receive()  # Keep connection open
     finally:
@@ -191,13 +191,13 @@ async def proxy(request: Request):
     # Extract tunnel ID from subdomain
     host = request.headers.get("host", "")
     tunnel_id = host.split(".")[0]
-    
+
     if tunnel_id not in tunnels:
         raise HTTPException(404, "Preview not found")
-    
+
     ws = tunnels[tunnel_id]
     request_id = uuid.uuid4().hex
-    
+
     # Forward to local server via WebSocket
     await ws.send_json({
         "id": request_id,
@@ -206,13 +206,13 @@ async def proxy(request: Request):
         "headers": dict(request.headers),
         "body": await request.body(),
     })
-    
+
     # Wait for response (with timeout)
     response = await asyncio.wait_for(
         receive_response(ws, request_id),
         timeout=30
     )
-    
+
     return Response(
         content=response["body"],
         status_code=response["status"],
@@ -245,7 +245,7 @@ class CloudflareTunnel:
     def __init__(self, local_port: int):
         self.local_port = local_port
         self.process: subprocess.Popen | None = None
-    
+
     async def start(self) -> str:
         """Start cloudflared tunnel and return URL."""
         self.process = subprocess.Popen(
@@ -253,15 +253,15 @@ class CloudflareTunnel:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        
+
         # Parse URL from output
         for line in self.process.stdout:
             match = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com', line.decode())
             if match:
                 return match.group(0)
-        
+
         raise RuntimeError("Failed to get tunnel URL")
-    
+
     def stop(self):
         if self.process:
             self.process.terminate()
@@ -292,12 +292,12 @@ class NgrokTunnel:
         self.local_port = local_port
         if auth_token:
             ngrok.set_auth_token(auth_token)
-    
+
     def start(self) -> str:
         """Start ngrok tunnel and return URL."""
         tunnel = ngrok.connect(self.local_port, "http")
         return tunnel.public_url
-    
+
     def stop(self):
         ngrok.kill()
 ```
@@ -327,7 +327,7 @@ class TunnelProvider(ABC):
     async def start(self) -> str:
         """Start tunnel and return public URL."""
         pass
-    
+
     @abstractmethod
     def stop(self):
         """Stop tunnel."""
@@ -338,7 +338,7 @@ def get_tunnel_provider(
     provider: str = "auto",
 ) -> TunnelProvider:
     """Get appropriate tunnel provider."""
-    
+
     if provider == "cloudflare" or (provider == "auto" and _has_cloudflared()):
         return CloudflareTunnel(local_port)
     elif provider == "ngrok":
@@ -362,7 +362,7 @@ bengal serve --share
 # Output:
 # 🌐 Local:  http://localhost:8000
 # 🔗 Share:  https://abc123.trycloudflare.com
-# 
+#
 # Share this URL with reviewers. Press Ctrl+C to stop.
 ```
 
@@ -424,12 +424,12 @@ class PreviewAuthMiddleware:
     def __init__(self, auth: PreviewAuth):
         self.auth = auth
         self.used_tokens: set[str] = set()
-    
+
     async def __call__(self, request, call_next):
         # Check expiration
         if self.auth.expires_at and datetime.now() > self.auth.expires_at:
             return Response("Preview expired", status_code=410)
-        
+
         # Check single-use token
         token = request.query_params.get("token")
         if self.auth.single_use_tokens:
@@ -438,13 +438,13 @@ class PreviewAuthMiddleware:
             if token in self.used_tokens:
                 return Response("Token already used", status_code=401)
             self.used_tokens.add(token)
-        
+
         # Check password
         if self.auth.password:
             # Check cookie first
             if request.cookies.get("preview_auth") == self._hash_password():
                 return await call_next(request)
-            
+
             # Check form submission
             if request.method == "POST" and request.url.path == "/_auth":
                 form = await request.form()
@@ -452,15 +452,15 @@ class PreviewAuthMiddleware:
                     response = RedirectResponse("/")
                     response.set_cookie("preview_auth", self._hash_password())
                     return response
-            
+
             # Show login form
             return HTMLResponse(self._login_form())
-        
+
         return await call_next(request)
-    
+
     def _hash_password(self) -> str:
         return hashlib.sha256(self.auth.password.encode()).hexdigest()
-    
+
     def _login_form(self) -> str:
         return """
         <!DOCTYPE html>
@@ -569,6 +569,3 @@ default_expiry = "24h"
 - [ngrok](https://ngrok.com/)
 - [localtunnel](https://github.com/localtunnel/localtunnel)
 - [Vercel Preview Deployments](https://vercel.com/docs/concepts/deployments/preview-deployments)
-
-
-

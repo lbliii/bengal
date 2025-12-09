@@ -307,9 +307,7 @@ class TestDisplayFunctions:
         mock_cli_class.return_value.error_header.assert_not_called()
 
     @patch("bengal.utils.build_stats.CLIOutput")
-    def test_display_simple_build_stats_handles_skipped(
-        self, mock_cli_class: MagicMock
-    ) -> None:
+    def test_display_simple_build_stats_handles_skipped(self, mock_cli_class: MagicMock) -> None:
         """Test display_simple_build_stats handles skipped builds."""
         from bengal.utils.build_stats import BuildStats, display_simple_build_stats
 
@@ -430,6 +428,3 @@ class TestBuildStatsCacheStatistics:
         assert stats.cache_hits == 100
         assert stats.cache_misses == 20
         assert stats.time_saved_ms == 5000.0
-
-
-

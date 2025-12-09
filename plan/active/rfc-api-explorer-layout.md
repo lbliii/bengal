@@ -114,23 +114,23 @@ class Page:
     core: PageCore
     content: str
     rendered_html: str | None = None
-    
+
     # NEW: Virtual page support
     _virtual: bool = False
     _render_data: dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def is_virtual(self) -> bool:
         """True if this is a virtual page (no source file)."""
         return self._virtual
-    
+
     @property
     def source_path(self) -> Path | None:
         """Source path (None for virtual pages)."""
         if self._virtual:
             return None
         return Path(self.core.source_path)
-    
+
     @classmethod
     def create_virtual(
         cls,
@@ -178,15 +178,15 @@ class Section:
     pages: list[Page] = field(default_factory=list)
     subsections: list[Section] = field(default_factory=list)
     index_page: Page | None = None
-    
+
     # NEW: Virtual section support
     _virtual: bool = False
-    
+
     @property
     def is_virtual(self) -> bool:
         """True if this is a virtual section (no disk directory)."""
         return self._virtual or self.path is None
-    
+
     @classmethod
     def create_virtual(
         cls,
@@ -211,61 +211,61 @@ Rewrite to generate virtual pages:
 
 class AutodocOrchestrator:
     """Generate API documentation as virtual pages."""
-    
+
     def __init__(self, site: Site):
         self.site = site
         self.config = site.config.get("autodoc", {})
         self.template_env = self._create_template_env()
-    
+
     def generate(self) -> tuple[list[Page], list[Section]]:
         """
         Generate API docs as virtual pages.
-        
+
         Returns:
             Tuple of (pages, sections) to add to site
         """
         if not self.config.get("enabled", False):
             return [], []
-        
+
         # 1. Discover Python modules
         source_paths = self.config.get("sources", [])
         doc_elements = self._extract_documentation(source_paths)
-        
+
         # 2. Create virtual section hierarchy
         sections = self._create_sections(doc_elements)
-        
+
         # 3. Create virtual pages
         pages = self._create_pages(doc_elements, sections)
-        
+
         # 4. Create index pages for sections
         self._create_index_pages(sections)
-        
+
         logger.info(
             "autodoc_virtual_pages_created",
             pages=len(pages),
             sections=len(sections),
         )
-        
+
         return pages, sections
-    
+
     def _create_sections(self, elements: list[DocElement]) -> dict[str, Section]:
         """Create virtual section hierarchy from doc elements."""
         sections: dict[str, Section] = {}
-        
+
         # Root API section
         api_section = Section.create_virtual(
             name="api",
             relative_url="/api/",
         )
         sections["api"] = api_section
-        
+
         # Create subsections for each package
         for element in elements:
             if element.element_type == "module":
                 path_parts = element.qualified_name.split(".")
                 current_path = "api"
                 parent_section = api_section
-                
+
                 for part in path_parts:
                     section_path = f"{current_path}/{part}"
                     if section_path not in sections:
@@ -275,25 +275,25 @@ class AutodocOrchestrator:
                         )
                         sections[section_path] = subsection
                         parent_section.subsections.append(subsection)
-                    
+
                     parent_section = sections[section_path]
                     current_path = section_path
-        
+
         return sections
-    
+
     def _create_pages(
-        self, 
+        self,
         elements: list[DocElement],
         sections: dict[str, Section],
     ) -> list[Page]:
         """Create virtual pages from doc elements."""
         pages = []
-        
+
         for element in elements:
             # Determine section path
             path_parts = element.qualified_name.split(".")
             section_path = "api/" + "/".join(path_parts[:-1]) if len(path_parts) > 1 else "api"
-            
+
             # Create virtual page
             page = Page.create_virtual(
                 url=f"/api/{element.qualified_name.replace('.', '/')}/",
@@ -305,16 +305,16 @@ class AutodocOrchestrator:
                 },
                 section_path=section_path,
             )
-            
+
             # Add to section
             section = sections.get(section_path)
             if section:
                 section.pages.append(page)
-            
+
             pages.append(page)
-        
+
         return pages
-    
+
     def _get_template(self, element: DocElement) -> str:
         """Get HTML template for element type."""
         templates = {
@@ -323,7 +323,7 @@ class AutodocOrchestrator:
             "function": "api-explorer/function.html",
         }
         return templates.get(element.element_type, "api-explorer/default.html")
-    
+
     def _create_index_pages(self, sections: dict[str, Section]) -> None:
         """Create index pages for all sections."""
         for path, section in sections.items():
@@ -352,18 +352,18 @@ Update content discovery to include autodoc:
 class ContentOrchestrator:
     def discover_content(self, ...) -> None:
         # ... existing discovery code ...
-        
+
         # NEW: Generate autodoc virtual pages
         autodoc = AutodocOrchestrator(self.site)
         autodoc_pages, autodoc_sections = autodoc.generate()
-        
+
         # Add to site
         self.site.pages.extend(autodoc_pages)
         self.site.sections.extend(autodoc_sections)
-        
+
         # Rebuild section registry (includes virtual sections)
         self.site.register_sections()
-        
+
         self.logger.debug(
             "autodoc_integrated",
             pages=len(autodoc_pages),
@@ -401,11 +401,11 @@ Update renderer to handle virtual pages:
 
 def render_page(self, page: Page, template_env: Environment) -> str:
     """Render a page to HTML."""
-    
+
     # Get template
     template_name = page.core.template
     template = template_env.get_template(template_name)
-    
+
     # Build context
     if page.is_virtual:
         # Virtual page: use render_data directly
@@ -421,7 +421,7 @@ def render_page(self, page: Page, template_env: Environment) -> str:
             "site": self.site,
             "content": self._render_markdown(page.content),
         }
-    
+
     return template.render(**context)
 ```
 
@@ -454,7 +454,7 @@ bengal/themes/default/templates/api-explorer/
 
 {% block content %}
 <div class="api-explorer">
-  
+
   {# Class Card #}
   <details class="api-card api-card--class" open>
     <summary class="api-card__header">
@@ -468,12 +468,12 @@ bengal/themes/default/templates/api-explorer/
       </span>
       <span class="api-card__toggle">▾</span>
     </summary>
-    
+
     <div class="api-card__body">
       {% if element.description %}
       <p class="api-card__description">{{ element.description | first_sentence }}</p>
       {% endif %}
-      
+
       {# Attributes Section #}
       {% if element.attributes %}
       <section class="api-section">
@@ -497,7 +497,7 @@ bengal/themes/default/templates/api-explorer/
         </table>
       </section>
       {% endif %}
-      
+
       {# Methods Section #}
       {% if element.methods %}
       <section class="api-section">
@@ -518,12 +518,12 @@ bengal/themes/default/templates/api-explorer/
       {% endif %}
     </div>
   </details>
-  
+
   {# Method Cards (Collapsed by Default) #}
   {% for method in element.methods %}
   {% include "api-explorer/partials/method-card.html" %}
   {% endfor %}
-  
+
 </div>
 {% endblock %}
 ```
@@ -546,16 +546,16 @@ bengal/themes/default/templates/api-explorer/
     </span>
     <span class="api-card__toggle">▾</span>
   </summary>
-  
+
   <div class="api-card__body">
     {# Signature #}
     <pre class="api-signature">{{ method.signature }}</pre>
-    
+
     {# Description #}
     {% if method.description %}
     <p class="api-card__description">{{ method.description }}</p>
     {% endif %}
-    
+
     {# Parameters #}
     {% if method.parameters | length > 1 %}
     <table class="api-table">
@@ -576,7 +576,7 @@ bengal/themes/default/templates/api-explorer/
       </tbody>
     </table>
     {% endif %}
-    
+
     {# Returns #}
     {% if method.return_type and method.return_type != 'None' %}
     <div class="api-returns">
@@ -587,7 +587,7 @@ bengal/themes/default/templates/api-explorer/
       {% endif %}
     </div>
     {% endif %}
-    
+
     {# Raises #}
     {% for exc in method.raises %}
     <div class="api-raises">
@@ -596,7 +596,7 @@ bengal/themes/default/templates/api-explorer/
       <span class="api-raises__desc">{{ exc.description | default('') }}</span>
     </div>
     {% endfor %}
-    
+
     {# Examples #}
     {% if method.examples %}
     <details class="api-example">

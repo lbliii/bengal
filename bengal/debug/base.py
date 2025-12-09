@@ -163,11 +163,7 @@ class DebugReport:
     @property
     def error_count(self) -> int:
         """Count of error and critical findings."""
-        return sum(
-            1
-            for f in self.findings
-            if f.severity in (Severity.ERROR, Severity.CRITICAL)
-        )
+        return sum(1 for f in self.findings if f.severity in (Severity.ERROR, Severity.CRITICAL))
 
     @property
     def warning_count(self) -> int:
@@ -390,6 +386,3 @@ class DebugRegistry:
         if tool_class:
             return tool_class(site=site, cache=cache, **kwargs)
         return None
-
-
-

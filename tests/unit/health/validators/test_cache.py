@@ -7,8 +7,7 @@ Tests health/validators/cache.py:
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -79,9 +78,7 @@ class TestCacheValidatorLegacyLocation:
         """Warns when cache is at legacy location."""
         # Create cache at old location
         old_cache_path = mock_site.output_dir / ".bengal-cache.json"
-        old_cache_path.write_text(
-            json.dumps({"file_hashes": {}, "dependencies": {}})
-        )
+        old_cache_path.write_text(json.dumps({"file_hashes": {}, "dependencies": {}}))
 
         results = validator.validate(mock_site)
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
@@ -164,10 +161,7 @@ class TestCacheValidatorSize:
 
         results = validator.validate(mock_site)
         # Should have a success message about size
-        size_results = [
-            r for r in results
-            if "size" in r.message.lower() or "MB" in r.message
-        ]
+        size_results = [r for r in results if "size" in r.message.lower() or "MB" in r.message]
         assert len(size_results) >= 1
 
     def test_warns_on_large_file_count(self, validator, mock_site):
@@ -273,6 +267,3 @@ class TestCacheValidatorCorrectLocation:
         results = validator.validate(mock_site)
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         assert any("correct location" in r.message.lower() for r in success_results)
-
-
-

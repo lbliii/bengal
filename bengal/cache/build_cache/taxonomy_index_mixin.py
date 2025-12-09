@@ -152,6 +152,3 @@ class TaxonomyIndexMixin:
             Set of tag slugs
         """
         return self.known_tags.copy()
-
-
-

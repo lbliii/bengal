@@ -16,8 +16,6 @@ keywords:
 - github actions
 - automation
 category: tutorial
-aliases:
-- /docs/guides/ci-cd-setup/
 ---
 
 # Automate with GitHub Actions
@@ -348,5 +346,3 @@ Create `vercel.json`:
 - **[Deployment Options](/docs/building/deployment/)** - Explore other hosting platforms
 - **[Configuration](/docs/building/configuration/)** - Environment-specific settings
 - **[Validation](/docs/extending/validation/)** - Set up health checks
-
-

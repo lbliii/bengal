@@ -16,7 +16,7 @@ class PageOperationsMixin:
     content: str
     rendered_html: str
     links: list[str]
-    source_path: "Path"
+    source_path: Path
     """
     Mixin providing operations for pages.
 

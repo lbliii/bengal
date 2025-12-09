@@ -7,7 +7,6 @@ for the "Copy LLM text" and "Open LLM text" functionality.
 
 from __future__ import annotations
 
-
 from unittest.mock import Mock
 
 import pytest

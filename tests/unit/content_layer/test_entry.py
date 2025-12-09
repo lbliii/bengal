@@ -137,4 +137,3 @@ class TestContentEntry:
         assert kwargs["source_type"] == "github"
         assert kwargs["source_url"] == "https://github.com/org/repo"
         assert kwargs["slug"] == "test-page"
-

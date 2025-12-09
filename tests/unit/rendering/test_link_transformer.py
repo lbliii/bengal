@@ -1,6 +1,5 @@
 """Tests for the link transformer module."""
 
-
 from bengal.rendering.link_transformer import (
     get_baseurl,
     should_transform_links,
@@ -157,5 +156,3 @@ class TestGetBaseurl:
         """Test that empty string is returned for None baseurl."""
         config = {"baseurl": None}
         assert get_baseurl(config) == ""
-
-

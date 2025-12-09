@@ -458,6 +458,3 @@ site/content/docs/tutorials/onboarding/
 - Nesting with fence count increment
 
 **Confidence**: 95% 🟢
-
-
-

@@ -209,7 +209,7 @@ A broader audit of the codebase reveals this is a **systemic issue** beyond just
 @classmethod
 def from_config(cls, root_path: Path, ...) -> Site:
     # root_path used as-is (may be relative)
-    
+
 # Proposed
 @classmethod  
 def from_config(cls, root_path: Path, ...) -> Site:
@@ -247,7 +247,7 @@ if not root_path:
 class ConfigLoader:
     def __init__(self, root_path: Path):
         self.root_path = root_path.resolve()  # Absolute reference point
-    
+
     def _resolve_config_paths(self, config: dict) -> dict:
         """Resolve all path-like config values to absolute paths."""
         path_keys = {
@@ -279,36 +279,36 @@ if TYPE_CHECKING:
 class PathResolver:
     """
     Centralized path resolution utility.
-    
+
     All paths resolved relative to a fixed base (site root).
     Eliminates CWD-dependent behavior.
-    
+
     Usage:
         resolver = PathResolver(site.root_path)
         abs_path = resolver.resolve("../bengal")  # Always absolute
     """
-    
+
     def __init__(self, base: Path):
         """
         Initialize resolver with absolute base path.
-        
+
         Args:
             base: Base path for resolution (must be absolute)
-        
+
         Raises:
             ValueError: If base is not absolute
         """
         if not base.is_absolute():
             raise ValueError(f"PathResolver base must be absolute, got: {base}")
         self.base = base
-    
+
     def resolve(self, path: str | Path) -> Path:
         """
         Resolve path to absolute, relative to base.
-        
+
         Args:
             path: Path to resolve (absolute or relative)
-        
+
         Returns:
             Absolute path
         """
@@ -316,11 +316,11 @@ class PathResolver:
         if p.is_absolute():
             return p
         return (self.base / p).resolve()
-    
+
     def resolve_many(self, paths: list[str | Path]) -> list[Path]:
         """Resolve multiple paths."""
         return [self.resolve(p) for p in paths]
-    
+
     @classmethod
     def from_site(cls, site: Site) -> PathResolver:
         """Create resolver from site instance."""
@@ -337,7 +337,7 @@ class PathResolver:
 class Section:
     """
     Section - represents a content directory OR virtual section.
-    
+
     INTERFACE CONTRACT:
     ===================
     All sections (physical and virtual) MUST provide:
@@ -347,15 +347,15 @@ class Section:
     - relative_url: str
     - path: Path | None  # None for virtual, Path for physical
     - is_virtual: bool
-    
+
     Templates should handle path=None gracefully.
     """
-    
+
     @classmethod
     def create_virtual(cls, ...) -> Section:
         """
         Create virtual section satisfying full interface.
-        
+
         Virtual sections have path=None but all other properties
         must be properly initialized.
         """
@@ -400,7 +400,7 @@ def test_site_root_path_always_absolute():
     """Site.root_path should always be absolute regardless of input."""
     site = Site.from_config(Path("."))
     assert site.root_path.is_absolute()
-    
+
     site = Site.from_config(Path("relative/path"))
     assert site.root_path.is_absolute()
 
@@ -409,10 +409,10 @@ def test_autodoc_source_dirs_resolved_correctly():
     """Autodoc source_dirs should resolve relative to site root."""
     # Given config with relative source_dirs
     config = {"autodoc": {"python": {"source_dirs": ["../src"]}}}
-    
+
     # When autodoc runs
     orchestrator = VirtualAutodocOrchestrator(site)
-    
+
     # Then paths should be absolute
     for source_path in orchestrator._get_source_paths():
         assert source_path.is_absolute()
@@ -421,13 +421,13 @@ def test_autodoc_source_dirs_resolved_correctly():
 def test_virtual_section_satisfies_interface():
     """Virtual sections should have all template-required properties."""
     section = Section.create_virtual(name="api", relative_url="/api/")
-    
+
     # All required properties exist
     assert hasattr(section, 'slug')
     assert hasattr(section, 'title')
     assert hasattr(section, 'relative_url')
     assert hasattr(section, 'is_virtual')
-    
+
     # Properties have correct values
     assert section.slug == "api"
     assert section.is_virtual == True
@@ -505,4 +505,3 @@ Each bug required tracing through multiple files to find the resolution point. C
 - `bengal/autodoc/virtual_orchestrator.py` - Virtual page generation
 - `bengal/autodoc/extractors/python.py` - Module extraction
 - `bengal/core/section.py` - Section model
-

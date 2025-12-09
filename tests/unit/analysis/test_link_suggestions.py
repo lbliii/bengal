@@ -156,12 +156,8 @@ class TestLinkSuggestionEngine:
 
     def test_shared_tags_scoring(self):
         """Test that pages with shared tags get higher scores."""
-        page1 = MockAnalysisPage(
-            source_path=Path("page1.md"), tags=["python", "testing"]
-        )
-        page2 = MockAnalysisPage(
-            source_path=Path("page2.md"), tags=["python", "coding"]
-        )
+        page1 = MockAnalysisPage(source_path=Path("page1.md"), tags=["python", "testing"])
+        page2 = MockAnalysisPage(source_path=Path("page2.md"), tags=["python", "coding"])
         page3 = MockAnalysisPage(source_path=Path("page3.md"), tags=["javascript"])
 
         graph = _create_mock_graph([page1, page2, page3])
@@ -249,8 +245,7 @@ class TestLinkSuggestionEngine:
 
         # Create 20 potential targets
         targets = [
-            MockAnalysisPage(source_path=Path(f"target{i}.md"), tags=["python"])
-            for i in range(20)
+            MockAnalysisPage(source_path=Path(f"target{i}.md"), tags=["python"]) for i in range(20)
         ]
 
         graph = _create_mock_graph([source] + targets)
@@ -292,8 +287,7 @@ class TestSuggestLinksFunction:
     def test_suggest_links(self):
         """Test the convenience function."""
         pages = [
-            MockAnalysisPage(source_path=Path(f"page{i}.md"), tags=["python"])
-            for i in range(3)
+            MockAnalysisPage(source_path=Path(f"page{i}.md"), tags=["python"]) for i in range(3)
         ]
 
         graph = _create_mock_graph(pages)

@@ -456,7 +456,10 @@ class TestActionableRecommendations:
         """Test that recommendations require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting recommendations."):
+        with pytest.raises(
+            RuntimeError,
+            match="KnowledgeGraph is not built. Call .build\\(\\) before getting recommendations.",
+        ):
             graph.get_actionable_recommendations()
 
 
@@ -478,7 +481,10 @@ class TestSEOInsights:
         """Test that SEO insights require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting SEO insights."):
+        with pytest.raises(
+            RuntimeError,
+            match="KnowledgeGraph is not built. Call .build\\(\\) before getting SEO insights.",
+        ):
             graph.get_seo_insights()
 
 
@@ -522,7 +528,10 @@ class TestContentGaps:
         """Test that content gaps require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting content gaps."):
+        with pytest.raises(
+            RuntimeError,
+            match="KnowledgeGraph is not built. Call .build\\(\\) before getting content gaps.",
+        ):
             graph.get_content_gaps()
 
 

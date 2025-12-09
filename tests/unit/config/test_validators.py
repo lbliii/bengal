@@ -333,4 +333,3 @@ class TestConfigValidatorCaseSensitivity:
         result = validator.validate(config)
         assert result["parallel"] is True
         assert result["debug"] is False
-

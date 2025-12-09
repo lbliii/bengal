@@ -15,6 +15,3 @@ Complete API documentation for the project.
 - `GET /api/v1/users/{id}`
 
 This page tests navigation alongside reference content.
-
-
-

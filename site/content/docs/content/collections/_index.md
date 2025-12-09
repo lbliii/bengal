@@ -3,8 +3,6 @@ title: Content Collections
 description: Validate frontmatter with typed schemas
 draft: false
 weight: 30
-aliases:
-- /docs/guides/content-collections/
 lang: en
 tags:
 - collections
@@ -186,5 +184,3 @@ See [Content Sources](/docs/content/sources/) for GitHub, Notion, REST API loade
 ## See Also
 
 - [Content Sources](/docs/content/sources/) — GitHub, Notion, REST API loaders
-- [CLI Reference: collections](/cli/collections/) — Command details
-- [API Reference: collections](/api/collections/) — Schema and validator API

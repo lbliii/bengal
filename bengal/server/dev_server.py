@@ -196,8 +196,12 @@ class DevServer:
                         hash_on_suspect=bool(
                             get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
                         ),
-                        suspect_hash_limit=int(suspect_hash_limit) if suspect_hash_limit is not None else None,
-                        suspect_size_limit_bytes=int(suspect_size_limit) if suspect_size_limit is not None else None,
+                        suspect_hash_limit=int(suspect_hash_limit)
+                        if suspect_hash_limit is not None
+                        else None,
+                        suspect_size_limit_bytes=int(suspect_size_limit)
+                        if suspect_size_limit is not None
+                        else None,
                     )
                 except Exception as e:
                     logger.warning("reload_config_hashing_failed", error=str(e))

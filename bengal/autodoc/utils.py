@@ -605,25 +605,30 @@ def get_function_parameters(
         for p in element.typed_metadata.parameters:
             if exclude_self and p.name in ("self", "cls"):
                 continue
-            params.append({
-                "name": p.name,
-                "type": p.type_hint,
-                "default": p.default,
-                "required": p.default is None and p.kind not in ("var_positional", "var_keyword"),
-                "description": p.description or "",
-            })
+            params.append(
+                {
+                    "name": p.name,
+                    "type": p.type_hint,
+                    "default": p.default,
+                    "required": p.default is None
+                    and p.kind not in ("var_positional", "var_keyword"),
+                    "description": p.description or "",
+                }
+            )
         return params
 
     # OpenAPI endpoints
     if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
         for p in element.typed_metadata.parameters:
-            params.append({
-                "name": p.name,
-                "type": p.schema_type,
-                "default": None,
-                "required": p.required,
-                "description": p.description or "",
-            })
+            params.append(
+                {
+                    "name": p.name,
+                    "type": p.schema_type,
+                    "default": None,
+                    "required": p.required,
+                    "description": p.description or "",
+                }
+            )
         return params
 
     # CLI commands - get options from children
@@ -638,13 +643,15 @@ def get_function_parameters(
                 if opt.default is not None and not opt.is_flag:
                     default_str = str(opt.default)
 
-                params.append({
-                    "name": opt.name,
-                    "type": opt.type_name,
-                    "default": default_str,
-                    "required": opt.required,
-                    "description": opt.help_text or "",
-                })
+                params.append(
+                    {
+                        "name": opt.name,
+                        "type": opt.type_name,
+                        "default": default_str,
+                        "required": opt.required,
+                        "description": opt.help_text or "",
+                    }
+                )
         return params
 
     # Fallback to legacy metadata dict
@@ -656,24 +663,31 @@ def get_function_parameters(
             name = p.get("name", "")
             if exclude_self and name in ("self", "cls"):
                 continue
-            params.append({
-                "name": name,
-                "type": p.get("type_hint") or p.get("type") or p.get("schema_type"),
-                "default": p.get("default"),
-                "required": p.get("required", p.get("default") is None),
-                "description": p.get("description") or p.get("docstring") or p.get("help_text") or "",
-            })
+            params.append(
+                {
+                    "name": name,
+                    "type": p.get("type_hint") or p.get("type") or p.get("schema_type"),
+                    "default": p.get("default"),
+                    "required": p.get("required", p.get("default") is None),
+                    "description": p.get("description")
+                    or p.get("docstring")
+                    or p.get("help_text")
+                    or "",
+                }
+            )
         elif isinstance(p, str):
             # Simple string param (just the name)
             if exclude_self and p in ("self", "cls"):
                 continue
-            params.append({
-                "name": p,
-                "type": None,
-                "default": None,
-                "required": True,
-                "description": "",
-            })
+            params.append(
+                {
+                    "name": p,
+                    "type": None,
+                    "default": None,
+                    "required": True,
+                    "description": "",
+                }
+            )
 
     return params
 

@@ -15,8 +15,6 @@ keywords:
 - intersection
 - dynamic
 category: guide
-aliases:
-- /docs/guides/advanced-filtering/
 ---
 
 # Advanced Content Filtering
@@ -131,5 +129,3 @@ Use Set Intersections to build powerful "Topic Pages" that aggregate content fro
 
 - [Content Reuse](/docs/content/reuse/) — DRY content strategies
 - [Templating](/docs/theming/templating/) — Jinja2 fundamentals
-
-

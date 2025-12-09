@@ -98,15 +98,15 @@ class LocalEmbedder:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
         self.dimension = self.model.get_sentence_embedding_dimension()
-    
+
     def embed_text(self, text: str) -> np.ndarray:
         """Generate embedding for a single text."""
         return self.model.encode(text, normalize_embeddings=True)
-    
+
     def embed_batch(self, texts: list[str]) -> np.ndarray:
         """Generate embeddings for multiple texts."""
         return self.model.encode(texts, normalize_embeddings=True, batch_size=32)
-    
+
     def embed_page(self, page: Page) -> dict[str, np.ndarray]:
         """Generate embeddings for different parts of a page."""
         return {
@@ -144,7 +144,7 @@ class APIEmbedder:
     def __init__(self, api_key: str, model: str = "text-embedding-3-small"):
         self.client = openai.OpenAI(api_key=api_key)
         self.model = model
-    
+
     def embed_batch(self, texts: list[str]) -> np.ndarray:
         response = self.client.embeddings.create(
             model=self.model,
@@ -178,35 +178,35 @@ class HybridSearcher:
     def __init__(self, embedder: LocalEmbedder, pages: list[Page]):
         self.embedder = embedder
         self.pages = pages
-        
+
         # Build BM25 index for keyword search
         tokenized = [self._tokenize(p.plain_text) for p in pages]
         self.bm25 = BM25Okapi(tokenized)
-        
+
         # Build vector index for semantic search
         self.vectors = embedder.embed_batch([p.plain_text for p in pages])
-    
+
     def search(
-        self, 
-        query: str, 
+        self,
+        query: str,
         k: int = 10,
         semantic_weight: float = 0.7,
     ) -> list[SearchResult]:
         """Combine semantic and keyword search."""
-        
+
         # Semantic search
         query_vec = self.embedder.embed_text(query)
         semantic_scores = np.dot(self.vectors, query_vec)
-        
+
         # Keyword search
         keyword_scores = self.bm25.get_scores(self._tokenize(query))
-        
+
         # Normalize and combine
         semantic_norm = (semantic_scores - semantic_scores.min()) / (semantic_scores.max() - semantic_scores.min() + 1e-6)
         keyword_norm = (keyword_scores - keyword_scores.min()) / (keyword_scores.max() - keyword_scores.min() + 1e-6)
-        
+
         combined = semantic_weight * semantic_norm + (1 - semantic_weight) * keyword_norm
-        
+
         # Return top k
         top_indices = np.argsort(combined)[::-1][:k]
         return [
@@ -285,9 +285,9 @@ Use **Option C** with **Option A**'s local embeddings:
 bengal search "authentication configuration"
 
 # Results:
-# 
+#
 # 🔍 Search: "authentication configuration"
-# 
+#
 # 1. docs/security/oauth.md (0.89)
 #    OAuth 2.0 Configuration Guide
 #    "Configure OAuth providers for your application..."
@@ -391,15 +391,15 @@ from pathlib import Path
 
 class VectorStore:
     """Simple file-based vector storage."""
-    
+
     def __init__(self, cache_dir: Path):
         self.cache_dir = cache_dir
         self.index_path = cache_dir / "search_index.npz"
         self.metadata_path = cache_dir / "search_metadata.json"
-    
+
     def save(
-        self, 
-        vectors: np.ndarray, 
+        self,
+        vectors: np.ndarray,
         metadata: list[dict],
         model_name: str,
     ):
@@ -410,24 +410,24 @@ class VectorStore:
             model=model_name,
         )
         self.metadata_path.write_text(json.dumps(metadata))
-    
+
     def load(self) -> tuple[np.ndarray, list[dict]]:
         """Load index from disk."""
         data = np.load(self.index_path)
         metadata = json.loads(self.metadata_path.read_text())
         return data["vectors"], metadata
-    
+
     def needs_rebuild(self, pages: list[Page]) -> bool:
         """Check if index needs rebuilding."""
         if not self.index_path.exists():
             return True
-        
+
         # Check if any page is newer than index
         index_mtime = self.index_path.stat().st_mtime
         for page in pages:
             if page.source_path.stat().st_mtime > index_mtime:
                 return True
-        
+
         return False
 ```
 
@@ -553,4 +553,3 @@ search = [
 - [BM25 Algorithm](https://en.wikipedia.org/wiki/Okapi_BM25)
 - [Hybrid Search Patterns](https://www.pinecone.io/learn/hybrid-search-intro/)
 - [Algolia DocSearch](https://docsearch.algolia.com/)
-

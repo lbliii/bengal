@@ -17,8 +17,6 @@ keywords:
 - link suggestions
 - seo
 category: guide
-aliases:
-- /docs/guides/graph-analysis/
 ---
 
 # Graph Analysis
@@ -205,7 +203,4 @@ bengal utils graph pagerank site/ --format csv > pagerank-$(date +%Y%m%d).csv
 
 ## See Also
 
-- [CLI Graph Commands](/cli/utils/graph/) — Complete CLI reference
-- [Analysis API](/api/analysis/) — Programmatic access
-
-
+- [Analysis System Architecture](/docs/reference/architecture/subsystems/analysis/) — Technical details and API usage

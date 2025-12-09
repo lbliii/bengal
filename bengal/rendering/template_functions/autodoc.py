@@ -128,4 +128,3 @@ def get_return_info(element: DocElement) -> dict[str, Any]:
         Dict with 'type' and 'description' keys
     """
     return get_function_return_info(element)
-

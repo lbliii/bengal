@@ -29,54 +29,49 @@ def create_skeleton_from_args(
 ) -> Skeleton:
     """
     Create an in-memory skeleton based on legacy init arguments.
-    
+
     This bridges the gap between the old imperative init command
     and the new declarative skeleton system.
     """
     structure: list[Component] = []
-    
+
     # If no sections provided, default to blog
     section_names = sections if sections else ("blog",)
-    
+
     for name in section_names:
         name = name.lower().strip()
-        
+
         # Determine type based on name (simple heuristic)
         type_ = "section"
         if name in ("blog", "posts", "news"):
             type_ = "blog"
         elif name in ("docs", "guides", "reference"):
             type_ = "doc"
-            
+
         # Create section component
         section = Component(
             path=name,
             type=type_,
             props={"title": name.title().replace("-", " ")},
         )
-        
+
         # Add sample pages if requested
         if with_content:
             for i in range(pages_per_section):
                 page_num = i + 1
                 page_name = f"sample-post-{page_num}" if type_ == "blog" else f"page-{page_num}"
-                
+
                 page = Component(
                     path=f"{page_name}.md",
-                    props={
-                        "title": f"Sample {name.title()} {page_num}",
-                        "draft": False
-                    },
-                    content=f"# Sample Page {page_num}\n\nThis is sample content for {name}."
+                    props={"title": f"Sample {name.title()} {page_num}", "draft": False},
+                    content=f"# Sample Page {page_num}\n\nThis is sample content for {name}.",
                 )
                 section.pages.append(page)
-                
+
         structure.append(section)
-        
+
     return Skeleton(
-        name="init-scaffold",
-        description="Scaffold created via bengal init",
-        structure=structure
+        name="init-scaffold", description="Scaffold created via bengal init", structure=structure
     )
 
 
@@ -149,7 +144,7 @@ def init(
 
         # Build skeleton from args
         skeleton = create_skeleton_from_args(sections, with_content, pages_per_section)
-        
+
         # Hydrate
         hydrator = Hydrator(content_dir, dry_run=dry_run, force=force)
         hydrator.apply(skeleton)
@@ -160,11 +155,13 @@ def init(
             cli.warning("📋 Dry run - no files created")
         else:
             cli.success("✨ Site initialized successfully!")
-            
+
         cli.info(f"Created: {len(hydrator.created_files)} files")
         if hydrator.skipped_files:
-            cli.warning(f"Skipped: {len(hydrator.skipped_files)} existing files (use --force to overwrite)")
-            
+            cli.warning(
+                f"Skipped: {len(hydrator.skipped_files)} existing files (use --force to overwrite)"
+            )
+
         # Tip
         cli.blank()
         cli.tip("To create more complex structures, try 'bengal skeleton apply'")

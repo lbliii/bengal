@@ -14,7 +14,6 @@ Architecture:
 - Incremental updates with dependency tracking
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path

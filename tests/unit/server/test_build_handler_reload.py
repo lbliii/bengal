@@ -266,7 +266,9 @@ class TestRebuildStrategy:
 
         # Silence display/printing
         monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
-        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+        )
 
         with (
             patch("bengal.server.reload_controller.controller") as mock_controller,
@@ -298,7 +300,9 @@ class TestRebuildStrategy:
 
         # Silence display/printing
         monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
-        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+        )
 
         with (
             patch("bengal.server.reload_controller.controller") as mock_controller,
@@ -330,7 +334,9 @@ class TestRebuildStrategy:
 
         # Silence display/printing
         monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
-        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+        )
 
         with (
             patch("bengal.server.reload_controller.controller") as mock_controller,
@@ -362,7 +368,9 @@ class TestRebuildStrategy:
 
         # Silence display/printing
         monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
-        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+        )
 
         with (
             patch("bengal.server.reload_controller.controller") as mock_controller,
@@ -394,7 +402,9 @@ class TestRebuildStrategy:
 
         # Silence display/printing
         monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
-        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+        monkeypatch.setattr(
+            "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+        )
 
         with (
             patch("bengal.server.reload_controller.controller") as mock_controller,
@@ -444,4 +454,6 @@ class TestRebuildStrategy:
                 )
                 handler._trigger_build()
 
-            assert build_kwargs.get("incremental") is False, f"Extension {ext} should trigger full rebuild"
+            assert build_kwargs.get("incremental") is False, (
+                f"Extension {ext} should trigger full rebuild"
+            )

@@ -19,8 +19,6 @@ keywords:
 - gatsby
 - content conversion
 category: tutorial
-aliases:
-- /docs/guides/migrating-content/
 ---
 
 # Migrate Content from Other SSGs

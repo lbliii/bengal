@@ -220,7 +220,10 @@ class TestPerformanceValidatorSlowPages:
         results = validator.validate(mock_site)
 
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("render time" in r.message.lower() and "good" in r.message.lower() for r in success_results)
+        assert any(
+            "render time" in r.message.lower() and "good" in r.message.lower()
+            for r in success_results
+        )
 
 
 class TestPerformanceValidatorParallelMode:
@@ -273,10 +276,7 @@ class TestPerformanceValidatorRecommendations:
         results = validator.validate(mock_site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        slow_warning = next(
-            (r for r in warning_results if "slower" in r.message.lower()),
-            None
-        )
+        slow_warning = next((r for r in warning_results if "slower" in r.message.lower()), None)
         assert slow_warning is not None
         assert slow_warning.recommendation is not None
 
@@ -292,8 +292,7 @@ class TestPerformanceValidatorRecommendations:
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         throughput_warning = next(
-            (r for r in warning_results if "throughput" in r.message.lower()),
-            None
+            (r for r in warning_results if "throughput" in r.message.lower()), None
         )
         assert throughput_warning is not None
         assert throughput_warning.recommendation is not None
@@ -325,4 +324,3 @@ class TestPerformanceValidatorEdgeCases:
         # Should not raise
         results = validator.validate(mock_site)
         assert isinstance(results, list)
-

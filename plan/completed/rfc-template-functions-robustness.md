@@ -133,7 +133,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
 def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     Truncate HTML text to word count, preserving HTML structure.
-    
+
     Uses a simple tag-aware approach that:
     1. Counts only text content words (not tag content)
     2. Keeps track of open tags
@@ -141,18 +141,18 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     if not html:
         return ""
-    
+
     # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
     if len(text_only.split()) <= count:
         return html
-    
+
     # Tag-aware truncation
     result = []
     word_count = 0
     open_tags = []
     i = 0
-    
+
     while i < len(html) and word_count < count:
         if html[i] == '<':
             # Find end of tag
@@ -161,7 +161,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
                 break
             tag = html[i:tag_end + 1]
             result.append(tag)
-            
+
             # Track open/close tags
             if tag.startswith('</'):
                 tag_name = tag[2:-1].split()[0].lower()
@@ -176,7 +176,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
                 })
                 if tag_name not in void_elements:
                     open_tags.append(tag_name)
-            
+
             i = tag_end + 1
         else:
             # Find next tag or end
@@ -185,11 +185,11 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
                 text = html[i:]
             else:
                 text = html[i:next_tag]
-            
+
             # Count and truncate words in this text segment
             words = text.split()
             remaining = count - word_count
-            
+
             if len(words) <= remaining:
                 result.append(text)
                 word_count += len(words)
@@ -199,14 +199,14 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
                 result.append(' '.join(words[:remaining]))
                 word_count = count
                 break
-    
+
     # Add suffix
     result.append(suffix)
-    
+
     # Close any unclosed tags
     for tag in reversed(open_tags):
         result.append(f'</{tag}>')
-    
+
     return ''.join(result)
 ```
 
@@ -229,7 +229,7 @@ def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
 def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
     # Use cached map with version check for invalidation
     page_map = site.get_page_path_map()
-    
+
     pages = []
     for path in page_paths:
         page = page_map.get(path)
@@ -247,7 +247,7 @@ _page_path_map_version: int = -1
 def get_page_path_map(self) -> dict[str, Page]:
     """
     Get cached page path lookup map.
-    
+
     Cache is automatically invalidated when page count changes,
     covering add/remove operations in dev server.
     """
@@ -322,35 +322,35 @@ from bengal.rendering.template_functions import strings
 
 class TestTruncateWordsHtml:
     """Tests for truncatewords_html."""
-    
+
     def test_preserves_simple_tags(self):
         html = "<p>Hello <strong>world</strong> how are you today</p>"
         result = strings.truncatewords_html(html, 3)
         assert "<strong>" in result
         assert "</strong>" in result
         assert "</p>" in result
-    
+
     def test_closes_unclosed_tags(self):
         html = "<div><p>One two three four five</p></div>"
         result = strings.truncatewords_html(html, 3)
         assert result.count("<div>") == result.count("</div>")
         assert result.count("<p>") == result.count("</p>")
-    
+
     def test_handles_void_elements(self):
         html = "<p>Hello<br>world<img src='x'>test</p>"
         result = strings.truncatewords_html(html, 2)
         # br and img are void elements, should not try to close them
         assert "</br>" not in result
         assert "</img>" not in result
-    
+
     def test_short_content_unchanged(self):
         html = "<p>Short</p>"
         result = strings.truncatewords_html(html, 10)
         assert result == html
-    
+
     def test_empty_input(self):
         assert strings.truncatewords_html("", 5) == ""
-    
+
     def test_nested_tags(self):
         html = "<div><ul><li>One</li><li>Two</li><li>Three</li></ul></div>"
         result = strings.truncatewords_html(html, 2)
@@ -360,15 +360,15 @@ class TestTruncateWordsHtml:
 
 class TestTruncateWords:
     """Tests for truncatewords (plain text)."""
-    
+
     def test_basic_truncate(self):
         result = strings.truncatewords("one two three four five", 3)
         assert result == "one two three..."
-    
+
     def test_custom_suffix(self):
         result = strings.truncatewords("one two three four", 2, " [more]")
         assert result == "one two [more]"
-    
+
     def test_short_text_unchanged(self):
         result = strings.truncatewords("one two", 5)
         assert result == "one two"
@@ -376,104 +376,104 @@ class TestTruncateWords:
 
 class TestSlugify:
     """Tests for slugify."""
-    
+
     def test_basic_slugify(self):
         assert strings.slugify("Hello World!") == "hello-world"
-    
+
     def test_unicode_preserved(self):
         # Depends on unescape_html=False behavior
         result = strings.slugify("Café")
         assert "caf" in result.lower()
-    
+
     def test_special_chars_removed(self):
         assert strings.slugify("Test @#$ String!") == "test-string"
-    
+
     def test_empty_input(self):
         assert strings.slugify("") == ""
 
 
 class TestReplaceRegex:
     """Tests for replace_regex."""
-    
+
     def test_valid_regex(self):
         result = strings.replace_regex("hello123world", r"\d+", "-")
         assert result == "hello-world"
-    
+
     def test_invalid_regex_returns_original(self):
         result = strings.replace_regex("test", r"[invalid", "x")
         assert result == "test"
-    
+
     def test_capture_groups(self):
         result = strings.replace_regex("hello world", r"(\w+)", r"[\1]")
         assert result == "[hello] [world]"
-    
+
     def test_empty_input(self):
         assert strings.replace_regex("", r"\d+", "x") == ""
 
 
 class TestMarkdownify:
     """Tests for markdownify."""
-    
+
     def test_basic_markdown(self):
         result = strings.markdownify("**bold**")
         assert "<strong>" in result or "<b>" in result
-    
+
     def test_code_block(self):
         result = strings.markdownify("```python\nprint('hi')\n```")
         assert "<code" in result or "<pre" in result
-    
+
     def test_empty_input(self):
         assert strings.markdownify("") == ""
 
 
 class TestStripHtml:
     """Tests for strip_html."""
-    
+
     def test_removes_tags(self):
         result = strings.strip_html("<p>Hello <strong>world</strong></p>")
         assert result == "Hello world"
-    
+
     def test_decodes_entities(self):
         result = strings.strip_html("&amp; &lt; &gt;")
         assert "&" in result
-    
+
     def test_empty_input(self):
         assert strings.strip_html("") == ""
 
 
 class TestReadingTime:
     """Tests for reading_time."""
-    
+
     def test_basic_reading_time(self):
         # 200 words at 200 wpm = 1 minute
         text = " ".join(["word"] * 200)
         assert strings.reading_time(text) == 1
-    
+
     def test_longer_text(self):
         # 600 words at 200 wpm = 3 minutes
         text = " ".join(["word"] * 600)
         assert strings.reading_time(text) == 3
-    
+
     def test_minimum_one_minute(self):
         assert strings.reading_time("short") == 1
-    
+
     def test_empty_returns_one(self):
         assert strings.reading_time("") == 1
 
 
 class TestExcerpt:
     """Tests for excerpt."""
-    
+
     def test_basic_excerpt(self):
         text = "This is a test " * 20
         result = strings.excerpt(text, 50)
         assert len(result) <= 53  # 50 + "..."
         assert result.endswith("...")
-    
+
     def test_strips_html(self):
         result = strings.excerpt("<p>Hello world</p>", 100)
         assert "<" not in result
-    
+
     def test_short_text_unchanged(self):
         result = strings.excerpt("Short text", 100)
         assert result == "Short text"
@@ -481,46 +481,46 @@ class TestExcerpt:
 
 class TestFirstSentence:
     """Tests for first_sentence."""
-    
+
     def test_extracts_first_sentence(self):
         result = strings.first_sentence("Hello world. This is more.")
         assert result == "Hello world."
-    
+
     def test_truncates_long_sentence(self):
         text = "A" * 200
         result = strings.first_sentence(text, max_length=50)
         assert len(result) <= 50
         assert result.endswith("...")
-    
+
     def test_empty_input(self):
         assert strings.first_sentence("") == ""
 
 
 class TestPluralize:
     """Tests for pluralize."""
-    
+
     def test_singular(self):
         assert strings.pluralize(1, "item") == "item"
-    
+
     def test_plural_auto(self):
         assert strings.pluralize(2, "item") == "items"
-    
+
     def test_plural_custom(self):
         assert strings.pluralize(2, "person", "people") == "people"
-    
+
     def test_zero_is_plural(self):
         assert strings.pluralize(0, "item") == "items"
 
 
 class TestDictGet:
     """Tests for dict_get (safe get)."""
-    
+
     def test_dict_access(self):
         assert strings.dict_get({"a": 1}, "a") == 1
-    
+
     def test_missing_key_default(self):
         assert strings.dict_get({"a": 1}, "b", "default") == "default"
-    
+
     def test_object_attribute(self):
         class Obj:
             x = 42
@@ -538,47 +538,47 @@ from bengal.rendering.template_functions import collections
 
 class TestSortBy:
     """Tests for sort_by."""
-    
+
     def test_sort_dicts_by_key(self):
         items = [{"name": "b"}, {"name": "a"}]
         result = collections.sort_by(items, "name")
         assert result[0]["name"] == "a"
-    
+
     def test_sort_reverse(self):
         items = [{"val": 1}, {"val": 2}]
         result = collections.sort_by(items, "val", reverse=True)
         assert result[0]["val"] == 2
-    
+
     def test_invalid_key_returns_original(self):
         items = [{"a": 1}, {"b": 2}]
         result = collections.sort_by(items, "missing")
         assert len(result) == 2
-    
+
     def test_empty_list(self):
         assert collections.sort_by([], "key") == []
 
 
 class TestWhere:
     """Tests for where filter."""
-    
+
     def test_filter_by_key(self):
         items = [{"active": True}, {"active": False}]
         result = collections.where(items, "active", True)
         assert len(result) == 1
         assert result[0]["active"] is True
-    
+
     def test_empty_list(self):
         assert collections.where([], "key", "val") == []
 
 
 class TestLimit:
     """Tests for limit filter."""
-    
+
     def test_limit_items(self):
         items = [1, 2, 3, 4, 5]
         result = collections.limit(items, 3)
         assert result == [1, 2, 3]
-    
+
     def test_limit_larger_than_list(self):
         items = [1, 2]
         result = collections.limit(items, 10)
@@ -603,13 +603,13 @@ def register(env: Environment, site: Site) -> None:
 def filesize(bytes: int) -> str:
     """
     Format bytes as human-readable file size.
-    
+
     Args:
         bytes: Size in bytes
-    
+
     Returns:
         Human-readable size string
-    
+
     Example:
         {{ asset.size | filesize }}  # "1.5 MB"
     """
@@ -801,4 +801,3 @@ def filesize(bytes: int) -> str:
 2. [ ] Create implementation plan (`::plan`)
 3. [ ] Implement in phases
 4. [ ] Final validation with `::validate`
-

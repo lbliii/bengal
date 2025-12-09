@@ -215,8 +215,7 @@ class LinkValidator:
         # These are "View Source" links that point to Python files, not doc pages
         # Patterns: bengal/module.py#L1, ../module.py, path/to/file.py
         if ".py" in link and (
-            link.endswith(".py")
-            or ".py#" in link  # Python file with fragment (line number)
+            link.endswith(".py") or ".py#" in link  # Python file with fragment (line number)
         ):
             logger.debug(
                 "skipping_source_file_reference",

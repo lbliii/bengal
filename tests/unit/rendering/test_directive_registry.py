@@ -34,9 +34,8 @@ class TestDirectiveNamesConsistency:
 
         empty = []
         for cls in DIRECTIVE_CLASSES:
-            if hasattr(cls, "DIRECTIVE_NAMES"):
-                if not cls.DIRECTIVE_NAMES:
-                    empty.append(cls.__name__)
+            if hasattr(cls, "DIRECTIVE_NAMES") and not cls.DIRECTIVE_NAMES:
+                empty.append(cls.__name__)
 
         assert not empty, f"Classes with empty DIRECTIVE_NAMES: {empty}"
 
@@ -197,6 +196,17 @@ class TestDirectiveClassesCompleteness:
             "MarimoCellDirective",
             "IconDirective",
             "ContainerDirective",
+            # Media Embed Directives (RFC: plan/active/rfc-media-embed-directives.md)
+            "YouTubeDirective",
+            "VimeoDirective",
+            "SelfHostedVideoDirective",
+            "GistDirective",
+            "CodePenDirective",
+            "CodeSandboxDirective",
+            "StackBlitzDirective",
+            "AsciinemaDirective",
+            "FigureDirective",
+            "AudioDirective",
         }
 
         missing = expected_classes - registry_classes
@@ -282,10 +292,12 @@ class TestKnownDirectiveNamesContent:
         """KNOWN_DIRECTIVE_NAMES has expected count."""
         from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
 
-        # 10 admonitions + 2 badges + 1 button + 5 cards + 3 tabs + 2 code-tabs
+        # 10 admonitions + 2 badges + 1 button + 5 cards + 4 tabs + 2 code-tabs
         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric
-        # + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 container = 43 total
-        expected_count = 43
+        # + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 containers
+        # + 3 video (youtube, vimeo, video) + 4 dev tools (gist, codepen, codesandbox, stackblitz)
+        # + 1 asciinema + 1 figure + 1 audio = 54 total
+        expected_count = 54
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "

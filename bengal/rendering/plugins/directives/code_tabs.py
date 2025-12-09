@@ -3,26 +3,27 @@ Code tabs directive for Mistune.
 
 Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
-"""
 
+Architecture:
+    Migrated to BengalDirective base class as part of directive system v2.
+"""
 
 from __future__ import annotations
 
 import html as html_lib
 import re
-from re import Match
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from mistune.directives import DirectivePlugin
-
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
 from bengal.utils.logger import get_logger
 
-__all__ = ["CodeTabsDirective", "render_code_tab_item", "render_code_tabs"]
+__all__ = ["CodeTabsDirective", "CodeTabsOptions"]
 
 logger = get_logger(__name__)
 
-# Pre-compiled regex patterns (compiled once, reused for all pages)
-# Support both "### Tab: Python" and "### Python" syntax
+# Pre-compiled regex patterns
 _CODE_TAB_SPLIT_PATTERN = re.compile(r"^### (?:Tab: )?(.+)$", re.MULTILINE)
 _CODE_BLOCK_EXTRACT_PATTERN = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
 _CODE_TAB_ITEM_PATTERN = re.compile(
@@ -30,7 +31,14 @@ _CODE_TAB_ITEM_PATTERN = re.compile(
 )
 
 
-class CodeTabsDirective(DirectivePlugin):
+@dataclass
+class CodeTabsOptions(DirectiveOptions):
+    """Options for code-tabs directive (currently none)."""
+
+    pass
+
+
+class CodeTabsDirective(BengalDirective):
     """
     Code tabs for multi-language examples.
 
@@ -47,17 +55,31 @@ class CodeTabsDirective(DirectivePlugin):
         console.log("hello")
         ```
         ````
+
+    Aliases: code-tabs, code_tabs
     """
 
-    # Directive names this class registers (for health check introspection)
-    # "code_tabs" (underscore) is an alias
-    DIRECTIVE_NAMES = ["code-tabs", "code_tabs"]
+    NAMES: ClassVar[list[str]] = ["code-tabs", "code_tabs"]
+    TOKEN_TYPE: ClassVar[str] = "code_tabs"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = CodeTabsOptions
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
-        """Parse code tabs directive."""
-        content = self.parse_content(m)
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["code-tabs", "code_tabs"]
 
-        # Split by tab markers (using pre-compiled pattern)
+    def parse_directive(
+        self,
+        title: str,
+        options: CodeTabsOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> dict[str, Any]:
+        """
+        Build code tabs token by parsing tab markers in content.
+
+        Note: Returns dict instead of DirectiveToken because children
+        are custom code_tab_item tokens, not parsed markdown.
+        """
+        # Split by tab markers
         parts = _CODE_TAB_SPLIT_PATTERN.split(content)
 
         tabs: list[dict[str, Any]] = []
@@ -69,61 +91,66 @@ class CodeTabsDirective(DirectivePlugin):
                     lang = parts[i].strip()
                     code_content = parts[i + 1].strip()
 
-                    # Extract code from fenced block if present (using pre-compiled pattern)
+                    # Extract code from fenced block if present
                     code_match = _CODE_BLOCK_EXTRACT_PATTERN.search(code_content)
                     code = code_match.group(1).strip() if code_match else code_content
 
-                    tabs.append({"type": "code_tab_item", "attrs": {"lang": lang, "code": code}})
+                    tabs.append(
+                        {
+                            "type": "code_tab_item",
+                            "attrs": {"lang": lang, "code": code},
+                        }
+                    )
 
         return {"type": "code_tabs", "children": tabs}
 
-    def __call__(self, directive: Any, md: Any) -> None:
-        """Register the directive and renderers."""
-        directive.register("code-tabs", self.parse)
-        directive.register("code_tabs", self.parse)  # Alias
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render code tabs to HTML."""
+        tab_id = f"code-tabs-{id(text)}"
 
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("code_tabs", render_code_tabs)
-            md.renderer.register("code_tab_item", render_code_tab_item)
+        # Extract code blocks from rendered text
+        matches = _CODE_TAB_ITEM_PATTERN.findall(text)
+
+        if not matches:
+            return f'<div class="code-tabs" data-bengal="tabs">{text}</div>'
+
+        # Build navigation
+        nav_html = (
+            f'<div class="code-tabs" id="{tab_id}" data-bengal="tabs">\n  <ul class="tab-nav">\n'
+        )
+        for i, (lang, _) in enumerate(matches):
+            active = ' class="active"' if i == 0 else ""
+            nav_html += (
+                f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{lang}</a></li>\n'
+            )
+        nav_html += "  </ul>\n"
+
+        # Build content
+        content_html = '  <div class="tab-content">\n'
+        for i, (lang, code) in enumerate(matches):
+            active = " active" if i == 0 else ""
+            code = html_lib.unescape(code)
+            content_html += (
+                f'    <div id="{tab_id}-{i}" class="tab-pane{active}">\n'
+                f'      <pre><code class="language-{lang}">{code}</code></pre>\n'
+                f"    </div>\n"
+            )
+        content_html += "  </div>\n</div>\n"
+
+        return nav_html + content_html
+
+
+# Backward compatibility render functions
 
 
 def render_code_tabs(renderer: Any, text: str, **attrs: Any) -> str:
-    """Render code tabs to HTML."""
-    tab_id = f"code-tabs-{id(text)}"
-
-    # Extract code blocks from rendered text (using pre-compiled pattern)
-    matches = _CODE_TAB_ITEM_PATTERN.findall(text)
-
-    if not matches:
-        return f'<div class="code-tabs" data-bengal="tabs">{text}</div>'
-
-    # Build navigation
-    nav_html = f'<div class="code-tabs" id="{tab_id}" data-bengal="tabs">\n  <ul class="tab-nav">\n'
-    for i, (lang, _) in enumerate(matches):
-        active = ' class="active"' if i == 0 else ""
-        nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{lang}</a></li>\n'
-    nav_html += "  </ul>\n"
-
-    # Build content
-    content_html = '  <div class="tab-content">\n'
-    for i, (lang, code) in enumerate(matches):
-        active = " active" if i == 0 else ""
-        # HTML-decode the code
-        code = html_lib.unescape(code)
-        content_html += (
-            f'    <div id="{tab_id}-{i}" class="tab-pane{active}">\n'
-            f'      <pre><code class="language-{lang}">{code}</code></pre>\n'
-            f"    </div>\n"
-        )
-    content_html += "  </div>\n</div>\n"
-
-    return nav_html + content_html
+    """Legacy render function for backward compatibility."""
+    return CodeTabsDirective().render(renderer, text, **attrs)
 
 
 def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     """Render code tab item marker (used internally)."""
     lang = attrs.get("lang", "text")
     code = attrs.get("code", "")
-    # HTML-escape the code for storage in data attribute
     code_escaped = html_lib.escape(code)
     return f'<div class="code-tab-item" data-lang="{lang}" data-code="{code_escaped}"></div>'

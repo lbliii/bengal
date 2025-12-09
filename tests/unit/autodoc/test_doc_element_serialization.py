@@ -4,25 +4,16 @@ Serialization round-trip tests for DocElement typed_metadata.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.models import (
     CLICommandMetadata,
     CLIGroupMetadata,
-    CLIOptionMetadata,
     OpenAPIEndpointMetadata,
-    OpenAPIOverviewMetadata,
-    OpenAPISchemaMetadata,
-    PythonAliasMetadata,
-    PythonAttributeMetadata,
     PythonClassMetadata,
     PythonFunctionMetadata,
     PythonModuleMetadata,
 )
-from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring
+from bengal.autodoc.models.python import ParameterInfo
 
 
 class TestDocElementSerialization:
@@ -451,5 +442,3 @@ class TestRoundTrip:
 
         # Unknown type should be deserialized as None
         assert element.typed_metadata is None
-
-

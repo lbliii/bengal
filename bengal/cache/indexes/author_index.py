@@ -1,6 +1,5 @@
 """Author Index - Index pages by author."""
 
-
 from __future__ import annotations
 
 from pathlib import Path

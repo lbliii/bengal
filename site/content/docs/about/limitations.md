@@ -16,9 +16,9 @@ Bengal generates static HTML at build time. There's no runtime server.
 
 For dynamic content, use client-side JavaScript or edge functions.
 
-## No Image Optimization
+## No Image Resizing
 
-Bengal doesn't resize or compress images. Use external tools like `sharp` or a CDN with image optimization.
+Bengal compresses images (using Pillow with quality optimization) but doesn't resize them or generate responsive variants. Use external tools like `sharp` or a CDN for resizing and responsive image generation.
 
 ## Large Sites
 

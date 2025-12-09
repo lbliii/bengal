@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.health.report import CheckStatus, ValidatorStats
+from bengal.health.report import CheckStatus
 from bengal.health.validators.links import LinkValidatorWrapper
 
 
@@ -76,9 +76,7 @@ class TestLinkValidatorWrapperValidation:
 
     def test_calls_link_validator(self, validator, mock_site):
         """Calls LinkValidator.validate_site."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -89,9 +87,7 @@ class TestLinkValidatorWrapperValidation:
 
     def test_no_results_when_all_links_valid(self, validator, mock_site):
         """No error/warning results when all links valid."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -109,9 +105,7 @@ class TestLinkValidatorWrapperBrokenLinks:
 
     def test_error_for_internal_broken_links(self, validator, mock_site):
         """Returns error for broken internal links."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             # Return broken internal links as (page_path, link_url) tuples
             mock_validator_instance.validate_site.return_value = [
@@ -128,9 +122,7 @@ class TestLinkValidatorWrapperBrokenLinks:
 
     def test_warning_for_external_broken_links(self, validator, mock_site):
         """Returns warning for broken external links."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = [
                 ("/index.html", "https://broken-external.com/404"),
@@ -145,9 +137,7 @@ class TestLinkValidatorWrapperBrokenLinks:
 
     def test_broken_links_have_details(self, validator, mock_site):
         """Broken link results include details."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = [
                 ("/index.html", "/broken-link"),
@@ -167,9 +157,7 @@ class TestLinkValidatorWrapperStats:
 
     def test_tracks_pages_total(self, validator, mock_site):
         """Tracks total pages in stats."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -181,9 +169,7 @@ class TestLinkValidatorWrapperStats:
 
     def test_tracks_pages_processed(self, validator, mock_site):
         """Tracks processed pages in stats."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -194,9 +180,7 @@ class TestLinkValidatorWrapperStats:
 
     def test_tracks_link_count_metrics(self, validator, mock_site):
         """Tracks link count in metrics."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -207,9 +191,7 @@ class TestLinkValidatorWrapperStats:
 
     def test_tracks_broken_link_count(self, validator, mock_site):
         """Tracks broken link count in metrics."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = [
                 ("/index.html", "/broken"),
@@ -222,9 +204,7 @@ class TestLinkValidatorWrapperStats:
 
     def test_tracks_validation_timing(self, validator, mock_site):
         """Tracks validation timing in sub_timings."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -239,9 +219,7 @@ class TestLinkValidatorWrapperRecommendations:
 
     def test_internal_broken_has_recommendation(self, validator, mock_site):
         """Internal broken links have fix recommendation."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = [
                 ("/index.html", "/broken"),
@@ -255,9 +233,7 @@ class TestLinkValidatorWrapperRecommendations:
 
     def test_external_broken_has_recommendation(self, validator, mock_site):
         """External broken links have recommendation."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = [
                 ("/index.html", "https://example.com/404"),
@@ -275,9 +251,7 @@ class TestLinkValidatorWrapperSilenceIsGolden:
 
     def test_no_success_when_all_valid(self, validator, mock_site):
         """No explicit success message when all links valid."""
-        with patch(
-            "bengal.rendering.link_validator.LinkValidator"
-        ) as MockLinkValidator:
+        with patch("bengal.rendering.link_validator.LinkValidator") as MockLinkValidator:
             mock_validator_instance = MagicMock()
             mock_validator_instance.validate_site.return_value = []
             MockLinkValidator.return_value = mock_validator_instance
@@ -286,4 +260,3 @@ class TestLinkValidatorWrapperSilenceIsGolden:
 
             success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
             assert len(success_results) == 0
-

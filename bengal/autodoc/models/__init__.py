@@ -84,5 +84,3 @@ __all__ = [
     # Union
     "DocMetadata",
 ]
-
-

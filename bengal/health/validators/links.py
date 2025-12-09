@@ -106,10 +106,7 @@ class LinkValidatorWrapper(BaseValidator):
 
             if internal_broken:
                 # Format as "page: link" for display (using relative paths)
-                details = [
-                    f"{_relative_path(page)}: {link}"
-                    for page, link in internal_broken[:5]
-                ]
+                details = [f"{_relative_path(page)}: {link}" for page, link in internal_broken[:5]]
                 results.append(
                     CheckResult.error(
                         f"{len(internal_broken)} broken internal link(s)",
@@ -119,10 +116,7 @@ class LinkValidatorWrapper(BaseValidator):
                 )
 
             if external_broken:
-                details = [
-                    f"{_relative_path(page)}: {link}"
-                    for page, link in external_broken[:5]
-                ]
+                details = [f"{_relative_path(page)}: {link}" for page, link in external_broken[:5]]
                 results.append(
                     CheckResult.warning(
                         f"{len(external_broken)} broken external link(s)",

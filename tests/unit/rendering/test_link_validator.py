@@ -8,7 +8,6 @@ Tests internal link validation, including:
 - Trailing slash normalization
 """
 
-
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -266,5 +265,3 @@ class TestGracefulDegradation:
 
         # Should pass because can't resolve
         assert validator._is_valid_link("/anything/", page) is True
-
-

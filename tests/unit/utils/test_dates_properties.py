@@ -97,9 +97,9 @@ class TestParseDateProperties:
 
         assert result is not None, f"Should parse ISO string: {iso_str}"
         # Compare without microseconds (not always preserved in string roundtrip)
-        assert result.replace(microsecond=0) == dt.replace(
-            microsecond=0
-        ), f"Roundtrip failed: {result} != {dt}"
+        assert result.replace(microsecond=0) == dt.replace(microsecond=0), (
+            f"Roundtrip failed: {result} != {dt}"
+        )
 
     @pytest.mark.hypothesis
     @given(invalid=st.text(alphabet="abcdefghijklmnopqrstuvwxyz", min_size=1, max_size=20))
@@ -203,9 +203,9 @@ class TestFormatDateRfc822Properties:
         if formatted:
             # Should start with 3-letter weekday abbreviation
             weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            assert any(
-                formatted.startswith(day) for day in weekdays
-            ), f"RFC 822 should start with weekday: '{formatted}'"
+            assert any(formatted.startswith(day) for day in weekdays), (
+                f"RFC 822 should start with weekday: '{formatted}'"
+            )
 
 
 class TestFormatDateHumanProperties:
@@ -267,9 +267,9 @@ class TestTimeAgoProperties:
 
         # Should mention a time unit
         units = ["minute", "hour", "day", "ago", "now"]
-        assert any(
-            unit in result.lower() for unit in units
-        ), f"Should mention time unit: '{result}'"
+        assert any(unit in result.lower() for unit in units), (
+            f"Should mention time unit: '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(offset_days=st.integers(min_value=1, max_value=30))
@@ -292,9 +292,9 @@ class TestTimeAgoProperties:
             recent_num = int("".join(c for c in recent_str if c.isdigit()) or "0")
             older_num = int("".join(c for c in older_str if c.isdigit()) or "0")
 
-            assert (
-                recent_num < older_num
-            ), f"Recent should have smaller number: '{recent_str}' vs '{older_str}'"
+            assert recent_num < older_num, (
+                f"Recent should have smaller number: '{recent_str}' vs '{older_str}'"
+            )
 
 
 class TestIsRecentProperties:
@@ -386,9 +386,9 @@ class TestDateRangeOverlapProperties:
 
         result = date_range_overlap(start1, end1, start2, end2)
 
-        assert (
-            not result
-        ), f"Ranges with gap should not overlap: [{start1}, {end1}] and [{start2}, {end2}]"
+        assert not result, (
+            f"Ranges with gap should not overlap: [{start1}, {end1}] and [{start2}, {end2}]"
+        )
 
 
 class TestGetCurrentYearProperties:

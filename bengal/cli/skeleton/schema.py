@@ -13,7 +13,7 @@ Key Concepts:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 import yaml
 
@@ -111,7 +111,7 @@ class Skeleton:
         variant = data.pop("variant", None)
         content = data.pop("content", None)
         cascade = data.pop("cascade", {})
-        
+
         # Legacy normalization (layout/hero_style -> variant)
         if not variant:
             variant = data.pop("layout", None) or data.pop("hero_style", None)
@@ -121,7 +121,7 @@ class Skeleton:
         metadata = data.pop("metadata", {})
         if metadata:
             props.update(metadata)
-        
+
         # Everything else remaining in 'data' is implicit props (flat frontmatter)
         # Merge them into props
         props.update(data)
@@ -135,6 +135,3 @@ class Skeleton:
             pages=pages,
             cascade=cascade,
         )
-
-
-
