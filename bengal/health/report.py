@@ -409,12 +409,14 @@ class HealthReport:
         """
         Calculate build quality score (0-100).
 
-        Formula:
-        - Each passed check: +1 point
-        - Each info: +0.8 points
-        - Each suggestion: +0.9 points (quality improvement, not a problem)
-        - Each warning: +0.5 points
-        - Each error: +0 points
+        Uses a penalty-based system where:
+        - Base score is 100 (no problems = perfect)
+        - Errors subtract significantly (blockers)
+        - Warnings subtract moderately (should fix)
+        - Diminishing returns prevent extreme scores for many small issues
+
+        This ensures same problems always give the same score, regardless
+        of how many checks ran.
 
         Returns:
             Score from 0-100 (100 = perfect)
@@ -422,25 +424,39 @@ class HealthReport:
         if self.total_checks == 0:
             return 100
 
-        points = (
-            self.total_passed * 1.0
-            + self.total_info * 0.8
-            + self.total_suggestions * 0.9  # Suggestions are quality improvements
-            + self.total_warnings * 0.5
-            + self.total_errors * 0.0
-        )
+        # No problems = 100%
+        if self.total_errors == 0 and self.total_warnings == 0:
+            return 100
 
-        return int((points / self.total_checks) * 100)
+        # Penalty system with diminishing returns
+        # Errors: 20 points each, but diminish after 2 (avoids 0% for many issues)
+        # Formula: min(70, errors * 20 - max(0, errors - 2) * 5)
+        # This gives: 1 error=20, 2 errors=40, 3 errors=55, 4 errors=70 (cap)
+        error_penalty = min(70, self.total_errors * 20 - max(0, self.total_errors - 2) * 5)
+
+        # Warnings: 5 points each, capped at 25
+        warning_penalty = min(25, self.total_warnings * 5)
+
+        score = 100 - error_penalty - warning_penalty
+        return max(0, score)
 
     def quality_rating(self) -> str:
-        """Get quality rating based on score."""
+        """
+        Get quality rating based on score.
+
+        Thresholds aligned with penalty-based scoring:
+        - Excellent (90+): No errors, 0-2 warnings
+        - Good (75-89): 1 error or 3-5 warnings
+        - Fair (50-74): 2-3 errors or many warnings
+        - Needs Improvement (<50): 4+ errors
+        """
         score = self.build_quality_score()
 
-        if score >= 95:
+        if score >= 90:
             return "Excellent"
-        elif score >= 85:
+        elif score >= 75:
             return "Good"
-        elif score >= 70:
+        elif score >= 50:
             return "Fair"
         else:
             return "Needs Improvement"

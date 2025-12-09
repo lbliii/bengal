@@ -243,11 +243,11 @@ class TestHealthReport:
         assert report.has_problems()
 
     def test_build_quality_score(self):
-        """Test build quality score calculation."""
+        """Test build quality score calculation (penalty-based)."""
         report = HealthReport()
         vr = ValidatorReport("Test")
 
-        # Perfect score
+        # Perfect score - no problems
         vr.results = [
             CheckResult.success("OK 1"),
             CheckResult.success("OK 2"),
@@ -255,37 +255,91 @@ class TestHealthReport:
         report.validator_reports = [vr]
         assert report.build_quality_score() == 100
 
-        # Mixed results
+        # No checks = 100% (nothing to fail)
+        vr.results = []
+        assert report.build_quality_score() == 100
+
+        # 1 warning only = 95% (100 - 5)
         vr.results = [
-            CheckResult.success("OK"),  # 1.0 point
-            CheckResult.info("Info"),  # 0.8 points
-            CheckResult.suggestion("Suggestion"),  # 0.9 points
-            CheckResult.warning("Warning"),  # 0.5 points
-            CheckResult.error("Error"),  # 0.0 points
+            CheckResult.success("OK"),
+            CheckResult.warning("Warning"),
         ]
-        # Total: 3.2 / 5 = 64% = 64
-        score = report.build_quality_score()
-        assert 60 <= score <= 65  # Allow some rounding variance
+        assert report.build_quality_score() == 95
+
+        # 1 error only = 80% (100 - 20)
+        vr.results = [
+            CheckResult.success("OK"),
+            CheckResult.error("Error"),
+        ]
+        assert report.build_quality_score() == 80
+
+        # Mixed: 1 error + 1 warning = 75% (100 - 20 - 5)
+        vr.results = [
+            CheckResult.success("OK"),
+            CheckResult.info("Info"),
+            CheckResult.suggestion("Suggestion"),
+            CheckResult.warning("Warning"),
+            CheckResult.error("Error"),
+        ]
+        assert report.build_quality_score() == 75
+
+        # 2 errors + 1 warning = 55% (100 - 40 - 5)
+        vr.results = [
+            CheckResult.warning("Warning"),
+            CheckResult.error("Error 1"),
+            CheckResult.error("Error 2"),
+        ]
+        assert report.build_quality_score() == 55
+
+        # Many errors cap at 70 penalty, many warnings cap at 25
+        vr.results = [
+            CheckResult.warning("W1"),
+            CheckResult.warning("W2"),
+            CheckResult.warning("W3"),
+            CheckResult.warning("W4"),
+            CheckResult.warning("W5"),
+            CheckResult.warning("W6"),  # 6 warnings = 25 cap
+            CheckResult.error("E1"),
+            CheckResult.error("E2"),
+            CheckResult.error("E3"),
+            CheckResult.error("E4"),
+            CheckResult.error("E5"),  # 5 errors = 70 cap
+        ]
+        # 100 - 70 - 25 = 5 (floor at 0)
+        assert report.build_quality_score() == 5
 
     def test_quality_rating(self):
-        """Test quality rating labels."""
+        """Test quality rating labels (aligned with penalty-based scoring)."""
         report = HealthReport()
         vr = ValidatorReport("Test")
         report.validator_reports = [vr]
 
-        # Excellent (95+)
-        vr.results = [CheckResult.success("OK")] * 20
+        # Excellent (90+): no errors, 0-2 warnings
+        vr.results = [CheckResult.success("OK")] * 5
         assert report.quality_rating() == "Excellent"
 
-        # Good (85-94)
-        vr.results = [CheckResult.success("OK")] * 9 + [CheckResult.warning("W")]
-        rating = report.quality_rating()
-        assert rating in ["Good", "Excellent"]
+        vr.results = [CheckResult.success("OK")] * 5 + [CheckResult.warning("W")]
+        assert report.quality_rating() == "Excellent"  # 95%
 
-        # Fair (70-84)
-        vr.results = [CheckResult.success("OK")] * 7 + [CheckResult.warning("W")] * 3
-        rating = report.quality_rating()
-        assert rating in ["Fair", "Good"]
+        # Good (75-89): 1 error or 3-5 warnings
+        vr.results = [CheckResult.success("OK")] * 5 + [CheckResult.error("E")]
+        assert report.quality_rating() == "Good"  # 80%
+
+        vr.results = [CheckResult.warning("W")] * 4
+        assert report.quality_rating() == "Good"  # 80%
+
+        # Fair (50-74): 2-3 errors or many warnings
+        vr.results = [CheckResult.error("E1"), CheckResult.error("E2")]
+        assert report.quality_rating() == "Fair"  # 60%
+
+        # Needs Improvement (<50): 4+ errors
+        vr.results = [
+            CheckResult.error("E1"),
+            CheckResult.error("E2"),
+            CheckResult.error("E3"),
+            CheckResult.error("E4"),
+        ]
+        assert report.quality_rating() == "Needs Improvement"  # 30%
 
 
 class TestHealthReportFormatting:
