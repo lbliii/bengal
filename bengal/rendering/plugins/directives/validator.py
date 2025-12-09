@@ -215,11 +215,33 @@ class DirectiveSyntaxValidator:
         end_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
         named_closer_pattern = re.compile(r"^(\s*)(:{3,})\{/([^}]+)\}", re.MULTILINE)
 
+        # Code block tracking (``` or ~~~)
+        code_block_pattern = re.compile(r"^(\s*)(`{3,}|~{3,})")
+        in_code_block = False
+        code_block_fence: str | None = None
+
         # First pass: check if content uses named closers (enables same-fence-length)
         uses_named_closers = bool(named_closer_pattern.search(content))
 
         for i, line in enumerate(lines):
             line_num = i + 1
+
+            # Track code block state (skip directive analysis inside code blocks)
+            code_match = code_block_pattern.match(line)
+            if code_match:
+                fence = code_match.group(2)
+                if not in_code_block:
+                    in_code_block = True
+                    code_block_fence = fence
+                elif fence.startswith(code_block_fence[0]) and len(fence) >= len(code_block_fence):
+                    # Closing fence (same or longer)
+                    in_code_block = False
+                    code_block_fence = None
+                continue
+
+            # Skip directive analysis inside code blocks
+            if in_code_block:
+                continue
 
             # Check for named closer first (:::{/name})
             closer_match = named_closer_pattern.match(line)
