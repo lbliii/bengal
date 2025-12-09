@@ -116,21 +116,23 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
         return html
 
     # HTML5 void elements (no closing tag needed)
-    void_elements = frozenset({
-        "area",
-        "base",
-        "br",
-        "col",
-        "embed",
-        "hr",
-        "img",
-        "input",
-        "link",
-        "meta",
-        "source",
-        "track",
-        "wbr",
-    })
+    void_elements = frozenset(
+        {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "source",
+            "track",
+            "wbr",
+        }
+    )
 
     # Tag-aware truncation
     result: list[str] = []
@@ -164,10 +166,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
         else:
             # Find next tag or end
             next_tag = html.find("<", i)
-            if next_tag == -1:
-                text = html[i:]
-            else:
-                text = html[i:next_tag]
+            text = html[i:] if next_tag == -1 else html[i:next_tag]
 
             # Count and truncate words in this text segment
             words = text.split()
@@ -297,13 +296,18 @@ def markdownify(text: str) -> str:
     try:
         import markdown
 
+        # Note: Intentionally NOT using codehilite extension here.
+        # codehilite produces <div class="highlight"><pre><span>... structure
+        # which loses the language-X class needed for JS language labels.
+        # fenced_code alone produces <pre><code class="language-X">... which
+        # matches Bengal's standard code block structure and allows JS
+        # (main.js) to detect language and add proper labels.
         md = markdown.Markdown(
             extensions=[
                 "extra",
-                "codehilite",
                 "tables",
                 "fenced_code",
-            ]
+            ],
         )
         return md.convert(text)
     except ImportError:

@@ -14,8 +14,11 @@ Each param in the normalized list has: name, type, default, required, descriptio
 
 {% if params %}
 <div class="api-parameters">
-  <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Parameters <span class="api-label__count">{{ params | length }}</span></h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
-  <table class="api-table {% if element.element_type == 'method' %}api-table--mini{% else %}api-table--compact{% endif %}">
+  <h{% if element.element_type=='method' %}5{% else %}4{% endif %} class="api-label">Parameters <span
+      class="api-label__count">{{ params | length }}</span></h{% if element.element_type=='method' %}5{% else %}4{%
+    endif %}>
+  <table
+    class="api-table {% if element.element_type == 'method' %}api-table--mini{% else %}api-table--compact{% endif %}">
     {% if element.element_type == 'function' %}
     <thead>
       <tr>
