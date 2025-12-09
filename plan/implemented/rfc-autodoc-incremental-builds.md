@@ -1,6 +1,6 @@
 # RFC: Autodoc Incremental Build Support
 
-**Status**: Under Review  
+**Status**: Implemented  
 **Created**: 2025-01-09  
 **Reviewed**: 2025-01-09  
 **Author**: AI Assistant  

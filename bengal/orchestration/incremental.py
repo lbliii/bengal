@@ -449,15 +449,69 @@ class IncrementalOrchestrator:
                     # Template unchanged - still update its hash in cache to avoid re-checking
                     self.cache.update_file(template_file)
 
+        # Check which autodoc pages need to be rebuilt based on source file changes
+        autodoc_pages_to_rebuild: set[str] = set()
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+            and hasattr(self.cache, "get_autodoc_source_files")
+        ):
+            try:
+                # Get all tracked autodoc source files
+                source_files = self.cache.get_autodoc_source_files()
+                if source_files:  # Check if iterable and non-empty
+                    for source_file in source_files:
+                        source_path = Path(source_file)
+                        if self.cache.is_changed(source_path):
+                            # Source file changed - mark all its autodoc pages for rebuild
+                            affected_pages = self.cache.get_affected_autodoc_pages(source_path)
+                            if affected_pages:
+                                autodoc_pages_to_rebuild.update(affected_pages)
+
+                                if verbose:
+                                    if "Autodoc changes" not in change_summary.extra_changes:
+                                        change_summary.extra_changes["Autodoc changes"] = []
+                                    change_summary.extra_changes["Autodoc changes"].append(
+                                        f"{source_path.name} changed, affects {len(affected_pages)} autodoc pages"
+                                    )
+
+                if autodoc_pages_to_rebuild:
+                    logger.info(
+                        "autodoc_selective_rebuild",
+                        affected_pages=len(autodoc_pages_to_rebuild),
+                        reason="source_files_changed",
+                    )
+            except (TypeError, AttributeError):
+                # Handle case where cache is a mock or doesn't have proper methods
+                pass
+
         # Convert to Page objects
-        # Include autodoc pages in every incremental build since they have virtual paths
-        # that aren't tracked by file system watching. Their source is Python/OpenAPI/CLI
-        # files which may have changed, and deferred rendering needs full template context.
+        # - Include content pages whose source files changed
+        # - Include autodoc pages whose source files changed (selective, not all)
+        # - If no dependency tracking yet, include all autodoc pages (first build)
+        has_autodoc_tracking = False
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+        ):
+            try:
+                has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
+            except (TypeError, AttributeError):
+                pass
+
         pages_to_build_list = [
             page
             for page in self.site.pages
             if (page.source_path in pages_to_rebuild and not page.metadata.get("_generated"))
-            or page.metadata.get("is_autodoc")  # Always rebuild autodoc pages
+            or (
+                page.metadata.get("is_autodoc")
+                and (
+                    # Selective rebuild if we have dependency tracking
+                    str(page.source_path) in autodoc_pages_to_rebuild
+                    # Or rebuild all if no tracking yet (first build after upgrade)
+                    or not has_autodoc_tracking
+                )
+            )
         ]
 
         # Log what changed for debugging
@@ -611,11 +665,42 @@ class IncrementalOrchestrator:
                     if page_section and page_section in affected_sections:
                         pages_to_rebuild.add(page.source_path)
 
+        # Check which autodoc pages need to be rebuilt based on source file changes
+        autodoc_pages_to_rebuild: set[str] = set()
+        has_autodoc_tracking = False
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+            and hasattr(self.cache, "get_autodoc_source_files")
+        ):
+            try:
+                source_files = self.cache.get_autodoc_source_files()
+                if source_files:
+                    has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
+                    for source_file in source_files:
+                        source_path = Path(source_file)
+                        if self.cache.is_changed(source_path):
+                            affected_pages = self.cache.get_affected_autodoc_pages(source_path)
+                            if affected_pages:
+                                autodoc_pages_to_rebuild.update(affected_pages)
+            except (TypeError, AttributeError):
+                # Handle case where cache is a mock or doesn't have proper methods
+                pass
+
         # Convert page paths back to Page objects
-        # Include autodoc pages in every build since they have virtual paths
+        # - Include content pages whose source files changed
+        # - Include autodoc pages selectively (only if their source changed)
         pages_to_build = [
-            page for page in self.site.pages
-            if page.source_path in pages_to_rebuild or page.metadata.get("is_autodoc")
+            page
+            for page in self.site.pages
+            if page.source_path in pages_to_rebuild
+            or (
+                page.metadata.get("is_autodoc")
+                and (
+                    str(page.source_path) in autodoc_pages_to_rebuild
+                    or not has_autodoc_tracking
+                )
+            )
         ]
 
         return pages_to_build, assets_to_process, change_summary
@@ -816,8 +901,21 @@ class IncrementalOrchestrator:
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / "cache.json"
 
+        # Track autodoc source files that were used in this build
+        autodoc_source_files_updated: set[str] = set()
+
         # Update all page hashes and tags (skip virtual/generated pages - they have no source files)
         for page in pages_built:
+            # For autodoc pages, update the source file hash (not the virtual source_path)
+            if page.metadata.get("is_autodoc"):
+                source_file = page.metadata.get("source_file")
+                if source_file and source_file not in autodoc_source_files_updated:
+                    source_path = Path(source_file)
+                    if source_path.exists():
+                        self.cache.update_file(source_path)
+                        autodoc_source_files_updated.add(source_file)
+                continue
+
             # Skip virtual pages (no source file) and generated pages
             if page.is_virtual or page.metadata.get("_generated"):
                 continue

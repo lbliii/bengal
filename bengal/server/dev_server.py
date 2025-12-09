@@ -341,6 +341,36 @@ class DevServer:
             if bundled_theme_dir.exists():
                 watch_dirs.append(bundled_theme_dir)
 
+        # Watch autodoc source directories for Python file changes
+        autodoc_config = self.site.config.get("autodoc", {})
+
+        # Python source directories
+        python_config = autodoc_config.get("python", {})
+        if python_config.get("enabled", False):
+            for source_dir in python_config.get("source_dirs", []):
+                source_path = self.site.root_path / source_dir
+                if source_path.exists():
+                    watch_dirs.append(source_path)
+                    logger.debug(
+                        "watching_autodoc_source_dir",
+                        path=str(source_path),
+                        type="python",
+                    )
+
+        # OpenAPI spec file directory
+        openapi_config = autodoc_config.get("openapi", {})
+        if openapi_config.get("enabled", False):
+            spec_file = openapi_config.get("spec_file")
+            if spec_file:
+                spec_path = self.site.root_path / Path(spec_file).parent
+                if spec_path.exists():
+                    watch_dirs.append(spec_path)
+                    logger.debug(
+                        "watching_autodoc_source_dir",
+                        path=str(spec_path),
+                        type="openapi",
+                    )
+
         # Filter to only existing directories
         return [str(d) for d in watch_dirs if d.exists()]
 

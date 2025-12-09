@@ -32,6 +32,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.cache.build_cache.autodoc_tracking import AutodocTrackingMixin
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
 from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixin
 from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMixin
@@ -49,6 +50,7 @@ class BuildCache(
     TaxonomyIndexMixin,
     ParsedContentCacheMixin,
     RenderedOutputCacheMixin,
+    AutodocTrackingMixin,
 ):
     """
     Tracks file hashes and dependencies between builds.
@@ -122,6 +124,10 @@ class BuildCache(
     # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
     validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
 
+    # Autodoc dependency tracking: source_file → set[autodoc_page_paths]
+    # Enables selective rebuilding of autodoc pages when their sources change
+    autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
+
     # Config hash for auto-invalidation when configuration changes
     # Hash of resolved config dict (captures env vars, profiles, split configs)
     config_hash: str | None = None
@@ -149,6 +155,10 @@ class BuildCache(
         # Convert known_tags list back to set
         if isinstance(self.known_tags, list):
             self.known_tags = set(self.known_tags)
+        # Convert autodoc_dependencies lists back to sets
+        self.autodoc_dependencies = {
+            k: set(v) if isinstance(v, list) else v for k, v in self.autodoc_dependencies.items()
+        }
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
         # Validation results are already in dict format (no conversion needed)
@@ -267,6 +277,15 @@ class BuildCache(
             if "file_fingerprints" not in data:
                 data["file_fingerprints"] = {}
 
+            # Autodoc dependencies (new, tolerate missing)
+            if "autodoc_dependencies" not in data:
+                data["autodoc_dependencies"] = {}
+            else:
+                # Convert lists back to sets
+                data["autodoc_dependencies"] = {
+                    k: set(v) for k, v in data["autodoc_dependencies"].items()
+                }
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -383,6 +402,9 @@ class BuildCache(
             "known_tags": list(self.known_tags),  # Save known tags
             "parsed_content": self.parsed_content,  # Already in dict format
             "validation_results": self.validation_results,  # Already in dict format
+            "autodoc_dependencies": {
+                k: list(v) for k, v in self.autodoc_dependencies.items()
+            },  # Autodoc source → pages
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }
@@ -430,6 +452,7 @@ class BuildCache(
         self.rendered_output.clear()
         self.synthetic_pages.clear()
         self.validation_results.clear()
+        self.autodoc_dependencies.clear()
         self.config_hash = None
         self.last_build = None
 
@@ -529,6 +552,10 @@ class BuildCache(
             "taxonomy_terms": len(self.taxonomy_deps),
             "cached_content_pages": len(self.parsed_content),
             "cached_rendered_pages": len(self.rendered_output),
+            "autodoc_source_files": len(self.autodoc_dependencies),
+            "autodoc_pages_tracked": sum(
+                len(pages) for pages in self.autodoc_dependencies.values()
+            ),
         }
 
         logger.debug("cache_stats", **stats)

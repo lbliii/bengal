@@ -139,7 +139,7 @@ class ContentOrchestrator:
         # Note: Autodoc pages are NOT rendered during discovery. HTML rendering is
         # deferred to the rendering phase (after menus are built) to ensure full
         # template context (including navigation) is available.
-        autodoc_pages, autodoc_sections = self._discover_autodoc_content()
+        autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=cache)
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
             self.site.sections.extend(autodoc_sections)
@@ -173,9 +173,15 @@ class ContentOrchestrator:
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
 
-    def _discover_autodoc_content(self) -> tuple[list[Any], list[Any]]:
+    def _discover_autodoc_content(
+        self, cache: Any | None = None
+    ) -> tuple[list[Any], list[Any]]:
         """
         Generate virtual autodoc pages if enabled.
+
+        Args:
+            cache: Optional BuildCache for registering autodoc dependencies.
+                   Enables selective rebuilding of autodoc pages in incremental builds.
 
         Returns:
             Tuple of (pages, sections) from virtual autodoc generation.
@@ -197,6 +203,21 @@ class ContentOrchestrator:
                 # Log summary if there were failures or warnings
                 if run_result.has_failures() or run_result.has_warnings():
                     self._log_autodoc_summary(run_result)
+
+                # Register autodoc dependencies with cache for selective rebuilds
+                if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                    for source_file, page_paths in run_result.autodoc_dependencies.items():
+                        for page_path in page_paths:
+                            cache.add_autodoc_dependency(source_file, page_path)
+
+                    if run_result.autodoc_dependencies:
+                        self.logger.debug(
+                            "autodoc_dependencies_registered",
+                            source_files=len(run_result.autodoc_dependencies),
+                            total_mappings=sum(
+                                len(p) for p in run_result.autodoc_dependencies.values()
+                            ),
+                        )
             else:
                 # Legacy 2-tuple return
                 pages, sections = result

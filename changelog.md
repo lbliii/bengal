@@ -1,5 +1,16 @@
 ## Unreleased
 
+### Autodoc Incremental Build Support ✅
+- **server(dev_server)**: watch autodoc source directories (Python `source_dirs`, OpenAPI spec files) for changes
+- **server(build_handler)**: add `_should_regenerate_autodoc()` to detect when autodoc sources change and trigger rebuilds
+- **cache(autodoc_tracking)**: new `AutodocTrackingMixin` for tracking source file → autodoc page dependencies
+- **cache(build_cache)**: add `autodoc_dependencies` field for selective autodoc rebuilds
+- **autodoc(virtual_orchestrator)**: track dependencies in `AutodocRunResult.autodoc_dependencies` during page creation
+- **orchestration(content)**: register autodoc dependencies with cache during content discovery
+- **orchestration(incremental)**: selective autodoc page rebuilds based on source file changes (not all autodoc pages)
+- **orchestration(incremental)**: track autodoc source file hashes in `save_cache()` for change detection
+- **docs**: RFC moved to implemented
+
 ### Autodoc Resilience Improvements ✅
 - **autodoc(virtual_orchestrator)**: add `AutodocRunResult` summary dataclass tracking extraction/rendering successes and failures
 - **autodoc(virtual_orchestrator)**: update `generate()` to return `(pages, sections, result)` tuple for observability

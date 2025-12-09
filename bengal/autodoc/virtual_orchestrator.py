@@ -53,6 +53,9 @@ class AutodocRunResult:
     """Qualified names of elements that failed rendering."""
     fallback_pages: list[str] = field(default_factory=list)
     """URL paths of pages rendered via fallback template."""
+    autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
+    """Mapping of source file paths to the autodoc page paths they produce.
+    Used by IncrementalOrchestrator for selective autodoc rebuilds."""
 
     def has_failures(self) -> bool:
         """Check if any failures occurred."""
@@ -61,6 +64,18 @@ class AutodocRunResult:
     def has_warnings(self) -> bool:
         """Check if any warnings occurred."""
         return self.warnings > 0
+
+    def add_dependency(self, source_file: str, page_path: str) -> None:
+        """
+        Register a dependency between a source file and an autodoc page.
+
+        Args:
+            source_file: Path to the Python/OpenAPI source file
+            page_path: Path to the generated autodoc page (source_path)
+        """
+        if source_file not in self.autodoc_dependencies:
+            self.autodoc_dependencies[source_file] = set()
+        self.autodoc_dependencies[source_file].add(page_path)
 
 
 class _PageContext:
@@ -843,6 +858,10 @@ class VirtualAutodocOrchestrator:
             else:
                 # Regular page - add to parent section
                 parent_section.add_page(page)
+
+            # Track source file → autodoc page dependency for incremental builds
+            if element.source_file:
+                result.add_dependency(str(element.source_file), source_id)
 
             # Store page for return (no HTML rendering yet - deferred to rendering phase)
             page_data.append(page)
