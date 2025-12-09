@@ -6,7 +6,6 @@ category: guide
 icon: settings
 card_color: blue
 ---
-
 # Configuration
 
 Control Bengal's behavior through `bengal.toml` and environment-specific settings.
@@ -15,22 +14,24 @@ Control Bengal's behavior through `bengal.toml` and environment-specific setting
 
 ```mermaid
 flowchart TB
-    subgraph "Configuration Sources"
+    subgraph "Base Configuration (Mutually Exclusive)"
         A[bengal.toml]
         B[config/ directory]
-        C[environment overrides]
-        D[CLI flags]
     end
 
+    C[Environment Overrides]
+    D[CLI Flags]
     E[Final Config]
 
-    A --> E
-    B --> E
+    A -.->|OR| E
+    B -.->|OR| E
     C --> E
     D --> E
 ```
 
-Settings merge in order: `bengal.toml` → `config/` → environment → CLI flags.
+Bengal loads configuration from **either** the `config/` directory (preferred) **OR** `bengal.toml` (legacy/simple). If `config/` exists, `bengal.toml` is ignored.
+
+Overrides apply in order: Base Config → Environment Overrides → CLI Flags.
 
 ## Quick Start
 

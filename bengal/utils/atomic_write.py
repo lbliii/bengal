@@ -23,6 +23,7 @@ import os
 import threading
 import uuid
 from pathlib import Path
+from typing import IO, Any
 
 
 def atomic_write_text(
@@ -138,7 +139,9 @@ class AtomicFile:
         ...     tree.write(f, encoding='utf-8')
     """
 
-    def __init__(self, path: Path | str, mode: str = "w", encoding: str | None = "utf-8", **kwargs):
+    def __init__(
+        self, path: Path | str, mode: str = "w", encoding: str | None = "utf-8", **kwargs: Any
+    ) -> None:
         """
         Initialize atomic file writer.
 
@@ -158,13 +161,13 @@ class AtomicFile:
         tid = threading.get_ident()
         unique_id = uuid.uuid4().hex[:8]
         self.tmp_path = self.path.parent / f".{self.path.name}.{pid}.{tid}.{unique_id}.tmp"
-        self.file = None
+        self.file: IO[Any] | None = None
 
-    def __enter__(self):
+    def __enter__(self) -> IO[Any]:
         """Open temp file for writing."""
         # Ensure parent directory exists
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        open_kwargs = {}
+        open_kwargs: dict[str, Any] = {}
         if self.encoding:
             open_kwargs["encoding"] = self.encoding
         open_kwargs.update(self.kwargs)
@@ -172,7 +175,7 @@ class AtomicFile:
         self.file = open(self.tmp_path, self.mode, **open_kwargs)
         return self.file
 
-    def __exit__(self, exc_type, *args):
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> None:
         """Close temp file and rename atomically if successful."""
         if self.file:
             self.file.close()
@@ -180,9 +183,7 @@ class AtomicFile:
         # If exception occurred, clean up and don't rename
         if exc_type is not None:
             self.tmp_path.unlink(missing_ok=True)
-            return False
+            return
 
         # Success - rename atomically
         self.tmp_path.replace(self.path)
-
-        return False

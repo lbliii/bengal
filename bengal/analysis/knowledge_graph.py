@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from bengal.analysis.link_suggestions import LinkSuggestionResults
     from bengal.analysis.page_rank import PageRankResults
     from bengal.analysis.path_analysis import PathAnalysisResults
+    from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
     from bengal.core.site import Site
 
@@ -124,7 +125,7 @@ class KnowledgeGraph:
         # Note: page_by_id no longer needed - pages are directly hashable
 
         # Analysis results
-        self.metrics: GraphMetrics = None
+        self.metrics: GraphMetrics | None = None
         self._built = False
 
         # Analysis results cache
@@ -221,12 +222,21 @@ class KnowledgeGraph:
             if not hasattr(page, "links") or not page.links:
                 try:
                     page.extract_links()
+                except (AttributeError, TypeError) as e:
+                    # Specific error handling for missing content
+                    logger.warning(
+                        "knowledge_graph_link_extraction_error",
+                        page=str(page.source_path),
+                        error=str(e),
+                        type=type(e).__name__,
+                    )
                 except Exception as e:
                     # Log but don't fail - some pages might not have extractable links
                     logger.debug(
                         "knowledge_graph_link_extraction_failed",
                         page=str(page.source_path),
                         error=str(e),
+                        exc_info=True,
                     )
 
     def _analyze_cross_references(self) -> None:
@@ -256,7 +266,7 @@ class KnowledgeGraph:
                     self.incoming_refs[target] += 1  # Direct page reference
                     self.outgoing_refs[page].add(target)  # Direct page reference
 
-    def _resolve_link(self, link: str) -> Page:
+    def _resolve_link(self, link: str) -> Page | None:
         """
         Resolve a link string to a target page.
 
@@ -274,12 +284,14 @@ class KnowledgeGraph:
 
         # Try by ID
         if link.startswith("id:"):
-            return xref.get("by_id", {}).get(link[3:])
+            page = xref.get("by_id", {}).get(link[3:])
+            return page if page is not None else None
 
         # Try by path
         if "/" in link or link.endswith(".md"):
             clean_link = link.replace(".md", "").strip("/")
-            return xref.get("by_path", {}).get(clean_link)
+            page = xref.get("by_path", {}).get(clean_link)
+            return page if page is not None else None
 
         # Try by slug
         pages = xref.get("by_slug", {}).get(link, [])
@@ -414,10 +426,12 @@ class KnowledgeGraph:
             PageConnectivity with detailed metrics
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting connectivity")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting connectivity."
+            )
         return self._analyzer.get_connectivity(page)
 
     def get_hubs(self, threshold: int | None = None) -> list[Page]:
@@ -436,10 +450,10 @@ class KnowledgeGraph:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting hubs")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting hubs.")
         return self._analyzer.get_hubs(threshold)
 
     def get_leaves(self, threshold: int | None = None) -> list[Page]:
@@ -458,10 +472,10 @@ class KnowledgeGraph:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting leaves")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting leaves.")
         return self._analyzer.get_leaves(threshold)
 
     def get_orphans(self) -> list[Page]:
@@ -477,10 +491,10 @@ class KnowledgeGraph:
             List of orphaned pages sorted by slug
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting orphans")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting orphans.")
         return self._analyzer.get_orphans()
 
     def get_connectivity_score(self, page: Page) -> int:
@@ -496,13 +510,15 @@ class KnowledgeGraph:
             Connectivity score (higher = more connected)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting connectivity score")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting connectivity score."
+            )
         return self._analyzer.get_connectivity_score(page)
 
-    def get_layers(self) -> tuple[list[Page], list[Page], list[Page]]:
+    def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
 
@@ -512,13 +528,14 @@ class KnowledgeGraph:
         - Layer 2 (Leaves): Low connectivity, stream and release
 
         Returns:
-            Tuple of (hubs, mid_tier, leaves)
+            PageLayers dataclass with hubs, mid_tier, and leaves attributes
+            (supports tuple unpacking for backward compatibility)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting layers")
+        if not self._built or self._analyzer is None:
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting layers.")
         return self._analyzer.get_layers()
 
     def get_metrics(self) -> GraphMetrics:
@@ -529,11 +546,13 @@ class KnowledgeGraph:
             GraphMetrics with summary statistics
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         if not self._built:
-            raise ValueError("Must call build() before getting metrics")
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting metrics.")
 
+        # After build(), metrics is guaranteed to be set
+        assert self.metrics is not None, "metrics should be computed after build()"
         return self.metrics
 
     def format_stats(self) -> str:
@@ -544,10 +563,12 @@ class KnowledgeGraph:
             Formatted statistics string
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before formatting stats")
+        if not self._built or self._reporter is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before formatting stats."
+            )
         return self._reporter.format_stats()
 
     def get_actionable_recommendations(self) -> list[str]:
@@ -556,9 +577,14 @@ class KnowledgeGraph:
 
         Returns:
             List of recommendation strings with emoji prefixes
+
+        Raises:
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting recommendations")
+        if not self._built or self._reporter is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting recommendations."
+            )
         return self._reporter.get_actionable_recommendations()
 
     def get_seo_insights(self) -> list[str]:
@@ -567,9 +593,14 @@ class KnowledgeGraph:
 
         Returns:
             List of SEO insight strings with emoji prefixes
+
+        Raises:
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting SEO insights")
+        if not self._built or self._reporter is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting SEO insights."
+            )
         return self._reporter.get_seo_insights()
 
     def get_content_gaps(self) -> list[str]:
@@ -578,9 +609,14 @@ class KnowledgeGraph:
 
         Returns:
             List of content gap descriptions
+
+        Raises:
+            RuntimeError: If graph hasn't been built yet
         """
-        if not self._built:
-            raise ValueError("Must call build() before getting content gaps")
+        if not self._built or self._reporter is None:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting content gaps."
+            )
         return self._reporter.get_content_gaps()
 
     def compute_pagerank(
@@ -600,6 +636,9 @@ class KnowledgeGraph:
         Returns:
             PageRankResults with scores and metadata
 
+        Raises:
+            RuntimeError: If graph hasn't been built yet
+
         Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
@@ -607,7 +646,9 @@ class KnowledgeGraph:
             >>> top_pages = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError("Must call build() before computing PageRank")
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            )
 
         # Return cached results unless forced
         if self._pagerank_results and not force_recompute:
@@ -639,6 +680,10 @@ class KnowledgeGraph:
         Returns:
             PageRankResults with personalized scores
 
+        Raises:
+            RuntimeError: If graph hasn't been built yet
+            ValueError: If seed_pages is empty
+
         Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
@@ -648,10 +693,14 @@ class KnowledgeGraph:
             >>> related = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError("Must call build() before computing PageRank")
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            )
 
         if not seed_pages:
-            raise ValueError("seed_pages cannot be empty")
+            raise ValueError(
+                "Personalized PageRank requires at least one seed page to bias the ranking."
+            )
 
         # Import here to avoid circular dependency
         from bengal.analysis.page_rank import PageRankCalculator
@@ -681,6 +730,8 @@ class KnowledgeGraph:
         if not self._pagerank_results:
             self.compute_pagerank()
 
+        if self._pagerank_results is None:
+            return []
         return self._pagerank_results.get_top_pages(limit)
 
     def get_pagerank_score(self, page: Page) -> float:
@@ -704,6 +755,8 @@ class KnowledgeGraph:
         if not self._pagerank_results:
             self.compute_pagerank()
 
+        if self._pagerank_results is None:
+            return 0.0
         return self._pagerank_results.get_score(page)
 
     def detect_communities(
@@ -769,10 +822,18 @@ class KnowledgeGraph:
         if not self._community_results:
             self.detect_communities()
 
+        if self._community_results is None:
+            return None
         community = self._community_results.get_community_for_page(page)
         return community.id if community else None
 
-    def analyze_paths(self, force_recompute: bool = False) -> PathAnalysisResults:
+    def analyze_paths(
+        self,
+        force_recompute: bool = False,
+        k_pivots: int = 100,
+        seed: int = 42,
+        auto_approximate_threshold: int = 500,
+    ) -> PathAnalysisResults:
         """
         Analyze navigation paths and centrality metrics.
 
@@ -781,8 +842,14 @@ class KnowledgeGraph:
         - Closeness centrality: Pages that are easily accessible
         - Network diameter and average path length
 
+        For large sites (> auto_approximate_threshold pages), uses pivot-based
+        approximation for O(k*N) complexity instead of O(N²).
+
         Args:
             force_recompute: If True, recompute even if cached
+            k_pivots: Number of pivot nodes for approximation (default: 100)
+            seed: Random seed for deterministic results (default: 42)
+            auto_approximate_threshold: Use exact if pages <= this (default: 500)
 
         Returns:
             PathAnalysisResults with centrality metrics
@@ -792,6 +859,7 @@ class KnowledgeGraph:
             >>> graph.build()
             >>> results = graph.analyze_paths()
             >>> bridges = results.get_top_bridges(10)
+            >>> print(f"Approximate: {results.is_approximate}")
         """
         if not self._built:
             raise RuntimeError("Must call build() before analyzing paths")
@@ -804,7 +872,12 @@ class KnowledgeGraph:
         # Import here to avoid circular dependency
         from bengal.analysis.path_analysis import PathAnalyzer
 
-        analyzer = PathAnalyzer(graph=self)
+        analyzer = PathAnalyzer(
+            graph=self,
+            k_pivots=k_pivots,
+            seed=seed,
+            auto_approximate_threshold=auto_approximate_threshold,
+        )
         self._path_results = analyzer.analyze()
         return self._path_results
 
@@ -823,6 +896,8 @@ class KnowledgeGraph:
         if not self._path_results:
             self.analyze_paths()
 
+        if self._path_results is None:
+            return 0.0
         return self._path_results.get_betweenness(page)
 
     def get_closeness_centrality(self, page: Page) -> float:
@@ -840,6 +915,8 @@ class KnowledgeGraph:
         if not self._path_results:
             self.analyze_paths()
 
+        if self._path_results is None:
+            return 0.0
         return self._path_results.get_closeness(page)
 
     def suggest_links(
@@ -908,5 +985,7 @@ class KnowledgeGraph:
         if not self._link_suggestions:
             self.suggest_links()
 
+        if self._link_suggestions is None:
+            return []
         suggestions = self._link_suggestions.get_suggestions_for_page(page, limit)
         return [(s.target, s.score, s.reasons) for s in suggestions]

@@ -16,7 +16,7 @@ from typing import Any
 class ParsedDocstring:
     """Container for parsed docstring data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.summary: str = ""
         self.description: str = ""
         self.args: dict[str, str] = {}
@@ -199,7 +199,7 @@ class GoogleDocstringParser:
         ]
 
         current_section = "description"
-        section_buffer = []
+        section_buffer: list[str] = []
 
         for line in lines:
             stripped = line.strip()
@@ -233,13 +233,13 @@ class GoogleDocstringParser:
             name (type): description
             name: description
         """
-        args = {}
+        args: dict[str, str] = {}
         if not section:
             return args
 
         lines = section.split("\n")
-        current_arg = None
-        current_desc = []
+        current_arg: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             # Check if this is a new argument
@@ -271,13 +271,13 @@ class GoogleDocstringParser:
         Format:
             ExceptionType: description
         """
-        raises = []
+        raises: list[dict[str, str]] = []
         if not section:
             return raises
 
         lines = section.split("\n")
-        current_exc = None
-        current_desc = []
+        current_exc: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             match = re.match(r"^\s*(\w+)\s*:\s*(.+)?", line)
@@ -303,7 +303,7 @@ class GoogleDocstringParser:
 
     def _parse_examples_section(self, section: str) -> list[str]:
         """Extract code examples."""
-        examples = []
+        examples: list[str] = []
         if not section:
             return examples
 
@@ -343,7 +343,7 @@ class GoogleDocstringParser:
 
     def _parse_see_also_section(self, section: str) -> list[str]:
         """Extract cross-references."""
-        see_also = []
+        see_also: list[str] = []
         if not section:
             return see_also
 
@@ -357,7 +357,7 @@ class GoogleDocstringParser:
 
     def _parse_note_section(self, section: str) -> list[str]:
         """Extract notes or warnings."""
-        notes = []
+        notes: list[str] = []
         if not section:
             return notes
 
@@ -438,7 +438,7 @@ class NumpyDocstringParser:
         ]
 
         current_section = "description"
-        section_buffer = []
+        section_buffer: list[str] = []
         i = 0
 
         while i < len(lines):
@@ -475,13 +475,13 @@ class NumpyDocstringParser:
             name : type
                 description
         """
-        params = {}
+        params: dict[str, str] = {}
         if not section:
             return params
 
         lines = section.split("\n")
-        current_param = None
-        current_desc = []
+        current_param: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             # Check for parameter definition: "name : type"
@@ -506,13 +506,13 @@ class NumpyDocstringParser:
 
     def _parse_raises_section(self, section: str) -> list[dict[str, str]]:
         """Parse Raises section (similar to Parameters)."""
-        raises = []
+        raises: list[dict[str, str]] = []
         if not section:
             return raises
 
         lines = section.split("\n")
-        current_exc = None
-        current_desc = []
+        current_exc: str | None = None
+        current_desc: list[str] = []
 
         for line in lines:
             if not line.startswith(" ") and line.strip():

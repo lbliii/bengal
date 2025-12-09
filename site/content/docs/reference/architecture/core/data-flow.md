@@ -3,8 +3,19 @@ title: Data Flow
 description: How data moves through the build pipeline
 weight: 40
 category: core
-tags: [core, data-flow, build-pipeline, phases, process-flow]
-keywords: [data flow, build pipeline, phases, process flow, content discovery, rendering]
+tags:
+- core
+- data-flow
+- build-pipeline
+- phases
+- process-flow
+keywords:
+- data flow
+- build pipeline
+- phases
+- process flow
+- content discovery
+- rendering
 ---
 
 ## Complete Build Pipeline (from build.py)

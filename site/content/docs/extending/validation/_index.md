@@ -6,7 +6,6 @@ category: guide
 icon: check-circle
 card_color: purple
 ---
-
 # Content Validation
 
 Ensure content quality with health checks and automatic fixes.

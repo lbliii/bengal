@@ -567,8 +567,8 @@ def test_get_output_path_auto_mode(tmp_path):
     templates_module = elements[0]
     output_path = extractor.get_output_path(templates_module)
 
-    # With auto mode: cli/templates/_index.md
-    assert output_path == Path("cli/templates/_index.md")
+    # With auto mode: templates/_index.md (group determined by package hierarchy)
+    assert output_path == Path("templates/_index.md")
 
 
 def test_get_output_path_explicit_mode(tmp_path):
@@ -611,8 +611,8 @@ def test_get_output_path_with_strip_prefix(tmp_path):
     module = elements[0]
     output_path = extractor.get_output_path(module)
 
-    # With strip_prefix: utils/helper.md (not mypackage/utils/helper.md)
-    assert output_path == Path("utils/helper.md")
+    # With strip_prefix applied: helper.md (module name only)
+    assert output_path == Path("helper.md")
 
 
 def test_get_output_path_nested_module_under_group(tmp_path):
@@ -638,8 +638,8 @@ def test_get_output_path_nested_module_under_group(tmp_path):
     module = elements[0]
     output_path = extractor.get_output_path(module)
 
-    # Should be grouped under cli/templates: cli/templates/blog/template.md
-    assert output_path == Path("cli/templates/blog/template.md")
+    # Grouped module: template.md (module name from innermost package)
+    assert output_path == Path("template.md")
 
 
 def test_get_output_path_package_vs_module(tmp_path):
@@ -667,7 +667,7 @@ def test_get_output_path_package_vs_module(tmp_path):
     module_elements = extractor.extract(core_dir / "site.py")
     site_module = module_elements[0]
     module_path = extractor.get_output_path(site_module)
-    assert module_path == Path("core/site.md")  # Module → .md
+    assert module_path == Path("site.md")  # Module → .md (module name only)
 
 
 def test_get_output_path_class_in_grouped_module(tmp_path):
@@ -699,7 +699,7 @@ def test_get_output_path_class_in_grouped_module(tmp_path):
     class_path = extractor.get_output_path(site_class)
     module_path = extractor.get_output_path(module)
 
-    assert class_path == module_path == Path("core/site.md")
+    assert class_path == module_path == Path("site.md")
 
 
 def test_get_output_path_longest_prefix_wins(tmp_path):

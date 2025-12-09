@@ -23,12 +23,13 @@ See Also:
 
 from __future__ import annotations
 
-import hashlib
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+from bengal.utils.hashing import hash_bytes
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -53,13 +54,14 @@ def _transform_css_nesting(css: str) -> str:
     This is a safety net for any nested CSS that slips through.
     """
     import re
+    from re import Match
 
     result = css
 
     # Pattern to match CSS rule blocks
     rule_pattern = r"([^{]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
 
-    def transform_rule(match):
+    def transform_rule(match: Match[str]) -> str:
         selector = match.group(1).strip()
         block_content = match.group(2)
 
@@ -81,9 +83,9 @@ def _transform_css_nesting(css: str) -> str:
 
         # Find nested & selectors
         nested_pattern = r"&\s*([:.#\[\w\s-]+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
-        nested_rules = []
+        nested_rules: list[str] = []
 
-        def extract_nested(m):
+        def extract_nested(m: Match[str]) -> str:
             nested_selector_part = m.group(1).strip()
             nested_block = m.group(2)
 
@@ -136,12 +138,13 @@ def _remove_duplicate_bare_h1_rules(css: str) -> str:
     This function removes the duplicate bare h1 rules.
     """
     import re
+    from re import Match
 
     # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
     # We need to match the scoped rule, then check if there's a duplicate bare h1
     pattern = r"(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})"
 
-    def remove_duplicate(match):
+    def remove_duplicate(match: Match[str]) -> str:
         scoped_rule = match.group(1)
         bare_rule = match.group(2)
 
@@ -275,6 +278,11 @@ class Asset:
     bundled: bool = False
     logical_path: Path | None = None
 
+    # Processing state (set during asset processing)
+    _bundled_content: str | None = None  # CSS content after @import resolution
+    _minified_content: str | None = None  # Content after minification
+    _optimized_image: Any = None  # Optimized PIL Image (type deferred to avoid PIL import)
+
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
         if not self.asset_type:
@@ -407,10 +415,14 @@ class Asset:
 
         def bundle_imports(css_content: str, base_path: Path) -> str:
             """Recursively resolve @import statements, preserving @layer blocks."""
+            from re import Match
+
             # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
-            def resolve_import_in_context(import_match, layer_name=None):
+            def resolve_import_in_context(
+                import_match: Match[str], layer_name: str | None = None
+            ) -> str:
                 """Resolve a single @import statement."""
                 import_path = import_match.group(1)
                 imported_file = base_path / import_path
@@ -427,9 +439,17 @@ class Asset:
 
                     # Return bundled content so it can replace the @layer block body
                     return bundled_content
-                except Exception as e:
+                except (OSError, PermissionError) as e:
                     logger.warning(
                         "css_import_read_failed",
+                        imported_file=str(imported_file),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return import_match.group(0)
+                except Exception as e:
+                    logger.error(
+                        "css_import_unexpected_error",
                         imported_file=str(imported_file),
                         error=str(e),
                         error_type=type(e).__name__,
@@ -506,7 +526,7 @@ class Asset:
 
                     # Extract layer name
                     layer_name_match = re.match(r"@layer\s+(\w+)", layer_decl)
-                    layer_name = layer_name_match.group(1) if layer_name_match else None
+                    layer_name: str = layer_name_match.group(1) if layer_name_match else ""
 
                     # Find the matching closing brace using brace counting
                     content_start = brace_pos + 1
@@ -521,9 +541,14 @@ class Asset:
                     layer_content = css[content_start:content_end]
 
                     # Process @import statements inside this layer
+                    current_layer = layer_name  # Capture for closure
+
+                    def layer_resolver(m: re.Match[str], layer: str = current_layer) -> str:
+                        return resolve_import_in_context(m, layer)
+
                     processed_content = re.sub(
                         import_pattern,
-                        lambda m, layer=layer_name: resolve_import_in_context(m, layer),
+                        layer_resolver,
                         layer_content,
                     )
 
@@ -566,8 +591,8 @@ class Asset:
 
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
-        # Get the CSS content (bundled if this is an entry point)
-        if hasattr(self, "_bundled_content"):
+        # Get the CSS content (bundled if this is an entry point, otherwise read from file)
+        if self._bundled_content is not None:
             css_content = self._bundled_content
         else:
             with open(self.source_path, encoding="utf-8") as f:
@@ -611,11 +636,11 @@ class Asset:
         Prefers minified (or bundled) content so hashes match the bytes we actually emit.
         Falls back to the original file contents when no in-memory transform exists.
         """
-        if hasattr(self, "_minified_content") and isinstance(self._minified_content, str):
+        if self._minified_content is not None:
             yield self._minified_content.encode("utf-8")
             return
 
-        if hasattr(self, "_bundled_content") and isinstance(self._bundled_content, str):
+        if self._bundled_content is not None:
             yield self._bundled_content.encode("utf-8")
             return
 
@@ -630,12 +655,9 @@ class Asset:
         Returns:
             Hash string (first 8 characters of SHA256)
         """
-        hasher = hashlib.sha256()
-
-        for chunk in self._hash_source_chunks():
-            hasher.update(chunk)
-
-        self.fingerprint = hasher.hexdigest()[:8]
+        # Concatenate all chunks and hash
+        all_bytes = b"".join(self._hash_source_chunks())
+        self.fingerprint = hash_bytes(all_bytes, truncate=8)
         return self.fingerprint
 
     def optimize(self) -> Asset:
@@ -661,8 +683,9 @@ class Asset:
 
         try:
             from PIL import Image
+            from PIL.Image import Image as PILImage
 
-            img = Image.open(self.source_path)
+            img: PILImage = Image.open(self.source_path)
 
             # Basic optimization - could be expanded
             if img.mode in ("RGBA", "LA"):
@@ -720,12 +743,12 @@ class Asset:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Copy or write optimized/minified content atomically
-        if hasattr(self, "_minified_content"):
+        if self._minified_content is not None:
             # Write minified content atomically (crash-safe)
             from bengal.utils.atomic_write import atomic_write_text
 
             atomic_write_text(output_path, self._minified_content, encoding="utf-8")
-        elif hasattr(self, "_optimized_image"):
+        elif self._optimized_image is not None:
             # Save optimized image atomically using unique temp file to prevent race conditions
             import os
             import threading
@@ -746,7 +769,13 @@ class Asset:
 
                 self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
                 tmp_path.replace(output_path)
-            except Exception:
+            except Exception as e:
+                logger.error(
+                    "atomic_image_save_failed",
+                    path=str(output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 tmp_path.unlink(missing_ok=True)
                 raise
         else:

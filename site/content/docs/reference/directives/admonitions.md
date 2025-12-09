@@ -2,8 +2,18 @@
 title: Admonitions
 description: Reference for admonition directives (note, warning, tip, danger, etc.)
 weight: 11
-tags: [reference, directives, admonitions, callouts]
-keywords: [admonitions, note, warning, tip, danger, callouts]
+tags:
+- reference
+- directives
+- admonitions
+- callouts
+keywords:
+- admonitions
+- note
+- warning
+- tip
+- danger
+- callouts
 ---
 
 # Admonition Directives

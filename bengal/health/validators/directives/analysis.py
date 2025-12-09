@@ -20,12 +20,15 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.autodoc import is_autodoc_page
+from bengal.utils.logger import get_logger
 
 from .constants import (
     KNOWN_DIRECTIVES,
     MAX_DIRECTIVES_PER_PAGE,
     MAX_TABS_PER_BLOCK,
 )
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -62,7 +65,7 @@ class DirectiveAnalyzer:
         Returns:
             Dictionary with directive statistics and issues
         """
-        data = {
+        data: dict[str, Any] = {
             "total_directives": 0,
             "by_type": defaultdict(int),
             "by_page": defaultdict(list),
@@ -108,7 +111,7 @@ class DirectiveAnalyzer:
 
             try:
                 # Use cached content if available (eliminates disk I/O)
-                if use_cache:
+                if use_cache and build_context is not None:
                     content = build_context.get_content(page.source_path)
                     if content is None:
                         # Fallback to disk if not cached (shouldn't happen normally)
@@ -117,6 +120,7 @@ class DirectiveAnalyzer:
                     else:
                         cache_hits += 1
                 else:
+                    # Read from disk (no cache or no build_context)
                     content = page.source_path.read_text(encoding="utf-8")
                     disk_reads += 1
 
@@ -195,8 +199,14 @@ class DirectiveAnalyzer:
                             }
                         )
 
-            except Exception:
+            except Exception as e:
                 # Skip files we can't read
+                logger.debug(
+                    "directive_analysis_file_skip",
+                    page=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 pass
 
         # Check for performance issues

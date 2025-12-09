@@ -30,7 +30,7 @@ from bengal.cli.helpers import command_metadata, handle_cli_errors
     help="Output format",
 )
 @click.option("--compare", "-c", is_flag=True, help="Compare last two builds")
-def perf(last, format, compare):
+def perf(last: int, format: str, compare: bool) -> None:
     """Show performance metrics and trends.
 
     Displays build performance metrics collected from previous builds.

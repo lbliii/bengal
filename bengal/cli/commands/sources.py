@@ -22,6 +22,29 @@ logger = get_logger(__name__)
 console = Console()
 
 
+def _get_site_root(ctx: click.Context) -> Path:
+    """
+    Get site root from CLI context, with CWD fallback for interactive use.
+
+    For CLI commands, using Path.cwd() as fallback is intentional and acceptable
+    because the user is explicitly running commands from a directory they chose.
+    This differs from library code where paths must be explicit.
+
+    See: plan/implemented/rfc-path-resolution-architecture.md
+
+    Args:
+        ctx: Click context (may have site_root in obj)
+
+    Returns:
+        Absolute path to site root
+    """
+    if ctx.obj and "site_root" in ctx.obj:
+        root = ctx.obj["site_root"]
+        return root.resolve() if not root.is_absolute() else root
+    # CLI fallback: user's current directory (intentional for interactive use)
+    return Path.cwd().resolve()
+
+
 @click.group("sources")
 def sources_group() -> None:
     """
@@ -41,8 +64,7 @@ def list_sources(ctx: click.Context) -> None:
     """List all configured content sources."""
     from bengal.collections.loader import load_collections
 
-    # Try to load collections
-    site_root = ctx.obj.get("site_root", Path.cwd()) if ctx.obj else Path.cwd()
+    site_root = _get_site_root(ctx)
     collections = load_collections(site_root)
 
     if not collections:
@@ -108,7 +130,7 @@ def cache_status(ctx: click.Context) -> None:
     from bengal.collections.loader import load_collections
     from bengal.content_layer.manager import ContentLayerManager
 
-    site_root = ctx.obj.get("site_root", Path.cwd()) if ctx.obj else Path.cwd()
+    site_root = _get_site_root(ctx)
     collections = load_collections(site_root)
 
     if not collections:
@@ -182,7 +204,7 @@ def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
     from bengal.collections.loader import load_collections
     from bengal.content_layer.manager import ContentLayerManager
 
-    site_root = ctx.obj.get("site_root", Path.cwd()) if ctx.obj else Path.cwd()
+    site_root = _get_site_root(ctx)
     collections = load_collections(site_root)
 
     if not collections:
@@ -248,7 +270,7 @@ def clear_cache(ctx: click.Context, source: str | None, yes: bool) -> None:
     """Clear cached content from remote sources."""
     from bengal.content_layer.manager import ContentLayerManager
 
-    site_root = ctx.obj.get("site_root", Path.cwd()) if ctx.obj else Path.cwd()
+    site_root = _get_site_root(ctx)
     cache_dir = site_root / ".bengal" / "content_cache"
 
     if not cache_dir.exists():

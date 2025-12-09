@@ -5,12 +5,11 @@ Provides 6 functions for working with images in templates.
 Note: Some functions are stubs for future PIL/Pillow integration.
 """
 
-
 from __future__ import annotations
 
 import base64
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
@@ -26,7 +25,7 @@ def register(env: Environment, site: Site) -> None:
     """Register image processing functions with Jinja2 environment."""
 
     # Create closures that have access to site
-    def image_url_with_site(path: str, **params) -> str:
+    def image_url_with_site(path: str, **params: Any) -> str:
         return image_url(path, site.config.get("baseurl", ""), **params)
 
     def image_dimensions_with_site(path: str) -> tuple[int, int] | None:

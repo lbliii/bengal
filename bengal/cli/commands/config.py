@@ -32,7 +32,7 @@ from bengal.utils.cli_output import CLIOutput
 
 
 @click.group("config", cls=BengalGroup)
-def config_cli():
+def config_cli() -> None:
     """
     ⚙️  Configuration management and introspection.
 
@@ -360,7 +360,9 @@ def diff(
     cli.info(f"Found {len(diffs)} differences")
 
 
-def _compute_diff(config1: dict, config2: dict, path: list[str]) -> list[dict[str, Any]]:
+def _compute_diff(
+    config1: dict[str, Any], config2: dict[str, Any], path: list[str]
+) -> list[dict[str, Any]]:
     """Recursively compute diff between two configs."""
     diffs = []
 

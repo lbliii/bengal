@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
+    from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
 
 
@@ -46,7 +47,7 @@ class GraphAnalyzer:
     def _ensure_built(self) -> None:
         """Verify the graph has been built before analysis."""
         if not self._graph._built:
-            raise ValueError("Must call graph.build() before analysis")
+            raise RuntimeError("KnowledgeGraph is not built. Call .build() before analysis.")
 
     def get_connectivity(self, page: Page) -> PageConnectivity:
         """
@@ -59,7 +60,7 @@ class GraphAnalyzer:
             PageConnectivity with detailed metrics
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         from bengal.analysis.knowledge_graph import PageConnectivity
 
@@ -92,7 +93,7 @@ class GraphAnalyzer:
             Connectivity score (higher = more connected)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         self._ensure_built()
         return self._graph.incoming_refs[page] + len(self._graph.outgoing_refs[page])
@@ -113,7 +114,7 @@ class GraphAnalyzer:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         self._ensure_built()
 
@@ -144,7 +145,7 @@ class GraphAnalyzer:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         self._ensure_built()
 
@@ -174,7 +175,7 @@ class GraphAnalyzer:
             List of orphaned pages sorted by slug
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
         self._ensure_built()
 
@@ -193,7 +194,7 @@ class GraphAnalyzer:
 
         return orphans
 
-    def get_layers(self) -> tuple[list[Page], list[Page], list[Page]]:
+    def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
 
@@ -203,11 +204,14 @@ class GraphAnalyzer:
         - Layer 2 (Leaves): Low connectivity, stream and release
 
         Returns:
-            Tuple of (hubs, mid_tier, leaves)
+            PageLayers dataclass with hubs, mid_tier, and leaves attributes
+            (supports tuple unpacking for backward compatibility)
 
         Raises:
-            ValueError: If graph hasn't been built yet
+            RuntimeError: If graph hasn't been built yet
         """
+        from bengal.analysis.results import PageLayers
+
         self._ensure_built()
 
         # Sort all pages by connectivity (descending)
@@ -227,4 +231,4 @@ class GraphAnalyzer:
         mid_tier = sorted_pages[hub_cutoff:mid_cutoff]
         leaves = sorted_pages[mid_cutoff:]
 
-        return hubs, mid_tier, leaves
+        return PageLayers(hubs=hubs, mid_tier=mid_tier, leaves=leaves)

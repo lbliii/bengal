@@ -1,19 +1,24 @@
 ---
 title: Contributor Quickstart
 description: Set up Bengal for development and start contributing
+draft: false
+weight: 40
+aliases:
+- /docs/getting-started/contributor-quickstart/
+lang: en
+type: doc
+tags:
+- onboarding
+- contributing
+- development
+keywords:
+- contributing
+- development
+- pull-requests
+category: onboarding
 id: contributor-qs
 icon: code
-weight: 40
-type: doc
-draft: false
-lang: en
-tags: [onboarding, contributing, development]
-keywords: [contributing, development, pull-requests]
-category: onboarding
-aliases:
-  - /docs/getting-started/contributor-quickstart/
 ---
-
 # Contributor Quickstart
 
 Set up Bengal for development and start contributing.

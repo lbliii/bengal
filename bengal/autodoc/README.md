@@ -1,16 +1,13 @@
 # Bengal Autodoc
 
-Unified documentation generation system for Bengal static sites.
+Virtual page documentation generation system for Bengal static sites.
 
 ## Features
 
 - **Python API Documentation**: AST-based extraction (no imports required)
-- **Template Safety**: Hugo-style error boundaries prevent silent failures
-- **Graceful Fallbacks**: Template errors generate structured fallback content
-- **Alias Detection**: Automatically detects and documents assignment aliases
-- **Inherited Members**: Optionally show inherited methods from base classes
 - **OpenAPI/REST Documentation**: Generate docs from OpenAPI specs
 - **CLI Documentation**: Document Click/argparse/typer commands
+- **Virtual Pages**: Documentation rendered directly via theme templates
 - **Cross-References**: Automatic linking between elements
 - **Incremental Builds**: Fast regeneration on changes
 
@@ -18,182 +15,130 @@ Unified documentation generation system for Bengal static sites.
 
 ### Configuration
 
-Add to your `bengal.toml`:
+Add to your site's `config/_default/autodoc.yaml`:
 
-```toml
-[autodoc.python]
-enabled = true
-source_dirs = ["src"]
-output_dir = "content/api"
-docstring_style = "auto"  # auto, google, numpy, sphinx
-include_private = false   # Include _private members
-include_special = false   # Include __special__ methods
+```yaml
+python:
+  enabled: true
+  source_dirs:
+    - bengal  # Relative to site root
+  exclude:
+    - "*/tests/*"
+    - "*/__pycache__/*"
+  docstring_style: auto  # auto, google, numpy, sphinx
+  include_private: false
+  include_special: false
+  display_name: API Reference  # Title in nav
 
-# New: Alias and inherited member features
-include_inherited = false              # Global toggle for inherited members
-alias_strategy = "canonical"           # How to render aliases: canonical, duplicate, list-only
+cli:
+  enabled: true
+  app_module: bengal.cli:main
+  framework: click
+  include_hidden: false
+  display_name: CLI Reference
 
-[autodoc.python.include_inherited_by_type]
-class = false      # Show inherited methods on classes
-exception = false  # Show inherited methods on exceptions
+# Optional: Enable strict mode for CI/CD
+strict: false  # Set to true to fail builds on autodoc errors
 ```
 
-### Generate Documentation
+### Build with Autodoc
+
+Autodoc runs automatically during `bengal build` when enabled:
 
 ```bash
-# Generate API docs
-bengal autodoc
+# Build site with autodoc
+bengal build
 
-# Or programmatically
-from bengal.autodoc import PythonExtractor, DocumentationGenerator
-from bengal.autodoc.config import load_autodoc_config
-
-config = load_autodoc_config()
-extractor = PythonExtractor(config=config["python"])
-elements = extractor.extract(Path("src"))
-
-generator = DocumentationGenerator(extractor, config)
-generator.generate(elements, output_dir=Path("content/api"))
+# Serve with live reload (autodoc regenerates on changes)
+bengal serve
 ```
 
-## Alias Detection
+## Architecture
 
-Bengal Autodoc automatically detects simple assignment aliases and documents them with proper provenance.
+### Virtual Pages Approach
 
-### Supported Patterns
+Bengal Autodoc uses **virtual pages** - documentation is rendered directly
+via theme templates without intermediate markdown files. This provides:
+
+- **Faster builds**: No markdown-to-HTML conversion step
+- **Better integration**: Uses site theme directly
+- **Simpler architecture**: No manifest files or intermediate state
+
+### Core Components
+
+- **Extractors** (`bengal/autodoc/extractors/`): Parse source and extract `DocElement` objects
+- **VirtualAutodocOrchestrator** (`bengal/autodoc/virtual_orchestrator.py`): Create virtual pages/sections
+- **Config** (`bengal/autodoc/config.py`): Load and merge configuration
+- **Fallback Templates** (`bengal/autodoc/fallback/`): Minimal templates when theme doesn't provide them
+
+### Build Lifecycle (Deferred Rendering)
+
+Autodoc follows the same pattern as regular pages - data during discovery, HTML during rendering:
+
+```
+1. Discovery Phase (Phase 5)
+   ├─ Extract DocElements from source (Python, CLI, OpenAPI)
+   ├─ Create virtual Page objects with element metadata
+   └─ Store DocElement on page (NO HTML rendering yet)
+
+2. Menu Building Phase (Phase 9)
+   └─ site.menu populated with navigation
+
+3. Rendering Phase (Phase 14)
+   ├─ RenderingPipeline detects autodoc pages (is_autodoc=True)
+   ├─ Calls _render_autodoc_page() with FULL template context
+   ├─ Templates now have access to menus, active states, etc.
+   └─ HTML written to output
+```
+
+This architecture ensures autodoc pages have the same navigation (header, sidebar) as regular pages.
+
+### DocElement Structure
 
 ```python
-# Simple name alias
-def original_function():
-    '''The original function.'''
-    pass
-
-public_api = original_function  # ✅ Detected as alias
-
-# Class alias
-class InternalClass:
-    '''Internal implementation.'''
-    pass
-
-PublicClass = InternalClass  # ✅ Detected as alias
-
-# Qualified attribute alias
-import os
-path_join = os.path.join  # ✅ Detected as alias
+@dataclass
+class DocElement:
+    name: str                           # Simple name
+    qualified_name: str                 # Fully qualified name
+    description: str                    # Main docstring text
+    element_type: str                   # module, class, function, method
+    source_file: Path                   # Source file path
+    line_number: int                    # Line number in source
+    metadata: dict[str, Any]            # Type-specific metadata (legacy)
+    typed_metadata: DocMetadata | None  # Typed metadata (preferred)
+    children: list[DocElement]          # Nested elements (methods, etc.)
+    examples: list[str]                 # Example code blocks
+    see_also: list[str]                 # Cross-references
+    deprecated: str | None              # Deprecation notice
 ```
 
-### Alias Strategies
+### Typed Metadata (Recommended)
 
-Configure how aliases are rendered with `alias_strategy`:
-
-#### `"canonical"` (default)
-
-- Alias gets a short entry linking to the canonical element
-- Canonical element lists all its aliases in an "Also known as" box
-- Avoids duplication while preserving discoverability
-
-```markdown
-## Functions
-
-### `original_function`
-The original function.
-
-> **Also known as**: `public_api`
-
-### `public_api` 🔗
-> **Alias**: This is an alias of [`original_function`](#original_function)
-```
-
-#### `"list-only"`
-
-- Aliases are only listed on the canonical element
-- No separate documentation entries for aliases
-- Most compact option
-
-#### `"duplicate"`
-
-- Alias gets full documentation (duplicated)
-- Useful if you want aliases to be completely standalone
-- Risk of content divergence if docs are updated
-
-### Metadata
-
-Alias elements include metadata:
+Extractors populate `typed_metadata` with domain-specific dataclasses for
+type-safe access with IDE autocomplete:
 
 ```python
-{
-    "alias_of": "module.name.original",
-    "alias_kind": "assignment"
-}
+from bengal.autodoc.utils import (
+    get_python_class_bases,
+    get_python_function_is_property,
+    get_openapi_tags,
+    get_openapi_method,
+)
+
+# Type-safe access with fallback to metadata dict
+bases = get_python_class_bases(class_element)  # tuple[str, ...]
+is_prop = get_python_function_is_property(method)  # bool
+tags = get_openapi_tags(endpoint)  # tuple[str, ...]
+method = get_openapi_method(endpoint)  # str (e.g., "GET")
 ```
 
-Canonical elements track their aliases:
+**Available Metadata Types**:
 
-```python
-{
-    "aliases": ["alias1", "alias2"]
-}
-```
+- **Python**: `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`
+- **CLI**: `CLICommandMetadata`, `CLIGroupMetadata`, `CLIOptionMetadata`
+- **OpenAPI**: `OpenAPIEndpointMetadata`, `OpenAPIOverviewMetadata`, `OpenAPISchemaMetadata`
 
-## Inherited Members
-
-Show methods inherited from base classes in generated documentation.
-
-### Configuration
-
-```toml
-[autodoc.python]
-# Global toggle - applies to all types
-include_inherited = true
-
-# Or enable per-type
-[autodoc.python.include_inherited_by_type]
-class = true       # Show inherited members on classes
-exception = false  # Don't show for exceptions
-```
-
-### Behavior
-
-When enabled:
-
-```python
-class Base:
-    def base_method(self):
-        '''A base method.'''
-        pass
-
-class Derived(Base):
-    def derived_method(self):
-        '''A derived method.'''
-        pass
-```
-
-Generated docs for `Derived` will show:
-
-```markdown
-### Methods
-
-#### `derived_method`
-A derived method.
-
-### Inherited Members
-
-**From `Base`:**
-- **`base_method`** - Inherited from `Base`
-```
-
-### Features
-
-- **No Duplication**: Overridden methods only show the derived version
-- **Private Filtering**: Respects `include_private` setting for inherited members
-- **Collapsible UI**: Inherited members in a dropdown to avoid cluttering the page
-- **Synthetic Metadata**: Inherited members marked with `synthetic: true` and `inherited_from: "Base"`
-
-### Limitations
-
-- Only synthesizes members from base classes present in the documented source
-- Standard library/third-party bases are silently skipped (extensible in future)
-- No full MRO resolution across external packages
+See `bengal/autodoc/models/` for full type definitions.
 
 ## Python Extractor
 
@@ -214,7 +159,6 @@ Bengal uses AST parsing instead of runtime imports for several benefits:
 - **Functions**: Regular and async functions
 - **Properties**: `@property` decorated methods
 - **Attributes**: Class and instance attributes with type hints
-- **Aliases**: Assignment aliases (new)
 
 ### Type Hints
 
@@ -226,16 +170,6 @@ def process(items: List[str], count: Optional[int] = None) -> Dict[str, int]:
     ...
 ```
 
-Generates:
-
-```markdown
-#### `process`
-
-```python
-process(items: List[str], count: Optional[int] = None) -> Dict[str, int]
-```
-```
-
 ### Docstring Formats
 
 Auto-detected support for:
@@ -245,359 +179,141 @@ Auto-detected support for:
 - **Sphinx/reStructuredText**
 - **Plain text**
 
-```python
-def example(x: int) -> int:
-    '''
-    Short description.
+## Theme Integration
 
-    Args:
-        x: Parameter description
+### Required Templates
 
-    Returns:
-        Return value description
+Your theme should provide these templates in `templates/api-reference/`:
 
-    Raises:
-        ValueError: When x is negative
+- `module.html` - Module documentation page
+- `section-index.html` - Section index page
 
-    Example:
-        >>> example(42)
-        42
-    '''
-    return x
-```
+### Fallback Templates
 
-All sections are parsed and rendered appropriately in templates.
-
-## Template Safety System
-
-Bengal's autodoc includes a **Hugo-style safe template rendering system** that eliminates silent failures and provides graceful error handling.
-
-### Error Boundaries
-
-Templates use error boundaries to isolate failures and prevent one broken section from breaking the entire page:
-
-```jinja2
-{# Safe section rendering with error boundaries #}
-{% call safe_section("description") %}
-  {% include 'python/partials/module_description.md.jinja2' %}
-{% endcall %}
-```
-
-### Graceful Fallbacks
-
-When templates encounter errors, structured fallback content is automatically generated:
-
-```markdown
-# ModuleName
-
-```{error}
-Template Syntax Error: python/module.md.jinja2
-Undefined variable: 'invalid_var'
-```
-
-## Basic Information
-
-**Type:** module
-**Source:** src/mylib/core.py
-
-Module description from docstring...
-
-*Note: Template has syntax errors. This is fallback content.*
-```
-
-### Safe Filters
-
-Built-in template filters prevent common rendering errors:
-
-- `safe_description`: YAML-safe description formatting for frontmatter
-- `code_or_dash`: Wraps values in code backticks or shows dash for empty values
-- `safe_anchor`: Generates safe anchor links from text
-- `project_relative`: Converts absolute paths to project-relative paths
-
-```jinja2
-{# Safe variable access with fallbacks #}
-**Type:** {{ element.element_type | default('Unknown') }}
-**Source:** {{ element.source_file | project_relative }}
-**Description:** {{ element.description | safe_description }}
-```
-
-### Error Reporting
-
-The template safety system provides comprehensive error reporting:
-
-- **Error categorization**: Template not found, undefined variables, syntax errors
-- **Context preservation**: Records element names and template context
-- **Human-readable summaries**: Clear error reports for debugging
-- **Structured logging**: Detailed error information for development
-
-## Templates
-
-Templates are located in `bengal/autodoc/templates/{type}/` where `{type}` is:
-
-- `python/` - Python API docs
-- `openapi/` - REST API docs
-- `cli/` - CLI command docs
-
-### Customization
-
-Create custom templates in your project:
-
-```
-my_site/
-  templates/
-    autodoc/
-      python/
-        module.md.jinja2  # Overrides built-in template
-```
+If your theme doesn't provide API templates, Bengal uses minimal fallbacks
+from `bengal/autodoc/fallback/`. These are intentionally basic - customize
+for a better experience.
 
 ### Template Variables
 
-Python templates receive:
+API templates receive:
 
 ```python
 {
-    "element": DocElement(
-        name="MyClass",
-        qualified_name="mymodule.MyClass",
-        description="...",
-        element_type="class",  # module, class, function, method, alias
-        metadata={
-            "bases": [...],
-            "aliases": [...],          # For canonical elements
-            "alias_of": "...",         # For alias elements
-            "inherited_from": "...",   # For inherited members
-            "synthetic": True/False    # True for inherited members
-        },
-        children=[...]
-    )
+    "element": DocElement(...),  # The documented element
+    "page": Page(...),           # Virtual page object
+    "site": Site(...),           # Site object
+    # Plus standard template context
 }
-```
-
-### Alias Template Example
-
-```jinja2
-{% if element.element_type == 'alias' %}
-### `{{ element.name }}` 🔗
-
-```{info} Alias
-This is an alias of [`{{ element.metadata.alias_of }}`](#{{ element.metadata.alias_of.split('.')[-1] | lower }})
-```
-{% endif %}
-```
-
-### Inherited Members Template Example
-
-```jinja2
-{% set inherited_methods = cls.children | selectattr('metadata.synthetic', 'equalto', true) | list %}
-
-{% if inherited_methods %}
-:::{rubric} Inherited Members
-:::
-
-::::{dropdown} {{ inherited_methods | length }} inherited members
-:open: false
-
-{% for base_class, methods in inherited_methods | groupby('metadata.inherited_from') %}
-**From `{{ base_class }}`:**
-{% for method in methods %}
-- **`{{ method.name }}`** - {{ method.description }}
-{% endfor %}
-{% endfor %}
-
-::::
-{% endif %}
-```
-
-## CLI Usage
-
-```bash
-# Generate all enabled autodoc types
-bengal autodoc
-
-# Generate only Python API docs
-bengal autodoc --python
-
-# Specify custom config
-bengal autodoc --config path/to/bengal.toml
-
-# Watch mode (regenerate on changes)
-bengal autodoc --watch
 ```
 
 ## Performance
 
 - **AST parsing**: ~0.1-0.5s per file
-- **Alias detection**: <5% overhead
-- **Inherited synthesis**: <5% overhead when enabled, 0% when disabled
-- **Parallel generation**: Uses all CPU cores
-- **Incremental builds**: Only regenerates changed files
+- **Virtual page creation**: Very fast (no I/O)
+- **Incremental builds**: Only regenerates on source changes
 
-## Examples
+### Incremental Build Support
 
-### Basic Function
+Autodoc integrates with Bengal's incremental build system for fast dev server rebuilds:
+
+**File Watching**: The dev server automatically watches autodoc source directories:
+- Python `source_dirs` configured in `autodoc.python.source_dirs`
+- OpenAPI spec files configured in `autodoc.openapi.spec_file`
+
+**Selective Rebuilds**: When a Python/OpenAPI source file changes:
+- Only the autodoc pages generated from that file are rebuilt
+- Unaffected autodoc pages are skipped (not all 200+ autodoc pages)
+- Content changes to `.md` files don't trigger unnecessary autodoc rebuilds
+
+**Performance Impact**:
+| Scenario | Before | After |
+|----------|--------|-------|
+| Edit content, 200 autodoc pages | Rebuild 200 | Rebuild 0 |
+| Edit 1 Python file, 200 autodoc pages | Rebuild 0* | Rebuild 1 |
+
+*Previously Python changes weren't detected at all
+
+**Source File Deletion**: When source files are deleted, their corresponding autodoc output pages are automatically cleaned up.
+
+## Resilience and Error Handling
+
+### Best-Effort Mode (Default)
+
+By default, autodoc operates in **best-effort mode**: extraction or rendering failures are logged as warnings but don't block the build. Partial successes are preserved.
+
+```yaml
+autodoc:
+  strict: false  # Default: failures logged but don't block build
+```
+
+**Behavior**:
+- Extraction failures: Logged with warning, empty result returned
+- Template failures: Fallback template used, page tagged with `_autodoc_fallback_template: true`
+- Summary logged: Counts of successes, failures, and warnings
+
+### Strict Mode
+
+Enable strict mode for CI/CD to fail builds when autodoc content is expected:
+
+```yaml
+autodoc:
+  strict: true  # Fail build on any extraction or rendering failure
+```
+
+**Behavior**:
+- Extraction failures: `RuntimeError` raised immediately
+- Template failures: `RuntimeError` raised when fallback is used
+- Partial results: Failures recorded before raising (for context)
+
+### Run Summary
+
+Autodoc generation returns a summary with counts and failure details:
 
 ```python
-def add(a: int, b: int) -> int:
-    '''
-    Add two numbers.
+from bengal.autodoc import VirtualAutodocOrchestrator, AutodocRunResult
 
-    Args:
-        a: First number
-        b: Second number
+orchestrator = VirtualAutodocOrchestrator(site)
+pages, sections, result = orchestrator.generate()
 
-    Returns:
-        The sum of a and b
-    '''
-    return a + b
+# Check summary
+assert isinstance(result, AutodocRunResult)
+print(f"Extracted: {result.extracted}, Rendered: {result.rendered}")
+print(f"Failures: {result.failed_extract} extraction, {result.failed_render} rendering")
+
+if result.has_failures():
+    print(f"Failed extractions: {result.failed_extract_identifiers}")
+    print(f"Failed renders: {result.failed_render_identifiers}")
+    print(f"Fallback pages: {result.fallback_pages}")
 ```
 
-### Class with Inheritance
+### Fallback Template Tagging
+
+Pages rendered via fallback template are tagged in metadata:
 
 ```python
-class Animal:
-    '''Base animal class.'''
-
-    def speak(self) -> str:
-        '''Make a sound.'''
-        return "..."
-
-class Dog(Animal):
-    '''A dog.'''
-
-    def speak(self) -> str:
-        '''Bark!'''
-        return "Woof!"
-
-    def fetch(self) -> None:
-        '''Fetch a ball.'''
-        pass
-
-# With include_inherited = true, Dog docs show inherited members
+if page.metadata.get("_autodoc_fallback_template"):
+    # This page used fallback template
+    reason = page.metadata.get("_autodoc_fallback_reason", "Unknown")
+    print(f"Fallback used: {reason}")
 ```
 
-### Aliases for Public API
+Use this to detect pages that need custom templates or to assert zero fallbacks in CI.
+
+## Programmatic Usage
 
 ```python
-# Internal implementation
-def _internal_calculate(x: float) -> float:
-    '''Internal calculation logic.'''
-    return x * 2.5
+from bengal.autodoc import VirtualAutodocOrchestrator, AutodocRunResult
+from bengal.core.site import Site
 
-# Public API alias
-calculate = _internal_calculate
+site = Site.from_config(Path("site"))
+orchestrator = VirtualAutodocOrchestrator(site)
 
-# In docs:
-# - _internal_calculate: documented (if include_private=true)
-# - calculate: shows as alias of _internal_calculate
+if orchestrator.is_enabled():
+    pages, sections, result = orchestrator.generate()
+    # pages and sections are virtual - integrate with site
+    # result contains summary of extraction/rendering
 ```
-
-## Migration Guide
-
-### From Sphinx
-
-Bengal Autodoc is compatible with many Sphinx docstring conventions:
-
-- Google-style docstrings work out of the box
-- No need for `autodoc` directives - extraction is automatic
-- Type hints are preserved (no need for `:type:` fields)
-
-### Configuration Comparison
-
-| Sphinx | Bengal Autodoc |
-|--------|----------------|
-| `autodoc_member_order = 'bysource'` | Default behavior |
-| `autodoc_typehints = 'signature'` | Default behavior |
-| `autodoc_inherit_docstrings = True` | `include_inherited = true` |
-| `autoclass_content = 'both'` | Always includes both |
-
-## Troubleshooting
-
-### Aliases Not Detected
-
-**Issue**: Aliases not showing up in docs
-
-**Solutions**:
-- Ensure the alias is a simple assignment: `alias = original`
-- Check that the original is defined in the same documented corpus
-- Verify the alias is at module level (not inside functions/classes)
-
-### Inherited Members Not Showing
-
-**Issue**: Inherited methods missing even with `include_inherited = true`
-
-**Solutions**:
-- Check that base class is in the same documented source tree
-- If base is from stdlib/third-party, it won't be included (limitation)
-- Verify the class actually inherits: `class Derived(Base):`
-
-### Private Members Appearing
-
-**Issue**: Don't want to see `_private` methods
-
-**Solutions**:
-```toml
-[autodoc.python]
-include_private = false  # This filters both own and inherited private members
-```
-
-## Architecture
-
-### Core Components
-
-- **Extractors** (`bengal/autodoc/extractors/`): Parse source and extract `DocElement` objects
-- **Generator** (`bengal/autodoc/generator.py`): Render templates with `DocElement` data
-- **Config** (`bengal/autodoc/config.py`): Load and merge configuration
-- **Templates** (`bengal/autodoc/templates/`): Jinja2 templates for rendering
-
-### DocElement Structure
-
-```python
-@dataclass
-class DocElement:
-    name: str                           # Simple name
-    qualified_name: str                 # Fully qualified name
-    description: str                    # Main docstring text
-    element_type: str                   # module, class, function, method, alias
-    source_file: Path                   # Source file path
-    line_number: int                    # Line number in source
-    metadata: dict[str, Any]            # Type-specific metadata
-    children: list[DocElement]          # Nested elements (methods, etc.)
-    examples: list[str]                 # Example code blocks
-    see_also: list[str]                 # Cross-references
-    deprecated: str | None              # Deprecation notice
-```
-
-## Contributing
-
-### Adding a New Extractor
-
-1. Subclass `Extractor` in `bengal/autodoc/extractors/`
-2. Implement `extract()`, `get_template_dir()`, `get_output_path()`
-3. Create templates in `bengal/autodoc/templates/{your_type}/`
-4. Add default config in `bengal/autodoc/config.py`
-5. Add tests
-
-### Testing
-
-```bash
-# Run autodoc tests
-pytest tests/unit/autodoc/ -v
-
-# Run specific test file
-pytest tests/unit/autodoc/test_python_extractor.py -v
-
-# Run with coverage
-pytest tests/unit/autodoc/ --cov=bengal.autodoc
-```
-
-## Future Enhancements
-
-- [ ] MRO resolution for external base classes via stubs
-- [ ] Redirect stubs for aliases (optional)
-- [ ] Cross-module alias tracking
-- [ ] Dynamic alias analysis (beyond simple assignments)
-- [ ] Interactive API browser
-- [ ] Diff generation for API changes
 
 ## License
 

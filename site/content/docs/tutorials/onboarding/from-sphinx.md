@@ -2,8 +2,19 @@
 title: From Sphinx/RST
 description: Onboarding guide for Sphinx and reStructuredText users migrating to Bengal
 weight: 10
-tags: [tutorial, migration, sphinx, rst, myst]
-keywords: [sphinx, rst, restructuredtext, myst, migration, directives]
+tags:
+- tutorial
+- migration
+- sphinx
+- rst
+- myst
+keywords:
+- sphinx
+- rst
+- restructuredtext
+- myst
+- migration
+- directives
 ---
 
 # Bengal for Sphinx/RST Users

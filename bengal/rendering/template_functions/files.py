@@ -4,7 +4,6 @@ File system functions for templates.
 Provides 3 functions for reading files and checking file existence.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -70,9 +69,10 @@ def read_file(path: str, root_path: Path) -> str:
 
     # Use file_io utility for robust reading with encoding fallback
     # on_error='return_empty' returns '' for missing/invalid files
-    return read_text_file(
+    content = read_text_file(
         file_path, fallback_encoding="latin-1", on_error="return_empty", caller="template"
     )
+    return content if content is not None else ""
 
 
 def file_exists(path: str, root_path: Path) -> bool:
@@ -133,7 +133,7 @@ def file_size(path: str, root_path: Path) -> str:
         return "0 B"
 
     try:
-        size_bytes = file_path.stat().st_size
+        size_bytes: float = file_path.stat().st_size
 
         # Convert to human-readable format
         original_size = size_bytes

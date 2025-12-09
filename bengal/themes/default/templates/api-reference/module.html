@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{#
+API Reference Module Template
+
+Renders a Python module's API documentation using the API Explorer layout.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+
+This template receives:
+- element: DocElement for the module
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'api-reference/partials/class-card.html' import class_card with context %}
+{% from 'api-reference/partials/function-card.html' import function_card with context %}
+
+{% block content %}
+{# Pre-compute element children for hero and sections #}
+{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
+
+{# Three-column documentation layout #}
+<div class="docs-layout">
+    {# Left Sidebar: Navigation #}
+    <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+        {% include 'partials/docs-nav.html' %}
+    </aside>
+
+    {# Main Content #}
+    <div class="docs-main">
+        {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+        {% include 'partials/page-hero-api.html' %}
+
+        {# Article Content #}
+        <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+            <div class="docs-content">
+                {# API Explorer Module Content #}
+                <div class="api-explorer">
+                    {# Classes Section #}
+                    {% if classes %}
+                    <section class="api-section api-section--classes">
+                        <h2 class="api-section__title">Classes</h2>
+
+                        <div class="api-cards">
+                            {% for cls in classes %}
+                            {{ class_card(cls, loop.first) }}
+                            {% endfor %}
+                        </div>
+                    </section>
+                    {% endif %}
+
+                    {# Functions Section #}
+                    {% if functions %}
+                    <section class="api-section api-section--functions">
+                        <h2 class="api-section__title">Functions</h2>
+
+                        <div class="api-cards">
+                            {% for func in functions %}
+                            {{ function_card(func) }}
+                            {% endfor %}
+                        </div>
+                    </section>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Tags #}
+            {% if page.tags %}
+            <footer class="docs-footer">
+                <span class="docs-footer-label">Tagged</span>
+                {% from 'partials/content-components.html' import tag_list with context %}
+                {{ tag_list(page.tags) }}
+            </footer>
+            {% endif %}
+        </article>
+
+        {# Page navigation (prev/next) at bottom #}
+        {{ page_navigation(page) }}
+    </div>
+
+    {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+    {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+    aria-controls="docs-sidebar">
+    {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

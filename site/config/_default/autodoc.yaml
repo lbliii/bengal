@@ -15,9 +15,10 @@ autodoc:
   # Python API Documentation
   python:
     enabled: true
+    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     source_dirs:
       - ../bengal  # Document the main Bengal package
-    output_dir: content/api
+    # output_dir: removed - virtual pages always output to site.output_dir (public/)
     docstring_style: auto  # Auto-detect docstring format
 
     # Exclude test, cache, and virtual environment files
@@ -38,6 +39,7 @@ autodoc:
   # CLI Documentation
   cli:
     enabled: true
+    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     app_module: "bengal.cli:main"
     framework: click
-    output_dir: content/cli
+    # output_dir: removed - virtual pages always output to site.output_dir (public/)

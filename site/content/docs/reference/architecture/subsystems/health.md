@@ -3,8 +3,20 @@ title: Health Check System
 description: Comprehensive build validation and health checks
 weight: 30
 category: subsystems
-tags: [subsystems, health, validation, validators, build-checks, quality]
-keywords: [health checks, validation, validators, build checks, quality assurance, testing]
+tags:
+- subsystems
+- health
+- validation
+- validators
+- build-checks
+- quality
+keywords:
+- health checks
+- validation
+- validators
+- build checks
+- quality assurance
+- testing
 ---
 
 # Health Check System (`bengal/health/`)

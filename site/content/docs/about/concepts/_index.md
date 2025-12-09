@@ -4,7 +4,6 @@ description: Foundational concepts for understanding Bengal
 weight: 30
 icon: star
 ---
-
 # Core Concepts
 
 Understand how Bengal organizes content, processes files, and generates sites.
@@ -18,17 +17,17 @@ flowchart LR
         B[Templates .html]
         C[Assets CSS/JS]
     end
-    
+
     subgraph Process
         D[Parse]
         E[Render]
         F[Optimize]
     end
-    
+
     subgraph Output
         G[public/]
     end
-    
+
     A --> D
     B --> E
     C --> F

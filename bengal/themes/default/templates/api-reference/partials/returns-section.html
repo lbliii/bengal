@@ -1,0 +1,19 @@
+{#
+Returns Section Partial
+
+Renders return type and description.
+Uses the normalized `get_return_info` filter which handles all extractor types.
+Returns a dict with: type, description
+#}
+
+{% set ret = element | get_return_info %}
+
+{% if ret.type and ret.type != 'None' %}
+<div class="api-returns">
+  <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Returns</h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
+  <p class="api-returns__content">
+    <code class="api-returns__type">{{ ret.type }}</code>
+    {% if ret.description %}<span class="api-returns__desc"> — {{ ret.description | markdownify | safe }}</span>{% endif %}
+  </p>
+</div>
+{% endif %}

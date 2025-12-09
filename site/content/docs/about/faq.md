@@ -1,9 +1,13 @@
 ---
 title: Frequently Asked Questions
-description: Answers to common questions about Bengal's features, limitations, and compatibility.
+description: Answers to common questions about Bengal's features, limitations, and
+  compatibility.
 weight: 20
 type: doc
-tags: [faq, help, support]
+tags:
+- faq
+- help
+- support
 ---
 
 # FAQ

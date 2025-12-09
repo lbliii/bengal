@@ -9,6 +9,7 @@ Provides observability stats for link validation performance tracking.
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
@@ -96,9 +97,19 @@ class LinkValidatorWrapper(BaseValidator):
                 if link.startswith(("http://", "https://"))
             ]
 
+            def _relative_path(path: str) -> str:
+                """Convert absolute path to project-relative path for display."""
+                try:
+                    return str(Path(path).relative_to(site.root_path))
+                except ValueError:
+                    return path  # Fallback to original if not under root
+
             if internal_broken:
-                # Format as "page: link" for display
-                details = [f"{page}: {link}" for page, link in internal_broken[:5]]
+                # Format as "page: link" for display (using relative paths)
+                details = [
+                    f"{_relative_path(page)}: {link}"
+                    for page, link in internal_broken[:5]
+                ]
                 results.append(
                     CheckResult.error(
                         f"{len(internal_broken)} broken internal link(s)",
@@ -108,7 +119,10 @@ class LinkValidatorWrapper(BaseValidator):
                 )
 
             if external_broken:
-                details = [f"{page}: {link}" for page, link in external_broken[:5]]
+                details = [
+                    f"{_relative_path(page)}: {link}"
+                    for page, link in external_broken[:5]
+                ]
                 results.append(
                     CheckResult.warning(
                         f"{len(external_broken)} broken external link(s)",

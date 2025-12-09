@@ -231,7 +231,7 @@ class ConfigValidator:
 
     def _validate_dependencies(self, config: dict[str, Any]) -> list[str]:
         """Validate field dependencies and logical consistency."""
-        errors = []
+        errors: list[str] = []
 
         # Future: Add dependency validation here
         # Example: if incremental, ensure cache location is valid

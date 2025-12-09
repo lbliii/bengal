@@ -6,7 +6,6 @@ category: guide
 icon: recycle
 card_color: teal
 ---
-
 # Reusing Content
 
 Write once, publish everywhere. Bengal provides multiple ways to avoid repeating yourself.
@@ -20,13 +19,13 @@ flowchart LR
         B[Data File]
         C[Shortcode]
     end
-    
+
     subgraph "Multiple Outputs"
         D[Page 1]
         E[Page 2]
         F[Page 3]
     end
-    
+
     A --> D
     A --> E
     B --> D
@@ -79,12 +78,12 @@ Query content dynamically:
 
 ```jinja
 {# All tutorials #}
-{% set tutorials = site.pages 
+{% set tutorials = site.pages
    | selectattr("params.type", "equalto", "tutorial") %}
 
 {# Recent posts #}
-{% set recent = site.pages 
-   | sort(attribute="date", reverse=true) 
+{% set recent = site.pages
+   | sort(attribute="date", reverse=true)
    | list | slice(5) %}
 ```
 :::

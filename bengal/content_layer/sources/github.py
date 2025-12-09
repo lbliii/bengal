@@ -242,6 +242,6 @@ class GitHubSource(ContentSource):
 
             if data:
                 current_sha = data[0]["sha"]
-                return current_sha != cached_checksum
+                return bool(current_sha != cached_checksum)
 
         return True

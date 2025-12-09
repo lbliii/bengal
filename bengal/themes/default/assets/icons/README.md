@@ -67,3 +67,5 @@ All icons must:
 - **Format**: SVG with `currentColor` for theme awareness
 - **System**: Centralized via `icon()` template function and `render_icon()` Python function
 
+
+

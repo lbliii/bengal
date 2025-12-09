@@ -13,7 +13,11 @@ from typing import Any, override
 import click
 
 from bengal.autodoc.base import DocElement, Extractor
+from bengal.autodoc.models import CLICommandMetadata, CLIGroupMetadata, CLIOptionMetadata
 from bengal.autodoc.utils import sanitize_text
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def _is_sentinel_value(value: Any) -> bool:
@@ -143,7 +147,7 @@ class CLIExtractor(Extractor):
 
         # Add each command as a separate top-level element for individual pages
         # Recursively flatten nested command groups
-        def flatten_commands(children: list[DocElement]):
+        def flatten_commands(children: list[DocElement]) -> None:
             for child in children:
                 # Always add nested command groups (they get _index.md)
                 # Always add regular commands (they get individual pages)
@@ -190,11 +194,17 @@ class CLIExtractor(Extractor):
 
         # Build children (subcommands)
         children = []
+        seen_command_ids: set[int] = set()
         if isinstance(group, click.Group):
             for _cmd_name, cmd in sorted(group.commands.items()):
                 # Skip hidden commands unless requested
                 if hasattr(cmd, "hidden") and cmd.hidden and not self.include_hidden:
                     continue
+
+                cmd_identity = id(cmd)
+                if cmd_identity in seen_command_ids:
+                    continue
+                seen_command_ids.add(cmd_identity)
 
                 if isinstance(cmd, click.Group):
                     # Nested command group
@@ -215,6 +225,12 @@ class CLIExtractor(Extractor):
         # Clean up description
         description = sanitize_text(group.help)
 
+        # Build typed metadata
+        typed_meta = CLIGroupMetadata(
+            callback=group.callback.__name__ if group.callback else None,
+            command_count=len(children),
+        )
+
         return DocElement(
             name=name,
             qualified_name=qualified_name,
@@ -226,6 +242,7 @@ class CLIExtractor(Extractor):
                 "callback": group.callback.__name__ if group.callback else None,
                 "command_count": len(children),
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=examples,
             see_also=[],
@@ -263,7 +280,7 @@ class CLIExtractor(Extractor):
         arguments = []
 
         for param in cmd.params:
-            param_doc = self._extract_click_parameter(param, qualified_name)
+            param_doc = self._extract_click_parameter(param, qualified_name or "")
 
             if isinstance(param, click.Argument):
                 arguments.append(param_doc)
@@ -291,9 +308,21 @@ class CLIExtractor(Extractor):
         # Clean up description
         description = sanitize_text(description_text)
 
+        # Check if hidden
+        is_hidden = hasattr(cmd, "hidden") and cmd.hidden
+
+        # Build typed metadata
+        typed_meta = CLICommandMetadata(
+            callback=cmd.callback.__name__ if cmd.callback else None,
+            option_count=len(options),
+            argument_count=len(arguments),
+            is_group=False,
+            is_hidden=is_hidden,
+        )
+
         return DocElement(
-            name=name,
-            qualified_name=qualified_name,
+            name=name or "",
+            qualified_name=qualified_name or "",
             description=description,
             element_type="command",
             source_file=source_file,
@@ -303,6 +332,7 @@ class CLIExtractor(Extractor):
                 "option_count": len(options),
                 "argument_count": len(arguments),
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=examples,
             see_also=[],
@@ -354,17 +384,35 @@ class CLIExtractor(Extractor):
         }
 
         # Add envvar if present
+        envvar = None
         if hasattr(param, "envvar") and param.envvar:
             metadata["envvar"] = param.envvar
+            envvar = param.envvar
+
+        # Build typed metadata
+        typed_meta = CLIOptionMetadata(
+            name=param.name or "",
+            param_type="argument" if isinstance(param, click.Argument) else "option",
+            type_name=type_name.upper() if type_name else "STRING",
+            required=param.required,
+            default=_format_default_value(param.default),
+            multiple=getattr(param, "multiple", False),
+            is_flag=getattr(param, "is_flag", False),
+            count=getattr(param, "count", False),
+            opts=tuple(param_decls),
+            envvar=envvar,
+            help_text=getattr(param, "help", "") or "",
+        )
 
         return DocElement(
-            name=param.name,
-            qualified_name=f"{parent_name}.{param.name}",
+            name=param.name or "",
+            qualified_name=f"{parent_name}.{param.name or ''}",
             description=description,
             element_type=element_type,
             source_file=None,
             line_number=None,
             metadata=metadata,
+            typed_metadata=typed_meta,
             children=[],
             examples=[],
             see_also=[],
@@ -409,7 +457,7 @@ class CLIExtractor(Extractor):
         lines = docstring.split("\n")
 
         in_example = False
-        current_example = []
+        current_example: list[str] = []
 
         for line in lines:
             stripped = line.strip()
@@ -485,7 +533,7 @@ class CLIExtractor(Extractor):
 
                 # Create a Click group that wraps the Typer app
                 @click.group()
-                def typer_wrapper():
+                def typer_wrapper() -> None:
                     pass
 
                 # Typer apps store their info, we can extract via the callback
@@ -510,7 +558,13 @@ class CLIExtractor(Extractor):
 
                 click_app = typer_wrapper
 
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "cli_extractor_typer_wrapper_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_method_2",
+                )
                 pass
 
         # Method 2: Try using Typer's own conversion (most reliable)
@@ -521,7 +575,13 @@ class CLIExtractor(Extractor):
                     click_app = typer.main.get_group(app)
                 elif hasattr(typer.main, "get_command"):
                     click_app = typer.main.get_command(app)
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "cli_extractor_typer_main_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_method_3",
+                )
                 pass
 
         # Method 3: Direct attribute access (older Typer versions)
@@ -555,12 +615,17 @@ class CLIExtractor(Extractor):
                 return typer.main.get_group(typer_app)
             elif hasattr(typer.main, "get_command"):
                 return typer.main.get_command(typer_app)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "cli_extractor_typer_to_click_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_none",
+            )
             pass
 
         return None
 
-    @override
     def get_template_dir(self) -> str:
         """
         Get the template directory name for this extractor.

@@ -6,7 +6,6 @@ category: guide
 icon: book
 card_color: blue
 ---
-
 # Autodoc
 
 Generate documentation automatically from source code.

@@ -50,7 +50,7 @@ def _is_free_threaded() -> bool:
     if hasattr(sys, "_is_gil_enabled"):
         try:
             return not sys._is_gil_enabled()
-        except Exception:
+        except (AttributeError, TypeError):
             pass
 
     # Fallback: check sysconfig for Py_GIL_DISABLED
@@ -58,7 +58,7 @@ def _is_free_threaded() -> bool:
         import sysconfig
 
         return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
-    except Exception:
+    except (ImportError, AttributeError):
         pass
 
     return False
@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.utils.build_stats import BuildStats
+    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()
@@ -334,7 +335,7 @@ class RenderOrchestrator:
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
@@ -434,7 +435,7 @@ class RenderOrchestrator:
         update_interval = 0.1  # Update every 100ms (10 Hz max)
         batch_size = 10  # Or every 10 pages, whichever comes first
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
@@ -525,7 +526,7 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
-        def process_page_with_pipeline(page):
+        def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(

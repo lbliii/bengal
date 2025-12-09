@@ -29,6 +29,9 @@ from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
+if TYPE_CHECKING:
+    from bengal.utils.build_context import BuildContext
+
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.rss import RSSGenerator
@@ -89,8 +92,8 @@ class PostprocessOrchestrator:
     def run(
         self,
         parallel: bool = True,
-        progress_manager=None,
-        build_context=None,
+        progress_manager: Any | None = None,
+        build_context: BuildContext | Any | None = None,
         incremental: bool = False,
     ) -> None:
         """
@@ -173,7 +176,10 @@ class PostprocessOrchestrator:
             self._run_sequential(tasks, progress_manager, reporter)
 
     def _run_sequential(
-        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+        self,
+        tasks: list[tuple[str, Callable[[], None]]],
+        progress_manager: Any | None = None,
+        reporter: Any | None = None,
     ) -> None:
         """
         Run post-processing tasks sequentially.
@@ -197,13 +203,23 @@ class PostprocessOrchestrator:
                         if reporter:
                             try:
                                 reporter.log(f"  ✗ {task_name}: {e}")
-                            except Exception:
+                            except Exception as reporter_error:
+                                logger.debug(
+                                    "postprocess_reporter_log_failed",
+                                    task=task_name,
+                                    reporter_error=str(reporter_error),
+                                    error_type=type(reporter_error).__name__,
+                                    action="falling_back_to_print",
+                                )
                                 print(f"  ✗ {task_name}: {e}")
                         else:
                             print(f"  ✗ {task_name}: {e}")
 
     def _run_parallel(
-        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+        self,
+        tasks: list[tuple[str, Callable[[], None]]],
+        progress_manager: Any | None = None,
+        reporter: Any | None = None,
     ) -> None:
         """
         Run post-processing tasks in parallel.
@@ -247,7 +263,14 @@ class PostprocessOrchestrator:
                         reporter.log(header)
                         for task_name, error in errors:
                             reporter.log(f"    • {task_name}: {error}")
-                    except Exception:
+                    except Exception as reporter_error:
+                        logger.debug(
+                            "postprocess_reporter_error_log_failed",
+                            error_count=len(errors),
+                            reporter_error=str(reporter_error),
+                            error_type=type(reporter_error).__name__,
+                            action="falling_back_to_print",
+                        )
                         print(header)
                         for task_name, error in errors:
                             print(f"    • {task_name}: {error}")
@@ -256,7 +279,7 @@ class PostprocessOrchestrator:
                     for task_name, error in errors:
                         print(f"    • {task_name}: {error}")
 
-    def _generate_special_pages(self, build_context=None) -> None:
+    def _generate_special_pages(self, build_context: BuildContext | Any | None = None) -> None:
         """
         Generate special pages like 404 (extracted for parallel execution).
 
@@ -302,7 +325,9 @@ class PostprocessOrchestrator:
         generator = RedirectGenerator(self.site)
         generator.generate()
 
-    def _build_graph_data(self, build_context=None) -> dict[str, Any] | None:
+    def _build_graph_data(
+        self, build_context: BuildContext | Any | None = None
+    ) -> dict[str, Any] | None:
         """
         Build knowledge graph and return graph data for inclusion in page JSON.
 
@@ -350,7 +375,9 @@ class PostprocessOrchestrator:
             return None
 
     def _generate_output_formats(
-        self, graph_data: dict[str, Any] | None = None, build_context=None
+        self,
+        graph_data: dict[str, Any] | None = None,
+        build_context: BuildContext | Any | None = None,
     ) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).

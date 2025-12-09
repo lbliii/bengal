@@ -12,6 +12,9 @@ Also provides:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.badge import BadgeDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
@@ -31,6 +34,7 @@ from bengal.rendering.plugins.directives.cards import (
 )
 from bengal.rendering.plugins.directives.checklist import ChecklistDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.container import ContainerDirective
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
@@ -102,6 +106,8 @@ DIRECTIVE_CLASSES: list[type] = [
     IconDirective,
     # Checklist (checklist)
     ChecklistDirective,
+    # Container (container, div) - generic wrapper div with class
+    ContainerDirective,
     # Steps (steps, step)
     StepsDirective,
     StepDirective,
@@ -193,7 +199,7 @@ __all__ = [
 ]
 
 
-def create_documentation_directives():
+def create_documentation_directives() -> Callable[[Any], None]:
     """
     Create documentation directives plugin for Mistune.
 
@@ -208,6 +214,7 @@ def create_documentation_directives():
     - rubric: Pseudo-headings for API documentation (not in TOC)
     - list-table: MyST-style tables using nested lists (avoids pipe character issues)
     - checklist: Styled checklist containers for bullet lists and task lists
+    - container: Generic wrapper div with CSS classes (like Sphinx container)
     - include: Include markdown files directly in content
     - literalinclude: Include code files as syntax-highlighted code blocks
 
@@ -223,7 +230,7 @@ def create_documentation_directives():
         ImportError: If FencedDirective is not available
     """
 
-    def plugin_documentation_directives(md):
+    def plugin_documentation_directives(md: Any) -> None:
         """Register all documentation directives with Mistune."""
         logger = get_logger(__name__)
 
@@ -252,6 +259,7 @@ def create_documentation_directives():
                 GridItemCardDirective(),  # Grid item compatibility
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
+                ContainerDirective(),  # Generic wrapper div with CSS class
                 StepsDirective(),  # Visual step-by-step guides
                 StepDirective(),  # Individual step (nested in steps)
                 IncludeDirective(),  # Include markdown files

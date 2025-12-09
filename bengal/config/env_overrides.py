@@ -10,6 +10,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     """
@@ -96,9 +100,15 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                     config["baseurl"] = f"/{name}".rstrip("/")
                 return config
 
-    except Exception:
+    except Exception as e:
         # Never fail build due to env override logic
-        # Silently continue with original config
-        pass
+        # Log warning since this is user-impacting (deployment URL detection)
+        logger.warning(
+            "env_override_detection_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_original_config",
+            hint="Deployment platform baseurl auto-detection failed; verify environment variables",
+        )
 
     return config

@@ -1,6 +1,13 @@
 /**
  * Snow Lynx Palette
- * Inspired by white/cream/mocha fur, ashen paws, and ice-blue eyes
+ * Inspired by snow lynx bengals: pristine white coat with cream/silver points,
+ * ice-blue eyes, and that soft ashen undertone.
+ *
+ * Design notes:
+ * - Primary canvas: Clean true white (the pristine coat)
+ * - Secondary surfaces: Warm cream (the points/shading)
+ * - Creates depth through temperature layering, not just value
+ * - Ice-blue eyes as the accent pop
  *
  * Usage: Attach data-palette="snow-lynx" on <html> to activate.
  */
@@ -8,22 +15,22 @@
 /* Scope palette colors to root element only */
 :root[data-palette="snow-lynx"],
 html[data-palette="snow-lynx"] {
-    /* Primary (ice blue eyes - piercing but earthy) */
+    /* Primary (ice blue eyes - piercing and cool) */
     --color-primary: #4FA8A0;
     --color-primary-hover: #3D9287;
     --color-primary-active: #2D7B72;
     --color-primary-light: #E3F5F3;
     --color-primary-dark: #236962;
 
-    /* Backgrounds (milky cream / snow - LIGHTER, MORE WHITE) */
-    --color-bg-primary: #FDFCF9;
-    --color-bg-secondary: #F9F6F0;
-    --color-bg-tertiary: #F2EDE3;
+    /* Backgrounds (layered white → cream for depth through temperature) */
+    --color-bg-primary: #FEFEFE;
+    --color-bg-secondary: #FAF8F5;
+    --color-bg-tertiary: #F4F0EA;
     --color-bg-elevated: #FFFFFF;
     --color-bg-overlay: rgba(0, 0, 0, 0.5);
-    --color-bg-hover: #F4EFEA;
-    --color-bg-active: #EDE7DC;
-    --color-bg-code: #FAF7F2;
+    --color-bg-hover: #F6F3EE;
+    --color-bg-active: #EFEBE4;
+    --color-bg-code: #F9F7F3;
 
     /* Text (soft charcoal with cooler undertone) */
     --color-text-primary: #252525;
@@ -34,30 +41,30 @@ html[data-palette="snow-lynx"] {
     --color-text-link: #4FA8A0;
     --color-link-hover: #3D9287;
 
-    /* Borders (cool ashen) */
-    --color-border: #E5DFD6;
-    --color-border-light: #F0EBE3;
-    --color-border-strong: #CFC7BC;
+    /* Borders (subtle warmth against clean white) */
+    --color-border: #E8E4DD;
+    --color-border-light: #F2EFE9;
+    --color-border-strong: #D5CFC5;
     --color-border-focus: #4FA8A0;
 
     /* Semantic states (harmonized with icy cream) */
     --color-success: #2E7D5A;
-    --color-success-bg: #EEF8F4;
+    --color-success-bg: #F0F8F4;
     --color-success-border: #8AC9B5;
     --color-success-text: #1B5E42;
 
     --color-warning: #D97706;
-    --color-warning-bg: #FFFAF0;
+    --color-warning-bg: #FFFBF2;
     --color-warning-border: #F5D7A1;
     --color-warning-text: #7C3E03;
 
     --color-error: #C62828;
-    --color-error-bg: #FFF0F0;
+    --color-error-bg: #FFF2F2;
     --color-error-border: #F5B7B1;
     --color-error-text: #7F1D1D;
 
     --color-info: #3D9DAF;
-    --color-info-bg: #EDF7F9;
+    --color-info-bg: #F0F8F9;
     --color-info-border: #8AC9D9;
     --color-info-text: #1E5C6B;
 
@@ -70,7 +77,7 @@ html[data-palette="snow-lynx"] {
 
     /* Code colors (icy blue-teal with cream undertones) */
     --color-code-type: #4FA8A0;
-    --color-code-type-bg: #FAF7F2;
+    --color-code-type-bg: #F9F7F3;
     --color-code-keyword: #3D9DAF;
     --color-code-string: #4A8570;
     --color-code-number: #B8845A;
@@ -154,7 +161,8 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     height: 10px;
     border-radius: 50%;
     margin-right: 0.5rem;
-    background: linear-gradient(135deg, #4FA8A0 0%, #6EC4BC 50%, #FDFCF9 100%);
+    /* Clean white center fading to cream with teal accent */
+    background: linear-gradient(135deg, #FFFFFF 0%, #F4F0EA 40%, #4FA8A0 100%);
     border: 1px solid rgba(79, 168, 160, 0.3);
     vertical-align: middle;
 }
@@ -175,8 +183,8 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
 /* Light mode: Keep default button styling, let indicator show the palette */
 [data-theme="light"] .theme-dropdown__menu button[data-palette="snow-lynx"]:hover,
 [data-theme="light"] .theme-dropdown__menu button[data-palette="snow-lynx"]:focus {
-    /* Use standard hover with a hint of palette color */
-    background: #F9F6F0;
+    /* Clean white with subtle cream warmth */
+    background: #FAF8F5;
     color: #4FA8A0;
 }
 

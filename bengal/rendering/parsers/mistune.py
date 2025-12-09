@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+from collections.abc import Callable
 from typing import Any, override
 
 from mistune.renderers.html import HTMLRenderer
@@ -137,11 +138,11 @@ class MistuneParser(BaseMarkdownParser):
         self._mistune = mistune
 
         # Cache parser with variable substitution (created lazily in parse_with_context)
-        self._var_plugin = None
-        self._md_with_vars = None
+        self._var_plugin: Any = None
+        self._md_with_vars: Any = None
 
         # Cross-reference plugin (added when xref_index is available)
-        self._xref_plugin = None
+        self._xref_plugin: Any = None
         self._xref_enabled = False
 
         # Badge plugin (always enabled)
@@ -152,9 +153,9 @@ class MistuneParser(BaseMarkdownParser):
 
         # AST parser instance (created lazily for parse_to_ast)
         # Uses renderer=None to get raw AST tokens instead of HTML
-        self._ast_parser = None
+        self._ast_parser: Any = None
 
-    def _create_syntax_highlighting_plugin(self):
+    def _create_syntax_highlighting_plugin(self) -> Callable[[Any], None]:
         """
         Create a Mistune plugin that adds Pygments syntax highlighting to code blocks.
 
@@ -166,12 +167,12 @@ class MistuneParser(BaseMarkdownParser):
 
         from bengal.rendering.pygments_cache import get_lexer_cached
 
-        def plugin_syntax_highlighting(md):
+        def plugin_syntax_highlighting(md: Any) -> None:
             """Plugin function to add syntax highlighting to Mistune renderer."""
             # Get the original block_code renderer
             original_block_code = md.renderer.block_code
 
-            def highlighted_block_code(code, info=None):
+            def highlighted_block_code(code: str, info: str | None = None) -> str:
                 """Render code block with syntax highlighting."""
                 # If no language specified, use original renderer
                 if not info:
@@ -200,7 +201,7 @@ class MistuneParser(BaseMarkdownParser):
                     lexer = get_lexer_cached(language=info_stripped)
 
                     # Count lines to decide on line numbers
-                    line_count = code.count('\n') + 1
+                    line_count = code.count("\n") + 1
 
                     # Format with Pygments using 'highlight' CSS class (matches python-markdown)
                     # Add line numbers for code blocks with 3+ lines (Supabase-style)
@@ -208,7 +209,7 @@ class MistuneParser(BaseMarkdownParser):
                         cssclass="highlight",
                         wrapcode=True,
                         noclasses=False,  # Use CSS classes instead of inline styles
-                        linenos='table' if line_count >= 3 else False,
+                        linenos="table" if line_count >= 3 else False,
                         linenostart=1,
                     )
 
@@ -389,27 +390,27 @@ class MistuneParser(BaseMarkdownParser):
         # This enables directives (cards, etc.) to access page._section.subsections directly
         # Much cleaner than xref_index lookups!
         current_page = context.get("page") if "page" in context else None
-        self._shared_renderer._current_page = current_page
+        self._shared_renderer._current_page = current_page  # type: ignore[attr-defined]
 
         # Store site on renderer for directive access
         # This enables directives (glossary, data_table, etc.) to access site.data and site.root_path
         site = context.get("site")
-        self._shared_renderer._site = site
+        self._shared_renderer._site = site  # type: ignore[attr-defined]
 
         # Also store content-relative path for backward compatibility
         if current_page and hasattr(current_page, "source_path"):
             page_source = current_page.source_path
             source_str = str(page_source)
             if source_str.endswith("/_index.md"):
-                self._shared_renderer._current_page_dir = source_str[:-10]
+                self._shared_renderer._current_page_dir = source_str[:-10]  # type: ignore[attr-defined]
             elif source_str.endswith("/index.md"):
-                self._shared_renderer._current_page_dir = source_str[:-9]
+                self._shared_renderer._current_page_dir = source_str[:-9]  # type: ignore[attr-defined]
             elif "/" in source_str:
-                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]
+                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]  # type: ignore[attr-defined]
             else:
-                self._shared_renderer._current_page_dir = ""
+                self._shared_renderer._current_page_dir = ""  # type: ignore[attr-defined]
         else:
-            self._shared_renderer._current_page_dir = None
+            self._shared_renderer._current_page_dir = None  # type: ignore[attr-defined]
 
         try:
             # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
@@ -449,7 +450,13 @@ class MistuneParser(BaseMarkdownParser):
         """
         try:
             return html.replace("{%", "&#123;%").replace("%}", "%&#125;")
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "mistune_jinja_block_escape_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_original_html",
+            )
             return html
 
     def parse_with_toc_and_context(
@@ -542,7 +549,7 @@ class MistuneParser(BaseMarkdownParser):
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
             # Update shared renderer (automatically available to all Markdown instances)
-            self._shared_renderer._xref_index = xref_index
+            self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
             return
 
         from bengal.rendering.plugins import CrossReferencePlugin
@@ -554,7 +561,7 @@ class MistuneParser(BaseMarkdownParser):
         # Store xref_index on shared renderer for directive access (e.g., cards :pull: option)
         # Because we use a shared renderer, this is automatically available to ALL
         # Markdown instances (self.md, self._md_with_vars, etc.)
-        self._shared_renderer._xref_index = xref_index
+        self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
 
     # =========================================================================
     # AST Support (Phase 3 of RFC)
@@ -733,7 +740,7 @@ class MistuneParser(BaseMarkdownParser):
         # If no blockquotes, use fast path
         if "<blockquote" not in html:
 
-            def replace_heading(match):
+            def replace_heading(match: re.Match[str]) -> str:
                 """Replace heading with ID only (no inline headerlink)."""
                 tag = match.group(1)  # 'h2', 'h3', or 'h4'
                 attrs = match.group(2)  # Existing attributes
@@ -779,7 +786,7 @@ class MistuneParser(BaseMarkdownParser):
 
                 if in_blockquote == 0:
                     # Outside blockquote: add anchors
-                    def replace_heading(m):
+                    def replace_heading(m: re.Match[str]) -> str:
                         tag = m.group(1)
                         attrs = m.group(2)
                         content = m.group(3)
@@ -814,7 +821,7 @@ class MistuneParser(BaseMarkdownParser):
             remaining = html[current_pos:]
             if in_blockquote == 0:
 
-                def replace_heading(m):
+                def replace_heading(m: re.Match[str]) -> str:
                     tag = m.group(1)
                     attrs = m.group(2)
                     content = m.group(3)

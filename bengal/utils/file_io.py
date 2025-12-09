@@ -18,12 +18,11 @@ Example:
     data = load_data_file(path)  # Works for .json, .yaml, .toml
 """
 
-
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from bengal.utils.logger import get_logger
 
@@ -155,8 +154,14 @@ def read_text_file(
                     caller=caller or "file_io",
                 )
                 return content
-            except Exception:
-                # Fall through to configured fallback
+            except Exception as sig_error:
+                # Fall through to configured fallback, but log debug
+                logger.debug(
+                    "utf8_sig_fallback_failed",
+                    path=str(file_path),
+                    error=str(sig_error),
+                    caller=caller or "file_io",
+                )
                 pass
 
             logger.warning(
@@ -271,7 +276,7 @@ def load_json(
 
 def load_yaml(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Load YAML file with error handling.
 
@@ -319,10 +324,16 @@ def load_yaml(
 
     # Parse YAML
     try:
-        data = yaml.safe_load(content)
+        data_raw = yaml.safe_load(content)
 
         # YAML can return None for empty files
-        if data is None:
+        if data_raw is None:
+            data: dict[str, Any] = {}
+        elif isinstance(data_raw, dict):
+            # Type narrowing: ensure we return dict[str, Any]
+            data = cast(dict[str, Any], data_raw)
+        else:
+            # YAML can return non-dict types, but we expect dict
             data = {}
 
         logger.debug(
@@ -347,7 +358,7 @@ def load_yaml(
 
 def load_toml(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Load TOML file with error handling.
 
@@ -381,7 +392,10 @@ def load_toml(
     try:
         import toml
 
-        data = toml.loads(content)
+        data_raw = toml.loads(content)
+
+        # TOML should always return a dict, but type checker sees Any
+        data = cast(dict[str, Any], data_raw) if isinstance(data_raw, dict) else {}
 
         logger.debug(
             "toml_loaded",
@@ -408,7 +422,7 @@ def load_toml(
 
 def load_data_file(
     file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
-) -> Any:
+) -> dict[str, Any] | None:
     """
     Auto-detect and load JSON/YAML/TOML file.
 
@@ -436,7 +450,8 @@ def load_data_file(
 
     # Route to appropriate loader based on file extension
     if suffix == ".json":
-        return load_json(file_path, on_error=on_error, caller=caller)
+        result = load_json(file_path, on_error=on_error, caller=caller)
+        return cast(dict[str, Any] | None, result)
     elif suffix in (".yaml", ".yml"):
         return load_yaml(file_path, on_error=on_error, caller=caller)
     elif suffix == ".toml":

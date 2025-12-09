@@ -2,8 +2,16 @@
 title: From Hugo
 description: Onboarding guide for Hugo users migrating to Bengal
 weight: 20
-tags: [tutorial, migration, hugo, shortcodes]
-keywords: [hugo, shortcodes, go templates, migration]
+tags:
+- tutorial
+- migration
+- hugo
+- shortcodes
+keywords:
+- hugo
+- shortcodes
+- go templates
+- migration
 ---
 
 # Bengal for Hugo Users
@@ -335,7 +343,7 @@ weight = 20
 |------|--------|-------|
 | `content/` | `content/` | ✅ Same |
 | `static/` | `assets/` | Different name |
-| `layouts/` | `themes/[name]/templates/` | Template location |
+| `layouts/` | `templates/` | Template location |
 | `themes/` | `themes/` | ✅ Same |
 | `data/` | `data/` | ✅ Same |
 | `config.toml` | `bengal.toml` | Different name |

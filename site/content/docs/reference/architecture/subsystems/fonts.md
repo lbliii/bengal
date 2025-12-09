@@ -3,8 +3,22 @@ title: Fonts System
 description: Automatic Google Fonts downloading and self-hosting
 weight: 40
 category: subsystems
-tags: [subsystems, fonts, google-fonts, self-hosting, performance, privacy, css-generation]
-keywords: [fonts, Google Fonts, self-hosting, performance, privacy, CSS generation, font management]
+tags:
+- subsystems
+- fonts
+- google-fonts
+- self-hosting
+- performance
+- privacy
+- css-generation
+keywords:
+- fonts
+- Google Fonts
+- self-hosting
+- performance
+- privacy
+- CSS generation
+- font management
 ---
 
 # Fonts System (`bengal/fonts/`)

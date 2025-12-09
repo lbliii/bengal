@@ -15,6 +15,7 @@ Performance Impact (measured on 826-page site):
 from __future__ import annotations
 
 import threading
+from typing import Any
 
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from pygments.util import ClassNotFound
@@ -24,7 +25,7 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Thread-safe lexer cache
-_lexer_cache: dict[str, any] = {}
+_lexer_cache: dict[str, Any] = {}
 _cache_lock = threading.Lock()
 
 # Stats for monitoring
@@ -69,11 +70,14 @@ def _normalize_language(language: str) -> str:
     """
     # Extract just the language name if colon is present (handles 'language:filepath' pattern)
     lang_part = language.split(":", 1)[0].strip()
+    # Handle empty or whitespace-only languages (e.g., just quotes, punctuation)
+    if not lang_part or not lang_part.strip("'\"` "):
+        return "text"
     lang_lower = lang_part.lower()
     return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
 
 
-def get_lexer_cached(language: str | None = None, code: str = "") -> any:
+def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
     """
     Get a Pygments lexer with aggressive caching.
 
@@ -112,8 +116,14 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
         if normalized in _NO_HIGHLIGHT_LANGUAGES:
             try:
                 lexer = get_lexer_by_name("text")
-            except Exception:
+            except Exception as e:
                 # Extremely unlikely, but ensure we return something
+                logger.debug(
+                    "pygments_text_lexer_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="retrying_text_lexer",
+                )
                 lexer = get_lexer_by_name("text")
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
@@ -192,7 +202,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
         return lexer
 
 
-def clear_cache():
+def clear_cache() -> None:
     """Clear the lexer cache. Useful for testing or memory management."""
     global _lexer_cache, _cache_stats
     with _cache_lock:
@@ -201,7 +211,7 @@ def clear_cache():
     logger.info("lexer_cache_cleared")
 
 
-def get_cache_stats() -> dict:
+def get_cache_stats() -> dict[str, int | float]:
     """
     Get cache statistics for monitoring.
 
@@ -209,14 +219,14 @@ def get_cache_stats() -> dict:
         Dict with hits, misses, guess_calls, hit_rate
     """
     with _cache_lock:
-        stats = _cache_stats.copy()
+        stats: dict[str, int | float] = dict(_cache_stats)
         total = stats["hits"] + stats["misses"]
-        stats["hit_rate"] = stats["hits"] / total if total > 0 else 0
+        stats["hit_rate"] = stats["hits"] / total if total > 0 else 0.0
         stats["cache_size"] = len(_lexer_cache)
     return stats
 
 
-def log_cache_stats():
+def log_cache_stats() -> None:
     """Log cache statistics. Call at end of build for visibility."""
     stats = get_cache_stats()
     logger.info(

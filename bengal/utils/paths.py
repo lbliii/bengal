@@ -10,6 +10,53 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def format_path_for_display(
+    path: Path | str | None,
+    base_path: Path | None = None,
+) -> str | None:
+    """
+    Format a path for display in logs and warnings.
+
+    Makes paths relative to a base directory (e.g., site root) to avoid
+    showing user-specific absolute paths in output.
+
+    Args:
+        path: Path to format (can be Path, str, or None)
+        base_path: Base directory to make paths relative to (e.g., site.root_path).
+                   If None, uses fallback formatting.
+
+    Returns:
+        Formatted path string, or None if path was None
+
+    Examples:
+        >>> format_path_for_display(Path("/home/user/site/content/post.md"), Path("/home/user/site"))
+        'content/post.md'
+
+        >>> format_path_for_display(Path("/other/path/file.md"), None)
+        'path/file.md'
+
+        >>> format_path_for_display(None)
+        None
+    """
+    if path is None:
+        return None
+
+    p = Path(path) if isinstance(path, str) else path
+
+    # Try to make relative to base path
+    if base_path is not None:
+        try:
+            return str(p.relative_to(base_path))
+        except ValueError:
+            pass  # Path not relative to base
+
+    # Fallback: show just parent/filename for readability
+    if p.is_absolute():
+        return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
+
+    return str(p)
+
+
 class BengalPaths:
     """
     Manages Bengal's directory structure for generated files.

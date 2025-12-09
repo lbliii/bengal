@@ -10,13 +10,17 @@ Validates:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
+
+logger = get_logger(__name__)
 
 
 class NavigationValidator(BaseValidator):
@@ -35,7 +39,9 @@ class NavigationValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []
 
@@ -135,8 +141,15 @@ class NavigationValidator(BaseValidator):
                             issues.append(
                                 f"{page.source_path.name}: ancestor {i} not found in site.sections"
                             )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(
+                        "health_navigation_breadcrumb_check_failed",
+                        page=str(getattr(page, "source_path", "unknown")),
+                        ancestor_index=i,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="skipping_ancestor_check",
+                    )
 
                 # For Page ancestors (not Sections), check if they have output
                 if (

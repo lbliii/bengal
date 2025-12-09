@@ -79,9 +79,12 @@ class TestLiveReloadMixin:
     def test_serve_html_with_live_reload_returns_bool(self):
         """Test that serve_html_with_live_reload returns bool."""
         import inspect
+        from typing import get_type_hints
 
-        sig = inspect.signature(LiveReloadMixin.serve_html_with_live_reload)
-        assert sig.return_annotation is bool
+        # With PEP 563 (from __future__ import annotations), annotations are strings
+        # Use get_type_hints to resolve the actual type
+        hints = get_type_hints(LiveReloadMixin.serve_html_with_live_reload)
+        assert hints.get("return") is bool
 
 
 # Integration test example (requires more setup)

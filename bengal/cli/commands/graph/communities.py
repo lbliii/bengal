@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import click
 
@@ -134,7 +135,7 @@ def communities(
 
     elif format == "json":
         # Export as JSON
-        data = {
+        data: dict[str, Any] = {
             "total_communities": len(results.communities),
             "modularity": results.modularity,
             "iterations": results.iterations,

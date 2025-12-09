@@ -9,13 +9,14 @@ Validates:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class PerformanceValidator(BaseValidator):
@@ -38,7 +39,9 @@ class PerformanceValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run performance validation checks."""
         results = []
 
@@ -64,7 +67,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_build_time(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_build_time(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check if overall build time is reasonable."""
         results = []
 
@@ -101,9 +104,9 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_throughput(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_throughput(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check pages per second throughput."""
-        results = []
+        results: list[CheckResult] = []
 
         build_time_ms = build_stats.get("build_time_ms", 0)
         total_pages = build_stats.get("total_pages", 0)
@@ -134,9 +137,9 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_slow_pages(self, site: Site, build_stats: dict) -> list[CheckResult]:
+    def _check_slow_pages(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check for individual slow pages."""
-        results = []
+        results: list[CheckResult] = []
 
         # This would require per-page timing data
         # For now, just check rendering time vs total time

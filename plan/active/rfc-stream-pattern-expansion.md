@@ -980,3 +980,5 @@ affected_sections = {
 - Incremental adoption reduces risk
 - Complements pipeline migration (different subsystems)
 - Focus on high-value targets first
+
+

@@ -2,11 +2,10 @@
 title: Content
 description: Author, organize, and validate your documentation
 weight: 20
-icon: file-text
 cascade:
   type: doc
+icon: file-text
 ---
-
 # The Content System
 
 Bengal turns your Markdown files into a structured, validated documentation site.

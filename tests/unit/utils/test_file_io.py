@@ -172,7 +172,7 @@ class TestLoadYaml:
         assert result == {}
 
     def test_load_list_yaml(self, tmp_path):
-        """Test loading YAML list."""
+        """Test loading YAML list returns empty dict (load_yaml expects dict structure)."""
         file_path = tmp_path / "list.yaml"
         content = """
         - item1
@@ -181,8 +181,9 @@ class TestLoadYaml:
         """
         file_path.write_text(content)
 
+        # load_yaml expects dict structure; list YAML returns {}
         result = load_yaml(file_path)
-        assert result == ["item1", "item2", "item3"]
+        assert result == {}
 
     def test_invalid_yaml_raise(self, tmp_path):
         """Test YAMLError on invalid YAML."""

@@ -3,14 +3,24 @@ title: Architecture
 description: High-level architecture overview of Bengal
 weight: 50
 type: doc
-icon: folder
+tags:
+- architecture
+- overview
+- design
+- systems
+- components
+keywords:
+- architecture
+- design
+- overview
+- systems
+- components
+- structure
 category: architecture
-tags: [architecture, overview, design, systems, components]
-keywords: [architecture, design, overview, systems, components, structure]
 cascade:
   type: doc
+icon: folder
 ---
-
 # Architecture Overview
 
 Bengal SSG follows a modular architecture with clear separation of concerns to avoid "God objects" and maintain high performance even with large sites.
@@ -79,4 +89,3 @@ graph TB
 3. **Cache**: Build Cache checks file changes and dependencies before rebuilding
 4. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
 5. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
-

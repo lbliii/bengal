@@ -1,6 +1,13 @@
 /**
  * Charcoal Bengal Palette
- * Dramatic charcoal with steel gray-blue undertones - mysterious and sophisticated
+ * Inspired by charcoal bengal cats: smoke-gray base coat with high-contrast
+ * black rosettes, subtle sepia undertones, and that signature "glitter" sheen.
+ *
+ * Design notes:
+ * - Primary: Deep ink black for those dramatic rosette markings
+ * - Accent: Warm bronze/copper for the "glitter" metallic sheen
+ * - Backgrounds: Cool smoke grays with subtle warm undertones
+ * - High contrast between elements (inkblot on smoke aesthetic)
  *
  * Usage: Attach data-palette="charcoal-bengal" on <html> to activate.
  */
@@ -8,139 +15,139 @@
 /* Scope palette colors to root element only */
 :root[data-palette="charcoal-bengal"],
 html[data-palette="charcoal-bengal"] {
-    /* Primary (deep slate with subtle cool undertone - DRAMATIC) */
-    --color-primary: #3E4C5A;
-    --color-primary-hover: #2E3C4A;
-    --color-primary-active: #1E2C3A;
-    --color-primary-light: #E8EBED;
-    --color-primary-dark: #0E1C2A;
+    /* Primary (true ink black - the rosette markings) */
+    --color-primary: #1A1D21;
+    --color-primary-hover: #0D0F12;
+    --color-primary-active: #050607;
+    --color-primary-light: #E5E6E8;
+    --color-primary-dark: #000000;
 
-    /* Backgrounds (darker, moodier grays - editorial feel) */
-    --color-bg-primary: #ECEFF1;
-    --color-bg-secondary: #E0E4E7;
-    --color-bg-tertiary: #D1D7DB;
-    --color-bg-elevated: #F5F7F8;
-    --color-bg-overlay: rgba(0, 0, 0, 0.75);
-    --color-bg-hover: #D8DCE0;
-    --color-bg-active: #CCD2D6;
-    --color-bg-code: #E5E9EC;
+    /* Backgrounds (smoke gray with subtle warmth - the base coat) */
+    --color-bg-primary: #F7F6F5;
+    --color-bg-secondary: #EDECEA;
+    --color-bg-tertiary: #E0DEDA;
+    --color-bg-elevated: #FDFCFB;
+    --color-bg-overlay: rgba(0, 0, 0, 0.8);
+    --color-bg-hover: #E8E6E3;
+    --color-bg-active: #DBD8D4;
+    --color-bg-code: #F0EFED;
 
-    /* Text (rich blacks - magazine-like contrast) */
-    --color-text-primary: #0A0D10;
-    --color-text-secondary: #2C3942;
-    --color-text-tertiary: #4A5761;
-    --color-text-muted: #6F7C87;
-    --color-text-inverse: #FFFFFF;
-    --color-text-link: #3E4C5A;
-    --color-text-link-hover: #2E3C4A;
+    /* Text (rich blacks with warm undertone) */
+    --color-text-primary: #0A0908;
+    --color-text-secondary: #36322E;
+    --color-text-tertiary: #5A554F;
+    --color-text-muted: #7D776F;
+    --color-text-inverse: #FDFCFB;
+    --color-text-link: #8B6914;
+    --color-link-hover: #6B5010;
 
-    /* Borders (moody grays) */
-    --color-border: #B8C1C9;
-    --color-border-light: #CFD6DD;
-    --color-border-strong: #8F9CA7;
-    --color-border-focus: #3E4C5A;
+    /* Borders (warm grays - charcoal mask effect) */
+    --color-border: #C9C5BF;
+    --color-border-light: #DDD9D4;
+    --color-border-strong: #9A958D;
+    --color-border-focus: #8B6914;
 
-    /* Semantic states (muted but clear) */
-    --color-success: #3A6B4F;
-    --color-success-bg: #EEF4F1;
-    --color-success-border: #8FA99A;
-    --color-success-text: #254438;
+    /* Semantic states (warmer, richer tones) */
+    --color-success: #3D6B4A;
+    --color-success-bg: #F0F6F2;
+    --color-success-border: #8BAA96;
+    --color-success-text: #274432;
 
-    --color-warning: #D97706;
-    --color-warning-bg: #FFF9EE;
-    --color-warning-border: #FCD34D;
-    --color-warning-text: #92400E;
+    --color-warning: #B8860B;
+    --color-warning-bg: #FDF8EE;
+    --color-warning-border: #D4A84B;
+    --color-warning-text: #7A5A08;
 
-    --color-error: #C62828;
-    --color-error-bg: #FEF3F3;
-    --color-error-border: #FCA5A5;
-    --color-error-text: #7F1D1D;
+    --color-error: #A63D3D;
+    --color-error-bg: #FDF2F2;
+    --color-error-border: #D49A9A;
+    --color-error-text: #6B2626;
 
-    --color-info: #1976D2;
-    --color-info-bg: #EFF6FD;
-    --color-info-border: #93C5FD;
-    --color-info-text: #1E3A8A;
+    --color-info: #3D6B8B;
+    --color-info-bg: #F0F5F8;
+    --color-info-border: #8AAABF;
+    --color-info-text: #274456;
 
-    /* Accent color (moody teal-gray) */
-    --color-accent: #4A6876;
-    --color-accent-hover: #3E5564;
-    --color-accent-active: #2E4251;
-    --color-accent-light: #6B8594;
-    --color-accent-dark: #2A3F4F;
+    /* Accent color (bronze/copper "glitter" - the metallic sheen) */
+    --color-accent: #8B6914;
+    --color-accent-hover: #A67D1A;
+    --color-accent-active: #6B5010;
+    --color-accent-light: #C9A84D;
+    --color-accent-dark: #4A3808;
 
-    /* Code colors (moody steel-gray palette for editorial feel) */
-    --color-code-type: #3E4C5A;
-    --color-code-type-bg: #E5E9EC;
-    --color-code-keyword: #4A5761;
-    --color-code-string: #3A6B4F;
-    --color-code-number: #9B6B47;
-    --color-code-text: #2C3942;
+    /* Code colors (high contrast with warm accents) */
+    --color-code-type: #8B6914;
+    --color-code-type-bg: #F5F3EF;
+    --color-code-keyword: #1A1D21;
+    --color-code-string: #3D6B4A;
+    --color-code-number: #A65D3D;
+    --color-code-text: #36322E;
 
 }
 
 /* Dark-mode adjustments while Charcoal Bengal palette is active */
 :root[data-theme="dark"][data-palette="charcoal-bengal"],
 html[data-theme="dark"][data-palette="charcoal-bengal"] {
-    /* Muted steel for dark mode - subdued elegance */
-    --color-primary: #8A99A8;
-    --color-primary-hover: #9BAAB9;
-    --color-primary-active: #798897;
-    --color-primary-light: rgba(138, 153, 168, 0.15);
-    --color-primary-dark: #687786;
+    /* Primary (silver glitter against dark - more visible) */
+    --color-primary: #C9C5BF;
+    --color-primary-hover: #DDD9D4;
+    --color-primary-active: #B5B0A8;
+    --color-primary-light: rgba(201, 197, 191, 0.15);
+    --color-primary-dark: #9A958D;
 
-    /* VERY dark backgrounds - deep editorial black */
-    --color-bg-primary: #0A0C0F;
-    --color-bg-secondary: #12151A;
-    --color-bg-tertiary: #1C2127;
-    --color-bg-elevated: #0E1115;
-    --color-bg-hover: #232931;
-    --color-bg-active: #2D3540;
-    --color-bg-code: #12151A;
+    /* Backgrounds (deep charcoal with warm undertones - the dark coat) */
+    --color-bg-primary: #0C0B0A;
+    --color-bg-secondary: #14130F;
+    --color-bg-tertiary: #1E1C18;
+    --color-bg-elevated: #100F0D;
+    --color-bg-hover: #262420;
+    --color-bg-active: #302D28;
+    --color-bg-code: #14130F;
 
-    /* Refined text with strong contrast */
-    --color-text-primary: #F8FAFB;
-    --color-text-secondary: #C8D1DA;
-    --color-text-tertiary: #8A99A8;
-    --color-text-muted: #5C6A78;
+    /* Text (warm whites and silvers) */
+    --color-text-primary: #F7F6F4;
+    --color-text-secondary: #D4D0C9;
+    --color-text-tertiary: #A09A91;
+    --color-text-muted: #6B655C;
 
-    /* Adjusted borders for dark mode */
-    --color-border: #232931;
-    --color-border-light: #1C2127;
-    --color-border-strong: #343D49;
+    /* Borders (subtle warm definition) */
+    --color-border: #302D28;
+    --color-border-light: #1E1C18;
+    --color-border-strong: #454038;
 
     /* Semantic states for dark mode */
-    --color-success: #6B9B7E;
-    --color-success-bg: rgba(58, 107, 79, 0.15);
-    --color-success-border: #4A7A5C;
-    --color-success-text: #8FA99A;
+    --color-success: #7DAA8B;
+    --color-success-bg: rgba(61, 107, 74, 0.18);
+    --color-success-border: #5A8A6A;
+    --color-success-text: #A5C9B0;
 
-    --color-warning: #FFB020;
-    --color-warning-bg: rgba(217, 119, 6, 0.15);
-    --color-warning-border: #F59E0B;
-    --color-warning-text: #FCD34D;
+    --color-warning: #D4A84B;
+    --color-warning-bg: rgba(184, 134, 11, 0.18);
+    --color-warning-border: #B8860B;
+    --color-warning-text: #E8C97D;
 
-    --color-error: #EF5350;
-    --color-error-bg: rgba(198, 40, 40, 0.15);
-    --color-error-border: #C62828;
-    --color-error-text: #FCA5A5;
+    --color-error: #D49A9A;
+    --color-error-bg: rgba(166, 61, 61, 0.18);
+    --color-error-border: #A63D3D;
+    --color-error-text: #E8BFBF;
 
-    --color-info: #42A5F5;
-    --color-info-bg: rgba(25, 118, 210, 0.15);
-    --color-info-border: #1976D2;
-    --color-info-text: #93C5FD;
+    --color-info: #8AAABF;
+    --color-info-bg: rgba(61, 107, 139, 0.18);
+    --color-info-border: #3D6B8B;
+    --color-info-text: #B5CFDF;
 
-    /* Accent color for dark mode */
-    --color-accent: #8A99A8;
-    --color-accent-hover: #9BAAB9;
-    --color-accent-active: #798897;
+    /* Accent (golden glitter - really pops in dark mode) */
+    --color-accent: #C9A84D;
+    --color-accent-hover: #D9BC6D;
+    --color-accent-active: #A68A3D;
 
-    /* Code colors for dark mode (refined steel with subtle warmth) */
-    --color-code-type: #8A99A8;
-    --color-code-type-bg: rgba(138, 153, 168, 0.10);
-    --color-code-keyword: #9BAAB9;
-    --color-code-string: #7FAA8E;
-    --color-code-number: #CCA173;
-    --color-code-text: #C8D1DA;
+    /* Code colors for dark mode (bronze highlights against charcoal) */
+    --color-code-type: #C9A84D;
+    --color-code-type-bg: rgba(201, 168, 77, 0.12);
+    --color-code-keyword: #D4D0C9;
+    --color-code-string: #8BC9A0;
+    --color-code-number: #D4A07D;
+    --color-code-text: #D4D0C9;
 
 }
 
@@ -156,23 +163,24 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     height: 10px;
     border-radius: 50%;
     margin-right: 0.5rem;
-    background: linear-gradient(135deg, #3D4A53 0%, #5D6A73 50%, #8B95A0 100%);
-    border: 1px solid rgba(93, 106, 115, 0.3);
+    /* Charcoal base with bronze glitter accent */
+    background: linear-gradient(135deg, #1A1D21 0%, #36322E 40%, #8B6914 80%, #C9A84D 100%);
+    border: 1px solid rgba(139, 105, 20, 0.4);
     vertical-align: middle;
 }
 
 /* Light mode: Keep default button styling, let indicator show the palette */
 [data-theme="light"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:hover,
 [data-theme="light"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:focus {
-    /* Use standard hover with a hint of palette color */
-    background: #EBEDEF;
-    color: #5D6A73;
+    /* Warm smoke gray with bronze text */
+    background: #EDECEA;
+    color: #8B6914;
 }
 
 /* Dark mode: Keep default button styling, let indicator show the palette */
 [data-theme="dark"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:hover,
 [data-theme="dark"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:focus {
-    /* Use standard hover with a hint of palette color */
+    /* Deep charcoal with golden glitter */
     background: var(--color-bg-secondary);
-    color: #7B8A95;
+    color: #C9A84D;
 }

@@ -2,15 +2,14 @@
 title: About
 description: Concepts, benchmarks, and reference
 weight: 5
-icon: info
-cascade:
-  type: doc
 layout: list
 menu:
   main:
     weight: 40
+cascade:
+  type: doc
+icon: info
 ---
-
 # About
 
 Background information, benchmarks, and conceptual documentation.

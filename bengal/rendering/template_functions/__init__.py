@@ -19,9 +19,12 @@ if TYPE_CHECKING:
 
     from bengal.core.site import Site
 
+from bengal.rendering import template_tests
+
 from . import (
     advanced_collections,
     advanced_strings,
+    autodoc,
     collections,
     content,
     crossref,
@@ -39,6 +42,7 @@ from . import (
     seo,
     strings,
     taxonomies,
+    theme,
     urls,
 )
 
@@ -88,12 +92,22 @@ def register_all(env: Environment, site: Site) -> None:
     # Phase 5: Navigation functions
     navigation.register(env, site)
 
-    logger.debug("template_functions_registered", count=18)
+    # Phase 6: Theme functions
+    theme.register(env, site)
+
+    # Phase 7: Autodoc functions (normalized parameter access)
+    autodoc.register(env, site)
+
+    # Phase 8: Template tests (match, draft, featured, etc.)
+    template_tests.register(env, site)
+
+    logger.debug("template_functions_registered", count=19)
 
 
 __all__ = [
     "advanced_collections",
     "advanced_strings",
+    "autodoc",
     "collections",
     "content",
     "crossref",
@@ -111,5 +125,7 @@ __all__ = [
     "seo",
     "strings",
     "taxonomies",
+    "template_tests",
+    "theme",
     "urls",
 ]

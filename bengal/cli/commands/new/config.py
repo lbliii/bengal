@@ -7,6 +7,7 @@ Creates the config/ directory structure with environment-aware configuration fil
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -45,7 +46,7 @@ def create_config_directory(
     site_config = _create_site_config(site_title, baseurl)
     theme_config = _create_theme_config(theme)
     content_config = _create_content_config(template)
-    params_config = {"params": {}}
+    params_config: dict[str, Any] = {"params": {}}
     build_config = _create_build_config()
     features_config = _create_features_config()
 
@@ -75,12 +76,12 @@ def create_config_directory(
     cli.info("   │  └─ environments/production.yaml")
 
 
-def _write_yaml(path: Path, data: dict) -> None:
+def _write_yaml(path: Path, data: dict[str, Any]) -> None:
     """Write data as YAML to file."""
     path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
 
 
-def _create_site_config(site_title: str, baseurl: str) -> dict:
+def _create_site_config(site_title: str, baseurl: str) -> dict[str, Any]:
     """Create site configuration."""
     return {
         "site": {
@@ -92,7 +93,7 @@ def _create_site_config(site_title: str, baseurl: str) -> dict:
     }
 
 
-def _create_theme_config(theme: str) -> dict:
+def _create_theme_config(theme: str) -> dict[str, Any]:
     """Create theme configuration."""
     return {
         "theme": {
@@ -127,9 +128,9 @@ def _create_theme_config(theme: str) -> dict:
     }
 
 
-def _create_content_config(template: str) -> dict:
+def _create_content_config(template: str) -> dict[str, Any]:
     """Create content configuration based on template type."""
-    content_config = {"content": {}}
+    content_config: dict[str, Any] = {"content": {}}
 
     if template == "blog":
         content_config["content"] = {
@@ -176,7 +177,7 @@ def _create_content_config(template: str) -> dict:
     return content_config
 
 
-def _create_build_config() -> dict:
+def _create_build_config() -> dict[str, Any]:
     """Create build configuration."""
     return {
         "build": {
@@ -191,7 +192,7 @@ def _create_build_config() -> dict:
     }
 
 
-def _create_features_config() -> dict:
+def _create_features_config() -> dict[str, Any]:
     """Create features configuration."""
     return {
         "features": {
@@ -205,7 +206,7 @@ def _create_features_config() -> dict:
     }
 
 
-def _create_local_env_config() -> dict:
+def _create_local_env_config() -> dict[str, Any]:
     """Create local development environment config."""
     return {
         "site": {
@@ -221,7 +222,7 @@ def _create_local_env_config() -> dict:
     }
 
 
-def _create_production_env_config() -> dict:
+def _create_production_env_config() -> dict[str, Any]:
     """Create production environment config."""
     return {
         "site": {
@@ -232,4 +233,3 @@ def _create_production_env_config() -> dict:
             "strict_mode": True,
         },
     }
-

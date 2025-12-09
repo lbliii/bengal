@@ -3,8 +3,8 @@ title: Icon Reference
 description: Bengal SVG icon library with theme-aware styling
 date: 2025-12-06
 tags:
-  - reference
-  - icons
+- reference
+- icons
 weight: 20
 ---
 

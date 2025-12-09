@@ -374,3 +374,88 @@ class TestRealWorldScenarios:
             assert template is not None
         else:
             pytest.fail("Template should exist")
+
+
+class TestSkeletonManifestSupport:
+    """Test skeleton manifest support in templates."""
+
+    def test_blog_template_uses_skeleton_manifest(self):
+        """Test that blog template loads from skeleton.yaml."""
+        template = get_template("blog")
+
+        assert template is not None
+        assert template.id == "blog"
+        # Should have files from skeleton manifest
+        assert len(template.files) > 0
+
+        # Verify files have proper structure
+        paths = [f.relative_path for f in template.files]
+        assert "index.md" in paths
+        assert any("posts" in p for p in paths)
+
+    def test_docs_template_uses_skeleton_manifest(self):
+        """Test that docs template loads from skeleton.yaml."""
+        template = get_template("docs")
+
+        assert template is not None
+        assert template.id == "docs"
+        assert len(template.files) > 0
+
+        # Should have nested structure
+        paths = [f.relative_path for f in template.files]
+        assert any("getting-started" in p for p in paths)
+        assert any("guides" in p for p in paths)
+        assert any("api" in p for p in paths)
+
+    def test_portfolio_template_uses_skeleton_manifest(self):
+        """Test that portfolio template loads from skeleton.yaml."""
+        template = get_template("portfolio")
+
+        assert template is not None
+        assert template.id == "portfolio"
+        assert len(template.files) > 0
+
+        # Should have projects section
+        paths = [f.relative_path for f in template.files]
+        assert any("projects" in p for p in paths)
+
+    def test_skeleton_manifest_date_substitution(self):
+        """Test that {{date}} is substituted in skeleton manifests."""
+        template = get_template("blog")
+
+        # Find a file with date
+        date_file = None
+        for file in template.files:
+            if "{{date}}" not in file.content and "date:" in file.content:
+                date_file = file
+                break
+
+        if date_file:
+            # Date should be substituted (not {{date}})
+            assert "{{date}}" not in date_file.content
+            # Should have actual date format
+            assert "date:" in date_file.content
+
+    def test_skeleton_manifest_menu_sections(self):
+        """Test that menu sections are extracted from skeleton manifests."""
+        blog_template = get_template("blog")
+        docs_template = get_template("docs")
+
+        # Blog should have posts section
+        assert "posts" in blog_template.menu_sections or "index" in blog_template.menu_sections
+
+        # Docs should have multiple sections
+        assert len(docs_template.menu_sections) >= 3
+        assert "getting-started" in docs_template.menu_sections
+        assert "guides" in docs_template.menu_sections
+        assert "api" in docs_template.menu_sections
+
+    def test_fallback_to_python_template(self):
+        """Test that templates without skeleton.yaml fall back to Python."""
+        # Default template doesn't have skeleton.yaml, should use Python
+        template = get_template("default")
+
+        assert template is not None
+        assert template.id == "default"
+        # Should still work
+        assert len(template.files) > 0

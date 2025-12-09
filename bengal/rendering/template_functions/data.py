@@ -105,6 +105,9 @@ def merge(dict1: dict[str, Any], dict2: dict[str, Any], deep: bool = True) -> di
     """
     Merge two dictionaries.
 
+    Delegates to bengal.config.merge.deep_merge for consistent behavior
+    across the codebase.
+
     Args:
         dict1: First dictionary
         dict2: Second dictionary (takes precedence)
@@ -116,6 +119,8 @@ def merge(dict1: dict[str, Any], dict2: dict[str, Any], deep: bool = True) -> di
     Example:
         {% set config = defaults | merge(custom_config) %}
     """
+    from bengal.config.merge import deep_merge
+
     if not isinstance(dict1, dict):
         dict1 = {}
     if not isinstance(dict2, dict):
@@ -127,16 +132,8 @@ def merge(dict1: dict[str, Any], dict2: dict[str, Any], deep: bool = True) -> di
         result.update(dict2)
         return result
 
-    # Deep merge
-    result = dict1.copy()
-
-    for key, value in dict2.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = merge(result[key], value, deep=True)
-        else:
-            result[key] = value
-
-    return result
+    # Deep merge - delegate to config utility
+    return deep_merge(dict1, dict2)
 
 
 def has_key(data: dict[str, Any], key: str) -> bool:
@@ -270,7 +267,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
     return []
 
 
-def items_filter(data: dict[str, Any]) -> list[tuple]:
+def items_filter(data: dict[str, Any]) -> list[tuple[str, Any]]:
     """
     Get dictionary items as list of (key, value) tuples.
 

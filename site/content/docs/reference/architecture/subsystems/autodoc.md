@@ -3,8 +3,21 @@ title: Autodoc System
 description: AST-based Python documentation generator
 weight: 10
 category: subsystems
-tags: [subsystems, autodoc, documentation, ast, python, code-generation, cli]
-keywords: [autodoc, documentation generation, AST, Python, code generation, CLI docs]
+tags:
+- subsystems
+- autodoc
+- documentation
+- ast
+- python
+- code-generation
+- cli
+keywords:
+- autodoc
+- documentation generation
+- AST
+- Python
+- code generation
+- CLI docs
 ---
 
 # Autodoc System

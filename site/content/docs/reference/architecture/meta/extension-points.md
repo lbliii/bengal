@@ -3,8 +3,22 @@ title: Extension Points
 description: Plugin hooks and customization points for extending Bengal
 weight: 40
 category: meta
-tags: [meta, extension-points, plugins, customization, hooks, extensibility, strategies]
-keywords: [extension points, plugins, customization, hooks, extensibility, content strategies, validators]
+tags:
+- meta
+- extension-points
+- plugins
+- customization
+- hooks
+- extensibility
+- strategies
+keywords:
+- extension points
+- plugins
+- customization
+- hooks
+- extensibility
+- content strategies
+- validators
 ---
 
 # Extension Points

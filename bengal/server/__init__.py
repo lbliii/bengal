@@ -45,10 +45,9 @@ The server watches for changes in:
 - bengal.toml - Configuration file
 """
 
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Lazy export of DevServer to avoid importing heavy dependencies (e.g., watchdog)
 # when users are not running the dev server. This prevents noisy runtime warnings
@@ -61,7 +60,7 @@ if TYPE_CHECKING:
 __all__ = ["DevServer"]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """
     Lazy import pattern for DevServer to avoid loading heavy dependencies.
 

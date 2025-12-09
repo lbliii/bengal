@@ -14,13 +14,14 @@ for dev; a hashing option can be added later if needed.
 from __future__ import annotations
 
 import fnmatch
-import hashlib
 import os
 import threading
 import time
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
+
+from bengal.utils.hashing import hash_file
 
 
 @dataclass(frozen=True)
@@ -172,15 +173,11 @@ class ReloadController:
                 )
 
                 suppressed_due_to_hash = False
-                if is_suspect and suspects_hashed < self._suspect_hash_limit:
+                if is_suspect and suspects_hashed < self._suspect_hash_limit and centry is not None:
                     try:
-                        # Compute current content hash (md5 fallback; xxhash could be used if available)
+                        # Compute current content hash (md5 for speed on large files)
                         abs_path = (output_dir / path).resolve()
-                        h = hashlib.md5(usedforsecurity=False)
-                        with open(abs_path, "rb") as f:
-                            for chunk in iter(lambda: f.read(1 << 16), b""):
-                                h.update(chunk)
-                        digest = h.hexdigest()
+                        digest = hash_file(abs_path, algorithm="md5", chunk_size=1 << 16)
                         suspects_hashed += 1
 
                         cached = self._hash_cache.get(path)
@@ -216,7 +213,14 @@ class ReloadController:
             if suspects_hashed:
                 try:
                     cap_hit = suspects_hashed >= self._suspect_hash_limit
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "reload_controller_cap_check_failed",
+                        suspects_hashed=suspects_hashed,
+                        limit=self._suspect_hash_limit,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     cap_hit = False
                 logger.debug(
                     "reload_controller_hash_stats",
@@ -283,7 +287,12 @@ class ReloadController:
             )
             for f in changed[:5]:
                 print(f"    - {f}")
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "reload_controller_debug_output_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
 
         return decision

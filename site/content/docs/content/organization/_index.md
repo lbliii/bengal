@@ -6,7 +6,6 @@ category: explanation
 icon: folder
 card_color: green
 ---
-
 # How Content is Organized
 
 Your folder structure becomes your site structure. No configuration required.
@@ -20,13 +19,13 @@ flowchart TB
         B["📁 blog/_index.md"]
         C["📦 gallery/index.md"]
     end
-    
+
     subgraph "Your Site"
         D["/about/"]
         E["/blog/ + children"]
         F["/gallery/ + assets"]
     end
-    
+
     A --> D
     B --> E
     C --> F

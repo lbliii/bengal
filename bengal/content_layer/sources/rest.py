@@ -10,15 +10,13 @@ Requires: pip install bengal[rest] (installs aiohttp)
 from __future__ import annotations
 
 import os
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 try:
     import aiohttp
 except ImportError as e:
-    raise ImportError(
-        "RESTSource requires aiohttp.\n"
-        "Install with: pip install bengal[rest]"
-    ) from e
+    raise ImportError("RESTSource requires aiohttp.\nInstall with: pip install bengal[rest]") from e
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
@@ -157,7 +155,7 @@ class RESTSource(ContentSource):
         # Try common patterns
         for key in ["items", "data", "results", "entries", "posts", "pages"]:
             if key in data and isinstance(data[key], list):
-                return data[key]
+                return list(data[key])
 
         # Single item response
         if isinstance(data, dict) and self.id_field in data:
@@ -290,4 +288,3 @@ class RESTSource(ContentSource):
                 return f"{self.url}{sep}offset={offset + limit}&limit={limit}"
 
         return None
-

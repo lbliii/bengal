@@ -287,3 +287,5 @@ class TestThemeToDict:
         assert result["default_palette"] == original.default_palette
         assert result["features"] == original.features
         assert result["config"] == original.config
+
+

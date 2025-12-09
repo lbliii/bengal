@@ -5,8 +5,17 @@ weight: 25
 type: doc
 draft: false
 lang: en
-tags: [templating, jinja2, templates, variables]
-keywords: [templating, jinja2, templates, variables, context]
+tags:
+- templating
+- jinja2
+- templates
+- variables
+keywords:
+- templating
+- jinja2
+- templates
+- variables
+- context
 category: documentation
 ---
 
@@ -150,7 +159,7 @@ Bengal themes typically use Jinja2's inheritance model.
 Defines the common structure (HTML head, nav, footer).
 
 ```html
-<!-- themes/my-theme/layouts/base.html -->
+<!-- themes/my-theme/templates/base.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -173,7 +182,7 @@ Defines the common structure (HTML head, nav, footer).
 Extends the base template and fills in the blocks.
 
 ```html
-<!-- themes/my-theme/layouts/page.html -->
+<!-- themes/my-theme/templates/page.html -->
 {% extends "base.html" %}
 
 {% block title %}{{ page.title }} - {{ site.title }}{% endblock %}

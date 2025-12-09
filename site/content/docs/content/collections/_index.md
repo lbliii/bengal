@@ -1,18 +1,25 @@
 ---
 title: Content Collections
 description: Validate frontmatter with typed schemas
-weight: 30
 draft: false
+weight: 30
+aliases:
+- /docs/guides/content-collections/
 lang: en
-tags: [collections, schemas, validation]
-keywords: [collections, schemas, validation, frontmatter, types]
+tags:
+- collections
+- schemas
+- validation
+keywords:
+- collections
+- schemas
+- validation
+- frontmatter
+- types
 category: guide
 icon: check-circle
 card_color: purple
-aliases:
-  - /docs/guides/content-collections/
 ---
-
 # Content Collections
 
 Define typed schemas for your content to ensure consistency and catch errors early.
@@ -181,4 +188,3 @@ See [Content Sources](/docs/content/sources/) for GitHub, Notion, REST API loade
 - [Content Sources](/docs/content/sources/) — GitHub, Notion, REST API loaders
 - [CLI Reference: collections](/cli/collections/) — Command details
 - [API Reference: collections](/api/collections/) — Schema and validator API
-

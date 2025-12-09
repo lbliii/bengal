@@ -21,11 +21,18 @@ Dev behavior:
   generation so we do not replay the last reload event to the client.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import threading
+from io import BufferedIOBase
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    pass
 
 logger = get_logger(__name__)
 
@@ -160,6 +167,17 @@ class LiveReloadMixin:
                     super().do_GET()  # Default file serving
     """
 
+    # Type declarations for attributes provided by SimpleHTTPRequestHandler
+    # These tell mypy what to expect when this mixin is used
+    path: str
+    client_address: tuple[str, int]
+    wfile: BufferedIOBase
+
+    # NOTE: Do NOT add stub methods here for send_response, send_header, etc.!
+    # Python MRO resolves this mixin BEFORE SimpleHTTPRequestHandler, so stubs
+    # would shadow the real implementations. The type checker can find the methods
+    # from SimpleHTTPRequestHandler in the concrete class's MRO.
+
     def handle_sse(self) -> None:
         """
         Handle Server-Sent Events endpoint for live reload.
@@ -208,7 +226,8 @@ class LiveReloadMixin:
             try:
                 ka_env = os.environ.get("BENGAL_SSE_KEEPALIVE_SECS", "15").strip()
                 keepalive_interval = max(5, min(120, int(ka_env)))
-            except Exception:
+            except Exception as e:
+                logger.debug("keepalive_env_parse_failed", error=str(e))
                 keepalive_interval = 15
 
             logger.info("sse_stream_started", keepalive_interval_secs=keepalive_interval)
@@ -276,6 +295,10 @@ class LiveReloadMixin:
         """
         # Resolve the actual file path
         path = self.translate_path(self.path)
+
+        # Guard against translate_path returning None (can happen if self.directory is None)
+        if path is None:
+            return False
 
         # If path is a directory, look for index.html
         if os.path.isdir(path):
@@ -439,7 +462,13 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
                 "generation": _reload_generation + 1,
             }
         )
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            "reload_payload_serialization_failed",
+            action=action,
+            reason=reason,
+            error=str(e),
+        )
         # Fallback to simple action string on serialization failure
         payload = action
 

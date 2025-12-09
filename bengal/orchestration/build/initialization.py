@@ -10,14 +10,17 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
+from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
 from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.utils.build_context import BuildContext
+    from bengal.utils.cli_output import CLIOutput
 
 
-def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
+def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     """
     Phase 1: Font Processing.
 
@@ -73,7 +76,7 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
 
 def phase_discovery(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     build_context: BuildContext | None = None,
 ) -> None:
@@ -188,8 +191,8 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
 
 
 def phase_config_check(
-    orchestrator: BuildOrchestrator, cli, cache, incremental: bool
-) -> tuple[bool, bool]:
+    orchestrator: BuildOrchestrator, cli: CLIOutput, cache: BuildCache, incremental: bool
+) -> ConfigCheckResult:
     """
     Phase 4: Config Check and Cleanup.
 
@@ -202,8 +205,8 @@ def phase_config_check(
         incremental: Whether this is an incremental build
 
     Returns:
-        Tuple of (updated_incremental, config_changed) - incremental may be
-        set to False if config changed
+        ConfigCheckResult with incremental flag (may be False if config changed)
+        and config_changed flag.
 
     Side effects:
         - Cleans up output files for deleted source files
@@ -251,17 +254,17 @@ def phase_config_check(
         with suppress(Exception):
             orchestrator.incremental.check_config_changed()
 
-    return incremental, config_changed
+    return ConfigCheckResult(incremental=incremental, config_changed=config_changed)
 
 
 def phase_incremental_filter(
     orchestrator: BuildOrchestrator,
-    cli,
-    cache,
+    cli: CLIOutput,
+    cache: BuildCache,
     incremental: bool,
     verbose: bool,
     build_start: float,
-) -> tuple[list, list, set, set, set | None] | None:
+) -> FilterResult | None:
     """
     Phase 5: Incremental Filtering.
 
@@ -277,8 +280,8 @@ def phase_incremental_filter(
         build_start: Build start time for duration calculation
 
     Returns:
-        Tuple of (pages_to_build, assets_to_process, affected_tags,
-                 changed_page_paths, affected_sections)
+        FilterResult with pages_to_build, assets_to_process, affected_tags,
+        changed_page_paths, and affected_sections.
         Returns None if build should be skipped (no changes detected)
 
     Side effects:
@@ -294,9 +297,11 @@ def phase_incremental_filter(
 
         if incremental:
             # Find what changed BEFORE generating taxonomies/menus
-            pages_to_build, assets_to_process, change_summary = (
+            pages_to_build, assets_to_process, change_summary_obj = (
                 orchestrator.incremental.find_work_early(verbose=verbose)
             )
+            # Convert ChangeSummary to dict for backward compatibility with existing code
+            change_summary = change_summary_obj.to_dict()
 
             # Track which pages changed (for taxonomy updates)
             changed_page_paths = {
@@ -389,10 +394,10 @@ def phase_incremental_filter(
                             cli.info(f"      ... and {len(items) - 5} more")
                 cli.blank()
 
-        return (
-            pages_to_build,
-            assets_to_process,
-            affected_tags,
-            changed_page_paths,
-            affected_sections,
+        return FilterResult(
+            pages_to_build=pages_to_build,
+            assets_to_process=assets_to_process,
+            affected_tags=affected_tags,
+            changed_page_paths=changed_page_paths,
+            affected_sections=affected_sections,
         )

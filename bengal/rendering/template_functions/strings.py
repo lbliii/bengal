@@ -1,19 +1,21 @@
 """
 String manipulation functions for templates.
 
-Provides 10 essential string functions for text processing in templates.
+Provides 14 essential string functions for text processing in templates.
 
 Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
 """
 
-
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils import text as text_utils
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -37,11 +39,13 @@ def register(env: Environment, site: Site) -> None:
             "excerpt": excerpt,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
+            "first_sentence": first_sentence,
+            "filesize": filesize,
         }
     )
 
 
-def dict_get(obj, key, default=None):
+def dict_get(obj: Any, key: str, default: Any = None) -> Any:
     """Safe get supporting dict-like objects for component preview contexts."""
     try:
         if isinstance(obj, dict):
@@ -49,7 +53,14 @@ def dict_get(obj, key, default=None):
         # Allow attribute access as fallback
         if hasattr(obj, key):
             return getattr(obj, key)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "safe_get_failed",
+            key=key,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_default",
+        )
         pass
     return default
 
@@ -77,10 +88,12 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
 
 def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
-    Truncate HTML text to word count, preserving HTML tags.
+    Truncate HTML text to word count, preserving HTML structure.
 
-    This is more sophisticated than truncatewords - it preserves HTML structure
-    and properly closes tags.
+    Uses a tag-aware approach that:
+    1. Counts only text content words (not tag content)
+    2. Keeps track of open tags
+    3. Closes any unclosed tags at truncation point
 
     Args:
         html: HTML text to truncate
@@ -92,21 +105,91 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
 
     Example:
         {{ post.html_content | truncatewords_html(50) }}
+        {{ "<p>Hello <strong>world</strong></p>" | truncatewords_html(1) }}  # "<p>Hello...</p>"
     """
     if not html:
         return ""
 
-    # Strip HTML to count words
+    # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
-    words = text_only.split()
-
-    if len(words) <= count:
+    if len(text_only.split()) <= count:
         return html
 
-    # Simple implementation: strip HTML, truncate, add suffix
-    # A more sophisticated version would preserve HTML structure
-    truncated_text = " ".join(words[:count])
-    return truncated_text + suffix
+    # HTML5 void elements (no closing tag needed)
+    void_elements = frozenset(
+        {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "source",
+            "track",
+            "wbr",
+        }
+    )
+
+    # Tag-aware truncation
+    result: list[str] = []
+    word_count = 0
+    open_tags: list[str] = []
+    i = 0
+
+    while i < len(html) and word_count < count:
+        if html[i] == "<":
+            # Find end of tag
+            tag_end = html.find(">", i)
+            if tag_end == -1:
+                break
+            tag = html[i : tag_end + 1]
+            result.append(tag)
+
+            # Track open/close tags
+            if tag.startswith("</"):
+                # Closing tag
+                tag_name = tag[2:-1].split()[0].lower() if len(tag) > 3 else ""
+                if open_tags and open_tags[-1] == tag_name:
+                    open_tags.pop()
+            elif not tag.endswith("/>") and not tag.startswith("<!"):
+                # Opening tag (not self-closing, not comment/doctype)
+                tag_content = tag[1:-1]
+                tag_name = tag_content.split()[0].lower() if tag_content else ""
+                if tag_name and tag_name not in void_elements:
+                    open_tags.append(tag_name)
+
+            i = tag_end + 1
+        else:
+            # Find next tag or end
+            next_tag = html.find("<", i)
+            text = html[i:] if next_tag == -1 else html[i:next_tag]
+
+            # Count and truncate words in this text segment
+            words = text.split()
+            remaining = count - word_count
+
+            if len(words) <= remaining:
+                result.append(text)
+                word_count += len(words)
+                i = next_tag if next_tag != -1 else len(html)
+            else:
+                # Truncate within this segment
+                result.append(" ".join(words[:remaining]))
+                word_count = count
+                break
+
+    # Add suffix
+    result.append(suffix)
+
+    # Close any unclosed tags (in reverse order)
+    for tag in reversed(open_tags):
+        result.append(f"</{tag}>")
+
+    return "".join(result)
 
 
 def slugify(text: str) -> str:
@@ -128,14 +211,75 @@ def slugify(text: str) -> str:
     return text_utils.slugify(text, unescape_html=False)
 
 
+def _convert_docstring_to_markdown(text: str) -> str:
+    """
+    Convert Google/NumPy-style docstrings to markdown.
+
+    Handles:
+    - Indented lists (    - Item) → proper markdown lists
+    - Section headers (Section:) → bold labels or headings
+    - Preserves code blocks
+
+    Args:
+        text: Docstring text
+
+    Returns:
+        Markdown-formatted text
+    """
+    if not text:
+        return ""
+
+    lines = text.split("\n")
+    result = []
+    in_code_block = False
+
+    for line in lines:
+        # Track code blocks - don't modify inside them
+        if line.strip().startswith("```"):
+            in_code_block = not in_code_block
+            result.append(line)
+            continue
+
+        if in_code_block:
+            result.append(line)
+            continue
+
+        # Convert indented list items to proper markdown lists
+        # "    - Item: Description" → "- **Item**: Description"
+        # Match: 4+ spaces, dash, text
+        match = re.match(r"^(\s{4,})- (.+)$", line)
+        if match:
+            content = match.group(2)
+            # Check if it's "Term: Description" format
+            term_match = re.match(r"^([^:]+):\s*(.*)$", content)
+            if term_match:
+                term, desc = term_match.groups()
+                result.append(f"- **{term}**: {desc}")
+            else:
+                result.append(f"- {content}")
+            continue
+
+        # Convert section headers: "Section:" at start of line → "**Section:**"
+        section_match = re.match(r"^([A-Z][A-Za-z\s]+):$", line.strip())
+        if section_match and not line.startswith(" "):
+            section_name = section_match.group(1)
+            result.append(f"\n**{section_name}:**\n")
+            continue
+
+        result.append(line)
+
+    return "\n".join(result)
+
+
 def markdownify(text: str) -> str:
     """
     Render Markdown text to HTML.
 
-    Uses Python-Markdown with extensions for tables, code highlighting, etc.
+    Pre-processes Google-style docstrings to markdown, then converts to HTML
+    using Python-Markdown with extensions for tables, code highlighting, etc.
 
     Args:
-        text: Markdown text
+        text: Markdown or docstring text
 
     Returns:
         Rendered HTML
@@ -146,16 +290,24 @@ def markdownify(text: str) -> str:
     if not text:
         return ""
 
+    # Pre-process docstring-style text to markdown
+    text = _convert_docstring_to_markdown(text)
+
     try:
         import markdown
 
+        # Note: Intentionally NOT using codehilite extension here.
+        # codehilite produces <div class="highlight"><pre><span>... structure
+        # which loses the language-X class needed for JS language labels.
+        # fenced_code alone produces <pre><code class="language-X">... which
+        # matches Bengal's standard code block structure and allows JS
+        # (main.js) to detect language and add proper labels.
         md = markdown.Markdown(
             extensions=[
                 "extra",
-                "codehilite",
                 "tables",
                 "fenced_code",
-            ]
+            ],
         )
         return md.convert(text)
     except ImportError:
@@ -221,8 +373,14 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
 
     try:
         return re.sub(pattern, replacement, text)
-    except re.error:
-        # Return original text if regex is invalid
+    except re.error as e:
+        # Log warning for invalid regex (developer error)
+        logger.warning(
+            "replace_regex_invalid_pattern",
+            pattern=pattern,
+            error=str(e),
+            caller="template",
+        )
         return text
 
 
@@ -328,3 +486,62 @@ def strip_whitespace(text: str) -> str:
         {{ messy_text | strip_whitespace }}
     """
     return text_utils.normalize_whitespace(text, collapse=True)
+
+
+def first_sentence(text: str, max_length: int = 120) -> str:
+    """
+    Extract first sentence from text, or truncate if too long.
+
+    Useful for generating short descriptions from longer text blocks.
+    Looks for sentence-ending punctuation (. ! ?) followed by whitespace.
+
+    Args:
+        text: Text to extract first sentence from
+        max_length: Maximum length before truncation (default: 120)
+
+    Returns:
+        First sentence or truncated text with ellipsis
+
+    Example:
+        {{ page.description | first_sentence }}
+        {{ section.metadata.description | first_sentence(80) }}
+    """
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Try to find first sentence by looking for sentence-ending punctuation
+    for end in [". ", ".\n", "!\n", "?\n", "! ", "? "]:
+        if end in text:
+            first = text.split(end)[0] + end[0]
+            if len(first) <= max_length:
+                return first
+            break
+
+    # Truncate if too long
+    if len(text) > max_length:
+        # Try to break at word boundary
+        truncated = text[: max_length - 3].rsplit(" ", 1)[0]
+        return truncated + "..."
+
+    return text
+
+
+def filesize(size_bytes: int) -> str:
+    """
+    Format bytes as human-readable file size.
+
+    Wraps bengal.utils.text.humanize_bytes for template use.
+
+    Args:
+        size_bytes: Size in bytes
+
+    Returns:
+        Human-readable size string (e.g., "1.5 MB", "256 KB")
+
+    Example:
+        {{ asset.size | filesize }}
+        {{ page.content | length | filesize }}
+    """
+    return text_utils.humanize_bytes(size_bytes)

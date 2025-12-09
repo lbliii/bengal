@@ -41,7 +41,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         return
 
     # Lazy-create parser on site object for reuse
-    if not hasattr(site, "_template_parser"):
+    if site._template_parser is None:
         from bengal.rendering.parsers import create_markdown_parser
 
         # Get parser engine from config (same logic as RenderingPipeline)
@@ -50,15 +50,16 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             markdown_config = site.config.get("markdown", {})
             markdown_engine = markdown_config.get("parser", "mistune")
 
-        site._template_parser = create_markdown_parser(markdown_engine)
+        site._template_parser = create_markdown_parser(markdown_engine)  # type: ignore[attr-defined]
 
         # Enable cross-references if available
         if hasattr(site, "xref_index") and hasattr(
-            site._template_parser, "enable_cross_references"
+            site._template_parser,
+            "enable_cross_references",  # type: ignore[attr-defined]
         ):
-            site._template_parser.enable_cross_references(site.xref_index)
+            site._template_parser.enable_cross_references(site.xref_index)  # type: ignore[attr-defined]
 
-    parser = site._template_parser
+    parser = site._template_parser  # type: ignore[attr-defined]
 
     # Determine if TOC is needed
     need_toc = True
@@ -129,7 +130,14 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             page_type = page.metadata.get("type")
             if enhancer and enhancer.should_enhance(page_type):
                 page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "page_enhancement_failed",
+                page_path=str(page.source_path) if hasattr(page, "source_path") else None,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_enhancement",
+            )
             pass  # Enhancement is optional, don't fail if it errors
 
     except Exception as e:
@@ -181,7 +189,7 @@ def register(env: Environment, site: Site) -> None:
             return None
 
         # Lazy-build lookup maps on the site object
-        if not hasattr(site, "_page_lookup_maps"):
+        if site._page_lookup_maps is None:
             # Build maps for robust lookup
             # 1. Full source path (str) -> Page
             # 2. Content-relative path (str) -> Page (e.g. "guides/setup.md")
@@ -205,9 +213,9 @@ def register(env: Environment, site: Site) -> None:
                     # Path not relative to content root (maybe outside?), skip
                     pass
 
-            site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
+            site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}  # type: ignore[attr-defined]
 
-        maps = site._page_lookup_maps
+        maps = site._page_lookup_maps  # type: ignore[attr-defined]
 
         # Strategy 1: Direct lookup in relative map (exact match)
         page = None

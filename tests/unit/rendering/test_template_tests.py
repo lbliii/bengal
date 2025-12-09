@@ -40,10 +40,10 @@ class TestDraftTest:
         assert template_tests.test_draft(page) is False
 
     def test_draft_string_value(self):
-        """Test draft field with string value (should be False)."""
+        """Test draft field with string value (truthy strings become True)."""
         page = MockPage(metadata={"draft": "true"})
-        # String "true" is truthy but not boolean True
-        assert template_tests.test_draft(page) == "true"
+        # String "true" is truthy, so bool("true") returns True
+        assert template_tests.test_draft(page) is True
 
 
 class TestFeaturedTest:

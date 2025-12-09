@@ -1,0 +1,40 @@
+{#
+Badges Partial
+
+Renders badges for modules, classes, and other elements.
+Uses semantic badge classes from api-explorer.css:
+- api-badge--compact: Compact inline badge
+- api-badge--mini: Minimal badge for tight spaces
+- Type-specific: --module, --class, --dataclass, --async, --property, etc.
+#}
+
+{% if element.element_type == 'module' %}
+<span class="api-badge--compact api-badge--module">Module</span>
+{% if element.metadata.is_dataclass %}
+<span class="api-badge--compact api-badge--dataclass">dataclass</span>
+{% endif %}
+{% elif element.element_type == 'class' %}
+{% if element.metadata.is_dataclass %}
+<span class="api-badge--compact api-badge--dataclass">dataclass</span>
+{% endif %}
+{% if element.metadata.is_abstract %}
+<span class="api-badge--compact api-badge--abstract">abstract</span>
+{% endif %}
+{% elif element.element_type == 'function' %}
+{% if element.metadata.is_async %}
+<span class="api-badge--compact api-badge--async">async</span>
+{% endif %}
+{% elif element.element_type == 'method' %}
+{% if element.metadata.is_async %}
+<span class="api-badge--compact api-badge--async">async</span>
+{% endif %}
+{% if element.metadata.is_classmethod %}
+<span class="api-badge--compact api-badge--classmethod">classmethod</span>
+{% endif %}
+{% if element.metadata.is_staticmethod %}
+<span class="api-badge--compact api-badge--staticmethod">staticmethod</span>
+{% endif %}
+{% if element.metadata.is_property %}
+<span class="api-badge--compact api-badge--property">property</span>
+{% endif %}
+{% endif %}

@@ -67,11 +67,14 @@ class AssetManifestEntry:
     @classmethod
     def from_dict(cls, logical_path: str, data: Mapping[str, object]) -> AssetManifestEntry:
         """Create an entry from a JSON payload."""
+        size_bytes_val = data.get("size_bytes")
         return cls(
             logical_path=_posix(logical_path),
             output_path=_posix(str(data.get("output_path", ""))),
             fingerprint=(str(data["fingerprint"]) if data.get("fingerprint") else None),
-            size_bytes=int(data["size_bytes"]) if data.get("size_bytes") is not None else None,
+            size_bytes=int(size_bytes_val)
+            if size_bytes_val is not None and isinstance(size_bytes_val, (int, str))
+            else None,
             updated_at=str(data["updated_at"]) if data.get("updated_at") else None,
         )
 

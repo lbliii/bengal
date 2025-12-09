@@ -1,9 +1,12 @@
 ---
-title: "Holographic Card Effects"
-description: "Pokemon TCG-inspired holographic admonitions and card components"
+title: Holographic Card Effects
+description: Pokemon TCG-inspired holographic admonitions and card components
 date: 2024-12-03
 layout: doc
-tags: [experimental, css, components]
+tags:
+- experimental
+- css
+- components
 toc: true
 ---
 

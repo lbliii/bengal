@@ -6,7 +6,6 @@ import click
 
 from bengal.utils.cli_output import CLIOutput
 
-
 # =============================================================================
 # ALIAS REGISTRY
 # =============================================================================
@@ -72,7 +71,7 @@ def _sanitize_help_text(text: str) -> str:
 class BengalCommand(click.Command):
     """Custom Click command with themed help output."""
 
-    def format_help(self, ctx, formatter):
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help output using our themed CLIOutput."""
         cli = CLIOutput()
 
@@ -128,7 +127,7 @@ class BengalCommand(click.Command):
                 cli.subheader("Arguments:", trailing_blank=False)
                 for param in arguments:
                     name = param.human_readable_name.upper()
-                    help_text = param.help or ""
+                    help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
                     if cli.use_rich:
                         cli.console.print(f"  [info]{name:<20}[/info] {help_text}")
                     else:
@@ -145,7 +144,7 @@ class BengalGroup(click.Group):
     # Use our custom command class by default
     command_class = BengalCommand
 
-    def format_help(self, ctx, formatter):
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Format help output using our themed CLIOutput."""
         cli = CLIOutput()
 
@@ -204,7 +203,7 @@ class BengalGroup(click.Group):
             cli.subheader("Options:", trailing_blank=False)
             for param in self.params:
                 opts = "/".join(param.opts)
-                help_text = param.help or ""
+                help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
                 cli.console.print(f"  [info]{opts:<20}[/info] {help_text}")
             cli.blank()
 
@@ -219,16 +218,17 @@ class BengalGroup(click.Group):
                 # The user already sees them in the Shortcuts section
                 skip_names = {"b", "s", "c", "v", "dev", "check", "lint"}
                 shown_commands = [
-                    name for name in commands
+                    name
+                    for name in commands
                     if name not in skip_names
-                    and self.get_command(ctx, name)
-                    and not self.get_command(ctx, name).hidden
+                    and (cmd := self.get_command(ctx, name)) is not None
+                    and not cmd.hidden
                 ]
             else:
                 shown_commands = [
-                    name for name in commands
-                    if self.get_command(ctx, name)
-                    and not self.get_command(ctx, name).hidden
+                    name
+                    for name in commands
+                    if (cmd := self.get_command(ctx, name)) is not None and not cmd.hidden
                 ]
 
             for name in shown_commands:
@@ -241,7 +241,9 @@ class BengalGroup(click.Group):
         # Don't let Click write anything else
         formatter.write("")
 
-    def resolve_command(self, ctx, args):
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
         """Resolve command with fuzzy matching for typos."""
         try:
             return super().resolve_command(ctx, args)
@@ -286,7 +288,7 @@ class BengalGroup(click.Group):
             # Re-raise original error if no suggestions
             raise
 
-    def _get_similar_commands(self, unknown_cmd: str, max_suggestions: int = 3):
+    def _get_similar_commands(self, unknown_cmd: str, max_suggestions: int = 3) -> list[str]:
         """Find similar command names using simple string similarity."""
         from difflib import get_close_matches
 
@@ -295,9 +297,7 @@ class BengalGroup(click.Group):
 
         # Filter to prefer canonical commands and avoid suggesting aliases
         # (user will see aliases in the output anyway)
-        canonical_commands = [
-            cmd for cmd in available_commands if cmd not in COMMAND_ALIASES
-        ]
+        canonical_commands = [cmd for cmd in available_commands if cmd not in COMMAND_ALIASES]
 
         # Use difflib for fuzzy matching against canonical commands first
         matches = get_close_matches(
@@ -315,10 +315,7 @@ class BengalGroup(click.Group):
                 n=max_suggestions,
                 cutoff=0.5,
             )
-            # Convert aliases to canonical names
-            matches = [get_canonical_name(m) for m in matches]
-            # Remove duplicates while preserving order
-            seen = set()
-            matches = [m for m in matches if not (m in seen or seen.add(m))]
+            # Convert aliases to canonical names and deduplicate while preserving order
+            matches = list(dict.fromkeys(get_canonical_name(m) for m in matches))
 
         return matches[:max_suggestions]

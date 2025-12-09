@@ -10,17 +10,21 @@ from __future__ import annotations
 from itertools import groupby
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from jinja2 import Environment
 
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: Environment, site: Site) -> None:
     """Register collection functions with Jinja2 environment."""
 
     # Create closure for resolve_pages with access to site
-    def resolve_pages_with_site(page_paths: list[str]) -> list:
+    def resolve_pages_with_site(page_paths: list[str]) -> list[Any]:
         return resolve_pages(page_paths, site)
 
     env.filters.update(
@@ -197,7 +201,7 @@ def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, 
         return {}
 
     # Handle both dict and object attributes
-    def get_value(item):
+    def get_value(item: Any) -> Any:
         if isinstance(item, dict):
             return item.get(key)
         return getattr(item, key, None)
@@ -232,15 +236,22 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     if not items:
         return []
 
-    def get_sort_key(item):
+    def get_sort_key(item: Any) -> Any:
         if isinstance(item, dict):
             return item.get(key)
         return getattr(item, key, None)
 
     try:
         return sorted(items, key=get_sort_key, reverse=reverse)
-    except (TypeError, AttributeError):
-        # If sorting fails, return original list
+    except (TypeError, AttributeError) as e:
+        # Log debug for sort failures (expected edge case with heterogeneous data)
+        logger.debug(
+            "sort_by_failed",
+            key=key,
+            error=str(e),
+            item_count=len(items),
+            caller="template",
+        )
         return items
 
 
@@ -530,13 +541,16 @@ def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
     return result
 
 
-def resolve_pages(page_paths: list[str], site: Site) -> list:
+def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
     """
     Resolve page paths to Page objects.
 
     Used with query indexes to convert O(1) path lookups into Page objects:
         {% set blog_paths = site.indexes.section.get('blog') %}
         {% set blog_pages = blog_paths | resolve_pages %}
+
+    PERFORMANCE: Uses cached page path map from Site for O(1) lookups.
+    The cache is automatically invalidated when pages are added/removed.
 
     Args:
         page_paths: List of page source paths (strings)
@@ -555,8 +569,8 @@ def resolve_pages(page_paths: list[str], site: Site) -> list:
     if not page_paths:
         return []
 
-    # Build lookup map: path -> page (O(n) once, then O(1) per lookup)
-    page_map = {str(p.source_path): p for p in site.pages}
+    # Use cached lookup map from Site (O(1) per lookup after first call)
+    page_map = site.get_page_path_map()
 
     # Resolve paths to pages
     pages = []

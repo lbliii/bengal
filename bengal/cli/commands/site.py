@@ -12,7 +12,7 @@ from .serve import serve
 
 
 @click.group("site", cls=BengalGroup)
-def site_cli():
+def site_cli() -> None:
     """
     Site building and serving commands.
     """

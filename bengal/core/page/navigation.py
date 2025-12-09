@@ -7,7 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
+    from bengal.core.section import Section
 
 
 class PageNavigationMixin:
@@ -19,6 +22,11 @@ class PageNavigationMixin:
     - Section-level navigation: next_in_section, prev_in_section
     - Hierarchy: parent, ancestors
     """
+
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    _site: Any
+    _section: "Section | None"
+    _section_path: "Path | None"
 
     @property
     def next(self) -> Page | None:

@@ -256,7 +256,8 @@ class Renderer:
 
         # Render with template
         try:
-            return self.template_engine.render(template_name, context)
+            result = self.template_engine.render(template_name, context)
+            return str(result) if result else ""
         except Exception as e:
             from bengal.rendering.errors import TemplateRenderError, display_template_error
 
@@ -277,11 +278,16 @@ class Renderer:
                         from bengal.utils.traceback_config import TracebackConfig
 
                         TracebackConfig.from_environment().get_renderer().display_exception(e)
-                    except Exception:
+                    except Exception as traceback_error:
+                        logger.debug(
+                            "traceback_renderer_failed",
+                            error=str(traceback_error),
+                            error_type=type(traceback_error).__name__,
+                        )
                         pass
                 # Wrap in RuntimeError for consistent error handling
                 raise RuntimeError(
-                    f"Template error in strict mode: {truncate_error(rich_error.message)}"
+                    f"Template error in strict mode: {rich_error.message[:200]}"
                 ) from e
 
             # In production mode, collect error and continue
@@ -297,7 +303,12 @@ class Renderer:
                     from bengal.utils.traceback_config import TracebackConfig
 
                     TracebackConfig.from_environment().get_renderer().display_exception(e)
-                except Exception:
+                except Exception as traceback_error:
+                    logger.debug(
+                        "traceback_renderer_failed",
+                        error=str(traceback_error),
+                        error_type=type(traceback_error).__name__,
+                    )
                     pass
 
             # Fallback to simple HTML
@@ -324,16 +335,20 @@ class Renderer:
             # Archive/Reference/Blog page context
             # Note: Posts are already filtered and sorted by the content type strategy
             # in the SectionOrchestrator, so we don't need to re-sort here
-            section = page.metadata.get("_section")
-            all_posts = page.metadata.get("_posts", [])  # Already filtered & sorted!
-            subsections = page.metadata.get("_subsections", [])
-            paginator = page.metadata.get("_paginator")
-            page_num = page.metadata.get("_page_num", 1)
+            section = page.metadata.get("_section") if page.metadata is not None else None
+            all_posts = (
+                page.metadata.get("_posts", []) if page.metadata is not None else []
+            )  # Already filtered & sorted!
+            page_metadata = page.metadata if page.metadata is not None else {}
+            subsections = page_metadata.get("_subsections", [])
+            paginator = page_metadata.get("_paginator")
+            page_num = page_metadata.get("_page_num", 1)
 
             # Get posts for this page
             if paginator:
                 posts = paginator.page(page_num)
-                pagination = paginator.page_context(page_num, f"/{section.name}/")
+                section_name = section.name if section is not None else ""
+                pagination = paginator.page_context(page_num, f"/{section_name}/")
             else:
                 # Use pre-sorted posts directly (no re-sorting needed)
                 posts = all_posts
@@ -415,7 +430,7 @@ class Renderer:
                             all_posts.append(tax_page)
 
             # Fallback: Try to resolve from stored metadata if taxonomy yielded nothing
-            if not all_posts:
+            if not all_posts and page.metadata is not None:
                 stored_posts = page.metadata.get("_posts", [])
                 if stored_posts:
                     # Build lookup map from site.pages for reliable resolution
@@ -425,10 +440,16 @@ class Renderer:
 
                     for stored_item in stored_posts:
                         resolved_page = None
-                        if hasattr(stored_item, "source_path"):
+                        if (
+                            hasattr(stored_item, "source_path")
+                            and page_map is not None
+                            and str_page_map is not None
+                        ):
                             resolved_page = page_map.get(stored_item.source_path)
                             if not resolved_page:
-                                resolved_page = str_page_map.get(str(stored_item.source_path))
+                                page_from_str_map = str_page_map.get(str(stored_item.source_path))
+                                if page_from_str_map is not None:
+                                    resolved_page = page_from_str_map
 
                             if resolved_page:
                                 all_posts.append(resolved_page)
@@ -436,7 +457,11 @@ class Renderer:
                                 # Fallback to stored item if resolution fails
                                 all_posts.append(stored_item)
 
-                        elif isinstance(stored_item, str):
+                        elif (
+                            isinstance(stored_item, str)
+                            and page_map is not None
+                            and str_page_map is not None
+                        ):
                             from pathlib import Path
 
                             path_obj = Path(stored_item)
@@ -448,7 +473,8 @@ class Renderer:
                                 all_posts.append(resolved_page)
 
             # Get paginator info from metadata (for per_page setting)
-            paginator = page.metadata.get("_paginator")
+            page_metadata = page.metadata if page.metadata is not None else {}
+            paginator = page_metadata.get("_paginator")
 
             # Get posts for this page
             # Always prefer all_posts from metadata (most reliable)
@@ -489,8 +515,10 @@ class Renderer:
                 # Fallback: use paginator.items if all_posts is empty
                 # Resolve pages from site.pages for reliability (page_map already built above)
                 resolved_items = []
+                if page_map is None:
+                    page_map = {p.source_path: p for p in self.site.pages}
                 for item in paginator.items:
-                    if hasattr(item, "source_path"):
+                    if hasattr(item, "source_path") and page_map is not None:
                         resolved = page_map.get(item.source_path)
                         if resolved:
                             resolved_items.append(resolved)
@@ -593,7 +621,7 @@ class Renderer:
         """
         # 1. Explicit template (highest priority)
         if "template" in page.metadata:
-            return page.metadata["template"]
+            return str(page.metadata["template"])
 
         # 2. Get content type strategy and delegate
         page_type = page.metadata.get("type")
@@ -670,7 +698,13 @@ class Renderer:
         try:
             self.template_engine.env.get_template(template_name)
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "template_check_failed",
+                template=template_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return False
 
     def _render_fallback(self, page: Page, content: str) -> str:

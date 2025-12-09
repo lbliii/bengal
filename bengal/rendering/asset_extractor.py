@@ -22,7 +22,7 @@ from html.parser import HTMLParser
 class AssetExtractorParser(HTMLParser):
     """HTML parser for extracting asset references from rendered content."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the asset extractor parser."""
         super().__init__()
         self.assets: set[str] = set()
@@ -63,10 +63,12 @@ class AssetExtractorParser(HTMLParser):
             # Extract link href (stylesheets, fonts, etc.)
             if "href" in attrs_dict and attrs_dict["href"]:
                 href = attrs_dict["href"]
-                rel = attrs_dict.get("rel", "").lower()
-                # Track stylesheets, preloads, etc.
-                if "stylesheet" in rel or "preload" in rel or "prefetch" in rel:
-                    self.assets.add(href)
+                rel_value = attrs_dict.get("rel", "")
+                if rel_value is not None:
+                    rel = rel_value.lower()
+                    # Track stylesheets, preloads, etc.
+                    if "stylesheet" in rel or "preload" in rel or "prefetch" in rel:
+                        self.assets.add(href)
 
         elif tag == "source":
             # Extract srcset from picture/video sources
@@ -109,12 +111,16 @@ class AssetExtractorParser(HTMLParser):
                 if url:
                     self.assets.add(url)
 
-    def feed(self, data: str) -> AssetExtractorParser:
+    def feed(self, data: str) -> AssetExtractorParser:  # type: ignore[override]
         """
         Parse HTML and return self for chaining.
 
         Returns:
             self to allow parser(html).get_assets() pattern
+
+        Note:
+            HTMLParser.feed returns None, but we return self for chaining.
+            Type ignore is needed for this intentional override.
         """
         from contextlib import suppress
 

@@ -15,7 +15,6 @@ Example:
         logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
 """
 
-
 from __future__ import annotations
 
 import json
@@ -26,7 +25,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, TypedDict
 
 
 class LogLevel(Enum):
@@ -159,7 +158,7 @@ class BengalLogger:
             self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
-    def phase(self, name: str, **context):
+    def phase(self, name: str, **context: Any) -> Any:
         """
         Context manager for tracking build phases with timing and memory.
 
@@ -213,7 +212,7 @@ class BengalLogger:
                 **phase_context,
             )
 
-    def _emit(self, level: LogLevel, message: str, **context):
+    def _emit(self, level: LogLevel, message: str, **context: Any) -> None:
         """
         Emit a log event.
 
@@ -229,7 +228,7 @@ class BengalLogger:
         # Get current phase context
         phase_name = None
         phase_depth = len(self._phase_stack)
-        phase_context = {}
+        phase_context: dict[str, Any] = {}
 
         if self._phase_stack:
             phase_name, _, phase_context = self._phase_stack[-1]
@@ -286,23 +285,23 @@ class BengalLogger:
             self._file_handle.write(json.dumps(event.to_dict()) + "\n")
             self._file_handle.flush()
 
-    def debug(self, message: str, **context):
+    def debug(self, message: str, **context: Any) -> None:
         """Log debug event."""
         self._emit(LogLevel.DEBUG, message, **context)
 
-    def info(self, message: str, **context):
+    def info(self, message: str, **context: Any) -> None:
         """Log info event."""
         self._emit(LogLevel.INFO, message, **context)
 
-    def warning(self, message: str, **context):
+    def warning(self, message: str, **context: Any) -> None:
         """Log warning event."""
         self._emit(LogLevel.WARNING, message, **context)
 
-    def error(self, message: str, **context):
+    def error(self, message: str, **context: Any) -> None:
         """Log error event."""
         self._emit(LogLevel.ERROR, message, **context)
 
-    def critical(self, message: str, **context):
+    def critical(self, message: str, **context: Any) -> None:
         """Log critical event."""
         self._emit(LogLevel.CRITICAL, message, **context)
 
@@ -325,7 +324,7 @@ class BengalLogger:
                     timings[phase] = event.duration_ms
         return timings
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         """Print timing summary of all phases."""
         timings = self.get_phase_timings()
         if not timings:
@@ -363,20 +362,19 @@ class BengalLogger:
             console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
             print("=" * 60)
 
-    def close(self):
+    def close(self) -> None:
         """Close log file handle."""
         if self._file_handle:
             self._file_handle.close()
             self._file_handle = None
 
-    def __enter__(self):
+    def __enter__(self) -> BengalLogger:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, *args):
+    def __exit__(self, exc_type: type[BaseException] | None, *args: Any) -> None:
         """Context manager exit."""
         self.close()
-        return False
 
 
 def truncate_str(s: str, max_len: int = 500, suffix: str = " ... (truncated)") -> str:
@@ -393,7 +391,16 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
 
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
-_global_config = {
+
+
+class _GlobalConfig(TypedDict):
+    level: LogLevel
+    log_file: Path | None
+    verbose: bool
+    quiet_console: bool
+
+
+_global_config: _GlobalConfig = {
     "level": LogLevel.INFO,
     "log_file": None,
     "verbose": False,
@@ -406,7 +413,7 @@ def configure_logging(
     log_file: Path | None = None,
     verbose: bool = False,
     track_memory: bool = False,
-):
+) -> None:
     """
     Configure global logging settings.
 
@@ -467,7 +474,7 @@ def get_logger(name: str) -> BengalLogger:
     return _loggers[name]
 
 
-def set_console_quiet(quiet: bool = True):
+def set_console_quiet(quiet: bool = True) -> None:
     """
     Enable or disable console output for all loggers.
 
@@ -484,13 +491,13 @@ def set_console_quiet(quiet: bool = True):
         logger.quiet_console = quiet
 
 
-def close_all_loggers():
+def close_all_loggers() -> None:
     """Close all logger file handles."""
     for logger in _loggers.values():
         logger.close()
 
 
-def reset_loggers():
+def reset_loggers() -> None:
     """Close all loggers and clear the registry (for testing)."""
     close_all_loggers()
     _loggers.clear()
@@ -500,7 +507,7 @@ def reset_loggers():
     _global_config["quiet_console"] = False
 
 
-def print_all_summaries():
+def print_all_summaries() -> None:
     """Print timing and memory summaries from all loggers."""
     # Merge all events
     all_events = []

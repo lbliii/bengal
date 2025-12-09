@@ -1,0 +1,180 @@
+{#
+Page Hero - API Reference Variant
+
+Unified hero for API documentation pages that combines:
+- Breadcrumbs + share dropdown (from editorial hero)
+- Badges, qualified name, stats, source link (from module header)
+- Vertical stacking for title + description
+
+Designed for: module.html, class pages, function pages
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+
+{# Macro: Get page URL with fallback chain #}
+{% macro get_page_url(page) -%}
+  {{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
+{% if page %}
+{# Compute stats from element if available #}
+{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list if element is defined else [] %}
+{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list if element is defined else [] %}
+{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list if element is defined else [] %}
+
+<div class="page-hero page-hero--api">
+  {# Top row: Breadcrumbs (left) + Actions (right) #}
+  <div class="page-hero__top">
+    {# Breadcrumbs as eyebrow #}
+    <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+      {% set breadcrumb_items = get_breadcrumbs(page) %}
+      {% if breadcrumb_items and breadcrumb_items | length > 1 %}
+      <ol class="page-hero__breadcrumbs">
+        {% for item in breadcrumb_items[:-1] %}
+        <li>
+          <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </nav>
+
+    {# Actions: LLM Share Button #}
+    <div class="page-hero__actions">
+      {% set page_url = canonical_url(get_page_url(page)) %}
+      {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+      {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+
+      <div class="page-hero__share">
+        <button class="page-hero__share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
+          aria-controls="page-hero-share-dropdown" title="Share with AI assistants">
+          <span>ᗢ</span>
+          {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+        </button>
+
+        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
+          <div class="page-hero__share-content">
+            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
+              {{ icon('link', size=16) }}
+              <span>Copy URL</span>
+            </button>
+
+            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item" role="menuitem">
+              {{ icon('external', size=16) }}
+              <span>Open LLM text</span>
+            </a>
+
+            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" role="menuitem">
+              {{ icon('copy', size=16) }}
+              <span>Copy LLM text</span>
+            </button>
+
+            <hr class="page-hero__share-separator">
+
+            <div class="page-hero__share-section-header">Share with AI</div>
+
+            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="claude" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Ask Claude</span>
+            </a>
+
+            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
+              </svg>
+              <span>Ask ChatGPT</span>
+            </a>
+
+            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="gemini" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              <span>Ask Gemini</span>
+            </a>
+
+            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+              class="page-hero__share-item page-hero__share-ai" data-ai="copilot" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+              <span>Ask Copilot</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Badge row - element type indicators #}
+  {% if element is defined %}
+  <div class="page-hero__badges">
+    {% include 'api-reference/partials/badges.html' %}
+  </div>
+  {% endif %}
+
+  {# Title - qualified name for API, regular title otherwise #}
+  {% if element is defined and element.qualified_name %}
+  <h1 class="page-hero__title page-hero__title--code">
+    <code>{{ element.qualified_name }}</code>
+  </h1>
+  {% else %}
+  <h1 class="page-hero__title">{{ page.title }}</h1>
+  {% endif %}
+
+  {# Description - markdown rendered, stacked vertically #}
+  {% set description = element.description if (element is defined and element.description) else page.metadata.get('description', '') %}
+  {% if description %}
+  <div class="page-hero__description page-hero__description--prose">
+    {{ description | markdownify | safe }}
+  </div>
+  {% endif %}
+
+  {# Bottom row: Source link + Stats #}
+  {% if element is defined %}
+  <div class="page-hero__footer">
+    {# Source link #}
+    {% if element.source_file and config is defined %}
+    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+      class="page-hero__source-link" target="_blank" rel="noopener">
+      {{ icon('file-code', size=14) }}
+      <span>View source</span>
+    </a>
+    {% endif %}
+
+    {# Stats for modules #}
+    {% if classes | length > 0 or functions | length > 0 %}
+    <div class="page-hero__stats">
+      {% if classes | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ classes | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Class' if classes | length == 1 else 'Classes' }}</span>
+      </span>
+      {% endif %}
+      {% if functions | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ functions | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Function' if functions | length == 1 else 'Functions' }}</span>
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Stats for classes #}
+    {% if methods | length > 0 %}
+    <div class="page-hero__stats">
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ methods | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Method' if methods | length == 1 else 'Methods' }}</span>
+      </span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}

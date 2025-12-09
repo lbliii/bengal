@@ -1,12 +1,11 @@
 ---
-title: "Experimental"
-description: "Experimental components and features for Bengal"
+title: Experimental
+description: Experimental components and features for Bengal
 layout: doc
 toc: false
 hidden: true
 icon: atomic
 ---
-
 # 🧪 Experimental Features
 
 This section contains experimental components and styles being explored for Bengal's default theme.

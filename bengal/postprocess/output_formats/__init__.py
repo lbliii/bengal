@@ -34,6 +34,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 logger = get_logger(__name__)
 
@@ -78,7 +79,7 @@ class OutputFormatsGenerator:
         site: Site,
         config: dict[str, Any] | None = None,
         graph_data: dict[str, Any] | None = None,
-        build_context=None,
+        build_context: BuildContext | Any | None = None,
     ) -> None:
         """
         Initialize output formats generator.

@@ -222,7 +222,7 @@ class PageCore(Cacheable):
     # Redirect aliases - alternative URLs that redirect to this page
     aliases: list[str] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Validate and normalize fields after initialization.
 

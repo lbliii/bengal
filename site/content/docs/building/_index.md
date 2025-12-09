@@ -2,11 +2,10 @@
 title: Building
 description: Build configuration, CLI usage, and deployment
 weight: 30
-icon: settings
 cascade:
   type: doc
+icon: settings
 ---
-
 # Build & Deploy
 
 Configure, build, optimize, and deploy your Bengal site.

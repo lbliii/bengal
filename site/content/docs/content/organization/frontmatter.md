@@ -4,8 +4,16 @@ description: Complete reference for all frontmatter fields
 weight: 10
 draft: false
 lang: en
-tags: [frontmatter, reference, metadata]
-keywords: [frontmatter, yaml, metadata, fields, reference]
+tags:
+- frontmatter
+- reference
+- metadata
+keywords:
+- frontmatter
+- yaml
+- metadata
+- fields
+- reference
 category: reference
 ---
 
@@ -44,9 +52,9 @@ Complete reference for all frontmatter fields available in Bengal pages.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `layout` | string | `single` | Template to use for rendering |
-| `type` | string | section name | Content type (determines template lookup) |
-| `template` | string | — | Explicit template path |
+| `layout` | string | — | Visual variant (maps to `data-variant` on body). To change the template file, use `template`. |
+| `type` | string | section name | Content type (determines default strategy and template) |
+| `template` | string | — | Explicit template path (e.g., `blog/single.html`) |
 
 ## SEO Fields
 
@@ -72,7 +80,42 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `cascade` | object | Values to cascade to child pages |
 | `outputs` | list | Output formats (html, rss, json) |
 | `resources` | list | Page bundle resource metadata |
-| `params` | object | Custom parameters accessible in templates |
+
+## Custom Fields
+
+Any fields not part of Bengal's standard frontmatter are automatically available as custom fields. Simply add them at the top level of your frontmatter.
+
+**Standard fields** (extracted to PageCore):
+- `title`, `description`, `date`, `draft`, `weight`, `slug`, `url`, `aliases`, `lang`
+- `tags`, `categories`, `keywords`, `authors`, `category`
+- `type`, `variant`, `layout`, `template`
+- `canonical`, `noindex`, `og_image`, `og_type`
+- `menu`, `nav_title`, `parent`
+- `cascade`, `outputs`, `resources`, `toc`
+
+**Custom fields** (any other fields):
+- Any field not listed above goes into `page.props`
+- Access via `page.metadata.get('field_name')` or `page.props.get('field_name')`
+
+**Example:**
+```yaml
+---
+title: My Page
+description: Page description
+weight: 10
+type: doc
+icon: code
+card_color: blue
+custom_setting: value
+---
+```
+
+Access custom fields via:
+- `page.metadata.get('icon')` or `page.props.get('icon')`
+- `page.metadata.get('card_color')`
+- `page.metadata.get('custom_setting')`
+
+**Note**: The `props:` key is only used in skeleton manifests (`bengal skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
 
 ## Example
 
@@ -89,9 +132,8 @@ authors: [jane-doe]
 layout: tutorial
 cascade:
   type: doc
-params:
-  difficulty: beginner
-  time_estimate: 15 minutes
+difficulty: beginner
+time_estimate: 15 minutes
 ---
 ```
 

@@ -6,13 +6,14 @@ Integrates menu validation from MenuBuilder into health check system.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class MenuValidator(BaseValidator):
@@ -31,7 +32,9 @@ class MenuValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Validate menu structure."""
         results = []
 
@@ -51,7 +54,7 @@ class MenuValidator(BaseValidator):
 
         return results
 
-    def _validate_menu(self, site: Site, menu_name: str, items: list) -> list[CheckResult]:
+    def _validate_menu(self, site: Site, menu_name: str, items: list[Any]) -> list[CheckResult]:
         """Validate a single menu."""
         results = []
 
@@ -94,7 +97,7 @@ class MenuValidator(BaseValidator):
 
         return results
 
-    def _count_menu_items(self, items: list, count: int = 0) -> int:
+    def _count_menu_items(self, items: list[Any], count: int = 0) -> int:
         """Recursively count menu items including children."""
         count = len(items)
         for item in items:
@@ -102,7 +105,7 @@ class MenuValidator(BaseValidator):
                 count += self._count_menu_items(item.children, 0)
         return count
 
-    def _check_menu_urls(self, site: Site, items: list) -> list[str]:
+    def _check_menu_urls(self, site: Site, items: list[Any]) -> list[str]:
         """Check if menu item URLs point to existing pages."""
         broken = []
 

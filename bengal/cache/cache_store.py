@@ -54,7 +54,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from bengal.cache.cacheable import Cacheable
 from bengal.utils.logger import get_logger
@@ -155,10 +155,9 @@ class CacheStore:
         self.compress = compress
 
         # Compressed path is .json.zst
+        self._compressed_path: Path | None = None
         if compress:
             self._compressed_path = cache_path.with_suffix(".json.zst")
-        else:
-            self._compressed_path = None
 
     def save(
         self,
@@ -213,9 +212,7 @@ class CacheStore:
             with open(self.cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent)
 
-            logger.debug(
-                f"Saved {len(entries)} entries to {self.cache_path} (version {version})"
-            )
+            logger.debug(f"Saved {len(entries)} entries to {self.cache_path} (version {version})")
 
     def load(
         self,
@@ -266,9 +263,7 @@ class CacheStore:
 
         # Validate structure
         if not isinstance(data, dict):
-            logger.error(
-                f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}"
-            )
+            logger.error(f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}")
             return []
 
         # Check version
@@ -302,7 +297,7 @@ class CacheStore:
         )
         return entries
 
-    def _load_data(self) -> dict | None:
+    def _load_data(self) -> dict[Any, Any] | None:
         """
         Load raw data from cache file with auto-detection.
 
@@ -317,7 +312,8 @@ class CacheStore:
             try:
                 from bengal.cache.compression import ZstdError, load_compressed
 
-                return load_compressed(self._compressed_path)
+                data: dict[Any, Any] | None = load_compressed(self._compressed_path)
+                return data
             except (ZstdError, json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
                 return None
@@ -326,7 +322,8 @@ class CacheStore:
         if self.cache_path.exists():
             try:
                 with open(self.cache_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load cache {self.cache_path}: {e}")
                 return None

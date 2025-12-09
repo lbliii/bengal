@@ -191,8 +191,12 @@ class NodePipeline:
     def _find_js_entries(self) -> list[Path]:
         # Heuristic: treat files at assets/js/*.{js,ts} as entries (not nested modules)
         entries: list[Path] = []
-        for base in [self.config.root_path / "assets" / "js", self._theme_assets_dir() / "js"]:
-            if base and base.exists():
+        theme_assets = self._theme_assets_dir()
+        bases = [self.config.root_path / "assets" / "js"]
+        if theme_assets:
+            bases.append(theme_assets / "js")
+        for base in bases:
+            if base.exists():
                 for p in base.glob("*.*"):
                     if p.is_file() and p.suffix.lower() in (".js", ".ts"):
                         entries.append(p)
@@ -230,7 +234,13 @@ class NodePipeline:
                 Path(bengal_pkg.__file__).parent / "themes" / self.config.theme_name / "assets"
             )
             return bundled if bundled.exists() else None
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "asset_pipeline_theme_assets_dir_failed",
+                theme=self.config.theme_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return None
 
     def _theme_assets_subdir(self) -> str | None:

@@ -71,7 +71,7 @@ class LiteralIncludeDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["literalinclude"]
 
-    def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
+    def parse(self, block: BlockParser, m: Match[str], state: BlockState) -> dict[str, Any]:
         """
         Parse literalinclude directive.
 
@@ -99,10 +99,24 @@ class LiteralIncludeDirective(DirectivePlugin):
         # Parse options
         options = dict(self.parse_options(m))
         language = options.get("language")
-        start_line = options.get("start-line")
-        end_line = options.get("end-line")
+        start_line_str = options.get("start-line")
+        end_line_str = options.get("end-line")
         emphasize_lines = options.get("emphasize-lines")
         linenos = options.get("linenos", "false").lower() in ("true", "1", "yes")
+
+        # Convert string line numbers to integers
+        start_line: int | None = None
+        end_line: int | None = None
+        if start_line_str is not None:
+            try:
+                start_line = int(start_line_str)
+            except (ValueError, TypeError):
+                pass
+        if end_line_str is not None:
+            try:
+                end_line = int(end_line_str)
+            except (ValueError, TypeError):
+                pass
 
         # Auto-detect language from file extension if not specified
         if not language:
@@ -213,16 +227,31 @@ class LiteralIncludeDirective(DirectivePlugin):
             - Rejects paths outside site root
             - Rejects symlinks (could escape containment)
 
+        Path Resolution:
+            - root_path MUST be provided via state (set by rendering pipeline)
+            - No fallback to Path.cwd() - eliminates CWD-dependent behavior
+            - See: plan/active/rfc-path-resolution-architecture.md
+
         Args:
             path: Relative or absolute path to file
-            state: Parser state (may contain root_path, source_path)
+            state: Parser state (must contain root_path, may contain source_path)
 
         Returns:
-            Resolved Path object, or None if not found or outside site root
+            Resolved Path object, or None if not found, outside site root,
+            or if root_path is not available in state
         """
-        # Try to get root_path from state (set by rendering pipeline)
+        # Get root_path from state (MUST be set by rendering pipeline)
+        # No CWD fallback - path resolution must be explicit
         root_path = getattr(state, "root_path", None)
-        root_path = Path(root_path) if root_path else Path.cwd()
+        if not root_path:
+            logger.warning(
+                "literalinclude_missing_root_path",
+                path=path,
+                action="skipping",
+                hint="Ensure rendering pipeline passes root_path in state",
+            )
+            return None
+        root_path = Path(root_path)
 
         # Try to get source_path from state (current page being parsed)
         source_path = getattr(state, "source_path", None)
@@ -327,7 +356,7 @@ class LiteralIncludeDirective(DirectivePlugin):
 
             # Apply emphasis if specified
             if emphasize_lines:
-                emphasize_set = set()
+                emphasize_set: set[int] = set()
                 for part in emphasize_lines.split(","):
                     part = part.strip()
                     if "-" in part:
@@ -348,7 +377,7 @@ class LiteralIncludeDirective(DirectivePlugin):
             logger.warning("literalinclude_load_error", path=str(file_path), error=str(e))
             return None
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register literalinclude directive."""
         directive.register("literalinclude", self.parse)
 
@@ -356,7 +385,7 @@ class LiteralIncludeDirective(DirectivePlugin):
             md.renderer.register("literalinclude", render_literalinclude)
 
 
-def render_literalinclude(renderer, text: str, **attrs) -> str:
+def render_literalinclude(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render literalinclude directive as code block.
 
@@ -380,7 +409,7 @@ def render_literalinclude(renderer, text: str, **attrs) -> str:
     # Use mistune's block_code renderer if available
     if hasattr(renderer, "block_code"):
         # Render as code block with syntax highlighting
-        html = renderer.block_code(code, language)
+        html: str = renderer.block_code(code, language)
     else:
         # Fallback: simple code block
         lang_attr = f' class="language-{language}"' if language else ""

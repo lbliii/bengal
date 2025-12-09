@@ -2,11 +2,10 @@
 title: Extending
 description: Autodoc, analysis, validation, and architecture
 weight: 35
-icon: starburst
 cascade:
   type: doc
+icon: starburst
 ---
-
 # Extend Bengal
 
 Power features for documentation teams: auto-generate API docs, analyze site structure, validate content, and contribute to Bengal itself.

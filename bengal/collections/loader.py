@@ -8,20 +8,21 @@ at the project root.
 from __future__ import annotations
 
 import importlib.util
-import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
+
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def load_collections(
     project_root: Path,
     collection_file: str = "collections.py",
-) -> dict[str, CollectionConfig]:
+) -> dict[str, CollectionConfig[Any]]:
     """
     Load collection definitions from project's collections.py file.
 
@@ -65,9 +66,9 @@ def load_collections(
 
     if not collections_path.exists():
         logger.debug(
-            "no_collections_file",
+            "No collections.py found, skipping schema validation",
+            event="no_collections_file",
             path=str(collections_path),
-            message="No collections.py found, skipping schema validation",
         )
         return {}
 
@@ -90,17 +91,17 @@ def load_collections(
 
         if collections is None:
             logger.warning(
-                "collections_dict_missing",
+                "collections.py found but no 'collections' dict defined",
+                event="collections_dict_missing",
                 path=str(collections_path),
-                message="collections.py found but no 'collections' dict defined",
             )
             return {}
 
         if not isinstance(collections, dict):
             logger.warning(
-                "collections_invalid_type",
+                f"'collections' should be dict, got {type(collections).__name__}",
+                event="collections_invalid_type",
                 path=str(collections_path),
-                message=f"'collections' should be dict, got {type(collections).__name__}",
             )
             return {}
 
@@ -111,7 +112,8 @@ def load_collections(
             names=list(collections.keys()),
         )
 
-        return collections
+        # Type assertion: collections dict contains CollectionConfig values
+        return cast(dict[str, CollectionConfig[Any]], collections)
 
     except Exception as e:
         logger.error(
@@ -126,8 +128,8 @@ def load_collections(
 def get_collection_for_path(
     file_path: Path,
     content_root: Path,
-    collections: dict[str, CollectionConfig],
-) -> tuple[str | None, CollectionConfig | None]:
+    collections: dict[str, CollectionConfig[Any]],
+) -> tuple[str | None, CollectionConfig[Any] | None]:
     """
     Determine which collection a content file belongs to.
 
@@ -157,6 +159,8 @@ def get_collection_for_path(
 
     # Check each collection's directory
     for name, config in collections.items():
+        if config.directory is None:
+            continue
         try:
             # Check if file is under this collection's directory
             rel_path.relative_to(config.directory)
@@ -169,7 +173,7 @@ def get_collection_for_path(
 
 
 def validate_collections_config(
-    collections: dict[str, CollectionConfig],
+    collections: dict[str, CollectionConfig[Any]],
     content_root: Path,
 ) -> list[str]:
     """
@@ -187,6 +191,8 @@ def validate_collections_config(
     warnings: list[str] = []
 
     for name, config in collections.items():
+        if config.directory is None:
+            continue
         collection_dir = content_root / config.directory
 
         if not collection_dir.exists():

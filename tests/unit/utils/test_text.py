@@ -7,6 +7,7 @@ from bengal.utils.text import (
     generate_excerpt,
     humanize_bytes,
     humanize_number,
+    humanize_slug,
     normalize_whitespace,
     pluralize,
     slugify,
@@ -347,3 +348,54 @@ class TestHumanizeNumber:
     def test_negative(self):
         """Test negative numbers."""
         assert humanize_number(-1000) == "-1,000"
+
+
+class TestHumanizeSlug:
+    """Tests for humanize_slug function."""
+
+    def test_basic_humanization(self):
+        """Test basic slug humanization."""
+        assert humanize_slug("my-page-name") == "My Page Name"
+        assert humanize_slug("hello-world") == "Hello World"
+        assert humanize_slug("api-reference") == "Api Reference"
+
+    def test_underscore_handling(self):
+        """Test underscore handling."""
+        assert humanize_slug("data_model") == "Data Model"
+        assert humanize_slug("data_model_v2") == "Data Model V2"
+        assert humanize_slug("my_page_name") == "My Page Name"
+
+    def test_mixed_separators(self):
+        """Test mixed hyphens and underscores."""
+        assert humanize_slug("data-model_v2") == "Data Model V2"
+        assert humanize_slug("my_page-name") == "My Page Name"
+
+    def test_leading_underscore(self):
+        """Test leading underscore (common for index files)."""
+        assert humanize_slug("_index") == " Index"  # Note: leading space from _
+        assert humanize_slug("index") == "Index"
+
+    def test_single_word(self):
+        """Test single word slugs."""
+        assert humanize_slug("about") == "About"
+        assert humanize_slug("api") == "Api"
+
+    def test_empty_string(self):
+        """Test empty string."""
+        assert humanize_slug("") == ""
+
+    def test_already_titled(self):
+        """Test already properly cased text."""
+        # Note: .title() will still work, might lowercase middle characters
+        assert humanize_slug("Already") == "Already"
+
+    def test_numbers_preserved(self):
+        """Test that numbers are preserved."""
+        assert humanize_slug("v1-0-0") == "V1 0 0"
+        assert humanize_slug("python_3_14") == "Python 3 14"
+
+    def test_special_cases(self):
+        """Test various special cases."""
+        assert humanize_slug("-") == " "  # Single hyphen becomes space
+        assert humanize_slug("_") == " "  # Single underscore becomes space
+        assert humanize_slug("--") == "  "  # Multiple become multiple spaces

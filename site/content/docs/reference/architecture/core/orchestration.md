@@ -3,8 +3,20 @@ title: Orchestration
 description: How Bengal coordinates builds and manages phases
 weight: 20
 category: core
-tags: [core, orchestration, build-pipeline, phases, coordination, orchestrators]
-keywords: [orchestration, build pipeline, phases, orchestrators, build coordination, BuildContext]
+tags:
+- core
+- orchestration
+- build-pipeline
+- phases
+- coordination
+- orchestrators
+keywords:
+- orchestration
+- build pipeline
+- phases
+- orchestrators
+- build coordination
+- BuildContext
 ---
 
 # Orchestration System

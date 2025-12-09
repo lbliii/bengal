@@ -3,8 +3,20 @@ title: Analysis System
 description: Graph analysis, PageRank, community detection, and link suggestions
 weight: 20
 category: subsystems
-tags: [subsystems, analysis, graph-analysis, pagerank, community-detection, link-suggestions]
-keywords: [analysis, graph analysis, PageRank, community detection, link suggestions, knowledge graph]
+tags:
+- subsystems
+- analysis
+- graph-analysis
+- pagerank
+- community-detection
+- link-suggestions
+keywords:
+- analysis
+- graph analysis
+- PageRank
+- community detection
+- link suggestions
+- knowledge graph
 ---
 
 # Analysis System (`bengal/analysis/`)
@@ -165,15 +177,26 @@ community = results.get_community_for_page(page)
 
 | Class | Description |
 |-------|-------------|
-| `PathAnalyzer` | Computes centrality metrics using Brandes' algorithm |
-| `PathAnalysisResults` | Results with centrality scores and path queries |
+| `PathAnalyzer` | Computes centrality metrics with auto-scaling approximation |
+| `PathAnalysisResults` | Results with centrality scores and approximation metadata |
+| `PathSearchResult` | Results from path search with termination metadata |
+
+**Scalability**: For large sites (>500 pages by default), automatically uses pivot-based approximation to achieve O(k*N) complexity instead of O(N²). This provides ~100x speedup for 10k page sites while maintaining accurate relative rankings.
 
 **Usage**:
 ```python
 from bengal.analysis.path_analysis import PathAnalyzer
 
+# Basic usage (auto-selects exact vs approximate)
 analyzer = PathAnalyzer(knowledge_graph)
 results = analyzer.analyze()
+
+# With progress callback for long-running analysis
+def on_progress(current, total, phase):
+    print(f"{phase}: {current}/{total}")
+
+results = analyzer.analyze(progress_callback=on_progress)
+print(f"Approximate: {results.is_approximate}, pivots: {results.pivots_used}")
 
 # Find bridge pages (navigation bottlenecks)
 bridges = results.get_top_bridges(10)
@@ -184,7 +207,22 @@ for page, score in bridges:
 path = analyzer.find_shortest_path(source_page, target_page)
 if path:
     print(" → ".join([p.title for p in path]))
+
+# Safe path finding with limits (prevents runaway computation)
+result = analyzer.find_all_paths(
+    source_page, target_page,
+    max_length=10,
+    max_paths=100,
+    timeout_seconds=5.0
+)
+if not result.complete:
+    print(f"Search stopped: {result.termination_reason}")
 ```
+
+**Configuration**:
+- `k_pivots`: Number of pivot nodes for approximation (default: 100)
+- `seed`: Random seed for deterministic results (default: 42)
+- `auto_approximate_threshold`: Use exact if pages ≤ this (default: 500)
 
 **Applications**:
 - Identify navigation bottlenecks

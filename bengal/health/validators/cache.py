@@ -12,13 +12,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
+
+logger = get_logger(__name__)
 
 
 class CacheValidator(BaseValidator):
@@ -42,7 +46,9 @@ class CacheValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run cache validation checks."""
         results = []
 
@@ -127,18 +133,31 @@ class CacheValidator(BaseValidator):
 
         return results
 
-    def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict]:
+    def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict[str, Any]]:
         """Check if cache file is readable and valid JSON."""
         try:
             with open(cache_path, encoding="utf-8") as f:
                 cache_data = json.load(f)
             return True, cache_data
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.debug(
+                "health_cache_json_decode_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                action="returning_unreadable",
+            )
             return False, {}
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "health_cache_read_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_unreadable",
+            )
             return False, {}
 
-    def _check_cache_structure(self, cache_data: dict) -> tuple[bool, list[str]]:
+    def _check_cache_structure(self, cache_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Check if cache has expected structure."""
         issues = []
 
@@ -157,7 +176,7 @@ class CacheValidator(BaseValidator):
 
         return len(issues) == 0, issues
 
-    def _check_cache_size(self, cache_path: Path, cache_data: dict) -> list[CheckResult]:
+    def _check_cache_size(self, cache_path: Path, cache_data: dict[str, Any]) -> list[CheckResult]:
         """Check if cache size is reasonable."""
         results = []
 
@@ -196,7 +215,7 @@ class CacheValidator(BaseValidator):
 
         return results
 
-    def _check_dependencies(self, cache_data: dict) -> list[CheckResult]:
+    def _check_dependencies(self, cache_data: dict[str, Any]) -> list[CheckResult]:
         """Check basic dependency tracking."""
         results = []
 

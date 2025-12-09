@@ -98,6 +98,75 @@ class BuildHandler(FileSystemEventHandler):
                 self.site.xref_index = {}
             self.site.invalidate_regular_pages_cache()
 
+    def _should_regenerate_autodoc(self, changed_paths: set[str]) -> bool:
+        """
+        Check if any changed file is in autodoc source directories.
+
+        Args:
+            changed_paths: Set of changed file paths
+
+        Returns:
+            True if any changed file is a Python file in autodoc source directories,
+            or an OpenAPI spec file
+        """
+        if not hasattr(self.site, "config") or not self.site.config:
+            return False
+
+        autodoc_config = self.site.config.get("autodoc", {})
+
+        # Check Python source directories
+        python_config = autodoc_config.get("python", {})
+        if python_config.get("enabled", False):
+            source_dirs = python_config.get("source_dirs", [])
+            for changed_path in changed_paths:
+                path = Path(changed_path)
+                for source_dir in source_dirs:
+                    source_path = self.site.root_path / source_dir
+                    try:
+                        path.relative_to(source_path)
+                        if path.suffix == ".py":
+                            logger.debug(
+                                "autodoc_source_changed",
+                                file=str(path),
+                                source_dir=source_dir,
+                                type="python",
+                            )
+                            return True
+                    except ValueError:
+                        continue
+
+        # Check OpenAPI spec file
+        openapi_config = autodoc_config.get("openapi", {})
+        if openapi_config.get("enabled", False):
+            spec_file = openapi_config.get("spec_file")
+            if spec_file:
+                spec_path = self.site.root_path / spec_file
+                for changed_path in changed_paths:
+                    path = Path(changed_path)
+                    if path == spec_path or path.resolve() == spec_path.resolve():
+                        logger.debug(
+                            "autodoc_source_changed",
+                            file=str(path),
+                            type="openapi",
+                        )
+                        return True
+                    # Also check for referenced schema files ($ref)
+                    # if they're in the same directory as the spec
+                    spec_dir = spec_path.parent
+                    try:
+                        path.relative_to(spec_dir)
+                        if path.suffix in (".yaml", ".yml", ".json"):
+                            logger.debug(
+                                "autodoc_source_changed",
+                                file=str(path),
+                                type="openapi_ref",
+                            )
+                            return True
+                    except ValueError:
+                        continue
+
+        return False
+
     def _should_ignore_file(self, file_path: str) -> bool:
         """
         Check if file should be ignored (temp files, swap files, etc).
@@ -205,8 +274,20 @@ class BuildHandler(FileSystemEventHandler):
             # 1. Structural changes (created/deleted/moved files) - affects section relationships
             # 2. Content file changes (.md) - may affect navigation via hidden/visibility frontmatter
             # 3. Template changes - affects all rendered pages
+            # 4. Autodoc source changes (.py, OpenAPI specs) - need to regenerate autodoc pages
             # Use incremental only for asset-only modifications (CSS, JS, images)
             needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
+            # Check if autodoc regeneration is needed (Python source or OpenAPI spec changed)
+            autodoc_changed = self._should_regenerate_autodoc(set(changed_files))
+            if autodoc_changed and not needs_full_rebuild:
+                # Force full rebuild to regenerate all autodoc pages
+                # Phase 1: coarse-grained; Phase 2 will enable selective rebuild
+                needs_full_rebuild = True
+                logger.debug(
+                    "full_rebuild_triggered_by_autodoc",
+                    reason="autodoc_source_changed",
+                )
 
             # Content files (.md) always trigger full rebuild for navigation consistency
             # Frontmatter changes (hidden, visibility, menu, draft) affect site-wide navigation
@@ -218,7 +299,7 @@ class BuildHandler(FileSystemEventHandler):
                 for changed_path in changed_files:
                     path_obj = Path(changed_path)
                     suffix = path_obj.suffix.lower()
-                    
+
                     if suffix in content_extensions:
                         needs_full_rebuild = True
                         logger.debug(
@@ -227,7 +308,7 @@ class BuildHandler(FileSystemEventHandler):
                             file=changed_path,
                         )
                         break
-                    
+
                     # SVG files in theme assets/icons/ are inlined in HTML, so pages need re-rendering
                     if suffix in svg_extensions:
                         # Check if it's in a theme icons directory
@@ -279,7 +360,13 @@ class BuildHandler(FileSystemEventHandler):
                     cfg["dev_server"] = True
                     cfg["fingerprint_assets"] = False
                     cfg.setdefault("minify_assets", False)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "build_handler_dev_config_update_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="continuing_without_update",
+                    )
                     pass
 
                 # Use incremental builds only for file modifications
@@ -322,15 +409,19 @@ class BuildHandler(FileSystemEventHandler):
                             src_only = [
                                 p for p in lower if "/public/" not in p and "\\public\\" not in p
                             ]
-                            
+
                             # Check for SVG icon changes (need full reload because inlined in HTML)
                             has_svg_icons = any(
                                 "/themes/" in p and "/assets/icons/" in p and p.endswith(".svg")
                                 for p in src_only
                             )
-                            
-                            css_only = bool(src_only) and all(p.endswith(".css") for p in src_only) and not has_svg_icons
-                            
+
+                            css_only = (
+                                bool(src_only)
+                                and all(p.endswith(".css") for p in src_only)
+                                and not has_svg_icons
+                            )
+
                             if css_only:
                                 decision = ReloadDecision(
                                     action="reload-css", reason="css-only", changed_paths=[]
@@ -339,7 +430,13 @@ class BuildHandler(FileSystemEventHandler):
                                 decision = ReloadDecision(
                                     action="reload", reason="source-change", changed_paths=[]
                                 )
-                        except Exception:
+                        except Exception as e:
+                            logger.debug(
+                                "build_handler_reload_decision_failed",
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="using_none_decision",
+                            )
                             decision = None
                     else:
                         decision = None

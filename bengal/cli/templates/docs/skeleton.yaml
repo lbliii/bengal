@@ -1,0 +1,171 @@
+name: docs
+description: Technical documentation with navigation and sections
+version: "1.0"
+
+structure:
+  - path: _index.md
+    type: doc
+    props:
+      title: Documentation
+      description: Complete documentation for your project
+      weight: 100
+    cascade:
+      type: doc
+    content: |
+      # Documentation
+
+      Welcome to the documentation! This site contains comprehensive guides and references.
+
+      ## Getting Started
+
+      New here? Start with our [Quick Start Guide](getting-started/quickstart/).
+
+      ## Sections
+
+      - **[Getting Started](getting-started/)** - Installation and basic usage
+      - **[Guides](guides/)** - Step-by-step tutorials
+      - **[API Reference](api/)** - Detailed API documentation
+
+  - path: getting-started/_index.md
+    type: doc
+    props:
+      title: Getting Started
+      description: Get up and running quickly
+      weight: 10
+    cascade:
+      type: doc
+    content: |
+      # Getting Started
+
+      This section will help you get started quickly.
+
+      ## Prerequisites
+
+      Before you begin, ensure you have:
+
+      - Python 3.8 or higher
+      - Basic command line knowledge
+
+      ## Next Steps
+
+      1. [Installation](installation/) - Install the software
+      2. [Quick Start](quickstart/) - Your first project
+
+  - path: getting-started/installation.md
+    type: doc
+    props:
+      title: Installation
+      description: How to install
+      weight: 20
+    content: |
+      # Installation
+
+      Learn how to install and set up your environment.
+
+      ## Using pip
+
+      ```bash
+      pip install your-package
+      ```
+
+      ## Using uv
+
+      ```bash
+      uv pip install your-package
+      ```
+
+      ## Verify Installation
+
+      Check that everything is installed correctly:
+
+      ```bash
+      your-command --version
+      ```
+
+      ## Next Steps
+
+      Continue with the [Quick Start Guide](quickstart/).
+
+  - path: getting-started/quickstart.md
+    type: doc
+    props:
+      title: Quick Start
+      description: Your first project in 5 minutes
+      weight: 30
+    content: |
+      # Quick Start
+
+      Get your first project running in just a few minutes.
+
+      ## Step 1: Create a New Project
+
+      ```bash
+      your-command new my-project
+      cd my-project
+      ```
+
+      ## Step 2: Start Development Server
+
+      ```bash
+      your-command serve
+      ```
+
+      ## Step 3: Build for Production
+
+      ```bash
+      your-command build
+      ```
+
+      ## What's Next?
+
+      - Explore the [Guides](../../guides/) section
+      - Check out the [API Reference](../../api/)
+      - Learn more from our documentation
+
+  - path: guides/_index.md
+    type: doc
+    props:
+      title: Guides
+      description: Step-by-step tutorials
+      weight: 20
+    cascade:
+      type: doc
+    content: |
+      # Guides
+
+      Practical guides to help you accomplish specific tasks.
+
+      ## Available Guides
+
+      This section will contain practical guides to help you get the most out of the system.
+
+      Each guide provides detailed, step-by-step instructions to help you accomplish specific goals.
+
+  - path: api/_index.md
+    type: doc
+    props:
+      title: API Reference
+      description: Complete API documentation
+      weight: 30
+    cascade:
+      type: doc
+    content: |
+      # API Reference
+
+      Complete reference documentation for all APIs.
+
+      ## Overview
+
+      This section contains detailed API documentation for all components and features.
+
+      ## Core APIs
+
+      - **Configuration** - Site configuration options
+      - **Content** - Working with content
+      - **Templates** - Template system reference
+      - **Assets** - Asset pipeline APIs
+
+      ## Examples
+
+      Check each section for detailed examples and usage patterns.
+

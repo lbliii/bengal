@@ -228,8 +228,8 @@ class TestImageOptimization:
         asset.optimize()
 
         assert asset.optimized is True
-        # Should not have _optimized_image attribute for SVG
-        assert not hasattr(asset, "_optimized_image")
+        # SVG should not have optimized PIL image (remains None)
+        assert asset._optimized_image is None
 
     def test_handles_missing_pillow_gracefully(self, temp_asset_dir, monkeypatch):
         """Test that missing PIL doesn't crash."""

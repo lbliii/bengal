@@ -1,6 +1,7 @@
 ---
-title: "Enhanced Neumorphic Components"
-description: "Prototype implementation of enhanced neumorphic shadows with multi-layer depth"
+title: Enhanced Neumorphic Components
+description: Prototype implementation of enhanced neumorphic shadows with multi-layer
+  depth
 layout: doc
 ---
 

@@ -5,11 +5,9 @@ Provides interactive tables for hardware/software support matrices and other
 complex tabular data with filtering, sorting, and searching capabilities.
 """
 
-
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from pathlib import Path
 from re import Match
@@ -18,6 +16,7 @@ from typing import Any
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.file_io import load_data_file
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 __all__ = ["DataTableDirective", "render_data_table"]
@@ -50,7 +49,7 @@ class DataTableDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["data-table"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse data-table directive.
 
@@ -64,6 +63,7 @@ class DataTableDirective(DirectivePlugin):
         """
         # Get file path from title
         # Try to use parse_title if parser is available OR if parse_title was mocked/overridden
+        path: Any = None
         try:
             # Check if we can safely call parse_title
             # Either parser exists (real mistune usage) or parse_title was overridden (test mock)
@@ -78,7 +78,8 @@ class DataTableDirective(DirectivePlugin):
             # If parse_title fails, fallback to match.group()
             path = m.group() if hasattr(m, "group") else None
 
-        if not path or not path.strip():
+        path_str: str | None = str(path) if path else None
+        if not path_str or not path_str.strip():
             logger.warning(
                 "data_table_no_path",
                 reason="data-table directive missing file path",
@@ -141,15 +142,29 @@ class DataTableDirective(DirectivePlugin):
         """
         Load data from YAML or CSV file.
 
+        Path Resolution:
+            - root_path MUST be provided via state (set by rendering pipeline)
+            - No fallback to Path.cwd() - eliminates CWD-dependent behavior
+            - See: plan/active/rfc-path-resolution-architecture.md
+
         Args:
             path: Relative path to data file
-            state: Parser state (contains site context)
+            state: Parser state (must contain root_path from rendering pipeline)
 
         Returns:
             Dict with 'columns' and 'data' keys, or 'error' key on failure
         """
-        # Try to get root_path from state (set by rendering pipeline)
-        root_path = getattr(state, "root_path", None) or Path.cwd()
+        # Get root_path from state (MUST be set by rendering pipeline)
+        # No CWD fallback - path resolution must be explicit
+        root_path = getattr(state, "root_path", None)
+        if not root_path:
+            logger.warning(
+                "data_table_missing_root_path",
+                path=path,
+                action="returning_error",
+                hint="Ensure rendering pipeline passes root_path in state",
+            )
+            return {"error": "Site context not available for path resolution"}
         file_path = Path(root_path) / path
 
         # Check if file exists
@@ -275,8 +290,7 @@ class DataTableDirective(DirectivePlugin):
             Unique table ID
         """
         # Use first 8 chars of SHA256 hash
-        hash_obj = hashlib.sha256(path.encode())
-        return f"data-table-{hash_obj.hexdigest()[:8]}"
+        return f"data-table-{hash_str(path, truncate=8)}"
 
     def _parse_bool(self, value: str) -> bool:
         """Parse boolean option value."""

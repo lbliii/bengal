@@ -1,10 +1,23 @@
 ---
 title: File Organization
-description: Directory structure and organization of generated files, cache, and development artifacts
+description: Directory structure and organization of generated files, cache, and development
+  artifacts
 weight: 30
 category: meta
-tags: [meta, file-organization, directory-structure, paths, cache, build-outputs]
-keywords: [file organization, directory structure, paths, cache, build outputs, development files]
+tags:
+- meta
+- file-organization
+- directory-structure
+- paths
+- cache
+- build-outputs
+keywords:
+- file organization
+- directory structure
+- paths
+- cache
+- build outputs
+- development files
 ---
 
 # File Organization

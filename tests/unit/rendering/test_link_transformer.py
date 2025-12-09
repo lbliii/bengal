@@ -157,3 +157,5 @@ class TestGetBaseurl:
         """Test that empty string is returned for None baseurl."""
         config = {"baseurl": None}
         assert get_baseurl(config) == ""
+
+

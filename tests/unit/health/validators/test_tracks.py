@@ -26,6 +26,8 @@ def mock_site(tmp_path):
     """Create mock site with tracks and pages."""
     site = MagicMock()
     site.root_path = tmp_path
+    # Initialize _page_lookup_maps as None so the validator can build it
+    site._page_lookup_maps = None
 
     # Create content directory
     content_dir = tmp_path / "content"
@@ -109,9 +111,8 @@ class TestTrackValidatorValidTracks:
 
     def test_success_for_valid_track(self, validator, mock_site):
         """Returns success for valid track."""
-        # Clear lookup maps if cached
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        # Clear lookup maps if cached (reset to None instead of deleting)
+        mock_site._page_lookup_maps = None
 
         results = validator.validate(mock_site)
 
@@ -123,9 +124,8 @@ class TestTrackValidatorValidTracks:
 
     def test_success_shows_item_count(self, validator, mock_site):
         """Success message shows item count."""
-        # Clear lookup maps if cached
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        # Clear lookup maps if cached (reset to None instead of deleting)
+        mock_site._page_lookup_maps = None
 
         results = validator.validate(mock_site)
 
@@ -241,9 +241,8 @@ class TestTrackValidatorGetPage:
 
     def test_finds_page_by_relative_path(self, validator, mock_site):
         """_get_page finds page by relative path."""
-        # Clear any cached lookup maps
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        # Clear any cached lookup maps (reset to None instead of deleting)
+        mock_site._page_lookup_maps = None
         # The _get_page function builds maps based on source_path relative to content root
         # Our mock pages have source_path at content/intro.md
         page = validator._get_page(mock_site, "intro.md")
@@ -252,16 +251,14 @@ class TestTrackValidatorGetPage:
 
     def test_finds_page_without_extension(self, validator, mock_site):
         """_get_page finds page when .md extension omitted."""
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        mock_site._page_lookup_maps = None
         page = validator._get_page(mock_site, "intro")
         # Extension-less lookup should add .md
         assert page is not None or True  # Mock may not be perfect
 
     def test_returns_none_for_missing(self, validator, mock_site):
         """_get_page returns None for missing page."""
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        mock_site._page_lookup_maps = None
         page = validator._get_page(mock_site, "nonexistent.md")
         assert page is None
 
@@ -313,8 +310,7 @@ class TestTrackValidatorMultipleTracks:
 
     def test_validates_all_tracks(self, validator, mock_site):
         """Validates all defined tracks."""
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        mock_site._page_lookup_maps = None
         mock_site.data.tracks = {
             "beginner": {"title": "Beginner", "items": ["intro.md"]},
             "advanced": {"title": "Advanced", "items": ["basics.md"]},
@@ -331,8 +327,7 @@ class TestTrackValidatorMultipleTracks:
 
     def test_mixed_valid_invalid_tracks(self, validator, mock_site):
         """Handles mix of valid and invalid tracks."""
-        if hasattr(mock_site, "_page_lookup_maps"):
-            del mock_site._page_lookup_maps
+        mock_site._page_lookup_maps = None
         mock_site.data.tracks = {
             "valid": {"title": "Valid", "items": ["intro.md"]},
             "invalid": "not a dict",

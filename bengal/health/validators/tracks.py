@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class TrackValidator(BaseValidator):
@@ -25,7 +26,9 @@ class TrackValidator(BaseValidator):
     description = "Validates learning track definitions and page references"
     enabled_by_default = True
 
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Validate track definitions and references."""
         results = []
 
@@ -102,7 +105,9 @@ class TrackValidator(BaseValidator):
                 )
             else:
                 results.append(
-                    CheckResult.success(f"Track '{track_id}' is valid ({len(track['items'])} items)")
+                    CheckResult.success(
+                        f"Track '{track_id}' is valid ({len(track['items'])} items)"
+                    )
                 )
 
         # Check for track pages with invalid track_id
@@ -114,7 +119,9 @@ class TrackValidator(BaseValidator):
                     CheckResult.warning(
                         f"Page '{page.relative_path}' has invalid track_id",
                         recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
-                        details=[f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml."],
+                        details=[
+                            f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml."
+                        ],
                     )
                 )
 
@@ -131,7 +138,7 @@ class TrackValidator(BaseValidator):
             return None
 
         # Build lookup maps if not already built
-        if not hasattr(site, "_page_lookup_maps"):
+        if site._page_lookup_maps is None:
             by_full_path = {}
             by_content_relative = {}
 

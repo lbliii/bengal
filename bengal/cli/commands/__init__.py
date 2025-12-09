@@ -1,3 +1,3 @@
 """Bengal CLI commands."""
 
-from .skeleton import apply as skeleton_apply
+from .skeleton import skeleton_cli

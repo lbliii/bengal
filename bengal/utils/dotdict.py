@@ -5,11 +5,10 @@ Provides clean attribute-style access to dictionary data while avoiding
 Jinja2 template gotchas (like .items, .keys, .values accessing methods).
 """
 
-
 from __future__ import annotations
 
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import ItemsView, Iterator, KeysView, ValuesView
+from typing import Any, cast
 
 
 class DotDict:
@@ -180,17 +179,17 @@ class DotDict:
         except KeyError:
             return default
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         """Return dict keys."""
-        return self._data.keys()
+        return cast(KeysView[str], self._data.keys())
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
         """Return dict values."""
-        return self._data.values()
+        return cast(ValuesView[Any], self._data.values())
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         """Return dict items - note this is the METHOD, not a field."""
-        return self._data.items()
+        return cast(ItemsView[str, Any], self._data.items())
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DotDict:
@@ -219,7 +218,7 @@ class DotDict:
                 result[key] = value
         return result
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert back to regular dict."""
         return dict(self._data)
 

@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from bengal.config.defaults import DEFAULTS, DEFAULT_MAX_WORKERS
+from bengal.config.defaults import DEFAULT_MAX_WORKERS, DEFAULTS
 from bengal.config.deprecation import check_deprecated_keys
 from bengal.utils.logger import get_logger
 
@@ -234,6 +234,8 @@ class ConfigLoader:
         from bengal.utils.file_io import load_toml
 
         config = load_toml(config_path, on_error="raise", caller="config_loader")
+        if config is None:
+            return {}
 
         return self._flatten_config(config)
 
@@ -307,7 +309,7 @@ class ConfigLoader:
         Returns:
             Normalized configuration with canonical section names
         """
-        normalized = {}
+        normalized: dict[str, Any] = {}
 
         for key, value in config.items():
             # Check if this is an alias

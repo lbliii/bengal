@@ -22,11 +22,11 @@ See Also:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -200,9 +200,9 @@ class MenuOrchestrator:
 
         # Hash to create cache key
         data_str = json.dumps(cache_data, sort_keys=True)
-        return hashlib.sha256(data_str.encode()).hexdigest()
+        return hash_str(data_str)
 
-    def _build_auto_menu_with_dev_bundling(self) -> list[dict]:
+    def _build_auto_menu_with_dev_bundling(self) -> list[dict[str, Any]]:
         """
         Build auto-discovered menu with dev assets bundled into dropdown.
 
@@ -242,7 +242,7 @@ class MenuOrchestrator:
 
         # Mark dev sections to exclude from auto-nav
         if dev_sections_to_remove:
-            if not hasattr(self.site, "_dev_menu_metadata"):
+            if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["exclude_sections"] = list(dev_sections_to_remove)
 
@@ -251,7 +251,7 @@ class MenuOrchestrator:
 
         # Clear the exclude flag after use
         if (
-            hasattr(self.site, "_dev_menu_metadata")
+            self.site._dev_menu_metadata is not None
             and "exclude_sections" in self.site._dev_menu_metadata
         ):
             del self.site._dev_menu_metadata["exclude_sections"]
@@ -325,7 +325,7 @@ class MenuOrchestrator:
                 seen_names.add(asset_name)
 
             # Store metadata for template
-            if not hasattr(self.site, "_dev_menu_metadata"):
+            if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["github_bundled"] = any(
                 a["type"] == "github" for a in dev_assets

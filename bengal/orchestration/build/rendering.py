@@ -25,10 +25,18 @@ from __future__ import annotations
 
 import json
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
+    from bengal.core.asset import Asset
+    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.build_context import BuildContext
+    from bengal.utils.cli_output import CLIOutput
+    from bengal.utils.live_progress import LiveProgressManager
+    from bengal.utils.profile import BuildProfile
+    from bengal.utils.progress import ProgressReporter
 
 
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
@@ -70,11 +78,11 @@ def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
 
 def phase_assets(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     parallel: bool,
-    assets_to_process: list,
-) -> list:
+    assets_to_process: list[Asset],
+) -> list[Asset]:
     """
     Phase 13: Process Assets.
 
@@ -132,20 +140,20 @@ def phase_assets(
 
 def phase_render(
     orchestrator: BuildOrchestrator,
-    cli,
+    cli: CLIOutput,
     incremental: bool,
     parallel: bool,
     quiet: bool,
     verbose: bool,
     memory_optimized: bool,
-    pages_to_build: list,
-    tracker,
-    profile,
-    progress_manager,
-    reporter,
+    pages_to_build: list[Page],
+    tracker: DependencyTracker | None,
+    profile: BuildProfile,
+    progress_manager: LiveProgressManager | None,
+    reporter: ProgressReporter | None,
     profile_templates: bool = False,
-    early_context=None,
-):
+    early_context: BuildContext | None = None,
+) -> BuildContext:
     """
     Phase 14: Render Pages.
 
@@ -270,7 +278,7 @@ def phase_render(
 
 
 def phase_update_site_pages(
-    orchestrator: BuildOrchestrator, incremental: bool, pages_to_build: list
+    orchestrator: BuildOrchestrator, incremental: bool, pages_to_build: list[Page]
 ) -> None:
     """
     Phase 15: Update Site Pages.
@@ -325,7 +333,7 @@ def phase_update_site_pages(
             )
 
 
-def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list) -> None:
+def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any]) -> None:
     """
     Phase 16: Track Asset Dependencies.
 

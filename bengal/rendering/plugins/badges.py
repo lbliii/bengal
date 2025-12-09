@@ -9,6 +9,7 @@ Supports badge colors that map to Bengal's design system.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -56,7 +57,7 @@ class BadgePlugin:
         "dark": "dark",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize badge plugin."""
         # Compile regex patterns once (reused for all pages)
 
@@ -68,7 +69,7 @@ class BadgePlugin:
         # Pattern 2: Fallback for any remaining raw patterns (shouldn't happen in practice)
         self.raw_pattern = re.compile(r"\{bdg-([a-z]+)\}`([^`]+)`")
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> Any:
         """
         Register the plugin with Mistune.
 
@@ -96,7 +97,7 @@ class BadgePlugin:
         if "{bdg-" not in html:
             return html
 
-        def replace_html_badge(match: re.Match) -> str:
+        def replace_html_badge(match: re.Match[str]) -> str:
             """Replace HTML badge pattern with badge span."""
             color = match.group(1)
             badge_text = match.group(2)
@@ -114,7 +115,7 @@ class BadgePlugin:
             # So we don't need to escape it again
             return f'<span class="badge badge-{css_class}">{badge_text}</span>'
 
-        def replace_raw_badge(match: re.Match) -> str:
+        def replace_raw_badge(match: re.Match[str]) -> str:
             """Replace raw badge pattern (fallback, shouldn't happen in practice)."""
             color = match.group(1)
             badge_text = match.group(2)

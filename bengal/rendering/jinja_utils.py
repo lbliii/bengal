@@ -11,6 +11,10 @@ from typing import Any
 
 from jinja2 import is_undefined as jinja_is_undefined
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def is_undefined(value: Any) -> bool:
     """
@@ -96,9 +100,17 @@ def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
                 return default
 
         return value
-    except (AttributeError, TypeError, ValueError, Exception):
+    except (AttributeError, TypeError, ValueError, Exception) as e:
         # Catch all exceptions from property access
         # Properties can raise any exception, not just AttributeError
+        logger.debug(
+            "jinja_safe_getattr_failed",
+            obj_type=type(obj).__name__,
+            attr=attr,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_default",
+        )
         return default
 
 

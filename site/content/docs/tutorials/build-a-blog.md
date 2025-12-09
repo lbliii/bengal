@@ -4,11 +4,21 @@ description: Create, configure, and customize a personal blog from scratch
 weight: 10
 draft: false
 lang: en
-tags: [tutorial, beginner, blog, setup]
-keywords: [tutorial, blog, getting started, python, ssg, setup]
+tags:
+- tutorial
+- beginner
+- blog
+- setup
+keywords:
+- tutorial
+- blog
+- getting started
+- python
+- ssg
+- setup
 category: tutorial
 aliases:
-  - /docs/guides/blog-from-scratch/
+- /docs/guides/blog-from-scratch/
 ---
 
 # Build a Blog in 15 Minutes
@@ -257,3 +267,5 @@ Congratulations! You've built a custom blog. Here is where to go next:
 *   **[Deployment Guide](/docs/building/deployment/)**: Learn how to host on GitHub Pages or Netlify.
 *   **[Theme Customization](/docs/theming/themes/customize/)**: Deep dive into template overrides.
 *   **[Configuration Reference](/docs/building/configuration/)**: Explore all available settings.
+
+

@@ -2,11 +2,10 @@
 title: Tooling & CLI
 description: Developer tools, CLI, server, and configuration
 weight: 40
-icon: terminal
 cascade:
   type: doc
+icon: terminal
 ---
-
 # Tooling & CLI
 
 Developer interfaces for working with Bengal.
@@ -19,17 +18,17 @@ flowchart TB
         CLI[CLI Commands]
         Server[Dev Server]
     end
-    
+
     subgraph "Configuration"
         Config[Config Loader]
         Env[Environment]
     end
-    
+
     subgraph "Core"
         Site[Site]
         Build[Build System]
     end
-    
+
     CLI --> Config
     Server --> Config
     Config --> Site

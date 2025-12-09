@@ -14,6 +14,7 @@ from bengal.health.report import CheckResult
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
@@ -111,20 +112,26 @@ class ConnectivityValidator(BaseValidator):
                 graph.build()
 
             # Normalize helpers to be robust to mocks
-            def _normalize_hubs(h):
+            def _normalize_hubs(h: list[Page] | list[tuple[Page, int]] | None) -> list[Page]:
                 # Accept list[Page] or list[tuple[Page,int]]
-                normalized = []
+                normalized: list[Page] = []
                 try:
                     for item in h or []:
                         if isinstance(item, tuple) and len(item) >= 1:
                             normalized.append(item[0])
                         else:
                             normalized.append(item)
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "health_connectivity_hub_normalize_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="returning_empty_list",
+                    )
                     return []
                 return normalized
 
-            def _safe_get_metrics():
+            def _safe_get_metrics() -> dict[str, Any]:
                 try:
                     m = graph.get_metrics()
                     if isinstance(m, dict):
@@ -143,7 +150,13 @@ class ConnectivityValidator(BaseValidator):
                         "hub_count": getattr(m, "hub_count", 0) or 0,
                         "orphan_count": getattr(m, "orphan_count", 0) or 0,
                     }
-                except Exception:
+                except Exception as e:
+                    logger.debug(
+                        "health_connectivity_metrics_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="using_fallback_metrics",
+                    )
                     return {
                         "total_pages": len(getattr(site, "pages", []) or []),
                         "total_links": 0,
@@ -157,7 +170,13 @@ class ConnectivityValidator(BaseValidator):
             # Check 1: Orphaned pages
             try:
                 orphans = list(graph.get_orphans() or [])
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "health_connectivity_orphan_detection_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_orphan_check",
+                )
                 orphans = []
 
             if orphans:
@@ -213,7 +232,13 @@ class ConnectivityValidator(BaseValidator):
                             ),
                         )
                     )
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "health_connectivity_hub_detection_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_hub_check",
+                )
                 hubs = []
 
             # Check 3: Overall connectivity
@@ -246,7 +271,13 @@ class ConnectivityValidator(BaseValidator):
                 total_pages = metrics.get("total_pages", 0)
                 hub_count = len(hubs) if hubs else metrics.get("hub_count", 0)
                 hub_percentage = (hub_count / total_pages * 100) if total_pages else 0
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "health_connectivity_hub_percentage_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="using_zero_percentage",
+                )
                 hub_percentage = 0
 
             if hub_percentage < 5:

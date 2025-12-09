@@ -1,26 +1,27 @@
 ---
 title: Documentation
-weight: 5
 draft: false
+weight: 5
 lang: en
-icon: book-open
-type: doc
-variant: overview
-
-props:
-  description: Bengal documentation
-  category: documentation
-  tags: [documentation, docs]
-  keywords: [documentation, docs, guides, reference]
-  menu:
-    main:
-      weight: 10
-
 cascade:
   type: doc
   variant: standard
+category: documentation
+description: Bengal documentation
+keywords:
+- documentation
+- docs
+- guides
+- reference
+menu:
+  main:
+    weight: 10
+tags:
+- documentation
+- docs
+variant: overview
+icon: book-open
 ---
-
 # Documentation
 
 ## Get Started

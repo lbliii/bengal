@@ -180,8 +180,15 @@ class GraphVisualizer:
                 try:
                     # page.url returns URL with baseurl already applied
                     page_url = page.url
-                except (AttributeError, Exception):
+                except (AttributeError, Exception) as e:
                     # Fallback: try to compute from output_path if available
+                    logger.debug(
+                        "analysis_graph_page_url_access_failed",
+                        page=str(getattr(page, "source_path", "unknown")),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="trying_output_path_fallback",
+                    )
                     if hasattr(page, "output_path") and page.output_path:
                         try:
                             # Compute relative URL from output_dir
@@ -327,8 +334,15 @@ class GraphVisualizer:
                     css_entry = manifest.get("css/style.css")
                     if css_entry:
                         css_path = f"/{css_entry.output_path}"
-        except Exception:
+        except Exception as e:
             # If manifest lookup fails, use non-fingerprinted paths
+            logger.debug(
+                "graph_visualizer_manifest_lookup_failed",
+                manifest_path=str(manifest_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_non_fingerprinted_paths",
+            )
             pass
 
         # Apply baseurl prefix
@@ -427,8 +441,8 @@ class GraphVisualizer:
     </div>
 
     <script>
-        // Graph data
-        const graphData = {json.dumps(graph_data, indent=2)};
+        // Graph data (sort_keys=True for deterministic output)
+        const graphData = {json.dumps(graph_data, indent=2, sort_keys=True)};
 
         // Dimensions
         const width = window.innerWidth;

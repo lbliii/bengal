@@ -4,11 +4,18 @@ description: Reusable content fragments with include directives
 weight: 10
 draft: false
 lang: en
-tags: [snippets, reuse, include]
-keywords: [snippets, include, reuse, dry]
+tags:
+- snippets
+- reuse
+- include
+keywords:
+- snippets
+- include
+- reuse
+- dry
 category: guide
 aliases:
-  - /docs/guides/content-reuse/
+- /docs/guides/content-reuse/
 ---
 
 # Content Snippets

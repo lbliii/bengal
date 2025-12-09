@@ -1,9 +1,21 @@
 ---
 title: Navigation Directives
-description: Reference for navigation directives (child-cards, breadcrumbs, siblings, prev-next, related)
+description: Reference for navigation directives (child-cards, breadcrumbs, siblings,
+  prev-next, related)
 weight: 15
-tags: [reference, directives, navigation, cards]
-keywords: [child-cards, breadcrumbs, siblings, prev-next, related, navigation, directives]
+tags:
+- reference
+- directives
+- navigation
+- cards
+keywords:
+- child-cards
+- breadcrumbs
+- siblings
+- prev-next
+- related
+- navigation
+- directives
 ---
 
 # Navigation Directives
@@ -243,7 +255,7 @@ To get the best results, add these fields to your pages' frontmatter:
 title: My Page
 description: A helpful description for cards
 icon: book           # Icon name (book, code, rocket, etc.)
-card_color: blue     # Card color (blue, green, purple, orange, etc.)
+  card_color: blue     # Card color (blue, green, purple, orange, etc.)
 weight: 10           # Sort order (lower = first)
 tags: [guide, python]  # For related pages
 ---

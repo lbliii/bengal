@@ -5,11 +5,18 @@ weight: 10
 type: doc
 draft: false
 lang: en
-tags: [onboarding, installation]
-keywords: [installation, setup, python, pyenv, uv]
+tags:
+- onboarding
+- installation
+keywords:
+- installation
+- setup
+- python
+- pyenv
+- uv
 category: onboarding
 aliases:
-  - /docs/getting-started/installation/
+- /docs/getting-started/installation/
 ---
 
 # Install Bengal
@@ -138,6 +145,3 @@ python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False 
 - **[Writer Quickstart](/docs/get-started/quickstart-writer/)** — Start creating content
 - **[Themer Quickstart](/docs/get-started/quickstart-themer/)** — Customize your site's look
 - **[Tutorials](/docs/tutorials/)** — Guided learning journeys
-
-
-

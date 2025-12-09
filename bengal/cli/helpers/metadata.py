@@ -115,9 +115,11 @@ def get_command_metadata(cmd: click.Command | Callable[..., Any]) -> CommandMeta
         # Check if metadata is attached to the callback
         callback = cmd.callback
         if callback and hasattr(callback, "__command_metadata__"):
-            return callback.__command_metadata__  # type: ignore[attr-defined]
+            metadata: CommandMetadata = callback.__command_metadata__  # type: ignore[attr-defined]
+            return metadata
     elif hasattr(cmd, "__command_metadata__"):
-        return cmd.__command_metadata__  # type: ignore[attr-defined]
+        metadata_attr: CommandMetadata = cmd.__command_metadata__  # type: ignore[attr-defined]
+        return metadata_attr
     return None
 
 

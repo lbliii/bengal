@@ -1,6 +1,6 @@
 ---
 title: The Component Model
-description: "Understanding Bengal's Component Model: Identity, Mode, and Data."
+description: 'Understanding Bengal''s Component Model: Identity, Mode, and Data.'
 weight: 20
 type: doc
 variant: editorial
@@ -40,29 +40,45 @@ variant: magazine
 
 ## 3. Data (Props)
 
-**Props** are the data you pass to the component. In Markdown files, these are simply your **Frontmatter** fields.
+**Props** are the data you pass to the component.
 
+**In Markdown files**, use flat frontmatter (all fields at top level):
 ```yaml
-# In frontmatter, flat keys are merged into props
+---
 title: "My Post"
 author: "Jane Doe"
 banner_image: "/images/hero.jpg"
+---
 ```
+
+**In Skeleton Manifests** (`bengal skeleton apply`), you can use `props:` to group content separately from structural fields:
+```yaml
+structure:
+  - path: blog/
+    type: blog              # Identity (structural)
+    variant: magazine       # Mode (structural)
+    props:                 # Data (content)
+      title: "Engineering Blog"
+      banner_image: "/images/hero.jpg"
+```
+This separation makes it clear what's structural (type, variant) vs what's content (title, images).
 
 ## Site Skeletons
 
 You can define an entire site structure using a **Skeleton Manifest** (`bengal skeleton apply`).
+
+**Note**: Bengal's built-in templates (`blog`, `docs`, `portfolio`) now use skeleton manifests internally, demonstrating the Component Model in practice. See `bengal/cli/templates/<name>/skeleton.yaml` for examples.
 
 ```yaml
 structure:
   - path: blog/
     type: blog
     variant: magazine
-    
+
     props:
       title: "Engineering Blog"
       description: "Deep dives."
-      
+
     pages:
       - path: post-1.md
         props:
@@ -77,4 +93,3 @@ If you are coming from older Bengal versions:
 *   `metadata` dictionary $\to$ mapped to `props`.
 
 The system automatically normalizes these for you.
-

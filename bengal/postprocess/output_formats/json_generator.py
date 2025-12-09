@@ -99,7 +99,7 @@ class PageJSONGenerator:
         else:
             # Fallback: Compute JSON data from pages (original behavior)
             # Prepare all page data first (can be parallelized)
-            page_items: list[tuple[Any, dict[str, Any]]] = []
+            computed_page_items: list[tuple[Any, dict[str, Any]]] = []
             for page in pages:
                 json_path = get_page_json_path(page)
                 if not json_path:
@@ -107,7 +107,8 @@ class PageJSONGenerator:
                 page_data = self.page_to_json(
                     page, include_html=self.include_html, include_text=self.include_text
                 )
-                page_items.append((json_path, page_data))
+                computed_page_items.append((json_path, page_data))
+            page_items = computed_page_items
 
         if not page_items:
             return 0

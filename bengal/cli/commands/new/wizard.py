@@ -58,7 +58,7 @@ def run_init_wizard(preset: str | None = None) -> str | None:
 
         selected_preset = PRESETS[preset]
         cli.info(f"🏗️  Selected {selected_preset['emoji']} {selected_preset['name']} preset.")
-        return selected_preset.get("template_id", "default")
+        return str(selected_preset.get("template_id", "default"))
 
     # Build choices list
     choices = []
@@ -134,5 +134,4 @@ def run_init_wizard(preset: str | None = None) -> str | None:
     selected_preset = PRESETS[selection]
     cli.blank()
     cli.info(f"✨ {selected_preset['name']} preset selected.")
-    return selected_preset.get("template_id", "default")
-
+    return str(selected_preset.get("template_id", "default"))

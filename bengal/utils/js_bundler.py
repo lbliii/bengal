@@ -211,18 +211,18 @@ def discover_js_files(
     # First: files in explicit order (using relative paths or filename)
     for name in bundle_order:
         # Try relative path first, then filename
-        js_file = all_files.get(name) or files_by_name.get(name)
-        if js_file and name not in excluded:
-            if js_file not in seen_paths:
-                ordered.append(js_file)
-                seen_paths.add(js_file)
+        ordered_js_file: Path | None = all_files.get(name) or files_by_name.get(name)
+        if ordered_js_file and name not in excluded:
+            if ordered_js_file not in seen_paths:
+                ordered.append(ordered_js_file)
+                seen_paths.add(ordered_js_file)
 
     # Then: any remaining files not already added or excluded (alphabetically)
     # Check exclusion using the canonical relative path
-    for rel_path, js_file in sorted(all_files.items()):
-        if js_file not in seen_paths and rel_path not in excluded:
-            ordered.append(js_file)
-            seen_paths.add(js_file)
+    for rel_path_str, remaining_js_file in sorted(all_files.items()):
+        if remaining_js_file not in seen_paths and rel_path_str not in excluded:
+            ordered.append(remaining_js_file)
+            seen_paths.add(remaining_js_file)
 
     return ordered
 

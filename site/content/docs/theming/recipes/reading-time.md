@@ -4,8 +4,14 @@ description: Display estimated reading time using Bengal's reading_time filter
 weight: 40
 draft: false
 lang: en
-tags: [cookbook, filters, reading-time]
-keywords: [reading time, word count, estimate]
+tags:
+- cookbook
+- filters
+- reading-time
+keywords:
+- reading time
+- word count
+- estimate
 category: cookbook
 ---
 

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import cast
 
 import toml
 
@@ -41,7 +42,10 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     if site_manifest.exists():
         try:
             data = toml.load(str(site_manifest))
-            return data.get("extends")
+            if isinstance(data, dict):
+                extends = data.get("extends")
+                return cast(str | None, extends) if extends is not None else None
+            return None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",
@@ -59,7 +63,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
             if manifest_path and manifest_path.exists():
                 try:
                     data = toml.load(str(manifest_path))
-                    return data.get("extends")
+                    extends_val = data.get("extends")
+                    return str(extends_val) if extends_val else None
                 except Exception as e:
                     logger.debug(
                         "theme_manifest_read_failed",
@@ -81,7 +86,8 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     if bundled_manifest.exists():
         try:
             data = toml.load(str(bundled_manifest))
-            return data.get("extends")
+            extends_val = data.get("extends")
+            return str(extends_val) if extends_val else None
         except Exception as e:
             logger.debug(
                 "theme_manifest_read_failed",
@@ -141,7 +147,8 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
                 if resolved and resolved.exists():
                     dirs.append(resolved)
                     continue
-        except Exception:
+        except Exception as e:
+            logger.debug("installed_theme_assets_resolution_failed", theme=theme_name, error=str(e))
             pass
 
         # Bundled theme assets
@@ -149,7 +156,8 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
             bundled_dir = Path(__file__).parent.parent / "themes" / theme_name / "assets"
             if bundled_dir.exists():
                 dirs.append(bundled_dir)
-        except Exception:
+        except Exception as e:
+            logger.debug("bundled_theme_assets_resolution_failed", theme=theme_name, error=str(e))
             pass
 
     return dirs

@@ -24,7 +24,7 @@ See Also:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.build_context import BuildContext
 from bengal.utils.logger import get_logger
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.orchestration.build.results import ChangeSummary
 
 
 class IncrementalOrchestrator:
@@ -267,7 +268,7 @@ class IncrementalOrchestrator:
 
     def find_work_early(
         self, verbose: bool = False
-    ) -> tuple[list[Page], list[Asset], dict[str, list]]:
+    ) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
 
@@ -281,18 +282,17 @@ class IncrementalOrchestrator:
 
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
+            where change_summary is a ChangeSummary dataclass (supports dict-like access for compatibility)
         """
+        # Import here to avoid circular import
+        from bengal.orchestration.build.results import ChangeSummary
+
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
 
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
-        change_summary: dict[str, list] = {
-            "Modified content": [],
-            "Modified assets": [],
-            "Modified templates": [],
-            "Taxonomy changes": [],
-        }
+        change_summary = ChangeSummary()
 
         # OPTIMIZATION: Section-level filtering (RFC 2.3)
         # Skip entire sections if no files changed within them
@@ -342,7 +342,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
-                    change_summary["Modified content"].append(page.source_path)
+                    change_summary.modified_content.append(page.source_path)
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
@@ -367,9 +367,9 @@ class IncrementalOrchestrator:
                     cascade_affected_count += newly_affected
 
                     if verbose and newly_affected > 0:
-                        if "Cascade changes" not in change_summary:
-                            change_summary["Cascade changes"] = []
-                        change_summary["Cascade changes"].append(
+                        if "Cascade changes" not in change_summary.extra_changes:
+                            change_summary.extra_changes["Cascade changes"] = []
+                        change_summary.extra_changes["Cascade changes"].append(
                             f"{changed_path.name} cascade affects {newly_affected} descendant pages"
                         )
 
@@ -398,9 +398,9 @@ class IncrementalOrchestrator:
                         pages_to_rebuild.add(prev_page.source_path)
                         navigation_affected_count += 1
                         if verbose:
-                            if "Navigation changes" not in change_summary:
-                                change_summary["Navigation changes"] = []
-                            change_summary["Navigation changes"].append(
+                            if "Navigation changes" not in change_summary.extra_changes:
+                                change_summary.extra_changes["Navigation changes"] = []
+                            change_summary.extra_changes["Navigation changes"].append(
                                 f"{prev_page.source_path.name} references modified {changed_path.name}"
                             )
 
@@ -414,9 +414,9 @@ class IncrementalOrchestrator:
                         pages_to_rebuild.add(next_page.source_path)
                         navigation_affected_count += 1
                         if verbose:
-                            if "Navigation changes" not in change_summary:
-                                change_summary["Navigation changes"] = []
-                            change_summary["Navigation changes"].append(
+                            if "Navigation changes" not in change_summary.extra_changes:
+                                change_summary.extra_changes["Navigation changes"] = []
+                            change_summary.extra_changes["Navigation changes"].append(
                                 f"{next_page.source_path.name} references modified {changed_path.name}"
                             )
 
@@ -432,7 +432,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
-                    change_summary["Modified assets"].append(asset.source_path)
+                    change_summary.modified_assets.append(asset.source_path)
 
         # Check template/theme directory for changes
         theme_templates_dir = self._get_theme_templates_dir()
@@ -440,7 +440,7 @@ class IncrementalOrchestrator:
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
                     if verbose:
-                        change_summary["Modified templates"].append(template_file)
+                        change_summary.modified_templates.append(template_file)
                     # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
@@ -449,11 +449,69 @@ class IncrementalOrchestrator:
                     # Template unchanged - still update its hash in cache to avoid re-checking
                     self.cache.update_file(template_file)
 
+        # Check which autodoc pages need to be rebuilt based on source file changes
+        autodoc_pages_to_rebuild: set[str] = set()
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+            and hasattr(self.cache, "get_autodoc_source_files")
+        ):
+            try:
+                # Get all tracked autodoc source files
+                source_files = self.cache.get_autodoc_source_files()
+                if source_files:  # Check if iterable and non-empty
+                    for source_file in source_files:
+                        source_path = Path(source_file)
+                        if self.cache.is_changed(source_path):
+                            # Source file changed - mark all its autodoc pages for rebuild
+                            affected_pages = self.cache.get_affected_autodoc_pages(source_path)
+                            if affected_pages:
+                                autodoc_pages_to_rebuild.update(affected_pages)
+
+                                if verbose:
+                                    if "Autodoc changes" not in change_summary.extra_changes:
+                                        change_summary.extra_changes["Autodoc changes"] = []
+                                    change_summary.extra_changes["Autodoc changes"].append(
+                                        f"{source_path.name} changed, affects {len(affected_pages)} autodoc pages"
+                                    )
+
+                if autodoc_pages_to_rebuild:
+                    logger.info(
+                        "autodoc_selective_rebuild",
+                        affected_pages=len(autodoc_pages_to_rebuild),
+                        reason="source_files_changed",
+                    )
+            except (TypeError, AttributeError):
+                # Handle case where cache is a mock or doesn't have proper methods
+                pass
+
         # Convert to Page objects
+        # - Include content pages whose source files changed
+        # - Include autodoc pages whose source files changed (selective, not all)
+        # - If no dependency tracking yet, include all autodoc pages (first build)
+        has_autodoc_tracking = False
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+        ):
+            try:
+                has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
+            except (TypeError, AttributeError):
+                pass
+
         pages_to_build_list = [
             page
             for page in self.site.pages
-            if page.source_path in pages_to_rebuild and not page.metadata.get("_generated")
+            if (page.source_path in pages_to_rebuild and not page.metadata.get("_generated"))
+            or (
+                page.metadata.get("is_autodoc")
+                and (
+                    # Selective rebuild if we have dependency tracking
+                    str(page.source_path) in autodoc_pages_to_rebuild
+                    # Or rebuild all if no tracking yet (first build after upgrade)
+                    or not has_autodoc_tracking
+                )
+            )
         ]
 
         # Log what changed for debugging
@@ -461,15 +519,15 @@ class IncrementalOrchestrator:
             "incremental_work_detected",
             pages_to_build=len(pages_to_build_list),
             assets_to_process=len(assets_to_process),
-            modified_pages=len(change_summary.get("Modified pages", [])),
-            modified_templates=len(change_summary.get("Modified templates", [])),
-            modified_assets=len(change_summary.get("Modified assets", [])),
+            modified_pages=len(change_summary.modified_content),
+            modified_templates=len(change_summary.modified_templates),
+            modified_assets=len(change_summary.modified_assets),
             total_pages=len(self.site.pages),
         )
 
         return pages_to_build_list, assets_to_process, change_summary
 
-    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list]]:
+    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], dict[str, list[Any]]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -487,7 +545,7 @@ class IncrementalOrchestrator:
 
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
-        change_summary: dict[str, list] = {
+        change_summary: dict[str, list[Any]] = {
             "Modified content": [],
             "Modified assets": [],
             "Modified templates": [],
@@ -607,12 +665,47 @@ class IncrementalOrchestrator:
                     if page_section and page_section in affected_sections:
                         pages_to_rebuild.add(page.source_path)
 
+        # Check which autodoc pages need to be rebuilt based on source file changes
+        autodoc_pages_to_rebuild: set[str] = set()
+        has_autodoc_tracking = False
+        if (
+            self.cache
+            and hasattr(self.cache, "autodoc_dependencies")
+            and hasattr(self.cache, "get_autodoc_source_files")
+        ):
+            try:
+                source_files = self.cache.get_autodoc_source_files()
+                if source_files:
+                    has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
+                    for source_file in source_files:
+                        source_path = Path(source_file)
+                        if self.cache.is_changed(source_path):
+                            affected_pages = self.cache.get_affected_autodoc_pages(source_path)
+                            if affected_pages:
+                                autodoc_pages_to_rebuild.update(affected_pages)
+            except (TypeError, AttributeError):
+                # Handle case where cache is a mock or doesn't have proper methods
+                pass
+
         # Convert page paths back to Page objects
-        pages_to_build = [page for page in self.site.pages if page.source_path in pages_to_rebuild]
+        # - Include content pages whose source files changed
+        # - Include autodoc pages selectively (only if their source changed)
+        pages_to_build = [
+            page
+            for page in self.site.pages
+            if page.source_path in pages_to_rebuild
+            or (
+                page.metadata.get("is_autodoc")
+                and (
+                    str(page.source_path) in autodoc_pages_to_rebuild
+                    or not has_autodoc_tracking
+                )
+            )
+        ]
 
         return pages_to_build, assets_to_process, change_summary
 
-    def process(self, change_type: str, changed_paths: set) -> None:
+    def process(self, change_type: str, changed_paths: set[str]) -> None:
         """
         Bridge-style process for testing incremental invalidation.
 
@@ -655,11 +748,13 @@ class IncrementalOrchestrator:
         context = BuildContext(site=self.site, pages=self.site.pages, tracker=self.tracker)
 
         # Invalidate based on change type
+        # Convert string paths to Path objects for invalidator methods
+        path_set: set[Path] = {Path(p) for p in changed_paths}
         invalidated: set[Path]
         if change_type == "content":
-            invalidated = self.tracker.invalidator.invalidate_content(changed_paths)
+            invalidated = self.tracker.invalidator.invalidate_content(path_set)
         elif change_type == "template":
-            invalidated = self.tracker.invalidator.invalidate_templates(changed_paths)
+            invalidated = self.tracker.invalidator.invalidate_templates(path_set)
         elif change_type == "config":
             invalidated = self.tracker.invalidator.invalidate_config()
         else:
@@ -686,6 +781,7 @@ class IncrementalOrchestrator:
         import datetime
 
         content_dir = self.site.root_path / "content"
+        rel: Path | str
         try:
             rel = path.relative_to(content_dir)
         except ValueError:
@@ -710,9 +806,80 @@ class IncrementalOrchestrator:
         )
         output_path.write_text(diagnostic_content)
 
-    def full_rebuild(self, pages: list, context: BuildContext):
+    def full_rebuild(self, pages: list[Any], context: BuildContext) -> None:
         # ... existing logic ...
         pass
+
+    def _cleanup_deleted_autodoc_sources(self) -> None:
+        """
+        Clean up autodoc pages when their source files are deleted.
+
+        Checks tracked autodoc source files and removes corresponding output
+        when the source no longer exists. This prevents stale autodoc pages
+        from remaining when Python/OpenAPI source files are deleted.
+        """
+        if not self.cache or not hasattr(self.cache, "autodoc_dependencies"):
+            return
+
+        try:
+            source_files = list(self.cache.get_autodoc_source_files())
+        except (TypeError, AttributeError):
+            return
+
+        deleted_sources: list[str] = []
+        for source_file in source_files:
+            source_path = Path(source_file)
+            if not source_path.exists():
+                deleted_sources.append(source_file)
+
+        if not deleted_sources:
+            return
+
+        logger.info(
+            "autodoc_source_files_deleted",
+            count=len(deleted_sources),
+            files=[Path(s).name for s in deleted_sources[:5]],
+        )
+
+        for source_file in deleted_sources:
+            # Get affected autodoc pages before removing from cache
+            affected_pages = self.cache.remove_autodoc_source(source_file)
+
+            # Remove output files for affected pages
+            for page_path in affected_pages:
+                # Autodoc pages use source_id like "python/api/module.md"
+                # Convert to output path: "api/module/index.html"
+                url_path = page_path.replace("python/", "").replace("cli/", "")
+                if url_path.endswith(".md"):
+                    url_path = url_path[:-3]
+                output_path = self.site.output_dir / url_path / "index.html"
+
+                if output_path.exists():
+                    try:
+                        output_path.unlink()
+                        logger.debug(
+                            "autodoc_output_deleted",
+                            source=Path(source_file).name,
+                            output=str(output_path.relative_to(self.site.output_dir)),
+                        )
+                        # Try to remove empty parent directories
+                        try:
+                            if output_path.parent != self.site.output_dir:
+                                output_path.parent.rmdir()
+                        except OSError:
+                            pass  # Directory not empty
+                    except OSError as e:
+                        logger.warning(
+                            "autodoc_output_delete_failed",
+                            output=str(output_path),
+                            error=str(e),
+                        )
+
+            # Also remove from file_hashes
+            if source_file in self.cache.file_hashes:
+                del self.cache.file_hashes[source_file]
+            if source_file in self.cache.file_fingerprints:
+                del self.cache.file_fingerprints[source_file]
 
     def _cleanup_deleted_files(self) -> None:
         """
@@ -722,6 +889,9 @@ class IncrementalOrchestrator:
         their corresponding output files. This prevents stale content
         from remaining in the output directory after source deletion.
         """
+        # Also clean up deleted autodoc source files
+        self._cleanup_deleted_autodoc_sources()
+
         if not self.cache or not self.cache.output_sources:
             return
 
@@ -805,15 +975,30 @@ class IncrementalOrchestrator:
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / "cache.json"
 
-        # Update all page hashes and tags (skip generated pages - they have virtual paths)
+        # Track autodoc source files that were used in this build
+        autodoc_source_files_updated: set[str] = set()
+
+        # Update all page hashes and tags (skip virtual/generated pages - they have no source files)
         for page in pages_built:
-            if not page.metadata.get("_generated"):
-                self.cache.update_file(page.source_path)
-                # Store tags for next build's comparison
-                if page.tags:
-                    self.cache.update_tags(page.source_path, set(page.tags))
-                else:
-                    self.cache.update_tags(page.source_path, set())
+            # For autodoc pages, update the source file hash (not the virtual source_path)
+            if page.metadata.get("is_autodoc"):
+                source_file = page.metadata.get("source_file")
+                if source_file and source_file not in autodoc_source_files_updated:
+                    source_path = Path(source_file)
+                    if source_path.exists():
+                        self.cache.update_file(source_path)
+                        autodoc_source_files_updated.add(source_file)
+                continue
+
+            # Skip virtual pages (no source file) and generated pages
+            if page.is_virtual or page.metadata.get("_generated"):
+                continue
+            self.cache.update_file(page.source_path)
+            # Store tags for next build's comparison
+            if page.tags:
+                self.cache.update_tags(page.source_path, set(page.tags))
+            else:
+                self.cache.update_tags(page.source_path, set())
 
         # Update all asset hashes
         for asset in assets_processed:

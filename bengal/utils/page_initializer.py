@@ -9,10 +9,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 class PageInitializer:
@@ -88,7 +92,15 @@ class PageInitializer:
             # Warn if output_path is outside site's output_dir; URL will fallback
             try:
                 _ = page.output_path.relative_to(self.site.output_dir)
-            except Exception:
+            except Exception as e:
+                logger.warning(
+                    "page_initializer_output_path_check_failed",
+                    output_path=str(page.output_path),
+                    output_dir=str(self.site.output_dir),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="falling_back_to_slug_url",
+                )
                 print(
                     f"Warning: output_path {page.output_path} is not under output directory {self.site.output_dir}; "
                     f"falling back to slug-based URL"

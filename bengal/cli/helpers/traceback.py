@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from bengal.core.site import Site
+from bengal.utils.logger import get_logger
 from bengal.utils.traceback_config import (
     TracebackConfig,
     apply_file_traceback_to_env,
     map_debug_flag_to_traceback,
     set_effective_style_from_cli,
 )
+
+logger = get_logger(__name__)
 
 
 def configure_traceback(
@@ -53,6 +56,11 @@ def configure_traceback(
         try:
             apply_file_traceback_to_env(site.config)
             TracebackConfig.from_environment().install()
-        except Exception:
+        except Exception as e:
             # Silently fail if file config can't be applied
+            logger.debug(
+                "traceback_file_config_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass

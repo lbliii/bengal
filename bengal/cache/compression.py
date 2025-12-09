@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from bengal.utils.logger import get_logger
 
@@ -38,36 +38,36 @@ COMPRESSION_LEVEL = 3
 try:
     # Try stdlib first (Python 3.14+)
     from compression import zstd
-    
+
     # Re-export ZstdError
-    ZstdError = zstd.ZstdError
-    
+    ZstdError: type[Exception] = zstd.ZstdError
+
 except ImportError:
     try:
         # Try PyPI package
         import zstandard as zstd  # type: ignore
-        
+
         # Re-export ZstdError
-        ZstdError = zstd.ZstdError
-        
+        ZstdError = zstd.ZstdError  # type: ignore[no-redef]
+
     except ImportError:
         # Fallback mock for environments without zstd
         logger.warning("zstd_not_available_using_mock", reason="compression_module_missing")
-        
+
         class MockZstd:
             @staticmethod
             def compress(data: bytes, level: int = 3) -> bytes:
                 return data
-            
+
             @staticmethod
             def decompress(data: bytes) -> bytes:
                 return data
-                
+
             class ZstdError(Exception):
                 pass
-                
-        zstd = MockZstd()
-        ZstdError = MockZstd.ZstdError
+
+        zstd = MockZstd()  # type: ignore[assignment]
+        ZstdError = MockZstd.ZstdError  # type: ignore[no-redef]
 
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:
@@ -136,7 +136,7 @@ def load_compressed(path: Path) -> dict[str, Any]:
         original_bytes=len(json_bytes),
     )
 
-    return data
+    return cast(dict[str, Any], data)
 
 
 def detect_format(path: Path) -> str:
@@ -213,7 +213,7 @@ def load_auto(path: Path) -> dict[str, Any]:
     json_path = path if path.suffix == ".json" else path.with_suffix(".json")
     if json_path.exists():
         with open(json_path, encoding="utf-8") as f:
-            return json.load(f)
+            return cast(dict[str, Any], json.load(f))
 
     raise FileNotFoundError(f"Cache file not found: {path} (tried .json.zst and .json)")
 

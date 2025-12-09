@@ -3,7 +3,9 @@ title: Limitations
 description: What Bengal doesn't do
 weight: 25
 type: doc
-tags: [limitations, constraints]
+tags:
+- limitations
+- constraints
 ---
 
 # Limitations
@@ -17,12 +19,6 @@ For dynamic content, use client-side JavaScript or edge functions.
 ## No Image Optimization
 
 Bengal doesn't resize or compress images. Use external tools like `sharp` or a CDN with image optimization.
-
-## No i18n (Yet)
-
-No built-in multilingual support. You can manually organize content by language folder.
-
-Planned for a future release.
 
 ## Large Sites
 

@@ -14,8 +14,11 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.utils.logger import get_logger
 from bengal.utils.swizzle import SwizzleManager
 from bengal.utils.theme_registry import get_installed_themes, get_theme_package
+
+logger = get_logger(__name__)
 
 
 @click.group(cls=BengalGroup)
@@ -175,9 +178,15 @@ def list_themes(source: str) -> None:
         pkg_dir = Path(bengal.__file__).parent / "themes"
         if pkg_dir.exists():
             bundled = [p.name for p in pkg_dir.iterdir() if (p / "templates").exists()]
-    except Exception:
+    except Exception as e:
         # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
         # treat as "no bundled themes available"
+        logger.debug(
+            "bundled_themes_discovery_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="treating_as_no_bundled_themes",
+        )
         pass
 
     cli.header("Project themes:")
@@ -258,9 +267,16 @@ def info(slug: str, source: str) -> None:
         bundled = Path(bengal.__file__).parent / "themes" / slug
         if bundled.exists():
             cli.info(f"  Bundled path: {bundled}")
-    except Exception:
+    except Exception as e:
         # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
         # treat as "bundled theme not found"
+        logger.debug(
+            "bundled_theme_path_check_failed",
+            theme_slug=slug,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="treating_as_not_found",
+        )
         pass
 
 
@@ -469,10 +485,14 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         pkg = get_theme_package(theme_name)
         if pkg:
             return True
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, missing package),
-        # treat as "theme not found"
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_installed_check_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="continuing_to_bundled_check",
+        )
 
     # Bundled theme
     try:
@@ -481,10 +501,14 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         bundled = Path(bengal.__file__).parent / "themes" / theme_name
         if bundled.exists():
             return True
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
-        # treat as "theme not found"
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_bundled_check_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_not_found",
+        )
 
     return False
 
@@ -508,10 +532,14 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
         if template_dir.is_relative_to(bengal_themes):
             theme_name = template_dir.relative_to(bengal_themes).parts[0]
             return f"bundled theme: {theme_name}"
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, path resolution),
-        # continue to next check
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_source_bundled_check_failed",
+            template_dir=str(template_dir),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="continuing_to_installed_check",
+        )
 
     # Installed theme (check if it's in a package)
     try:
@@ -522,10 +550,14 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
             resolved = pkg.resolve_resource_path("templates")
             if resolved and template_dir == resolved:
                 return f"installed theme: {theme_slug}"
-    except Exception:
-        # Ignore all exceptions: if any error occurs (e.g., import failure, package resolution),
-        # continue to fallback "unknown" return
-        pass
+    except Exception as e:
+        logger.debug(
+            "cli_theme_source_installed_check_failed",
+            template_dir=str(template_dir),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_unknown",
+        )
 
     return "unknown"
 
@@ -680,9 +712,15 @@ def features(source: str, category: str | None, enabled: bool, defaults: bool) -
                 source=source, config=None, environment=None, profile=None, cli=cli
             )
             enabled_features = set(site.theme_config.features)
-        except Exception:
+        except Exception as e:
             # If site can't be loaded, just show all features
-            pass
+            logger.debug(
+                "cli_theme_features_site_load_failed",
+                source=str(source) if source else "current_dir",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="showing_all_features",
+            )
 
     # Get default features
     default_keys = set(get_default_features())

@@ -161,9 +161,9 @@ class TestModuleNameResolution:
         result = extractor._infer_module_name(source_root / "main.py")
         assert result == "main"
 
-        # Package at root should be empty (just the package name)
+        # Package at root should use source root directory name
         result_pkg = extractor._infer_module_name(source_root / "__init__.py")
-        assert result_pkg == ""  # Root package
+        assert result_pkg == "src"  # Source root name
 
     def test_extract_sets_source_root_for_directory(self, tmp_path):
         """Test that extract() sets _source_root when called with a directory."""

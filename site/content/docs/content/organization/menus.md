@@ -4,8 +4,16 @@ description: Configure navigation menus in Bengal
 weight: 20
 draft: false
 lang: en
-tags: [menus, navigation, configuration]
-keywords: [menus, navigation, sidebar, header, footer]
+tags:
+- menus
+- navigation
+- configuration
+keywords:
+- menus
+- navigation
+- sidebar
+- header
+- footer
 category: guide
 ---
 
@@ -99,3 +107,5 @@ menu:
   {% endif %}
 {% endfor %}
 ```
+
+

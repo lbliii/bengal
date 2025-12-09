@@ -11,7 +11,11 @@ import re
 from re import Match
 from typing import Any
 
+from bengal.utils.logger import get_logger
+
 __all__ = ["VariableSubstitutionPlugin"]
+
+logger = get_logger(__name__)
 
 
 class VariableSubstitutionPlugin:
@@ -88,8 +92,8 @@ class VariableSubstitutionPlugin:
             context: Dict with variables (page, site, config, etc.)
         """
         self.context = context
-        self.errors = []  # Track substitution errors
-        self.escaped_placeholders = {}  # Track escaped template syntax
+        self.errors: list[str] = []  # Track substitution errors
+        self.escaped_placeholders: dict[str, str] = {}  # Track escaped template syntax
 
     def update_context(self, context: dict[str, Any]) -> None:
         """
@@ -102,7 +106,7 @@ class VariableSubstitutionPlugin:
         self.errors = []  # Reset errors for new page
         self.escaped_placeholders = {}  # Reset placeholders
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> None:
         """Register the plugin with Mistune."""
         if md.renderer and md.renderer.NAME == "html":
             # Store original text renderer
@@ -112,7 +116,8 @@ class VariableSubstitutionPlugin:
             def text_with_substitution(text: str) -> str:
                 """Render text with variable substitution."""
                 substituted = self.substitute_variables(text)
-                return original_text(substituted)
+                result: str = original_text(substituted)
+                return result
 
             # Replace text renderer
             md.renderer.text = text_with_substitution
@@ -123,7 +128,7 @@ class VariableSubstitutionPlugin:
         """
 
         # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
-        def save_escaped(match: Match) -> str:
+        def save_escaped(match: Match[str]) -> str:
             # Preserve the original content without stripping whitespace
             expr = match.group(1)
             placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
@@ -139,7 +144,7 @@ class VariableSubstitutionPlugin:
         """
 
         # Step 2: Normal variable substitution
-        def replace_var(match: Match) -> str:
+        def replace_var(match: Match[str]) -> str:
             expr = match.group(1).strip()
 
             # If expression contains filter syntax (|), control flow ({%), or other
@@ -166,8 +171,15 @@ class VariableSubstitutionPlugin:
                     self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
                     return placeholder
                 return str(result)
-            except Exception:
+            except Exception as e:
                 # On error, keep as placeholder for documentation display
+                logger.debug(
+                    "variable_substitution_failed",
+                    expression=expr,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="keeping_as_placeholder",
+                )
                 placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
                 self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
                 return placeholder
@@ -238,7 +250,7 @@ class VariableSubstitutionPlugin:
                     f"Access to private/protected attributes denied: '{part}' in '{expr}'"
                 )
 
-        result = self.context
+        result: Any = self.context
 
         for part in parts:
             # SECURITY: Double-check dunder blocking on actual attribute access

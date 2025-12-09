@@ -12,13 +12,14 @@ Validates:
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class SitemapValidator(BaseValidator):
@@ -39,7 +40,9 @@ class SitemapValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run sitemap validation checks."""
         results = []
 
@@ -174,7 +177,7 @@ class SitemapValidator(BaseValidator):
 
     def _check_duplicate_urls(self, root: ET.Element) -> list[CheckResult]:
         """Check for duplicate URLs in sitemap."""
-        results = []
+        results: list[CheckResult] = []
 
         # Find all <url> elements
         urls = root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}url")

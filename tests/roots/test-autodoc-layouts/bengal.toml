@@ -1,0 +1,12 @@
+title = "Test Autodoc Layouts"
+base_url = "https://example.com"
+
+[build]
+theme = "default"
+
+[autodoc]
+sources = ["src"]
+output_dir = "content/api"
+
+[autodoc.python]
+enabled = true

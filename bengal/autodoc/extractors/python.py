@@ -9,11 +9,28 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
-from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
+from bengal.autodoc.models import (
+    PythonAliasMetadata,
+    PythonAttributeMetadata,
+    PythonClassMetadata,
+    PythonFunctionMetadata,
+    PythonModuleMetadata,
+)
+from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring, RaisesInfo
+from bengal.autodoc.utils import (
+    apply_grouping,
+    auto_detect_prefix_map,
+    get_python_class_bases,
+    get_python_function_is_property,
+    sanitize_text,
+)
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class PythonExtractor(Extractor):
@@ -35,7 +52,9 @@ class PythonExtractor(Extractor):
     - No side effects
     """
 
-    def __init__(self, exclude_patterns: list[str] | None = None, config: dict | None = None):
+    def __init__(
+        self, exclude_patterns: list[str] | None = None, config: dict[str, Any] | None = None
+    ):
         """
         Initialize extractor.
 
@@ -63,7 +82,7 @@ class PythonExtractor(Extractor):
         # Initialize grouping configuration
         self._grouping_config = self._init_grouping()
 
-    def _init_grouping(self) -> dict:
+    def _init_grouping(self) -> dict[str, Any]:
         """
         Initialize grouping configuration.
 
@@ -104,19 +123,12 @@ class PythonExtractor(Extractor):
         Returns:
             List of DocElement objects
         """
-        # Store source root for module name resolution
-        # Use source_dirs from config if available, otherwise use the source parameter
-        source_dirs = self.config.get("source_dirs", [])
-        if source_dirs:
-            # Use the first source_dir that is a parent of the source
-            source_path = (
-                Path(source_dirs[0]) if isinstance(source_dirs[0], str) else source_dirs[0]
-            )
-            self._source_root = source_path
-        elif source.is_file():
-            self._source_root = source.parent
+        # Store source root for module name resolution (must be absolute)
+        # Always use the source parameter since it's already resolved by the caller
+        if source.is_file():
+            self._source_root = source.parent.resolve()
         else:
-            self._source_root = source
+            self._source_root = source.resolve()
 
         if source.is_file():
             return self._extract_file(source)
@@ -138,9 +150,30 @@ class PythonExtractor(Extractor):
                 file_elements = self._extract_file(py_file)
                 elements.extend(file_elements)
             except SyntaxError as e:
-                print(f"  ⚠️  Syntax error in {py_file}: {e}")
+                logger.warning(
+                    f"Syntax error in {py_file.relative_to(directory) if py_file.is_relative_to(directory) else py_file}\n"
+                    f"  Line {e.lineno}: {e.msg}\n"
+                    f"  Tip: Fix the syntax error or add to exclude patterns"
+                )
             except Exception as e:
-                print(f"  ⚠️  Error extracting {py_file}: {e}")
+                import traceback
+
+                # Get the actual location where error occurred
+                tb = traceback.extract_tb(e.__traceback__)
+                if tb:
+                    last_frame = tb[-1]
+                    error_location = (
+                        f"{last_frame.filename}:{last_frame.lineno} in {last_frame.name}"
+                    )
+                else:
+                    error_location = "unknown location"
+
+                logger.warning(
+                    f"Failed to extract {py_file.relative_to(directory) if py_file.is_relative_to(directory) else py_file}\n"
+                    f"  Error: {type(e).__name__}: {e}\n"
+                    f"  Location: {error_location}\n"
+                    f"  Tip: This may be a bug in the extractor - report if persistent"
+                )
 
         # Second pass: build class index
         for element in elements:
@@ -160,15 +193,57 @@ class PythonExtractor(Extractor):
         return elements
 
     def _should_skip(self, path: Path) -> bool:
-        """Check if file should be skipped."""
-        path_str = str(path)
+        """
+        Check if file should be skipped.
 
+        Handles common exclusion patterns:
+        - Hidden directories (starting with .)
+        - Virtual environments (.venv, venv, env, .env)
+        - Site-packages (dependencies)
+        - Build artifacts (__pycache__, build, dist)
+        - Test files and directories
+        """
+        path_str = str(path)
+        path_parts = path.parts
+
+        # Skip hidden directories (any part starting with .)
+        for part in path_parts:
+            if part.startswith(".") and part not in (".", ".."):
+                return True
+
+        # Skip common virtual environment and dependency directories
+        common_skip_dirs = {
+            "venv",
+            ".venv",
+            "env",
+            ".env",
+            "site-packages",
+            "__pycache__",
+            ".tox",
+            ".nox",
+            ".eggs",
+            "build",
+            "dist",
+            "node_modules",
+        }
+        for part in path_parts:
+            if part in common_skip_dirs:
+                return True
+            # Skip egg-info directories
+            if part.endswith(".egg-info"):
+                return True
+
+        # Apply user-specified exclude patterns
         for pattern in self.exclude_patterns:
-            # Simple pattern matching
-            if pattern.replace("*/", "").replace("/*", "") in path_str:
+            # Simple substring matching (for patterns like "*/tests/*")
+            core_pattern = pattern.replace("*/", "").replace("/*", "").replace("*", "")
+            if core_pattern and core_pattern in path_str:
                 return True
-            if pattern.startswith("*/") and path.name.startswith(pattern[2:].replace("*", "")):
-                return True
+            # Filename matching (for patterns like "test_*.py")
+            if pattern.startswith("*/") and "*" in pattern:
+                suffix = pattern[2:].replace("*", "")
+                if path.name.startswith(suffix) or path.name.endswith(suffix):
+                    return True
 
         return False
 
@@ -241,17 +316,24 @@ class PythonExtractor(Extractor):
                     line_number = node.lineno
                     break
 
+            # Build typed metadata for alias
+            typed_meta = PythonAliasMetadata(
+                alias_of=canonical_name,
+                alias_kind="assignment",
+            )
+
             alias_elem = DocElement(
                 name=alias_name,
                 qualified_name=f"{module_name}.{alias_name}",
                 description=f"Alias of `{canonical_name}`",
                 element_type="alias",
-                source_file=file_path,
+                source_file=self._get_relative_source_path(file_path),
                 line_number=line_number,
                 metadata={
                     "alias_of": canonical_name,
                     "alias_kind": "assignment",
                 },
+                typed_metadata=typed_meta,
             )
             children.append(alias_elem)
 
@@ -270,17 +352,32 @@ class PythonExtractor(Extractor):
         # Use just the last component for display name (e.g., "cli" instead of "autodoc.extractors.cli")
         display_name = module_name.split(".")[-1] if "." in module_name else module_name
 
+        # Check if this is a package (__init__.py)
+        is_package = file_path.name == "__init__.py"
+
+        # Extract __all__ exports
+        all_exports = self._extract_all_exports(tree)
+
+        # Build typed metadata
+        typed_meta = PythonModuleMetadata(
+            file_path=str(file_path),
+            is_package=is_package,
+            has_all=all_exports is not None,
+            all_exports=tuple(all_exports) if all_exports else (),
+        )
+
         return DocElement(
             name=display_name,
             qualified_name=module_name,
             description=sanitize_text(docstring),
             element_type="module",
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=1,
             metadata={
                 "file_path": str(file_path),
-                "has_all": self._extract_all_exports(tree),
+                "has_all": all_exports,
             },
+            typed_metadata=typed_meta,
             children=children,
         )
 
@@ -311,24 +408,31 @@ class PythonExtractor(Extractor):
             if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
                 method = self._extract_function(item, file_path, qualified_name)
                 if method:
-                    # Check if it's a property
-                    if any("property" in d for d in method.metadata.get("decorators", [])):
+                    # Check if it's a property using typed accessor
+                    if get_python_function_is_property(method):
                         properties.append(method)
                     else:
                         methods.append(method)
 
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 # Class variable with type annotation
+                annotation_str = self._annotation_to_string(item.annotation)
+                typed_attr_meta = PythonAttributeMetadata(
+                    annotation=annotation_str,
+                    is_class_var=True,
+                    default_value=self._expr_to_string(item.value) if item.value else None,
+                )
                 var_elem = DocElement(
                     name=item.target.id,
                     qualified_name=f"{qualified_name}.{item.target.id}",
                     description="",
                     element_type="attribute",
-                    source_file=file_path,
+                    source_file=self._get_relative_source_path(file_path),
                     line_number=item.lineno,
                     metadata={
-                        "annotation": self._annotation_to_string(item.annotation),
+                        "annotation": annotation_str,
                     },
+                    typed_metadata=typed_attr_meta,
                 )
                 class_vars.append(var_elem)
 
@@ -344,16 +448,21 @@ class PythonExtractor(Extractor):
                     code_attrs_by_name[attr_name].description = attr_desc
                 else:
                     # Create attribute element from docstring only
+                    typed_attr_meta = PythonAttributeMetadata(
+                        annotation=None,
+                        is_class_var=False,  # Unknown from docstring only
+                    )
                     var_elem = DocElement(
                         name=attr_name,
                         qualified_name=f"{qualified_name}.{attr_name}",
                         description=attr_desc,
                         element_type="attribute",
-                        source_file=file_path,
+                        source_file=self._get_relative_source_path(file_path),
                         line_number=node.lineno,
                         metadata={
                             "annotation": None,
                         },
+                        typed_metadata=typed_attr_meta,
                     )
                     class_vars.append(var_elem)
 
@@ -364,20 +473,38 @@ class PythonExtractor(Extractor):
         raw_description = parsed_doc.description if parsed_doc else docstring
         description = sanitize_text(raw_description)
 
+        # Detect exception and dataclass
+        is_exception = any(b in ("Exception", "BaseException") for b in bases) or any(
+            "Exception" in b for b in bases
+        )
+        is_dataclass = "dataclass" in decorators or any("dataclass" in d for d in decorators)
+        is_abstract = any("ABC" in base for base in bases)
+
+        # Build typed metadata
+        typed_meta = PythonClassMetadata(
+            bases=tuple(bases),
+            decorators=tuple(decorators),
+            is_exception=is_exception,
+            is_dataclass=is_dataclass,
+            is_abstract=is_abstract,
+            parsed_doc=self._to_parsed_docstring(parsed_doc) if parsed_doc else None,
+        )
+
         return DocElement(
             name=node.name,
             qualified_name=qualified_name,
             description=description,
             element_type="class",
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=node.lineno,
             metadata={
                 "bases": bases,
                 "decorators": decorators,
-                "is_dataclass": "dataclass" in decorators,
-                "is_abstract": any("ABC" in base for base in bases),
+                "is_dataclass": is_dataclass,
+                "is_abstract": is_abstract,
                 "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
+            typed_metadata=typed_meta,
             children=children,
             examples=parsed_doc.examples if parsed_doc else [],
             see_also=parsed_doc.see_also if parsed_doc else [],
@@ -440,12 +567,30 @@ class PythonExtractor(Extractor):
         raw_description = parsed_doc.description if parsed_doc else docstring
         description = sanitize_text(raw_description)
 
+        # Detect generator (simple heuristic - check for yield in body)
+        is_generator = self._has_yield(node)
+
+        # Build typed metadata with ParameterInfo objects
+        typed_params = tuple(self._to_parameter_info(arg) for arg in merged_args)
+        typed_meta = PythonFunctionMetadata(
+            signature=signature,
+            parameters=typed_params,
+            return_type=returns,
+            is_async=is_async,
+            is_classmethod=is_classmethod,
+            is_staticmethod=is_staticmethod,
+            is_property=is_property,
+            is_generator=is_generator,
+            decorators=tuple(decorators),
+            parsed_doc=self._to_parsed_docstring(parsed_doc) if parsed_doc else None,
+        )
+
         return DocElement(
             name=node.name,
             qualified_name=qualified_name,
             description=description,
             element_type=element_type,
-            source_file=file_path,
+            source_file=self._get_relative_source_path(file_path),
             line_number=node.lineno,
             metadata={
                 "signature": signature,
@@ -458,6 +603,7 @@ class PythonExtractor(Extractor):
                 "is_staticmethod": is_staticmethod,
                 "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
+            typed_metadata=typed_meta,
             examples=parsed_doc.examples if parsed_doc else [],
             see_also=parsed_doc.see_also if parsed_doc else [],
             deprecated=parsed_doc.deprecated if parsed_doc else None,
@@ -506,7 +652,9 @@ class PythonExtractor(Extractor):
 
         return signature
 
-    def _extract_arguments(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
+    def _extract_arguments(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
+    ) -> list[dict[str, Any]]:
         """Extract argument information."""
         args = []
 
@@ -531,6 +679,80 @@ class PythonExtractor(Extractor):
 
         return args
 
+    def _to_parsed_docstring(self, parsed: Any) -> ParsedDocstring | None:
+        """
+        Convert ParsedDoc to frozen ParsedDocstring.
+
+        Args:
+            parsed: ParsedDoc from docstring_parser
+
+        Returns:
+            ParsedDocstring dataclass or None
+        """
+        if not parsed:
+            return None
+
+        # Build parameter info from parsed docstring
+        params: list[ParameterInfo] = []
+        if hasattr(parsed, "args") and parsed.args:
+            for name, desc in parsed.args.items():
+                params.append(
+                    ParameterInfo(
+                        name=name,
+                        description=desc,
+                    )
+                )
+
+        # Build raises info (parsed.raises is a list of dicts, not a dict)
+        raises: list[RaisesInfo] = []
+        if hasattr(parsed, "raises") and parsed.raises:
+            for raise_item in parsed.raises:
+                if isinstance(raise_item, dict):
+                    raises.append(
+                        RaisesInfo(
+                            type_name=raise_item.get("type", ""),
+                            description=raise_item.get("description", ""),
+                        )
+                    )
+
+        return ParsedDocstring(
+            summary=getattr(parsed, "summary", "") or "",
+            description=getattr(parsed, "description", "") or "",
+            params=tuple(params),
+            returns=getattr(parsed, "returns", None),
+            raises=tuple(raises),
+            examples=tuple(getattr(parsed, "examples", []) or []),
+        )
+
+    def _to_parameter_info(self, arg: dict[str, Any]) -> ParameterInfo:
+        """
+        Convert arg dict to ParameterInfo.
+
+        Args:
+            arg: Dict with name, annotation, default, docstring
+
+        Returns:
+            ParameterInfo dataclass
+        """
+        return ParameterInfo(
+            name=arg.get("name", ""),
+            type_hint=arg.get("annotation"),
+            default=arg.get("default"),
+            description=arg.get("docstring"),
+        )
+
+    def _has_yield(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """
+        Check if function contains yield statement.
+
+        Args:
+            node: Function AST node
+
+        Returns:
+            True if function is a generator
+        """
+        return any(isinstance(child, ast.Yield | ast.YieldFrom) for child in ast.walk(node))
+
     def _annotation_to_string(self, annotation: ast.expr | None) -> str | None:
         """Convert AST annotation to string."""
         if annotation is None:
@@ -538,15 +760,27 @@ class PythonExtractor(Extractor):
 
         try:
             return ast.unparse(annotation)
-        except Exception:
+        except Exception as e:
             # Fallback for complex annotations
+            logger.debug(
+                "ast_unparse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_ast_dump_fallback",
+            )
             return ast.dump(annotation)
 
     def _expr_to_string(self, expr: ast.expr) -> str:
         """Convert AST expression to string."""
         try:
             return ast.unparse(expr)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "ast_expr_unparse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_ast_dump_fallback",
+            )
             return ast.dump(expr)
 
     def _infer_module_name(self, file_path: Path) -> str:
@@ -556,11 +790,14 @@ class PythonExtractor(Extractor):
         Examples:
             source_root: bengal/
             file_path: bengal/cli/commands/build.py
-            result: cli.commands.build
+            result: bengal.cli.commands.build
         """
+        # Resolve file_path to handle relative paths correctly
+        resolved_file = file_path.resolve()
+
         if self._source_root is None:
             # Fallback to old behavior if source root not set
-            parts = list(file_path.parts)
+            parts = list(resolved_file.parts)
             package_start = 0
             for i in range(len(parts) - 1, -1, -1):
                 parent = Path(*parts[: i + 1])
@@ -571,19 +808,53 @@ class PythonExtractor(Extractor):
         else:
             # Use source root to compute relative path
             try:
-                rel_path = file_path.relative_to(self._source_root)
+                rel_path = resolved_file.relative_to(self._source_root)
                 module_parts = list(rel_path.parts)
             except ValueError:
-                # File not under source root, use absolute path
-                module_parts = list(file_path.parts)
+                # File not under source root - find package root via __init__.py
+                logger.debug(
+                    "file_not_under_source_root",
+                    file=str(resolved_file),
+                    source_root=str(self._source_root),
+                )
+                parts = list(resolved_file.parts)
+                package_start = 0
+                for i in range(len(parts) - 1, -1, -1):
+                    parent = Path(*parts[: i + 1])
+                    if (parent / "__init__.py").exists():
+                        package_start = i
+                        break
+                module_parts = parts[package_start:]
 
         # Handle __init__.py (package) vs regular module
-        if module_parts[-1] == "__init__.py":
+        if module_parts and module_parts[-1] == "__init__.py":
             module_parts = module_parts[:-1]
-        elif module_parts[-1].endswith(".py"):
+        elif module_parts and module_parts[-1].endswith(".py"):
             module_parts[-1] = module_parts[-1][:-3]
 
+        # If module_parts is empty (root __init__.py), use source_root name
+        if not module_parts and self._source_root:
+            module_parts = [self._source_root.name]
+
         return ".".join(module_parts)
+
+    def _get_relative_source_path(self, file_path: Path) -> Path:
+        """
+        Get source path relative to source root for GitHub links.
+
+        Args:
+            file_path: Absolute file path
+
+        Returns:
+            Path relative to source root (e.g., "bengal/core/page.py")
+        """
+        if self._source_root:
+            try:
+                # Get path relative to source root's parent (to include package name)
+                return file_path.relative_to(self._source_root.parent)
+            except ValueError:
+                pass
+        return file_path
 
     def _should_include_inherited(self, element_type: str = "class") -> bool:
         """
@@ -601,7 +872,7 @@ class PythonExtractor(Extractor):
 
         # Per-type override
         by_type = self.config.get("include_inherited_by_type", {})
-        return by_type.get(element_type, False)
+        return bool(by_type.get(element_type, False))
 
     def _synthesize_inherited_members(self, class_elem: DocElement) -> None:
         """
@@ -610,8 +881,8 @@ class PythonExtractor(Extractor):
         Args:
             class_elem: Class DocElement to augment with inherited members
         """
-        # Get base classes
-        bases = class_elem.metadata.get("bases", [])
+        # Get base classes using typed accessor
+        bases = get_python_class_bases(class_elem)
         if not bases:
             return
 
@@ -655,9 +926,10 @@ class PythonExtractor(Extractor):
                     continue
 
                 # Only inherit methods and properties
-                if member.element_type not in ("method", "function") and not member.metadata.get(
-                    "is_property"
-                ):
+                if member.element_type not in (
+                    "method",
+                    "function",
+                ) and not get_python_function_is_property(member):
                     continue
 
                 # Create inherited member entry

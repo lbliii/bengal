@@ -63,6 +63,7 @@ class GraphReporter:
         self._ensure_built()
 
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         hubs = self._graph.get_hubs()
         orphans = self._graph.get_orphans()
 
@@ -161,6 +162,7 @@ class GraphReporter:
 
         recommendations = []
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         orphans = self._graph.get_orphans()
 
         # Orphaned pages recommendation
@@ -181,6 +183,9 @@ class GraphReporter:
             if not self._graph._pagerank_results:
                 # Compute PageRank if not already computed
                 self._graph.compute_pagerank()
+
+            if self._graph._pagerank_results is None:
+                return []
 
             # Get average PageRank to identify high-value pages
             all_scores = list(self._graph._pagerank_results.scores.values())
@@ -221,6 +226,9 @@ class GraphReporter:
             if not self._graph._path_results:
                 # Compute path analysis if not already computed
                 self._graph.analyze_paths()
+
+            if self._graph._path_results is None:
+                return []
 
             bridges = self._graph._path_results.get_top_bridges(5)
             if bridges and bridges[0][1] > 0.001:
@@ -268,6 +276,7 @@ class GraphReporter:
 
         insights = []
         m = self._graph.metrics
+        assert m is not None, "metrics should not be None after _ensure_built()"
         analysis_pages = getattr(
             self._graph, "_analysis_pages_cache", self._graph.get_analysis_pages()
         )
@@ -308,6 +317,9 @@ class GraphReporter:
         try:
             if not self._graph._pagerank_results:
                 self._graph.compute_pagerank()
+
+            if self._graph._pagerank_results is None:
+                return []
 
             # Find pages with high PageRank but few outgoing links
             high_pagerank_low_outgoing = []

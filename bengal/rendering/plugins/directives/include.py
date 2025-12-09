@@ -70,7 +70,7 @@ class IncludeDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["include"]
 
-    def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
+    def parse(self, block: BlockParser, m: Match[str], state: BlockState) -> dict[str, Any]:
         """
         Parse include directive.
 
@@ -97,8 +97,22 @@ class IncludeDirective(DirectivePlugin):
 
         # Parse options
         options = dict(self.parse_options(m))
-        start_line = options.get("start-line")
-        end_line = options.get("end-line")
+        start_line_str = options.get("start-line")
+        end_line_str = options.get("end-line")
+
+        # Convert string line numbers to integers
+        start_line: int | None = None
+        end_line: int | None = None
+        if start_line_str is not None:
+            try:
+                start_line = int(start_line_str)
+            except (ValueError, TypeError):
+                pass
+        if end_line_str is not None:
+            try:
+                end_line = int(end_line_str)
+            except (ValueError, TypeError):
+                pass
 
         # Resolve file path
         file_path = self._resolve_path(path, state)
@@ -159,15 +173,15 @@ class IncludeDirective(DirectivePlugin):
         # --- Update state for nested includes ---
         # Track this file to detect cycles
         new_included_files = included_files | {canonical_path}
-        state._included_files = new_included_files
-        state._include_depth = current_depth + 1
+        state._included_files = new_included_files  # type: ignore[attr-defined]
+        state._include_depth = current_depth + 1  # type: ignore[attr-defined]
 
         # Parse included content as markdown
         # Use parse_tokens to allow nested directives in included content
         children = self.parse_tokens(block, content, state)
 
         # Restore depth after parsing (allows sibling includes at same depth)
-        state._include_depth = current_depth
+        state._include_depth = current_depth  # type: ignore[attr-defined]
 
         return {
             "type": "include",
@@ -188,16 +202,31 @@ class IncludeDirective(DirectivePlugin):
             - Rejects paths outside site root
             - Rejects symlinks (could escape containment)
 
+        Path Resolution:
+            - root_path MUST be provided via state (set by rendering pipeline)
+            - No fallback to Path.cwd() - eliminates CWD-dependent behavior
+            - See: plan/active/rfc-path-resolution-architecture.md
+
         Args:
             path: Relative or absolute path to file
-            state: Parser state (may contain root_path, source_path)
+            state: Parser state (must contain root_path, may contain source_path)
 
         Returns:
-            Resolved Path object, or None if not found or outside site root
+            Resolved Path object, or None if not found, outside site root,
+            or if root_path is not available in state
         """
-        # Try to get root_path from state (set by rendering pipeline)
+        # Get root_path from state (MUST be set by rendering pipeline)
+        # No CWD fallback - path resolution must be explicit
         root_path = getattr(state, "root_path", None)
-        root_path = Path(root_path) if root_path else Path.cwd()
+        if not root_path:
+            logger.warning(
+                "include_missing_root_path",
+                path=path,
+                action="skipping",
+                hint="Ensure rendering pipeline passes root_path in state",
+            )
+            return None
+        root_path = Path(root_path)
 
         # Try to get source_path from state (current page being parsed)
         source_path = getattr(state, "source_path", None)
@@ -227,12 +256,12 @@ class IncludeDirective(DirectivePlugin):
             except ValueError:
                 logger.warning("include_path_traversal_rejected", path=path)
                 return None
-            file_path = resolved
+            file_path: Path | None = resolved
         else:
             file_path = base_dir / path
 
         # Check if file exists
-        if not file_path.exists():
+        if file_path is None or not file_path.exists():
             # Try with .md extension
             if not path.endswith(".md"):
                 file_path = base_dir / f"{path}.md"
@@ -325,7 +354,7 @@ class IncludeDirective(DirectivePlugin):
             logger.warning("include_load_error", path=str(file_path), error=str(e))
             return None
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register include directive."""
         directive.register("include", self.parse)
 
@@ -333,7 +362,7 @@ class IncludeDirective(DirectivePlugin):
             md.renderer.register("include", render_include)
 
 
-def render_include(renderer, text: str, **attrs) -> str:
+def render_include(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render include directive.
 

@@ -13,7 +13,6 @@ Example:
     excerpt = truncate_words("Long text here...", 10)
 """
 
-
 from __future__ import annotations
 
 import html as html_module
@@ -431,3 +430,41 @@ def humanize_number(num: int) -> str:
         '1,000'
     """
     return f"{num:,}"
+
+
+def humanize_slug(slug: str) -> str:
+    """
+    Convert slug or filename stem to human-readable title.
+
+    Transforms kebab-case and snake_case identifiers into
+    Title Case strings suitable for display in navigation,
+    page titles, and other user-facing contexts.
+
+    Consolidates pattern from:
+    - bengal/core/page/metadata.py (title property)
+    - bengal/discovery/content_discovery.py (fallback titles)
+    - bengal/rendering/template_functions/navigation.py (breadcrumbs)
+    - bengal/cli/helpers/menu_config.py (menu titles)
+    - Various Jinja templates
+
+    Args:
+        slug: Slug or filename stem (e.g., "my-page-name", "data_model")
+
+    Returns:
+        Human-readable title (e.g., "My Page Name", "Data Model")
+
+    Examples:
+        >>> humanize_slug("my-page-name")
+        'My Page Name'
+        >>> humanize_slug("data_model_v2")
+        'Data Model V2'
+        >>> humanize_slug("_index")
+        'Index'
+        >>> humanize_slug("api-reference")
+        'Api Reference'
+        >>> humanize_slug("")
+        ''
+    """
+    if not slug:
+        return ""
+    return slug.replace("-", " ").replace("_", " ").title()

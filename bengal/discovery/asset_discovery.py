@@ -2,7 +2,6 @@
 Asset discovery - finds and organizes static assets.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -31,7 +30,7 @@ class AssetDiscovery:
         self.assets_dir = assets_dir
         self.assets: list[Asset] = []
 
-    def discover(self, base_path: Path | None = None) -> list:
+    def discover(self, base_path: Path | None = None) -> list[Asset]:
         # Use provided assets dir or fall back to self.assets_dir
         assets_dir = self.assets_dir if base_path is None else base_path
         if not assets_dir.exists():
@@ -69,7 +68,9 @@ class AssetDiscovery:
                 size = Path(asset.source_path).stat().st_size
                 if size < 1000:
                     # Debug only: Small assets (favicons, icons, etc.) are perfectly normal
-                    logger.debug("small_asset_discovered", path=str(asset.source_path), size_bytes=size)
+                    logger.debug(
+                        "small_asset_discovered", path=str(asset.source_path), size_bytes=size
+                    )
             except (AttributeError, FileNotFoundError):
                 # This indicates a bug in asset creation - log as warning
                 logger.warning("asset_missing_path", asset=str(asset))

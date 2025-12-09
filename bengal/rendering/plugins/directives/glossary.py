@@ -82,7 +82,7 @@ class GlossaryDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["glossary"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse glossary directive options.
 
@@ -326,7 +326,17 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
                         return {"terms": terms}
 
     # Fallback: Load from file using site.root_path
-    root_path = site.root_path if site and hasattr(site, "root_path") else Path.cwd()
+    # No CWD fallback - path resolution must be explicit
+    # See: plan/active/rfc-path-resolution-architecture.md
+    if not site or not hasattr(site, "root_path"):
+        logger.warning(
+            "glossary_missing_site_context",
+            source_path=source_path,
+            action="returning_error",
+            hint="Ensure renderer has _site attribute with root_path",
+        )
+        return {"error": "Site context not available for path resolution"}
+    root_path = site.root_path
 
     file_path = Path(root_path) / source_path
 
@@ -353,7 +363,7 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
         return {"error": f"Failed to parse glossary: {e}"}
 
 
-def _filter_terms(terms: list[dict], tags: list[str]) -> list[dict]:
+def _filter_terms(terms: list[dict[str, Any]], tags: list[str]) -> list[dict[str, Any]]:
     """
     Filter terms by tags.
 
@@ -384,7 +394,7 @@ def _filter_terms(terms: list[dict], tags: list[str]) -> list[dict]:
     return filtered
 
 
-def _render_term(renderer: Any, term_data: dict, show_tags: bool) -> str:
+def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> str:
     """Render a single glossary term as dt/dd pair."""
     term = term_data.get("term", "Unknown Term")
     definition = term_data.get("definition", "No definition provided.")
@@ -429,15 +439,31 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         md_instance = renderer._md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
-            except Exception:
+                result: str = md_instance.inline(text)
+                return result
+            except Exception as e:
+                logger.debug(
+                    "glossary_inline_parse_failed",
+                    method="_md",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_md_fallback",
+                )
                 pass
     elif hasattr(renderer, "md"):
         md_instance = renderer.md
         if hasattr(md_instance, "inline"):
             try:
-                return md_instance.inline(text)
-            except Exception:
+                result = str(md_instance.inline(text))
+                return result
+            except Exception as e:
+                logger.debug(
+                    "glossary_inline_parse_failed",
+                    method="md",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="using_regex_fallback",
+                )
                 pass
 
     # Fallback to simple regex for basic markdown

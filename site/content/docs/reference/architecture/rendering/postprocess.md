@@ -3,8 +3,20 @@ title: Post-Processing
 description: Site-wide operations after rendering - sitemap, RSS, and link validation
 weight: 50
 category: rendering
-tags: [rendering, postprocess, sitemap, rss, link-validation, seo]
-keywords: [post-processing, sitemap, RSS, link validation, SEO, site generation]
+tags:
+- rendering
+- postprocess
+- sitemap
+- rss
+- link-validation
+- seo
+keywords:
+- post-processing
+- sitemap
+- RSS
+- link validation
+- SEO
+- site generation
 ---
 
 # Post-Processing

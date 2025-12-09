@@ -6,7 +6,6 @@ category: guide
 icon: search
 card_color: green
 ---
-
 # Site Analysis
 
 Analyze your site's structure to improve navigation and discoverability.

@@ -365,3 +365,190 @@ def test_page_ancestors_uses_section(temp_site):
     assert len(ancestors) == 2
     assert ancestors[0] == guides
     assert ancestors[1] == docs
+
+
+# ============================================================================
+# Virtual Section Tests
+# See: plan/active/rfc-page-section-reference-contract.md
+# ============================================================================
+
+
+def test_virtual_section_reference(temp_site):
+    """Test that virtual pages have correct _section reference.
+
+    Virtual sections have path=None and must use URL-based lookups.
+    This test verifies the fix for the critical bug where virtual pages
+    had flat navigation because _section was always None.
+
+    See: plan/active/rfc-page-section-reference-contract.md
+    """
+    # Create virtual section (path=None like autodoc API sections)
+    api_section = Section.create_virtual(
+        name="api",
+        relative_url="/api/",
+        title="API Reference",
+    )
+
+    # Create virtual page for this section
+    page = Page.create_virtual(
+        source_id="api/index.md",
+        title="API Index",
+        content="API documentation",
+    )
+
+    temp_site.sections = [api_section]
+    temp_site.register_sections()
+
+    page._site = temp_site
+    page._section = api_section  # Should store URL, not path
+
+    # Verify section is accessible via URL-based lookup
+    assert page._section == api_section
+    assert page._section_path is None  # Not path-based
+    assert page._section_url == "/api/"  # URL-based
+
+
+def test_virtual_section_hierarchical_navigation(temp_site):
+    """Test that virtual pages have hierarchical navigation, not flat.
+
+    This is the key test for the RFC - virtual autodoc pages should
+    show hierarchical navigation (api > core > module) instead of
+    flat navigation (all modules at same level).
+    """
+    # Create nested virtual section hierarchy (like autodoc generates)
+    core_section = Section.create_virtual(
+        name="core",
+        relative_url="/api/core/",
+        title="Core Module",
+    )
+
+    api_section = Section.create_virtual(
+        name="api",
+        relative_url="/api/",
+        title="API Reference",
+    )
+
+    # Set up parent relationship
+    core_section.parent = api_section
+    api_section.subsections = [core_section]
+
+    # Create page in the nested section
+    page = Page.create_virtual(
+        source_id="api/core/page_module.md",
+        title="Page Module",
+        content="Documentation for Page class",
+    )
+
+    core_section.add_page(page)
+
+    temp_site.sections = [api_section]
+    temp_site.register_sections()
+
+    page._site = temp_site
+    page._section = core_section
+
+    # Verify hierarchical navigation works
+    assert page._section is not None, "Virtual page should have _section"
+    assert page._section.name == "core"
+    assert page._section.root.name == "api"
+
+    # Verify navigation hierarchy is correct (not flat)
+    hierarchy = page._section.hierarchy
+    assert len(hierarchy) == 2
+    assert hierarchy == ["api", "core"]
+
+
+def test_virtual_section_url_registry(temp_site):
+    """Test that Site.get_section_by_url() returns correct virtual section."""
+    api_section = Section.create_virtual(
+        name="api",
+        relative_url="/api/",
+        title="API Reference",
+    )
+
+    temp_site.sections = [api_section]
+    temp_site.register_sections()
+
+    # Verify URL-based lookup works
+    found = temp_site.get_section_by_url("/api/")
+    assert found == api_section
+    assert found.title == "API Reference"
+
+
+def test_mixed_regular_and_virtual_sections(temp_site):
+    """Test that both regular and virtual pages have correct _section."""
+    # Create regular section with path
+    blog = Section(
+        name="blog",
+        path=temp_site.root_path / "content" / "blog",
+        metadata={"title": "Blog"},
+        pages=[],
+        subsections=[],
+    )
+
+    # Create virtual section without path
+    api_section = Section.create_virtual(
+        name="api",
+        relative_url="/api/",
+        title="API Reference",
+    )
+
+    # Create pages
+    blog_post = Page(
+        source_path=temp_site.root_path / "content" / "blog" / "post1.md",
+        content="Blog content",
+        metadata={"title": "Post 1"},
+    )
+
+    api_page = Page.create_virtual(
+        source_id="api/module.md",
+        title="Module Docs",
+        content="API content",
+    )
+
+    temp_site.sections = [blog, api_section]
+    temp_site.register_sections()
+
+    blog_post._site = temp_site
+    blog_post._section = blog
+
+    api_page._site = temp_site
+    api_page._section = api_section
+
+    # Verify both have correct sections
+    assert blog_post._section == blog
+    assert blog_post._section_path == blog.path  # Path-based
+
+    assert api_page._section == api_section
+    assert api_page._section_url == "/api/"  # URL-based
+
+
+def test_virtual_section_setter_clears_both_references(temp_site):
+    """Test that setting _section to None clears both path and URL."""
+    page = Page(
+        source_path=temp_site.root_path / "content" / "test.md",
+        content="Content",
+        metadata={"title": "Test"},
+    )
+
+    # First set to virtual section
+    api_section = Section.create_virtual(
+        name="api",
+        relative_url="/api/",
+        title="API",
+    )
+    temp_site.sections = [api_section]
+    temp_site.register_sections()
+
+    page._site = temp_site
+    page._section = api_section
+
+    assert page._section_url == "/api/"
+    assert page._section_path is None
+
+    # Then clear
+    page._section = None
+
+    assert page._section_path is None
+    assert page._section_url is None
+    assert page._section is None

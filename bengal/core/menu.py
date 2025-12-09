@@ -85,7 +85,7 @@ class MenuItem:
     active: bool = False
     active_trail: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Set identifier from name if not provided.
 
@@ -178,7 +178,7 @@ class MenuItem:
         for child in self.children:
             child.reset_active()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert menu item to dictionary for template access.
 
@@ -251,7 +251,7 @@ class MenuBuilder:
         menu_items = builder.build_hierarchy()
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.items: list[MenuItem] = []
         # Track items to prevent duplicates across all add methods
         self._seen_identifiers: set[str] = set()
@@ -307,7 +307,7 @@ class MenuBuilder:
         if item.name:
             self._seen_names.add(item.name.lower())
 
-    def add_from_config(self, menu_config: list[dict]) -> None:
+    def add_from_config(self, menu_config: list[dict[str, Any]]) -> None:
         """
         Add menu items from configuration file.
 
@@ -355,7 +355,7 @@ class MenuBuilder:
             self.items.append(item)
             self._track_item(item)
 
-    def add_from_page(self, page: Any, menu_name: str, menu_config: dict) -> None:
+    def add_from_page(self, page: Any, menu_name: str, menu_config: dict[str, Any]) -> None:
         """
         Add a page to menu based on frontmatter metadata.
 
@@ -465,7 +465,7 @@ class MenuBuilder:
                 roots.append(item)
 
         # Detect cycles
-        visited = set()
+        visited: set[str] = set()
         for root in roots:
             if self._has_cycle(root, visited, set()):
                 logger.error(
@@ -485,7 +485,7 @@ class MenuBuilder:
 
         return roots
 
-    def _has_cycle(self, item: MenuItem, visited: set, path: set) -> bool:
+    def _has_cycle(self, item: MenuItem, visited: set[str], path: set[str]) -> bool:
         """
         Detect circular references in menu tree using DFS.
 
@@ -511,6 +511,9 @@ class MenuBuilder:
             # Cycle: A → B → C → A
             _has_cycle(item_a, set(), set())  # Returns True
         """
+        if item.identifier is None:
+            return False
+
         if item.identifier in path:
             return True
 

@@ -6,7 +6,6 @@ category: guide
 icon: image
 card_color: green
 ---
-
 # Asset Pipeline
 
 Bengal processes your CSS, JavaScript, images, and fonts with optional minification and fingerprinting.
@@ -21,17 +20,17 @@ flowchart LR
         C[Theme assets]
         D[Page bundles]
     end
-    
+
     subgraph Processing
         E[Collect]
         F[Minify]
         G[Fingerprint]
     end
-    
+
     subgraph Output
         H[public/]
     end
-    
+
     A --> E
     B --> E
     C --> E

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -27,7 +28,7 @@ from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.group("health", cls=BengalGroup)
-def health_cli():
+def health_cli() -> None:
     """Health check and validation commands."""
     pass
 
@@ -222,8 +223,8 @@ def linkcheck(
                 cli.console.print(json.dumps(report, indent=2))
 
         else:  # console format
-            report = orchestrator.format_console_report(results, summary)
-            cli.console.print(report)
+            console_report = orchestrator.format_console_report(results, summary)
+            cli.console.print(console_report)
 
         # Exit with appropriate code
         if not summary.passed:
@@ -276,7 +277,7 @@ def _ensure_site_built(site: Site, cli: CLIOutput) -> None:
 
 
 def _build_config(
-    site_config: dict,
+    site_config: dict[str, Any],
     max_concurrency: int | None,
     per_host_limit: int | None,
     timeout: float | None,
@@ -285,7 +286,7 @@ def _build_config(
     exclude: tuple[str, ...],
     exclude_domain: tuple[str, ...],
     ignore_status: tuple[str, ...],
-) -> dict:
+) -> dict[str, Any]:
     """Build linkcheck config from CLI flags and site config."""
     # Start with site config
     config = site_config.get("health", {}).get("linkcheck", {})

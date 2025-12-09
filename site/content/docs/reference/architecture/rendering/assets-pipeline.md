@@ -3,8 +3,25 @@ title: Asset Pipeline
 description: How Bengal processes and optimizes static assets (CSS, JS, images, fonts)
 weight: 30
 category: rendering
-tags: [rendering, assets, pipeline, minification, optimization, fingerprinting, css, js, images]
-keywords: [assets, asset pipeline, minification, optimization, fingerprinting, CSS, JavaScript, images]
+tags:
+- rendering
+- assets
+- pipeline
+- minification
+- optimization
+- fingerprinting
+- css
+- js
+- images
+keywords:
+- assets
+- asset pipeline
+- minification
+- optimization
+- fingerprinting
+- CSS
+- JavaScript
+- images
 ---
 
 # Asset Pipeline
@@ -292,7 +309,7 @@ formats = ["webp"]  # Generate additional formats
 - Dead code elimination (optional)
 
 ### Implementation
-Uses `lightningcss` for CSS and `rjsmin` for JS (pure Python, no Node.js required)
+Uses a built-in Python minifier for CSS (safe whitespace/comment removal) and `rjsmin` for JS (pure Python, no Node.js required). `lightningcss` was removed to support Python 3.14 free-threading.
 
 ## Image Optimization
 

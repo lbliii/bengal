@@ -12,8 +12,11 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.health.report import CheckResult
 from bengal.rendering.parsers.factory import ParserFactory
+from bengal.utils.logger import get_logger
 
 from .constants import MAX_DIRECTIVES_PER_PAGE, MAX_TABS_PER_BLOCK
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -42,7 +45,15 @@ def get_line_with_context(file_path: Path, line_number: int, context_lines: int 
             result_lines.append(f"{marker} {line_num:4d} | {lines[i]}")
 
         return "\n".join(result_lines)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "directive_checker_line_read_failed",
+            file_path=str(file_path),
+            line_number=line_number,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_fallback_message",
+        )
         return f"Line {line_number}: (could not read file)"
 
 
@@ -97,7 +108,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
 
     # Check for fence nesting warnings
     if fence_warnings:
-        file_groups = {}
+        file_groups: dict[str, list[dict[str, Any]]] = {}
         metadata_warnings = []
 
         for w in fence_warnings:
@@ -285,6 +296,8 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
     ]
 
     for page in pages_to_check:
+        if page.output_path is None:
+            continue
         try:
             content = page.output_path.read_text(encoding="utf-8")
 
@@ -308,9 +321,16 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
                     }
                 )
 
-        except Exception:
+        except Exception as e:
             # Gracefully skip pages that can't be read (permissions, encoding issues)
             # This is non-critical validation - we don't want to fail the health check
+            logger.debug(
+                "directive_checker_page_read_failed",
+                page_path=str(page.source_path) if page.source_path else "unknown",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_page",
+            )
             pass
 
     if issues:
@@ -383,5 +403,11 @@ def _has_unrendered_directives(html_content: str) -> bool:
         soup = parser(html_content)
         remaining_text = soup.get_text()
         return bool(re.search(r":{3,}\{(\w+)", remaining_text))
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "directive_checker_unrendered_check_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_regex_fallback",
+        )
         return re.search(r":{3,}\{(\w+)", html_content) is not None

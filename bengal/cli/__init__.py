@@ -26,11 +26,11 @@ import click
 
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
-from bengal.cli.commands.autodoc import autodoc, autodoc_cli
 from bengal.cli.commands.build import build as build_cmd
 from bengal.cli.commands.clean import clean as clean_cmd
 from bengal.cli.commands.collections import collections as collections_cli
 from bengal.cli.commands.config import config_cli
+from bengal.cli.commands.debug import debug_cli
 from bengal.cli.commands.fix import fix as fix_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
@@ -39,6 +39,7 @@ from bengal.cli.commands.serve import serve as serve_cmd
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
+from bengal.cli.commands.explain import explain as explain_cli
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
@@ -50,7 +51,7 @@ from .base import BengalCommand, BengalGroup
 @click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
 @click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main(ctx) -> None:
+def main(ctx: click.Context) -> None:
     """
     Bengal Static Site Generator CLI.
 
@@ -100,16 +101,15 @@ main.add_command(collections_cli)
 # Health checks
 main.add_command(health_cli)
 
+# Debug and diagnostic tools
+main.add_command(debug_cli)
+
 # Project scaffolding
 main.add_command(new)
 main.add_command(project_cli)
 
 # Asset management
 main.add_command(assets_cli)
-
-# Documentation generation
-main.add_command(autodoc)
-main.add_command(autodoc_cli)
 
 # Content sources
 main.add_command(sources_group)
@@ -135,6 +135,9 @@ main.add_command(validate_cli)
 
 # Fix command - top level
 main.add_command(fix_cli)
+
+# Explain command - page introspection
+main.add_command(explain_cli)
 
 # =============================================================================
 # SHORT ALIASES (single letter for power users)

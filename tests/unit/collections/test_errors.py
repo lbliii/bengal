@@ -245,3 +245,5 @@ class TestSchemaError:
 
         with pytest.raises(SchemaError):
             raise error
+
+

@@ -2,7 +2,6 @@
 Template validation before rendering.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +9,10 @@ from typing import Any
 
 import click
 from jinja2 import TemplateSyntaxError
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class TemplateValidator:
@@ -112,8 +115,16 @@ class TemplateValidator:
         for include_name in includes:
             try:
                 self.env.get_template(include_name)
-            except Exception:
+            except Exception as e:
                 # Include not found
+                logger.debug(
+                    "template_validator_include_check_failed",
+                    include_name=include_name,
+                    template=template_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="marking_as_not_found",
+                )
                 error = TemplateRenderError(
                     error_type="other",
                     message=f"Included template not found: {include_name}",

@@ -4,7 +4,6 @@ Table functions for templates.
 Provides functions for rendering interactive data tables from YAML/CSV files.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -87,12 +86,18 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
             "</div>"
         )
 
+    # Get site from environment globals
+    # Use duck typing - only root_path is needed
+    site = env.globals["site"]
+    if not hasattr(site, "root_path"):
+        raise TypeError("Site object missing required 'root_path' attribute")
+
     # Create a mock state object with root_path
     class State:
-        pass
+        root_path: Any = None
 
     state = State()
-    state.root_path = env.site.root_path
+    state.root_path = site.root_path
 
     # Create directive instance to use its parsing logic
     directive = DataTableDirective()

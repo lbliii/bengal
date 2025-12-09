@@ -15,6 +15,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class ContextAwareHelp:
@@ -30,7 +34,14 @@ def get_context_aware_help(error: BaseException) -> ContextAwareHelp | None:
             return _handle_attribute_error(error)
         if isinstance(error, TypeError):
             return _handle_type_error(error)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "error_handler_context_help_failed",
+            error_type=type(error).__name__,
+            handler_error=str(e),
+            handler_error_type=type(e).__name__,
+            action="returning_none",
+        )
         return None
     return None
 
@@ -147,7 +158,14 @@ def _safe_list_module_exports(module_path: str) -> list[str]:
             exports = [str(x) for x in mod.__all__]
         else:
             exports = [n for n in dir(mod) if not n.startswith("_")]
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "error_handler_list_exports_failed",
+            module=module_path,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_empty_list",
+        )
         return []
     return sorted(set(exports))
 
@@ -159,5 +177,12 @@ def _closest_matches(name: str | None, candidates: Iterable[str]) -> list[str]:
         from difflib import get_close_matches
 
         return get_close_matches(name, list(candidates), n=5, cutoff=0.6)
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "error_handler_closest_matches_failed",
+            name=name,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_empty_list",
+        )
         return []

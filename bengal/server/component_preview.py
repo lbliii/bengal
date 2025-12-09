@@ -286,21 +286,36 @@ class ComponentPreviewServer:
         if not chain:
             themes_root = self.site.root_path / "themes"
             if themes_root.exists():
+                tomllib_module: Any = None
                 try:
                     import tomllib
-                except Exception:
-                    tomllib = None  # py<3.11 users won't hit this in tests
+
+                    tomllib_module = tomllib
+                except Exception as e:
+                    logger.debug(
+                        "component_preview_tomllib_import_failed",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        action="using_none_fallback",
+                    )
 
                 extends_map: dict[str, str | None] = {}
                 for d in sorted(p for p in themes_root.iterdir() if p.is_dir()):
                     slug = d.name
                     extends = None
                     tt = d / "theme.toml"
-                    if tomllib and tt.exists():
+                    if tomllib_module and tt.exists():
                         try:
-                            data = tomllib.loads(tt.read_text(encoding="utf-8"))
+                            data = tomllib_module.loads(tt.read_text(encoding="utf-8"))
                             extends = data.get("extends")
-                        except Exception:
+                        except Exception as e:
+                            logger.debug(
+                                "component_preview_theme_toml_parse_failed",
+                                theme_toml=str(tt),
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="using_none_extends",
+                            )
                             extends = None
                     extends_map[slug] = extends
 

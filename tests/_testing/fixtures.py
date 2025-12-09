@@ -53,12 +53,37 @@ def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
         if not root_path.exists():
             available = [p.name for p in rootdir.iterdir() if p.is_dir()]
             raise ValueError(
-                f"Test root '{testroot}' not found. " f"Available roots: {', '.join(available)}"
+                f"Test root '{testroot}' not found. Available roots: {', '.join(available)}"
             )
 
-        # Copy root to tmp_path
+        # Create site directory
         site_dir = tmp_path / "site"
-        shutil.copytree(root_path, site_dir)
+        site_dir.mkdir()
+
+        # Check if skeleton manifest exists - use it if available
+        skeleton_manifest = root_path / "skeleton.yaml"
+        if skeleton_manifest.exists():
+            # Use skeleton manifest to create structure
+            from bengal.cli.skeleton.hydrator import Hydrator
+            from bengal.cli.skeleton.schema import Skeleton
+
+            skeleton = Skeleton.from_yaml(skeleton_manifest.read_text())
+            content_dir = site_dir / "content"
+            content_dir.mkdir()
+
+            hydrator = Hydrator(content_dir, dry_run=False, force=True)
+            hydrator.apply(skeleton)
+
+            # Copy config and other files from root
+            for item in root_path.iterdir():
+                if item.name not in ("skeleton.yaml", "content"):
+                    if item.is_file():
+                        shutil.copy2(item, site_dir / item.name)
+                    elif item.is_dir() and item.name != "public":  # Skip public/build artifacts
+                        shutil.copytree(item, site_dir / item.name, dirs_exist_ok=True)
+        else:
+            # Fallback: Copy entire root (backward compatibility)
+            shutil.copytree(root_path, site_dir, dirs_exist_ok=True)
 
         # Apply config overrides if provided
         if confoverrides:

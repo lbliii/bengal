@@ -20,11 +20,17 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.orchestration.incremental import IncrementalOrchestrator
 
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
-def run_incremental_bridge(site, change_type: str, changed_paths: Iterable[str | Path]) -> None:
+
+def run_incremental_bridge(
+    site: Site, change_type: str, changed_paths: Iterable[str | Path]
+) -> None:
     """Run a minimal incremental pass for the given site.
 
     Args:
@@ -34,7 +40,7 @@ def run_incremental_bridge(site, change_type: str, changed_paths: Iterable[str |
     """
     orch = IncrementalOrchestrator(site)
     orch.initialize(enabled=True)
-    normalized = {Path(p) for p in changed_paths}
+    normalized: set[str] = {str(p) for p in changed_paths}
     orch.process(change_type, normalized)
 
 

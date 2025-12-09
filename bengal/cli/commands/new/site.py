@@ -6,8 +6,8 @@ Creates new Bengal sites with optional structure initialization.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 import questionary
@@ -15,43 +15,14 @@ import questionary
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.cli.site_templates import get_template
 from bengal.utils.atomic_write import atomic_write_text
+from bengal.utils.text import slugify
 
 from .config import create_config_directory
 from .wizard import run_init_wizard, should_run_init_wizard
 
-
-def slugify(text: str) -> str:
-    """
-    Convert text to URL-safe slug with Unicode support.
-
-    This function preserves Unicode word characters (letters, digits, underscore)
-    to support international content. Modern browsers and web servers handle
-    Unicode URLs correctly.
-
-    Examples:
-        "My Awesome Page" → "my-awesome-page"
-        "Hello, World!" → "hello-world"
-        "Test   Multiple   Spaces" → "test-multiple-spaces"
-        "你好世界" → "你好世界" (Chinese characters preserved)
-        "مرحبا" → "مرحبا" (Arabic characters preserved)
-
-    Note:
-        Uses Python's \\w pattern which includes Unicode word characters.
-        Special punctuation is removed, but international letters/digits are kept.
-    """
-    # Lowercase
-    text = text.lower()
-
-    # Remove special characters (keep alphanumeric, spaces, hyphens)
-    # Note: \w matches [a-zA-Z0-9_] plus Unicode letters and digits
-    text = re.sub(r"[^\w\s-]", "", text)
-
-    # Replace spaces and multiple hyphens with single hyphen
-    text = re.sub(r"[-\s]+", "-", text)
-
-    # Strip leading/trailing hyphens
-    return text.strip("-")
-
+if TYPE_CHECKING:
+    from bengal.cli.templates.base import SiteTemplate
+    from bengal.utils.cli_output import CLIOutput
 
 # .gitignore content for new sites
 GITIGNORE_CONTENT = """# Bengal build outputs
@@ -165,6 +136,9 @@ def create_site(
 
     # Get the effective template
     site_template = get_template(effective_template)
+    if site_template is None:
+        cli.error(f"Template '{effective_template}' not found")
+        raise click.Abort()
 
     # Show what we're creating
     display_text = site_title
@@ -197,12 +171,10 @@ def create_site(
     cli.success("✅ Site created successfully!")
 
     # Show hints and next steps
-    _show_post_creation_hints(
-        cli, wizard_selection, init_preset, is_custom, site_dir_name, baseurl
-    )
+    _show_post_creation_hints(cli, wizard_selection, init_preset, is_custom, site_dir_name, baseurl)
 
 
-def _prompt_for_baseurl(no_init: bool, cli) -> str:
+def _prompt_for_baseurl(no_init: bool, cli: CLIOutput) -> str:
     """Prompt user for base URL or return default."""
     if no_init:
         return "https://example.com"
@@ -254,7 +226,7 @@ def _determine_template(
     return effective_template, is_custom, wizard_selection
 
 
-def _create_directory_structure(site_path: Path, site_template) -> None:
+def _create_directory_structure(site_path: Path, site_template: SiteTemplate) -> None:
     """Create the site directory structure."""
     site_path.mkdir(parents=True)
     (site_path / "content").mkdir()
@@ -268,7 +240,7 @@ def _create_directory_structure(site_path: Path, site_template) -> None:
         (site_path / additional_dir).mkdir(parents=True, exist_ok=True)
 
 
-def _create_template_files(site_path: Path, site_template) -> int:
+def _create_template_files(site_path: Path, site_template: SiteTemplate) -> int:
     """Create files from template. Returns count of files created."""
     files_created = 0
     for template_file in site_template.files:
@@ -284,7 +256,12 @@ def _create_template_files(site_path: Path, site_template) -> int:
 
 
 def _show_post_creation_hints(
-    cli, wizard_selection, init_preset, is_custom, site_dir_name, baseurl
+    cli: CLIOutput,
+    wizard_selection: str | None,
+    init_preset: str | None,
+    is_custom: bool,
+    site_dir_name: str,
+    baseurl: str,
 ) -> None:
     """Show hints and next steps after site creation."""
     if wizard_selection is None and init_preset is None:
@@ -340,4 +317,3 @@ def _show_post_creation_hints(
 def site_command(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """Create a new Bengal site (bengal new site)."""
     create_site(name, theme, template, no_init, init_preset)
-

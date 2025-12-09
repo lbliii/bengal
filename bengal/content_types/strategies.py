@@ -9,7 +9,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.logger import get_logger
+
 from .base import ContentTypeStrategy
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -57,7 +61,13 @@ class BlogStrategy(ContentTypeStrategy):
             try:
                 template_engine.env.get_template(name)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "template_check_failed",
+                    template=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if is_home:
@@ -113,7 +123,13 @@ class DocsStrategy(ContentTypeStrategy):
             try:
                 template_engine.env.get_template(name)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "template_check_failed",
+                    template=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if is_home:
@@ -170,7 +186,13 @@ class ApiReferenceStrategy(ContentTypeStrategy):
             try:
                 template_engine.env.get_template(name)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "template_check_failed",
+                    template=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if is_home:
@@ -227,7 +249,13 @@ class CliReferenceStrategy(ContentTypeStrategy):
             try:
                 template_engine.env.get_template(name)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "template_check_failed",
+                    template=name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if is_home:

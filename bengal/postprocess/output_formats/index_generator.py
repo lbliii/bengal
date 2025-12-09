@@ -156,8 +156,15 @@ class SiteIndexGenerator:
                 existing = path.read_text(encoding="utf-8")
                 if existing == content:
                     return
-        except Exception:
+        except Exception as e:
             # If we can't read existing file, proceed to write new content
+            logger.debug(
+                "index_generator_read_existing_failed",
+                path=str(path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="proceeding_to_write",
+            )
             pass
 
         with AtomicFile(path, "w", encoding="utf-8") as f:
@@ -286,11 +293,11 @@ class SiteIndexGenerator:
 
         # Visibility system integration
         # Check hidden frontmatter or visibility.search setting
-        if metadata.get("hidden", False):
+        if metadata.get("hidden", False) or (
+            isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True)
+        ):
             summary["search_exclude"] = True
-        elif isinstance(metadata.get("visibility"), dict):
-            if not metadata["visibility"].get("search", True):
-                summary["search_exclude"] = True
 
         # API/CLI specific
         if metadata.get("cli_name"):

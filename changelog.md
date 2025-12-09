@@ -1,5 +1,106 @@
 ## Unreleased
 
+### Template Functions Robustness ✅
+- **rendering(strings)**: fix `truncatewords_html` to preserve HTML structure and close tags properly
+- **rendering(strings)**: add `filesize` filter wrapping `humanize_bytes` for human-readable file sizes
+- **rendering(strings)**: add warning log for invalid regex patterns in `replace_regex`
+- **rendering(collections)**: add debug log for `sort_by` failures with heterogeneous data
+- **core(site)**: add `get_page_path_map()` with version-based cache invalidation for O(1) page lookups
+- **rendering(collections)**: update `resolve_pages` to use cached page path map (performance improvement)
+- **tests**: add 15 unit tests for `truncatewords_html` HTML preservation and `filesize` filter
+- **docs**: RFC moved to completed
+
+### Autodoc Incremental Build Support ✅
+- **server(dev_server)**: watch autodoc source directories (Python `source_dirs`, OpenAPI spec files) for changes
+- **server(build_handler)**: add `_should_regenerate_autodoc()` to detect when autodoc sources change and trigger rebuilds
+- **cache(autodoc_tracking)**: new `AutodocTrackingMixin` for tracking source file → autodoc page dependencies
+- **cache(build_cache)**: add `autodoc_dependencies` field for selective autodoc rebuilds
+- **autodoc(virtual_orchestrator)**: track dependencies in `AutodocRunResult.autodoc_dependencies` during page creation
+- **orchestration(content)**: register autodoc dependencies with cache during content discovery
+- **orchestration(incremental)**: selective autodoc page rebuilds based on source file changes (not all autodoc pages)
+- **orchestration(incremental)**: track autodoc source file hashes in `save_cache()` for change detection
+- **docs**: RFC moved to implemented
+
+### Autodoc Resilience Improvements ✅
+- **autodoc(virtual_orchestrator)**: add `AutodocRunResult` summary dataclass tracking extraction/rendering successes and failures
+- **autodoc(virtual_orchestrator)**: update `generate()` to return `(pages, sections, result)` tuple for observability
+- **autodoc(config)**: add `autodoc.strict` config flag (default `false`) for fail-fast mode in CI/CD
+- **autodoc(virtual_orchestrator)**: enforce strict mode with partial context (failures recorded before raising)
+- **autodoc(rendering/pipeline)**: tag fallback-rendered pages with `_autodoc_fallback_template: true` in metadata
+- **orchestration(content)**: remove blanket exception swallow; keep `ImportError` handling, allow strict mode exceptions to propagate
+- **orchestration(content)**: add `_log_autodoc_summary()` for structured logging of run results
+- **tests(autodoc)**: add 16 comprehensive resilience tests covering strict mode, failure handling, and summary tracking
+- **docs(autodoc)**: document strict mode, run summaries, and fallback tagging in README
+
+### Typed Metadata Access (Phase 6) ✅
+- **autodoc(utils)**: add 14 typed metadata access helpers with fallback (`get_python_class_bases`, `get_openapi_tags`, etc.)
+- **autodoc(virtual_orchestrator)**: migrate `.metadata.get()` calls to typed helpers for OpenAPI endpoints
+- **autodoc(extractors/python)**: use typed helpers for property detection and inheritance
+- **autodoc(extractors/openapi)**: use typed helpers for path/tag determination
+- **autodoc(README)**: document `typed_metadata` field and helper functions
+- **tests**: add 36 comprehensive tests for typed metadata access patterns
+- **docs**: RFC moved to completed
+
+### Typed Autodoc Models (Phase 1) ✅
+- **autodoc(models)**: create typed metadata dataclasses replacing untyped `metadata: dict[str, Any]`
+- **autodoc(models/common)**: add `SourceLocation` and `QualifiedName` with validation
+- **autodoc(models/python)**: add `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`, `PythonAttributeMetadata`, `PythonAliasMetadata`
+- **autodoc(models/cli)**: add `CLICommandMetadata`, `CLIGroupMetadata`, `CLIOptionMetadata`
+- **autodoc(models/openapi)**: add `OpenAPIEndpointMetadata`, `OpenAPIOverviewMetadata`, `OpenAPISchemaMetadata`
+- **autodoc(base)**: add `typed_metadata` field to `DocElement` with serialization support
+- **autodoc(extractors)**: update Python, CLI, OpenAPI extractors to dual-write typed and untyped metadata
+- **tests**: add 80+ tests for models, serialization, and extractor integration
+- **docs**: RFC and plan moved to implemented
+
+### Silent Error Elimination ✅
+- **config(env_overrides)**: upgrade exception logging from DEBUG to WARNING for user-impacting failures with helpful hints
+- **utils(theme_registry)**: add structured logging to `assets_exists`, `manifest_exists`, `resolve_resource_path`, and `get_installed_themes` methods
+- **health(rendering)**: add logging to SEO page check failures with page context
+- **health(connectivity)**: add logging to 5 graph analysis handlers (hub normalization, metrics, orphans, hubs, percentage)
+- **health(navigation)**: add logging to breadcrumb ancestor check failures
+- **health(cache)**: add logging to cache file read and JSON decode failures
+- **health(assets)**: add logging to CSS/JS minification check failures
+- **cli(theme)**: add structured logging to `_theme_exists`, `_get_template_dir_source_type`, and `features` command handlers
+- **debug(config_inspector)**: add logging to `explain_key` defaults/environment layer loading and YAML parsing failures
+- **debug(content_migrator)**: add logger import; add logging to `split_page` and `merge_pages` frontmatter parsing failures
+- **postprocess(utils)**: add logging to URL extraction failures for callable page URLs
+- **postprocess(llm_generator)**: add logging to existing file read failures in `_write_if_changed`
+- **analysis(graph_visualizer)**: add logging to page URL access fallback chain
+- **core(page/content)**: add logging to AST-to-HTML rendering fallback
+- **rendering(jinja_utils)**: add logging to `safe_getattr` property access failures
+- **tests**: update `test_exception_in_env_logic_silent` to use targeted mock for env vars, supporting new warning logging
+- **docs**: RFC moved to implemented
+
+### TemplateEngine Package Decoupling ✅
+- **rendering(template_engine)**: decouple 861-line monolithic `template_engine.py` into focused package structure
+- **rendering(template_engine/core)**: create thin facade class composing `MenuHelpersMixin`, `ManifestHelpersMixin`, `AssetURLMixin`
+- **rendering(template_engine/environment)**: extract `create_jinja_environment()`, `resolve_theme_chain()`, `read_theme_extends()`
+- **rendering(template_engine/asset_url)**: consolidate asset URL generation with `file://` protocol support
+- **rendering(template_engine/menu)**: extract menu caching helpers
+- **rendering(template_engine/manifest)**: extract asset manifest loading/caching
+- **rendering(template_engine/url_helpers)**: URL generation utilities (`url_for`, `with_baseurl`, `filter_dateformat`)
+- **docs**: update docstring references in `template_profiler.py` and `template_functions.py`
+- **docs**: RFC moved to implemented
+
+### Virtual Section Page Reference Fix ✅
+- **core(page)**: fix critical bug where virtual pages had flat navigation instead of hierarchical
+- **core(page)**: add `_section_url` field for URL-based section lookups (virtual sections have `path=None`)
+- **core(page)**: update `_section` setter/getter to use URL for virtual sections, path for regular sections
+- **core(site)**: add `get_section_by_url()` and `_section_url_registry` for O(1) virtual section lookups
+- **core(site)**: consolidate `_setup_page_references` into Site (removed duplicate in ContentOrchestrator)
+- **core(site)**: add `_validate_page_section_references()` for post-discovery validation warnings
+- **tests**: add 6 unit tests for virtual section navigation hierarchy
+- **docs**: RFC moved to implemented
+
+### Centralized Path Resolution Architecture ✅
+- **utils**: add `PathResolver` utility class for consistent path resolution relative to site root
+- **utils(path_resolver)**: add `resolve()`, `resolve_many()`, `resolve_if_exists()` for flexible resolution
+- **utils(path_resolver)**: add security methods `is_within_base()` and `relative_to_base()` for path traversal protection
+- **core(site)**: ensure `Site.root_path` is always absolute (resolved in `__post_init__`)
+- **rendering(directives)**: remove `Path.cwd()` fallback from `LiteralIncludeDirective`, `IncludeDirective`, `GlossaryDirective`, `DataTableDirective`
+- **tests**: add `test_path_resolver.py` with 20 tests covering PathResolver and Site path resolution
+- **docs**: RFC moved to implemented
+
 ### Documentation Cleanup ✅
 - **site(homepage)**: simplify to focus on features and getting started
 - **README**: streamline to essential info only

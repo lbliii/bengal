@@ -6,7 +6,6 @@ category: guide
 icon: edit
 card_color: blue
 ---
-
 # Writing Content
 
 Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/) extensions for rich documentation.

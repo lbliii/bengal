@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import contextlib
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -59,7 +59,7 @@ def handle_cli_errors(
                     with contextlib.suppress(Exception):
                         config = TracebackConfig.from_environment()
                         renderer = config.get_renderer()
-                        if renderer.style.value != "off":
+                        if renderer.style.value != "off":  # type: ignore[attr-defined]
                             renderer.display_exception(e)
                 elif show_traceback:
                     with contextlib.suppress(Exception):
@@ -80,7 +80,7 @@ def cli_error_context(
     operation: str,
     show_art: bool = False,
     show_traceback: bool | None = None,
-):
+) -> Generator[None]:
     """
     Context manager for error handling within command functions.
 
@@ -108,7 +108,7 @@ def cli_error_context(
             with contextlib.suppress(Exception):
                 config = TracebackConfig.from_environment()
                 renderer = config.get_renderer()
-                if renderer.style.value != "off":
+                if renderer.style.value != "off":  # type: ignore[attr-defined]
                     renderer.display_exception(e)
         elif show_traceback:
             with contextlib.suppress(Exception):

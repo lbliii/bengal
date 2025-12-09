@@ -274,3 +274,5 @@ class TestCacheValidatorCorrectLocation:
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         assert any("correct location" in r.message.lower() for r in success_results)
 
+
+

@@ -6,9 +6,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.core.page.page_core import PageCore
 
 logger = get_logger(__name__)
 
@@ -24,6 +29,16 @@ class PageMetadataMixin:
     - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
     """
+
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    metadata: dict[str, Any]
+    source_path: Path
+    output_path: Path | None
+    toc: str | None
+    core: PageCore | None
+    _site: Any
+    _toc_items_cache: list[dict[str, Any]] | None
+    # slug is defined as a property below - no declaration needed here
 
     @property
     def title(self) -> str:
@@ -43,7 +58,7 @@ class PageMetadataMixin:
         """
         # Check metadata first (explicit titles always win)
         if "title" in self.metadata:
-            return self.metadata["title"]
+            return str(self.metadata["title"])
 
         # Special handling for index pages - use directory name instead of "Index"
         if self.source_path.stem in ("_index", "index"):
@@ -71,7 +86,7 @@ class PageMetadataMixin:
         """Get URL slug for the page."""
         # Check metadata first
         if "slug" in self.metadata:
-            return self.metadata["slug"]
+            return str(self.metadata["slug"])
 
         # Special handling for _index.md files
         if self.source_path.stem == "_index":
@@ -156,7 +171,8 @@ class PageMetadataMixin:
         baseurl = ""
         try:
             baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
-        except Exception:
+        except Exception as e:
+            logger.debug("page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
         if not baseurl:
@@ -295,7 +311,9 @@ class PageMetadataMixin:
         Returns:
             Page type or None
         """
-        return self.core.type or self.metadata.get("type")
+        if self.core is not None and self.core.type:
+            return self.core.type
+        return self.metadata.get("type")
 
     @property
     def description(self) -> str:
@@ -305,7 +323,9 @@ class PageMetadataMixin:
         Returns:
             Page description or empty string
         """
-        return self.core.description or self.metadata.get("description", "")
+        if self.core is not None and self.core.description:
+            return self.core.description
+        return str(self.metadata.get("description", ""))
 
     @property
     def variant(self) -> str | None:
@@ -319,9 +339,9 @@ class PageMetadataMixin:
         Returns:
             Variant string or None
         """
-        if self.core.variant:
+        if self.core is not None and self.core.variant:
             return self.core.variant
-        
+
         # Legacy fallbacks
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
@@ -345,7 +365,7 @@ class PageMetadataMixin:
         Returns:
             True if page is a draft
         """
-        return self.metadata.get("draft", False)
+        return bool(self.metadata.get("draft", False))
 
     @property
     def keywords(self) -> list[str]:
@@ -388,7 +408,7 @@ class PageMetadataMixin:
             ---
             ```
         """
-        return self.metadata.get("hidden", False)
+        return bool(self.metadata.get("hidden", False))
 
     @property
     def visibility(self) -> dict[str, Any]:
@@ -460,7 +480,7 @@ class PageMetadataMixin:
     def in_sitemap(self) -> bool:
         """
         Check if page should appear in sitemap.
-        
+
         Excludes drafts and pages with visibility.sitemap=False.
 
         Returns:
@@ -500,7 +520,7 @@ class PageMetadataMixin:
         Returns:
             Robots directive string (e.g., "index, follow" or "noindex, nofollow")
         """
-        return self.visibility["robots"]
+        return str(self.visibility["robots"])
 
     @property
     def should_render(self) -> bool:
@@ -513,7 +533,7 @@ class PageMetadataMixin:
         Returns:
             True if render is not "never"
         """
-        return self.visibility["render"] != "never"
+        return bool(self.visibility["render"] != "never")
 
     def should_render_in_environment(self, is_production: bool = False) -> bool:
         """
@@ -537,6 +557,4 @@ class PageMetadataMixin:
 
         if render == "never":
             return False
-        if render == "local" and is_production:
-            return False
-        return True
+        return not (render == "local" and is_production)

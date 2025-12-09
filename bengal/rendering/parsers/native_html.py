@@ -16,7 +16,6 @@ Performance:
 - Suitable for high-volume build-time validation
 """
 
-
 from __future__ import annotations
 
 from html.parser import HTMLParser
@@ -46,14 +45,14 @@ class NativeHTMLParser(HTMLParser):
         'Hello'  # Code block excluded
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.text_parts: list[str] = []  # Collect text content
         self.in_code_block = False  # Toggle for <code>/<pre> tags
         self.in_script = False  # Track <script> tags
         self.in_style = False  # Track <style> tags
 
-    def handle_starttag(self, tag: str, attrs: list) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening tags."""
         if tag.lower() in ("code", "pre"):
             self.in_code_block = True
@@ -77,12 +76,16 @@ class NativeHTMLParser(HTMLParser):
         if not self.in_code_block and not self.in_script and not self.in_style:
             self.text_parts.append(data)
 
-    def feed(self, data: str) -> NativeHTMLParser:
+    def feed(self, data: str) -> NativeHTMLParser:  # type: ignore[override]
         """
         Parse HTML content and return self for chaining.
 
         Returns:
             self to allow parser(html).get_text() pattern
+
+        Note:
+            HTMLParser.feed returns None, but we return self for chaining.
+            Type ignore is needed for this intentional override.
         """
         super().feed(data)
         return self

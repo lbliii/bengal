@@ -25,9 +25,13 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
 
 class CacheInvalidator:
@@ -124,7 +128,7 @@ class DependencyTracker:
         tracker.end_page()
     """
 
-    def __init__(self, cache: BuildCache, site=None):
+    def __init__(self, cache: BuildCache, site: Site | None = None) -> None:
         """
         Initialize the dependency tracker.
 
@@ -141,15 +145,15 @@ class DependencyTracker:
         self.lock = threading.Lock()
         # Use thread-local storage for current page to support parallel processing
         self.current_page = threading.local()
-        self.content_paths = []
-        self.template_paths = []
+        self.content_paths: list[Path] = []
+        self.template_paths: list[Path] = []
         self.invalidator = CacheInvalidator(
             self._hash_config(), self.content_paths, self.template_paths
         )
 
     def _hash_config(self) -> str:
         """Hash config for invalidation."""
-        from bengal.utils.file_utils import hash_file
+        from bengal.utils.hashing import hash_file
 
         # Determine config path from site or fallback
         config_path = self.site.root_path / "bengal.toml" if self.site else Path("bengal.toml")

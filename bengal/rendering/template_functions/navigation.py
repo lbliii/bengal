@@ -335,8 +335,8 @@ def get_toc_grouped(
     if not toc_items:
         return []
 
-    groups = []
-    current_group = None
+    groups: list[dict[str, Any]] = []
+    current_group: dict[str, Any] | None = None
 
     for item in toc_items:
         item_level = item.get("level", 0)
@@ -623,7 +623,7 @@ def get_nav_tree(
 
     def build_tree_recursive(section: Any, depth: int = 0) -> list[dict[str, Any]]:
         """Recursively build navigation tree."""
-        items = []
+        items: list[dict[str, Any]] = []
 
         # Add section's index page if it exists
         if hasattr(section, "index_page") and section.index_page:
@@ -750,7 +750,7 @@ def _build_section_menu_item(
         return None
 
     # Skip dev sections if they're being bundled into Dev dropdown
-    if hasattr(site, "_dev_menu_metadata") and site._dev_menu_metadata.get("exclude_sections"):
+    if site._dev_menu_metadata is not None and site._dev_menu_metadata.get("exclude_sections"):
         excluded_sections = site._dev_menu_metadata["exclude_sections"]
         if section.name in excluded_sections:
             return None

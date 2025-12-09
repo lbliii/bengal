@@ -10,7 +10,7 @@ import http.server
 import threading
 from http.client import HTTPMessage
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from bengal.server.component_preview import ComponentPreviewServer
 from bengal.server.live_reload import LiveReloadMixin
@@ -41,20 +41,28 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _cached_site_root = None
 
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
-    # Key: (file_path, mtime), Value: (modified_content, headers)
-    _html_cache = {}
+    # Key: (file_path_str, mtime), Value: modified_content bytes
+    _html_cache: dict[tuple[str, float], bytes] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
         Initialize the request handler.
 
         Pre-initializes headers and request_version to avoid AttributeError
         when tests bypass normal request parsing flow. The parent class will
         properly set these during normal HTTP request handling.
+
+        Args:
+            directory: Directory to serve files from. If provided, passed to parent
+                       to avoid os.getcwd() which can fail if CWD is deleted during rebuilds.
         """
-        super().__init__(*args, **kwargs)
+        # Pass directory to parent to avoid os.getcwd() call (which fails if CWD is deleted during rebuilds)
+        if directory is not None:
+            super().__init__(*args, directory=directory, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
         # Initialize with empty HTTPMessage and default values for testing
         self.headers = HTTPMessage()
         self.request_version = "HTTP/1.1"
@@ -75,7 +83,12 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                 from bengal.server.utils import apply_dev_no_cache_headers
 
                 apply_dev_no_cache_headers(self)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "dev_cache_header_application_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             pass
         super().end_headers()
 
@@ -87,6 +100,27 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         with contextlib.suppress(BrokenPipeError, ConnectionResetError):
             # Client disconnected - don't print traceback
             super().handle()
+
+    @override
+    def translate_path(self, path: str) -> str:
+        """
+        Override translate_path to ensure it never returns None.
+
+        In Python 3.14, when self.directory is None and os.getcwd() fails,
+        translate_path returns None. This causes crashes in the parent class's
+        do_GET() -> send_head() -> os.path.isdir(path).
+
+        We guard against this by falling back to the configured directory.
+        """
+        result = super().translate_path(path)
+        if result is None:
+            # Fallback to self.directory if translate_path fails
+            # This can happen if os.getcwd() fails during rebuild
+            if self.directory:
+                return str(self.directory)
+            # Last resort: return current file's directory
+            return str(Path(__file__).parent)
+        return result
 
     @override
     def do_GET(self) -> None:
@@ -141,7 +175,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
                 q = parse_qs(urlparse(self.path).query)
                 comp_id = (q.get("c") or [""])[0]
-                variant_id = (q.get("v") or [None])[0]
+                variant_list = q.get("v") or []
+                variant_id = variant_list[0] if variant_list else None
                 html = cps.view_page(comp_id, variant_id)
             else:
                 html = cps.list_page()

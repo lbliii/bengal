@@ -7,14 +7,19 @@ Phases 6-11: Sections, taxonomies, menus, related posts, query indexes, update p
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.utils.cli_output import CLIOutput
 
 
 def phase_sections(
-    orchestrator: BuildOrchestrator, cli, incremental: bool, affected_sections: set | None
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    incremental: bool,
+    affected_sections: set[str] | None,
 ) -> None:
     """
     Phase 6: Section Finalization.
@@ -68,11 +73,11 @@ def phase_sections(
 
 def phase_taxonomies(
     orchestrator: BuildOrchestrator,
-    cache,
+    cache: BuildCache,
     incremental: bool,
     parallel: bool,
-    pages_to_build: list,
-) -> set:
+    pages_to_build: list[Any],
+) -> set[str]:
     """
     Phase 7: Taxonomies & Dynamic Pages.
 
@@ -199,7 +204,7 @@ def phase_taxonomy_index(orchestrator: BuildOrchestrator) -> None:
 
 
 def phase_menus(
-    orchestrator: BuildOrchestrator, incremental: bool, changed_page_paths: set
+    orchestrator: BuildOrchestrator, incremental: bool, changed_page_paths: set[str]
 ) -> None:
     """
     Phase 9: Menu Building.
@@ -238,7 +243,7 @@ def phase_related_posts(
     orchestrator: BuildOrchestrator,
     incremental: bool,
     parallel: bool,
-    pages_to_build: list,
+    pages_to_build: list[Any],
 ) -> None:
     """
     Phase 10: Related Posts Index.
@@ -302,7 +307,10 @@ def phase_related_posts(
 
 
 def phase_query_indexes(
-    orchestrator: BuildOrchestrator, cache, incremental: bool, pages_to_build: list
+    orchestrator: BuildOrchestrator,
+    cache: BuildCache,
+    incremental: bool,
+    pages_to_build: list[Any],
 ) -> None:
     """
     Phase 11: Query Indexes.
@@ -355,9 +363,9 @@ def phase_query_indexes(
 def phase_update_pages_list(
     orchestrator: BuildOrchestrator,
     incremental: bool,
-    pages_to_build: list,
-    affected_tags: set,
-) -> list:
+    pages_to_build: list[Any],
+    affected_tags: set[str],
+) -> list[Any]:
     """
     Phase 12: Update Pages List.
 

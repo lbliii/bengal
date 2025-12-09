@@ -1,10 +1,24 @@
 ---
 title: Content Processing API
-description: What Bengal computes vs what themes display - the content processing contract
+description: What Bengal computes vs what themes display - the content processing
+  contract
 weight: 40
 category: rendering
-tags: [rendering, content-api, processing, computed-properties, themes, config]
-keywords: [content API, processing API, computed properties, themes, configuration, excerpt, TOC]
+tags:
+- rendering
+- content-api
+- processing
+- computed-properties
+- themes
+- config
+keywords:
+- content API
+- processing API
+- computed properties
+- themes
+- configuration
+- excerpt
+- TOC
 ---
 
 # Bengal Content Processing API

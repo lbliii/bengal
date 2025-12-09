@@ -17,12 +17,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any
 
 from bengal.utils.logger import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -90,7 +87,7 @@ class InlineIconPlugin:
     Works in table cells, paragraphs, and other inline contexts.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize inline icon plugin."""
         # Pattern matches after Mistune converts `text` to <code>text</code>
         # {icon}<code>terminal</code> or {icon}<code>terminal:32</code>
@@ -102,7 +99,7 @@ class InlineIconPlugin:
         # Pattern to split by <pre> blocks
         self._pre_pattern = re.compile(r"(<pre[^>]*>.*?</pre>)", re.DOTALL)
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> Any:
         """
         Register the plugin with Mistune.
 
@@ -127,12 +124,12 @@ class InlineIconPlugin:
         if "{icon}" not in html:
             return html
 
-        def replace_html_icon(match: re.Match) -> str:
+        def replace_html_icon(match: re.Match[str]) -> str:
             """Replace HTML icon pattern with SVG."""
             content = match.group(1)
             return self._render_icon(content)
 
-        def replace_raw_icon(match: re.Match) -> str:
+        def replace_raw_icon(match: re.Match[str]) -> str:
             """Replace raw icon pattern (fallback)."""
             content = match.group(1)
             return self._render_icon(content)

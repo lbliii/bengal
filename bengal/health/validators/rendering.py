@@ -10,14 +10,18 @@ Validates:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 from bengal.rendering.parsers.factory import ParserFactory
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class RenderingValidator(BaseValidator):
@@ -36,7 +40,9 @@ class RenderingValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run rendering validation checks."""
         results = []
 
@@ -63,6 +69,8 @@ class RenderingValidator(BaseValidator):
         pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:10]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
 
@@ -107,6 +115,8 @@ class RenderingValidator(BaseValidator):
         pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:20]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
                 has_unrendered = self._detect_unrendered_jinja2(content)
@@ -114,8 +124,14 @@ class RenderingValidator(BaseValidator):
                 if has_unrendered:
                     issues.append(page.output_path.name)
 
-            except Exception:
+            except Exception as e:
                 # Skip pages we can't read
+                logger.debug(
+                    "rendering_validator_page_skip",
+                    page=str(page.output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 pass
 
         if issues:
@@ -157,8 +173,14 @@ class RenderingValidator(BaseValidator):
             # Check patterns
             jinja2_patterns = ["{{ page.", "{{ site."]
             return any(pattern in remaining_text for pattern in jinja2_patterns)
-        except Exception:
+        except Exception as e:
             # Fallback regex (no bs4)
+            logger.debug(
+                "rendering_validator_bs4_check_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_regex_fallback",
+            )
             return any(p in html_content for p in ["{{ page.", "{{ site."])
 
     def _check_template_functions(self, site: Site) -> list[CheckResult]:
@@ -226,6 +248,8 @@ class RenderingValidator(BaseValidator):
         ][:10]
 
         for page in pages_to_check:
+            if page.output_path is None:
+                continue
             try:
                 content = page.output_path.read_text(encoding="utf-8")
 
@@ -244,8 +268,14 @@ class RenderingValidator(BaseValidator):
                 if missing_elements:
                     issues.append(f"{page.output_path.name}: missing {', '.join(missing_elements)}")
 
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "health_seo_page_check_skipped",
+                    page=str(getattr(page, "output_path", "unknown")),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_page",
+                )
 
         if issues:
             results.append(

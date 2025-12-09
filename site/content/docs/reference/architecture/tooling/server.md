@@ -3,8 +3,20 @@ title: Development Server
 description: Built-in development server with file watching and live reload
 weight: 30
 category: tooling
-tags: [tooling, server, dev-server, live-reload, file-watching, development]
-keywords: [development server, dev server, live reload, file watching, SSE, development]
+tags:
+- tooling
+- server
+- dev-server
+- live-reload
+- file-watching
+- development
+keywords:
+- development server
+- dev server
+- live reload
+- file watching
+- SSE
+- development
 ---
 
 # Development Server

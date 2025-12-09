@@ -5,8 +5,16 @@ weight: 10
 type: doc
 draft: false
 lang: en
-tags: [configuration, config, reference]
-keywords: [configuration, config, toml, yaml, settings]
+tags:
+- configuration
+- config
+- reference
+keywords:
+- configuration
+- config
+- toml
+- yaml
+- settings
 category: documentation
 ---
 
@@ -93,6 +101,17 @@ Controls how Bengal processes and organizes content.
 | `related_count` | `3` | Number of related posts to find |
 | `toc_depth` | `3` | Depth of Table of Contents (h1-h3) |
 | `sort_pages_by` | `"weight"` | Default sort key (`weight`, `date`, `title`) |
+
+### `[markdown]`
+
+Configure the Markdown parsing engine.
+
+```toml
+[markdown]
+parser = "mistune"       # "mistune" (fast, default) or "python-markdown" (full-featured)
+```
+
+**Note**: `mistune` is significantly faster (2-5x) and recommended for most sites. Use `python-markdown` only if you rely on specific Python-Markdown extensions.
 
 ### `[build]`
 

@@ -14,6 +14,22 @@ from typing import Any
 import yaml
 
 from bengal.autodoc.base import DocElement, Extractor
+from bengal.autodoc.models import (
+    OpenAPIEndpointMetadata,
+    OpenAPIOverviewMetadata,
+    OpenAPISchemaMetadata,
+)
+from bengal.autodoc.models.openapi import (
+    OpenAPIParameterMetadata,
+    OpenAPIRequestBodyMetadata,
+    OpenAPIResponseMetadata,
+)
+from bengal.autodoc.utils import (
+    get_openapi_method,
+    get_openapi_operation_id,
+    get_openapi_path,
+    get_openapi_tags,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +37,7 @@ logger = logging.getLogger(__name__)
 class OpenAPIExtractor(Extractor):
     """
     Extracts documentation from OpenAPI specifications.
-    
+
     Supports OpenAPI 3.0 and 3.1 (YAML or JSON).
     """
 
@@ -69,7 +85,7 @@ class OpenAPIExtractor(Extractor):
     def get_output_path(self, element: DocElement) -> Path | None:
         """
         Determine output path for OpenAPI elements.
-        
+
         Structure:
         - Overview: index.md
         - Endpoints: endpoints/{tag}/{operation_id}.md
@@ -80,18 +96,18 @@ class OpenAPIExtractor(Extractor):
 
         elif element.element_type == "openapi_endpoint":
             # Group by first tag if available, else 'default'
-            tag = "default"
-            if element.metadata.get("tags"):
-                tag = element.metadata["tags"][0]
+            tags = get_openapi_tags(element)
+            tag = tags[0] if tags else "default"
 
             # Use operationId if available, else sanitized path
             name = element.name.replace(" ", "_").lower()
-            if element.metadata.get("operation_id"):
-                name = element.metadata["operation_id"]
+            operation_id = get_openapi_operation_id(element)
+            if operation_id:
+                name = operation_id
             else:
                 # Fallback: GET /users -> get_users
-                method = element.metadata.get("method", "op")
-                path = element.metadata.get("path", "path").strip("/")
+                method = get_openapi_method(element) or "op"
+                path = get_openapi_path(element).strip("/") or "path"
                 name = f"{method}_{path}".replace("/", "_").replace("{", "").replace("}", "")
 
             return Path(f"endpoints/{tag}/{name}.md")
@@ -105,6 +121,18 @@ class OpenAPIExtractor(Extractor):
         """Extract API overview information."""
         info = spec.get("info", {})
 
+        # Extract server URLs as strings
+        servers = spec.get("servers", [])
+        server_urls = tuple(s.get("url", "") for s in servers if isinstance(s, dict))
+
+        # Build typed metadata
+        typed_meta = OpenAPIOverviewMetadata(
+            version=info.get("version"),
+            servers=server_urls,
+            security_schemes=spec.get("components", {}).get("securitySchemes", {}),
+            tags=tuple(spec.get("tags", [])),
+        )
+
         return DocElement(
             name=info.get("title", "API Documentation"),
             qualified_name="openapi.overview",
@@ -115,8 +143,9 @@ class OpenAPIExtractor(Extractor):
                 "version": info.get("version"),
                 "servers": spec.get("servers", []),
                 "security_schemes": spec.get("components", {}).get("securitySchemes", {}),
-                "tags": spec.get("tags", [])
-            }
+                "tags": spec.get("tags", []),
+            },
+            typed_metadata=typed_meta,
         )
 
     def _extract_endpoints(self, spec: dict[str, Any]) -> list[DocElement]:
@@ -141,6 +170,68 @@ class OpenAPIExtractor(Extractor):
                 # Construct name like "GET /users"
                 name = f"{method.upper()} {path}"
 
+                # Build typed parameters
+                typed_params = tuple(
+                    OpenAPIParameterMetadata(
+                        name=p.get("name", ""),
+                        location=p.get("in", "query"),
+                        required=p.get("required", False),
+                        schema_type=p.get("schema", {}).get("type", "string"),
+                        description=p.get("description", ""),
+                    )
+                    for p in all_params
+                )
+
+                # Build typed request body
+                typed_request_body = None
+                req_body = operation.get("requestBody")
+                if req_body:
+                    content = req_body.get("content", {})
+                    content_type = next(iter(content.keys()), "application/json")
+                    schema_ref = content.get(content_type, {}).get("schema", {}).get("$ref")
+                    typed_request_body = OpenAPIRequestBodyMetadata(
+                        content_type=content_type,
+                        schema_ref=schema_ref,
+                        required=req_body.get("required", False),
+                        description=req_body.get("description", ""),
+                    )
+
+                # Build typed responses
+                typed_responses = tuple(
+                    OpenAPIResponseMetadata(
+                        status_code=str(status),
+                        description=resp.get("description", "") if isinstance(resp, dict) else "",
+                        content_type=next(iter(resp.get("content", {}).keys()), None)
+                        if isinstance(resp, dict)
+                        else None,
+                        schema_ref=(
+                            resp.get("content", {})
+                            .get(next(iter(resp.get("content", {}).keys()), ""), {})
+                            .get("schema", {})
+                            .get("$ref")
+                            if isinstance(resp, dict)
+                            else None
+                        ),
+                    )
+                    for status, resp in (operation.get("responses") or {}).items()
+                )
+
+                # Build typed metadata
+                typed_meta = OpenAPIEndpointMetadata(
+                    method=method.upper(),  # type: ignore[arg-type]
+                    path=path,
+                    operation_id=operation.get("operationId"),
+                    summary=operation.get("summary"),
+                    tags=tuple(operation.get("tags", [])),
+                    parameters=typed_params,
+                    request_body=typed_request_body,
+                    responses=typed_responses,
+                    security=tuple(
+                        next(iter(s.keys()), "") for s in (operation.get("security") or [])
+                    ),
+                    deprecated=operation.get("deprecated", False),
+                )
+
                 element = DocElement(
                     name=name,
                     qualified_name=f"openapi.paths.{path}.{method}",
@@ -156,10 +247,11 @@ class OpenAPIExtractor(Extractor):
                         "request_body": operation.get("requestBody"),
                         "responses": operation.get("responses"),
                         "security": operation.get("security"),
-                        "deprecated": operation.get("deprecated", False)
+                        "deprecated": operation.get("deprecated", False),
                     },
+                    typed_metadata=typed_meta,
                     examples=[],  # Could extract examples from openapi spec
-                    deprecated="Deprecated in API spec" if operation.get("deprecated") else None
+                    deprecated="Deprecated in API spec" if operation.get("deprecated") else None,
                 )
                 elements.append(element)
 
@@ -171,12 +263,25 @@ class OpenAPIExtractor(Extractor):
         elements = []
         components = spec.get("components", {})
         print(f"DEBUG: Components type: {type(components)}")
-        print(f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}")
+        print(
+            f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}"
+        )
         schemas = components.get("schemas", {})
         print(f"DEBUG: Schemas type: {type(schemas)}")
-        print(f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}")
+        print(
+            f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}"
+        )
 
         for name, schema in schemas.items():
+            # Build typed metadata
+            typed_meta = OpenAPISchemaMetadata(
+                schema_type=schema.get("type"),
+                properties=schema.get("properties", {}),
+                required=tuple(schema.get("required", [])),
+                enum=tuple(schema.get("enum", [])) if schema.get("enum") else None,
+                example=schema.get("example"),
+            )
+
             element = DocElement(
                 name=name,
                 qualified_name=f"openapi.components.schemas.{name}",
@@ -188,8 +293,9 @@ class OpenAPIExtractor(Extractor):
                     "required": schema.get("required", []),
                     "enum": schema.get("enum"),
                     "example": schema.get("example"),
-                    "raw_schema": schema  # Keep full schema for complex rendering
-                }
+                    "raw_schema": schema,  # Keep full schema for complex rendering
+                },
+                typed_metadata=typed_meta,
             )
             elements.append(element)
 

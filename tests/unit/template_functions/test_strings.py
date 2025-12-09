@@ -2,6 +2,7 @@
 
 from bengal.rendering.template_functions.strings import (
     excerpt,
+    filesize,
     pluralize,
     reading_time,
     replace_regex,
@@ -10,6 +11,7 @@ from bengal.rendering.template_functions.strings import (
     strip_whitespace,
     truncate_chars,
     truncatewords,
+    truncatewords_html,
 )
 
 
@@ -43,6 +45,65 @@ class TestTruncatewords:
         text = "Some text here"
         result = truncatewords(text, 0)
         assert result == "..."
+
+
+class TestTruncatewordsHtml:
+    """Tests for truncatewords_html filter - preserves HTML structure."""
+
+    def test_preserves_simple_tags(self):
+        html = "<p>Hello <strong>world</strong> how are you today</p>"
+        result = truncatewords_html(html, 3)
+        assert "<strong>" in result
+        assert "</strong>" in result
+        assert "</p>" in result
+
+    def test_closes_unclosed_tags(self):
+        html = "<div><p>One two three four five</p></div>"
+        result = truncatewords_html(html, 3)
+        assert result.count("<div>") == result.count("</div>")
+        assert result.count("<p>") == result.count("</p>")
+
+    def test_handles_void_elements(self):
+        html = "<p>Hello<br>world<img src='x'>test</p>"
+        result = truncatewords_html(html, 2)
+        # br and img are void elements, should not try to close them
+        assert "</br>" not in result
+        assert "</img>" not in result
+
+    def test_short_content_unchanged(self):
+        html = "<p>Short</p>"
+        result = truncatewords_html(html, 10)
+        assert result == html
+
+    def test_empty_input(self):
+        assert truncatewords_html("", 5) == ""
+
+    def test_nested_tags(self):
+        html = "<div><ul><li>One</li><li>Two</li><li>Three</li></ul></div>"
+        result = truncatewords_html(html, 2)
+        # Should close all open tags
+        assert result.count("<") == result.count(">")
+
+    def test_adds_suffix(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, 3)
+        assert "..." in result
+
+    def test_custom_suffix(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, 3, " [more]")
+        assert "[more]" in result
+
+    def test_preserves_tag_attributes(self):
+        html = '<p class="test">Hello <a href="/link">world</a> today</p>'
+        result = truncatewords_html(html, 2)
+        assert 'class="test"' in result
+
+    def test_self_closing_tags(self):
+        html = "<p>Hello<br/>world today</p>"
+        result = truncatewords_html(html, 2)
+        # Self-closing br should not cause issues
+        assert "</br>" not in result
 
 
 class TestSlugify:
@@ -248,3 +309,27 @@ class TestStripWhitespace:
 
     def test_already_clean(self):
         assert strip_whitespace("hello world") == "hello world"
+
+
+class TestFilesize:
+    """Tests for filesize filter."""
+
+    def test_bytes(self):
+        result = filesize(500)
+        assert "B" in result
+
+    def test_kilobytes(self):
+        result = filesize(2048)  # 2 KB
+        assert "KB" in result
+
+    def test_megabytes(self):
+        result = filesize(1536 * 1024)  # 1.5 MB
+        assert "MB" in result
+
+    def test_gigabytes(self):
+        result = filesize(2 * 1024 * 1024 * 1024)  # 2 GB
+        assert "GB" in result
+
+    def test_zero_bytes(self):
+        result = filesize(0)
+        assert "0" in result

@@ -9,7 +9,6 @@ import socket
 import socketserver
 import threading
 import time
-from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -151,7 +150,8 @@ class DevServer:
                 with BengalRequestHandler._html_cache_lock:
                     BengalRequestHandler._html_cache.clear()
                 logger.debug("html_cache_cleared_after_initial_build")
-            except Exception:
+            except Exception as e:
+                logger.debug("html_cache_clear_failed", error=str(e))
                 pass  # Cache might not be initialized yet, ignore
 
             # Initialize reload controller baseline after initial build
@@ -166,8 +166,9 @@ class DevServer:
                     min_interval = get_dev_config(
                         cfg, "reload", "min_notify_interval_ms", default=300
                     )
-                    controller.set_min_notify_interval_ms(min_interval)
-                except Exception:
+                    controller.set_min_notify_interval_ms(int(min_interval))
+                except Exception as e:
+                    logger.warning("reload_config_min_interval_failed", error=str(e))
                     pass
                 try:
                     # Provide sensible defaults to suppress known benign churn in dev
@@ -180,21 +181,27 @@ class DevServer:
                     ignore_paths = get_dev_config(
                         cfg, "reload", "ignore_paths", default=default_ignores
                     )
-                    controller.set_ignored_globs(ignore_paths)
-                except Exception:
+                    controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
+                except Exception as e:
+                    logger.warning("reload_config_ignores_failed", error=str(e))
                     pass
-                with suppress(Exception):
+                try:
+                    suspect_hash_limit = get_dev_config(
+                        cfg, "reload", "suspect_hash_limit", default=200
+                    )
+                    suspect_size_limit = get_dev_config(
+                        cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
+                    )
                     controller.set_hashing_options(
                         hash_on_suspect=bool(
                             get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
                         ),
-                        suspect_hash_limit=get_dev_config(
-                            cfg, "reload", "suspect_hash_limit", default=200
-                        ),
-                        suspect_size_limit_bytes=get_dev_config(
-                            cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
-                        ),
+                        suspect_hash_limit=int(suspect_hash_limit) if suspect_hash_limit is not None else None,
+                        suspect_size_limit_bytes=int(suspect_size_limit) if suspect_size_limit is not None else None,
                     )
+                except Exception as e:
+                    logger.warning("reload_config_hashing_failed", error=str(e))
+                    pass
 
                 controller.decide_and_update(self.site.output_dir)
                 logger.debug("reload_controller_baseline_initialized")
@@ -291,7 +298,7 @@ class DevServer:
 
         return True  # Baseurl was cleared
 
-    def _get_watched_directories(self) -> list:
+    def _get_watched_directories(self) -> list[str]:
         """
         Get list of directories that will be watched.
 
@@ -334,6 +341,36 @@ class DevServer:
             if bundled_theme_dir.exists():
                 watch_dirs.append(bundled_theme_dir)
 
+        # Watch autodoc source directories for Python file changes
+        autodoc_config = self.site.config.get("autodoc", {})
+
+        # Python source directories
+        python_config = autodoc_config.get("python", {})
+        if python_config.get("enabled", False):
+            for source_dir in python_config.get("source_dirs", []):
+                source_path = self.site.root_path / source_dir
+                if source_path.exists():
+                    watch_dirs.append(source_path)
+                    logger.debug(
+                        "watching_autodoc_source_dir",
+                        path=str(source_path),
+                        type="python",
+                    )
+
+        # OpenAPI spec file directory
+        openapi_config = autodoc_config.get("openapi", {})
+        if openapi_config.get("enabled", False):
+            spec_file = openapi_config.get("spec_file")
+            if spec_file:
+                spec_path = self.site.root_path / Path(spec_file).parent
+                if spec_path.exists():
+                    watch_dirs.append(spec_path)
+                    logger.debug(
+                        "watching_autodoc_source_dir",
+                        path=str(spec_path),
+                        type="openapi",
+                    )
+
         # Filter to only existing directories
         return [str(d) for d in watch_dirs if d.exists()]
 
@@ -371,8 +408,9 @@ class DevServer:
 
                 if hasattr(_sys, "_is_gil_enabled") and not _sys._is_gil_enabled():
                     backend = "polling"
-            except Exception:
+            except Exception as e:
                 # Fall through to auto native backend when detection fails
+                logger.debug("gil_detection_failed", error=str(e))
                 pass
 
         # Import BuildHandler only after GIL check (avoids loading native watchdog at import time)
@@ -380,15 +418,22 @@ class DevServer:
 
         event_handler = BuildHandler(self.site, self.host, actual_port)
 
-        ObserverClass = None
+        ObserverClass: Any = None
         if backend == "polling":
             try:
-                from watchdog.observers.polling import PollingObserver as ObserverClass
-            except Exception:
-                from watchdog.observers import Observer as ObserverClass
+                from watchdog.observers.polling import PollingObserver
+
+                ObserverClass = PollingObserver
+            except Exception as e:
+                logger.debug("polling_observer_import_failed", error=str(e))
+                from watchdog.observers import Observer
+
+                ObserverClass = Observer
         else:
             # auto/default: use native Observer; users can switch with env var
-            from watchdog.observers import Observer as ObserverClass
+            from watchdog.observers import Observer
+
+            ObserverClass = Observer
 
         observer = ObserverClass()
 
@@ -511,7 +556,7 @@ class DevServer:
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
 
-    def _create_server(self):
+    def _create_server(self) -> tuple[socketserver.ThreadingTCPServer, int]:
         """
         Create HTTP server (does not start it).
 
@@ -526,9 +571,9 @@ class DevServer:
         Raises:
             OSError: If no available port can be found
         """
-        # Change to output directory
-        os.chdir(self.site.output_dir)
-        logger.debug("changed_directory", path=str(self.site.output_dir))
+        # Store output directory for handler (don't rely on CWD - it can become invalid during rebuilds)
+        output_dir = str(self.site.output_dir)
+        logger.debug("serving_directory", path=output_dir)
 
         # Determine port to use
         actual_port = self.port
@@ -581,9 +626,14 @@ class DevServer:
         class BengalThreadingTCPServer(socketserver.ThreadingTCPServer):
             request_queue_size = 128
 
+        # Create handler with directory bound (avoids os.getcwd() which fails if CWD is deleted during rebuild)
+        from functools import partial
+
+        handler = partial(BengalRequestHandler, directory=output_dir)
+
         # Create threaded server so SSE long-lived connections don't block other requests
         # (don't use context manager - ResourceManager handles cleanup)
-        httpd = BengalThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
+        httpd = BengalThreadingTCPServer((self.host, actual_port), handler)
         httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
 
         logger.info(
@@ -673,7 +723,7 @@ class DevServer:
         """
         import webbrowser
 
-        def open_browser():
+        def open_browser() -> None:
             time.sleep(0.5)  # Give server time to start
             webbrowser.open(f"http://{self.host}:{port}/")
 

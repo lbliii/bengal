@@ -107,7 +107,7 @@
 
 /* Constrain prose content for readability */
 .docs-main .prose {
-  max-width: var(--content-width, 75ch);
+  max-width: var(--prose-width, 75ch);
   margin-inline: auto;
 }
 

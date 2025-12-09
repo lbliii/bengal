@@ -6,7 +6,6 @@ category: guide
 icon: terminal
 card_color: green
 ---
-
 # CLI Commands
 
 Workflow guides for Bengal's command-line interface.

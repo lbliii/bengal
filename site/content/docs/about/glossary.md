@@ -3,7 +3,10 @@ title: Glossary
 description: Definitions of terms used throughout Bengal documentation
 weight: 30
 type: doc
-tags: [reference, glossary, terminology]
+tags:
+- reference
+- glossary
+- terminology
 ---
 
 # Glossary
@@ -197,3 +200,5 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 - [Core Concepts](/docs/about/concepts/) — Detailed explanations of how Bengal works
 - [Configuration Reference](/docs/reference/architecture/tooling/config/) — All configuration options
 - [FAQ](/docs/about/faq/) — Answers to common questions
+
+

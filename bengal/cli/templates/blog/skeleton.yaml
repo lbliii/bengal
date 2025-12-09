@@ -1,0 +1,103 @@
+name: blog
+description: A blog with posts, tags, and categories
+version: "1.0"
+
+structure:
+  - path: index.md
+    type: blog
+    props:
+      title: My Blog
+      description: Welcome to my blog where I share thoughts and ideas
+      show_recent_posts: true
+      blog_section: posts
+    content: |
+      # Welcome to My Blog
+
+      This is your new Bengal blog! I write about technology, life, and everything in between.
+
+      ## Recent Posts
+
+      Check out my latest posts below or browse by [tags](/tags) and [categories](/categories).
+
+  - path: about.md
+    props:
+      title: About
+      description: Learn more about me
+    content: |
+      # About Me
+
+      Hi! I'm a blogger passionate about sharing knowledge and experiences.
+
+      ## What I Write About
+
+      - Technology and programming
+      - Personal development
+      - Life lessons and reflections
+
+      ## Get in Touch
+
+      Feel free to reach out via email or social media.
+
+  - path: posts/first-post.md
+    type: blog
+    props:
+      title: My First Blog Post
+      date: "{{date}}"
+      tags:
+        - welcome
+        - introduction
+      category: meta
+      description: Welcome to my new blog built with Bengal SSG
+    content: |
+      # My First Blog Post
+
+      Welcome to my blog! This is my first post, and I'm excited to start sharing my thoughts and ideas.
+
+      ## Why I Started This Blog
+
+      I wanted a place to document my journey and share what I learn along the way.
+
+      ## What to Expect
+
+      - Regular posts about topics I'm passionate about
+      - Tutorials and how-to guides
+      - Personal reflections and experiences
+
+      Stay tuned for more content!
+
+  - path: posts/second-post.md
+    type: blog
+    props:
+      title: Getting Started with Bengal SSG
+      date: "{{date}}"
+      tags:
+        - bengal
+        - tutorial
+        - ssg
+      category: technology
+      description: Learn how to build fast static sites with Bengal
+    content: |
+      # Getting Started with Bengal SSG
+
+      Bengal is a powerful static site generator that makes building websites easy and fun.
+
+      ## Key Features
+
+      1. **Fast Builds** - Parallel processing for quick build times
+      2. **Asset Optimization** - Automatic minification and fingerprinting
+      3. **SEO Friendly** - Built-in sitemap and RSS generation
+      4. **Developer Experience** - Live reload and hot module replacement
+
+      ## Next Steps
+
+      Try editing this post or creating a new one with:
+
+      ```bash
+      bengal new page my-new-post --section posts
+      ```
+
+      Then build and serve your site:
+
+      ```bash
+      bengal site serve
+      ```

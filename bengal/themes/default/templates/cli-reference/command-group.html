@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{#
+CLI Reference Command Group Template
+
+Renders a CLI command group's documentation showing nested commands and groups.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses semantic CSS tokens and patterns from api-explorer.css.
+
+This template receives:
+- element: DocElement for the command group
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      <div class="docs-content">
+        {# CLI Command Group Content #}
+        <div class="api-explorer">
+          <header class="api-module-header">
+            <div class="api-module-header__badges">
+              <span class="api-badge--compact api-badge--command-group">Command Group</span>
+            </div>
+
+            <h1 class="api-module-header__title api-title-wrap">
+              <code>{{ element.name }}</code>
+            </h1>
+
+            {% if element.description %}
+            <p class="api-module-header__description">{{ element.description }}</p>
+            {% endif %}
+
+            {% if element.source_file %}
+            <div class="api-module-header__source">
+              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+                class="api-source-link" target="_blank" rel="noopener">
+                View source
+              </a>
+            </div>
+            {% endif %}
+          </header>
+
+          {# Usage #}
+          {% if element.qualified_name %}
+          <div class="api-usage">
+            <h3 class="api-label">Usage</h3>
+            <div class="code-block-wrapper">
+              <div class="code-header-inline">
+                <span class="code-language">Bash</span>
+              </div>
+              <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+            </div>
+          </div>
+          {% endif %}
+
+          {# Commands and Sub-groups #}
+          {% if element.children %}
+          <section class="api-section api-section--commands">
+            <h2 class="api-section__title">Commands</h2>
+            <div class="api-grid api-grid--modules">
+              {% for child in element.children %}
+              {% if child.element_type == "command" %}
+              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-module-card">
+                <div class="api-module-card__header">
+                  <span class="api-module-card__icon">{{ icon("terminal", size=16, css_class="icon-success") }}</span>
+                  <span class="api-module-card__name">{{ child.name }}</span>
+                </div>
+                <div class="api-module-card__body">
+                  {% if child.description %}
+                  <p class="api-module-card__description">{{ child.description | truncatewords(15) }}</p>
+                  {% else %}
+                  <p class="api-module-card__description api-module-card__description--empty">No description available</p>
+                  {% endif %}
+                </div>
+              </a>
+              {% elif child.element_type == "command-group" %}
+              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-package-card">
+                <div class="api-package-card__header">
+                  <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
+                  <span class="api-package-card__name">{{ child.name }}</span>
+                </div>
+                <div class="api-package-card__body">
+                  {% if child.description %}
+                  <p class="api-package-card__description">{{ child.description | truncatewords(15) }}</p>
+                  {% else %}
+                  <p class="api-package-card__description api-package-card__description--empty">{{ child.name }} commands</p>
+                  {% endif %}
+                </div>
+                <div class="api-package-card__footer">
+                  <span class="api-package-card__meta">
+                    {{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}
+                  </span>
+                </div>
+              </a>
+              {% endif %}
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

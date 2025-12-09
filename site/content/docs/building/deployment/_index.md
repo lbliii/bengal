@@ -1,18 +1,25 @@
 ---
 title: Deployment
 description: Deploy your Bengal site to production
-weight: 40
 draft: false
+weight: 40
+aliases:
+- /docs/guides/deployment/
 lang: en
-tags: [deployment, hosting, ci-cd]
-keywords: [deployment, hosting, netlify, vercel, github-pages]
+tags:
+- deployment
+- hosting
+- ci-cd
+keywords:
+- deployment
+- hosting
+- netlify
+- vercel
+- github-pages
 category: guide
 icon: rocket
 card_color: orange
-aliases:
-  - /docs/guides/deployment/
 ---
-
 # Deploy Your Site
 
 Bengal generates static HTML, CSS, and JavaScript files. This means you can host your site anywhere that serves static files (e.g., GitHub Pages, Netlify, Vercel, AWS S3, Nginx).

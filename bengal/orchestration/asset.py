@@ -27,7 +27,7 @@ import concurrent.futures
 import time
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
 from bengal.config.defaults import get_max_workers
@@ -36,6 +36,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.site import Site
+    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
@@ -106,8 +107,13 @@ class AssetOrchestrator:
         try:
             current_id = id(self.site.assets)
             current_len = len(self.site.assets)
-        except Exception:
+        except Exception as e:
             # Defensive: if site/assets are not available yet
+            self.logger.debug(
+                "css_entry_cache_id_check_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return []
 
         if (
@@ -119,14 +125,24 @@ class AssetOrchestrator:
                 self._cached_css_entry_points = [
                     a for a in self.site.assets if a.is_css_entry_point()
                 ]
-            except Exception:
+            except Exception as e:
+                self.logger.debug(
+                    "css_entry_cache_population_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 self._cached_css_entry_points = []
             self._cached_assets_id = current_id
             self._cached_assets_len = current_len
 
         return self._cached_css_entry_points
 
-    def process(self, assets: list[Asset], parallel: bool = True, progress_manager=None) -> None:
+    def process(
+        self,
+        assets: list[Asset],
+        parallel: bool = True,
+        progress_manager: LiveProgressManager | None = None,
+    ) -> None:
         """
         Process and copy assets to output directory.
 
@@ -302,7 +318,7 @@ class AssetOrchestrator:
         minify: bool,
         optimize: bool,
         fingerprint: bool,
-        progress_manager,
+        progress_manager: LiveProgressManager | None,
         css_modules_count: int,
     ) -> None:
         """
@@ -361,7 +377,7 @@ class AssetOrchestrator:
                         pending_updates >= 10 or (now - last_update_time) >= update_interval
                     )
 
-                    if should_update:
+                    if should_update and progress_manager is not None:
                         with lock:
                             completed_count += pending_updates
                             progress_manager.update_phase(
@@ -400,7 +416,7 @@ class AssetOrchestrator:
         minify: bool,
         optimize: bool,
         fingerprint: bool,
-        progress_manager,
+        progress_manager: LiveProgressManager | None,
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
@@ -408,7 +424,7 @@ class AssetOrchestrator:
         completed = 0
 
         # Helper to handle single item
-        def process_one(asset, is_css_entry):
+        def process_one(asset: Asset, is_css_entry: bool) -> None:
             nonlocal completed
             try:
                 if is_css_entry:
@@ -447,7 +463,7 @@ class AssetOrchestrator:
         for asset in other_assets:
             process_one(asset, False)
 
-    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict) -> Asset | None:
+    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict[str, Any]) -> Asset | None:
         """
         Create a bundled JavaScript file from individual JS modules.
 

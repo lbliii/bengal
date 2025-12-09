@@ -55,7 +55,7 @@ class CrossReferencePlugin:
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 
-    def __call__(self, md):
+    def __call__(self, md: Any) -> None:
         """
         Register the plugin with Mistune.
 
@@ -77,8 +77,6 @@ class CrossReferencePlugin:
 
             # Replace text renderer
             md.renderer.text = text_with_xref
-
-        return md
 
     def _substitute_xrefs(self, html: str) -> str:
         """
@@ -114,7 +112,7 @@ class CrossReferencePlugin:
         if "[[" not in text:
             return text
 
-        def replace_xref(match: Match) -> str:
+        def replace_xref(match: Match[str]) -> str:
             ref = match.group(1).strip()
             text = match.group(2).strip() if match.group(2) else None
 

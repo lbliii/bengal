@@ -13,8 +13,6 @@ from bengal.cli.helpers import (
     get_cli_output,
     handle_cli_errors,
     load_site_from_cli,
-    run_autodoc_before_build,
-    should_regenerate_autodoc,
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
@@ -125,11 +123,6 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Enable/disable Node-based assets pipeline (overrides config)",
 )
 @click.option(
-    "--autodoc/--no-autodoc",
-    default=None,
-    help="Force regenerate autodoc before building (overrides config)",
-)
-@click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output - only show errors and summary")
@@ -144,7 +137,9 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Show full traditional output instead of live progress (useful for debugging)",
 )
 @click.option(
-    "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal/logs/build.log)"
+    "--log-file",
+    type=click.Path(),
+    help="Write detailed logs to file (default: .bengal/logs/build.log)",
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
@@ -164,7 +159,6 @@ def build(
     traceback: str | None,
     validate: bool,
     assets_pipeline: bool,
-    autodoc: bool,
     config: str,
     quiet: bool,
     fast: bool,
@@ -289,23 +283,8 @@ def build(
             assets_cfg["pipeline"] = bool(assets_pipeline)
             site.config["assets"] = assets_cfg
 
-        # Handle autodoc regeneration
-        root_path = Path(source).resolve()
-        # Find config file if not explicitly provided (same logic as ConfigLoader)
-        if config:
-            config_path = Path(config).resolve()
-        else:
-            # Try to find config file automatically (same as ConfigLoader.load())
-            config_path = None
-            for filename in ["bengal.toml", "bengal.yaml", "bengal.yml"]:
-                candidate = root_path / filename
-                if candidate.exists():
-                    config_path = candidate
-                    break
-        if should_regenerate_autodoc(
-            autodoc_flag=autodoc, config_path=config_path, root_path=root_path, quiet=quiet
-        ):
-            run_autodoc_before_build(config_path=config_path, root_path=root_path, quiet=quiet)
+        # Autodoc virtual pages are now generated during content discovery
+        # No separate pre-build step needed
 
         # Validate templates if requested (via service)
         if validate:
@@ -415,9 +394,9 @@ def build(
                     get_profiler,
                 )
 
-                profiler = get_profiler()
-                if profiler:
-                    report = profiler.get_report()
+                template_profiler = get_profiler()
+                if template_profiler:
+                    report = template_profiler.get_report()
                     cli.blank()
                     cli.header("📊 Template Profiling Report")
                     for line in format_profile_report(report, top_n=20).splitlines():
@@ -444,8 +423,8 @@ def build(
                 from bengal.utils.build_summary import display_build_summary
                 from bengal.utils.rich_console import detect_environment
 
-                environment = detect_environment()
-                display_build_summary(stats, environment=environment)
+                console_env = detect_environment()
+                display_build_summary(stats, environment=console_env)
             else:
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))

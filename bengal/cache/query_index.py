@@ -21,7 +21,6 @@ Example:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -30,6 +29,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.cacheable import Cacheable
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ class IndexEntry(Cacheable):
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
     content_hash: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Compute content hash if not provided."""
         if not self.content_hash:
             self.content_hash = self._compute_hash()
@@ -72,7 +72,7 @@ class IndexEntry(Cacheable):
         """Compute hash of page_paths for change detection."""
         # Sort for stable hash
         paths_str = json.dumps(sorted(self.page_paths), sort_keys=True)
-        return hashlib.sha256(paths_str.encode()).hexdigest()[:16]
+        return hash_str(paths_str, truncate=16)
 
     def to_cache_dict(self) -> dict[str, Any]:
         """Serialize to cache-friendly dictionary (Cacheable protocol)."""

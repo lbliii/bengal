@@ -3,8 +3,19 @@ title: Design Principles
 description: Core patterns and philosophies guiding Bengal's architecture.
 weight: 50
 category: core
-tags: [core, design-principles, architecture, patterns, best-practices, performance]
-keywords: [design principles, architecture patterns, best practices, performance, extensibility]
+tags:
+- core
+- design-principles
+- architecture
+- patterns
+- best-practices
+- performance
+keywords:
+- design principles
+- architecture patterns
+- best practices
+- performance
+- extensibility
 ---
 
 # Design Principles

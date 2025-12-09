@@ -10,13 +10,14 @@ Validates:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class TaxonomyValidator(BaseValidator):
@@ -35,7 +36,9 @@ class TaxonomyValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run taxonomy validation checks."""
         results = []
 
@@ -86,9 +89,9 @@ class TaxonomyValidator(BaseValidator):
         # Check for orphaned tag pages
         orphaned_pages = []
         for page in tag_pages:
-            tag_slug = page.metadata.get("_tag_slug")
-            if tag_slug and tag_slug not in tags:
-                orphaned_pages.append(tag_slug)
+            page_tag_slug: str | None = page.metadata.get("_tag_slug")
+            if page_tag_slug and page_tag_slug not in tags:
+                orphaned_pages.append(page_tag_slug)
 
         # Report results
         if missing_tags:
@@ -244,6 +247,8 @@ class TaxonomyValidator(BaseValidator):
             paginator = page.metadata.get("_paginator")
             page_num = page.metadata.get("_page_num")
 
+            if page.output_path is None:
+                continue
             if not paginator:
                 issues.append(f"{page.output_path.name}: No paginator in metadata")
             elif not page_num:

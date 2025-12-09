@@ -265,8 +265,8 @@ def should_show_debug() -> bool:
             print(f"[Debug] Processing {item}", file=sys.stderr)
     """
     profile = get_current_profile()
-    config = profile.get_config()
-    return config.get("enable_debug_output", False)
+    config: dict[str, Any] = profile.get_config()
+    return bool(config.get("enable_debug_output", False))
 
 
 def should_track_memory() -> bool:
@@ -277,8 +277,8 @@ def should_track_memory() -> bool:
         True if memory should be tracked
     """
     profile = get_current_profile()
-    config = profile.get_config()
-    return config.get("track_memory", False)
+    config: dict[str, Any] = profile.get_config()
+    return bool(config.get("track_memory", False))
 
 
 def should_collect_metrics() -> bool:
@@ -289,8 +289,8 @@ def should_collect_metrics() -> bool:
         True if metrics should be collected
     """
     profile = get_current_profile()
-    config = profile.get_config()
-    return config.get("collect_metrics", False)
+    config: dict[str, Any] = profile.get_config()
+    return bool(config.get("collect_metrics", False))
 
 
 def get_enabled_health_checks() -> list[str]:
@@ -305,15 +305,18 @@ def get_enabled_health_checks() -> list[str]:
         ['config', 'output', 'links']
     """
     profile = get_current_profile()
-    config = profile.get_config()
-    health_config = config.get("health_checks", {})
-    enabled = health_config.get("enabled", [])
+    config: dict[str, Any] = profile.get_config()
+    health_config: dict[str, Any] = config.get("health_checks", {})
+    enabled: Any = health_config.get("enabled", [])
 
     # Return 'all' as a list with single element for easier checking
     if enabled == "all":
         return ["all"]
 
-    return enabled
+    # Type narrowing: ensure we return list[str]
+    if isinstance(enabled, list):
+        return [str(item) for item in enabled]
+    return []
 
 
 def is_validator_enabled(validator_name: str) -> bool:

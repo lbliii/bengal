@@ -4,11 +4,10 @@ Related Posts orchestration for Bengal SSG.
 Builds related posts index during build phase for O(1) template access.
 """
 
-
 from __future__ import annotations
 
 import concurrent.futures
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
@@ -115,7 +114,7 @@ class RelatedPostsOrchestrator:
         self,
         pages: list[Page],
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict],
+        tags_dict: dict[str, dict[str, Any]],
         limit: int,
     ) -> int:
         """
@@ -148,7 +147,7 @@ class RelatedPostsOrchestrator:
         self,
         pages: list[Page],
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict],
+        tags_dict: dict[str, dict[str, Any]],
         limit: int,
     ) -> int:
         """
@@ -239,7 +238,7 @@ class RelatedPostsOrchestrator:
         self,
         page: Page,
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict],
+        tags_dict: dict[str, dict[str, Any]],
         limit: int,
     ) -> list[Page]:
         """

@@ -1,6 +1,5 @@
 """Tests for get_page template function used by tracks feature."""
 
-
 from pathlib import Path
 
 import pytest
@@ -145,10 +144,10 @@ class TestGetPageFunction:
         register(env, site_with_content)
         get_page = env.globals["get_page"]
 
-        # First call should create maps
-        assert not hasattr(site_with_content, "_page_lookup_maps")
+        # First call should create maps (field exists but is None before first use)
+        assert site_with_content._page_lookup_maps is None
         page1 = get_page("docs/getting-started/installation.md")
-        assert hasattr(site_with_content, "_page_lookup_maps")
+        assert site_with_content._page_lookup_maps is not None
 
         # Maps should be reused
         maps_before = site_with_content._page_lookup_maps

@@ -1,12 +1,21 @@
 ---
 title: Build Pipeline
-description: How Bengal orchestrates builds, processes content, and performs incremental builds
+description: How Bengal orchestrates builds, processes content, and performs incremental
+  builds
 weight: 30
 type: doc
 draft: false
 lang: en
-tags: [build, pipeline, orchestration, incremental]
-keywords: [build pipeline, orchestration, incremental builds, performance]
+tags:
+- build
+- pipeline
+- orchestration
+- incremental
+keywords:
+- build pipeline
+- orchestration
+- incremental builds
+- performance
 category: documentation
 ---
 
@@ -65,7 +74,7 @@ Bengal's incremental build system relies on **Change Detection** and **Dependenc
 3.  **Dependency Graph**:
     *   **Direct Change**: The file itself changed.
     *   **Navigation Dependency**: If Page A links to Page B, and Page B changes title, Page A must rebuild (to update the link text).
-    *   **Template Change**: If `layouts/_default/single.html` changes, all pages using that template rebuild.
+    *   **Template Change**: If `templates/page.html` changes, all pages using that template rebuild.
     *   **Config Change**: If `bengal.toml` changes, a **Full Rebuild** is triggered.
 
 ### Performance

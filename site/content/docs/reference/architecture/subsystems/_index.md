@@ -2,11 +2,10 @@
 title: Subsystems
 description: Specialized feature subsystems
 weight: 30
-icon: list
 cascade:
   type: doc
+icon: list
 ---
-
 # Subsystems
 
 Specialized subsystems providing advanced features.
@@ -19,14 +18,14 @@ graph TB
         Site[Site]
         Render[Rendering]
     end
-    
+
     subgraph "Feature Subsystems"
         Autodoc[Autodoc]
         Analysis[Analysis]
         Health[Health]
         Fonts[Fonts]
     end
-    
+
     Autodoc -.->|generates| Site
     Analysis -.->|analyzes| Site
     Health -.->|validates| Render

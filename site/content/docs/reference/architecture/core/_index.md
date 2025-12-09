@@ -2,11 +2,10 @@
 title: Core Architecture
 description: Data models, build coordination, and core principles
 weight: 10
-icon: bengal-rosette
 cascade:
   type: doc
+icon: bengal-rosette
 ---
-
 # Core Architecture
 
 The brain of Bengal — foundational data models and build coordination.
@@ -21,7 +20,7 @@ graph TB
         Section[Section]
         Asset[Asset]
     end
-    
+
     Site --> Section
     Site --> Page
     Site --> Asset

@@ -11,7 +11,7 @@ Provides:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.utils.file_io import load_data_file
 from bengal.utils.logger import get_logger
@@ -19,8 +19,12 @@ from bengal.utils.logger import get_logger
 try:
     from jinja2 import pass_context  # Jinja2 >=3
 except Exception:  # pragma: no cover - fallback, tests ensure availability
+    from collections.abc import Callable
+    from typing import Any, TypeVar
 
-    def pass_context(fn):
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def pass_context(fn: F) -> F:
         return fn
 
 
@@ -33,6 +37,20 @@ logger = get_logger(__name__)
 
 # Track warned translation keys to avoid spamming logs (once per key per build)
 _warned_translation_keys: set[str] = set()
+
+
+class LanguageInfo(TypedDict, total=False):
+    """
+    TypedDict for language information returned by _languages().
+
+    All fields except baseurl are required. baseurl is optional.
+    """
+
+    code: str  # Language code (e.g., 'en', 'fr')
+    name: str  # Display name (e.g., 'English', 'Français')
+    hreflang: str  # hreflang attribute value (usually same as code)
+    baseurl: str  # Base URL for this language (optional)
+    weight: int  # Sort weight (lower = earlier in list)
 
 
 def _warn_missing_translation(key: str, lang: str) -> None:
@@ -87,23 +105,23 @@ def register(env: Environment, site: Site) -> None:
     base_translate = _make_t(site)
 
     @pass_context
-    def t(ctx, key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
+    def t(ctx: Any, key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         use_lang = lang or getattr(page, "lang", None)
         return base_translate(key, params=params, lang=use_lang)
 
     @pass_context
-    def current_lang(ctx) -> str | None:
+    def current_lang(ctx: Any) -> str | None:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         return _current_lang(site, page)
 
-    def languages() -> list[dict[str, Any]]:
+    def languages() -> list[LanguageInfo]:
         return _languages(site)
 
-    def alternate_links(page=None) -> list[dict[str, str]]:
+    def alternate_links(page: Any = None) -> list[dict[str, str]]:
         return _alternate_links(site, page)
 
-    def locale_date(date, format="medium", lang=None) -> str:
+    def locale_date(date: Any, format: str = "medium", lang: str | None = None) -> str:
         return _locale_date(date, format, lang)
 
     env.globals.update(
@@ -125,26 +143,32 @@ def _current_lang(site: Site, page: Any | None = None) -> str | None:
     return getattr(site, "current_language", None) or default
 
 
-def _languages(site: Site) -> list[dict[str, Any]]:
+def _languages(site: Site) -> list[LanguageInfo]:
+    """
+    Get normalized list of configured languages.
+
+    Returns:
+        List of LanguageInfo dictionaries with code, name, hreflang, and optional baseurl/weight.
+    """
     i18n = site.config.get("i18n", {}) or {}
     langs = i18n.get("languages") or []
     # Normalize to list of dicts with code and hreflang
-    normalized: list[dict[str, Any]] = []
+    normalized: list[LanguageInfo] = []
     seen = set()
     for entry in langs:
         if isinstance(entry, dict):
             code = entry.get("code")
             if code and code not in seen:
                 seen.add(code)
-                normalized.append(
-                    {
-                        "code": code,
-                        "name": entry.get("name", code),
-                        "hreflang": entry.get("hreflang", code),
-                        "baseurl": entry.get("baseurl"),
-                        "weight": entry.get("weight", 0),
-                    }
-                )
+                lang_info: LanguageInfo = {
+                    "code": code,
+                    "name": entry.get("name", code),
+                    "hreflang": entry.get("hreflang", code),
+                    "weight": entry.get("weight", 0),
+                }
+                if baseurl := entry.get("baseurl"):
+                    lang_info["baseurl"] = baseurl
+                normalized.append(lang_info)
         elif isinstance(entry, str):
             if entry not in seen:
                 seen.add(entry)
@@ -157,7 +181,7 @@ def _languages(site: Site) -> list[dict[str, Any]]:
     return normalized
 
 
-def _make_t(site: Site):
+def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None], str]:
     cache: dict[str, dict[str, Any]] = {}
     i18n_dir = site.root_path / "i18n"
 
@@ -186,7 +210,13 @@ def _make_t(site: Site):
     def format_params(text: str, params: dict[str, Any]) -> str:
         try:
             return text.format(**params)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "i18n_format_params_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_original_text",
+            )
             return text
 
     def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
@@ -229,7 +259,14 @@ def _alternate_links(site: Site, page: Any | None) -> list[dict[str, str]]:
                 href = "/" + str(rel).replace("index.html", "").replace("\\", "/").rstrip("/") + "/"
                 lang = getattr(p, "lang", None) or i18n.get("default_language", "en")
                 alternates.append({"hreflang": lang, "href": href})
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "i18n_alternate_link_failed",
+                    page_path=str(p.output_path) if hasattr(p, "output_path") else None,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_alternate",
+                )
                 continue
     # Add x-default pointing to default language
     default_lang = i18n.get("default_language", "en")
@@ -248,9 +285,21 @@ def _locale_date(date: Any, format: str = "medium", lang: str | None = None) -> 
 
         pattern = _DEF_FORMATS.get(format, format)
         return format_date(date, format=pattern, locale=lang or "en")
-    except Exception:
+    except Exception as e:
         # Fallback to simple strftime
+        logger.debug(
+            "i18n_babel_format_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="trying_strftime_fallback",
+        )
         try:
             return date.strftime("%Y-%m-%d")
-        except Exception:
+        except Exception as e2:
+            logger.debug(
+                "i18n_strftime_failed",
+                error=str(e2),
+                error_type=type(e2).__name__,
+                action="returning_string_representation",
+            )
             return str(date)

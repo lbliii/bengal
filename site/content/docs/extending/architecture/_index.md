@@ -1,16 +1,22 @@
 ---
 title: Architecture
 description: Bengal internals for contributors
-weight: 40
 draft: false
+weight: 40
 lang: en
-tags: [architecture, internals, contributing]
-keywords: [architecture, internals, contributing, development]
+tags:
+- architecture
+- internals
+- contributing
+keywords:
+- architecture
+- internals
+- contributing
+- development
 category: explanation
 icon: layers
 card_color: orange
 ---
-
 # Architecture
 
 Deep dive into Bengal's internals for contributors and advanced users.

@@ -52,10 +52,10 @@ class Hydrator:
             # Parent cascade + Component fields -> Component effective state
             # Note: We don't modify the component in place, we just use the merged values
             # for creating children context.
-            
+
             effective_type = comp.type or cascade.get("type")
             effective_variant = comp.variant or cascade.get("variant")
-            
+
             # Prepare next cascade context (merge current component's cascade into parent's)
             next_cascade = cascade.copy()
             next_cascade.update(comp.cascade)
@@ -87,12 +87,12 @@ class Hydrator:
     ) -> str:
         """Generate the full markdown file content with frontmatter."""
         # 1. Build Frontmatter Dict
-        frontmatter = {}
+        frontmatter: dict[str, Any] = {}
 
         # Identity & Mode (Explicitly set if present on component, ignoring cascade for local file)
         # We write what is explicitly defined on THIS component.
         # However, for the 'cascade' key in frontmatter, we write comp.cascade.
-        
+
         if comp.type:
             frontmatter["type"] = comp.type
         if comp.variant:
@@ -109,13 +109,13 @@ class Hydrator:
             frontmatter["cascade"] = comp.cascade
 
         # 2. Serialize to YAML
-        yaml_str = yaml.dump(frontmatter, sort_keys=False, default_flow_style=False).strip()
-        
+        yaml_str: str = yaml.dump(frontmatter, sort_keys=False, default_flow_style=False).strip()
+
         # 3. Append Content
         body = comp.content or ""
         if not body and "title" in comp.props:
-             body = f"# {comp.props['title']}\n\nAdd content here."
-        
+            body = f"# {comp.props['title']}\n\nAdd content here."
+
         return f"---\n{yaml_str}\n---\n\n{body}\n"
 
     def _write_file(self, path: Path, content: str) -> None:
@@ -130,6 +130,5 @@ class Hydrator:
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_text(path, content)
-        
-        self.created_files.append(path)
 
+        self.created_files.append(path)

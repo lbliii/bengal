@@ -73,7 +73,7 @@ class ButtonDirective(DirectivePlugin):
     # Directive names this class registers (for health check introspection)
     DIRECTIVE_NAMES = ["button"]
 
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
         """
         Parse button directive.
 
@@ -114,7 +114,7 @@ class ButtonDirective(DirectivePlugin):
             },
         }
 
-    def __call__(self, directive, md):
+    def __call__(self, directive: Any, md: Any) -> None:
         """Register the directive with mistune."""
         directive.register("button", self.parse)
 
@@ -122,7 +122,7 @@ class ButtonDirective(DirectivePlugin):
             md.renderer.register("button", render_button)
 
 
-def render_button(renderer, text: str, **attrs) -> str:
+def render_button(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render button as HTML link.
 

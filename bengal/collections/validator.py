@@ -7,7 +7,6 @@ type coercion, helpful error messages, and support for nested types.
 
 from __future__ import annotations
 
-import logging
 import types
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
@@ -15,8 +14,9 @@ from pathlib import Path
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
+from bengal.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -135,7 +135,12 @@ class SchemaValidator:
     ) -> ValidationResult:
         """Validate using Pydantic model."""
         try:
-            instance = self.schema.model_validate(data)
+            # Type guard: we know schema is Pydantic if _is_pydantic is True
+            # Use getattr to avoid mypy error - we've already checked _is_pydantic
+            if not self._is_pydantic:
+                raise TypeError("Schema is not a Pydantic model")
+            # Type ignore: mypy doesn't know that schema has model_validate when _is_pydantic is True
+            instance = self.schema.model_validate(data)  # type: ignore[attr-defined]
             return ValidationResult(
                 valid=True,
                 data=instance,
@@ -467,7 +472,15 @@ class SchemaValidator:
                 return parse(value), []
             except ImportError:
                 pass
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "datetime_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_iso_fallback",
+                )
                 pass
 
             # Fallback: try ISO format
@@ -505,7 +518,15 @@ class SchemaValidator:
                 return parse(value).date(), []
             except ImportError:
                 pass
-            except Exception:
+            except Exception as e:
+                logger.debug(
+                    "date_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_iso_fallback",
+                )
                 pass
 
             # Fallback: try ISO format

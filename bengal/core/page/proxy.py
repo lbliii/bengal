@@ -16,6 +16,7 @@ Architecture:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -24,6 +25,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 from .page_core import PageCore
 
@@ -92,11 +94,14 @@ class PageProxy:
         assert page._lazy_loaded  # True
     """
 
+    # Site reference - set externally during content discovery
+    _site: Site | None
+
     def __init__(
         self,
         source_path: Path,
         metadata: PageCore,  # Now explicitly PageCore (or PageMetadata alias)
-        loader: callable,
+        loader: Callable[[Path], Page],
     ):
         """
         Initialize PageProxy with PageCore metadata and loader.
@@ -111,7 +116,8 @@ class PageProxy:
         self._loader = loader
         self._lazy_loaded = False
         self._full_page: Page | None = None
-        self._related_posts_cache: list | None = None
+        self._related_posts_cache: list[Page] | None = None
+        self._site = None  # Site reference - set externally
 
         # Path-based section reference (stable across rebuilds)
         # Initialized from core.section if available
@@ -181,11 +187,6 @@ class PageProxy:
         # Legacy fallback via metadata
         props = self.metadata  # Triggers metadata build (but not full page)
         return props.get("layout") or props.get("hero_style")
-
-    @property
-    def description(self) -> str:
-        """Get page description from cached metadata (promoted prop)."""
-        return self.core.description or ""
 
     @property
     def props(self) -> dict[str, Any]:
@@ -275,7 +276,7 @@ class PageProxy:
             return self._full_page.metadata
 
         # Build metadata dict from cached PageCore fields
-        cached_metadata = {}
+        cached_metadata: dict[str, Any] = {}
         if self.core.type:
             cached_metadata["type"] = self.core.type
         if self.core.weight is not None:
@@ -375,7 +376,7 @@ class PageProxy:
             self._full_page.parsed_ast = value
 
     @property
-    def related_posts(self) -> list:
+    def related_posts(self) -> list[Page]:
         """Get related posts (lazy-loaded)."""
         # If set on proxy without loading, return cached value
         if self._related_posts_cache is not None:
@@ -385,7 +386,7 @@ class PageProxy:
         return self._full_page.related_posts if self._full_page else []
 
     @related_posts.setter
-    def related_posts(self, value: list) -> None:
+    def related_posts(self, value: list[Page]) -> None:
         """Set related posts.
 
         In incremental mode, allow setting on proxy without forcing a full load.
@@ -435,7 +436,10 @@ class PageProxy:
     def reading_time(self) -> str:
         """Get reading time estimate (lazy-loaded from full page)."""
         self._ensure_loaded()
-        return self._full_page.reading_time if self._full_page else ""
+        if self._full_page:
+            rt = self._full_page.reading_time
+            return str(rt) if isinstance(rt, int) else rt
+        return ""
 
     @property
     def excerpt(self) -> str:
@@ -686,7 +690,7 @@ class PageProxy:
         if isinstance(other, PageProxy):
             return self.source_path == other.source_path
         if hasattr(other, "source_path"):
-            return self.source_path == other.source_path
+            return bool(self.source_path == other.source_path)
         return False
 
     def __repr__(self) -> str:
@@ -717,7 +721,7 @@ class PageProxy:
 
         # This is mainly for testing - normally you'd create from metadata
         # and load from disk, but we can create from an existing page too
-        def loader(source_path):
+        def loader(source_path: Path) -> Page:
             return page
 
         return cls(page.source_path, metadata, loader)

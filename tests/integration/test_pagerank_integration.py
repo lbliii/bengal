@@ -161,7 +161,7 @@ class TestPageRankIntegration:
         """Test that personalized PageRank requires seed pages."""
         site, graph, hub_page, spoke_pages, orphan_page = sample_site
 
-        with pytest.raises(ValueError, match="seed_pages cannot be empty"):
+        with pytest.raises(ValueError, match="requires at least one seed page"):
             graph.compute_personalized_pagerank(seed_pages=set())
 
     def test_pagerank_without_build(self, sample_site):
@@ -171,7 +171,7 @@ class TestPageRankIntegration:
         # Create new graph without building
         new_graph = KnowledgeGraph(site)
 
-        with pytest.raises(RuntimeError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             new_graph.compute_pagerank()
 
     def test_pagerank_with_different_damping(self, sample_site):

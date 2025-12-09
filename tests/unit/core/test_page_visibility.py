@@ -397,3 +397,5 @@ class TestVisibilityWithDraft:
         assert page.in_sitemap is False
         assert page.in_search is False
         assert page.in_rss is False
+
+

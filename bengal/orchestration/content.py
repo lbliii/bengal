@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
@@ -136,6 +135,20 @@ class ContentOrchestrator:
             full_pages=full_page_count,
         )
 
+        # Integrate virtual autodoc pages if enabled
+        # Note: Autodoc pages are NOT rendered during discovery. HTML rendering is
+        # deferred to the rendering phase (after menus are built) to ensure full
+        # template context (including navigation) is available.
+        autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=cache)
+        if autodoc_pages or autodoc_sections:
+            self.site.pages.extend(autodoc_pages)
+            self.site.sections.extend(autodoc_sections)
+            self.logger.info(
+                "autodoc_virtual_pages_integrated",
+                pages=len(autodoc_pages),
+                sections=len(autodoc_sections),
+            )
+
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
         # This enables O(1) section lookups via page._section property
         self.site.register_sections()
@@ -160,24 +173,109 @@ class ContentOrchestrator:
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
 
-    def _discover_autodoc_content(self) -> list[Any]:
+    def _discover_autodoc_content(
+        self, cache: Any | None = None
+    ) -> tuple[list[Any], list[Any]]:
         """
-        Generate autodoc synthetic pages if enabled.
+        Generate virtual autodoc pages if enabled.
+
+        Args:
+            cache: Optional BuildCache for registering autodoc dependencies.
+                   Enables selective rebuilding of autodoc pages in incremental builds.
 
         Returns:
-            Empty list - HTML renderer disabled, using traditional Markdown generation
+            Tuple of (pages, sections) from virtual autodoc generation.
+            Returns ([], []) if virtual autodoc is disabled.
         """
-        # HTML renderer disabled - return empty list
-        return []
+        try:
+            from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 
-        # Check for missing weight metadata (info logging to educate users)
-        self._check_weight_metadata()
+            orchestrator = VirtualAutodocOrchestrator(self.site)
 
-        # Build cross-reference index for O(1) lookups
-        self._build_xref_index()
-        self.logger.debug(
-            "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
-        )
+            if not orchestrator.is_enabled():
+                self.logger.debug("virtual_autodoc_not_enabled")
+                return [], []
+
+            # Tolerate both 2-tuple (legacy) and 3-tuple (new) return values
+            result = orchestrator.generate()
+            if len(result) == 3:
+                pages, sections, run_result = result
+                # Log summary if there were failures or warnings
+                if run_result.has_failures() or run_result.has_warnings():
+                    self._log_autodoc_summary(run_result)
+
+                # Register autodoc dependencies with cache for selective rebuilds
+                if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                    for source_file, page_paths in run_result.autodoc_dependencies.items():
+                        for page_path in page_paths:
+                            cache.add_autodoc_dependency(source_file, page_path)
+
+                    if run_result.autodoc_dependencies:
+                        self.logger.debug(
+                            "autodoc_dependencies_registered",
+                            source_files=len(run_result.autodoc_dependencies),
+                            total_mappings=sum(
+                                len(p) for p in run_result.autodoc_dependencies.values()
+                            ),
+                        )
+            else:
+                # Legacy 2-tuple return
+                pages, sections = result
+                run_result = None
+
+            return pages, sections
+
+        except ImportError as e:
+            self.logger.debug("autodoc_import_failed", error=str(e))
+            return [], []
+        # Note: Other exceptions (e.g., RuntimeError from strict mode) propagate
+        # to allow strict mode enforcement. Non-strict failures are logged in summary.
+
+    def _log_autodoc_summary(self, result: Any) -> None:
+        """
+        Log a summary of autodoc run results.
+
+        Args:
+            result: AutodocRunResult with counts and failure details
+        """
+        if not result.has_failures() and not result.has_warnings():
+            return
+
+        # Build summary message
+        parts = []
+        if result.extracted > 0:
+            parts.append(f"{result.extracted} extracted")
+        if result.rendered > 0:
+            parts.append(f"{result.rendered} rendered")
+        if result.failed_extract > 0:
+            parts.append(f"{result.failed_extract} extraction failures")
+        if result.failed_render > 0:
+            parts.append(f"{result.failed_render} rendering failures")
+        if result.warnings > 0:
+            parts.append(f"{result.warnings} warnings")
+
+        summary = ", ".join(parts)
+
+        # Include sample failures if any
+        failure_details = []
+        if result.failed_extract_identifiers:
+            sample = result.failed_extract_identifiers[:5]
+            failure_details.append(f"Failed extractions: {', '.join(sample)}")
+        if result.failed_render_identifiers:
+            sample = result.failed_render_identifiers[:5]
+            failure_details.append(f"Failed renders: {', '.join(sample)}")
+        if result.fallback_pages:
+            sample = result.fallback_pages[:5]
+            failure_details.append(f"Fallback pages: {', '.join(sample)}")
+
+        if failure_details:
+            summary += f" ({'; '.join(failure_details)})"
+
+        # Log at warning level if failures, info if only warnings
+        if result.has_failures():
+            self.logger.warning("autodoc_run_summary", summary=summary)
+        else:
+            self.logger.info("autodoc_run_summary", summary=summary)
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
@@ -229,54 +327,14 @@ class ContentOrchestrator:
         """
         Set up page references for navigation (next, prev, parent, etc.).
 
-        This method sets _site and _section references on all pages to enable
-        navigation properties (next, prev, ancestors, etc.).
+        Delegates to Site._setup_page_references() for the canonical implementation.
+        This ensures a single source of truth for page-section reference setup.
 
-        Top-level pages (those not in any section) will have _section = None.
+        See Also:
+            Site._setup_page_references(): Canonical implementation
+            plan/active/rfc-page-section-reference-contract.md
         """
-        # Set site reference on all pages (including top-level pages)
-        for page in self.site.pages:
-            page._site = self.site
-            # Initialize _section to None for pages not yet assigned
-            if not hasattr(page, "_section"):
-                page._section = None
-
-        # Set section references
-        for section in self.site.sections:
-            # Set site reference on section
-            section._site = self.site
-
-            # Set section reference on the section's index page (if it has one)
-            if section.index_page:
-                section.index_page._section = section
-
-            # Set section reference on all pages in this section
-            for page in section.pages:
-                page._section = section
-
-            # Recursively set for subsections
-            self._setup_section_references(section)
-
-    def _setup_section_references(self, section: Section) -> None:
-        """
-        Recursively set up references for a section and its subsections.
-
-        Args:
-            section: Section to set up references for
-        """
-        for subsection in section.subsections:
-            subsection._site = self.site
-
-            # Set section reference on the subsection's index page (if it has one)
-            if subsection.index_page:
-                subsection.index_page._section = subsection
-
-            # Set section reference on pages in subsection
-            for page in subsection.pages:
-                page._section = subsection
-
-            # Recurse into deeper subsections
-            self._setup_section_references(subsection)
+        self.site._setup_page_references()
 
     def _apply_cascades(self) -> None:
         """

@@ -35,6 +35,7 @@ from bengal.health.validators.assets import AssetValidator
 from bengal.health.validators.cache import CacheValidator
 from bengal.health.validators.config import ConfigValidatorWrapper
 from bengal.health.validators.connectivity import ConnectivityValidator
+from bengal.health.validators.cross_ref import CrossReferenceValidator
 from bengal.health.validators.directives import DirectiveValidator
 from bengal.health.validators.fonts import FontValidator
 from bengal.health.validators.links import LinkValidatorWrapper
@@ -55,6 +56,8 @@ __all__ = [
     "ConfigValidatorWrapper",
     # Phase 5
     "ConnectivityValidator",
+    # Cross-reference validation
+    "CrossReferenceValidator",
     "DirectiveValidator",
     "FontValidator",
     "LinkValidatorWrapper",

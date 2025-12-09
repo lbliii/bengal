@@ -2,11 +2,10 @@
 title: Rendering Pipeline
 description: How Bengal transforms Markdown to HTML
 weight: 20
-icon: arrow-clockwise
 cascade:
   type: doc
+icon: arrow-clockwise
 ---
-
 # Rendering Pipeline
 
 How Bengal transforms source content into final output.
@@ -19,19 +18,19 @@ flowchart LR
         A[Find Content]
         B[Parse Frontmatter]
     end
-    
+
     subgraph Rendering
         C[Select Template]
         D[Parse Markdown]
         E[Render Jinja2]
     end
-    
+
     subgraph "Post-Process"
         F[Generate Sitemap]
         G[Validate Links]
         H[Optimize Assets]
     end
-    
+
     A --> B --> C --> D --> E --> F --> G --> H
 ```
 

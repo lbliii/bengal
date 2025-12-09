@@ -16,10 +16,10 @@ import builtins
 import json
 import time
 from dataclasses import dataclass
-from hashlib import sha256
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from bengal.utils.hashing import hash_file, hash_str
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -237,7 +237,7 @@ class SwizzleManager:
         current_checksum = _checksum_file(target_path)
         expected_checksum = record.get("local_checksum")
 
-        return current_checksum != expected_checksum
+        return bool(current_checksum != expected_checksum)
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:
@@ -266,7 +266,7 @@ class SwizzleManager:
         data["records"] = filtered
         self._write_registry(data)
 
-    def _load_registry(self) -> dict[str, object]:
+    def _load_registry(self) -> dict[str, Any]:
         try:
             if self.registry_path.exists():
                 data = json.loads(self.registry_path.read_text(encoding="utf-8"))
@@ -275,7 +275,7 @@ class SwizzleManager:
                     path=str(self.registry_path),
                     record_count=len(data.get("records", [])),
                 )
-                return data
+                return dict(data) if isinstance(data, dict) else {}
         except json.JSONDecodeError as e:
             logger.error(
                 "swizzle_registry_json_invalid",
@@ -292,7 +292,7 @@ class SwizzleManager:
             )
         return {"records": []}
 
-    def _write_registry(self, data: dict[str, object]) -> None:
+    def _write_registry(self, data: dict[str, Any]) -> None:
         try:
             self.registry_path.parent.mkdir(parents=True, exist_ok=True)
             self.registry_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -312,12 +312,20 @@ class SwizzleManager:
 
 
 def _checksum_file(path: Path) -> str:
+    """Compute truncated checksum of file content."""
     try:
-        content = path.read_bytes()
-        return sha256(content).hexdigest()[:16]
-    except Exception:
+        return hash_file(path, truncate=16)
+    except Exception as e:
+        logger.debug(
+            "swizzle_checksum_file_failed",
+            path=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_empty_string",
+        )
         return ""
 
 
 def _checksum_str(content: str) -> str:
-    return sha256(content.encode("utf-8")).hexdigest()[:16]
+    """Compute truncated checksum of string content."""
+    return hash_str(content, truncate=16)

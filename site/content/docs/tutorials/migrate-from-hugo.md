@@ -1,14 +1,26 @@
 ---
 title: Migrate from Hugo
-description: Migrate your site from Hugo, Jekyll, Gatsby, or other static site generators to Bengal
+description: Migrate your site from Hugo, Jekyll, Gatsby, or other static site generators
+  to Bengal
 weight: 20
 draft: false
 lang: en
-tags: [tutorial, migration, hugo, jekyll, gatsby]
-keywords: [migration, import, hugo, jekyll, gatsby, content conversion]
+tags:
+- tutorial
+- migration
+- hugo
+- jekyll
+- gatsby
+keywords:
+- migration
+- import
+- hugo
+- jekyll
+- gatsby
+- content conversion
 category: tutorial
 aliases:
-  - /docs/guides/migrating-content/
+- /docs/guides/migrating-content/
 ---
 
 # Migrate Content from Other SSGs
@@ -430,6 +442,3 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 - **[Content Authoring](/docs/content/authoring/)** - Learn Bengal's content features
 - **[Theming](/docs/theming/)** - Customize your site's appearance
 - **[Deployment](/docs/building/deployment/)** - Deploy your migrated site
-
-
-

@@ -1,9 +1,14 @@
 ---
 title: Theme Variables
-description: Comprehensive reference of all variables and functions available in Jinja2 templates.
+description: Comprehensive reference of all variables and functions available in Jinja2
+  templates.
 weight: 10
 type: doc
-tags: [reference, templates, variables, jinja2]
+tags:
+- reference
+- templates
+- variables
+- jinja2
 category: reference
 ---
 

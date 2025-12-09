@@ -4,7 +4,6 @@ Font downloader using Google Fonts API.
 No external dependencies - uses only Python stdlib.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -64,13 +63,21 @@ class GoogleFontsDownloader:
             family: Font family name (e.g., "Inter", "Roboto")
             weights: List of weights (e.g., [400, 700])
             styles: List of styles (e.g., ["normal", "italic"])
-            output_dir: Directory to save font files
+            output_dir: Directory to save font files (required)
 
         Returns:
             List of downloaded FontVariant objects
+
+        Raises:
+            ValueError: If output_dir is not provided
+
+        Note:
+            output_dir must be explicit - no fallback to Path.cwd() to ensure
+            consistent behavior. See: plan/implemented/rfc-path-resolution-architecture.md
         """
+        if output_dir is None:
+            raise ValueError("output_dir is required for download_font")
         styles = styles or ["normal"]
-        output_dir = output_dir or Path.cwd()
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Build Google Fonts CSS URL
@@ -208,6 +215,13 @@ class GoogleFontsDownloader:
         try:
             tmp_path.write_bytes(data)
             tmp_path.replace(output_path)
-        except Exception:
+        except Exception as e:
+            logger.debug(
+                "font_downloader_atomic_write_failed",
+                output_path=str(output_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="cleaning_up_temp_file",
+            )
             tmp_path.unlink(missing_ok=True)
             raise

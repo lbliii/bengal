@@ -5,3 +5,5 @@ pip install -e .
 ```
 
 This installs Bengal in development mode, allowing you to modify the source code.
+
+

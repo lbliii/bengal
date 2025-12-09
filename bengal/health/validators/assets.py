@@ -14,13 +14,19 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
+    from bengal.utils.build_context import BuildContext
+from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 class AssetValidator(BaseValidator):
@@ -45,7 +51,9 @@ class AssetValidator(BaseValidator):
     LARGE_IMAGE_KB = 1000
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
 
@@ -161,7 +169,7 @@ class AssetValidator(BaseValidator):
 
     def _check_duplicate_assets(self, assets_dir: Path) -> list[CheckResult]:
         """Check for duplicate assets (same size and name pattern)."""
-        results = []
+        results: list[CheckResult] = []
 
         # Group files by base name (ignoring hash suffixes)
         # e.g., style.abc123.css and style.def456.css are duplicates
@@ -222,8 +230,14 @@ class AssetValidator(BaseValidator):
                         # If more than 5% newlines, probably not minified
                         if newline_ratio > 0.05:
                             large_unminified_css.append(f"{css_file.name}: {size_kb:.0f} KB")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(
+                            "health_asset_css_check_failed",
+                            file=str(css_file),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="skipping_minification_check",
+                        )
 
         large_unminified_js = []
         for js_file in js_files:
@@ -236,8 +250,14 @@ class AssetValidator(BaseValidator):
 
                         if newline_ratio > 0.05:
                             large_unminified_js.append(f"{js_file.name}: {size_kb:.0f} KB")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(
+                            "health_asset_js_check_failed",
+                            file=str(js_file),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="skipping_minification_check",
+                        )
 
         if large_unminified_css:
             results.append(

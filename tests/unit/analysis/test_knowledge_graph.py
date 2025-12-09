@@ -199,17 +199,25 @@ class TestLayers:
 
     def test_get_layers(self, site_with_links):
         """Test that pages are partitioned into layers."""
+        from bengal.analysis.results import PageLayers
+
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hubs, mid_tier, leaves = graph.get_layers()
+        layers = graph.get_layers()
+
+        # Verify it's a PageLayers dataclass
+        assert isinstance(layers, PageLayers)
+
+        # Test tuple unpacking (backward compatibility)
+        hubs, mid_tier, leaves = layers
 
         # All pages should be in one of the layers
-        total = len(hubs) + len(mid_tier) + len(leaves)
+        total = len(layers.hubs) + len(layers.mid_tier) + len(layers.leaves)
         assert total == len(site_with_links.pages)
 
         # No page should be in multiple layers
-        all_pages = hubs + mid_tier + leaves
+        all_pages = layers.hubs + layers.mid_tier + layers.leaves
         assert len(all_pages) == len(set(all_pages))
 
     def test_layers_sorted_by_connectivity(self, site_with_links):
@@ -217,13 +225,16 @@ class TestLayers:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hubs, mid_tier, leaves = graph.get_layers()
+        layers = graph.get_layers()
+
+        # Test tuple unpacking (backward compatibility)
+        hubs, mid_tier, leaves = layers
 
         # If we have pages in multiple layers,
         # hubs should have higher connectivity than leaves
-        if hubs and leaves:
-            hub_conn = graph.get_connectivity_score(hubs[0])
-            leaf_conn = graph.get_connectivity_score(leaves[-1])
+        if layers.hubs and layers.leaves:
+            hub_conn = graph.get_connectivity_score(layers.hubs[0])
+            leaf_conn = graph.get_connectivity_score(layers.leaves[-1])
             assert hub_conn >= leaf_conn
 
 
@@ -234,19 +245,19 @@ class TestErrorHandling:
         """Test that analysis methods require build() first."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_hubs()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_leaves()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_orphans()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_layers()
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
             graph.get_metrics()
 
     def test_empty_site(self, tmp_path):
@@ -445,7 +456,7 @@ class TestActionableRecommendations:
         """Test that recommendations require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting recommendations."):
             graph.get_actionable_recommendations()
 
 
@@ -467,7 +478,7 @@ class TestSEOInsights:
         """Test that SEO insights require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting SEO insights."):
             graph.get_seo_insights()
 
 
@@ -511,7 +522,7 @@ class TestContentGaps:
         """Test that content gaps require build."""
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(ValueError, match="Must call build"):
+        with pytest.raises(RuntimeError, match="KnowledgeGraph is not built. Call .build\\(\\) before getting content gaps."):
             graph.get_content_gaps()
 
 

@@ -315,3 +315,5 @@ class TestThemeResolutionIntegration:
 
         # With no custom theme, chain is empty
         assert chain == []
+
+

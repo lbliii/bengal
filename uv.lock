@@ -146,6 +146,12 @@ dev = [
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "ruff" },
+    { name = "types-markdown" },
+    { name = "types-psutil" },
+    { name = "types-pygments" },
+    { name = "types-python-dateutil" },
+    { name = "types-pyyaml" },
+    { name = "types-toml" },
 ]
 github = [
     { name = "aiohttp" },
@@ -158,6 +164,27 @@ rest = [
 ]
 search = [
     { name = "lunr" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "beautifulsoup4" },
+    { name = "hypothesis" },
+    { name = "markdown" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "pytest-timeout" },
+    { name = "pytest-xdist" },
+    { name = "ruff" },
+    { name = "types-markdown" },
+    { name = "types-psutil" },
+    { name = "types-pygments" },
+    { name = "types-python-dateutil" },
+    { name = "types-pyyaml" },
+    { name = "types-toml" },
 ]
 
 [package.metadata]
@@ -191,9 +218,36 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.0" },
     { name = "toml", specifier = ">=0.10.0" },
+    { name = "types-markdown", marker = "extra == 'dev'", specifier = ">=3.5.0" },
+    { name = "types-psutil", marker = "extra == 'dev'", specifier = ">=5.9.0" },
+    { name = "types-pygments", marker = "extra == 'dev'", specifier = ">=2.18.0" },
+    { name = "types-python-dateutil", marker = "extra == 'dev'", specifier = ">=2.9.0" },
+    { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.12" },
+    { name = "types-toml", marker = "extra == 'dev'", specifier = ">=0.10.0" },
     { name = "watchdog", specifier = ">=3.0.0" },
 ]
 provides-extras = ["search", "github", "notion", "rest", "all-sources", "dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "hypothesis", specifier = ">=6.92.0" },
+    { name = "markdown", specifier = ">=3.5.0" },
+    { name = "mypy", specifier = ">=1.11.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23.0" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "pytest-mock", specifier = ">=3.11.0" },
+    { name = "pytest-timeout", specifier = ">=2.2.0" },
+    { name = "pytest-xdist", specifier = ">=3.3.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "types-markdown", specifier = ">=3.10.0.20251106" },
+    { name = "types-psutil", specifier = ">=7.1.3.20251202" },
+    { name = "types-pygments", specifier = ">=2.19.0.20251121" },
+    { name = "types-python-dateutil", specifier = ">=2.9.0.20251115" },
+    { name = "types-pyyaml", specifier = ">=6.0.12" },
+    { name = "types-toml", specifier = ">=0.10.8.20240310" },
+]
 
 [[package]]
 name = "certifi"
@@ -889,6 +943,72 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
+]
+
+[[package]]
+name = "types-docutils"
+version = "0.22.3.20251115"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/eb/d7/576ec24bf61a280f571e1f22284793adc321610b9bcfba1bf468cf7b334f/types_docutils-0.22.3.20251115.tar.gz", hash = "sha256:0f79ea6a7bd4d12d56c9f824a0090ffae0ea4204203eb0006392906850913e16", size = 56828, upload-time = "2025-11-15T02:59:57.371Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/01/61ac9eb38f1f978b47443dc6fd2e0a3b0f647c2da741ddad30771f1b2b6f/types_docutils-0.22.3.20251115-py3-none-any.whl", hash = "sha256:c6e53715b65395d00a75a3a8a74e352c669bc63959e65a207dffaa22f4a2ad6e", size = 91951, upload-time = "2025-11-15T02:59:56.413Z" },
+]
+
+[[package]]
+name = "types-markdown"
+version = "3.10.0.20251106"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/e4/060f0dadd9b551cae77d6407f2bc84b168f918d90650454aff219c1b3ed2/types_markdown-3.10.0.20251106.tar.gz", hash = "sha256:12836f7fcbd7221db8baeb0d3a2f820b95050d0824bfa9665c67b4d144a1afa1", size = 19486, upload-time = "2025-11-06T03:06:44.317Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/58/f666ca9391f2a8bd33bb0b0797cde6ac3e764866708d5f8aec6fab215320/types_markdown-3.10.0.20251106-py3-none-any.whl", hash = "sha256:2c39512a573899b59efae07e247ba088a75b70e3415e81277692718f430afd7e", size = 25862, upload-time = "2025-11-06T03:06:43.082Z" },
+]
+
+[[package]]
+name = "types-psutil"
+version = "7.1.3.20251202"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/38/fe935d9e9e70f9f0aaa04b743673a72acafcb6410d7a565c7c333348faa3/types_psutil-7.1.3.20251202.tar.gz", hash = "sha256:5cfecaced7c486fb3995bb290eab45043d697a261718aca01b9b340d1ab7968a", size = 24948, upload-time = "2025-12-02T03:10:58.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/c3/7452fb13e3322885aa1f3c4b754fbb325eb666185656cb5982d720cc8fec/types_psutil-7.1.3.20251202-py3-none-any.whl", hash = "sha256:39bfc44780de7ab686c65169e36a7969db09e7f39d92de643b55789292953400", size = 31843, upload-time = "2025-12-02T03:10:57.153Z" },
+]
+
+[[package]]
+name = "types-pygments"
+version = "2.19.0.20251121"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-docutils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/90/3b/cd650700ce9e26b56bd1a6aa4af397bbbc1784e22a03971cb633cdb0b601/types_pygments-2.19.0.20251121.tar.gz", hash = "sha256:eef114fde2ef6265365522045eac0f8354978a566852f69e75c531f0553822b1", size = 18590, upload-time = "2025-11-21T03:03:46.623Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/8a/9244b21f1d60dcc62e261435d76b02f1853b4771663d7ec7d287e47a9ba9/types_pygments-2.19.0.20251121-py3-none-any.whl", hash = "sha256:cb3bfde34eb75b984c98fb733ce4f795213bd3378f855c32e75b49318371bb25", size = 25674, upload-time = "2025-11-21T03:03:45.72Z" },
+]
+
+[[package]]
+name = "types-python-dateutil"
+version = "2.9.0.20251115"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/36/06d01fb52c0d57e9ad0c237654990920fa41195e4b3d640830dabf9eeb2f/types_python_dateutil-2.9.0.20251115.tar.gz", hash = "sha256:8a47f2c3920f52a994056b8786309b43143faa5a64d4cbb2722d6addabdf1a58", size = 16363, upload-time = "2025-11-15T03:00:13.717Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/0b/56961d3ba517ed0df9b3a27bfda6514f3d01b28d499d1bce9068cfe4edd1/types_python_dateutil-2.9.0.20251115-py3-none-any.whl", hash = "sha256:9cf9c1c582019753b8639a081deefd7e044b9fa36bd8217f565c6c4e36ee0624", size = 18251, upload-time = "2025-11-15T03:00:12.317Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20250915"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/69/3c51b36d04da19b92f9e815be12753125bd8bc247ba0470a982e6979e71c/types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3", size = 17522, upload-time = "2025-09-15T03:01:00.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/e0/1eed384f02555dde685fff1a1ac805c1c7dcb6dd019c916fe659b1c1f9ec/types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6", size = 20338, upload-time = "2025-09-15T03:00:59.218Z" },
+]
+
+[[package]]
+name = "types-toml"
+version = "0.10.8.20240310"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/47/3e4c75042792bff8e90d7991aa5c51812cc668828cc6cce711e97f63a607/types-toml-0.10.8.20240310.tar.gz", hash = "sha256:3d41501302972436a6b8b239c850b26689657e25281b48ff0ec06345b8830331", size = 4392, upload-time = "2024-03-10T02:18:37.518Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/da/a2/d32ab58c0b216912638b140ab2170ee4b8644067c293b170e19fba340ccc/types_toml-0.10.8.20240310-py3-none-any.whl", hash = "sha256:627b47775d25fa29977d9c70dc0cbab3f314f32c8d8d0c012f2ef5de7aaec05d", size = 4777, upload-time = "2024-03-10T02:18:36.568Z" },
 ]
 
 [[package]]

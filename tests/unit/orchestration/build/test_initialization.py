@@ -20,6 +20,11 @@ from bengal.orchestration.build.initialization import (
     phase_fonts,
     phase_incremental_filter,
 )
+from bengal.orchestration.build.results import (
+    ChangeSummary,
+    ConfigCheckResult,
+    FilterResult,
+)
 
 
 class MockPhaseContext:
@@ -252,9 +257,14 @@ class TestPhaseConfigCheck:
 
         orchestrator.incremental.check_config_changed.return_value = False
 
-        incremental, config_changed = phase_config_check(orchestrator, cli, cache, incremental=True)
+        result = phase_config_check(orchestrator, cli, cache, incremental=True)
 
         orchestrator.incremental.check_config_changed.assert_called()
+        assert isinstance(result, ConfigCheckResult)
+        assert result.config_changed is False
+        # Test tuple unpacking backward compatibility
+        incremental, config_changed = result
+        assert incremental is True
         assert config_changed is False
 
     def test_forces_full_rebuild_on_config_change(self, tmp_path):
@@ -270,9 +280,14 @@ class TestPhaseConfigCheck:
 
         orchestrator.incremental.check_config_changed.return_value = True
 
-        incremental, config_changed = phase_config_check(orchestrator, cli, cache, incremental=True)
+        result = phase_config_check(orchestrator, cli, cache, incremental=True)
 
-        assert incremental is False  # Forced to full build
+        assert isinstance(result, ConfigCheckResult)
+        assert result.incremental is False  # Forced to full build
+        assert result.config_changed is True
+        # Test tuple unpacking backward compatibility
+        incremental, config_changed = result
+        assert incremental is False
         assert config_changed is True
 
     def test_clears_cache_on_config_change(self, tmp_path):
@@ -322,6 +337,10 @@ class TestPhaseIncrementalFilter:
             orchestrator, cli, cache, incremental=False, verbose=False, build_start=time.time()
         )
 
+        assert isinstance(result, FilterResult)
+        assert result.pages_to_build == mock_pages
+        assert result.assets_to_process == mock_assets
+        # Test tuple unpacking backward compatibility
         pages, assets, tags, paths, sections = result
         assert pages == mock_pages
         assert assets == mock_assets
@@ -340,16 +359,22 @@ class TestPhaseIncrementalFilter:
         changed_page.metadata = {}
         changed_page.source_path = Path("test.md")
         changed_page.tags = []
+        change_summary = ChangeSummary()
+        change_summary.modified_content = [changed_page.source_path]
         orchestrator.incremental.find_work_early.return_value = (
             [changed_page],
             [],
-            {"modified": [changed_page]},
+            change_summary,
         )
 
         result = phase_incremental_filter(
             orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
         )
 
+        assert isinstance(result, FilterResult)
+        assert len(result.pages_to_build) == 1
+        assert result.pages_to_build[0] is changed_page
+        # Test tuple unpacking backward compatibility
         pages, assets, tags, paths, sections = result
         assert len(pages) == 1
         assert pages[0] is changed_page
@@ -363,7 +388,7 @@ class TestPhaseIncrementalFilter:
         cache = MagicMock()
         cache.get_all_tags.return_value = {}
 
-        orchestrator.incremental.find_work_early.return_value = ([], [], {})
+        orchestrator.incremental.find_work_early.return_value = ([], [], ChangeSummary())
 
         result = phase_incremental_filter(
             orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
@@ -389,13 +414,17 @@ class TestPhaseIncrementalFilter:
         orchestrator.incremental.find_work_early.return_value = (
             [changed_page],
             [],
-            {},
+            ChangeSummary(),
         )
 
         result = phase_incremental_filter(
             orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
         )
 
+        assert isinstance(result, FilterResult)
+        assert "python" in result.affected_tags
+        assert "tutorial" in result.affected_tags
+        # Test tuple unpacking backward compatibility
         _, _, affected_tags, _, _ = result
         assert "python" in affected_tags
         assert "tutorial" in affected_tags
@@ -418,13 +447,16 @@ class TestPhaseIncrementalFilter:
         orchestrator.incremental.find_work_early.return_value = (
             [changed_page],
             [],
-            {},
+            ChangeSummary(),
         )
 
         result = phase_incremental_filter(
             orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
         )
 
+        assert isinstance(result, FilterResult)
+        assert "docs" in result.affected_sections
+        # Test tuple unpacking backward compatibility
         _, _, _, _, affected_sections = result
         assert "docs" in affected_sections
 
@@ -446,7 +478,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.incremental.find_work_early.return_value = (
             [changed_page],
             [],
-            {},
+            ChangeSummary(),
         )
 
         phase_incremental_filter(

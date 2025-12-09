@@ -19,6 +19,9 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
+    from bengal.utils.build_context import BuildContext
+
+if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
@@ -42,7 +45,9 @@ class FontValidator(BaseValidator):
     MAX_FONT_SIZE_KB = 500
 
     @override
-    def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+    def validate(
+        self, site: Site, build_context: BuildContext | Any | None = None
+    ) -> list[CheckResult]:
         """Run font validation checks."""
         results = []
 
@@ -183,7 +188,7 @@ class FontValidator(BaseValidator):
 
     def _check_font_sizes(self, fonts_dir: Path) -> list[CheckResult]:
         """Check font file sizes are reasonable."""
-        results = []
+        results: list[CheckResult] = []
 
         if not fonts_dir.exists():
             return results
@@ -195,7 +200,7 @@ class FontValidator(BaseValidator):
 
         # Check for oversized fonts
         oversized = []
-        total_size_kb = 0
+        total_size_kb: float = 0
 
         for font_file in font_files:
             size_kb = font_file.stat().st_size / 1024

@@ -4,9 +4,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.cache.query_index import QueryIndex
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
 
 
 class SectionIndex(QueryIndex):
@@ -26,7 +29,7 @@ class SectionIndex(QueryIndex):
     def __init__(self, cache_path: Path):
         super().__init__("section", cache_path)
 
-    def extract_keys(self, page) -> list[tuple[str, dict[str, Any]]]:
+    def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]:
         """Extract section name from page."""
         # Get section from page._section
         if hasattr(page, "_section") and page._section:

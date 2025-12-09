@@ -1,6 +1,10 @@
 """
 Default theme feature registry.
 
+DEPRECATED: This module is deprecated in favor of theme.yaml configuration.
+Please use theme.yaml to define features instead. This module will be removed
+in a future version.
+
 Each feature has:
 - key: Dotted namespace string (e.g., "navigation.breadcrumbs")
 - description: Human-readable description
@@ -24,7 +28,17 @@ Templates check features via:
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "bengal.themes.default.features is deprecated. "
+    "Please use theme.yaml for feature configuration instead. "
+    "This module will be removed in a future version.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @dataclass(frozen=True)

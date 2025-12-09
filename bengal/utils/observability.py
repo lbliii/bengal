@@ -198,16 +198,16 @@ class ComponentStats:
         }
 
         # Flatten sub-timings
-        for k, v in self.sub_timings.items():
-            ctx[f"timing_{k}_ms"] = v
+        for timing_key, timing_val in self.sub_timings.items():
+            ctx[f"timing_{timing_key}_ms"] = timing_val
 
         # Flatten skip reasons
-        for k, v in self.items_skipped.items():
-            ctx[f"skipped_{k}"] = v
+        for skip_key, skip_val in self.items_skipped.items():
+            ctx[f"skipped_{skip_key}"] = skip_val
 
         # Flatten metrics
-        for k, v in self.metrics.items():
-            ctx[f"metric_{k}"] = v
+        for metric_key, metric_val in self.metrics.items():
+            ctx[f"metric_{metric_key}"] = metric_val
 
         return ctx
 

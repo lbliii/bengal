@@ -6,7 +6,6 @@ category: guide
 icon: zap
 card_color: purple
 ---
-
 # Optimize Build Performance
 
 Speed up Bengal with incremental builds, parallel processing, and smart caching.

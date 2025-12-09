@@ -9,7 +9,7 @@ Handles generation of special pages that don't come from markdown content:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.page.utils import create_synthetic_page
 from bengal.utils.logger import get_logger
@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.build_context import BuildContext
 
 
 class SpecialPagesGenerator:
@@ -46,7 +47,7 @@ class SpecialPagesGenerator:
         """
         self.site = site
 
-    def generate(self, build_context=None) -> None:
+    def generate(self, build_context: BuildContext | Any | None = None) -> None:
         """
         Generate all special pages that are enabled.
 
@@ -113,8 +114,14 @@ class SpecialPagesGenerator:
             # Check if 404.html template exists
             try:
                 template_engine.env.get_template("404.html")
-            except Exception:
+            except Exception as e:
                 # No 404 template in theme, skip generation
+                logger.debug(
+                    "custom_404_template_missing",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_404_generation",
+                )
                 return False
 
             # Create context for 404 page using factory
@@ -154,8 +161,15 @@ class SpecialPagesGenerator:
                 if existing != rendered_html:
                     with open(output_path, "w", encoding="utf-8") as f:
                         f.write(rendered_html)
-            except Exception:
+            except Exception as e:
                 # Best-effort diff; on any error just write
+                logger.debug(
+                    "special_page_diff_failed",
+                    output_path=str(output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="writing_without_diff",
+                )
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(rendered_html)
 
@@ -212,8 +226,15 @@ class SpecialPagesGenerator:
 
             try:
                 template_engine.env.get_template(template_name)
-            except Exception:
+            except Exception as e:
                 # Template missing → skip
+                logger.debug(
+                    "special_page_template_missing",
+                    template=template_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_generation",
+                )
                 return False
 
             # Build context using factory
@@ -258,7 +279,7 @@ class SpecialPagesGenerator:
             )
             return False
 
-    def _generate_graph(self, build_context=None) -> bool:
+    def _generate_graph(self, build_context: BuildContext | Any | None = None) -> bool:
         """
         Generate interactive knowledge graph visualization.
 
@@ -332,7 +353,8 @@ class SpecialPagesGenerator:
 
             graph_data = visualizer.generate_graph_data()
             json_path = self.site.output_dir / raw_path.strip("/") / "graph.json"
-            json_path.write_text(json.dumps(graph_data, indent=2), encoding="utf-8")
+            # sort_keys=True ensures deterministic output for cache invalidation
+            json_path.write_text(json.dumps(graph_data, indent=2, sort_keys=True), encoding="utf-8")
 
             return True
         except Exception as e:

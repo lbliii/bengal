@@ -255,7 +255,7 @@ class NotionSource(ContentSource):
 
         for block in blocks:
             block_type = block.get("type")
-            block_data = block.get(block_type, {})
+            block_data = block.get(str(block_type) if block_type else "", {})
 
             if block_type == "paragraph":
                 text = self._rich_text_to_md(block_data.get("rich_text", []))

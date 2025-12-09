@@ -17,12 +17,9 @@ Example:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import Any
 
 from bengal.utils.logger import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -71,7 +68,7 @@ def transform_internal_links(html: str, baseurl: str) -> str:
     # - href="relative/..." (relative paths without leading /)
     # - href="/baseurl/..." (already has baseurl)
 
-    def replace_link(match: re.Match) -> str:
+    def replace_link(match: re.Match[str]) -> str:
         """Replace internal link with baseurl-prefixed version."""
         attr = match.group(1)  # href or src
         quote = match.group(2)  # ' or "
@@ -79,7 +76,7 @@ def transform_internal_links(html: str, baseurl: str) -> str:
 
         # Skip if path already starts with baseurl
         if path.startswith(baseurl + "/") or path == baseurl:
-            return match.group(0)
+            return str(match.group(0))
 
         # Prepend baseurl
         new_path = f"{baseurl}{path}"
@@ -94,7 +91,7 @@ def transform_internal_links(html: str, baseurl: str) -> str:
     return transformed
 
 
-def should_transform_links(config: dict) -> bool:
+def should_transform_links(config: dict[str, Any]) -> bool:
     """
     Check if link transformation should be applied.
 
@@ -115,10 +112,12 @@ def should_transform_links(config: dict) -> bool:
     # Allow explicit opt-out via config
     # Default to True if baseurl is set
     build_config = config.get("build", {}) or {}
-    return build_config.get("transform_links", True)
+    if isinstance(build_config, dict):
+        return bool(build_config.get("transform_links", True))
+    return True
 
 
-def get_baseurl(config: dict) -> str:
+def get_baseurl(config: dict[str, Any]) -> str:
     """
     Get normalized baseurl from config.
 

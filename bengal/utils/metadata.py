@@ -23,11 +23,14 @@ See Also:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
 from bengal.utils.logger import get_logger
 from bengal.utils.theme_registry import get_theme_package
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
@@ -68,16 +71,23 @@ def _get_highlighter_version() -> str | None:
         return None
 
 
-def _get_theme_info(site) -> dict[str, Any]:
+def _get_theme_info(site: Site) -> dict[str, Any]:
     theme_name = getattr(site, "theme", None) or "default"
     # Prefer installed theme package metadata when available
     version: str | None = None
+    logger = get_logger(__name__)
     try:
         pkg = get_theme_package(theme_name)
         if pkg and pkg.version:
             version = pkg.version
-    except Exception:
+    except Exception as e:
         # Best-effort; ignore errors and fall back to no version
+        logger.debug(
+            "theme_version_lookup_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         pass
 
     return {"name": theme_name, "version": version}
@@ -92,7 +102,7 @@ def _get_i18n_info(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_template_metadata(site) -> dict[str, Any]:
+def build_template_metadata(site: Site) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
 
@@ -112,11 +122,17 @@ def build_template_metadata(site) -> dict[str, Any]:
     theme_info = _get_theme_info(site)
 
     # Build info
+    logger = get_logger(__name__)
     timestamp: str | None
     try:
         bt = getattr(site, "build_time", None)
         timestamp = bt.isoformat() if isinstance(bt, datetime) else None
-    except Exception:
+    except Exception as e:
+        logger.debug(
+            "build_timestamp_format_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         timestamp = None
 
     build = {"timestamp": timestamp}
