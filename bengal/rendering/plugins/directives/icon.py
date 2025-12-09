@@ -8,10 +8,13 @@ Architecture:
     Note: Module-level icon cache preserved for performance.
 
 Syntax:
-    :::{icon} terminal
-    :size: 24
-    :class: my-icon-class
-    :::
+
+```markdown
+:::{icon} terminal
+:size: 24
+:class: my-icon-class
+:::
+```
 """
 
 from __future__ import annotations

@@ -2,11 +2,19 @@
 Term directive for inline tooltips.
 
 Syntax:
-    {term="Definition text"}Term Name{/term}
-    {term}Term Name{/term} (uses term as definition, or looks up in glossary - glossary lookup not implemented yet)
+
+```markdown
+{term="Definition text"}Term Name{/term}
+{term}Term Name{/term}
+```
+
+(The second form uses term as definition, or looks up in glossary - glossary lookup not implemented yet)
 
 Renders as:
-    <span class="term" data-tooltip="Definition text">Term Name</span>
+
+```html
+<span class="term" data-tooltip="Definition text">Term Name</span>
+```
 """
 
 from __future__ import annotations

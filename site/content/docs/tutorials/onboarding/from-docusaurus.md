@@ -572,7 +572,7 @@ terms:
 
 :::{checklist} Verify
 - [ ] Build: `bengal site build`
-- [ ] Check: `bengal health check`
+- [ ] Check: `bengal health linkcheck`
 - [ ] Preview: `bengal site serve`
 :::
 

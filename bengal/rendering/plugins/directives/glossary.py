@@ -5,16 +5,19 @@ Renders key terms from a centralized glossary data file as definition lists.
 Supports filtering by tags to show relevant terms for each page.
 
 Syntax:
-    :::{glossary}
-    :tags: directives, navigation
-    :::
 
-    :::{glossary}
-    :tags: admonitions
-    :sorted: true
-    :collapsed: true
-    :limit: 3
-    :::
+```markdown
+:::{glossary}
+:tags: directives, navigation
+:::
+
+:::{glossary}
+:tags: admonitions
+:sorted: true
+:collapsed: true
+:limit: 3
+:::
+```
 
 The directive loads terms from data/glossary.yaml (via site.data.glossary) and
 renders matching terms as a styled definition list.

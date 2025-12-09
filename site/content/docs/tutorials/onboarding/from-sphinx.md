@@ -287,7 +287,7 @@ bengal site serve
 
 | Sphinx Feature | Bengal Status | Workaround |
 |----------------|---------------|------------|
-| `autodoc` (Python introspection) | Separate CLI | `bengal autodoc generate` |
+| `autodoc` (Python introspection) | Config-driven | Configure in `bengal.toml` |
 | `intersphinx` (cross-project refs) | Not built-in | Use explicit URLs |
 | Custom builders (PDF, ePub) | HTML only | External tools |
 | Domain-specific roles | Not built-in | Use directives |

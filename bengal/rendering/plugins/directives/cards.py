@@ -9,16 +9,19 @@ Architecture:
     - CardDirective: requires_parent=["cards_grid"] (optional, not enforced)
 
 Syntax:
-    ::::{cards}
-    :columns: 3
-    :gap: medium
 
-    :::{card} Card Title
-    :icon: book
-    :link: /docs/
-    Card content
-    :::
-    ::::
+```markdown
+::::{cards}
+:columns: 3
+:gap: medium
+
+:::{card} Card Title
+:icon: book
+:link: /docs/
+Card content
+:::
+::::
+```
 """
 
 from __future__ import annotations

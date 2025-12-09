@@ -131,3 +131,161 @@ Content
         # Note: Heading transformation may need special handling in step titles
         assert '<div class="steps">' in result
         assert "Step Title" in result
+
+    # =========================================================================
+    # New Options Tests
+    # =========================================================================
+
+    def test_step_description_option(self, parser):
+        """Test :description: option renders lead-in text."""
+        content = """
+:::{steps}
+:::{step} Install Dependencies
+:description: First, set up your environment with required packages.
+Run the install command.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps">' in result
+        assert "Install Dependencies" in result
+        assert '<p class="step-description">' in result
+        assert "set up your environment" in result
+
+    def test_step_optional_option(self, parser):
+        """Test :optional: option adds optional class and badge."""
+        content = """
+:::{steps}
+:::{step} Optional Configuration
+:optional:
+This step is skippable.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps">' in result
+        assert "step-optional" in result
+        assert "step-badge-optional" in result
+        assert "Optional" in result
+
+    def test_step_duration_option(self, parser):
+        """Test :duration: option shows time estimate."""
+        content = """
+:::{steps}
+:::{step} Build the Project
+:duration: 5 min
+Run the build command.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps">' in result
+        assert '<span class="step-duration">' in result
+        assert "5 min" in result
+
+    def test_step_all_options_combined(self, parser):
+        """Test all step options combined."""
+        content = """
+:::{steps}
+:::{step} Advanced Setup
+:description: This step covers advanced configuration options.
+:duration: 10 min
+:optional:
+:class: advanced-step
+Advanced content here.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        # Container
+        assert '<div class="steps">' in result
+
+        # All options should render
+        assert "step-description" in result
+        assert "step-duration" in result
+        assert "step-optional" in result
+        assert "step-badge-optional" in result
+        assert "advanced-step" in result
+        assert "10 min" in result
+
+    def test_steps_start_option(self, parser):
+        """Test :start: option on steps container."""
+        content = """
+:::{steps}
+:start: 5
+:::{step} Step Five
+Content for step 5.
+:::{/step}
+:::{step} Step Six
+Content for step 6.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps"' in result
+        # Check that start attribute is set on <ol>
+        assert 'start="5"' in result
+        # Check that counter-reset is set for CSS
+        assert "counter-reset: step 4" in result  # start - 1
+
+    def test_steps_start_option_default(self, parser):
+        """Test that start=1 doesn't add extra attributes."""
+        content = """
+:::{steps}
+:::{step} Step One
+Content.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps">' in result
+        # Default start=1 should not add start attribute
+        assert 'start="1"' not in result
+        assert "counter-reset" not in result
+
+    def test_named_closers_syntax(self, parser):
+        """Test named closers syntax (v2) works correctly."""
+        content = """
+:::{steps}
+:::{step} First Step
+:description: The first step description.
+Content for step 1.
+:::{/step}
+
+:::{step} Second Step
+:optional:
+Content for step 2.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        assert '<div class="steps">' in result
+        assert "First Step" in result
+        assert "Second Step" in result
+        assert "step-description" in result
+        assert "step-optional" in result
+
+    def test_step_metadata_container(self, parser):
+        """Test that metadata (optional + duration) is in a container."""
+        content = """
+:::{steps}
+:::{step} Setup
+:optional:
+:duration: 2 min
+Content.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(content, {})
+
+        # Both should be in the metadata container
+        assert '<div class="step-metadata">' in result
+        assert "step-badge-optional" in result
+        assert "step-duration" in result
