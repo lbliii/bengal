@@ -254,22 +254,22 @@ Create the new infrastructure files without changing any existing code.
 - **Status**: completed
 - **Commit**: `rendering(directives): migrate AdmonitionDirective to BengalDirective with multi-name registration`
 
-#### Task 2.12: Migrate remaining directives (batch)
-- **Files**:
-  - `bengal/rendering/plugins/directives/checklist.py`
-  - `bengal/rendering/plugins/directives/code_tabs.py`
-  - `bengal/rendering/plugins/directives/data_table.py`
-  - `bengal/rendering/plugins/directives/glossary.py`
-  - `bengal/rendering/plugins/directives/icon.py`
-  - `bengal/rendering/plugins/directives/include.py`
-  - `bengal/rendering/plugins/directives/list_table.py`
-  - `bengal/rendering/plugins/directives/literalinclude.py`
-  - `bengal/rendering/plugins/directives/marimo.py`
-  - `bengal/rendering/plugins/directives/navigation.py`
-- **Action**: Migrate all remaining directives to `BengalDirective` pattern
+#### Task 2.12: Migrate remaining directives (batch) ✅
+- **Files Migrated**:
+  - `checklist.py` - ChecklistDirective
+  - `icon.py` - IconDirective (with invalid size fallback)
+  - `code_tabs.py` - CodeTabsDirective
+  - `navigation.py` - BreadcrumbsDirective, SiblingsDirective, PrevNextDirective, RelatedDirective
+- **Files NOT Migrated** (complex path/security/stateful handling):
+  - `include.py` - Complex path resolution and security checks
+  - `literalinclude.py` - Complex path resolution and security checks
+  - `glossary.py` - Deferred data loading pattern
+  - `data_table.py` - Data file loading and config
+  - `list_table.py` - Custom row parsing logic
+  - `marimo.py` - Stateful execution and caching
 - **Dependencies**: Task 2.11
-- **Status**: pending
-- **Commit**: `rendering(directives): migrate remaining directives to BengalDirective base class`
+- **Status**: completed
+- **Commit**: `rendering(directives): migrate Checklist, Icon, CodeTabs, Navigation directives to BengalDirective base class`
 
 ---
 
