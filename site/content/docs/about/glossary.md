@@ -63,14 +63,14 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A MyST Markdown extension that adds special functionality. Written as `:::{directive-name}` blocks. Examples: `note`, `warning`, `tab-set`, `dropdown`.
 
 **Draft**
-: A page with `draft: true` in front matter. Excluded from production builds by default. Include drafts with `bengal site build --include-drafts`.
+: A page with `draft: true` in front matter. Excluded from production builds by default. Drafts are visible in development mode (`bengal serve`).
 
 ---
 
 ## F
 
 **Fast Mode**
-: Build configuration that enables parallel processing and reduces output verbosity. Enable via `bengal site build --fast` or `fast_mode = true` in config.
+: Build configuration that enables parallel processing and reduces output verbosity. Enable via `bengal build --fast` or `fast_mode = true` in config.
 
 **Front Matter**
 : YAML or TOML metadata at the top of a Markdown file, delimited by `---`. Controls page properties like title, date, tags, layout, and custom fields.
@@ -119,7 +119,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A Jinja2 template that defines HTML structure for a specific content type. Lives in `templates/` (project) or in the active theme.
 
 **Live Reload**
-: Automatic browser refresh when source files change during development. Enabled by default with `bengal site serve`.
+: Automatic browser refresh when source files change during development. Enabled by default with `bengal serve`.
 
 ---
 
