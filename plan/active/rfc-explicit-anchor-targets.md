@@ -1,0 +1,584 @@
+# RFC: Explicit Anchor Targets for Cross-References
+
+**Status**: Draft  
+**Created**: 2025-12-09  
+**Author**: AI Assistant  
+**Related**: `bengal/rendering/plugins/cross_references.py`, Sphinx migration  
+**Confidence**: 85% 🟢
+
+---
+
+## Executive Summary
+
+Bengal's cross-reference system (`[[path]]` wikilinks) is powerful for page-level linking but **lacks the ability to create explicit anchor targets** at arbitrary locations within content. Sphinx/RST users can create custom anchors anywhere with `.. _label:` or MyST's `(target)=` syntax—Bengal has no equivalent.
+
+**Recommendation**: Implement **Option A (MyST-Compatible Syntax)** — add `{#custom-id}` heading attribute syntax and a `{target}` directive for inline anchors, matching MyST Markdown conventions for ecosystem compatibility.
+
+**Impact**: 2 new features (heading attributes + target directive), ~20 hours implementation over 2 weeks, enables Sphinx user migration.
+
+---
+
+## Problem Statement
+
+### Current State
+
+Bengal indexes headings automatically during parsing:
+
+```python
+# bengal/orchestration/content.py:506-518
+# Index headings from TOC (for anchor links)
+if hasattr(page, "toc_items") and page.toc_items:
+    for toc_item in page.toc_items:
+        heading_text = toc_item.get("title", "").lower()
+        anchor_id = toc_item.get("id", "")
+        if heading_text and anchor_id:
+            self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
+                (page, anchor_id)
+            )
+```
+
+Anchors are **auto-generated from heading text only**. Users cannot:
+1. Override auto-generated anchor IDs
+2. Create anchors on non-heading content
+3. Create stable anchors that survive heading text changes
+
+### User Impact
+
+**Sphinx/MyST users migrating to Bengal lose**:
+
+| Feature | Sphinx/MyST Syntax | Bengal Equivalent |
+|---------|-------------------|-------------------|
+| Explicit heading anchor | `## Title {#my-id}` | ❌ None |
+| Inline target | `(my-target)=` | ❌ None |
+| Directive anchor | `:name: my-anchor` | ❌ None |
+| Cross-reference | `:ref:`my-id`` | ✅ `[[#heading-text]]` |
+
+**Example of lost functionality**:
+
+```markdown
+<!-- Sphinx/MyST - works -->
+## Installation {#install}
+
+Later, link to it: [see installation](#install)
+
+<!-- Bengal - broken -->
+## Installation
+
+<!-- If heading changes to "Setup", all #installation links break -->
+```
+
+### Quantified Gap
+
+- **44 directives** registered in Bengal, **0** support `:name:` option for custom anchors
+- Cross-reference plugin supports **4 lookup strategies** (path, slug, id, heading), but **only headings are auto-indexed from content**
+- Frontmatter `id:` works for **page-level** references only, not in-page anchors
+
+**Evidence**: `bengal/rendering/plugins/cross_references.py:21-44` shows supported syntax.
+
+---
+
+## Goals & Non-Goals
+
+### Goals
+
+1. **G1**: Allow custom anchor IDs on headings via `{#custom-id}` syntax (MyST-compatible)
+2. **G2**: Provide `{target}` directive for creating anchors at arbitrary locations
+3. **G3**: Index explicit anchors in `xref_index["by_heading"]` for `[[#anchor]]` resolution
+4. **G4**: Support `:name:` option on all `BengalDirective` subclasses
+5. **G5**: Maintain O(1) lookup performance with pre-built index
+
+### Non-Goals
+
+1. **NG1**: Intersphinx cross-project linking — separate RFC scope
+2. **NG2**: Auto-numbering (`:numref:`) — requires significant TOC changes
+3. **NG3**: Role-based syntax (`:ref:`, `:doc:`) — `[[]]` syntax is sufficient
+4. **NG4**: Backward-incompatible heading slug changes
+
+---
+
+## Design Options
+
+### Option A: MyST-Compatible `{#id}` Syntax (Recommended)
+
+Add support for heading attributes following MyST Markdown conventions.
+
+**Syntax**:
+
+```markdown
+## Installation {#install}
+
+### Configuration Options {#config-opts}
+
+Some content here.
+
+## Another Section
+
+Link back: [[#install|Installation section]]
+```
+
+**Implementation**:
+
+```python
+# bengal/rendering/parsers/mistune.py - modify _inject_heading_anchors()
+
+import re
+
+# Pattern to extract {#custom-id} from heading text
+HEADING_ID_PATTERN = re.compile(r'\s*\{#([a-zA-Z][a-zA-Z0-9_-]*)\}\s*$')
+
+def _inject_heading_anchors(self, html: str) -> str:
+    """Inject IDs into heading tags, using custom {#id} if present."""
+    
+    def replace_heading(match: re.Match[str]) -> str:
+        tag = match.group(1)  # 'h2', 'h3', or 'h4'
+        attrs = match.group(2)  # Existing attributes
+        content = match.group(3)  # Heading content
+        
+        # Skip if already has id= attribute
+        if "id=" in attrs:
+            return match.group(0)
+        
+        # Check for explicit {#custom-id} in content
+        id_match = HEADING_ID_PATTERN.search(content)
+        if id_match:
+            slug = id_match.group(1)
+            # Remove {#id} from displayed content
+            content = HEADING_ID_PATTERN.sub('', content)
+        else:
+            # Fall back to auto-generated slug
+            text = self._HTML_TAG_PATTERN.sub("", content).strip()
+            slug = self._slugify(text)
+        
+        return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
+    
+    return self._HEADING_PATTERN.sub(replace_heading, html)
+```
+
+**Pros**:
+- ✅ MyST Markdown compatible (ecosystem standard)
+- ✅ Minimal implementation (regex in existing function)
+- ✅ No new directives required for headings
+- ✅ Stable anchors survive heading text changes
+
+**Cons**:
+- ⚠️ Only works on headings, not arbitrary content
+- ⚠️ Requires updating TOC extraction to strip `{#id}` from display
+
+---
+
+### Option B: `{target}` Directive for Inline Anchors
+
+Add a lightweight directive for creating anchor targets anywhere.
+
+**Syntax**:
+
+```markdown
+:::{target} install-note
+:::
+
+:::{note}
+This important note can be linked to directly.
+:::
+
+Link to it: [[#install-note|See important note]]
+```
+
+**Implementation**:
+
+```python
+# bengal/rendering/plugins/directives/target.py
+
+from dataclasses import dataclass
+from typing import Any, ClassVar
+
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
+
+
+@dataclass
+class TargetOptions(DirectiveOptions):
+    """Options for target directive."""
+    pass
+
+
+class TargetDirective(BengalDirective):
+    """
+    Create an explicit anchor target at any location.
+    
+    Syntax:
+        :::{target} my-anchor-id
+        :::
+    
+    The target renders as an invisible anchor element that can be
+    referenced via [[#my-anchor-id]] cross-reference syntax.
+    
+    Use cases:
+        - Anchor before a note/warning that users should link to
+        - Stable anchor that survives content restructuring
+        - Anchor in middle of paragraph
+    
+    Example:
+        :::{target} important-caveat
+        :::
+        
+        :::{warning}
+        This caveat is critical for production use.
+        :::
+        
+        See [[#important-caveat|the caveat]] for details.
+    """
+    
+    NAMES: ClassVar[list[str]] = ["target", "anchor"]
+    TOKEN_TYPE: ClassVar[str] = "target"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = TargetOptions
+    
+    # Validation pattern for anchor IDs
+    ID_PATTERN = re.compile(r'^[a-zA-Z][a-zA-Z0-9_-]*$')
+    
+    def validate_id(self, anchor_id: str) -> str | None:
+        """Validate anchor ID format."""
+        if not anchor_id:
+            return "Target directive requires an ID"
+        if not self.ID_PATTERN.match(anchor_id):
+            return (
+                f"Invalid anchor ID: {anchor_id!r}. "
+                f"Must start with letter, contain only letters, numbers, hyphens, underscores."
+            )
+        return None
+    
+    def parse_directive(
+        self,
+        title: str,
+        options: TargetOptions,
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
+        """Build target token."""
+        anchor_id = title.strip()
+        
+        error = self.validate_id(anchor_id)
+        if error:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"error": error, "id": anchor_id},
+            )
+        
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={"id": anchor_id},
+        )
+    
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render target as invisible anchor."""
+        error = attrs.get("error")
+        if error:
+            return f'<span class="directive-error" title="{self.escape_html(error)}">[target error]</span>'
+        
+        anchor_id = attrs.get("id", "")
+        # Invisible anchor element - no visual output
+        return f'<span id="{self.escape_html(anchor_id)}" class="target-anchor"></span>\n'
+```
+
+**Pros**:
+- ✅ Anchors anywhere in content (not just headings)
+- ✅ Consistent directive syntax
+- ✅ Explicit and visible in source
+
+**Cons**:
+- ⚠️ Requires indexing directive outputs (not just headings)
+- ⚠️ Slightly verbose for simple cases
+
+---
+
+### Option C: `:name:` Option on All Directives
+
+Add universal `:name:` support to `BengalDirective` base class.
+
+**Syntax**:
+
+```markdown
+:::{note}
+:name: important-note
+
+This note has a custom anchor.
+:::
+
+:::{figure} /images/arch.png
+:name: architecture-diagram
+:alt: Architecture diagram
+:::
+
+Link: [[#important-note]] or [[#architecture-diagram]]
+```
+
+**Implementation**:
+
+```python
+# bengal/rendering/plugins/directives/base.py - modify BengalDirective
+
+class BengalDirective(DirectivePlugin):
+    # ... existing code ...
+    
+    def _wrap_with_anchor(self, html: str, anchor_id: str | None) -> str:
+        """Wrap rendered HTML with anchor if :name: specified."""
+        if not anchor_id:
+            return html
+        return f'<div id="{self.escape_html(anchor_id)}">\n{html}\n</div>'
+    
+    def render_with_name(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render directive with optional :name: anchor."""
+        # Get anchor from attrs
+        anchor_id = attrs.pop("name", None)
+        
+        # Call subclass render
+        html = self.render(renderer, text, **attrs)
+        
+        # Wrap with anchor if specified
+        return self._wrap_with_anchor(html, anchor_id)
+```
+
+**Pros**:
+- ✅ Works on all 44+ existing directives automatically
+- ✅ Matches Sphinx convention exactly
+- ✅ No new directive syntax to learn
+
+**Cons**:
+- ⚠️ More invasive base class change
+- ⚠️ Need to update all directive registrations
+- ⚠️ Potential conflicts with directive-specific `id` attrs
+
+---
+
+## Recommended Approach
+
+**Implement all three options in phases:**
+
+### Phase 1: `{#id}` Heading Syntax (Week 1)
+- Highest impact, simplest implementation
+- Covers 70% of use cases (stable heading anchors)
+- 8 hours effort
+
+### Phase 2: `{target}` Directive (Week 1-2)
+- Covers remaining 25% (arbitrary anchors)
+- New directive, follows established patterns
+- 8 hours effort
+
+### Phase 3: `:name:` Option (Week 2, optional)
+- Nice-to-have for Sphinx parity
+- Can defer if Phase 1-2 cover needs
+- 4 hours effort
+
+---
+
+## Architecture Impact
+
+### Affected Subsystems
+
+**Primary**: `bengal/rendering/`
+- `parsers/mistune.py`: Heading attribute parsing
+- `plugins/directives/target.py`: New directive (Phase 2)
+- `plugins/directives/base.py`: `:name:` support (Phase 3)
+
+**Secondary**: `bengal/orchestration/`
+- `content.py`: Update `_build_xref_index()` to index explicit anchors
+
+**CSS**: `bengal/themes/default/assets/css/`
+- `.target-anchor`: Invisible anchor styling
+
+**No changes required**:
+- `bengal/core/` — No data model changes
+- `bengal/cache/` — Existing caching applies
+- `bengal/health/` — Existing validators apply
+
+### xref_index Updates
+
+```python
+# bengal/orchestration/content.py - _build_xref_index()
+
+def _build_xref_index(self) -> None:
+    """Build cross-reference index including explicit anchors."""
+    
+    self.site.xref_index = {
+        "by_path": {},
+        "by_slug": {},
+        "by_id": {},
+        "by_heading": {},
+        "by_anchor": {},  # NEW: explicit {target} anchors
+    }
+    
+    for page in self.site.pages:
+        # ... existing indexing ...
+        
+        # Index explicit anchors from rendered HTML
+        # Pattern: <span id="..." class="target-anchor">
+        if hasattr(page, "rendered_html") and page.rendered_html:
+            for match in TARGET_ANCHOR_PATTERN.finditer(page.rendered_html):
+                anchor_id = match.group(1)
+                self.site.xref_index["by_anchor"][anchor_id] = (page, anchor_id)
+```
+
+### Cross-Reference Resolution Update
+
+```python
+# bengal/rendering/plugins/cross_references.py
+
+def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
+    """Resolve anchor reference - check explicit anchors first."""
+    anchor_key = anchor.lstrip("#").lower()
+    
+    # Check explicit anchors first (exact match)
+    explicit = self.xref_index.get("by_anchor", {}).get(anchor_key)
+    if explicit:
+        page, anchor_id = explicit
+        link_text = text or anchor_key.replace("-", " ").title()
+        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        return f'<a href="{url}#{anchor_id}">{link_text}</a>'
+    
+    # Fall back to heading search
+    results = self.xref_index.get("by_heading", {}).get(anchor_key, [])
+    # ... existing logic ...
+```
+
+---
+
+## Migration Path
+
+### For Sphinx Users
+
+**Before (Sphinx/MyST)**:
+```markdown
+(install)=
+## Installation
+
+Later: {ref}`install`
+```
+
+**After (Bengal)**:
+```markdown
+## Installation {#install}
+
+Later: [[#install|Installation]]
+```
+
+### For Existing Bengal Users
+
+**No breaking changes**. Auto-generated heading anchors continue to work. New syntax is additive.
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+```python
+# tests/unit/rendering/test_heading_anchors.py
+
+def test_explicit_heading_id():
+    """Test {#custom-id} syntax on headings."""
+    parser = MistuneParser()
+    html = parser.parse("## Installation {#install}\n\nContent", {})
+    assert 'id="install"' in html
+    assert "{#install}" not in html  # Stripped from display
+
+def test_explicit_id_in_toc():
+    """Test explicit IDs are indexed for cross-references."""
+    html, toc = parser.parse_with_toc("## Setup {#install}", {})
+    # TOC should use explicit ID, not auto-slug
+    assert 'href="#install"' in toc
+
+def test_target_directive():
+    """Test {target} directive creates anchor."""
+    html = parser.parse(":::{target} my-anchor\n:::\n\nContent", {})
+    assert 'id="my-anchor"' in html
+    assert 'class="target-anchor"' in html
+```
+
+### Integration Tests
+
+```python
+# tests/integration/test_cross_references.py
+
+def test_wikilink_to_explicit_anchor(site_factory):
+    """Test [[#explicit-id]] resolves to target directive."""
+    site = site_factory("test-xref")
+    # ... create pages with explicit anchors ...
+    site.build()
+    
+    page = site.get_page("docs/linking")
+    assert 'href="/docs/target-page/#my-anchor"' in page.rendered_html
+```
+
+---
+
+## Risks & Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Duplicate anchor IDs | Medium | Low | Warn at build time, first-wins resolution |
+| TOC display pollution | Medium | Medium | Strip `{#id}` before display text extraction |
+| Performance regression | Low | Low | Regex is fast, anchor index is O(1) |
+| MyST incompatibility | Low | Medium | Follow MyST spec exactly |
+
+---
+
+## Implementation Plan
+
+### Phase 1: Heading `{#id}` Syntax (Week 1)
+
+- [ ] Update `_inject_heading_anchors()` in `mistune.py`
+- [ ] Update `_extract_toc()` to strip `{#id}` from display
+- [ ] Update xref index to prefer explicit IDs
+- [ ] Add unit tests
+- [ ] Update documentation
+
+### Phase 2: `{target}` Directive (Week 1-2)
+
+- [ ] Create `bengal/rendering/plugins/directives/target.py`
+- [ ] Register in `__init__.py`
+- [ ] Update xref index to scan for target anchors
+- [ ] Add CSS for `.target-anchor`
+- [ ] Add unit and integration tests
+- [ ] Document directive syntax
+
+### Phase 3: `:name:` Option (Week 2, optional)
+
+- [ ] Add `name` to `DirectiveOptions` base
+- [ ] Update `BengalDirective.render()` to wrap with anchor
+- [ ] Test on sample directives (note, figure)
+- [ ] Document universal `:name:` support
+
+---
+
+## Success Criteria
+
+1. **`## Heading {#custom-id}`** creates anchor with custom ID
+2. **`:::{target} my-anchor`** creates invisible anchor at location
+3. **`[[#custom-id]]`** resolves to explicit anchor with O(1) lookup
+4. **Existing auto-anchors** continue to work unchanged
+5. **Sphinx users** can migrate with predictable syntax mapping
+6. **Health checks** warn on duplicate anchor IDs
+
+---
+
+## References
+
+- [MyST Markdown - Targets and Cross-References](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)
+- [Sphinx - Cross-referencing arbitrary locations](https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#ref-role)
+- Bengal source: `bengal/rendering/plugins/cross_references.py`
+- Bengal source: `bengal/orchestration/content.py:461-518`
+- Bengal source: `bengal/rendering/parsers/mistune.py:717-852`
+
+---
+
+## Appendix: Syntax Comparison
+
+| Feature | Sphinx RST | MyST Markdown | Bengal (Proposed) |
+|---------|-----------|---------------|-------------------|
+| Heading anchor | N/A (use label) | `## Title {#id}` | `## Title {#id}` ✅ |
+| Inline target | `.. _label:` | `(label)=` | `:::{target} label` |
+| Directive anchor | `:name: id` | `:name: id` | `:name: id` (Phase 3) |
+| Reference | `:ref:`label`` | `{ref}`label`` | `[[#label]]` |
+| Page reference | `:doc:`path`` | `{doc}`path`` | `[[path]]` |
+
