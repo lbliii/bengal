@@ -12,11 +12,14 @@ Provides comprehensive validation of builds across all systems:
 - Performance validation
 
 Usage:
-    from bengal.health import HealthCheck
 
-    health = HealthCheck(site)
-    report = health.run()
-    print(report.format_console())
+```python
+from bengal.health import HealthCheck
+
+health = HealthCheck(site)
+report = health.run()
+print(report.format_console())
+```
 """
 
 from __future__ import annotations

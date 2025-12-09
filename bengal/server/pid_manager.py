@@ -10,20 +10,23 @@ Features:
 - Cross-platform support (psutil optional, falls back to os.kill)
 
 Usage:
-    # Check for stale processes
-    pid_file = PIDManager.get_pid_file(project_root)
-    stale_pid = PIDManager.check_stale_pid(pid_file)
 
-    if stale_pid:
-        PIDManager.kill_stale_process(stale_pid)
+```python
+# Check for stale processes
+pid_file = PIDManager.get_pid_file(project_root)
+stale_pid = PIDManager.check_stale_pid(pid_file)
 
-    # Write current PID
-    PIDManager.write_pid_file(pid_file)
+if stale_pid:
+    PIDManager.kill_stale_process(stale_pid)
 
-    # Check port usage
-    port_pid = PIDManager.get_process_on_port(5173)
-    if port_pid:
-        print(f"Port in use by PID {port_pid}")
+# Write current PID
+PIDManager.write_pid_file(pid_file)
+
+# Check port usage
+port_pid = PIDManager.get_process_on_port(5173)
+if port_pid:
+    print(f"Port in use by PID {port_pid}")
+```
 
 The PID file (.bengal/server.pid) is created in the .bengal directory and
 automatically cleaned up on normal server shutdown. If the server crashes or

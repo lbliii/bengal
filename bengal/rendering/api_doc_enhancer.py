@@ -11,10 +11,13 @@ Architecture:
     - Opt-in via page type (python-module, api-reference)
 
 Usage:
-    from bengal.rendering.api_doc_enhancer import APIDocEnhancer
 
-    enhancer = APIDocEnhancer()
-    enhanced_html = enhancer.enhance(html, page_type='python-module')
+```python
+from bengal.rendering.api_doc_enhancer import APIDocEnhancer
+
+enhancer = APIDocEnhancer()
+enhanced_html = enhancer.enhance(html, page_type='python-module')
+```
 """
 
 from __future__ import annotations

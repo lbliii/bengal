@@ -9,16 +9,19 @@ Handles generation of files and pages after main rendering:
 - Redirect pages: Page aliases for URL redirects
 
 Usage:
-    from bengal.postprocess import SitemapGenerator, RSSGenerator, RedirectGenerator
 
-    sitemap = SitemapGenerator(site)
-    sitemap.generate()
+```python
+from bengal.postprocess import SitemapGenerator, RSSGenerator, RedirectGenerator
 
-    rss = RSSGenerator(site)
-    rss.generate()
+sitemap = SitemapGenerator(site)
+sitemap.generate()
 
-    redirects = RedirectGenerator(site)
-    redirects.generate()
+rss = RSSGenerator(site)
+rss.generate()
+
+redirects = RedirectGenerator(site)
+redirects.generate()
+```
 """
 
 from __future__ import annotations

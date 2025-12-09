@@ -17,16 +17,19 @@ The Site class is composed of several focused mixins:
     - SectionRegistryMixin: O(1) section lookups
 
 Usage:
-    from bengal.core.site import Site
 
-    # From configuration (recommended):
-    site = Site.from_config(Path('/path/to/site'))
+```python
+from bengal.core.site import Site
 
-    # For testing:
-    site = Site.for_testing()
+# From configuration (recommended):
+site = Site.from_config(Path('/path/to/site'))
 
-    # Direct instantiation (advanced):
-    site = Site(root_path=Path('/path'), config={})
+# For testing:
+site = Site.for_testing()
+
+# Direct instantiation (advanced):
+site = Site(root_path=Path('/path'), config={})
+```
 
 Related Modules:
     - bengal.orchestration.build: Build orchestration

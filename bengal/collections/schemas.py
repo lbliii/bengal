@@ -6,23 +6,29 @@ and API references. Users can import and use these directly or
 as a starting point for custom schemas.
 
 Usage:
-    from bengal.collections import define_collection
-    from bengal.collections.schemas import BlogPost, DocPage
 
-    collections = {
-        "blog": define_collection(schema=BlogPost, directory="content/blog"),
-        "docs": define_collection(schema=DocPage, directory="content/docs"),
-    }
+```python
+from bengal.collections import define_collection
+from bengal.collections.schemas import BlogPost, DocPage
+
+collections = {
+    "blog": define_collection(schema=BlogPost, directory="content/blog"),
+    "docs": define_collection(schema=DocPage, directory="content/docs"),
+}
+```
 
 Or extend standard schemas:
-    from dataclasses import dataclass, field
-    from bengal.collections.schemas import BlogPost
 
-    @dataclass
-    class MyBlogPost(BlogPost):
-        '''Extended blog post with custom fields.'''
-        series: str | None = None
-        reading_time: int | None = None
+```python
+from dataclasses import dataclass, field
+from bengal.collections.schemas import BlogPost
+
+@dataclass
+class MyBlogPost(BlogPost):
+    '''Extended blog post with custom fields.'''
+    series: str | None = None
+    reading_time: int | None = None
+```
 """
 
 from __future__ import annotations
@@ -217,3 +223,4 @@ class Tutorial:
 Post = BlogPost
 Doc = DocPage
 API = APIReference
+

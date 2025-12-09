@@ -11,11 +11,14 @@ Key Principles:
     - Paths resolved once at ingestion, not repeatedly
 
 Usage:
-    resolver = PathResolver(site.root_path)
-    abs_path = resolver.resolve("../bengal")  # Always absolute
 
-    # Or from site instance
-    resolver = PathResolver.from_site(site)
+```python
+resolver = PathResolver(site.root_path)
+abs_path = resolver.resolve("../bengal")  # Always absolute
+
+# Or from site instance
+resolver = PathResolver.from_site(site)
+```
 
 Architecture:
     This utility is part of the centralized path resolution architecture.

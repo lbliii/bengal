@@ -12,29 +12,35 @@ Design Principle: ZERO-COST UNLESS USED
 - No network calls unless explicitly configured
 
 Usage (Local Only - Default):
-    # collections.py
-    from bengal.collections import define_collection
 
-    collections = {
-        "docs": define_collection(schema=Doc, directory="content/docs"),
-    }
-    # ☝️ No remote loaders = no network calls, no new dependencies
+```python
+# collections.py
+from bengal.collections import define_collection
+
+collections = {
+    "docs": define_collection(schema=Doc, directory="content/docs"),
+}
+# ☝️ No remote loaders = no network calls, no new dependencies
+```
 
 Usage (With Remote Sources - Opt-in):
-    from bengal.collections import define_collection
-    from bengal.content_layer import github_loader, notion_loader
 
-    collections = {
-        "docs": define_collection(schema=Doc, directory="content/docs"),
-        "blog": define_collection(
-            schema=BlogPost,
-            loader=notion_loader(database_id="abc123"),
-        ),
-        "api-docs": define_collection(
-            schema=APIDoc,
-            loader=github_loader(repo="myorg/api-docs", path="docs/"),
-        ),
-    }
+```python
+from bengal.collections import define_collection
+from bengal.content_layer import github_loader, notion_loader
+
+collections = {
+    "docs": define_collection(schema=Doc, directory="content/docs"),
+    "blog": define_collection(
+        schema=BlogPost,
+        loader=notion_loader(database_id="abc123"),
+    ),
+    "api-docs": define_collection(
+        schema=APIDoc,
+        loader=github_loader(repo="myorg/api-docs", path="docs/"),
+    ),
+}
+```
 
 Installation:
     pip install bengal              # Local-only (default)
@@ -73,3 +79,4 @@ __all__ = [
     "rest_loader",
     "notion_loader",
 ]
+

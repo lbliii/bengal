@@ -5,12 +5,15 @@ These are the user-facing functions for creating content sources.
 They provide a clean API and handle lazy loading of dependencies.
 
 Usage:
-    from bengal.content_layer import local_loader, github_loader
 
-    collections = {
-        "docs": define_collection(schema=Doc, loader=local_loader("content/docs")),
-        "api": define_collection(schema=API, loader=github_loader(repo="org/api")),
-    }
+```python
+from bengal.content_layer import local_loader, github_loader
+
+collections = {
+    "docs": define_collection(schema=Doc, loader=local_loader("content/docs")),
+    "api": define_collection(schema=API, loader=github_loader(repo="org/api")),
+}
+```
 """
 
 from __future__ import annotations

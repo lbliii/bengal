@@ -10,9 +10,12 @@ Performance:
     - Regex patterns are pre-compiled at module load
 
 Usage:
-    from bengal.rendering.plugins.directives._icons import render_svg_icon
 
-    icon_html = render_svg_icon("terminal", size=20)
+```python
+from bengal.rendering.plugins.directives._icons import render_svg_icon
+
+icon_html = render_svg_icon("terminal", size=20)
+```
 """
 
 from __future__ import annotations

@@ -28,13 +28,16 @@ Related Modules:
     - bengal.cache.compression: Zstandard compression utilities
 
 Usage:
-    from bengal.cache.build_cache import BuildCache, FileFingerprint
 
-    cache = BuildCache.load(cache_path)
-    if cache.is_changed(file_path):
-        # Process file...
-        cache.update_file(file_path)
-    cache.save(cache_path)
+```python
+from bengal.cache.build_cache import BuildCache, FileFingerprint
+
+cache = BuildCache.load(cache_path)
+if cache.is_changed(file_path):
+    # Process file...
+    cache.update_file(file_path)
+cache.save(cache_path)
+```
 
 See Also:
     - plan/active/rfc-incremental-builds.md: Incremental build design

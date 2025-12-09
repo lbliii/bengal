@@ -16,10 +16,13 @@ Orchestrators:
     - IncrementalOrchestrator: Incremental build logic
 
 Usage:
-    from bengal.orchestration import BuildOrchestrator
 
-    orchestrator = BuildOrchestrator(site)
-    stats = orchestrator.build(parallel=True, incremental=True)
+```python
+from bengal.orchestration import BuildOrchestrator
+
+orchestrator = BuildOrchestrator(site)
+stats = orchestrator.build(parallel=True, incremental=True)
+```
 """
 
 from __future__ import annotations

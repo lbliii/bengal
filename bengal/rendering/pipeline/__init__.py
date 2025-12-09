@@ -18,10 +18,13 @@ The pipeline is composed of focused modules:
     - output.py: Output handling
 
 Usage:
-    from bengal.rendering.pipeline import RenderingPipeline
 
-    pipeline = RenderingPipeline(site, dependency_tracker=tracker)
-    pipeline.process_page(page)
+```python
+from bengal.rendering.pipeline import RenderingPipeline
+
+pipeline = RenderingPipeline(site, dependency_tracker=tracker)
+pipeline.process_page(page)
+```
 
 Related Modules:
     - bengal.rendering.parsers: Markdown parser implementations

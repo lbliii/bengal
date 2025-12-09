@@ -14,20 +14,23 @@ Documentation Directives:
     - Code Tabs: Multi-language code examples
 
 Usage:
-    # Import plugins
-    from bengal.rendering.plugins import (
-        VariableSubstitutionPlugin,
-        CrossReferencePlugin,
-        create_documentation_directives
-    )
 
-    # Use in mistune parser
-    md = mistune.create_markdown(
-        plugins=[
-            create_documentation_directives(),
-            VariableSubstitutionPlugin(context),
-        ]
-    )
+```python
+# Import plugins
+from bengal.rendering.plugins import (
+    VariableSubstitutionPlugin,
+    CrossReferencePlugin,
+    create_documentation_directives
+)
+
+# Use in mistune parser
+md = mistune.create_markdown(
+    plugins=[
+        create_documentation_directives(),
+        VariableSubstitutionPlugin(context),
+    ]
+)
+```
 
 For detailed documentation on each plugin, see:
     - variable_substitution.py
@@ -54,7 +57,8 @@ def plugin_documentation_directives(md: Any) -> None:
 
     This function will be removed in Bengal 2.0.
 
-    Usage:
+    Usage::
+
         # Old (deprecated):
         md = mistune.create_markdown(
             plugins=[plugin_documentation_directives]

@@ -22,19 +22,22 @@ Features:
 - Optional browser auto-open
 
 Usage:
-    from bengal.server import DevServer
-    from bengal.core import Site
 
-    site = Site.from_config()
-    server = DevServer(
-        site,
-        host="localhost",
-        port=5173,
-        watch=True,
-        auto_port=True,
-        open_browser=True
-    )
-    server.start()
+```python
+from bengal.server import DevServer
+from bengal.core import Site
+
+site = Site.from_config()
+server = DevServer(
+    site,
+    host="localhost",
+    port=5173,
+    watch=True,
+    auto_port=True,
+    open_browser=True
+)
+server.start()
+```
 
 The server watches for changes in:
 - content/ - Markdown content files

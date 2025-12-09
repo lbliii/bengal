@@ -6,10 +6,13 @@ to redirect to new canonical locations. This preserves SEO and maintains
 link stability during content reorganization.
 
 Usage:
-    from bengal.postprocess.redirects import RedirectGenerator
 
-    redirect_gen = RedirectGenerator(site)
-    redirect_gen.generate()
+```python
+from bengal.postprocess.redirects import RedirectGenerator
+
+redirect_gen = RedirectGenerator(site)
+redirect_gen.generate()
+```
 """
 
 from __future__ import annotations

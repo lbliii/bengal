@@ -15,14 +15,17 @@ Warning:
     suitable for multi-tenant web applications.
 
 Usage:
-    # One-time application (typical usage):
-    PygmentsPatch.apply()
 
-    # Temporary patching (for testing):
-    with PygmentsPatch():
-        # Patch is active here
-        parser.parse(content)
-    # Patch is removed here
+```python
+# One-time application (typical usage):
+PygmentsPatch.apply()
+
+# Temporary patching (for testing):
+with PygmentsPatch():
+    # Patch is active here
+    parser.parse(content)
+# Patch is removed here
+```
 """
 
 from __future__ import annotations

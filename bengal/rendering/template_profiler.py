@@ -5,11 +5,16 @@ Provides timing instrumentation for template rendering to identify
 performance bottlenecks and optimize template code.
 
 Usage:
-    # Enable via CLI
-    bengal build --profile-templates
 
-    # Access report
-    report = template_engine.get_template_profile()
+```bash
+# Enable via CLI
+bengal build --profile-templates
+```
+
+```python
+# Access report
+report = template_engine.get_template_profile()
+```
 
 Architecture:
     TemplateProfiler collects timing data for:

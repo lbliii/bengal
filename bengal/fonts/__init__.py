@@ -4,12 +4,15 @@ Font helper for Bengal SSG.
 Provides simple font downloading and CSS generation for Google Fonts.
 
 Usage:
-    # In bengal.toml:
-    [fonts]
-    primary = "Inter:400,600,700"
-    heading = "Playfair Display:700"
 
-    # Bengal automatically downloads fonts and generates CSS
+```toml
+# In bengal.toml:
+[fonts]
+primary = "Inter:400,600,700"
+heading = "Playfair Display:700"
+
+# Bengal automatically downloads fonts and generates CSS
+```
 """
 
 from __future__ import annotations

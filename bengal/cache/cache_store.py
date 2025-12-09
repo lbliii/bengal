@@ -25,22 +25,25 @@ Design Philosophy:
     - 12-14x compression ratio with Zstandard (PEP 784)
 
 Usage Example:
-    from bengal.cache.cache_store import CacheStore
-    from bengal.cache.taxonomy_index import TagEntry
 
-    # Create store (compression enabled by default)
-    store = CacheStore(Path('.bengal/tags.json'))
+```python
+from bengal.cache.cache_store import CacheStore
+from bengal.cache.taxonomy_index import TagEntry
 
-    # Save entries (type-safe, compressed)
-    tags = [
-        TagEntry(tag_slug='python', tag_name='Python', page_paths=[], updated_at='...'),
-        TagEntry(tag_slug='web', tag_name='Web', page_paths=[], updated_at='...'),
-    ]
-    store.save(tags, version=1)
+# Create store (compression enabled by default)
+store = CacheStore(Path('.bengal/tags.json'))
 
-    # Load entries (auto-detects format: .json.zst or .json)
-    loaded_tags = store.load(TagEntry, expected_version=1)
-    # Returns [] if file missing or version mismatch
+# Save entries (type-safe, compressed)
+tags = [
+    TagEntry(tag_slug='python', tag_name='Python', page_paths=[], updated_at='...'),
+    TagEntry(tag_slug='web', tag_name='Web', page_paths=[], updated_at='...'),
+]
+store.save(tags, version=1)
+
+# Load entries (auto-detects format: .json.zst or .json)
+loaded_tags = store.load(TagEntry, expected_version=1)
+# Returns [] if file missing or version mismatch
+```
 
 See Also:
     - bengal/cache/cacheable.py - Cacheable protocol definition
