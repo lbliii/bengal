@@ -3,10 +3,12 @@ Literal include directive for Mistune.
 
 Allows including code files directly in content as code blocks.
 Syntax:
+
     ```{literalinclude} path/to/file.py
     ```
 
 Or with options:
+
     ```{literalinclude} path/to/file.py
     :language: python
     :start-line: 5
