@@ -43,7 +43,7 @@ This analysis helps you:
 Start with a basic analysis of your site:
 
 ```bash
-bengal utils graph analyze site/
+bengal utils graph analyze
 ```
 
 This shows:
@@ -77,19 +77,20 @@ Bengal categorizes pages by connectivity:
 Get an overview of your site's connectivity:
 
 ```bash
-bengal utils graph analyze site/
+bengal utils graph analyze
 ```
 
 **Options**:
 - `--tree`: Show site structure as a tree visualization
 - `--output path/to/graph.html`: Generate interactive HTML visualization
+- `--config PATH`: Path to config file (default: bengal.toml)
 
 ### PageRank Analysis
 
 Identify your most important pages using Google's PageRank algorithm:
 
 ```bash
-bengal utils graph pagerank site/ --top-n 20
+bengal utils graph pagerank --top-n 20
 ```
 
 **Options**:
@@ -102,7 +103,7 @@ bengal utils graph pagerank site/ --top-n 20
 Discover topical clusters in your content:
 
 ```bash
-bengal utils graph communities site/ --top-n 10 --min-size 3
+bengal utils graph communities --top-n 10 --min-size 3
 ```
 
 **Options**:
@@ -115,7 +116,7 @@ bengal utils graph communities site/ --top-n 10 --min-size 3
 Find critical navigation pages:
 
 ```bash
-bengal utils graph bridges site/ --top-n 20
+bengal utils graph bridges --top-n 20
 ```
 
 **Metrics**:
@@ -127,7 +128,7 @@ bengal utils graph bridges site/ --top-n 20
 Get smart recommendations for internal linking:
 
 ```bash
-bengal utils graph suggest site/ --top-n 50 --min-score 0.5
+bengal utils graph suggest --top-n 50 --min-score 0.5
 ```
 
 **Options**:
@@ -141,17 +142,17 @@ bengal utils graph suggest site/ --top-n 50 --min-score 0.5
 
 1. **Find orphaned pages**:
    ```bash
-   bengal utils graph analyze site/
+   bengal utils graph analyze
    ```
 
 2. **Get link suggestions**:
    ```bash
-   bengal utils graph suggest site/ --min-score 0.5 --format markdown > suggestions.md
+   bengal utils graph suggest --min-score 0.5 --format markdown > suggestions.md
    ```
 
 3. **Prioritize by importance**:
    ```bash
-   bengal utils graph pagerank site/ --top-n 30 --format csv > important-pages.csv
+   bengal utils graph pagerank --top-n 30 --format csv > important-pages.csv
    ```
 
 4. **Review and implement** — Start with high-score suggestions.
@@ -160,14 +161,14 @@ bengal utils graph suggest site/ --top-n 50 --min-score 0.5
 
 1. **Find bridge pages**:
    ```bash
-   bengal utils graph bridges site/ --metric betweenness --top-n 10
+   bengal utils graph bridges --metric betweenness --top-n 10
    ```
 
 2. **Ensure bridge pages are prominent** — Add to main navigation menus.
 
 3. **Check accessibility**:
    ```bash
-   bengal utils graph bridges site/ --metric closeness --top-n 10
+   bengal utils graph bridges --metric closeness --top-n 10
    ```
 
 ## Understanding Recommendations
@@ -190,8 +191,8 @@ Run analysis regularly to track improvements:
 
 ```bash
 # Save results for comparison
-bengal utils graph analyze site/ > analysis-$(date +%Y%m%d).txt
-bengal utils graph pagerank site/ --format csv > pagerank-$(date +%Y%m%d).csv
+bengal utils graph analyze > analysis-$(date +%Y%m%d).txt
+bengal utils graph pagerank --format csv > pagerank-$(date +%Y%m%d).csv
 ```
 
 ### Focus on High-Impact Changes

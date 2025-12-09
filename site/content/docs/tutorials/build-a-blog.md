@@ -42,8 +42,8 @@ By the end of this tutorial, you will have:
 *   **Python 3.10+** installed
 *   **Bengal** installed (`pip install bengal`)
 
-## Step 1: Initialize Your Project
-
+:::{steps}
+:::{step} Initialize Your Project
 First, let's create a new site. Open your terminal and run:
 
 ```bash
@@ -71,9 +71,9 @@ my-blog/
 **Why this structure?**
 Bengal separates **configuration** (`bengal.toml`) from **data** (`site/`) to keep your project clean. The `site/` folder contains everything that makes your site unique.
 :::
+:::{/step}
 
-## Step 2: Create Your First Post
-
+:::{step} Create Your First Post
 Bengal provides a CLI to generate content with the correct frontmatter.
 
 ```bash
@@ -119,12 +119,12 @@ This is my first post using **Bengal**, the Pythonic static site generator.
 **Don't forget `draft: false`!**
 By default, new pages are drafts. They won't show up in production builds unless you set `draft: false`.
 :::
+:::{/step}
 
-## Step 3: Configure Your Site
-
+:::{step} Configure Your Site
 Now, let's give your site an identity. Open `bengal.toml` and update the basics.
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} bengal.toml
 ```toml
 [site]
@@ -150,17 +150,17 @@ name = "About"
 url = "/docs/about/"
 weight = 3
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Explanation
 *   **`[site]`**: Global metadata used by themes (SEO tags, header titles).
 *   **`[[site.menu.main]]`**: Defines the top navigation bar. Each item is an object in the `main` menu list.
 *   **`weight`**: Controls the sort order (lower numbers appear first).
-:::
-::::
+:::{/tab-item}
+:::{/tab-set}
+:::{/step}
 
-## Step 4: Preview Your Site
-
+:::{step} Preview Your Site
 Let's see what we have so far. Start the development server:
 
 ```bash
@@ -176,14 +176,14 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 **Live Reload**
 Try editing `hello-world.md` while the server is running. Save the file, and the browser will automatically refresh with your changes!
 :::
+:::{/step}
 
-## Step 5: Customize the Theme
-
+:::{step} Customize the Theme
 You want your blog to stand out. Instead of forking the entire theme, we'll use **Theme Inheritance** to override just the parts we want to change.
 
 Let's change the header color and add a custom footer.
 
-### 1. Create a Custom CSS File
+**Create a Custom CSS File**
 
 Create `site/static/css/custom.css`:
 
@@ -202,7 +202,7 @@ Create `site/static/css/custom.css`:
 }
 ```
 
-### 2. Override the Base Template
+**Override the Base Template**
 
 Create `site/templates/base.html`. We will extend the default theme and inject our changes.
 
@@ -233,9 +233,9 @@ Bengal looks for templates in your `site/templates/` folder first.
 *   `{% extends "default::base.html" %}` tells Bengal to load the *original* theme template first.
 *   `{% block %}` allows you to replace specific sections without copy-pasting the whole file.
 :::
+:::{/step}
 
-## Step 6: Build for Production
-
+:::{step} Build for Production
 When you're ready to publish, build the static files.
 
 ```bash
@@ -244,7 +244,7 @@ bengal site build
 
 This creates a `public/` directory containing your complete website: HTML, CSS, and optimized images.
 
-### Review Build Output
+**Review Build Output**
 
 ```text
 public/
@@ -257,6 +257,8 @@ public/
     └── css/
         └── custom.a1b2c3d4.css  # Fingerprinted for caching
 ```
+:::{/step}
+:::{/steps}
 
 ## Next Steps
 

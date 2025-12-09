@@ -42,8 +42,8 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 - Basic knowledge of Markdown and YAML/TOML
 :::
 
-## Step 1: Create Your Bengal Site
-
+:::{steps}
+:::{step} Create Your Bengal Site
 Start by creating a new Bengal site:
 
 ```bash
@@ -52,10 +52,10 @@ cd mysite
 ```
 
 Choose **Blank** preset if you're migrating existing content, or select a preset that matches your site type.
+:::{/step}
 
-## Step 2: Understand Content Structure Differences
-
-### File Organization
+:::{step} Understand Content Structure Differences
+**File Organization**
 
 Bengal uses **file-system routing** where the `content/` directory structure directly maps to URLs:
 
@@ -66,7 +66,7 @@ Bengal uses **file-system routing** where the `content/` directory structure dir
 | Gatsby | `src/pages/` | `content/` |
 | Next.js | `pages/` | `content/` |
 
-### Index Files
+**Index Files**
 
 Bengal distinguishes between section and page index files:
 
@@ -74,12 +74,10 @@ Bengal distinguishes between section and page index files:
 - **`index.md`** - Creates a page in its own folder
 
 This is different from Hugo's `_index.md` (always a section) and Jekyll's `index.html` (always a page).
+:::{/step}
 
-## Step 3: Convert Frontmatter
-
-### Common Frontmatter Mappings
-
-#### From Hugo
+:::{step} Convert Frontmatter
+**From Hugo**
 
 ```yaml
 # Hugo frontmatter
@@ -110,7 +108,7 @@ weight: 10
 - Remove quotes from simple string values
 - Date format remains the same (ISO format)
 
-#### From Jekyll
+**From Jekyll**
 
 ```yaml
 # Jekyll frontmatter
@@ -140,7 +138,7 @@ draft: false  # published: true → draft: false
 - `categories` → `category` (use first category)
 - Date format: Convert to ISO format
 
-#### From Gatsby/MDX
+**From Gatsby/MDX**
 
 ```yaml
 # Gatsby frontmatter
@@ -161,10 +159,10 @@ tags: [python, web]
 # featured can be stored in params or custom frontmatter
 ---
 ```
+::::
 
-## Step 4: Migrate Content Files
-
-### Automated Migration Script
+::::{step} Migrate Content Files
+**Automated Migration Script**
 
 Create a simple Python script to help with bulk conversion:
 
@@ -216,7 +214,7 @@ for md_file in source_dir.rglob("*.md"):
     print(f"Converted: {md_file} → {target_file}")
 ```
 
-### Manual Migration Steps
+**Manual Migration Steps**
 
 1. **Copy content files:**
    ```bash
@@ -237,11 +235,9 @@ for md_file in source_dir.rglob("*.md"):
 3. **Convert frontmatter:**
    - Use the script above or convert manually
    - Check each file for format-specific fields
+::::
 
-## Step 5: Preserve URLs
-
-### URL Structure Mapping
-
+::::{step} Preserve URLs
 Bengal generates URLs from file paths. To preserve existing URLs:
 
 1. **Use `slug` frontmatter** to override generated URLs:
@@ -266,11 +262,9 @@ Bengal generates URLs from file paths. To preserve existing URLs:
    bengal site build
    # Check public/ directory for generated URLs
    ```
+::::
 
-## Step 6: Migrate Assets
-
-### Asset Locations
-
+::::{step} Migrate Assets
 Bengal looks for assets in:
 - `assets/` - Site-specific assets
 - `themes/[theme-name]/static/` - Theme assets
@@ -293,12 +287,10 @@ Bengal looks for assets in:
 3. **Update CSS/JS references:**
    - Move to `assets/css/` and `assets/js/`
    - Update template references if using custom themes
+::::
 
-## Step 7: Migrate Configuration
-
-### Configuration Mapping
-
-#### From Hugo `config.toml`
+::::{step} Migrate Configuration
+**From Hugo `config.toml`**
 
 ```toml
 # Hugo config.toml
@@ -313,7 +305,7 @@ title = "My Site"
 language = "en"
 ```
 
-#### From Jekyll `_config.yml`
+**From Jekyll `_config.yml`**
 
 ```yaml
 # Jekyll _config.yml
@@ -328,7 +320,7 @@ baseurl = "https://example.com"
 language = "en"
 ```
 
-### Menu Configuration
+**Menu Configuration**
 
 ```toml
 # Bengal menu structure
@@ -342,19 +334,19 @@ name = "Blog"
 url = "/blog/"
 weight = 2
 ```
+::::
 
-## Step 8: Test Your Migration
-
+::::{step} Test Your Migration
 :::{checklist} Verification Steps
 - [ ] Build the site: `bengal site build`
 - [ ] Check for errors: `bengal site build --verbose`
 - [ ] Validate links: `bengal health check`
 - [ ] Preview locally: `bengal site serve` (visit http://localhost:5173)
 :::
+::::
 
-## Step 9: Handle Special Cases
-
-### Taxonomies
+::::{step} Handle Special Cases
+**Taxonomies**
 
 Bengal uses `tags` and `category` (singular) for taxonomies:
 
@@ -364,7 +356,7 @@ Bengal uses `tags` and `category` (singular) for taxonomies:
 # Bengal: category: tutorial, tags: [python]
 ```
 
-### Shortcodes
+**Shortcodes**
 
 Bengal doesn't have Hugo-style shortcodes. Options:
 
@@ -379,7 +371,7 @@ Bengal doesn't have Hugo-style shortcodes. Options:
 
 2. **Use Jinja2 templates** (for advanced cases)
 
-### Data Files
+**Data Files**
 
 Bengal doesn't have Jekyll-style `_data/` files. Options:
 
@@ -392,6 +384,8 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
    ```
 
 2. **Use Python scripts** to generate content from data
+::::
+:::::
 
 ## Troubleshooting
 

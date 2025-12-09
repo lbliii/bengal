@@ -8,16 +8,18 @@ card_color: blue
 ---
 # Autodoc
 
-Generate documentation automatically from source code.
+Generate API documentation automatically from source code during site builds.
 
 ## Do I Need This?
 
 :::{note}
 **Skip this if**: You write all documentation manually.  
-**Read this if**: You want API docs from Python docstrings, CLI help from commands, or API specs from OpenAPI.
+**Read this if**: You want API docs from Python docstrings, CLI help from Click commands, or API specs from OpenAPI.
 :::
 
-## Supported Sources
+## How It Works
+
+Autodoc generates **virtual pages** during your site build — no intermediate markdown files are created. Simply configure the sources in your `bengal.toml` and the documentation appears in your built site.
 
 ```mermaid
 flowchart LR
@@ -30,7 +32,7 @@ flowchart LR
     D[Autodoc Engine]
 
     subgraph Output
-        E[Markdown Pages]
+        E[Virtual Pages]
     end
 
     A --> D
@@ -39,12 +41,20 @@ flowchart LR
     D --> E
 ```
 
-## Quick Start
+## Configuration
+
+Configure autodoc in your `bengal.toml`:
 
 ::::{tab-set}
 :::{tab-item} Python
-```bash
-bengal autodoc python --source ./mypackage --output content/api/
+```toml
+# bengal.toml
+[autodoc.python]
+enabled = true
+source_dirs = ["mypackage"]
+include_private = false
+include_special = false
+docstring_style = "auto"  # auto, google, numpy, sphinx
 ```
 
 Extracts:
@@ -54,8 +64,13 @@ Extracts:
 :::
 
 :::{tab-item} CLI
-```bash
-bengal autodoc cli --source ./mypackage --output content/cli/
+```toml
+# bengal.toml
+[autodoc.cli]
+enabled = true
+app_module = "mypackage.cli:main"  # Click app entry point
+framework = "click"  # click, argparse, or typer
+include_hidden = false
 ```
 
 Extracts:
@@ -65,8 +80,11 @@ Extracts:
 :::
 
 :::{tab-item} OpenAPI
-```bash
-bengal autodoc openapi --source ./openapi.yaml --output content/api/
+```toml
+# bengal.toml
+[autodoc.openapi]
+enabled = true
+spec_file = "api/openapi.yaml"
 ```
 
 Extracts:
@@ -76,17 +94,61 @@ Extracts:
 :::
 ::::
 
-## Configuration
+## Python Configuration Options
 
 ```toml
-# bengal.toml
 [autodoc.python]
-source = "mypackage"
-output = "content/api"
+enabled = true
+
+# Source directories to scan
+source_dirs = ["mypackage"]
+
+# Patterns to exclude
+exclude = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/.venv/*",
+]
+
+# Docstring parsing style: auto, google, numpy, sphinx
+docstring_style = "auto"
+
+# Include private members (_prefixed)
 include_private = false
-include_dunder = false
+
+# Include dunder methods (__init__, etc.)
+include_special = false
+
+# Include inherited members
+include_inherited = false
+
+# Prefix to strip from module paths
+strip_prefix = "mypackage"
+```
+
+## Building with Autodoc
+
+Once configured, autodoc runs automatically during builds:
+
+```bash
+bengal build
+```
+
+The generated API documentation appears in your output directory alongside your regular content.
+
+## Strict Mode
+
+Enable strict mode to fail builds on extraction or rendering errors:
+
+```toml
+[autodoc]
+strict = true
 ```
 
 :::{tip}
-**Best practice**: Run autodoc in your CI pipeline to keep generated docs in sync with code changes.
+**Best practice**: Enable strict mode in CI pipelines to catch documentation issues early.
 :::
+
+## See Also
+
+- [Architecture Reference](/docs/reference/architecture/subsystems/autodoc/) — Technical details and API usage

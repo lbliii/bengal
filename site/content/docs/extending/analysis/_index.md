@@ -39,7 +39,7 @@ flowchart LR
 ::::{tab-set}
 :::{tab-item} Graph
 ```bash
-bengal analyze graph --output graph.html
+bengal utils graph analyze --output graph.html
 ```
 
 Visualizes:
@@ -49,9 +49,9 @@ Visualizes:
 - Content clusters
 :::
 
-:::{tab-item} Links
+:::{tab-item} Suggestions
 ```bash
-bengal analyze links --suggestions --min-score 0.7
+bengal utils graph suggest --min-score 0.5 --top-n 50
 ```
 
 Suggests links based on:
@@ -62,7 +62,7 @@ Suggests links based on:
 
 :::{tab-item} PageRank
 ```bash
-bengal analyze pagerank
+bengal utils graph pagerank --top-n 20
 ```
 
 Identifies:
@@ -76,9 +76,9 @@ Identifies:
 
 | Goal | Command | Output |
 |------|---------|--------|
-| Find orphan pages | `bengal analyze graph` | Pages with no incoming links |
-| Improve internal linking | `bengal analyze links` | Suggested link additions |
-| Identify key content | `bengal analyze pagerank` | Pages ranked by importance |
+| Find orphan pages | `bengal utils graph analyze` | Pages with no incoming links |
+| Improve internal linking | `bengal utils graph suggest` | Suggested link additions |
+| Identify key content | `bengal utils graph pagerank` | Pages ranked by importance |
 
 :::{tip}
 **Start with graph analysis** to visualize your site structure. The visual output often reveals issues that metrics alone miss.

@@ -38,10 +38,14 @@ flowchart LR
 # Run all checks
 bengal validate
 
-# Specific checks
-bengal validate --links
-bengal validate --frontmatter
-bengal validate --images
+# Validate specific files
+bengal validate --file content/page.md
+
+# Only validate changed files
+bengal validate --changed
+
+# Verbose output (show all checks)
+bengal validate --verbose
 ```
 :::
 
@@ -54,7 +58,7 @@ bengal fix --dry-run
 bengal fix
 ```
 
-Fixes:
+Fixes common issues:
 - Missing frontmatter fields
 - Broken relative links
 - Incorrect slugs
@@ -75,25 +79,39 @@ The `--strict` flag makes warnings into errors.
 | Check | What it validates |
 |-------|-------------------|
 | `links` | Internal and external links work |
-| `images` | Image references exist |
-| `frontmatter` | Required fields present |
-| `structure` | Content organization correct |
-| `spelling` | Basic spell checking |
+| `assets` | Asset references exist |
+| `config` | Configuration is valid |
+| `navigation` | Menu structure is correct |
+| `rendering` | Templates render without errors |
+| `cross_ref` | Cross-references are valid |
+| `taxonomy` | Tags and categories are consistent |
 
 ## Custom Validators
 
-Create project-specific rules:
+Create project-specific rules by extending `BaseValidator`:
 
 ```python
 # validators/custom.py
-from bengal.health import Validator
+from bengal.health.base import BaseValidator
+from bengal.health.report import CheckResult
 
-class RequireAuthor(Validator):
-    def validate(self, page):
-        if not page.frontmatter.get("author"):
-            return self.error("Missing author field")
+class RequireAuthorValidator(BaseValidator):
+    """Validator that checks for author field in frontmatter."""
+    
+    name = "Author Required"
+    description = "Ensures all pages have an author field"
+    
+    def validate(self, site, build_context=None):
+        results = []
+        for page in site.pages:
+            if not page.metadata.get("author"):
+                results.append(CheckResult.error(
+                    f"Missing author field in {page.source_path}",
+                    recommendation="Add 'author: Your Name' to frontmatter"
+                ))
+        return results
 ```
 
 :::{tip}
-**CI integration**: Add `bengal validate` to your CI pipeline with `--strict` to catch issues before deployment.
+**CI integration**: Add `bengal validate` to your CI pipeline to catch issues before deployment. Use `--verbose` to see all checks, not just problems.
 :::

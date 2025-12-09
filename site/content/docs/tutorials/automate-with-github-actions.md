@@ -37,8 +37,8 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site. Autom
 - A hosting provider account (GitHub Pages, Netlify, Vercel, etc.)
 - Basic knowledge of YAML
 
-## Step 1: Basic Build Workflow
-
+:::{steps}
+:::{step} Basic Build Workflow
 Create `.github/workflows/build.yml`:
 
 ```yaml
@@ -76,9 +76,9 @@ jobs:
           path: public/
           retention-days: 1
 ```
+:::{/step}
 
-## Step 2: Deploy to GitHub Pages
-
+:::{step} Deploy to GitHub Pages
 Create `.github/workflows/deploy.yml`:
 
 ```yaml
@@ -127,9 +127,9 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 ```
+:::{/step}
 
-## Step 3: Preview Deployments
-
+:::{step} Preview Deployments
 Create `.github/workflows/preview.yml`:
 
 ```yaml
@@ -168,9 +168,9 @@ jobs:
               body: '✅ Preview build successful! Artifacts available in workflow run.'
             })
 ```
+:::{/step}
 
-## Step 4: Add Validation and Testing
-
+:::{step} Add Validation and Testing
 Add health checks to your CI pipeline:
 
 ```yaml
@@ -202,9 +202,9 @@ jobs:
       - name: Build with strict mode
         run: bengal site build --strict --verbose
 ```
+:::{/step}
 
-## Step 5: Caching for Faster Builds
-
+:::{step} Caching for Faster Builds
 Add caching to speed up workflows:
 
 ```yaml
@@ -224,10 +224,10 @@ Add caching to speed up workflows:
     restore-keys: |
       ${{ runner.os }}-bengal-
 ```
+:::{/step}
 
-## Step 6: Environment-Specific Builds
-
-### Create Environment Configs
+:::{step} Environment-Specific Builds
+**Create Environment Configs**
 
 **`config/environments/production.yaml`:**
 ```yaml
@@ -247,13 +247,15 @@ params:
   analytics_id: ""  # Disable analytics in preview
 ```
 
-### Use Environment Variables
+**Use Environment Variables**
 
 ```yaml
 env:
   GA_ID: ${{ secrets.GA_ID }}
   API_KEY: ${{ secrets.API_KEY }}
 ```
+:::{/step}
+:::{/steps}
 
 ## Alternative Platforms
 
