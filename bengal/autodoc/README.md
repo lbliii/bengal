@@ -213,6 +213,29 @@ API templates receive:
 - **Virtual page creation**: Very fast (no I/O)
 - **Incremental builds**: Only regenerates on source changes
 
+### Incremental Build Support
+
+Autodoc integrates with Bengal's incremental build system for fast dev server rebuilds:
+
+**File Watching**: The dev server automatically watches autodoc source directories:
+- Python `source_dirs` configured in `autodoc.python.source_dirs`
+- OpenAPI spec files configured in `autodoc.openapi.spec_file`
+
+**Selective Rebuilds**: When a Python/OpenAPI source file changes:
+- Only the autodoc pages generated from that file are rebuilt
+- Unaffected autodoc pages are skipped (not all 200+ autodoc pages)
+- Content changes to `.md` files don't trigger unnecessary autodoc rebuilds
+
+**Performance Impact**:
+| Scenario | Before | After |
+|----------|--------|-------|
+| Edit content, 200 autodoc pages | Rebuild 200 | Rebuild 0 |
+| Edit 1 Python file, 200 autodoc pages | Rebuild 0* | Rebuild 1 |
+
+*Previously Python changes weren't detected at all
+
+**Source File Deletion**: When source files are deleted, their corresponding autodoc output pages are automatically cleaned up.
+
 ## Resilience and Error Handling
 
 ### Best-Effort Mode (Default)

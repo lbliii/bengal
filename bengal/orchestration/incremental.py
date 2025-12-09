@@ -810,6 +810,77 @@ class IncrementalOrchestrator:
         # ... existing logic ...
         pass
 
+    def _cleanup_deleted_autodoc_sources(self) -> None:
+        """
+        Clean up autodoc pages when their source files are deleted.
+
+        Checks tracked autodoc source files and removes corresponding output
+        when the source no longer exists. This prevents stale autodoc pages
+        from remaining when Python/OpenAPI source files are deleted.
+        """
+        if not self.cache or not hasattr(self.cache, "autodoc_dependencies"):
+            return
+
+        try:
+            source_files = list(self.cache.get_autodoc_source_files())
+        except (TypeError, AttributeError):
+            return
+
+        deleted_sources: list[str] = []
+        for source_file in source_files:
+            source_path = Path(source_file)
+            if not source_path.exists():
+                deleted_sources.append(source_file)
+
+        if not deleted_sources:
+            return
+
+        logger.info(
+            "autodoc_source_files_deleted",
+            count=len(deleted_sources),
+            files=[Path(s).name for s in deleted_sources[:5]],
+        )
+
+        for source_file in deleted_sources:
+            # Get affected autodoc pages before removing from cache
+            affected_pages = self.cache.remove_autodoc_source(source_file)
+
+            # Remove output files for affected pages
+            for page_path in affected_pages:
+                # Autodoc pages use source_id like "python/api/module.md"
+                # Convert to output path: "api/module/index.html"
+                url_path = page_path.replace("python/", "").replace("cli/", "")
+                if url_path.endswith(".md"):
+                    url_path = url_path[:-3]
+                output_path = self.site.output_dir / url_path / "index.html"
+
+                if output_path.exists():
+                    try:
+                        output_path.unlink()
+                        logger.debug(
+                            "autodoc_output_deleted",
+                            source=Path(source_file).name,
+                            output=str(output_path.relative_to(self.site.output_dir)),
+                        )
+                        # Try to remove empty parent directories
+                        try:
+                            if output_path.parent != self.site.output_dir:
+                                output_path.parent.rmdir()
+                        except OSError:
+                            pass  # Directory not empty
+                    except OSError as e:
+                        logger.warning(
+                            "autodoc_output_delete_failed",
+                            output=str(output_path),
+                            error=str(e),
+                        )
+
+            # Also remove from file_hashes
+            if source_file in self.cache.file_hashes:
+                del self.cache.file_hashes[source_file]
+            if source_file in self.cache.file_fingerprints:
+                del self.cache.file_fingerprints[source_file]
+
     def _cleanup_deleted_files(self) -> None:
         """
         Clean up output files for deleted source files.
@@ -818,6 +889,9 @@ class IncrementalOrchestrator:
         their corresponding output files. This prevents stale content
         from remaining in the output directory after source deletion.
         """
+        # Also clean up deleted autodoc source files
+        self._cleanup_deleted_autodoc_sources()
+
         if not self.cache or not self.cache.output_sources:
             return
 
