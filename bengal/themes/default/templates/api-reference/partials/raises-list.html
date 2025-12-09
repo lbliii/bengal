@@ -12,7 +12,7 @@ Uses semantic CSS tokens from api-docs.css and api-explorer.css.
     {% for exc in element.metadata.raises %}
     <li>
       <code class="api-raises__type">{{ exc.type_name | default(exc.type, true) }}</code>
-      {% if exc.description %}<span class="api-raises__desc"> — {{ exc.description }}</span>{% endif %}
+      {% if exc.description %}<span class="api-raises__desc"> — {{ exc.description | markdownify | safe }}</span>{% endif %}
     </li>
     {% endfor %}
   </ul>

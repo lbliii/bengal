@@ -1,53 +1,17 @@
 {#-
-API Explorer - Module Template
+API Explorer - Module Template (Fallback)
 
 Renders a Python module as a compact, card-based layout with
 progressive disclosure (collapsed by default).
+
+Note: When using the full theme, page-hero-api.html handles the header.
+This fallback includes a minimal header for standalone rendering.
 -#}
 
+{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
+
 <div class="api-explorer">
-    {# Module Header #}
-    <header class="api-module-header">
-        <div class="api-module-header__badges">
-            <span class="api-badge api-badge--module">Module</span>
-            {% if element.metadata.is_dataclass %}
-            <span class="api-badge api-badge--dataclass">dataclass</span>
-            {% endif %}
-        </div>
-
-        <h1 class="api-module-header__title">
-            <code>{{ element.qualified_name }}</code>
-        </h1>
-
-        {% if element.description %}
-        <p class="api-module-header__description">{{ element.description }}</p>
-        {% endif %}
-
-        {% if element.source_file %}
-        <div class="api-module-header__source">
-            <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
-                class="api-source-link" target="_blank" rel="noopener">
-                View source
-            </a>
-        </div>
-        {% endif %}
-    </header>
-
-    {# Module Stats #}
-    {% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
-    {% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
-
-    <div class="api-stats">
-        <span class="api-stat">
-            <span class="api-stat__count">{{ classes | length }}</span>
-            <span class="api-stat__label">Classes</span>
-        </span>
-        <span class="api-stat">
-            <span class="api-stat__count">{{ functions | length }}</span>
-            <span class="api-stat__label">Functions</span>
-        </span>
-    </div>
-
     {# Classes Section #}
     {% if classes %}
     <section class="api-section api-section--classes">
@@ -72,7 +36,7 @@ progressive disclosure (collapsed by default).
 
                 <div class="api-card__content">
                     {% if cls.description %}
-                    <p class="api-card__description">{{ cls.description }}</p>
+                    <div class="api-card__description">{{ cls.description | markdownify | safe }}</div>
                     {% endif %}
 
                     {# Class Signature #}
@@ -101,7 +65,7 @@ progressive disclosure (collapsed by default).
                                     <td><code>{{ attr.name }}</code></td>
                                     <td>{% if attr.metadata.type_annotation
                                         %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% endif %}</td>
-                                    <td>{{ attr.description | default('—') }}</td>
+                                    <td>{{ attr.description | default('—') | markdownify | safe }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -137,7 +101,7 @@ progressive disclosure (collapsed by default).
                                     class="api-method__signature"><code class="language-python">{{ method.metadata.signature }}</code></pre>
                                 {% endif %}
                                 {% if method.description %}
-                                <p class="api-method__description">{{ method.description }}</p>
+                                <div class="api-method__description">{{ method.description | markdownify | safe }}</div>
                                 {% endif %}
 
                                 {# Parameters #}
@@ -151,7 +115,7 @@ progressive disclosure (collapsed by default).
                                                 <td><code>{{ param.name }}</code></td>
                                                 <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif
                                                     %}</td>
-                                                <td>{{ param.description | default('') }}</td>
+                                                <td>{{ param.description | default('') | markdownify | safe }}</td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
@@ -166,7 +130,7 @@ progressive disclosure (collapsed by default).
                                     <p>
                                         {% if method.metadata.returns.type
                                         %}<code>{{ method.metadata.returns.type }}</code> — {% endif %}
-                                        {{ method.metadata.returns.description | default('') }}
+                                        {{ method.metadata.returns.description | default('') | markdownify | safe }}
                                     </p>
                                 </div>
                                 {% endif %}
@@ -207,7 +171,7 @@ progressive disclosure (collapsed by default).
                     {% endif %}
 
                     {% if func.description %}
-                    <p class="api-card__description">{{ func.description }}</p>
+                    <div class="api-card__description">{{ func.description | markdownify | safe }}</div>
                     {% endif %}
 
                     {# Parameters #}
@@ -230,7 +194,7 @@ progressive disclosure (collapsed by default).
                                     <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
                                     <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}
                                     </td>
-                                    <td>{{ param.description | default('') }}</td>
+                                    <td>{{ param.description | default('') | markdownify | safe }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -244,7 +208,7 @@ progressive disclosure (collapsed by default).
                         <h4 class="api-label">Returns</h4>
                         <p>
                             {% if func.metadata.returns.type %}<code>{{ func.metadata.returns.type }}</code>{% endif %}
-                            {{ func.metadata.returns.description | default('') }}
+                            {{ func.metadata.returns.description | default('') | markdownify | safe }}
                         </p>
                     </div>
                     {% endif %}
@@ -257,7 +221,7 @@ progressive disclosure (collapsed by default).
                             {% for exc in func.metadata.raises %}
                             <li>
                                 <code>{{ exc.type }}</code>
-                                {% if exc.description %} — {{ exc.description }}{% endif %}
+                                {% if exc.description %} — {{ exc.description | markdownify | safe }}{% endif %}
                             </li>
                             {% endfor %}
                         </ul>

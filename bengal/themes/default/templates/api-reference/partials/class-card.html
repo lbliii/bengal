@@ -66,9 +66,9 @@ is_first: Whether this is the first item (to auto-open)
   </summary>
 
   <div class="api-member__content">
-    {# Full description #}
+    {# Full description (markdown rendered) #}
     {% if cls.description %}
-    <p class="api-member__description">{{ cls.description }}</p>
+    <div class="api-member__description">{{ cls.description | markdownify | safe }}</div>
     {% endif %}
 
     {# Inheritance #}

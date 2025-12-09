@@ -16,19 +16,19 @@
 .api-explorer {
   /* Window chrome */
   --api-window-bg: var(--color-bg-elevated);
-  --api-window-header-bg: linear-gradient(180deg, 
-    var(--color-surface) 0%, 
+  --api-window-header-bg: linear-gradient(180deg,
+    var(--color-surface) 0%,
     color-mix(in srgb, var(--color-surface) 95%, var(--color-bg-secondary)) 100%);
   --api-window-border: var(--color-border-light);
   --api-window-radius: 12px;
-  
+
   /* Terminal-inspired styling */
   --api-terminal-dot-red: #ff5f57;
   --api-terminal-dot-yellow: #febc2e;
   --api-terminal-dot-green: #28c840;
-  
+
   /* Depth & glow */
-  --api-shadow-diffused: 
+  --api-shadow-diffused:
     0 4px 24px -4px rgba(0, 0, 0, 0.08),
     0 8px 32px -8px rgba(0, 0, 0, 0.04);
   --api-shadow-elevated:
@@ -36,22 +36,22 @@
     0 16px 48px -16px rgba(0, 0, 0, 0.08);
   --api-glow-primary: 0 0 20px -4px color-mix(in srgb, var(--color-primary) 25%, transparent);
   --api-glow-accent: 0 0 24px -4px color-mix(in srgb, var(--api-member-accent, var(--color-primary)) 20%, transparent);
-  
+
   /* Spacing */
   --api-section-gap: var(--space-8);
   --api-member-gap: var(--space-3);
   --api-nested-indent: var(--space-4);
-  
+
   font-size: var(--text-sm);
   line-height: 1.6;
 }
 
 [data-theme="dark"] .api-explorer {
   --api-window-bg: var(--color-bg-secondary);
-  --api-window-header-bg: linear-gradient(180deg, 
-    var(--color-bg-elevated) 0%, 
+  --api-window-header-bg: linear-gradient(180deg,
+    var(--color-bg-elevated) 0%,
     var(--color-bg-secondary) 100%);
-  --api-shadow-diffused: 
+  --api-shadow-diffused:
     0 4px 24px -4px rgba(0, 0, 0, 0.25),
     0 8px 32px -8px rgba(0, 0, 0, 0.15);
   --api-shadow-elevated:
@@ -69,18 +69,18 @@
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
   margin-bottom: var(--space-8);
-  
+
   /* Window chrome styling */
   background: var(--api-window-header-bg);
   border: 1px solid var(--api-window-border);
   border-radius: var(--api-window-radius);
-  
+
   /* Neumorphic depth with diffused glow */
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-diffused),
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     inset 0 -1px 0 rgba(0, 0, 0, 0.03);
-  
+
   /* Top gradient accent */
   position: relative;
 }
@@ -92,7 +92,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(90deg,
     var(--color-primary) 0%,
     var(--color-secondary) 50%,
     var(--color-accent, var(--color-primary)) 100%);
@@ -101,7 +101,7 @@
 }
 
 [data-theme="dark"] .api-module-header {
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-diffused),
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2);
@@ -149,10 +149,26 @@
   font-size: inherit;
 }
 
+/* Module header description - handles markdown content */
 .api-module-header__description {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
+}
+
+.api-module-header__description > p:first-child {
+  margin-top: 0;
+}
+
+.api-module-header__description > p:last-child {
+  margin-bottom: 0;
+}
+
+.api-module-header__description code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
   line-height: var(--leading-relaxed);
   max-width: 65ch;
 }
@@ -205,14 +221,14 @@
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-6);
-  
+
   background: linear-gradient(180deg,
     var(--color-surface) 0%,
     var(--color-bg-secondary) 100%);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-2xl);
-  
-  box-shadow: 
+
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 2px 8px -2px rgba(0, 0, 0, 0.06);
 }
@@ -279,7 +295,7 @@
 
 /* ============================================
    API MEMBER - Terminal Window Cards
-   
+
    The core component: collapsible windows with
    title bar chrome and content area
    ============================================ */
@@ -292,21 +308,21 @@
 
 .api-member {
   --api-member-accent: var(--color-primary);
-  
+
   position: relative;
   border-radius: var(--api-window-radius);
   overflow: hidden;
-  
+
   /* Window styling */
   background: var(--api-window-bg);
   border: 1px solid var(--api-window-border);
-  
+
   /* Neumorphic shadow with diffused light */
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-diffused),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  
-  transition: 
+
+  transition:
     box-shadow 0.2s ease,
     border-color 0.2s ease,
     transform 0.2s ease;
@@ -320,12 +336,30 @@
 .api-member--property { --api-member-accent: #10b981; /* Emerald */ }
 .api-member--async { --api-member-accent: var(--color-warning); }
 .api-member--abstract { --api-member-accent: var(--color-secondary); }
-.api-member--private { opacity: 0.85; }
+/* Private members - visually de-emphasized */
+.api-member--private {
+  opacity: 0.7;
+  --api-member-accent: var(--color-text-muted);
+}
+
+.api-member--private .api-member__name::before {
+  content: "internal";
+  font-size: 0.65em;
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  margin-right: var(--space-2);
+  vertical-align: middle;
+}
 
 /* Hover state - elevate and glow */
 .api-member:hover {
   border-color: color-mix(in srgb, var(--api-member-accent) 40%, var(--color-border));
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-elevated),
     var(--api-glow-accent),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -333,7 +367,7 @@
 
 /* Open state - prominent left accent + expanded glow */
 .api-member[open] {
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-elevated),
     var(--api-glow-accent),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -353,14 +387,14 @@
 
 [data-theme="dark"] .api-member {
   background: var(--color-bg-secondary);
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-diffused),
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 [data-theme="dark"] .api-member:hover,
 [data-theme="dark"] .api-member[open] {
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-elevated),
     0 0 30px -8px color-mix(in srgb, var(--api-member-accent) 30%, transparent);
 }
@@ -376,7 +410,7 @@
 
 /* ============================================
    API MEMBER SUMMARY - Window Title Bar
-   
+
    Horizontal layout with:
    - Window dots (decorative)
    - Type icon
@@ -391,15 +425,15 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  
+
   /* Title bar gradient */
   background: var(--api-window-header-bg);
   border-bottom: 1px solid var(--api-window-border);
-  
+
   cursor: pointer;
   user-select: none;
   list-style: none;
-  
+
   transition: background-color 0.15s ease;
 }
 
@@ -437,13 +471,13 @@
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--api-member-accent) 70%, white) 0%,
     var(--api-member-accent) 100%);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 2px rgba(255, 255, 255, 0.4),
     0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .api-member[open] .api-member__icon::before {
-  box-shadow: 
+  box-shadow:
     inset 0 1px 2px rgba(255, 255, 255, 0.4),
     0 0 8px color-mix(in srgb, var(--api-member-accent) 50%, transparent);
 }
@@ -547,7 +581,7 @@
 
 /* ============================================
    API MEMBER CONTENT - Window Body
-   
+
    Expanded content with:
    - Description
    - Signature code block
@@ -566,6 +600,7 @@
   background: var(--color-bg-tertiary);
 }
 
+/* Full description - handles markdown-rendered content */
 .api-member__description {
   margin: 0 0 var(--space-4) 0;
   font-size: var(--text-sm);
@@ -573,34 +608,86 @@
   line-height: var(--leading-relaxed);
 }
 
-/* Signature code block - terminal style */
-.api-signature {
-  margin: var(--space-3) 0 var(--space-4) 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  
-  /* Terminal-like appearance */
-  background: linear-gradient(180deg,
-    #1e1e2e 0%,
-    #181825 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 4px 12px -4px rgba(0, 0, 0, 0.3);
+/* First paragraph in markdown description shouldn't have top margin */
+.api-member__description > p:first-child {
+  margin-top: 0;
 }
 
-.api-signature pre {
-  margin: 0;
-  padding: var(--space-4);
+/* Last paragraph shouldn't have bottom margin */
+.api-member__description > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline code in descriptions */
+.api-member__description code {
+  background: var(--color-bg-code);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+  color: var(--color-text-primary);
+}
+
+/* Code blocks inside descriptions */
+.api-member__description pre {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-md);
   overflow-x: auto;
 }
 
-.api-signature code {
-  color: #cdd6f4;
+.api-member__description pre code {
   background: none;
   padding: 0;
+  font-size: var(--text-sm);
+}
+
+/* Lists inside descriptions */
+.api-member__description ul,
+.api-member__description ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+}
+
+.api-member__description li {
+  margin: var(--space-1) 0;
+}
+
+/* Links in descriptions */
+.api-member__description a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.api-member__description a:hover {
+  text-decoration: underline;
+}
+
+/* Signature code block - seamless with existing code blocks */
+.api-signature {
+  margin: var(--space-3) 0 var(--space-4) 0;
+
+  /* Transparent wrapper - let the code-block-wrapper handle styling */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* When signature contains raw pre (fallback templates) */
+.api-signature > pre:only-child {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  overflow-x: auto;
+}
+
+/* Remove extra spacing when code-block-wrapper is inside */
+.api-signature .code-block-wrapper {
+  margin: 0;
 }
 
 /* ============================================
@@ -698,9 +785,21 @@
   border-radius: var(--radius-sm);
 }
 
+/* Table description cells - handle inline markdown */
 .api-table__desc {
   color: var(--color-text-secondary);
   line-height: 1.5;
+}
+
+.api-table__desc > p {
+  margin: 0;
+}
+
+.api-table__desc code {
+  background: var(--color-bg-code);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
 }
 
 /* Compact table variant for nested contexts */
@@ -810,6 +909,64 @@
   height: 10px;
 }
 
+/* Internal/Private Methods - Collapsible Section */
+.api-methods__internal {
+  margin-top: var(--space-4);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.api-methods__internal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.api-methods__internal-header::-webkit-details-marker {
+  display: none;
+}
+
+.api-methods__internal-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.api-methods__internal-label svg {
+  opacity: 0.6;
+}
+
+.api-methods__internal-header .api-member__toggle {
+  transition: transform 0.2s ease;
+}
+
+.api-methods__internal[open] .api-methods__internal-header .api-member__toggle {
+  transform: rotate(90deg);
+}
+
+.api-methods__internal-content {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px dashed var(--color-border-light);
+}
+
+.api-methods__internal .api-member {
+  opacity: 0.8;
+}
+
+.api-methods__internal .api-member:hover {
+  opacity: 1;
+}
+
 /* ============================================
    CLASS BASES - Inheritance Display
    ============================================ */
@@ -859,13 +1016,13 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   line-height: 1.4;
-  
+
   /* Neumorphic badge style */
   background: linear-gradient(180deg,
     var(--color-surface) 0%,
     var(--color-bg-secondary) 100%);
   border: 1px solid var(--color-border-light);
-  box-shadow: 
+  box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -958,7 +1115,7 @@
     background: var(--color-bg-secondary);
     border-color: var(--color-border);
   }
-  
+
   .api-badge--module { background: var(--color-primary-light); }
   .api-badge--class { background: var(--color-info-bg); }
   .api-badge--function { background: var(--color-success-bg); }
@@ -980,11 +1137,11 @@
   font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   text-decoration: none;
-  
+
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
-  
+
   transition: all 0.15s ease;
 }
 
@@ -1016,7 +1173,7 @@
   border-radius: var(--api-window-radius);
   overflow: hidden;
   margin-bottom: var(--space-3);
-  
+
   box-shadow: var(--api-shadow-diffused);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -1025,7 +1182,7 @@
 .api-card--function { --api-card-accent: var(--color-success); }
 
 .api-card[open] {
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-elevated),
     var(--api-glow-accent);
 }
@@ -1143,30 +1300,30 @@ details.api-card > summary::marker { display: none; }
     padding: var(--space-4);
     grid-template-columns: 1fr;
   }
-  
+
   .api-module-header__stats {
     margin-left: 0;
     width: 100%;
     justify-content: flex-start;
   }
-  
+
   .api-member__summary {
     grid-template-columns: auto 1fr auto;
     gap: var(--space-2);
   }
-  
+
   .api-member__meta {
     display: none;
   }
-  
+
   .api-member__desc-preview {
     max-width: 200px;
   }
-  
+
   .api-stats {
     flex-wrap: wrap;
   }
-  
+
   .api-methods .api-cards {
     margin-left: var(--space-2);
     padding-left: var(--space-2);
@@ -1177,39 +1334,39 @@ details.api-card > summary::marker { display: none; }
   .api-member__summary {
     padding: var(--space-2) var(--space-3);
   }
-  
+
   .api-member__icon {
     display: none;
   }
-  
+
   .api-member__desc-preview {
     display: none;
   }
-  
+
   .api-table {
     display: block;
   }
-  
+
   .api-table thead {
     display: none;
   }
-  
+
   .api-table tbody,
   .api-table tr,
   .api-table td {
     display: block;
   }
-  
+
   .api-table tr {
     padding: var(--space-3);
     border-bottom: 1px solid var(--color-border-light);
   }
-  
+
   .api-table td {
     padding: var(--space-1) 0;
     border: none;
   }
-  
+
   .api-table td::before {
     content: attr(data-label);
     display: block;
@@ -1246,17 +1403,17 @@ details.api-card > summary::marker { display: none; }
     box-shadow: none !important;
     border: 1px solid #000;
   }
-  
+
   .api-member[open] .api-member__content,
   .api-card .api-card__content {
     display: block !important;
   }
-  
+
   .api-member__toggle,
   .api-card__toggle {
     display: none;
   }
-  
+
   .api-signature {
     background: #f5f5f5 !important;
     color: #000 !important;
@@ -1291,9 +1448,9 @@ details.api-card > summary::marker { display: none; }
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  
+
   box-shadow: var(--api-shadow-diffused);
-  transition: 
+  transition:
     box-shadow 0.2s ease,
     transform 0.2s ease,
     border-color 0.2s ease;
@@ -1301,7 +1458,7 @@ details.api-card > summary::marker { display: none; }
 
 .api-package-card:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     var(--api-shadow-elevated),
     var(--api-glow-primary);
   border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
@@ -1314,7 +1471,7 @@ details.api-card > summary::marker { display: none; }
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(90deg,
     var(--color-primary) 0%,
     var(--color-secondary) 100%);
   opacity: 0;
@@ -1385,12 +1542,12 @@ details.api-card > summary::marker { display: none; }
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  
-  box-shadow: 
+
+  box-shadow:
     0 2px 8px -2px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  
-  transition: 
+
+  transition:
     box-shadow 0.15s ease,
     transform 0.15s ease,
     border-color 0.15s ease;
@@ -1399,7 +1556,7 @@ details.api-card > summary::marker { display: none; }
 .api-module-card:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--color-secondary) 40%, var(--color-border));
-  box-shadow: 
+  box-shadow:
     0 4px 16px -4px rgba(0, 0, 0, 0.1),
     0 0 16px -4px color-mix(in srgb, var(--color-secondary) 15%, transparent);
 }
@@ -1579,18 +1736,9 @@ details.api-card > summary::marker { display: none; }
 
 .api-example {
   margin: var(--space-2) 0;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
 }
 
-.api-example pre {
-  margin: 0;
-  padding: var(--space-4);
-  background: linear-gradient(180deg, #1e1e2e 0%, #181825 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.api-example code {
-  color: #cdd6f4;
-  background: none;
+/* Let code-block-wrapper handle styling, just remove extra margin */
+.api-examples .code-block-wrapper {
+  margin: var(--space-2) 0;
 }

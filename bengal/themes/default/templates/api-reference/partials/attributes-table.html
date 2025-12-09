@@ -30,7 +30,7 @@ Uses api-table classes with responsive mobile labels.
           <span class="table-empty">—</span>
           {%- endif -%}
         </td>
-        <td data-label="Description" class="api-table__desc">{{ attr.description | default('—') }}</td>
+        <td data-label="Description" class="api-table__desc">{{ attr.description | default('—') | markdownify | safe }}</td>
       </tr>
       {% endfor %}
     </tbody>

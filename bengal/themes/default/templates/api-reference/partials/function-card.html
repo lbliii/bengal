@@ -24,7 +24,7 @@ Uses api-member classes from api-explorer.css.
       {{ icon('function', size=18) }}
       {% endif %}
     </span>
-    
+
     {# Name + description preview #}
     <div class="api-member__info">
       <div class="api-member__name-row">
@@ -35,7 +35,7 @@ Uses api-member classes from api-explorer.css.
       <span class="api-member__desc-preview">{{ first_sentence }}</span>
       {% endif %}
     </div>
-    
+
     {# Meta: params + return #}
     <div class="api-member__meta">
       <span class="api-member__params" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">
@@ -47,7 +47,7 @@ Uses api-member classes from api-explorer.css.
         <code>{{ return_type | truncate(20, True, '…') }}</code>
       </span>
     </div>
-    
+
     {# Toggle #}
     <span class="api-member__toggle">
       {{ icon('caret-right', size=14) }}
@@ -59,9 +59,9 @@ Uses api-member classes from api-explorer.css.
     {% set element = func %}
     {% include 'api-reference/partials/signature.html' %}
 
-    {# Full description #}
+    {# Full description (markdown rendered) #}
     {% if func.description %}
-    <p class="api-member__description">{{ func.description }}</p>
+    <div class="api-member__description">{{ func.description | markdownify | safe }}</div>
     {% endif %}
 
     {# Parameters, Returns, Raises #}

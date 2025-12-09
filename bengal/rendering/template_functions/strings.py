@@ -138,14 +138,75 @@ def slugify(text: str) -> str:
     return text_utils.slugify(text, unescape_html=False)
 
 
+def _convert_docstring_to_markdown(text: str) -> str:
+    """
+    Convert Google/NumPy-style docstrings to markdown.
+
+    Handles:
+    - Indented lists (    - Item) → proper markdown lists
+    - Section headers (Section:) → bold labels or headings
+    - Preserves code blocks
+
+    Args:
+        text: Docstring text
+
+    Returns:
+        Markdown-formatted text
+    """
+    if not text:
+        return ""
+
+    lines = text.split("\n")
+    result = []
+    in_code_block = False
+
+    for line in lines:
+        # Track code blocks - don't modify inside them
+        if line.strip().startswith("```"):
+            in_code_block = not in_code_block
+            result.append(line)
+            continue
+
+        if in_code_block:
+            result.append(line)
+            continue
+
+        # Convert indented list items to proper markdown lists
+        # "    - Item: Description" → "- **Item**: Description"
+        # Match: 4+ spaces, dash, text
+        match = re.match(r"^(\s{4,})- (.+)$", line)
+        if match:
+            content = match.group(2)
+            # Check if it's "Term: Description" format
+            term_match = re.match(r"^([^:]+):\s*(.*)$", content)
+            if term_match:
+                term, desc = term_match.groups()
+                result.append(f"- **{term}**: {desc}")
+            else:
+                result.append(f"- {content}")
+            continue
+
+        # Convert section headers: "Section:" at start of line → "**Section:**"
+        section_match = re.match(r"^([A-Z][A-Za-z\s]+):$", line.strip())
+        if section_match and not line.startswith(" "):
+            section_name = section_match.group(1)
+            result.append(f"\n**{section_name}:**\n")
+            continue
+
+        result.append(line)
+
+    return "\n".join(result)
+
+
 def markdownify(text: str) -> str:
     """
     Render Markdown text to HTML.
 
-    Uses Python-Markdown with extensions for tables, code highlighting, etc.
+    Pre-processes Google-style docstrings to markdown, then converts to HTML
+    using Python-Markdown with extensions for tables, code highlighting, etc.
 
     Args:
-        text: Markdown text
+        text: Markdown or docstring text
 
     Returns:
         Rendered HTML
@@ -155,6 +216,9 @@ def markdownify(text: str) -> str:
     """
     if not text:
         return ""
+
+    # Pre-process docstring-style text to markdown
+    text = _convert_docstring_to_markdown(text)
 
     try:
         import markdown

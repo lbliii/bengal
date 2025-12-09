@@ -2,7 +2,7 @@
  * Page Hero Component
  *
  * Unified page header system with variant support.
- * 
+ *
  * Variants:
  * - .page-hero--classic: Uses existing action-bar + page-header (no additional CSS needed)
  * - .page-hero--magazine: Editorial-style consolidated header
@@ -721,3 +721,229 @@
   }
 }
 
+/* ============================================================================
+   API VARIANT
+   Unified hero for API reference pages.
+   Combines breadcrumbs/share from editorial with badges/stats from module header.
+   Vertical stacking for qualified name + markdown description.
+   ============================================================================ */
+
+.page-hero--api {
+  margin-bottom: var(--space-8);
+  max-width: var(--prose-width);
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* No pseudo-elements (no blobs) */
+.page-hero--api::before,
+.page-hero--api::after {
+  display: none;
+}
+
+/* Badges row - compact inline badges */
+.page-hero--api .page-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-3) 0;
+}
+
+/* Title - code-styled for qualified names */
+.page-hero--api .page-hero__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3) 0;
+  word-break: break-word;
+}
+
+.page-hero--api .page-hero__title--code {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.page-hero--api .page-hero__title--code code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Description - handles markdown content with prose styling */
+.page-hero--api .page-hero__description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  margin: 0 0 var(--space-4) 0;
+}
+
+.page-hero--api .page-hero__description--prose {
+  /* Ensure markdown content renders nicely */
+}
+
+.page-hero--api .page-hero__description--prose > p:first-child {
+  margin-top: 0;
+}
+
+.page-hero--api .page-hero__description--prose > p:last-child {
+  margin-bottom: 0;
+}
+
+.page-hero--api .page-hero__description--prose p {
+  margin: var(--space-2) 0;
+}
+
+.page-hero--api .page-hero__description--prose code {
+  background: var(--color-bg-code);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}
+
+.page-hero--api .page-hero__description--prose ul,
+.page-hero--api .page-hero__description--prose ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+}
+
+.page-hero--api .page-hero__description--prose li {
+  margin: var(--space-1) 0;
+}
+
+/* Footer - source link and stats */
+.page-hero--api .page-hero__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Source link - subtle button style */
+.page-hero--api .page-hero__source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.page-hero--api .page-hero__source-link:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+
+.page-hero--api .page-hero__source-link svg {
+  opacity: 0.7;
+}
+
+/* Stats - class/function counts */
+.page-hero--api .page-hero__stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.page-hero--api .page-hero__stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.page-hero--api .page-hero__stat-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.page-hero--api .page-hero__stat-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  text-transform: lowercase;
+}
+
+/* Share button - transparent style like editorial */
+.page-hero--api .page-hero__share-trigger {
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.page-hero--api .page-hero__share-trigger:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ----------------------------------------------------------------------------
+   API Responsive
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .page-hero--api .page-hero__title {
+    font-size: var(--text-2xl);
+  }
+
+  .page-hero--api .page-hero__title--code {
+    font-size: var(--text-xl);
+  }
+
+  .page-hero--api .page-hero__description {
+    font-size: var(--text-sm);
+  }
+
+  .page-hero--api .page-hero__footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 639px) {
+  .page-hero--api .page-hero__title {
+    font-size: var(--text-xl);
+  }
+
+  .page-hero--api .page-hero__title--code {
+    font-size: var(--text-lg);
+  }
+
+  .page-hero--api .page-hero__badges {
+    margin: var(--space-1) 0 var(--space-2) 0;
+  }
+
+  .page-hero--api .page-hero__stats {
+    gap: var(--space-3);
+  }
+
+  .page-hero--api .page-hero__stat-value {
+    font-size: var(--text-base);
+  }
+
+  .page-hero--api .page-hero__stat-label {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 399px) {
+  .page-hero--api .page-hero__title {
+    font-size: var(--text-lg);
+  }
+
+  .page-hero--api .page-hero__title--code {
+    font-size: var(--text-base);
+  }
+}

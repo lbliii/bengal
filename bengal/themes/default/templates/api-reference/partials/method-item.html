@@ -2,16 +2,17 @@
 Method Item Partial
 
 Renders methods within a class card using Bengal's design system.
+Groups public methods first, then private (internal) methods in collapsible section.
 Information-rich preview: icon, name, params, return type, description snippet.
 Receives: element (the class element)
 #}
 
-{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list %}
-{% if methods %}
-<div class="api-methods">
-  <h4 class="api-label">Methods <span class="api-label__count">{{ methods | length }}</span></h4>
-  {% for method in methods %}
-  {# Compute preview info #}
+{% set all_methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{% set public_methods = all_methods | rejectattr('name', 'match', '^_') | list %}
+{% set private_methods = all_methods | selectattr('name', 'match', '^_') | list %}
+
+{# Macro to render a single method #}
+{% macro render_method(method) %}
   {% set params = method.metadata.parameters or [] %}
   {% set param_count = params | length %}
   {% set return_type = method.metadata.return_type or 'None' %}
@@ -19,9 +20,10 @@ Receives: element (the class element)
   {% set is_property = method.metadata.is_property | default(false) %}
   {% set is_classmethod = method.metadata.is_classmethod | default(false) %}
   {% set is_staticmethod = method.metadata.is_staticmethod | default(false) %}
+  {% set is_private = method.name.startswith('_') %}
   {% set first_sentence = ((method.description or '') | truncate(80, True, '…')) %}
-  
-  <details class="api-member api-member--method{% if is_property %} api-member--property{% endif %}{% if is_async %} api-member--async{% endif %}{% if method.name.startswith('_') %} api-member--private{% endif %}">
+
+  <details class="api-member api-member--method{% if is_property %} api-member--property{% endif %}{% if is_async %} api-member--async{% endif %}{% if is_private %} api-member--private{% endif %}">
     <summary class="api-member__summary">
       {# Icon based on type #}
       <span class="api-member__icon">
@@ -35,7 +37,7 @@ Receives: element (the class element)
         {{ icon('function', size=16) }}
         {% endif %}
       </span>
-      
+
       {# Name + signature preview #}
       <div class="api-member__info">
         <div class="api-member__name-row">
@@ -51,7 +53,7 @@ Receives: element (the class element)
         <span class="api-member__desc-preview">{{ first_sentence }}</span>
         {% endif %}
       </div>
-      
+
       {# Meta info: params + return #}
       <div class="api-member__meta">
         {% if not is_property %}
@@ -65,21 +67,21 @@ Receives: element (the class element)
           <code>{{ return_type | truncate(20, True, '…') }}</code>
         </span>
       </div>
-      
+
       {# Expand indicator #}
       <span class="api-member__toggle">
         {{ icon('caret-right', size=14) }}
       </span>
     </summary>
-    
+
     <div class="api-member__content">
       {# Full signature #}
       {% set element = method %}
       {% include 'api-reference/partials/signature.html' %}
-      
-      {# Full description #}
+
+      {# Full description (markdown rendered) #}
       {% if method.description %}
-      <p class="api-member__description">{{ method.description }}</p>
+      <div class="api-member__description">{{ method.description | markdownify | safe }}</div>
       {% endif %}
 
       {# Parameters, Returns, Raises #}
@@ -91,6 +93,37 @@ Receives: element (the class element)
       {% include 'api-reference/partials/raises-list.html' %}
     </div>
   </details>
+{% endmacro %}
+
+{% if all_methods %}
+<div class="api-methods">
+  {# Public Methods - shown first, prominently #}
+  {% if public_methods %}
+  <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
+  {% for method in public_methods %}
+  {{ render_method(method) }}
   {% endfor %}
+  {% endif %}
+
+  {# Private/Internal Methods - collapsed by default #}
+  {% if private_methods %}
+  <details class="api-methods__internal">
+    <summary class="api-methods__internal-header">
+      <span class="api-methods__internal-label">
+        {{ icon('lock', size=14) }}
+        <span>Internal Methods</span>
+        <span class="api-label__count">{{ private_methods | length }}</span>
+      </span>
+      <span class="api-member__toggle">
+        {{ icon('caret-right', size=14) }}
+      </span>
+    </summary>
+    <div class="api-methods__internal-content">
+      {% for method in private_methods %}
+      {{ render_method(method) }}
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
 </div>
 {% endif %}

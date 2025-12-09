@@ -17,6 +17,10 @@ This template receives:
 {% from 'api-reference/partials/function-card.html' import function_card with context %}
 
 {% block content %}
+{# Pre-compute element children for hero and sections #}
+{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
     {# Left Sidebar: Navigation #}
@@ -26,63 +30,14 @@ This template receives:
 
     {# Main Content #}
     <div class="docs-main">
-        {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-        {% include 'partials/page-hero.html' %}
+        {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+        {% include 'partials/page-hero-api.html' %}
 
         {# Article Content #}
         <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
             <div class="docs-content">
                 {# API Explorer Module Content #}
                 <div class="api-explorer">
-                    {# Module Header - Compact Vertical Stack #}
-                    {% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
-                    {% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
-
-                    <header class="api-module-header">
-                        {# Top row: Badge + Short name #}
-                        <div class="api-module-header__top-row">
-                            <div class="api-module-header__badges">
-                                {% set element = element %}
-                                {% include 'api-reference/partials/badges.html' %}
-                            </div>
-                            <span class="api-module-header__short-name">{{ element.name }}</span>
-                        </div>
-
-                        {# Full qualified name #}
-                        <h1 class="api-module-header__title">
-                            <code>{{ element.qualified_name }}</code>
-                        </h1>
-
-                        {# Description #}
-                        {% if element.description %}
-                        <p class="api-module-header__description">{{ element.description }}</p>
-                        {% endif %}
-
-                        {# Bottom row: Source link + Stats #}
-                        <div class="api-module-header__bottom-row">
-                            {% if element.source_file %}
-                            <div class="api-module-header__source">
-                                <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
-                                    class="api-source-link" target="_blank" rel="noopener">
-                                    {{ icon('file-code', size=14) }}
-                                    <span>View source</span>
-                                </a>
-                            </div>
-                            {% endif %}
-
-                            <div class="api-module-header__stats">
-                                <span class="api-module-header__stat">
-                                    <span class="api-module-header__stat-value">{{ classes | length }}</span>
-                                    <span class="api-module-header__stat-label">Classes</span>
-                                </span>
-                                <span class="api-module-header__stat">
-                                    <span class="api-module-header__stat-value">{{ functions | length }}</span>
-                                    <span class="api-module-header__stat-label">Functions</span>
-                                </span>
-                            </div>
-                        </div>
-                    </header>
-
                     {# Classes Section #}
                     {% if classes %}
                     <section class="api-section api-section--classes">

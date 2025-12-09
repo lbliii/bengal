@@ -44,7 +44,7 @@ Uses api-table classes with responsive mobile labels.
           {%- endif -%}
         </td>
         {% endif %}
-        <td data-label="Description" class="api-table__desc">{{ param.description | default('') }}</td>
+        <td data-label="Description" class="api-table__desc">{{ param.description | default('') | markdownify | safe }}</td>
         {% else %}
         {# param is a simple string - just show the name #}
         <td data-label="Name" class="api-table__name"><code>{{ param }}</code></td>

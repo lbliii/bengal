@@ -36,6 +36,8 @@ _template_default else _theme_hero_style)) %}
 {% include 'partials/page-hero-classic.html' %}
 {% elif hero_style == 'overview' %}
 {% include 'partials/page-hero-overview.html' %}
+{% elif hero_style == 'api' %}
+{% include 'partials/page-hero-api.html' %}
 {% else %}
 {# Default to editorial #}
 {% include 'partials/page-hero-editorial.html' %}
