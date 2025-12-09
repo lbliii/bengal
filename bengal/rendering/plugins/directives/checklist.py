@@ -3,76 +3,89 @@ Checklist directive for Mistune.
 
 Provides styled checklist containers for bullet lists and task lists
 with optional titles and custom styling.
+
+Architecture:
+    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
 
-from re import Match
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from mistune.directives import DirectivePlugin
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
 
-from bengal.utils.logger import get_logger
-
-__all__ = ["ChecklistDirective", "render_checklist"]
-
-logger = get_logger(__name__)
+__all__ = ["ChecklistDirective", "ChecklistOptions"]
 
 
-class ChecklistDirective(DirectivePlugin):
+@dataclass
+class ChecklistOptions(DirectiveOptions):
+    """Options for checklist directive (currently none)."""
+
+    pass
+
+
+class ChecklistDirective(BengalDirective):
     """
     Checklist directive using Mistune's fenced syntax.
 
     Syntax:
-        ```{checklist} Optional Title
+        :::{checklist} Optional Title
         - Item one
         - Item two
         - [x] Completed item
         - [ ] Unchecked item
-        ```
+        :::
 
     Supports both regular bullet lists and task lists (checkboxes).
-    The directive wraps the list in a styled container for visual emphasis.
+    The directive wraps the list in a styled container.
     """
 
-    # Directive names this class registers (for health check introspection)
-    DIRECTIVE_NAMES = ["checklist"]
+    NAMES: ClassVar[list[str]] = ["checklist"]
+    TOKEN_TYPE: ClassVar[str] = "checklist"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = ChecklistOptions
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
-        """Parse checklist directive."""
-        title = self.parse_title(m)
-        content = self.parse_content(m)
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["checklist"]
 
-        # Parse nested markdown content (will handle task lists automatically)
-        children = self.parse_tokens(block, content, state)
+    def parse_directive(
+        self,
+        title: str,
+        options: ChecklistOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
+        """Build checklist token."""
+        attrs = {}
+        if title:
+            attrs["title"] = title
 
-        return {
-            "type": "checklist",
-            "attrs": {"title": title} if title else {},
-            "children": children,
-        }
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs=attrs,
+            children=children,
+        )
 
-    def __call__(self, directive: Any, md: Any) -> None:
-        """Register the directive and renderer."""
-        directive.register("checklist", self.parse)
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render checklist to HTML."""
+        title = attrs.get("title", "")
 
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("checklist", render_checklist)
+        parts = ['<div class="checklist">\n']
+
+        if title:
+            parts.append(f'  <p class="checklist-title">{self.escape_html(title)}</p>\n')
+
+        parts.append('  <div class="checklist-content">\n')
+        parts.append(f"{text}")
+        parts.append("  </div>\n")
+        parts.append("</div>\n")
+
+        return "".join(parts)
 
 
+# Backward compatibility
 def render_checklist(renderer: Any, text: str, **attrs: Any) -> str:
-    """Render checklist to HTML."""
-    title = attrs.get("title", "")
-
-    # Build HTML structure
-    html_parts = ['<div class="checklist">\n']
-
-    if title:
-        html_parts.append(f'  <p class="checklist-title">{title}</p>\n')
-
-    html_parts.append('  <div class="checklist-content">\n')
-    html_parts.append(f"{text}")
-    html_parts.append("  </div>\n")
-    html_parts.append("</div>\n")
-
-    return "".join(html_parts)
+    """Legacy render function for backward compatibility."""
+    return ChecklistDirective().render(renderer, text, **attrs)
