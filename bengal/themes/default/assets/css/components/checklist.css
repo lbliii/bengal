@@ -171,3 +171,110 @@
 [data-theme="dark"] .checklist-content code {
   background-color: rgba(255, 255, 255, 0.1);
 }
+
+/* ==============================================
+   CHECKLIST VARIANTS & OPTIONS
+   ============================================== */
+
+/* Style: Numbered - Show numbers instead of bullets */
+.checklist-numbered .checklist-content ul {
+  counter-reset: checklist-item;
+}
+
+.checklist-numbered .checklist-content ul > li::before {
+  counter-increment: checklist-item;
+  content: counter(checklist-item) '.';
+  font-weight: var(--weight-semibold);
+  font-size: 0.9em;
+  min-width: 1.25em;
+}
+
+/* Style: Minimal - Reduced visual chrome */
+.checklist-minimal {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: var(--space-2) 0;
+}
+
+.checklist-minimal .checklist-title {
+  font-size: var(--text-sm);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.checklist-minimal .checklist-title::before {
+  display: none;
+}
+
+/* Compact spacing */
+.checklist-compact {
+  padding: var(--space-2) var(--space-3);
+}
+
+.checklist-compact .checklist-content li {
+  margin: var(--space-1) 0;
+  font-size: var(--text-xs);
+}
+
+/* Progress bar */
+.checklist-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+}
+
+.checklist-progress-bar {
+  height: 6px;
+  flex: 1;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.checklist-progress-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.checklist-progress-text {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Dark mode progress bar */
+[data-theme="dark"] .checklist-progress {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .checklist-progress-bar::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}

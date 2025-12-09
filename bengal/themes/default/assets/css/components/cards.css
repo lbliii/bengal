@@ -1337,3 +1337,90 @@ a.card:hover {
   margin-bottom: var(--space-2);
   font-size: var(--text-base);
 }
+
+/* ============================================
+   CARD DESCRIPTION & BADGE OPTIONS
+   ============================================ */
+
+/* Card Description - Brief summary below header */
+.card-description {
+  padding: 0 var(--space-5);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Card Badge - Inline badge in header */
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Badge color variants based on text content */
+.card-badge[data-variant="new"] {
+  background: var(--color-success);
+}
+
+.card-badge[data-variant="beta"] {
+  background: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+.card-badge[data-variant="pro"],
+.card-badge[data-variant="premium"] {
+  background: linear-gradient(135deg, var(--color-primary), var(--purple-500));
+}
+
+.card-badge[data-variant="deprecated"] {
+  background: var(--color-error);
+}
+
+.card-badge[data-variant="updated"] {
+  background: var(--color-info);
+}
+
+/* Adjust header layout when badge is present */
+.card-header:has(.card-badge) {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.card-header:has(.card-badge) .card-title {
+  flex: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 639px) {
+  .card-description {
+    padding: 0 var(--space-4);
+    font-size: var(--text-xs);
+  }
+
+  .card-badge {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.375rem;
+  }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .card-badge {
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .card-description {
+  color: var(--color-text-secondary);
+}

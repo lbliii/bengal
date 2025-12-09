@@ -238,3 +238,88 @@
   background-color: var(--color-primary-light);
   border-bottom-width: 3px;
 }
+
+/* ==============================================
+   TAB ICONS, BADGES, AND DISABLED STATE
+   ============================================== */
+
+/* Tab Icon */
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-2);
+  font-size: 1.1em;
+  opacity: 0.75;
+  vertical-align: middle;
+}
+
+.tab-icon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.tab-nav li.active .tab-icon {
+  opacity: 1;
+}
+
+/* Tab Badge */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-2);
+  padding: 0.125rem 0.5rem;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
+
+/* Badge color variants */
+.tab-badge[data-variant="new"],
+.tab-badge:has-text("New") {
+  background: var(--color-success);
+}
+
+.tab-badge[data-variant="beta"] {
+  background: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+.tab-badge[data-variant="pro"] {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+/* Disabled Tab */
+.tab-nav li.disabled a {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.tab-nav li.disabled a:hover {
+  background-color: transparent;
+  color: var(--color-text-disabled);
+}
+
+.tab-nav li.disabled .tab-icon {
+  opacity: 0.3;
+}
+
+.tab-nav li.disabled .tab-badge {
+  background: var(--color-text-disabled);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .tab-badge {
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .tab-nav li.disabled a {
+  color: var(--color-text-disabled);
+}

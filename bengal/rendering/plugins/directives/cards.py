@@ -8,20 +8,33 @@ Architecture:
     - CardsDirective: allows card children
     - CardDirective: requires_parent=["cards_grid"] (optional, not enforced)
 
-Syntax:
+Syntax (preferred - named closers):
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 :gap: medium
 
 :::{card} Card Title
 :icon: book
 :link: /docs/
-Card content
-:::
-::::
+:description: Brief summary shown below the title
+:badge: New
+Card content with **markdown** support.
+:::{/card}
+:::{/cards}
 ```
+
+Card Options:
+    :icon: - Icon name displayed in card header
+    :link: - URL or page reference (makes card clickable)
+    :description: - Brief summary shown below the title
+    :badge: - Badge text (e.g., "New", "Beta", "Pro")
+    :color: - Color theme (blue, green, red, yellow, etc.)
+    :image: - Header image URL
+    :footer: - Footer content
+    :pull: - Fields to pull from linked page (title, description, icon)
+    :layout: - Layout override (default, horizontal, portrait, compact)
 """
 
 from __future__ import annotations
@@ -185,15 +198,28 @@ class CardOptions(DirectiveOptions):
     Attributes:
         icon: Icon name
         link: URL or page reference
+        description: Brief summary shown below the title
+        badge: Badge text (e.g., "New", "Beta", "Pro")
         color: Color theme (blue, green, red, etc.)
         image: Header image URL
         footer: Footer content
         pull: Fields to pull from linked page (comma-separated)
         layout: Layout override (default, horizontal, portrait, compact)
+
+    Example:
+        :::{card} Getting Started
+        :icon: rocket
+        :link: /docs/quickstart/
+        :description: Everything you need to get up and running
+        :badge: Updated
+        Detailed content here.
+        :::{/card}
     """
 
     icon: str = ""
     link: str = ""
+    description: str = ""
+    badge: str = ""
     color: str = ""
     image: str = ""
     footer: str = ""
@@ -268,6 +294,8 @@ class CardDirective(BengalDirective):
                 "title": title or "",
                 "icon": options.icon,
                 "link": options.link,
+                "description": options.description,
+                "badge": options.badge,
                 "color": options.color if options.color in VALID_COLORS else "",
                 "image": options.image,
                 "footer": footer,
@@ -282,6 +310,8 @@ class CardDirective(BengalDirective):
         title = attrs.get("title", "")
         icon = attrs.get("icon", "")
         link = attrs.get("link", "")
+        description = attrs.get("description", "")
+        badge = attrs.get("badge", "")
         color = attrs.get("color", "")
         image = attrs.get("image", "")
         footer = attrs.get("footer", "")
@@ -293,8 +323,8 @@ class CardDirective(BengalDirective):
             pulled = _pull_from_linked_page(renderer, link, pull_fields)
             if "title" in pull_fields and not title:
                 title = pulled.get("title", "")
-            if "description" in pull_fields and not text.strip():
-                text = f"<p>{self.escape_html(pulled.get('description', ''))}</p>"
+            if "description" in pull_fields and not description:
+                description = pulled.get("description", "")
             if "icon" in pull_fields and not icon:
                 icon = pulled.get("icon", "")
             if "image" in pull_fields and not image:
@@ -330,8 +360,8 @@ class CardDirective(BengalDirective):
                 f'alt="{self.escape_html(title)}" loading="lazy">'
             )
 
-        # Card header
-        if icon or title:
+        # Card header with optional badge
+        if icon or title or badge:
             parts.append('  <div class="card-header">')
             if icon:
                 rendered_icon = _render_icon(icon)
@@ -343,7 +373,15 @@ class CardDirective(BengalDirective):
                     parts.append("    </span>")
             if title:
                 parts.append(f'    <div class="card-title">{self.escape_html(title)}</div>')
+            if badge:
+                parts.append(f'    <span class="card-badge">{self.escape_html(badge)}</span>')
             parts.append("  </div>")
+
+        # Description (brief summary below header)
+        if description:
+            parts.append(
+                f'  <div class="card-description">{self.escape_html(description)}</div>'
+            )
 
         # Card content
         if text:
@@ -711,6 +749,8 @@ def _extract_page_fields(page: Any, fields: list[str]) -> dict[str, Any]:
             result["icon"] = page.metadata.get("icon", "") if hasattr(page, "metadata") else ""
         elif field == "image":
             result["image"] = page.metadata.get("image", "") if hasattr(page, "metadata") else ""
+        elif field == "badge":
+            result["badge"] = page.metadata.get("badge", "") if hasattr(page, "metadata") else ""
 
     return result
 

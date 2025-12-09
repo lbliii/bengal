@@ -221,6 +221,41 @@ STEPS_CONTRACT = DirectiveContract(
 | `steps` | Step-by-step guide | `:::{steps}` |
 | `step` | Individual step | `:::{step} Title` |
 
+#### Tabs Example (with named closers)
+
+```markdown
+:::{tab-set}
+:sync: language
+
+:::{tab-item} Python
+:icon: python
+:badge: Recommended
+Python code example here.
+:::{/tab-item}
+
+:::{tab-item} JavaScript
+:icon: javascript
+JavaScript code example here.
+:::{/tab-item}
+
+:::{tab-item} Legacy API
+:disabled:
+:badge: Deprecated
+This tab is disabled.
+:::{/tab-item}
+:::{/tab-set}
+```
+
+**Tab-Set Options:**
+- `:id:` — Unique ID for the tab set
+- `:sync:` — Sync key for synchronizing tabs across multiple tab-sets
+
+**Tab-Item Options:**
+- `:selected:` — Mark this tab as initially selected
+- `:icon:` — Icon name to display next to tab label
+- `:badge:` — Badge text (e.g., "New", "Beta", "Pro")
+- `:disabled:` — Mark tab as disabled/unavailable
+
 #### Steps Example (with named closers)
 
 ```markdown
@@ -269,6 +304,49 @@ Optional advanced configuration here.
 | `card` | Individual card | `:::{card} Title` |
 | `child-cards` | Auto-generate from children | `:::{child-cards}` |
 
+#### Cards Example (with named closers)
+
+```markdown
+:::{cards}
+:columns: 3
+:gap: medium
+
+:::{card} Getting Started
+:icon: rocket
+:link: /docs/quickstart/
+:description: Everything you need to get up and running
+:badge: Updated
+Detailed content explaining how to get started.
+:::{/card}
+
+:::{card} API Reference
+:icon: book
+:link: /docs/api/
+:description: Complete API documentation
+:color: blue
+Technical API documentation.
+:::{/card}
+:::{/cards}
+```
+
+**Cards Container Options:**
+- `:columns:` — Column layout (`auto`, `1-6`, or responsive `1-2-3`)
+- `:gap:` — Grid gap (`small`, `medium`, `large`)
+- `:style:` — Visual style (`default`, `minimal`, `bordered`)
+- `:variant:` — Card variant (`navigation`, `info`, `concept`)
+- `:layout:` — Card layout (`default`, `horizontal`, `portrait`, `compact`)
+
+**Card Options:**
+- `:icon:` — Icon name displayed in card header
+- `:link:` — URL or page reference (makes card clickable)
+- `:description:` — Brief summary shown below the title
+- `:badge:` — Badge text (e.g., "New", "Beta", "Pro")
+- `:color:` — Color theme (`blue`, `green`, `red`, `yellow`, etc.)
+- `:image:` — Header image URL
+- `:footer:` — Footer content
+- `:pull:` — Fields to pull from linked page (`title`, `description`, `icon`, `badge`)
+- `:layout:` — Layout override
+
 ### Code and Data
 
 | Directive | Description | Example |
@@ -286,6 +364,26 @@ Optional advanced configuration here.
 | `badge` | Inline badge | `:::{badge} Label` |
 | `icon` | Inline SVG icon | `:::{icon} star` |
 | `checklist` | Styled checklist | `:::{checklist}` |
+
+#### Checklist Example
+
+```markdown
+:::{checklist} Prerequisites
+:style: numbered
+:show-progress:
+:compact:
+- [x] Python 3.14+ installed
+- [x] Bengal package installed
+- [ ] Git configured
+- [ ] IDE with Python support
+:::{/checklist}
+```
+
+**Checklist Options:**
+- `:style:` — Visual style (`default`, `numbered`, `minimal`)
+- `:show-progress:` — Display completion percentage bar for task lists
+- `:compact:` — Tighter spacing for dense lists
+- `:class:` — Custom CSS class
 
 ## Nesting Validation
 

@@ -9,15 +9,23 @@ Architecture:
     - TabSetDirective: requires_children=["tab_item"]
     - TabItemDirective: requires_parent=["tab_set", "legacy_tabs"]
 
-Modern MyST syntax:
-    ::::{tab-set}
+Modern MyST syntax (preferred - named closers):
+    :::{tab-set}
     :::{tab-item} Python
+    :icon: python
+    :badge: Recommended
     Content here
-    :::
+    :::{/tab-item}
     :::{tab-item} JavaScript
     Content here
-    :::
-    ::::
+    :::{/tab-item}
+    :::{/tab-set}
+
+Tab-Item Options:
+    :selected: - Whether this tab is initially selected
+    :icon: - Icon name to show next to tab label
+    :badge: - Badge text (e.g., "New", "Beta", "Pro")
+    :disabled: - Mark tab as disabled/unavailable
 """
 
 from __future__ import annotations
@@ -65,15 +73,23 @@ class TabItemOptions(DirectiveOptions):
 
     Attributes:
         selected: Whether this tab is initially selected
+        icon: Icon name to show next to tab label
+        badge: Badge text (e.g., "New", "Beta", "Pro")
+        disabled: Mark tab as disabled/unavailable
 
     Example:
         :::{tab-item} Python
         :selected:
+        :icon: python
+        :badge: Recommended
         Content here
-        :::
+        :::{/tab-item}
     """
 
     selected: bool = False
+    icon: str = ""
+    badge: str = ""
+    disabled: bool = False
 
 
 class TabItemDirective(BengalDirective):
@@ -115,6 +131,9 @@ class TabItemDirective(BengalDirective):
             attrs={
                 "title": title or "Tab",
                 "selected": options.selected,
+                "icon": options.icon,
+                "badge": options.badge,
+                "disabled": options.disabled,
             },
             children=children,
         )
@@ -128,11 +147,17 @@ class TabItemDirective(BengalDirective):
         """
         title = attrs.get("title", "Tab")
         selected = "true" if attrs.get("selected", False) else "false"
+        icon = attrs.get("icon", "")
+        badge = attrs.get("badge", "")
+        disabled = "true" if attrs.get("disabled", False) else "false"
 
         return (
             f'<div class="tab-item" '
             f'data-title="{self.escape_html(title)}" '
-            f'data-selected="{selected}">'
+            f'data-selected="{selected}" '
+            f'data-icon="{self.escape_html(icon)}" '
+            f'data-badge="{self.escape_html(badge)}" '
+            f'data-disabled="{disabled}">'
             f"{text}"
             f"</div>"
         )
@@ -235,25 +260,48 @@ class TabSetDirective(BengalDirective):
             nav_html += f' data-sync="{self.escape_html(sync_key)}"'
         nav_html += '>\n  <ul class="tab-nav">\n'
 
-        for i, (title, selected, _) in enumerate(matches):
-            active = (
-                ' class="active"'
-                if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
-                else ""
-            )
-            nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{self.escape_html(title)}</a></li>\n'
+        for i, tab_data in enumerate(matches):
+            # Determine active state
+            is_first_unselected = i == 0 and not any(t.selected == "true" for t in matches)
+            is_active = tab_data.selected == "true" or is_first_unselected
+            is_disabled = tab_data.disabled == "true"
+
+            # Build classes
+            li_classes = []
+            if is_active and not is_disabled:
+                li_classes.append("active")
+            if is_disabled:
+                li_classes.append("disabled")
+            class_attr = f' class="{" ".join(li_classes)}"' if li_classes else ""
+
+            # Build tab label with optional icon and badge
+            label_parts = []
+            if tab_data.icon:
+                label_parts.append(f'<span class="tab-icon" data-icon="{self.escape_html(tab_data.icon)}"></span>')
+            label_parts.append(self.escape_html(tab_data.title))
+            if tab_data.badge:
+                label_parts.append(f'<span class="tab-badge">{self.escape_html(tab_data.badge)}</span>')
+            label = "".join(label_parts)
+
+            # Build link attributes
+            disabled_attr = ' aria-disabled="true" tabindex="-1"' if is_disabled else ""
+            nav_html += f'    <li{class_attr}><a href="#" data-tab-target="{tab_id}-{i}"{disabled_attr}>{label}</a></li>\n'
         nav_html += "  </ul>\n"
 
         # Build content panes
         content_html = '  <div class="tab-content">\n'
-        for i, (_, selected, tab_content) in enumerate(matches):
-            active = (
-                " active"
-                if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
-                else ""
-            )
+        for i, tab_data in enumerate(matches):
+            is_first_unselected = i == 0 and not any(t.selected == "true" for t in matches)
+            is_active = tab_data.selected == "true" or is_first_unselected
+            is_disabled = tab_data.disabled == "true"
+
+            pane_classes = ["tab-pane"]
+            if is_active and not is_disabled:
+                pane_classes.append("active")
+            class_str = " ".join(pane_classes)
+
             content_html += (
-                f'    <div id="{tab_id}-{i}" class="tab-pane{active}">\n{tab_content}    </div>\n'
+                f'    <div id="{tab_id}-{i}" class="{class_str}">\n{tab_data.content}    </div>\n'
             )
         content_html += "  </div>\n</div>\n"
 
@@ -338,7 +386,19 @@ class TabsDirective(DirectivePlugin):
 # =============================================================================
 
 
-def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
+@dataclass
+class TabItemData:
+    """Data extracted from a rendered tab-item div."""
+
+    title: str
+    selected: str
+    icon: str
+    badge: str
+    disabled: str
+    content: str
+
+
+def _extract_tab_items(text: str) -> list[TabItemData]:
     """
     Extract tab-item divs from rendered HTML, handling nested divs correctly.
 
@@ -346,11 +406,17 @@ def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
         text: Rendered HTML containing tab-item divs
 
     Returns:
-        List of (title, selected, content) tuples
+        List of TabItemData with extracted attributes
     """
-    matches = []
+    matches: list[TabItemData] = []
     pattern = re.compile(
-        r'<div class="tab-item" data-title="([^"]*)" data-selected="([^"]*)">', re.DOTALL
+        r'<div class="tab-item" '
+        r'data-title="([^"]*)" '
+        r'data-selected="([^"]*)" '
+        r'data-icon="([^"]*)" '
+        r'data-badge="([^"]*)" '
+        r'data-disabled="([^"]*)">',
+        re.DOTALL,
     )
 
     pos = 0
@@ -361,6 +427,9 @@ def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
 
         title = match.group(1)
         selected = match.group(2)
+        icon = match.group(3)
+        badge = match.group(4)
+        disabled = match.group(5)
         start = match.end()
 
         # Find matching closing </div> by counting nesting levels
@@ -374,7 +443,16 @@ def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
                 depth -= 1
                 if depth == 0:
                     content = text[start:i]
-                    matches.append((title, selected, content))
+                    matches.append(
+                        TabItemData(
+                            title=title,
+                            selected=selected,
+                            icon=icon,
+                            badge=badge,
+                            disabled=disabled,
+                            content=content,
+                        )
+                    )
                     pos = i + 6
                     break
                 i += 6
