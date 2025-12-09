@@ -5,15 +5,18 @@ Collects and persists build performance metrics including timing and memory usag
 This is Phase 1 of the continuous performance tracking system.
 
 Example:
-    from bengal.utils.performance_collector import PerformanceCollector
 
-    collector = PerformanceCollector()
-    collector.start_build()
+```python
+from bengal.utils.performance_collector import PerformanceCollector
 
-    # ... run build ...
+collector = PerformanceCollector()
+collector.start_build()
 
-    stats = collector.end_build(build_stats)
-    collector.save(stats)
+# ... run build ...
+
+stats = collector.end_build(build_stats)
+collector.save(stats)
+```
 """
 
 from __future__ import annotations

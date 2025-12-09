@@ -6,13 +6,16 @@ and structured event emission. Designed for observability into
 the 22-phase build pipeline.
 
 Example:
-    from bengal.utils.logger import get_logger
 
-    logger = get_logger(__name__)
+```python
+from bengal.utils.logger import get_logger
 
-    with logger.phase("discovery", page_count=100):
-        logger.info("discovered_content", files=len(files))
-        logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
+logger = get_logger(__name__)
+
+with logger.phase("discovery", page_count=100):
+    logger.info("discovered_content", files=len(files))
+    logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
+```
 """
 
 from __future__ import annotations

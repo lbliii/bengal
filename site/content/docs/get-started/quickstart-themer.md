@@ -64,11 +64,11 @@ themes/my-theme/
 
 ## Configure Your Theme
 
-Edit `bengal.toml`:
+Edit `config/_default/theme.yaml`:
 
-```toml
-[theme]
-name = "my-theme"
+```yaml
+theme:
+  name: "my-theme"
 ```
 
 ## Override Templates Selectively

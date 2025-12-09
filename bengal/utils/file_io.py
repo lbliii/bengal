@@ -6,16 +6,19 @@ logging, and encoding fallback. Consolidates duplicate file I/O patterns found
 throughout the codebase.
 
 Example:
-    from bengal.utils.file_io import read_text_file, load_json, load_yaml
 
-    # Read text file with encoding fallback
-    content = read_text_file(path, fallback_encoding='latin-1')
+```python
+from bengal.utils.file_io import read_text_file, load_json, load_yaml
 
-    # Load JSON with error handling
-    data = load_json(path, on_error='return_empty')
+# Read text file with encoding fallback
+content = read_text_file(path, fallback_encoding='latin-1')
 
-    # Auto-detect and load data file
-    data = load_data_file(path)  # Works for .json, .yaml, .toml
+# Load JSON with error handling
+data = load_json(path, on_error='return_empty')
+
+# Auto-detect and load data file
+data = load_data_file(path)  # Works for .json, .yaml, .toml
+```
 """
 
 from __future__ import annotations

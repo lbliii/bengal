@@ -21,19 +21,19 @@ Single-page quick reference for Bengal. Print it, pin it, bookmark it.
 
 ```bash
 # Build site
-bengal site build                      # Full build
-bengal site build --fast               # Parallel + quiet output
-bengal site build --incremental        # Only changed files
-PYTHON_GIL=0 bengal site build --fast  # Maximum speed (Python 3.14+)
+bengal build                           # Full build
+bengal build --fast                    # Parallel + quiet output
+bengal build --incremental             # Only changed files
+PYTHON_GIL=0 bengal build --fast       # Maximum speed (Python 3.14+)
 
 # Development server
-bengal site serve                      # Default port 5173
-bengal site serve --port 8080          # Custom port
-bengal site serve --no-open            # Don't open browser
+bengal serve                           # Default port 5173
+bengal serve --port 8080               # Custom port
+bengal serve --no-open                 # Don't open browser
 
 # Clean
-bengal site clean                      # Remove output directory
-bengal site clean --cache              # Also clear build cache
+bengal clean                           # Remove output directory
+bengal clean --cache                   # Also clear build cache
 ```
 
 ### Create Content
@@ -74,11 +74,11 @@ bengal config init                     # Create config directory
 ### Utilities
 
 ```bash
-bengal utils autodoc                   # Generate API docs
 bengal utils theme list                # List available themes
 bengal utils theme debug               # Debug theme resolution
-bengal utils perf analyze              # Performance analysis
+bengal utils perf                      # Performance metrics
 bengal utils graph analyze             # Site structure analysis
+bengal utils graph suggest             # Link suggestions
 ```
 
 ---
@@ -332,12 +332,12 @@ weight = 2
 
 ---
 
-## Keyboard Shortcuts
+## Quick Commands
 
 | Task | Command |
 |------|---------|
-| Build site | `bengal site build` |
-| Dev server | `bengal site serve` |
+| Build site | `bengal build` |
+| Dev server | `bengal serve` |
 | New page | `bengal new page <name>` |
 | Validate | `bengal validate` |
 | Show config | `bengal config show` |

@@ -6,13 +6,16 @@ Validates syntax, shows rendered output, and identifies errors before they
 appear in production builds.
 
 Example usage:
-    sandbox = ShortcodeSandbox()
-    result = sandbox.render('''
-    ```{note}
-    This is a test note.
-    ```
-    ''')
-    print(result.html)
+
+```python
+sandbox = ShortcodeSandbox()
+result = sandbox.render('''
+```{note}
+This is a test note.
+```
+''')
+print(result.html)
+```
 """
 
 from __future__ import annotations

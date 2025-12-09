@@ -7,14 +7,17 @@ Provides three profiles optimized for different user workflows:
 - Developer: Full observability for framework contributors
 
 Example:
-    from bengal.utils.profile import BuildProfile
 
-    profile = BuildProfile.from_cli_args(dev=True)
-    config = profile.get_config()
+```python
+from bengal.utils.profile import BuildProfile
 
-    if config['track_memory']:
-        # Enable memory tracking
-        pass
+profile = BuildProfile.from_cli_args(dev=True)
+config = profile.get_config()
+
+if config['track_memory']:
+    # Enable memory tracking
+    pass
+```
 """
 
 from __future__ import annotations

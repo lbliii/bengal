@@ -15,15 +15,21 @@ Feature flags allow users to declaratively enable/disable theme behaviors
 via config rather than editing templates.
 
 Example:
-    [theme]
-    features = [
-        "navigation.breadcrumbs",
-        "navigation.toc",
-        "content.code.copy",
-    ]
+
+```toml
+[theme]
+features = [
+    "navigation.breadcrumbs",
+    "navigation.toc",
+    "content.code.copy",
+]
+```
 
 Templates check features via:
-    {% if 'navigation.toc' in site.theme_config.features %}
+
+```jinja
+{% if 'navigation.toc' in site.theme_config.features %}
+```
 """
 
 from __future__ import annotations

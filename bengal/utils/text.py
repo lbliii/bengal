@@ -6,11 +6,14 @@ HTML stripping, truncation, and excerpt generation. These utilities consolidate
 duplicate implementations found throughout the codebase.
 
 Example:
-    from bengal.utils.text import slugify, strip_html, truncate_words
 
-    slug = slugify("Hello World!")  # "hello-world"
-    text = strip_html("<p>Hello</p>")  # "Hello"
-    excerpt = truncate_words("Long text here...", 10)
+```python
+from bengal.utils.text import slugify, strip_html, truncate_words
+
+slug = slugify("Hello World!")  # "hello-world"
+text = strip_html("<p>Hello</p>")  # "Hello"
+excerpt = truncate_words("Long text here...", 10)
+```
 """
 
 from __future__ import annotations

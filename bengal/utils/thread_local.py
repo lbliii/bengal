@@ -5,19 +5,22 @@ Provides a generic thread-local cache for expensive-to-create objects
 like parsers, database connections, or pipeline instances.
 
 Example:
-    from bengal.utils.thread_local import ThreadLocalCache
 
-    # Create a cache for markdown parsers
-    parser_cache = ThreadLocalCache(
-        factory=lambda: create_markdown_parser(),
-        name="markdown_parser",
-    )
+```python
+from bengal.utils.thread_local import ThreadLocalCache
 
-    # Get or create parser for current thread
-    parser = parser_cache.get()
+# Create a cache for markdown parsers
+parser_cache = ThreadLocalCache(
+    factory=lambda: create_markdown_parser(),
+    name="markdown_parser",
+)
 
-    # Get parser with a specific key (e.g., engine type)
-    mistune_parser = parser_cache.get("mistune")
+# Get or create parser for current thread
+parser = parser_cache.get()
+
+# Get parser with a specific key (e.g., engine type)
+mistune_parser = parser_cache.get("mistune")
+```
 
 Related Modules:
     - bengal.rendering.pipeline.thread_local: Uses for parser caching

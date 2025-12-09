@@ -6,9 +6,12 @@ Supports comparing arbitrary config sources, explaining effective values, and
 identifying potential configuration issues.
 
 Example usage:
-    inspector = ConfigInspector(site)
-    diff = inspector.compare(source1="local", source2="production")
-    print(diff.format_detailed())
+
+```python
+inspector = ConfigInspector(site)
+diff = inspector.compare(source1="local", source2="production")
+print(diff.format_detailed())
+```
 """
 
 from __future__ import annotations

@@ -15,13 +15,16 @@ Related:
     - RFC: plan/active/rfc-directive-system-v2.md (Issue 7: No nested directive validation)
 
 Example:
-    class StepDirective(BengalDirective):
-        CONTRACT = DirectiveContract(requires_parent=("steps",))
 
-    # This produces a warning at parse time:
-    # :::{step}
-    # Orphaned step - not inside :::{steps}
-    # :::
+```python
+class StepDirective(BengalDirective):
+    CONTRACT = DirectiveContract(requires_parent=("steps",))
+
+# This produces a warning at parse time:
+# :::{step}
+# Orphaned step - not inside :::{steps}
+# :::
+```
 """
 
 from __future__ import annotations

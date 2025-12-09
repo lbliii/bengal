@@ -5,18 +5,21 @@ Provides both synchronous and asynchronous retry decorators and functions
 with configurable backoff strategies and jitter.
 
 Example:
-    from bengal.utils.retry import retry_with_backoff, calculate_backoff
 
-    # Retry function with backoff
-    result = retry_with_backoff(
-        fetch_data,
-        retries=3,
-        base_delay=0.5,
-        exceptions=(ConnectionError, TimeoutError),
-    )
+```python
+from bengal.utils.retry import retry_with_backoff, calculate_backoff
 
-    # Calculate backoff for custom retry loop
-    delay = calculate_backoff(attempt=2, base=0.5, max_delay=10.0)
+# Retry function with backoff
+result = retry_with_backoff(
+    fetch_data,
+    retries=3,
+    base_delay=0.5,
+    exceptions=(ConnectionError, TimeoutError),
+)
+
+# Calculate backoff for custom retry loop
+delay = calculate_backoff(attempt=2, base=0.5, max_delay=10.0)
+```
 
 Related Modules:
     - bengal.health.linkcheck.async_checker: Uses for HTTP retry

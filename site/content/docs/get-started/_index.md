@@ -32,10 +32,10 @@ Requires Python 3.14+. See [installation guide](/docs/get-started/installation/)
 ```bash
 bengal new site mysite
 cd mysite
-bengal site serve
+bengal serve
 ```
 
-Your site runs at `localhost:8000`.
+Your site runs at `localhost:5173`.
 
 ## Pick a Path
 

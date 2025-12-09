@@ -5,19 +5,22 @@ Provides standardized hashing for file fingerprinting, cache keys,
 and content-addressable storage.
 
 Example:
-    from bengal.utils.hashing import hash_str, hash_file, hash_dict
 
-    # Hash string content
-    key = hash_str("hello world")  # "b94d27b9..."
+```python
+from bengal.utils.hashing import hash_str, hash_file, hash_dict
 
-    # Hash with truncation (for fingerprints)
-    fingerprint = hash_str("hello world", truncate=8)  # "b94d27b9"
+# Hash string content
+key = hash_str("hello world")  # "b94d27b9..."
 
-    # Hash file content
-    file_hash = hash_file(Path("content/post.md"))
+# Hash with truncation (for fingerprints)
+fingerprint = hash_str("hello world", truncate=8)  # "b94d27b9"
 
-    # Hash dict deterministically
-    config_hash = hash_dict({"key": "value", "nested": [1, 2, 3]})
+# Hash file content
+file_hash = hash_file(Path("content/post.md"))
+
+# Hash dict deterministically
+config_hash = hash_dict({"key": "value", "nested": [1, 2, 3]})
+```
 
 Related Modules:
     - bengal.cache.build_cache: Uses for file fingerprinting
