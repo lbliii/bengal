@@ -1,10 +1,11 @@
 # RFC: Directive System v2 — Container Syntax, Nesting Validation, and Cohesive Architecture
 
-**Status**: Draft  
+**Status**: Draft (Refreshed)  
 **Author**: Bengal Team  
 **Created**: 2025-12-08  
-**Updated**: 2025-12-08  
+**Updated**: 2025-12-09  
 **Target**: Bengal 1.x  
+**Branch**: `refactor/directives`  
 
 ---
 
@@ -33,13 +34,32 @@ The current system has 20+ directives that work but suffer from:
 
 ---
 
+## Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Named closure syntax `:::{/name}` | ❌ Not started | Primary feature - parser changes needed |
+| `DirectiveContract` nesting validation | ❌ Not started | `contracts.py` - new file |
+| `BengalDirective` base class | ❌ Not started | `base.py` - new file |
+| `DirectiveOptions` typed options | ❌ Not started | `options.py` - new file |
+| `DirectiveToken` typed tokens | ❌ Not started | `tokens.py` - new file |
+| Shared utilities module | ❌ Not started | `utils.py` - extract duplicates |
+| Directive migration (24 files) | ❌ Not started | Phase 3-5 of migration |
+| Test coverage | 🟡 Partial | Tests exist for directives, need contract tests |
+
+**Current Branch**: `refactor/directives` (clean working tree)
+
+---
+
 ## 1. Problem Statement
 
 ### 1.1 Current State Analysis
 
 **Evidence Source**: `bengal/rendering/plugins/directives/`
 
-The directive system contains 24 directive files implementing ~35 directive names:
+**Verified**: 2025-12-09 - All claims verified against current codebase.
+
+The directive system contains 27 files (24 directive implementations + 3 infrastructure) implementing ~35 directive names:
 
 ```
 admonitions.py   (10 types)    dropdown.py      (2 types)
@@ -72,10 +92,10 @@ def __call__(self, directive, md):
         md.renderer.register("token_type", render_function)
 ```
 
-**Evidence**:
-- `_escape_html()` duplicated in `tabs.py:477-495` and `cards.py:919-933`
-- Logger setup in every file
-- `md.renderer.NAME == "html"` check in every `__call__`
+**Evidence** (verified 2025-12-09):
+- Logger setup duplicated: `dropdown.py:19`, `steps.py:35`, `tabs.py`, `cards.py`, etc.
+- `md.renderer.NAME == "html"` check: `dropdown.py:60`, `steps.py:88`, `steps.py:208`
+- `_escape_html()` patterns duplicated across multiple files
 
 #### Issue 2: Render Functions Orphaned from Classes (MEDIUM)
 
@@ -223,10 +243,11 @@ Content silently disappears
   location: content/guide.md:52
 ```
 
-**Evidence of Problem**:
-- `steps.py:38-90`: `StepDirective` has no validation that it's inside `StepsDirective`
+**Evidence of Problem** (verified 2025-12-09):
+- `steps.py:38-90`: `StepDirective.parse()` has no parent validation - allows orphaned steps
 - `tabs.py:160-200`: `TabItemDirective` has no validation that it's inside `TabSetDirective`
 - `cards.py:200-300`: `CardDirective` has no validation that it's inside `CardsDirective`
+- `steps.py:109`: Documents fence-depth workaround: "Parent container uses 4 colons, nested steps use 3 colons"
 
 **Directives with Parent-Child Relationships** (must be validated):
 
@@ -2125,6 +2146,57 @@ These can appear as children OR standalone:
   :::
   :::{/step}
 :::{/steps}
+```
+
+---
+
+## Appendix E: Recommended Next Steps
+
+### Immediate Actions (Priority Order)
+
+1. **Create Foundation Files** (Day 1)
+   - `bengal/rendering/plugins/directives/tokens.py` - DirectiveToken dataclass
+   - `bengal/rendering/plugins/directives/options.py` - DirectiveOptions base + StyledOptions
+   - `bengal/rendering/plugins/directives/utils.py` - Extract shared utilities
+   - `bengal/rendering/plugins/directives/contracts.py` - DirectiveContract + ContractValidator
+
+2. **Create Base Class** (Day 1-2)
+   - `bengal/rendering/plugins/directives/base.py` - BengalDirective with contract validation
+   - Write comprehensive unit tests
+
+3. **Pilot Migration** (Day 2-3)
+   - Migrate `DropdownDirective` as proof-of-concept (simplest directive)
+   - Validate backward compatibility
+   - Update tests
+
+4. **Named Closer Parser** (Day 3-4)
+   - Extend `FencedDirective` to recognize `:::{/name}` pattern
+   - Add comprehensive parsing tests
+   - Validate existing content still works
+
+### Command to Begin
+
+```bash
+# Create foundation structure
+mkdir -p bengal/rendering/plugins/directives/_new
+touch bengal/rendering/plugins/directives/_new/__init__.py
+touch bengal/rendering/plugins/directives/_new/tokens.py
+touch bengal/rendering/plugins/directives/_new/options.py
+touch bengal/rendering/plugins/directives/_new/contracts.py
+touch bengal/rendering/plugins/directives/_new/base.py
+touch bengal/rendering/plugins/directives/_new/utils.py
+```
+
+### Test Commands
+
+```bash
+# Run directive tests
+pytest tests/unit/rendering/test_steps_directive.py -v
+pytest tests/unit/rendering/test_myst_tabs.py -v
+pytest tests/unit/health/test_directive_validator.py -v
+
+# All directive-related tests
+pytest tests/unit/rendering/ -k directive -v
 ```
 
 ---

@@ -8,6 +8,14 @@ Also provides:
 - Directive caching for performance
 - Error handling and validation
 - KNOWN_DIRECTIVE_NAMES: Single source of truth for all registered directive names
+
+Directive System v2:
+- BengalDirective: Base class for typed directives with contract validation
+- DirectiveToken: Typed AST token structure
+- DirectiveOptions: Typed option parsing with coercion
+- DirectiveContract: Nesting validation for parent-child relationships
+
+See: plan/active/rfc-directive-system-v2.md for architecture details.
 """
 
 from __future__ import annotations
@@ -59,6 +67,36 @@ from bengal.rendering.plugins.directives.tabs import (
     TabSetDirective,
 )
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+
+# Directive System v2 - Foundation Classes
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.contracts import (
+    CARD_CONTRACT,
+    CARDS_CONTRACT,
+    CODE_TABS_CONTRACT,
+    ContractValidator,
+    ContractViolation,
+    DirectiveContract,
+    STEP_CONTRACT,
+    STEPS_CONTRACT,
+    TAB_ITEM_CONTRACT,
+    TAB_SET_CONTRACT,
+)
+from bengal.rendering.plugins.directives.options import (
+    ContainerOptions,
+    DirectiveOptions,
+    StyledOptions,
+    TitledOptions,
+)
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.rendering.plugins.directives.utils import (
+    attr_str,
+    bool_attr,
+    build_class_string,
+    class_attr,
+    data_attrs,
+    escape_html,
+)
 from bengal.utils.logger import get_logger
 
 # =============================================================================
@@ -185,7 +223,33 @@ __all__ = [
     "get_known_directive_names",
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
-    # Classes and functions
+    # Directive System v2 - Foundation Classes
+    "BengalDirective",
+    "DirectiveToken",
+    "DirectiveOptions",
+    "DirectiveContract",
+    "ContractValidator",
+    "ContractViolation",
+    # Preset Options
+    "StyledOptions",
+    "ContainerOptions",
+    "TitledOptions",
+    # Preset Contracts
+    "STEPS_CONTRACT",
+    "STEP_CONTRACT",
+    "TAB_SET_CONTRACT",
+    "TAB_ITEM_CONTRACT",
+    "CARDS_CONTRACT",
+    "CARD_CONTRACT",
+    "CODE_TABS_CONTRACT",
+    # Utilities
+    "escape_html",
+    "build_class_string",
+    "bool_attr",
+    "data_attrs",
+    "attr_str",
+    "class_attr",
+    # Legacy Classes and functions
     "DirectiveCache",
     "DirectiveError",
     "DirectiveSyntaxValidator",
