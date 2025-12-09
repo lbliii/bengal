@@ -573,15 +573,15 @@ class ChildCardsDirective(BengalDirective):
             cards_html.append(card_html)
 
         return (
-        f'<div class="card-grid" '
-        f'data-columns="{columns}" '
-        f'data-gap="{gap}" '
-        f'data-style="{style}" '
+            f'<div class="card-grid" '
+            f'data-columns="{columns}" '
+            f'data-gap="{gap}" '
+            f'data-style="{style}" '
             f'data-variant="navigation" '
-        f'data-layout="{layout}">\n'
+            f'data-layout="{layout}">\n'
             f"{''.join(cards_html)}"
-        f"</div>\n"
-    )
+            f"</div>\n"
+        )
 
 
 # =============================================================================
@@ -785,26 +785,31 @@ def _collect_children(section: Any, current_page: Any, include: str) -> list[dic
 
     if include in ("sections", "all"):
         for subsection in getattr(section, "subsections", []):
+            # Skip hidden sections
+            if hasattr(subsection, "metadata") and subsection.metadata.get("hidden", False):
+                continue
+            has_weight = hasattr(subsection, "metadata") and "weight" in subsection.metadata
             children.append(
                 {
                     "type": "section",
                     "title": getattr(subsection, "title", subsection.name),
                     "description": (
                         subsection.metadata.get("description", "")
-                    if hasattr(subsection, "metadata")
+                        if hasattr(subsection, "metadata")
                         else ""
                     ),
                     "icon": (
                         subsection.metadata.get("icon", "")
-                    if hasattr(subsection, "metadata")
+                        if hasattr(subsection, "metadata")
                         else ""
                     ),
                     "url": _get_section_url(subsection),
                     "weight": (
                         subsection.metadata.get("weight", 0)
-                    if hasattr(subsection, "metadata")
+                        if hasattr(subsection, "metadata")
                         else 0
                     ),
+                    "_has_explicit_weight": has_weight,
                 }
             )
 
@@ -819,6 +824,10 @@ def _collect_children(section: Any, current_page: Any, include: str) -> list[dic
                 and page.source_path == current_page.source_path
             ):
                 continue
+            # Skip hidden pages
+            if hasattr(page, "metadata") and page.metadata.get("hidden", False):
+                continue
+            has_weight = hasattr(page, "metadata") and "weight" in page.metadata
             children.append(
                 {
                     "type": "page",
@@ -829,12 +838,47 @@ def _collect_children(section: Any, current_page: Any, include: str) -> list[dic
                     "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
                     "url": getattr(page, "url", ""),
                     "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
+                    "_has_explicit_weight": has_weight,
                 }
             )
 
+    # Warn if some children have weights and others don't (likely unintentional)
+    _warn_mixed_weights(children, current_page)
+
     # Sort by weight, then title
     children.sort(key=lambda c: (c.get("weight", 0), c.get("title", "").lower()))
+
+    # Clean up internal tracking field
+    for child in children:
+        child.pop("_has_explicit_weight", None)
+
     return children
+
+
+def _warn_mixed_weights(children: list[dict[str, Any]], current_page: Any) -> None:
+    """Warn if some children have explicit weights and others don't."""
+    if len(children) < 2:
+        return
+
+    with_weight = [c for c in children if c.get("_has_explicit_weight")]
+    without_weight = [c for c in children if not c.get("_has_explicit_weight")]
+
+    # Only warn if there's a mix (some have weights, some don't)
+    if with_weight and without_weight:
+        page_path = getattr(current_page, "source_path", "unknown") if current_page else "unknown"
+        missing_titles = ", ".join(c.get("title", "Untitled") for c in without_weight[:3])
+        if len(without_weight) > 3:
+            missing_titles += f" (+{len(without_weight) - 3} more)"
+
+        logger.warning(
+            "child_cards_mixed_weights",
+            page=str(page_path),
+            weighted=len(with_weight),
+            unweighted=len(without_weight),
+            unweighted_items=missing_titles,
+            hint="Unweighted items default to weight=0 and sort first. "
+            "Add 'weight:' to frontmatter for consistent ordering.",
+        )
 
 
 def _get_section_url(section: Any) -> str:

@@ -22,15 +22,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v5
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: "3.14"
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+      run: uv sync --group dev
 
     - name: Fast test suite (exclude performance/stateful/slow)
       env:
@@ -39,7 +37,7 @@ jobs:
         OMP_NUM_THREADS: "1"
       run: |
         echo "Running fast test suite (excluding performance/stateful/slow)..."
-        pytest -n auto -v --tb=short --dist worksteal --max-worker-restart=3 -m "not performance and not stateful and not slow"
+        uv run pytest -n auto -v --tb=short --dist worksteal --max-worker-restart=3 -m "not performance and not stateful and not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -54,15 +52,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+      run: uv sync --group dev
 
     - name: Run targeted baseurl portability tests
       env:
@@ -72,7 +68,7 @@ jobs:
         OMP_NUM_THREADS: "1"
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        pytest -q -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
+        uv run pytest -q -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Coverage (single-process, exclude performance/stateful/slow)
       if: matrix.baseurl == ''
@@ -80,7 +76,7 @@ jobs:
         CI: true
         BENGAL_CI_FAST: "1"
       run: |
-        python -m pytest -n 0 -v --tb=short --cov=bengal --cov-report=xml -m "not performance and not stateful and not slow"
+        uv run pytest -n 0 -v --tb=short --cov=bengal --cov-report=xml -m "not performance and not stateful and not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:
@@ -88,20 +84,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: "3.14"
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+      run: uv sync --group dev
+
     - name: Run slow tests
       env:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        pytest -n auto -v --tb=short -m "slow and not stateful and not performance" --dist worksteal --max-worker-restart=3
+        uv run pytest -n auto -v --tb=short -m "slow and not stateful and not performance" --dist worksteal --max-worker-restart=3
 
   # Stateful workflows (weekly/manual)
   stateful:
@@ -109,20 +106,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: "3.14"
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev] pytest-forked
+      run: uv sync --group dev
+
     - name: Run stateful tests (xdist hardened)
       env:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        pytest -n auto -v --tb=short -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
+        uv run pytest -n auto -v --tb=short -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
 
   # Performance suite (weekly/manual)
   performance:
@@ -130,20 +128,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: "3.14"
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+      run: uv sync --group dev
+
     - name: Run performance tests
       env:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        pytest -n auto -v --tb=short -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
+        uv run pytest -n auto -v --tb=short -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
 
     - name: Upload coverage
       if: matrix.baseurl == ''

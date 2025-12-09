@@ -54,7 +54,7 @@ notion = ["aiohttp>=3.9.0"]
 rest = ["aiohttp>=3.9.0"]
 all-sources = ["aiohttp>=3.9.0"]  # All remote sources
 
-# Note: Dev dependencies are defined in [dependency-groups] section below (PEP 735)
+# Note: Dev dependencies use [dependency-groups] (PEP 735) - install with: uv sync --group dev
 
 [project.scripts]
 bengal = "bengal.cli:main"
@@ -116,6 +116,7 @@ dev = [
     "pytest-xdist>=3.3.0",
     "pytest-timeout>=2.2.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-forked>=1.6.0",                # Isolated test execution for stateful tests
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "mypy>=1.11.0",
