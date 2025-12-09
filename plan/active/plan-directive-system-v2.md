@@ -31,17 +31,17 @@ Create the new infrastructure files without changing any existing code.
 
 ### Rendering Infrastructure (`bengal/rendering/plugins/directives/`)
 
-#### Task 1.1: Create DirectiveToken dataclass
+#### Task 1.1: Create DirectiveToken dataclass ✅
 - **Files**: `bengal/rendering/plugins/directives/tokens.py`
 - **Action**: 
   - Create `DirectiveToken` dataclass with `type`, `attrs`, `children`
   - Add `to_dict()` for mistune compatibility
   - Add `from_dict()` for testing
 - **Dependencies**: None
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): add DirectiveToken dataclass for typed AST tokens`
 
-#### Task 1.2: Create DirectiveOptions base class
+#### Task 1.2: Create DirectiveOptions base class ✅
 - **Files**: `bengal/rendering/plugins/directives/options.py`
 - **Action**:
   - Create `DirectiveOptions` base dataclass with `from_raw()` parser
@@ -50,10 +50,10 @@ Create the new infrastructure files without changing any existing code.
   - Create `StyledOptions` preset (css_class field)
   - Create `ContainerOptions` preset (columns, gap, style)
 - **Dependencies**: None
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): add DirectiveOptions base class with type coercion`
 
-#### Task 1.3: Create shared utilities module
+#### Task 1.3: Create shared utilities module ✅
 - **Files**: `bengal/rendering/plugins/directives/utils.py`
 - **Action**:
   - Extract `escape_html()` function
@@ -61,10 +61,10 @@ Create the new infrastructure files without changing any existing code.
   - Add `bool_attr()` function
   - Add `data_attrs()` function
 - **Dependencies**: None
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): extract shared utilities to utils.py`
 
-#### Task 1.4: Create DirectiveContract system
+#### Task 1.4: Create DirectiveContract system ✅
 - **Files**: `bengal/rendering/plugins/directives/contracts.py`
 - **Action**:
   - Create `DirectiveContract` frozen dataclass
@@ -72,10 +72,10 @@ Create the new infrastructure files without changing any existing code.
   - Create `ContractValidator` with `validate_parent()` and `validate_children()`
   - Define preset contracts: `STEPS_CONTRACT`, `STEP_CONTRACT`, `TAB_SET_CONTRACT`, `TAB_ITEM_CONTRACT`, `CARDS_CONTRACT`, `CARD_CONTRACT`
 - **Dependencies**: None
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): add DirectiveContract system for nesting validation`
 
-#### Task 1.5: Create BengalDirective base class
+#### Task 1.5: Create BengalDirective base class ✅
 - **Files**: `bengal/rendering/plugins/directives/base.py`
 - **Action**:
   - Create `BengalDirective` extending `DirectivePlugin`
@@ -85,10 +85,10 @@ Create the new infrastructure files without changing any existing code.
   - Add utility methods: `escape_html()`, `build_class_string()`, `bool_attr()`
   - Add `_get_parent_directive_type()` and `_get_source_location()` helpers
 - **Dependencies**: Task 1.1, 1.2, 1.3, 1.4
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): add BengalDirective base class with contract validation`
 
-#### Task 1.6: Update directives package exports
+#### Task 1.6: Update directives package exports ✅
 - **Files**: `bengal/rendering/plugins/directives/__init__.py`
 - **Action**:
   - Export new classes: `BengalDirective`, `DirectiveToken`, `DirectiveOptions`, `DirectiveContract`
@@ -96,14 +96,14 @@ Create the new infrastructure files without changing any existing code.
   - Export utilities: `escape_html`, `build_class_string`, `bool_attr`, `data_attrs`
   - Keep all existing exports
 - **Dependencies**: Task 1.1-1.5
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): export new foundation classes from __init__.py`
 
 ---
 
 ### Tests (`tests/unit/rendering/`)
 
-#### Task 1.7: Add foundation unit tests
+#### Task 1.7: Add foundation unit tests ✅
 - **Files**: `tests/unit/rendering/directives/test_foundation.py`
 - **Action**:
   - Test `DirectiveToken.to_dict()` and `from_dict()`
@@ -112,10 +112,10 @@ Create the new infrastructure files without changing any existing code.
   - Test `DirectiveOptions._field_aliases` mapping
   - Test utility functions
 - **Dependencies**: Task 1.1-1.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `tests(directives): add unit tests for foundation classes`
 
-#### Task 1.8: Add contract validation tests
+#### Task 1.8: Add contract validation tests ✅
 - **Files**: `tests/unit/rendering/directives/test_contracts.py`
 - **Action**:
   - Test `ContractValidator.validate_parent()` - valid and invalid cases
@@ -123,7 +123,7 @@ Create the new infrastructure files without changing any existing code.
   - Test `ContractViolation.to_log_dict()` format
   - Test preset contracts (STEPS, TABS, CARDS)
 - **Dependencies**: Task 1.4
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `tests(directives): add unit tests for DirectiveContract validation`
 
 ---
@@ -159,7 +159,7 @@ Create the new infrastructure files without changing any existing code.
 
 ### 2.2 Pilot Migration (Simple Directives)
 
-#### Task 2.3: Migrate DropdownDirective (pilot)
+#### Task 2.3: Migrate DropdownDirective (pilot) ✅
 - **Files**: `bengal/rendering/plugins/directives/dropdown.py`
 - **Action**:
   - Create `DropdownOptions` dataclass with `open: bool`, `css_class: str`
@@ -167,7 +167,7 @@ Create the new infrastructure files without changing any existing code.
   - Move `render_dropdown` into class as `render()` method
   - Verify all existing tests pass
 - **Dependencies**: Task 1.5
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate DropdownDirective to BengalDirective base class`
 
 #### Task 2.4: Migrate ContainerDirective
@@ -374,15 +374,15 @@ Create the new infrastructure files without changing any existing code.
 
 | Area | Tasks | Status |
 |------|-------|--------|
-| Foundation | 6 | pending |
-| Tests (Foundation) | 2 | pending |
+| Foundation | 6 | ✅ completed |
+| Tests (Foundation) | 2 | ✅ completed |
 | Parser | 2 | pending |
-| Migration (Simple) | 5 | pending |
+| Migration (Simple) | 5 | 1/5 completed |
 | Migration (Container) | 3 | pending |
 | Migration (Remaining) | 2 | pending |
 | Validation | 5 | pending |
 | Documentation | 3 | pending |
-| **Total** | **28** | **pending** |
+| **Total** | **28** | **9 completed, 19 pending** |
 
 ---
 
