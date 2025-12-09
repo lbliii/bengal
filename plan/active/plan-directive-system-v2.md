@@ -228,30 +228,31 @@ Create the new infrastructure files without changing any existing code.
 - **Status**: completed
 - **Commit**: `rendering(directives): migrate TabsDirective with DirectiveContract validation`
 
-#### Task 2.10: Migrate CardsDirective with contracts
+#### Task 2.10: Migrate CardsDirective with contracts ✅
 - **Files**: `bengal/rendering/plugins/directives/cards.py`
 - **Action**:
-  - Create `CardsOptions`, `CardOptions` dataclasses
-  - Convert all card directives (`CardsDirective`, `CardDirective`, `GridDirective`, `GridItemCardDirective`, `ChildCardsDirective`)
+  - Create `CardsOptions`, `CardOptions`, `ChildCardsOptions` dataclasses
+  - Convert `CardsDirective`, `CardDirective`, `ChildCardsDirective` to `BengalDirective`
+  - Keep `GridDirective`, `GridItemCardDirective` as legacy compatibility shims
   - Add contracts for parent-child validation
 - **Dependencies**: Task 1.4, Task 2.3
-- **Status**: pending
-- **Commit**: `rendering(directives): migrate CardsDirective family with DirectiveContract validation`
+- **Status**: completed
+- **Commit**: `rendering(directives): migrate CardsDirective family to BengalDirective base class with typed options`
 
 ---
 
 ### 2.4 Remaining Directives
 
-#### Task 2.11: Migrate AdmonitionDirective
+#### Task 2.11: Migrate AdmonitionDirective ✅
 - **Files**: `bengal/rendering/plugins/directives/admonitions.py`
 - **Action**:
   - Create `AdmonitionOptions` dataclass
   - Convert to `BengalDirective`
   - Handle 10 directive names with single TOKEN_TYPE pattern
-  - Custom `__call__` for multi-name registration
+  - Override `parse()` to capture admon_type before calling parent
 - **Dependencies**: Task 2.3
-- **Status**: pending
-- **Commit**: `rendering(directives): migrate AdmonitionDirective to BengalDirective base class`
+- **Status**: completed
+- **Commit**: `rendering(directives): migrate AdmonitionDirective to BengalDirective with multi-name registration`
 
 #### Task 2.12: Migrate remaining directives (batch)
 - **Files**:
