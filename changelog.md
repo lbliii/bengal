@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Template Functions Robustness ✅
+- **rendering(strings)**: fix `truncatewords_html` to preserve HTML structure and close tags properly
+- **rendering(strings)**: add `filesize` filter wrapping `humanize_bytes` for human-readable file sizes
+- **rendering(strings)**: add warning log for invalid regex patterns in `replace_regex`
+- **rendering(collections)**: add debug log for `sort_by` failures with heterogeneous data
+- **core(site)**: add `get_page_path_map()` with version-based cache invalidation for O(1) page lookups
+- **rendering(collections)**: update `resolve_pages` to use cached page path map (performance improvement)
+- **tests**: add 15 unit tests for `truncatewords_html` HTML preservation and `filesize` filter
+- **docs**: RFC moved to completed
+
 ### Autodoc Incremental Build Support ✅
 - **server(dev_server)**: watch autodoc source directories (Python `source_dirs`, OpenAPI spec files) for changes
 - **server(build_handler)**: add `_should_regenerate_autodoc()` to detect when autodoc sources change and trigger rebuilds
