@@ -6,8 +6,6 @@ from collections import defaultdict
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
-
 from bengal.analysis.path_analysis import (
     PathAnalysisResults,
     PathAnalyzer,
@@ -377,9 +375,7 @@ class TestPathAnalyzer:
         analyzer = PathAnalyzer(graph)
 
         # Very short timeout (should complete before timeout for simple graph)
-        result = analyzer.find_all_paths(
-            page_a, page_b, max_length=10, timeout_seconds=10.0
-        )
+        result = analyzer.find_all_paths(page_a, page_b, max_length=10, timeout_seconds=10.0)
 
         # Should complete (no path exists)
         assert result.complete is True

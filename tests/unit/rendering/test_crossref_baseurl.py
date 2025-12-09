@@ -7,7 +7,6 @@ in various scenarios (path-only, absolute, none).
 
 from __future__ import annotations
 
-
 from pathlib import Path
 
 from bengal.core.page import Page
@@ -125,9 +124,7 @@ class TestAnchorWithBaseUrl:
             "by_heading": {"getting started": [(page, "getting-started")]},
         }
 
-        result = crossref.anchor(
-            "Getting Started", index, baseurl="https://docs.example.com"
-        )
+        result = crossref.anchor("Getting Started", index, baseurl="https://docs.example.com")
         assert (
             '<a href="https://docs.example.com/tutorial/#getting-started">Getting Started</a>'
             in result
@@ -282,4 +279,3 @@ output_dir = "public"
 
         assert "/docs/api/reference/" in result
         assert "API Reference" in result
-

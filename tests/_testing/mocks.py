@@ -324,11 +324,14 @@ def create_mock_page_hierarchy(
                 name=name,
                 title=name.replace("-", " ").title(),
                 path=Path(f"{base_path.strip('/')}/{name}"),
-                pages=[p for p in child_pages if "/" not in str(p.source_path).replace(f"{base_path.strip('/')}/{name}/", "")],
+                pages=[
+                    p
+                    for p in child_pages
+                    if "/" not in str(p.source_path).replace(f"{base_path.strip('/')}/{name}/", "")
+                ],
                 subsections=child_sections,
             )
             sections.append(section)
             pages.extend(child_pages)
 
     return pages, sections
-

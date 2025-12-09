@@ -263,7 +263,7 @@
         animation: none !important;
         will-change: auto !important;
     }
-    
+
     .empty-state__suggestions li,
     .empty-state__suggestions li::before,
     .empty-state__suggestions a {

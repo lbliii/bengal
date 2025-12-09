@@ -128,7 +128,9 @@ def main():
         print("   pip install zstandard")
         sys.exit(1)
 
-    print(f"\n✅ Zstd available (using {'stdlib' if 'compression' in sys.modules else 'zstandard fallback'})")
+    print(
+        f"\n✅ Zstd available (using {'stdlib' if 'compression' in sys.modules else 'zstandard fallback'})"
+    )
 
     cache_dir = Path(args.site_root) / ".bengal"
 
@@ -163,11 +165,15 @@ def main():
         total_compact += result["compact_size"]
 
         print(f"📄 {result['file']}")
-        print(f"   Size: {format_size(result['original_size'])} → {format_size(result['compact_size'])} (compact JSON)")
+        print(
+            f"   Size: {format_size(result['original_size'])} → {format_size(result['compact_size'])} (compact JSON)"
+        )
 
         # Find best level for this file
         best_level = min(result["levels"].items(), key=lambda x: x[1]["compressed_size"])
-        print(f"   Best: Level {best_level[0]} → {format_size(best_level[1]['compressed_size'])} ({best_level[1]['ratio']:.1f}x)")
+        print(
+            f"   Best: Level {best_level[0]} → {format_size(best_level[1]['compressed_size'])} ({best_level[1]['ratio']:.1f}x)"
+        )
 
         for level, stats in result["levels"].items():
             total_compressed[level] += stats["compressed_size"]
@@ -181,13 +187,15 @@ def main():
     print("📊 SUMMARY")
     print("=" * 80)
 
-    print(f"\n📦 Total Cache Size:")
+    print("\n📦 Total Cache Size:")
     print(f"   Original (indented):  {format_size(total_original)}")
     print(f"   Compact JSON:         {format_size(total_compact)}")
 
-    print(f"\n🗜️  Compression Results by Level:")
-    print(f"   {'Level':<8} {'Size':<12} {'Ratio':<8} {'Savings':<10} {'Compress':<12} {'Decompress':<12}")
-    print(f"   {'-'*8} {'-'*12} {'-'*8} {'-'*10} {'-'*12} {'-'*12}")
+    print("\n🗜️  Compression Results by Level:")
+    print(
+        f"   {'Level':<8} {'Size':<12} {'Ratio':<8} {'Savings':<10} {'Compress':<12} {'Decompress':<12}"
+    )
+    print(f"   {'-' * 8} {'-' * 12} {'-' * 8} {'-' * 10} {'-' * 12} {'-' * 12}")
 
     for level in [1, 3, 6, 9]:
         size = total_compressed[level]
@@ -235,6 +243,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

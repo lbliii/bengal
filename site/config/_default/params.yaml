@@ -4,6 +4,6 @@
 params:
   # Site-specific custom variables
   project_status: "beta"
-  
+
   # Repository URL (renders GitHub icon in navigation if set)
   repo_url: "https://github.com/lbliii/bengal"

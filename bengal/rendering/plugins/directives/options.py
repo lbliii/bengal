@@ -240,4 +240,3 @@ class TitledOptions(StyledOptions):
     """
 
     icon: str = ""
-

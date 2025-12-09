@@ -63,7 +63,9 @@ class TestSaveLoadCompressed:
         """Test that compression actually reduces file size."""
         # Create repetitive data (compresses well)
         data = {
-            "entries": [{"path": f"content/posts/post-{i}.md", "title": f"Post {i}"} for i in range(100)]
+            "entries": [
+                {"path": f"content/posts/post-{i}.md", "title": f"Post {i}"} for i in range(100)
+            ]
         }
         cache_path = tmp_path / "large.json.zst"
 
@@ -242,4 +244,3 @@ class TestCompressionLevel:
     def test_default_level_is_3(self) -> None:
         """Test that default compression level is 3."""
         assert COMPRESSION_LEVEL == 3
-

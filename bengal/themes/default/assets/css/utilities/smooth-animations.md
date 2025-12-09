@@ -160,4 +160,3 @@ The smooth animation system integrates seamlessly with Bengal's existing:
 - **backdrop-filter**: Safari 9+, Chrome 76+, Firefox 103+
 
 Fallbacks are included for older browsers.
-

@@ -108,11 +108,7 @@ collections = {
     console.print(table)
 
     # Show install hints for remote sources
-    remote_sources = [
-        (name, config)
-        for name, config in collections.items()
-        if config.is_remote
-    ]
+    remote_sources = [(name, config) for name, config in collections.items() if config.is_remote]
 
     if remote_sources:
         console.print("\n[dim]Remote sources require extras:[/dim]")
@@ -125,7 +121,6 @@ collections = {
 @click.pass_context
 def cache_status(ctx: click.Context) -> None:
     """Show cache status for content sources."""
-    from datetime import timedelta
 
     from bengal.collections.loader import load_collections
     from bengal.content_layer.manager import ContentLayerManager
@@ -138,9 +133,7 @@ def cache_status(ctx: click.Context) -> None:
         return
 
     # Check for remote sources
-    remote_collections = {
-        name: config for name, config in collections.items() if config.is_remote
-    }
+    remote_collections = {name: config for name, config in collections.items() if config.is_remote}
 
     if not remote_collections:
         console.print("[dim]No remote content sources configured.[/dim]")
@@ -298,4 +291,3 @@ def clear_cache(ctx: click.Context, source: str | None, yes: bool) -> None:
 def register_commands(cli: click.Group) -> None:
     """Register source commands with CLI."""
     cli.add_command(sources_group)
-

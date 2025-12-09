@@ -78,7 +78,6 @@ class TestLiveReloadMixin:
 
     def test_serve_html_with_live_reload_returns_bool(self):
         """Test that serve_html_with_live_reload returns bool."""
-        import inspect
         from typing import get_type_hints
 
         # With PEP 563 (from __future__ import annotations), annotations are strings

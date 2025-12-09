@@ -147,21 +147,21 @@ def _compute_betweenness_centrality(
 ) -> dict[Page, float]:
     import random
     rng = random.Random(self.seed)
-    
+
     # Auto-select exact vs approximate based on site size
     use_exact = len(pages) <= self.auto_approximate_threshold
-    
+
     if use_exact:
         sources = pages
     else:
         sources = rng.sample(pages, min(self.k_pivots, len(pages)))
-    
+
     # Run Brandes' only for selected sources...
     for i, source in enumerate(sources):
         if progress_callback:
             progress_callback(i, len(sources), "betweenness")
         # ... BFS and accumulation ...
-    
+
     # Scale scores if approximating
     if not use_exact:
         scale = len(pages) / len(sources)
@@ -180,14 +180,14 @@ def _compute_closeness_centrality(
 ) -> tuple[dict[Page, float], float, int]:
     import random
     rng = random.Random(self.seed)
-    
+
     use_exact = len(pages) <= self.auto_approximate_threshold
-    
+
     if use_exact:
         sample_pages = pages
     else:
         sample_pages = rng.sample(pages, min(self.k_pivots, len(pages)))
-    
+
     # Compute distances only from sample pages
     for i, page in enumerate(sample_pages):
         if progress_callback:
@@ -210,7 +210,7 @@ def find_all_paths(
     """Find all simple paths with safety limits."""
     start_time = time.monotonic()
     all_paths: list[list[Page]] = []
-    
+
     def dfs(current: Page, path: list[Page], visited: set[Page]) -> bool:
         # Check limits
         if timeout_seconds and (time.monotonic() - start_time) > timeout_seconds:

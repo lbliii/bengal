@@ -263,4 +263,3 @@ After migration, verify:
 - [ ] Mobile responsive sizing works
 - [ ] No hardcoded font sizes remain
 - [ ] All components use tokens (not direct values)
-

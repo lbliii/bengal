@@ -158,12 +158,12 @@ from bengal.sac import memo, ref, Ref
 class Page:
     content: Ref[str]
     metadata: Ref[dict]
-    
+
     @memo
     def parsed_ast(self) -> AST:
         # Automatically tracks dependency on self.content
         return parse_markdown(self.content.get())
-    
+
     @memo
     def rendered_html(self, nav: Navigation) -> str:
         # Tracks dependencies on parsed_ast and nav
@@ -325,14 +325,14 @@ async def build_site(site: Site):
             site.content_dir.rglob("*.md"),
             concurrency=32
         )
-        
+
         # Barrier: need all pages before navigation
         await graph.barrier()
-        
+
         # Phase 2: Dependent computations (parallel)
         nav = await graph.run(build_navigation, pages)
         taxonomies = await graph.run(build_taxonomies, pages)
-        
+
         # Phase 3: Rendering (parallel per page)
         await graph.map(
             render_page,
@@ -340,7 +340,7 @@ async def build_site(site: Site):
             kwargs={"nav": nav, "taxonomies": taxonomies},
             concurrency=os.cpu_count()
         )
-        
+
         # Phase 4: Post-processing (parallel)
         await graph.parallel(
             graph.run(generate_sitemap, pages),
@@ -494,7 +494,7 @@ class Node(Generic[T]):
     name: str
     compute: Callable[..., T]
     dependencies: list[str]
-    
+
     def cache_key(self, inputs: dict) -> str:
         """Content-addressable cache key from inputs."""
         return hashlib.sha256(
@@ -503,19 +503,19 @@ class Node(Generic[T]):
 
 class BuildGraph:
     """Dataflow graph with parallel execution."""
-    
+
     def __init__(self):
         self.nodes: dict[str, Node] = {}
         self.cache: dict[str, Any] = {}
         self.results: dict[str, Any] = {}
-    
+
     def execute(self, target: str, workers: int = None):
         """Execute graph to compute target, using worker threads."""
         workers = workers or os.cpu_count()
-        
+
         # Build execution plan (topological sort)
         plan = self._topological_sort(target)
-        
+
         # Execute with thread pool (real parallelism in 3.14t!)
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = {}
@@ -534,7 +534,7 @@ class BuildGraph:
                         self.cache[key] = result
                         return result
                     futures[node_name] = pool.submit(compute_and_cache)
-        
+
         return futures[target].result()
 ```
 
@@ -580,4 +580,3 @@ class BuildGraph:
 - [Entity Component System FAQ](https://github.com/SanderMertens/ecs-faq)
 - [Structured Concurrency](https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/)
 - [Algebraic Effects for the Rest of Us](https://overreacted.io/algebraic-effects-for-the-rest-of-us/)
-

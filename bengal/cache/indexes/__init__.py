@@ -1,6 +1,5 @@
 """Built-in query indexes for common use cases."""
 
-
 from __future__ import annotations
 
 from bengal.cache.indexes.author_index import AuthorIndex

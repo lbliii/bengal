@@ -463,7 +463,9 @@ class AssetOrchestrator:
         for asset in other_assets:
             process_one(asset, False)
 
-    def _create_js_bundle(self, js_modules: list[Asset], assets_cfg: dict[str, Any]) -> Asset | None:
+    def _create_js_bundle(
+        self, js_modules: list[Asset], assets_cfg: dict[str, Any]
+    ) -> Asset | None:
         """
         Create a bundled JavaScript file from individual JS modules.
 

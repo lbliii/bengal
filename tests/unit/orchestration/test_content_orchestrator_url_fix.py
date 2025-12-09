@@ -88,14 +88,14 @@ class TestContentOrchestratorOutputPathSetting:
             )
 
             # Verify output_path is absolute
-            assert (
-                page.output_path.is_absolute()
-            ), f"Page {page.source_path.name} has relative output_path: {page.output_path}"
+            assert page.output_path.is_absolute(), (
+                f"Page {page.source_path.name} has relative output_path: {page.output_path}"
+            )
 
             # Verify output_path is under output_dir
-            assert page.output_path.is_relative_to(
-                test_site.output_dir
-            ), f"Page {page.source_path.name} output_path not under output_dir: {page.output_path}"
+            assert page.output_path.is_relative_to(test_site.output_dir), (
+                f"Page {page.source_path.name} output_path not under output_dir: {page.output_path}"
+            )
 
     def test_child_pages_have_correct_urls_after_discovery(self, test_site):
         """
@@ -165,13 +165,13 @@ class TestContentOrchestratorOutputPathSetting:
 
             # Should not be just "/" unless it's the root index
             if "reference" in str(page.source_path):
-                assert (
-                    page.url == "/reference/"
-                ), f"Reference index should be /reference/, got {page.url}"
+                assert page.url == "/reference/", (
+                    f"Reference index should be /reference/, got {page.url}"
+                )
             elif "advanced" in str(page.source_path):
-                assert (
-                    page.url == "/guides/advanced/"
-                ), f"Advanced index should be /guides/advanced/, got {page.url}"
+                assert page.url == "/guides/advanced/", (
+                    f"Advanced index should be /guides/advanced/, got {page.url}"
+                )
 
     def test_url_generation_works_before_rendering(self, test_site):
         """
@@ -205,9 +205,9 @@ class TestContentOrchestratorOutputPathSetting:
         # Verify all nav links have correct section prefix
         for link in nav_links:
             if link["title"] != "Reference":  # Skip the index page
-                assert link["url"].startswith(
-                    "/reference/"
-                ), f"Nav link for {link['title']} has wrong URL: {link['url']}"
+                assert link["url"].startswith("/reference/"), (
+                    f"Nav link for {link['title']} has wrong URL: {link['url']}"
+                )
 
     def test_cascade_type_doc_preserves_urls(self, test_site):
         """
@@ -231,9 +231,9 @@ class TestContentOrchestratorOutputPathSetting:
         for page in cascaded_pages:
             # URL should include parent directory
             if "reference" in str(page.source_path):
-                assert page.url.startswith(
-                    "/reference/"
-                ), f"Cascaded doc page has wrong URL: {page.url}"
+                assert page.url.startswith("/reference/"), (
+                    f"Cascaded doc page has wrong URL: {page.url}"
+                )
 
     def test_no_duplicate_output_path_setting(self, test_site):
         """Test that output_path isn't set multiple times unnecessarily."""
@@ -248,9 +248,9 @@ class TestContentOrchestratorOutputPathSetting:
 
         # Verify paths unchanged
         for page in test_site.pages:
-            assert (
-                page.output_path == original_paths[page.source_path]
-            ), f"Page {page.source_path.name} output_path changed on re-call"
+            assert page.output_path == original_paths[page.source_path], (
+                f"Page {page.source_path.name} output_path changed on re-call"
+            )
 
 
 class TestRegressionScenarios:
@@ -333,6 +333,6 @@ class TestRegressionScenarios:
             # These pages should have full path URLs
             for page in site.pages:
                 if page.source_path.stem in ("getting-started", "markdown-basics"):
-                    assert page.url.startswith(
-                        "/docs/writing/"
-                    ), f"Showcase page {page.source_path.name} has wrong URL: {page.url}"
+                    assert page.url.startswith("/docs/writing/"), (
+                        f"Showcase page {page.source_path.name} has wrong URL: {page.url}"
+                    )

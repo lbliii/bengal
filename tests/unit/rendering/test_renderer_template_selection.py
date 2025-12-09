@@ -4,8 +4,6 @@ Unit tests for Renderer template selection logic.
 
 from __future__ import annotations
 
-
-
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -40,7 +38,9 @@ class TestTemplateSelection:
         from bengal.core.site import Site
 
         page = Page(source_path=source_path, metadata=metadata)
-        section = MockSection(name=section_name, title=section_name, path=Path(f"/content/{section_name}"))
+        section = MockSection(
+            name=section_name, title=section_name, path=Path(f"/content/{section_name}")
+        )
 
         # Create minimal mock site with section registry
         site = Site(root_path=Path("/site"), config={})

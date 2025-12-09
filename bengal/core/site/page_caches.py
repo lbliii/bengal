@@ -169,6 +169,3 @@ class PageCachesMixin:
             invalidate_page_caches(): Invalidate all page caches at once
         """
         self._regular_pages_cache = None
-
-
-

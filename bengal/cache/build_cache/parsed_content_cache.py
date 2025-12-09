@@ -188,4 +188,3 @@ class ParsedContentCacheMixin:
             if self.parsed_content
             else 0,
         }
-

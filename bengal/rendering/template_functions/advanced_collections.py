@@ -4,7 +4,6 @@ Advanced collection manipulation functions for templates.
 Provides 3 advanced functions for working with lists.
 """
 
-
 from __future__ import annotations
 
 import random

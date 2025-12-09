@@ -67,15 +67,11 @@ def _check_parent_project_conflict(root_path: Path, cli: CLIOutput) -> None:
                 )
             else:
                 # Current doesn't have config but parent does - likely mistake
-                cli.warning(
-                    f"⚠️  Parent directory has Bengal project: {parent.name}/"
-                )
+                cli.warning(f"⚠️  Parent directory has Bengal project: {parent.name}/")
                 cli.warning(
                     f"   Current directory ({root_path.name}/) may not be the intended site root."
                 )
-                cli.warning(
-                    "   If this is wrong, cd to the correct directory and try again."
-                )
+                cli.warning("   If this is wrong, cd to the correct directory and try again.")
                 cli.blank()
 
                 logger.warning(
@@ -138,8 +134,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
             # Warn if subdirectory has significantly more content
             # (at least 2x and at least 50 more files)
             significantly_more = (
-                subdir_md_count > current_md_count * 2
-                and subdir_md_count > current_md_count + 50
+                subdir_md_count > current_md_count * 2 and subdir_md_count > current_md_count + 50
             )
 
             if not current_content.exists():
@@ -147,9 +142,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
                 cli.warning(
                     f"⚠️  Subdirectory '{subdir_name}/' appears to be a Bengal site with content."
                 )
-                cli.warning(
-                    f"   Did you mean to run: cd {subdir_name} && bengal serve"
-                )
+                cli.warning(f"   Did you mean to run: cd {subdir_name} && bengal serve")
                 cli.blank()
 
                 logger.warning(
@@ -164,9 +157,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
                     f"⚠️  Subdirectory '{subdir_name}/' has significantly more content "
                     f"({subdir_md_count} vs {current_md_count} markdown files)."
                 )
-                cli.warning(
-                    f"   If you meant to build that site: cd {subdir_name} && bengal serve"
-                )
+                cli.warning(f"   If you meant to build that site: cd {subdir_name} && bengal serve")
                 cli.blank()
 
                 logger.warning(

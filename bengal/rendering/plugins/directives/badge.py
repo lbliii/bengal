@@ -3,144 +3,145 @@ Badge directive for Mistune.
 
 Provides MyST-style badge directive: ```{badge} Text :class: badge-class```
 
-Supports badge syntax with custom CSS classes.
+Architecture:
+    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
 
-from re import Match
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, ClassVar
 
-from mistune.directives import DirectivePlugin
-
+from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.rendering.plugins.directives.tokens import DirectiveToken
 from bengal.utils.logger import get_logger
+
+__all__ = ["BadgeDirective", "BadgeOptions"]
 
 logger = get_logger(__name__)
 
-__all__ = ["BadgeDirective", "render_badge"]
+
+@dataclass
+class BadgeOptions(DirectiveOptions):
+    """
+    Options for badge directive.
+
+    Attributes:
+        css_class: CSS classes for the badge
+
+    Example:
+        :::{badge} Command
+        :class: badge-cli-command
+        :::
+    """
+
+    css_class: str = "badge badge-secondary"
+
+    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
-class BadgeDirective(DirectivePlugin):
+class BadgeDirective(BengalDirective):
     """
     Badge directive for MyST-style badges.
 
     Syntax:
-        ```{badge} Command
+        :::{badge} Command
         :class: badge-cli-command
-        ```
+        :::
 
-        ```{badge} Deprecated
+        :::{badge} Deprecated
         :class: badge-danger
-        ```
+        :::
 
-    The badge text is on the first line after the directive name.
-    Optional `:class:` attribute can be used to specify CSS classes.
-    If no class is specified, defaults to `badge badge-secondary`.
+    The badge text is provided as the title (after directive name).
+    Optional :class: attribute specifies CSS classes.
+    Default class is "badge badge-secondary".
 
-    MyST Compatibility:
-        Full support for MyST badge directive syntax.
-        Maps to Bengal's badge CSS classes.
+    Aliases:
+        - badge: Primary name
+        - bdg: Short alias for compatibility
     """
 
-    # Directive names this class registers (for health check introspection)
-    DIRECTIVE_NAMES = ["badge", "bdg"]
+    NAMES: ClassVar[list[str]] = ["badge", "bdg"]
+    TOKEN_TYPE: ClassVar[str] = "badge"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = BadgeOptions
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+    # For backward compatibility with health check introspection
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["badge", "bdg"]
+
+    def parse_directive(
+        self,
+        title: str,
+        options: BadgeOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
         """
-        Parse badge directive.
+        Build badge token from parsed components.
 
-        Args:
-            block: Block parser
-            m: Regex match object
-            state: Parser state
-
-        Returns:
-            Dict with badge data for rendering
+        Title is the badge text. Ensures base "badge" class is present.
         """
-        # Extract badge text (title)
-        title = self.parse_title(m)
         if not title:
             logger.warning("badge_directive_empty", info="Badge directive has no text")
-            title = ""
 
-        # Parse options (e.g., :class: badge-cli-command)
-        options = dict(self.parse_options(m))
-        badge_class = options.get("class", "badge badge-secondary")
+        # Ensure base badge class is present
+        badge_class = self._ensure_base_class(options.css_class)
 
-        # Ensure base "badge" class is always present
-        # Handle cases like "badge-secondary", "badge-danger", "api-badge", etc.
-        if badge_class:
-            # Split into individual classes
-            classes = badge_class.split()
-
-            # Check if base "badge" or "api-badge" is already present
-            has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
-
-            if not has_base_badge:
-                # Determine which base class to use based on existing classes
-                if any(cls.startswith("api-badge") for cls in classes):
-                    # API badges use api-badge as base
-                    classes.insert(0, "api-badge")
-                elif any(cls.startswith("badge-") for cls in classes):
-                    # Standard badges use badge as base
-                    classes.insert(0, "badge")
-                else:
-                    # Default to badge if unclear
-                    classes.insert(0, "badge")
-
-                badge_class = " ".join(classes)
-        else:
-            badge_class = "badge badge-secondary"
-
-        return {
-            "type": "badge",
-            "attrs": {
-                "label": title,  # Use 'label' instead of 'text' to avoid conflict with Mistune's text parameter
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "label": title or "",  # 'label' avoids conflict with Mistune's text
                 "class": badge_class,
             },
-            "children": [],  # Badges don't have children content
-        }
+            children=[],  # Badges don't have children
+        )
 
-    def __call__(self, directive: Any, md: Any) -> None:
+    @staticmethod
+    def _ensure_base_class(css_class: str) -> str:
         """
-        Register badge directive with Mistune.
+        Ensure the badge has a base class (badge or api-badge).
 
-        Args:
-            directive: FencedDirective instance
-            md: Markdown instance
+        Handles cases like "badge-secondary", "badge-danger", "api-badge", etc.
         """
-        directive.register("badge", self.parse)
-        directive.register("bdg", self.parse)  # Alias for compatibility
+        if not css_class:
+            return "badge badge-secondary"
 
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("badge", render_badge)
+        classes = css_class.split()
+
+        # Check if base class is already present
+        has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
+
+        if not has_base_badge:
+            # Determine which base class to use
+            if any(cls.startswith("api-badge") for cls in classes):
+                classes.insert(0, "api-badge")
+            elif any(cls.startswith("badge-") for cls in classes):
+                classes.insert(0, "badge")
+            else:
+                classes.insert(0, "badge")
+
+            return " ".join(classes)
+
+        return css_class
+
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """
+        Render badge as HTML span.
+
+        Returns empty string if no label text.
+        """
+        badge_text = attrs.get("label", "")
+        badge_class = attrs.get("class", "badge badge-secondary")
+
+        if not badge_text:
+            return ""
+
+        return f'<span class="{badge_class}">{self.escape_html(badge_text)}</span>'
 
 
+# Backward compatibility
 def render_badge(renderer: Any, text: str, **attrs: Any) -> str:
-    """
-    Render badge directive to HTML.
-
-    Args:
-        renderer: Mistune renderer
-        text: Rendered children content (unused for badges)
-        **attrs: Directive attributes (label, class)
-
-    Returns:
-        HTML span element with badge classes
-    """
-    badge_text = attrs.get("label", "")
-    badge_class = attrs.get("class", "badge badge-secondary")
-
-    if not badge_text:
-        return ""
-
-    # Escape HTML in badge text
-    escaped_text = (
-        badge_text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#x27;")
-    )
-
-    return f'<span class="{badge_class}">{escaped_text}</span>'
+    """Legacy render function for backward compatibility."""
+    return BadgeDirective().render(renderer, text, **attrs)

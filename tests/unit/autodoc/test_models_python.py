@@ -86,9 +86,7 @@ class TestParsedDocstring:
             ParameterInfo(name="path", type_hint="Path"),
             ParameterInfo(name="force", type_hint="bool", default="False"),
         )
-        raises = (
-            RaisesInfo(type_name="ValueError", description="If path is invalid"),
-        )
+        raises = (RaisesInfo(type_name="ValueError", description="If path is invalid"),)
         doc = ParsedDocstring(
             summary="Build the site.",
             description="Build the site with optional force rebuild.",
@@ -317,5 +315,3 @@ class TestPythonAliasMetadata:
         meta = PythonAliasMetadata(alias_of="test")
         with pytest.raises(AttributeError):
             meta.alias_of = "other"  # type: ignore[misc]
-
-

@@ -162,6 +162,3 @@ def hash_file_with_stat(
     # Combine with mtime for fast invalidation
     combined = f"{content_hash}:{stat.st_mtime_ns}"
     return hash_str(combined, truncate=truncate, algorithm=algorithm)
-
-
-

@@ -1,9 +1,9 @@
 /**
  * Bengal SSG - Font Loading
- * 
+ *
  * Default display font: Instrument Serif
  * Uses font-display: swap to prevent FOIT (Flash of Invisible Text)
- * 
+ *
  * Override via bengal.toml:
  *   [fonts]
  *   display = "Your Font:400,700"
@@ -23,7 +23,7 @@
    =========================================== */
 
 :root {
-  /* 
+  /*
    * Default display font - Instrument Serif
    * This can be overridden by:
    * 1. --font-display from bengal.toml [fonts] config
@@ -39,7 +39,7 @@
 
 /* Enable common ligatures and old-style figures for display text */
 h1, h2, .display-text, .hero-title {
-  font-feature-settings: 
+  font-feature-settings:
     'liga' 1,    /* Standard ligatures */
     'calt' 1;    /* Contextual alternates */
 }
@@ -67,6 +67,3 @@ h1, h2, .display-text, .hero-title {
 .fonts-loaded .display-text {
   letter-spacing: var(--tracking-display);
 }
-
-
-

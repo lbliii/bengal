@@ -5,7 +5,6 @@ Provides executable Python code blocks with output rendering using Marimo's
 reactive notebook system.
 """
 
-
 from __future__ import annotations
 
 from typing import Any

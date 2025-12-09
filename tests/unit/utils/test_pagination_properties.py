@@ -90,7 +90,7 @@ class TestPaginatorProperties:
         for page_num in range(1, paginator.num_pages + 1):
             page_items = paginator.page(page_num)
             assert len(page_items) <= per_page, (
-                f"Page {page_num} has {len(page_items)} items, " f"exceeds limit of {per_page}"
+                f"Page {page_num} has {len(page_items)} items, exceeds limit of {per_page}"
             )
 
     @pytest.mark.hypothesis
@@ -113,7 +113,7 @@ class TestPaginatorProperties:
             expected_last_page_size = per_page
 
         assert len(last_page_items) == expected_last_page_size, (
-            f"Last page should have {expected_last_page_size} items, " f"got {len(last_page_items)}"
+            f"Last page should have {expected_last_page_size} items, got {len(last_page_items)}"
         )
 
     @pytest.mark.hypothesis
@@ -132,9 +132,9 @@ class TestPaginatorProperties:
         first_page = paginator.page(1)
 
         expected_size = min(len(items), per_page)
-        assert (
-            len(first_page) == expected_size
-        ), f"First page should have {expected_size} items, got {len(first_page)}"
+        assert len(first_page) == expected_size, (
+            f"First page should have {expected_size} items, got {len(first_page)}"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -202,31 +202,31 @@ class TestPaginatorProperties:
 
             # Check has_previous consistency
             if context["has_previous"]:
-                assert (
-                    context["previous_page"] is not None
-                ), f"Page {page_num}: has_previous=True but previous_page is None"
+                assert context["previous_page"] is not None, (
+                    f"Page {page_num}: has_previous=True but previous_page is None"
+                )
                 assert context["previous_page"] == page_num - 1, (
                     f"Page {page_num}: previous_page should be {page_num - 1}, "
                     f"got {context['previous_page']}"
                 )
             else:
-                assert (
-                    context["previous_page"] is None
-                ), f"Page {page_num}: has_previous=False but previous_page is not None"
+                assert context["previous_page"] is None, (
+                    f"Page {page_num}: has_previous=False but previous_page is not None"
+                )
 
             # Check has_next consistency
             if context["has_next"]:
-                assert (
-                    context["next_page"] is not None
-                ), f"Page {page_num}: has_next=True but next_page is None"
+                assert context["next_page"] is not None, (
+                    f"Page {page_num}: has_next=True but next_page is None"
+                )
                 assert context["next_page"] == page_num + 1, (
                     f"Page {page_num}: next_page should be {page_num + 1}, "
                     f"got {context['next_page']}"
                 )
             else:
-                assert (
-                    context["next_page"] is None
-                ), f"Page {page_num}: has_next=False but next_page is not None"
+                assert context["next_page"] is None, (
+                    f"Page {page_num}: has_next=False but next_page is not None"
+                )
 
     @pytest.mark.hypothesis
     @given(
@@ -243,9 +243,9 @@ class TestPaginatorProperties:
 
         for page_num in range(1, paginator.num_pages + 1):
             context = paginator.page_context(page_num, "/test/")
-            assert context["total_items"] == len(
-                items
-            ), f"total_items={context['total_items']} but actual count={len(items)}"
+            assert context["total_items"] == len(items), (
+                f"total_items={context['total_items']} but actual count={len(items)}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -355,8 +355,7 @@ class TestPaginatorEdgeCases:
             # All page numbers in range should be valid
             for pg in page_range:
                 assert 1 <= pg <= paginator.num_pages, (
-                    f"Page range contains invalid page {pg} "
-                    f"(valid range: 1-{paginator.num_pages})"
+                    f"Page range contains invalid page {pg} (valid range: 1-{paginator.num_pages})"
                 )
 
     @pytest.mark.hypothesis

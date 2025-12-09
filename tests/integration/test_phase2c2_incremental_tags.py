@@ -110,7 +110,11 @@ Content here.
 
             config = {
                 "site": {"title": "Test Site", "baseurl": "http://localhost"},
-                "build": {"output_dir": str(tmpdir_path / "public"), "generate_sitemap": False, "generate_rss": False},
+                "build": {
+                    "output_dir": str(tmpdir_path / "public"),
+                    "generate_sitemap": False,
+                    "generate_rss": False,
+                },
             }
 
             # FIRST BUILD
@@ -118,7 +122,11 @@ Content here.
             orch1 = BuildOrchestrator(site1)
             orch1.build(incremental=False)
 
-            tag_pages_1 = [p for p in site1.pages if p.metadata.get("_generated") and "tags" in str(p.output_path)]
+            tag_pages_1 = [
+                p
+                for p in site1.pages
+                if p.metadata.get("_generated") and "tags" in str(p.output_path)
+            ]
             assert len(tag_pages_1) > 0, "Should have generated tag pages"
 
             # SECOND BUILD (incremental, no changes)
@@ -127,7 +135,11 @@ Content here.
             orch2.build(incremental=True)
 
             # Should still have tag pages from incremental
-            tag_pages_2 = [p for p in site2.pages if p.metadata.get("_generated") and "tags" in str(p.output_path)]
+            tag_pages_2 = [
+                p
+                for p in site2.pages
+                if p.metadata.get("_generated") and "tags" in str(p.output_path)
+            ]
             assert len(tag_pages_2) > 0, "Should have tag pages in incremental build"
 
     def test_modified_page_regenerates_affected_tags(self):
@@ -150,7 +162,11 @@ Original content.
 
             config = {
                 "site": {"title": "Test Site", "baseurl": "http://localhost"},
-                "build": {"output_dir": str(tmpdir_path / "public"), "generate_sitemap": False, "generate_rss": False},
+                "build": {
+                    "output_dir": str(tmpdir_path / "public"),
+                    "generate_sitemap": False,
+                    "generate_rss": False,
+                },
             }
 
             # FIRST BUILD
@@ -175,7 +191,8 @@ Modified content with new tag.
 
             # Should have regenerated django tag page
             django_pages = [
-                p for p in site2.pages
+                p
+                for p in site2.pages
                 if p.metadata.get("_generated") and "django" in str(p.output_path)
             ]
             assert len(django_pages) > 0, "Should have generated django tag pages"
@@ -201,7 +218,11 @@ Content.
 
             config = {
                 "site": {"title": "Test Site", "baseurl": "http://localhost"},
-                "build": {"output_dir": str(tmpdir_path / "public"), "generate_sitemap": False, "generate_rss": False},
+                "build": {
+                    "output_dir": str(tmpdir_path / "public"),
+                    "generate_sitemap": False,
+                    "generate_rss": False,
+                },
             }
 
             # BUILD
@@ -243,7 +264,11 @@ Content.
 
             config = {
                 "site": {"title": "Test Site", "baseurl": "http://localhost"},
-                "build": {"output_dir": str(tmpdir_path / "public"), "generate_sitemap": False, "generate_rss": False},
+                "build": {
+                    "output_dir": str(tmpdir_path / "public"),
+                    "generate_sitemap": False,
+                    "generate_rss": False,
+                },
             }
 
             # FIRST BUILD - full
@@ -284,7 +309,11 @@ Content.
 
             config = {
                 "site": {"title": "Test Site", "baseurl": "http://localhost"},
-                "build": {"output_dir": str(tmpdir_path / "public"), "generate_sitemap": False, "generate_rss": False},
+                "build": {
+                    "output_dir": str(tmpdir_path / "public"),
+                    "generate_sitemap": False,
+                    "generate_rss": False,
+                },
             }
 
             # FIRST BUILD
@@ -310,7 +339,8 @@ New content.
 
             # Should have golang tag pages
             golang_pages = [
-                p for p in site2.pages
+                p
+                for p in site2.pages
                 if p.metadata.get("_generated") and "golang" in str(p.output_path)
             ]
             assert len(golang_pages) > 0, "Should have generated golang tag pages"

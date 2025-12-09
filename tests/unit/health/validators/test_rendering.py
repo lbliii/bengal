@@ -119,8 +119,7 @@ class TestRenderingValidatorHTMLStructure:
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         structure_warning = next(
-            (r for r in warning_results if "structure" in r.message.lower()),
-            None
+            (r for r in warning_results if "structure" in r.message.lower()), None
         )
         if structure_warning:
             assert structure_warning.details is not None
@@ -167,9 +166,7 @@ class TestRenderingValidatorTemplateFunctions:
 
     def test_success_when_functions_registered(self, validator, mock_site):
         """Returns success when essential functions registered."""
-        with patch(
-            "bengal.rendering.template_engine.TemplateEngine"
-        ) as MockTemplateEngine:
+        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
             mock_engine = MagicMock()
             mock_engine.env.filters.keys.return_value = [
                 "truncatewords",
@@ -189,9 +186,7 @@ class TestRenderingValidatorTemplateFunctions:
 
     def test_error_when_functions_missing(self, validator, mock_site):
         """Returns error when essential functions missing."""
-        with patch(
-            "bengal.rendering.template_engine.TemplateEngine"
-        ) as MockTemplateEngine:
+        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
             mock_engine = MagicMock()
             # Missing some essential functions
             mock_engine.env.filters.keys.return_value = ["truncatewords"]
@@ -204,9 +199,7 @@ class TestRenderingValidatorTemplateFunctions:
 
     def test_warning_when_template_engine_fails(self, validator, mock_site):
         """Returns warning when TemplateEngine fails."""
-        with patch(
-            "bengal.rendering.template_engine.TemplateEngine"
-        ) as MockTemplateEngine:
+        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
             MockTemplateEngine.side_effect = Exception("Engine error")
 
             results = validator.validate(mock_site)
@@ -285,9 +278,7 @@ class TestRenderingValidatorPrivateMethods:
     def test_detect_unrendered_jinja2_finds_page(self, validator):
         """_detect_unrendered_jinja2 finds {{ page. }}."""
         html = "<html><body>{{ page.title }}</body></html>"
-        with patch(
-            "bengal.health.validators.rendering.ParserFactory"
-        ) as MockParserFactory:
+        with patch("bengal.health.validators.rendering.ParserFactory") as MockParserFactory:
             mock_parser = MagicMock()
             mock_soup = MagicMock()
             mock_soup.get_text.return_value = "{{ page.title }}"
@@ -300,9 +291,7 @@ class TestRenderingValidatorPrivateMethods:
     def test_detect_unrendered_jinja2_finds_site(self, validator):
         """_detect_unrendered_jinja2 finds {{ site. }}."""
         html = "<html><body>{{ site.title }}</body></html>"
-        with patch(
-            "bengal.health.validators.rendering.ParserFactory"
-        ) as MockParserFactory:
+        with patch("bengal.health.validators.rendering.ParserFactory") as MockParserFactory:
             mock_parser = MagicMock()
             mock_soup = MagicMock()
             mock_soup.get_text.return_value = "{{ site.title }}"
@@ -315,9 +304,7 @@ class TestRenderingValidatorPrivateMethods:
     def test_detect_unrendered_jinja2_clean(self, validator):
         """_detect_unrendered_jinja2 returns False for clean HTML."""
         html = "<html><body>Hello World</body></html>"
-        with patch(
-            "bengal.health.validators.rendering.ParserFactory"
-        ) as MockParserFactory:
+        with patch("bengal.health.validators.rendering.ParserFactory") as MockParserFactory:
             mock_parser = MagicMock()
             mock_soup = MagicMock()
             mock_soup.get_text.return_value = "Hello World"
@@ -341,8 +328,7 @@ class TestRenderingValidatorRecommendations:
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         structure_warning = next(
-            (r for r in warning_results if "structure" in r.message.lower()),
-            None
+            (r for r in warning_results if "structure" in r.message.lower()), None
         )
         if structure_warning:
             assert structure_warning.recommendation is not None
@@ -356,10 +342,6 @@ class TestRenderingValidatorRecommendations:
         results = validator.validate(mock_site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        seo_warning = next(
-            (r for r in warning_results if "seo" in r.message.lower()),
-            None
-        )
+        seo_warning = next((r for r in warning_results if "seo" in r.message.lower()), None)
         if seo_warning:
             assert seo_warning.recommendation is not None
-

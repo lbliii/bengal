@@ -36,7 +36,7 @@ The current autodoc system uses a single generic `DocElement` dataclass with an 
 @dataclass
 class ModulePath:
     parts: tuple[str, ...]  # Non-empty strings only
-    
+
     def __post_init__(self):
         if not self.parts or any(not p for p in self.parts):
             raise ValueError(f"Invalid module path: {self.parts}")
@@ -60,7 +60,7 @@ class ExtractionConfig:
     source_roots: list[Path]  # Resolved, validated paths
     include_patterns: list[GlobPattern]
     exclude_patterns: list[GlobPattern]
-    
+
     def should_extract(self, path: Path) -> bool:
         # Type-safe, testable, centralized logic
 ```
@@ -235,8 +235,8 @@ Then `DocElement` becomes:
 
 ```python
 type DocMetadata = (
-    PythonModuleMetadata 
-    | PythonClassMetadata 
+    PythonModuleMetadata
+    | PythonClassMetadata
     | PythonFunctionMetadata
     | CLICommandMetadata
     | OpenAPIEndpointMetadata
@@ -271,7 +271,7 @@ class BaseDocElement(ABC):
     name: str
     description: str
     source_location: SourceLocation | None = None
-    
+
     @abstractmethod
     def to_page_metadata(self) -> dict[str, Any]:
         """Convert to Page metadata for virtual page creation."""
@@ -308,7 +308,7 @@ class Signature:
     """Typed function signature."""
     parameters: tuple[Parameter, ...] = ()
     return_type: str | None = None
-    
+
     def __str__(self) -> str:
         params = ", ".join(str(p) for p in self.parameters)
         ret = f" -> {self.return_type}" if self.return_type else ""
@@ -357,7 +357,7 @@ class PythonExtractor:
     def extract(self, source: Path) -> PythonPackage:
         """Returns fully typed Python documentation tree."""
         ...
-    
+
     def to_doc_elements(self, package: PythonPackage) -> list[DocElement]:
         """Convert to generic DocElements for orchestrator."""
         # Validation happens HERE, during conversion
@@ -367,12 +367,12 @@ class PythonExtractor:
 class VirtualAutodocOrchestrator:
     def generate(self) -> tuple[list[Page], list[Section]]:
         elements: list[DocElement] = []
-        
+
         if self.python_enabled:
             extractor = PythonExtractor(self.python_config)
             typed_result = extractor.extract(source)  # Typed!
             elements.extend(extractor.to_doc_elements(typed_result))
-        
+
         # ... rest uses DocElement
 ```
 
@@ -438,7 +438,7 @@ class VirtualAutodocOrchestrator:
    ```python
    # Before (fragile)
    bases = element.metadata.get("bases", [])
-   
+
    # After (type-safe)
    if isinstance(element.typed_metadata, PythonClassMetadata):
        bases = element.typed_metadata.bases
@@ -451,7 +451,7 @@ class VirtualAutodocOrchestrator:
    @dataclass(frozen=True)
    class QualifiedName:
        parts: tuple[str, ...]
-       
+
        def __post_init__(self):
            if not self.parts:
                raise ValueError("QualifiedName cannot be empty")
@@ -467,7 +467,7 @@ class VirtualAutodocOrchestrator:
        file: Path
        line: int
        column: int | None = None
-       
+
        def __post_init__(self):
            if self.line < 1:
                raise ValueError(f"Line must be >= 1, got {self.line}")
@@ -488,7 +488,7 @@ class VirtualAutodocOrchestrator:
    def test_qualified_name_rejects_empty_parts():
        with pytest.raises(ValueError, match="Invalid identifier"):
            QualifiedName(parts=("bengal", "", "core"))
-   
+
    def test_python_class_metadata_frozen():
        meta = PythonClassMetadata(bases=("BaseClass",))
        with pytest.raises(FrozenInstanceError):
@@ -500,7 +500,7 @@ class VirtualAutodocOrchestrator:
    def test_python_extractor_produces_typed_metadata():
        extractor = PythonExtractor()
        elements = extractor.extract(Path("bengal/core/site.py"))
-       
+
        for elem in elements:
            assert elem.typed_metadata is not None
            if elem.element_type == "class":
@@ -598,4 +598,3 @@ bengal/autodoc/extractors/python.py:347    — method.metadata.get("decorators",
 bengal/autodoc/extractors/python.py:697    — bases = class_elem.metadata.get("bases", [])
 bengal/autodoc/extractors/openapi.py:84    — element.metadata.get("tags")
 ```
-

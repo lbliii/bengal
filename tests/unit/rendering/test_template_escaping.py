@@ -7,7 +7,6 @@ without those examples being processed by the template engine.
 
 from __future__ import annotations
 
-
 from datetime import datetime
 
 import pytest

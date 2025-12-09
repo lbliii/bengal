@@ -2,7 +2,6 @@
 Test cards directive system (modern and Sphinx-Design compatibility).
 """
 
-
 from tests._testing.mocks import MockPage
 
 
@@ -983,7 +982,6 @@ class TestChildCardsDirective:
         """Test child-cards pulls icon field from metadata."""
         from pathlib import Path
         from unittest.mock import Mock
-
 
         # Create subsection with icon in metadata
         subsection = Mock()

@@ -316,4 +316,3 @@
   log('Bengal enhance API ready');
 
 })();
-

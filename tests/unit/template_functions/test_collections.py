@@ -11,8 +11,8 @@ from bengal.rendering.template_functions.collections import (
     offset,
     reverse,
     sort_by,
-    uniq,
     union,
+    uniq,
     where,
     where_not,
 )

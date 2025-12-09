@@ -133,5 +133,3 @@ class QualifiedName:
         if len(self.parts) <= 1:
             return None
         return QualifiedName(parts=self.parts[:-1])
-
-

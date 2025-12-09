@@ -12,15 +12,14 @@ from bengal.rendering.plugins.directives import (
     CARD_CONTRACT,
     CARDS_CONTRACT,
     CODE_TABS_CONTRACT,
-    ContractValidator,
-    ContractViolation,
-    DirectiveContract,
     STEP_CONTRACT,
     STEPS_CONTRACT,
     TAB_ITEM_CONTRACT,
     TAB_SET_CONTRACT,
+    ContractValidator,
+    ContractViolation,
+    DirectiveContract,
 )
-
 
 # =============================================================================
 # DirectiveContract Tests
@@ -136,7 +135,7 @@ class TestContractViolation:
         assert result == {
             "directive": "step",
             "violation": "directive_invalid_parent",
-            "message": "step must be inside steps",
+            "detail": "step must be inside steps",  # 'detail' not 'message' (avoids kwarg conflict)
         }
 
     def test_to_log_dict_full(self) -> None:
@@ -443,4 +442,3 @@ class TestPresetContracts:
     def test_code_tabs_contract(self) -> None:
         """Test CODE_TABS_CONTRACT configuration."""
         assert CODE_TABS_CONTRACT.min_children == 1
-

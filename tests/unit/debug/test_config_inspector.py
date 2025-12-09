@@ -394,7 +394,8 @@ class TestConfigInspector:
 
         # Check for baseurl-related findings using title or description
         baseurl_findings = [
-            f for f in findings
+            f
+            for f in findings
             if "baseurl" in f.title.lower() or "baseurl" in f.description.lower()
         ]
         assert len(baseurl_findings) == 1
@@ -407,7 +408,8 @@ class TestConfigInspector:
 
         # Check for trailing slash findings
         trailing_slash_findings = [
-            f for f in findings
+            f
+            for f in findings
             if "trailing slash" in f.title.lower() or "trailing slash" in f.description.lower()
         ]
         assert len(trailing_slash_findings) == 1
@@ -489,4 +491,3 @@ class TestConfigInspectorExplainKey:
 
                 # Should return None for non-existent key
                 assert explanation is None
-

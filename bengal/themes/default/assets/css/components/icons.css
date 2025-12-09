@@ -2,13 +2,13 @@
    BENGAL ICON SYSTEM
    ============================================
    Custom SVG icons with theme-aware styling.
-   
+
    Usage in Markdown:
      :::{icon} terminal
      :size: 24
      :class: text-primary
      :::
-   
+
    The icon directive inlines SVGs for full CSS control.
    ============================================ */
 
@@ -19,12 +19,12 @@
   justify-content: center;
   vertical-align: middle;
   flex-shrink: 0;
-  
+
   /* Inherit text color by default */
   color: currentColor;
-  
+
   /* Smooth transitions for hover effects */
-  transition: 
+  transition:
     color var(--transition-fast, 150ms) ease,
     transform var(--transition-fast, 150ms) ease,
     opacity var(--transition-fast, 150ms) ease;
@@ -268,12 +268,9 @@
   .bengal-icon {
     transition: none;
   }
-  
+
   .bengal-icon.icon-spin,
   .bengal-icon.icon-pulse {
     animation: none;
   }
 }
-
-
-

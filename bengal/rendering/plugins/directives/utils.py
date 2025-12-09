@@ -160,4 +160,3 @@ def class_attr(base_class: str, *extra_classes: str) -> str:
     if classes:
         return f' class="{classes}"'
     return ""
-

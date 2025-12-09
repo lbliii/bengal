@@ -125,13 +125,13 @@ def render_admonition(
         "example": "example",
         "seealso": "info",  # Default to info for seealso
     }
-    
+
     # Render icon using Phosphor icons
     icon_name = icon_map.get(admon_type, "info")
     from bengal.rendering.plugins.directives._icons import render_svg_icon
-    
+
     icon_html = render_svg_icon(icon_name, size=20, css_class="admonition-icon")
-    
+
     # Build title with icon
     if icon_html:
         title_html = f'<span class="admonition-icon-wrapper">{icon_html}</span><span class="admonition-title-text">{title}</span>'

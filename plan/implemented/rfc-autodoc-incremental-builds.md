@@ -60,7 +60,7 @@ def _get_watched_directories(self) -> list[str]:
 
     # NEW: Watch autodoc source directories
     autodoc_config = self.site.config.get("autodoc", {})
-    
+
     # Python source directories
     python_config = autodoc_config.get("python", {})
     if python_config.get("enabled", False):
@@ -68,7 +68,7 @@ def _get_watched_directories(self) -> list[str]:
             source_path = self.site.root_path / source_dir
             if source_path.exists():
                 watch_dirs.append(source_path)
-    
+
     # OpenAPI spec file directory
     openapi_config = autodoc_config.get("openapi", {})
     if openapi_config.get("enabled", False):
@@ -88,10 +88,10 @@ def _should_regenerate_autodoc(self, changed_paths: set[str]) -> bool:
     """Check if any changed file is in autodoc source directories."""
     autodoc_config = self.site.config.get("autodoc", {})
     python_config = autodoc_config.get("python", {})
-    
+
     if not python_config.get("enabled", False):
         return False
-    
+
     source_dirs = python_config.get("source_dirs", [])
     for changed_path in changed_paths:
         path = Path(changed_path)
@@ -103,7 +103,7 @@ def _should_regenerate_autodoc(self, changed_paths: set[str]) -> bool:
                     return True
             except ValueError:
                 continue
-    
+
     return False
 ```
 
@@ -112,7 +112,7 @@ def _should_regenerate_autodoc(self, changed_paths: set[str]) -> bool:
 ```python
 def _trigger_build(self) -> None:
     # ... existing code ...
-    
+
     # Check if autodoc regeneration is needed
     autodoc_changed = self._should_regenerate_autodoc(set(changed_files))
     if autodoc_changed:
@@ -123,7 +123,7 @@ def _trigger_build(self) -> None:
             "full_rebuild_triggered_by_autodoc",
             reason="python_source_changed",
         )
-    
+
     # ... continue with existing build logic ...
 ```
 
@@ -142,7 +142,7 @@ def _create_pages(self, elements, sections, doc_type, result, cache=None):
     """Create virtual pages with dependency tracking."""
     for element in elements:
         page = Page.create_virtual(...)
-        
+
         # Track source file dependency
         if cache and element.source_file:
             cache.add_autodoc_dependency(
@@ -156,18 +156,18 @@ def _create_pages(self, elements, sections, doc_type, result, cache=None):
 ```python
 class AutodocTrackingMixin:
     """Track autodoc source file to page dependencies."""
-    
+
     autodoc_dependencies: dict[str, set[str]]  # source_file → set[autodoc_page_paths]
-    
+
     def add_autodoc_dependency(self, source_file: Path, autodoc_page: Path) -> None:
         """Register that source_file produces autodoc_page."""
         source_key = str(source_file)
         page_key = str(autodoc_page)
-        
+
         if source_key not in self.autodoc_dependencies:
             self.autodoc_dependencies[source_key] = set()
         self.autodoc_dependencies[source_key].add(page_key)
-    
+
     def get_affected_autodoc_pages(self, changed_source: Path) -> set[str]:
         """Get autodoc pages affected by a source file change."""
         return self.autodoc_dependencies.get(str(changed_source), set())
@@ -180,17 +180,17 @@ class AutodocTrackingMixin:
 ```python
 def find_work_early(self, verbose=False):
     # ... existing code ...
-    
+
     # Check for autodoc source changes
     autodoc_pages_to_rebuild = set()
     for page in self.site.pages:
         if not page.metadata.get("is_autodoc"):
             continue
-        
+
         source_file = page.metadata.get("source_file")
         if source_file and self.cache.is_changed(Path(source_file)):
             autodoc_pages_to_rebuild.add(page.source_path)
-    
+
     # Convert to Page objects (selective autodoc rebuild)
     pages_to_build_list = [
         page
@@ -287,7 +287,7 @@ def _discover_autodoc_content_incremental(self, changed_files: set[Path]):
 
 ## Recommendation
 
-**Start with Phase 1** as a quick win, then implement **Phase 2** for production-ready incremental autodoc builds. 
+**Start with Phase 1** as a quick win, then implement **Phase 2** for production-ready incremental autodoc builds.
 
 **Phase 3 is deferred** - only implement if:
 - Benchmarks show extraction time dominates rebuild time
@@ -312,15 +312,15 @@ def _discover_autodoc_content_incremental(self, changed_files: set[Path]):
 ## Questions for Review
 
 1. **Should Phase 1 trigger a full site rebuild or just autodoc regeneration when Python files change?**
-   
+
    **Answer**: Just autodoc regeneration + dependent pages. Full site rebuild defeats the incremental purpose. However, in Phase 1 (coarse-grained), we trigger full rebuild because we don't yet have dependency tracking to know which content pages reference autodoc pages.
 
 2. **For Phase 2, should we track dependencies at module level or file level?**
-   
+
    **Answer**: File level. The `source_file` metadata already tracks individual Python files, and file-level granularity provides the best incremental performance without added abstraction.
 
 3. **Is Phase 3 worth the complexity for typical Bengal users?**
-   
+
    **Answer**: No. Phase 2 provides 90% of the benefit with 30% of the complexity. Phase 3 should only be implemented if:
    - Benchmarks show extraction (not rendering) dominates rebuild time
    - Users with >500 module codebases report specific performance issues
@@ -410,4 +410,3 @@ components:
    └── _process_virtual_page(page)
        └── _render_autodoc_page(page)  # Uses page.metadata["autodoc_element"]
 ```
-

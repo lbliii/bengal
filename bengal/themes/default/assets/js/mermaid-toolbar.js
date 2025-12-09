@@ -62,7 +62,7 @@
             ICONS.zoomIn = await loadIcon('zoom-in') || ICONS.zoomIn;
             ICONS.zoomOut = await loadIcon('zoom-out') || ICONS.zoomOut;
             ICONS.reset = await loadIcon('reset') || ICONS.reset;
-            
+
             // Update any existing buttons that were created before icons loaded
             updateExistingToolbarButtons();
         } catch (err) {
@@ -82,7 +82,7 @@
             // Match class name after mermaid-toolbar__button-- (handles hyphens)
             const match = button.className.match(/mermaid-toolbar__button--([\w-]+)/);
             if (!match) return;
-            
+
             const action = match[1];
             let icon = '';
             switch (action) {
@@ -112,7 +112,7 @@
                 button.innerHTML = icon;
             }
         });
-        
+
         // Update lightbox close button (replace fallback SVG if needed)
         const closeButton = document.querySelector('.mermaid-lightbox__close');
         if (closeButton && ICONS.close) {
@@ -298,10 +298,10 @@
         if (iconsLoadedPromise) {
             await iconsLoadedPromise;
         }
-        
+
         // Update any existing buttons that were created before icons loaded
         updateExistingToolbarButtons();
-        
+
         if (!lightbox) {
             lightbox = createLightbox();
             // Ensure close button has icon (icons are loaded at this point)
@@ -649,7 +649,7 @@
         if (iconsLoadedPromise) {
             await iconsLoadedPromise;
         }
-        
+
         const diagrams = document.querySelectorAll('.mermaid');
         diagrams.forEach(diagram => {
             setupDiagramToolbar(diagram);

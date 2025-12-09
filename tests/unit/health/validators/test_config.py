@@ -122,7 +122,8 @@ class TestConfigValidatorWrapperSilenceIsGolden:
         # Should not have success messages for "fields present"
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         field_success = [
-            r for r in success_results
+            r
+            for r in success_results
             if "essential" in r.message.lower() or "fields" in r.message.lower()
         ]
         assert len(field_success) == 0
@@ -145,8 +146,7 @@ class TestConfigValidatorWrapperRecommendations:
         results = validator.validate(mock_site)
         info_results = [r for r in results if r.status == CheckStatus.INFO]
         slash_result = next(
-            (r for r in info_results if "trailing slash" in r.message.lower()),
-            None
+            (r for r in info_results if "trailing slash" in r.message.lower()), None
         )
         assert slash_result is not None
         assert slash_result.recommendation is not None
@@ -157,10 +157,7 @@ class TestConfigValidatorWrapperRecommendations:
         mock_site.config["max_workers"] = 50
         results = validator.validate(mock_site)
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        workers_warning = next(
-            (r for r in warning_results if "max_workers" in r.message),
-            None
-        )
+        workers_warning = next((r for r in warning_results if "max_workers" in r.message), None)
         assert workers_warning is not None
         assert workers_warning.recommendation is not None
 
@@ -191,6 +188,3 @@ class TestConfigValidatorWrapperEdgeCases:
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         workers_warnings = [r for r in warning_results if "max_workers" in r.message]
         assert len(workers_warnings) == 0
-
-
-

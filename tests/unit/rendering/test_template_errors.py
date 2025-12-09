@@ -4,7 +4,6 @@ Unit tests for template error reporting system.
 
 from __future__ import annotations
 
-
 from pathlib import Path
 
 import pytest

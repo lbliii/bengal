@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.cache.build_cache import BuildCache
 
 
@@ -165,4 +163,3 @@ class TestAutodocDependencySerialization:
         cache.clear()
 
         assert cache.autodoc_dependencies == {}
-

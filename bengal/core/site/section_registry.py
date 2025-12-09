@@ -250,4 +250,3 @@ class SectionRegistryMixin:
         # Register subsections recursively
         for subsection in section.subsections:
             self._register_section_recursive(subsection)
-

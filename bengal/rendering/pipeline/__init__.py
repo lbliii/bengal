@@ -40,6 +40,3 @@ __all__ = [
     "extract_toc_structure",
     "TOC_EXTRACTION_VERSION",
 ]
-
-
-

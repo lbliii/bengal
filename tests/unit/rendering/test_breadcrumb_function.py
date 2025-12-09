@@ -4,7 +4,6 @@ Tests for breadcrumb template function.
 
 from __future__ import annotations
 
-
 from unittest.mock import Mock
 
 from bengal.rendering.template_functions.navigation import get_breadcrumbs
@@ -213,5 +212,5 @@ class TestGetBreadcrumbs:
         assert len(result) == 3
         assert result[0]["title"] == "Level2"  # Grandparent
         assert result[1]["title"] == "Level3"  # Parent
-        assert result[2]["title"] == "Page"    # Current
+        assert result[2]["title"] == "Page"  # Current
         assert result[2]["is_current"]

@@ -68,7 +68,7 @@ This template receives:
               {% if subsection.name %}
               {% set desc = subsection.metadata.description | default('') | first_sentence %}
               {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-              <a href="{{ subsection.relative_url }}" class="api-package-card">
+              <a href="{{ subsection.url }}" class="api-package-card">
                 <div class="api-package-card__header">
                   <span class="api-package-card__icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
                   <span class="api-package-card__name">{{ subsection.name }}</span>
@@ -107,7 +107,7 @@ This template receives:
             <div class="api-grid api-grid--modules">
               {% for page in command_pages %}
               {% set desc = page.metadata.description | default('') | first_sentence %}
-              <a href="{{ page.relative_url }}" class="api-module-card">
+              <a href="{{ page.url }}" class="api-module-card">
                 <div class="api-module-card__header">
                   <span class="api-module-card__icon">
                     {%- if page.metadata.element_type == 'group' -%}

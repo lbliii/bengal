@@ -272,9 +272,9 @@ class TestDataTableInTemplate:
 
         # Check that each table appears at least once
         count = result.count("bengal-data-table")
-        assert (
-            count >= 2
-        ), f"Expected at least 2 tables, but bengal-data-table appears {count} times"
+        assert count >= 2, (
+            f"Expected at least 2 tables, but bengal-data-table appears {count} times"
+        )
         assert "YAML Table" in result
         assert "CSV Table" in result
 

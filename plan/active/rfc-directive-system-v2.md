@@ -28,7 +28,7 @@ The current system has 20+ directives that work but suffer from:
 - **Validation**: `DirectiveContract` validates parent-child relationships
 - **Architecture**: `BengalDirective` base class standardizes development
 
-**Primary Value**: 
+**Primary Value**:
 - **Zero fence counting** — Nest arbitrarily deep using named closers when needed
 - **Helpful warnings** — Invalid nesting caught at parse time, not in broken output
 
@@ -499,7 +499,7 @@ def parse_directive(content: str) -> dict[str, Any]:
     Parse directive with support for both standard and named closers.
     """
     # ... (simplified logic logic) ...
-    
+
     # Algorithm:
     # 1. Scan for next fence
     # 2. If named closer (:::{/name}):
@@ -511,7 +511,7 @@ def parse_directive(content: str) -> dict[str, Any]:
     #    - Decrement nesting depth
     # 5. If nesting depth == 0:
     #    - Close directive
-    
+
     pass
 ```
 

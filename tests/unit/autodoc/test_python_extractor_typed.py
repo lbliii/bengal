@@ -29,7 +29,8 @@ def extractor() -> PythonExtractor:
 def sample_module(tmp_path: Path) -> Path:
     """Create a sample Python module for testing."""
     module_file = tmp_path / "sample.py"
-    module_file.write_text(dedent('''
+    module_file.write_text(
+        dedent('''
         """Sample module docstring."""
 
         from dataclasses import dataclass
@@ -86,14 +87,17 @@ def sample_module(tmp_path: Path) -> Path:
 
         # Alias
         Sample = SampleClass
-    ''').lstrip())
+    ''').lstrip()
+    )
     return module_file
 
 
 class TestPythonExtractorTypedMetadata:
     """Tests for typed_metadata in Python extractor output."""
 
-    def test_module_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_module_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that module elements have typed_metadata."""
         elements = extractor.extract(sample_module)
 
@@ -105,7 +109,9 @@ class TestPythonExtractorTypedMetadata:
         assert module.typed_metadata.file_path == str(sample_module)
         assert module.typed_metadata.is_package is False
 
-    def test_class_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_class_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that class elements have typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -124,7 +130,9 @@ class TestPythonExtractorTypedMetadata:
         # Check decorators include dataclass
         assert any("dataclass" in d for d in class_elem.typed_metadata.decorators)
 
-    def test_method_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_method_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that method elements have typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -154,7 +162,9 @@ class TestPythonExtractorTypedMetadata:
         param_names = [p.name for p in method.typed_metadata.parameters]
         assert "detailed" in param_names
 
-    def test_classmethod_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_classmethod_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that classmethod has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -179,7 +189,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(method.typed_metadata, PythonFunctionMetadata)
         assert method.typed_metadata.is_classmethod is True
 
-    def test_staticmethod_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_staticmethod_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that staticmethod has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -204,7 +216,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(method.typed_metadata, PythonFunctionMetadata)
         assert method.typed_metadata.is_staticmethod is True
 
-    def test_property_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_property_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that property has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -229,7 +243,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(prop.typed_metadata, PythonFunctionMetadata)
         assert prop.typed_metadata.is_property is True
 
-    def test_async_function_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_async_function_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that async function has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -246,7 +262,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(func.typed_metadata, PythonFunctionMetadata)
         assert func.typed_metadata.is_async is True
 
-    def test_generator_function_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_generator_function_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that generator function has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -263,7 +281,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(func.typed_metadata, PythonFunctionMetadata)
         assert func.typed_metadata.is_generator is True
 
-    def test_alias_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_alias_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that alias has correct typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -280,7 +300,9 @@ class TestPythonExtractorTypedMetadata:
         assert isinstance(alias.typed_metadata, PythonAliasMetadata)
         assert "SampleClass" in alias.typed_metadata.alias_of
 
-    def test_attribute_has_typed_metadata(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_attribute_has_typed_metadata(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that class attributes have typed_metadata."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -339,9 +361,13 @@ class TestTypedMetadataMatchesUntyped:
         assert list(class_elem.typed_metadata.bases) == class_elem.metadata.get("bases", [])
 
         # is_dataclass should match
-        assert class_elem.typed_metadata.is_dataclass == class_elem.metadata.get("is_dataclass", False)
+        assert class_elem.typed_metadata.is_dataclass == class_elem.metadata.get(
+            "is_dataclass", False
+        )
 
-    def test_function_metadata_matches(self, extractor: PythonExtractor, sample_module: Path) -> None:
+    def test_function_metadata_matches(
+        self, extractor: PythonExtractor, sample_module: Path
+    ) -> None:
         """Test that typed_metadata matches metadata dict for functions."""
         elements = extractor.extract(sample_module)
         module = elements[0]
@@ -362,5 +388,3 @@ class TestTypedMetadataMatchesUntyped:
 
         # return type should match
         assert func.typed_metadata.return_type == func.metadata.get("returns")
-
-

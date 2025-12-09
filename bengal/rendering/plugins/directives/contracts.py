@@ -134,13 +134,16 @@ class ContractViolation:
         """
         Convert to structured log format.
 
+        Note: Uses 'detail' instead of 'message' to avoid conflict
+        with BengalLogger's positional 'message' argument.
+
         Returns:
-            Dict suitable for structured logging
+            Dict suitable for structured logging kwargs
         """
         result: dict[str, Any] = {
             "directive": self.directive,
             "violation": self.violation_type,
-            "message": self.message,
+            "detail": self.message,  # 'detail' not 'message' to avoid kwarg conflict
         }
         if self.expected is not None:
             result["expected"] = self.expected
@@ -245,9 +248,7 @@ class ContractValidator:
         violations = []
 
         # Extract child types
-        child_types = [
-            c.get("type") for c in children if isinstance(c, dict) and c.get("type")
-        ]
+        child_types = [c.get("type") for c in children if isinstance(c, dict) and c.get("type")]
 
         # Check required children exist
         if contract.requires_children:
@@ -371,4 +372,3 @@ CODE_TABS_CONTRACT = DirectiveContract(
     # Requires code block children
     min_children=1,
 )
-

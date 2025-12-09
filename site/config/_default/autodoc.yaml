@@ -7,7 +7,7 @@ autodoc:
   # Used by "View source" links in generated documentation
   github_repo: "lbliii/bengal"
   github_branch: "main"  # Git branch for source links
-  
+
   # Default description for generated documentation pages
   # If not set, modules will use "{module_name} package" as default
   # default_description: "API Documentation"

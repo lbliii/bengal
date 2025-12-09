@@ -4,7 +4,6 @@ Tests for cross-reference bug fixes.
 Verifies that cross-references are NOT substituted inside code blocks.
 """
 
-
 import pytest
 
 from tests._testing.mocks import MockPage

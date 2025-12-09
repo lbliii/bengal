@@ -24,6 +24,3 @@ weight = 2
 name = "Blog"
 url = "/blog/"
 weight = 3
-
-
-

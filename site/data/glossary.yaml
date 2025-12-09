@@ -193,4 +193,3 @@ terms:
   - term: Spacing Token
     definition: A variable for consistent spacing (e.g., `--spacing-md`). Uses a defined scale for uniform margins and padding across components.
     tags: [theming, css]
-

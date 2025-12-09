@@ -49,8 +49,7 @@ def site(request, site_factory):
 
         if not testroot:
             raise ValueError(
-                f"@pytest.mark.bengal requires 'testroot' parameter. "
-                f"Test: {request.node.nodeid}"
+                f"@pytest.mark.bengal requires 'testroot' parameter. Test: {request.node.nodeid}"
             )
 
         return site_factory(testroot, confoverrides=confoverrides)

@@ -4,7 +4,6 @@ SEO helper functions for templates.
 Provides 4 functions for generating SEO-friendly meta tags and content.
 """
 
-
 from __future__ import annotations
 
 import re

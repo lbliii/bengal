@@ -178,7 +178,7 @@ class SplitOperation(RefactorOperation):
     source: Path
     destination_dir: Path
     split_by: str = "h2"  # heading level
-    
+
 @dataclass
 class RefactorPlan:
     """Complete plan for a refactoring operation."""
@@ -199,11 +199,11 @@ import re
 
 class LinkUpdater:
     """Updates internal links across the site."""
-    
+
     def __init__(self, site: Site):
         self.site = site
         self.link_index = self._build_link_index()
-    
+
     def _build_link_index(self) -> dict[str, list[LinkReference]]:
         """Build index of all internal links."""
         index = defaultdict(list)
@@ -214,7 +214,7 @@ class LinkUpdater:
                     link=link,
                 ))
         return index
-    
+
     def find_incoming_links(self, page_path: str) -> list[LinkReference]:
         """Find all pages linking to the given page."""
         # Normalize path variations
@@ -223,24 +223,24 @@ class LinkUpdater:
         for target in targets:
             incoming.extend(self.link_index.get(target, []))
         return incoming
-    
+
     def update_links(
-        self, 
-        old_path: str, 
+        self,
+        old_path: str,
         new_path: str,
         dry_run: bool = True
     ) -> list[LinkUpdate]:
         """Update all links from old_path to new_path."""
         incoming = self.find_incoming_links(old_path)
         updates = []
-        
+
         for ref in incoming:
             # Calculate new relative link
             new_link = self._calculate_relative_link(
                 from_page=ref.source_page,
                 to_page=new_path,
             )
-            
+
             update = LinkUpdate(
                 file=ref.source_page,
                 old_link=ref.link.raw,
@@ -248,16 +248,16 @@ class LinkUpdater:
                 line=ref.link.line,
             )
             updates.append(update)
-            
+
             if not dry_run:
                 self._apply_update(update)
-        
+
         return updates
-    
+
     def _extract_links(self, page: Page) -> list[Link]:
         """Extract all links from page content."""
         links = []
-        
+
         # Markdown links: [text](url)
         for match in re.finditer(r'\[([^\]]+)\]\(([^)]+)\)', page.raw_content):
             links.append(Link(
@@ -266,13 +266,13 @@ class LinkUpdater:
                 raw=match.group(0),
                 line=page.raw_content[:match.start()].count('\n') + 1,
             ))
-        
+
         # Reference links: [text][ref]
         # ... handle reference-style links
-        
+
         # HTML links: <a href="">
         # ... handle HTML links
-        
+
         return [l for l in links if self._is_internal(l.target)]
 ```
 
@@ -283,14 +283,14 @@ class LinkUpdater:
 
 class RedirectGenerator:
     """Generate redirect configuration for moved pages."""
-    
+
     def __init__(self, site: Site):
         self.site = site
         self.redirect_format = site.config.get("redirects.format", "netlify")
-    
+
     def generate(self, moves: list[tuple[str, str]]) -> str:
         """Generate redirect rules for the configured platform."""
-        
+
         redirects = []
         for old_url, new_url in moves:
             old_url = self._path_to_url(old_url)
@@ -300,7 +300,7 @@ class RedirectGenerator:
                 to_url=new_url,
                 status=301,  # Permanent redirect
             ))
-        
+
         if self.redirect_format == "netlify":
             return self._format_netlify(redirects)
         elif self.redirect_format == "vercel":
@@ -311,14 +311,14 @@ class RedirectGenerator:
             return self._format_apache(redirects)
         else:
             return self._format_bengal_native(redirects)
-    
+
     def _format_netlify(self, redirects: list[Redirect]) -> str:
         """Format for Netlify _redirects file."""
         lines = []
         for r in redirects:
             lines.append(f"{r.from_url} {r.to_url} {r.status}")
         return "\n".join(lines)
-    
+
     def _format_bengal_native(self, redirects: list[Redirect]) -> str:
         """Format for Bengal's native redirect handling."""
         return yaml.dump({
@@ -336,18 +336,18 @@ class RedirectGenerator:
 
 class RefactorPreview:
     """Interactive preview of refactoring changes."""
-    
+
     def show(self, plan: RefactorPlan) -> bool:
         """Display plan and get confirmation."""
-        
+
         console.print("\n[bold]📋 Refactoring Plan[/bold]\n")
-        
+
         # File operations
         console.print("[bold]File Changes:[/bold]")
         for old, new in plan.file_moves:
             console.print(f"  [red]- {old}[/red]")
             console.print(f"  [green]+ {new}[/green]")
-        
+
         # Link updates
         console.print(f"\n[bold]Link Updates:[/bold] {len(plan.link_updates)} files")
         if len(plan.link_updates) <= 10:
@@ -356,19 +356,19 @@ class RefactorPreview:
                 console.print(f"    [red]{update.old_link}[/red] → [green]{update.new_link}[/green]")
         else:
             console.print(f"  ... and {len(plan.link_updates) - 5} more")
-        
+
         # Redirects
         if plan.redirects:
             console.print(f"\n[bold]Redirects:[/bold] {len(plan.redirects)} rules")
             for r in plan.redirects[:5]:
                 console.print(f"  {r.from_url} → {r.to_url}")
-        
+
         # Warnings
         if plan.warnings:
             console.print("\n[yellow][bold]⚠️ Warnings:[/bold][/yellow]")
             for warning in plan.warnings:
                 console.print(f"  [yellow]• {warning}[/yellow]")
-        
+
         # Confirmation
         return Confirm.ask("\nApply these changes?")
 ```
@@ -510,4 +510,3 @@ Apply these changes? [y/N]: y
 - [VS Code Rename Symbol](https://code.visualstudio.com/docs/editor/refactoring)
 - [Docusaurus File Naming](https://docusaurus.io/docs/docs-introduction)
 - [Netlify Redirects](https://docs.netlify.com/routing/redirects/)
-

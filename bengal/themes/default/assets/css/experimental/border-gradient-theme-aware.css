@@ -1,9 +1,9 @@
 /**
  * Option D: Modern Gradient Borders - Theme-Aware
- * 
+ *
  * Uses theme color tokens to create palette-specific gradient borders.
  * Each Bengal palette (blue, brown, silver, charcoal) gets its own unique gradient.
- * 
+ *
  * This file should be imported after palette tokens but before component styles.
  */
 
@@ -20,7 +20,7 @@
     var(--color-accent) 50%,
     var(--color-primary) 100%
   );
-  
+
   /* Subtle gradient (lighter, more muted) */
   --gradient-border-subtle: linear-gradient(
     135deg,
@@ -28,7 +28,7 @@
     var(--color-accent-light) 50%,
     var(--color-primary-light) 100%
   );
-  
+
   /* Strong gradient (darker, more vibrant) */
   --gradient-border-strong: linear-gradient(
     135deg,
@@ -36,7 +36,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   /* Hover gradient (enhanced) */
   --gradient-border-hover: linear-gradient(
     135deg,
@@ -50,7 +50,7 @@
    GRADIENT BORDER MIXIN (Reusable Pattern)
    ============================================ */
 
-/* 
+/*
  * Usage: Apply .gradient-border class to any element
  * Or use the gradient-border() pattern in your component CSS
  */
@@ -67,8 +67,8 @@
   border-radius: inherit;
   padding: 1px;
   background: var(--gradient-border);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -111,7 +111,7 @@
 .article-card.gradient-border,
 .feature-card.gradient-border {
   border-radius: var(--radius-xl); /* 12px */
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -119,7 +119,7 @@
 .card.gradient-border:hover,
 .article-card.gradient-border:hover,
 .feature-card.gradient-border:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.1);
 }
@@ -129,7 +129,7 @@
 .code-block-wrapper.gradient-border {
   border-radius: var(--radius-2xl); /* 16px */
   border: none;
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(0, 0, 0, 0.1);
 }
@@ -146,7 +146,7 @@
 .button.gradient-border {
   border-radius: var(--radius-lg); /* 8px */
   background: var(--color-bg-primary);
-  box-shadow: 
+  box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -157,7 +157,7 @@
 }
 
 .button.gradient-border:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(0, 0, 0, 0.1);
 }
@@ -173,7 +173,7 @@
 .form-select.gradient-border {
   border-radius: var(--radius-lg); /* 8px */
   border: none;
-  box-shadow: 
+  box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.1);
 }
@@ -195,7 +195,7 @@
 .prose blockquote.gradient-border {
   border-radius: var(--radius-lg); /* 8px */
   border-left: 4px solid var(--color-primary);
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -227,7 +227,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
@@ -244,7 +244,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
@@ -261,7 +261,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
@@ -278,7 +278,7 @@
     var(--color-accent) 50%,
     var(--color-primary-dark) 100%
   );
-  
+
   --gradient-border-subtle: linear-gradient(
     135deg,
     var(--color-primary-light) 0%,
@@ -324,7 +324,7 @@
     border: 1px solid var(--color-primary);
     border-image: var(--gradient-border) 1;
   }
-  
+
   .gradient-border::before {
     display: none;
   }
@@ -346,4 +346,3 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
-

@@ -7,7 +7,6 @@ create_documentation_directives() function.
 
 from __future__ import annotations
 
-
 import inspect
 
 import pytest

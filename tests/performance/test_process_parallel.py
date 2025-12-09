@@ -325,7 +325,7 @@ This page contains enough complex markdown (code blocks, tables, math, nested li
     if speedup > 1.5:
         print("\n🎉 SIGNIFICANT IMPROVEMENT! ProcessPoolExecutor breaks through GIL!")
         print(
-            f"   At 10K pages, this could save ~{300 * (1 - 1/speedup):.0f}s ({300 * (1 - 1/speedup) / 60:.1f} minutes)"
+            f"   At 10K pages, this could save ~{300 * (1 - 1 / speedup):.0f}s ({300 * (1 - 1 / speedup) / 60:.1f} minutes)"
         )
     elif speedup > 1.1:
         print("\n✓ Modest improvement with ProcessPoolExecutor")

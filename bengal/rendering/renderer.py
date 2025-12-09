@@ -29,7 +29,7 @@ from typing import Any
 from markupsafe import Markup
 
 from bengal.core.page import Page
-from bengal.utils.logger import get_logger, truncate_error
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -75,7 +75,7 @@ class TestSlugify:
         """
         result = slugify(input_text)
         assert result == expected_slug, (
-            f"slugify('{input_text}') should produce '{expected_slug}', " f"but got '{result}'"
+            f"slugify('{input_text}') should produce '{expected_slug}', but got '{result}'"
         )
 
     def test_unicode_handling(self):
@@ -145,7 +145,7 @@ class TestSlugify:
         """
         result = slugify(page_name)
         assert result == expected_slug, (
-            f"Page name '{page_name}' should slugify to '{expected_slug}', " f"but got '{result}'"
+            f"Page name '{page_name}' should slugify to '{expected_slug}', but got '{result}'"
         )
 
     def test_long_names(self):

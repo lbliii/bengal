@@ -25,8 +25,8 @@ class PageNavigationMixin:
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
     _site: Any
-    _section: "Section | None"
-    _section_path: "Path | None"
+    _section: Section | None
+    _section_path: Path | None
 
     @property
     def next(self) -> Page | None:

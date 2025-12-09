@@ -5,7 +5,6 @@ special handling for client-side rendered languages like Mermaid.
 
 from __future__ import annotations
 
-
 import pytest
 
 from bengal.rendering.parsers import MistuneParser

@@ -175,15 +175,18 @@ def test_asset_validator_minification_hints(mock_site, tmp_path):
 
     # Create large unminified CSS with proper formatting (lots of newlines)
     # This simulates real unminified CSS with spacing and structure
-    unminified_css = "\n".join([
-        "body {",
-        "    color: black;",
-        "    font-size: 16px;",
-        "    margin: 0;",
-        "    padding: 0;",
-        "}",
-        ""
-    ] * 1000)  # Repeat to make it > 50KB
+    unminified_css = "\n".join(
+        [
+            "body {",
+            "    color: black;",
+            "    font-size: 16px;",
+            "    margin: 0;",
+            "    padding: 0;",
+            "}",
+            "",
+        ]
+        * 1000
+    )  # Repeat to make it > 50KB
     (assets_dir / "style.css").write_text(unminified_css)
 
     validator = AssetValidator()

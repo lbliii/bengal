@@ -131,4 +131,3 @@ class AutodocTrackingMixin:
             "autodoc_source_files": total_sources,
             "autodoc_pages_tracked": total_pages,
         }
-

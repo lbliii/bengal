@@ -56,11 +56,11 @@ class SourceLocation:
     file: str  # String for cacheability
     line: int
     column: int | None = None
-    
+
     def __post_init__(self) -> None:
         if self.line < 1:
             raise ValueError(f"Line must be >= 1, got {self.line}")
-    
+
     @classmethod
     def from_path(cls, path: Path, line: int, column: int | None = None) -> SourceLocation:
         """Create from Path object."""
@@ -70,28 +70,28 @@ class SourceLocation:
 class QualifiedName:
     """Validated qualified name for a documented element."""
     parts: tuple[str, ...]
-    
+
     def __post_init__(self) -> None:
         if not self.parts:
             raise ValueError("QualifiedName cannot be empty")
         for part in self.parts:
             if not part:
                 raise ValueError(f"QualifiedName contains empty part: {self.parts}")
-    
+
     @classmethod
     def from_string(cls, qualified_name: str, separator: str = ".") -> QualifiedName:
         """Create from dot-separated string, filtering empty parts."""
         parts = tuple(p for p in qualified_name.split(separator) if p)
         return cls(parts=parts)
-    
+
     def __str__(self) -> str:
         return ".".join(self.parts)
-    
+
     @property
     def name(self) -> str:
         """Last part of the qualified name."""
         return self.parts[-1]
-    
+
     @property
     def parent(self) -> QualifiedName | None:
         """Parent qualified name, or None if top-level."""
@@ -358,7 +358,7 @@ the untyped `metadata: dict[str, Any]` field on DocElement.
 
 Usage:
     from bengal.autodoc.models import PythonClassMetadata, DocMetadata
-    
+
     if isinstance(element.typed_metadata, PythonClassMetadata):
         bases = element.typed_metadata.bases  # Type-safe!
 """
@@ -463,7 +463,7 @@ class DocElement:
     metadata: dict[str, Any] = field(default_factory=dict)
     typed_metadata: DocMetadata | None = None  # NEW FIELD
     # ... rest of existing fields ...
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for caching/serialization."""
         result = {
@@ -507,12 +507,12 @@ def from_dict(cls, data: dict[str, Any]) -> DocElement:
     """Create from dictionary (for cache loading)."""
     children = [cls.from_dict(child) for child in data.get("children", [])]
     source_file = Path(data["source_file"]) if data.get("source_file") else None
-    
+
     # Deserialize typed_metadata
     typed_metadata = None
     if data.get("typed_metadata"):
         typed_metadata = cls._deserialize_typed_metadata(data["typed_metadata"])
-    
+
     return cls(
         # ... existing fields ...
         typed_metadata=typed_metadata,
@@ -527,17 +527,17 @@ def _deserialize_typed_metadata(data: dict[str, Any]) -> DocMetadata | None:
         PythonFunctionMetadata,
         # ... all types ...
     )
-    
+
     type_map = {
         "PythonModuleMetadata": PythonModuleMetadata,
         "PythonClassMetadata": PythonClassMetadata,
         "PythonFunctionMetadata": PythonFunctionMetadata,
         # ... all types ...
     }
-    
+
     type_name = data.get("type")
     type_data = data.get("data", {})
-    
+
     if type_name in type_map:
         return type_map[type_name](**type_data)
     return None
@@ -937,4 +937,3 @@ The `metadata` dict is preserved throughout, so existing code continues to work.
 - Python extractor: `bengal/autodoc/extractors/python.py`
 - CLI extractor: `bengal/autodoc/extractors/cli.py`
 - OpenAPI extractor: `bengal/autodoc/extractors/openapi.py`
-

@@ -33,7 +33,7 @@ Create the new infrastructure files without changing any existing code.
 
 #### Task 1.1: Create DirectiveToken dataclass ✅
 - **Files**: `bengal/rendering/plugins/directives/tokens.py`
-- **Action**: 
+- **Action**:
   - Create `DirectiveToken` dataclass with `type`, `attrs`, `children`
   - Add `to_dict()` for mistune compatibility
   - Add `from_dict()` for testing
@@ -254,7 +254,7 @@ Create the new infrastructure files without changing any existing code.
 - **Commit**: `rendering(directives): migrate AdmonitionDirective to BengalDirective base class`
 
 #### Task 2.12: Migrate remaining directives (batch)
-- **Files**: 
+- **Files**:
   - `bengal/rendering/plugins/directives/checklist.py`
   - `bengal/rendering/plugins/directives/code_tabs.py`
   - `bengal/rendering/plugins/directives/data_table.py`
@@ -303,7 +303,7 @@ Create the new infrastructure files without changing any existing code.
 
 #### Task 3.3: Run linter and fix issues
 - **Files**: All modified files
-- **Action**: 
+- **Action**:
   - Run `ruff check bengal/rendering/plugins/directives/ --fix`
   - Run `ruff format bengal/rendering/plugins/directives/`
   - Fix any type errors from mypy
@@ -459,4 +459,3 @@ Task 4.1 ──▶ Task 4.2 ──▶ Task 4.3
 ---
 
 **Ready to begin**: Run `::implement Task 1.1` to start
-

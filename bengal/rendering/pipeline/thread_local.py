@@ -83,4 +83,3 @@ def mark_dir_created(dir_path: str) -> bool:
         True if directory was newly added, False if already tracked
     """
     return _created_dirs.add_if_new(dir_path)
-

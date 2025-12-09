@@ -1,6 +1,5 @@
 """Tests for custom Jinja2 template tests."""
 
-
 from datetime import datetime, timedelta
 
 from jinja2 import Environment

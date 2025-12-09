@@ -58,14 +58,14 @@
 .nav-action-btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
-  box-shadow: 
+  box-shadow:
     0 0 0 4px color-mix(in srgb, var(--color-border-focus) 20%, transparent),
     var(--neumorphic-hover);
 }
 
 @supports not (color: color-mix(in srgb, black, white)) {
   .nav-action-btn:focus-visible {
-    box-shadow: 
+    box-shadow:
       0 0 0 4px rgba(33, 150, 243, 0.1),
       var(--neumorphic-hover);
   }
@@ -111,11 +111,10 @@
     min-width: 44px;
     padding: 0.5rem 0.75rem;
   }
-  
+
   .nav-action-btn--icon-only {
     padding: 0.5rem;
     min-width: 44px;
     min-height: 44px;
   }
 }
-

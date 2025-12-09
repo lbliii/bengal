@@ -41,7 +41,7 @@
   --api-section-gap: var(--space-8);
   --api-member-gap: var(--space-3);
   --api-nested-indent: var(--space-4);
-  
+
   /* Typography - Use base size for content, inherit theme fonts */
   font-family: var(--font-sans);
   font-size: var(--text-base);

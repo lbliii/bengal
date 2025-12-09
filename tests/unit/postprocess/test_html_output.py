@@ -15,8 +15,6 @@ Covers:
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestFormatHtmlOutputRawMode:
     """Test format_html_output in raw mode."""
@@ -225,7 +223,7 @@ class TestCommentRemoval:
         html = "before<!-- comment -->after"
         result = _remove_html_comments(html)
 
-        assert "beforeafter" == result
+        assert result == "beforeafter"
 
     def test_preserves_ie_conditional_comments(self) -> None:
         """Test that IE conditional comments are preserved."""
@@ -244,7 +242,7 @@ class TestCommentRemoval:
         html = "before<!--\nmultiline\ncomment\n-->after"
         result = _remove_html_comments(html)
 
-        assert "beforeafter" == result
+        assert result == "beforeafter"
 
 
 class TestWhitespaceCollapsing:
@@ -392,7 +390,7 @@ class TestWhitespaceSensitiveTags:
         from bengal.postprocess.html_output import _WS_SENSITIVE_TAGS
 
         expected = ("pre", "code", "textarea", "script", "style")
-        assert _WS_SENSITIVE_TAGS == expected
+        assert expected == _WS_SENSITIVE_TAGS
 
 
 class TestFormatHtmlOutputOptions:
@@ -444,4 +442,3 @@ class TestTrailingNewline:
 
         # Should end with at least one newline
         assert result.endswith("\n")
-

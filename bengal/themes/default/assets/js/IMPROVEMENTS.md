@@ -210,4 +210,3 @@ window.BengalUtils.log('Debug message');
 - Debug logging is opt-in (disabled by default)
 - No breaking changes to existing functionality
 - Improved error handling throughout
-

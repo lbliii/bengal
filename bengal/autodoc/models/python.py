@@ -13,7 +13,7 @@ Provides typed metadata for:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 
@@ -208,5 +208,3 @@ class PythonAliasMetadata:
 
     alias_of: str
     alias_kind: Literal["assignment", "import"] = "assignment"
-
-

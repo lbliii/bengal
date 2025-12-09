@@ -9,8 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar
 
-import pytest
-
 from bengal.rendering.plugins.directives import (
     ContainerOptions,
     DirectiveOptions,
@@ -24,7 +22,6 @@ from bengal.rendering.plugins.directives import (
     data_attrs,
     escape_html,
 )
-
 
 # =============================================================================
 # DirectiveToken Tests
@@ -291,12 +288,14 @@ class TestPresetOptions:
 
     def test_container_options(self) -> None:
         """Test ContainerOptions preset."""
-        opts = ContainerOptions.from_raw({
-            "class": "grid-container",
-            "columns": "3",
-            "gap": "large",
-            "style": "bordered",
-        })
+        opts = ContainerOptions.from_raw(
+            {
+                "class": "grid-container",
+                "columns": "3",
+                "gap": "large",
+                "style": "bordered",
+            }
+        )
 
         assert opts.css_class == "grid-container"
         assert opts.columns == "3"
@@ -460,4 +459,3 @@ class TestClassAttr:
     def test_empty_classes(self) -> None:
         """Test with all empty classes."""
         assert class_attr("", "") == ""
-

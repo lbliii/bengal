@@ -17,7 +17,6 @@ Usage:
     enhanced_html = enhancer.enhance(html, page_type='python-module')
 """
 
-
 from __future__ import annotations
 
 import re

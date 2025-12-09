@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -169,9 +169,9 @@ class TestPageExplainer:
         """Test source info for virtual page."""
         mock_site.pages[0].is_virtual = True
         explainer = PageExplainer(mock_site)
-        
+
         info = explainer._get_source_info(mock_site.pages[0])
-        
+
         assert info.path == Path("content/docs/guide.md")
         assert info.line_count > 0
         assert info.encoding == "UTF-8"
@@ -179,10 +179,10 @@ class TestPageExplainer:
     def test_get_shortcode_usage(self, mock_site):
         """Test extracting shortcode/directive usage."""
         explainer = PageExplainer(mock_site)
-        
+
         # Page with directive
         usages = explainer._get_shortcode_usage(mock_site.pages[1])
-        
+
         assert len(usages) == 1
         assert usages[0].name == "note"
         assert usages[0].count == 1
@@ -190,26 +190,26 @@ class TestPageExplainer:
     def test_get_shortcode_usage_no_directives(self, mock_site):
         """Test shortcode extraction when no directives."""
         explainer = PageExplainer(mock_site)
-        
+
         usages = explainer._get_shortcode_usage(mock_site.pages[0])
-        
+
         assert len(usages) == 0
 
     def test_get_cache_status_no_cache(self, mock_site):
         """Test cache status when no cache available."""
         explainer = PageExplainer(mock_site, cache=None)
-        
+
         status = explainer._get_cache_status(mock_site.pages[0])
-        
+
         assert status.status == "UNKNOWN"
         assert "No cache" in status.reason
 
     def test_get_cache_status_miss(self, mock_site, mock_cache):
         """Test cache status for cache miss."""
         explainer = PageExplainer(mock_site, cache=mock_cache)
-        
+
         status = explainer._get_cache_status(mock_site.pages[0])
-        
+
         assert status.status == "MISS"
         assert status.content_cached is False
 
@@ -218,10 +218,10 @@ class TestPageExplainer:
         page_key = str(mock_site.pages[0].source_path)
         mock_cache.parsed_content[page_key] = {"html": "<p>test</p>"}
         mock_cache.rendered_output[page_key] = {"html": "<html>test</html>"}
-        
+
         explainer = PageExplainer(mock_site, cache=mock_cache)
         status = explainer._get_cache_status(mock_site.pages[0])
-        
+
         assert status.status == "HIT"
         assert status.content_cached is True
         assert status.rendered_cached is True
@@ -231,27 +231,27 @@ class TestPageExplainer:
         page_key = str(mock_site.pages[0].source_path)
         mock_cache.parsed_content[page_key] = {"html": "<p>test</p>"}
         mock_cache.is_changed = MagicMock(return_value=True)
-        
+
         explainer = PageExplainer(mock_site, cache=mock_cache)
         status = explainer._get_cache_status(mock_site.pages[0])
-        
+
         assert status.status == "STALE"
         assert "modified" in status.reason.lower()
 
     def test_get_template_name_from_metadata(self, mock_site):
         """Test getting template name from page metadata."""
         mock_site.pages[0].metadata["template"] = "custom.html"
-        
+
         explainer = PageExplainer(mock_site)
         template = explainer._get_template_name(mock_site.pages[0])
-        
+
         assert template == "custom.html"
 
     def test_get_template_name_from_type(self, mock_site):
         """Test getting template name from page type."""
         explainer = PageExplainer(mock_site)
         template = explainer._get_template_name(mock_site.pages[0])
-        
+
         assert template == "doc.html"
 
     def test_extract_asset_refs(self, mock_site):
@@ -267,7 +267,7 @@ class TestPageExplainer:
 """
         explainer = PageExplainer(mock_site)
         refs = explainer._extract_asset_refs(mock_site.pages[0].content)
-        
+
         # Should include local refs, exclude external
         assert "images/test.png" in refs
         assert "/assets/logo.svg" in refs
@@ -276,32 +276,32 @@ class TestPageExplainer:
     def test_extract_extends(self):
         """Test extracting extends directive from template."""
         explainer = PageExplainer(MagicMock())
-        
+
         content = '{% extends "base.html" %}\n{% block content %}...'
         result = explainer._extract_extends(content)
-        
+
         assert result == "base.html"
 
     def test_extract_extends_none(self):
         """Test extracting extends when not present."""
         explainer = PageExplainer(MagicMock())
-        
-        content = '{% block content %}...{% endblock %}'
+
+        content = "{% block content %}...{% endblock %}"
         result = explainer._extract_extends(content)
-        
+
         assert result is None
 
     def test_extract_includes(self):
         """Test extracting include directives from template."""
         explainer = PageExplainer(MagicMock())
-        
-        content = '''
+
+        content = """
 {% include "header.html" %}
 {% include 'footer.html' %}
 {% include "sidebar.html" %}
-'''
+"""
         result = explainer._extract_includes(content)
-        
+
         assert len(result) == 3
         assert "header.html" in result
         assert "footer.html" in result
@@ -310,7 +310,7 @@ class TestPageExplainer:
     def test_explain_raises_for_missing_page(self, mock_site):
         """Test that explain raises ValueError for missing page."""
         explainer = PageExplainer(mock_site)
-        
+
         with pytest.raises(ValueError, match="Page not found"):
             explainer.explain("nonexistent.md")
 
@@ -324,7 +324,7 @@ class TestPageExplainer:
 """
         explainer = PageExplainer(mock_site)
         issues = explainer._diagnose_issues(mock_site.pages[0])
-        
+
         # Should find broken link
         broken_link_issues = [i for i in issues if i.issue_type == "broken_link"]
         assert len(broken_link_issues) == 1
@@ -367,6 +367,3 @@ class TestPageExplanation:
         assert len(explanation.shortcodes) == 1
         assert explanation.cache.status == "HIT"
         assert explanation.output.url == "/test/"
-
-
-

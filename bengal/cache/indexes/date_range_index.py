@@ -1,6 +1,5 @@
 """Date Range Index - Index pages by year and month."""
 
-
 from __future__ import annotations
 
 from pathlib import Path

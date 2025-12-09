@@ -138,17 +138,17 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-flat-subtle:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(0, 0, 0, 0.06);
-  
+
   --shadow-flat-base:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.08),
     0 2px 6px rgba(0, 0, 0, 0.04);
-  
+
   --shadow-flat-elevated:
     0 2px 4px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.05);
-  
+
   --shadow-flat-hover:
     0 4px 8px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.12),
@@ -160,17 +160,17 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-flat-subtle:
     0 1px 2px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.05);
-  
+
   --shadow-flat-base:
     0 1px 3px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 2px 6px rgba(0, 0, 0, 0.3);
-  
+
   --shadow-flat-elevated:
     0 2px 4px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.4);
-  
+
   --shadow-flat-hover:
     0 4px 8px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.12),
@@ -208,7 +208,7 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   --border-refined-subtle: 1px solid rgba(0, 0, 0, 0.06);
   --border-refined-base: 1px solid rgba(0, 0, 0, 0.08);
   --border-refined-strong: 1px solid rgba(0, 0, 0, 0.1);
-  
+
   /* Enhanced neumorphic shadows (from Option 1) */
   --neumorphic-enhanced-base: /* ... */;
   --neumorphic-enhanced-hover: /* ... */;
@@ -251,11 +251,11 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-border-only-subtle:
     0 0 0 1px rgba(0, 0, 0, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.04);
-  
+
   --shadow-border-only-base:
     0 0 0 1px rgba(0, 0, 0, 0.08),
     0 2px 4px rgba(0, 0, 0, 0.05);
-  
+
   --shadow-border-only-elevated:
     0 0 0 1px rgba(0, 0, 0, 0.1),
     0 4px 8px rgba(0, 0, 0, 0.06);
@@ -334,30 +334,30 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 :root {
   /* Level 0: Flat (no shadow, or minimal) */
   --depth-0: none;
-  
+
   /* Level 1: Subtle elevation (floating slightly) */
   --depth-1:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(0, 0, 0, 0.06);
-  
+
   /* Level 2: Base elevation (cards, code blocks) */
   --depth-2:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.08),
     0 2px 6px rgba(0, 0, 0, 0.04);
-  
+
   /* Level 3: Elevated (hover states, modals) */
   --depth-3:
     0 2px 4px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.05);
-  
+
   /* Level 4: High elevation (dropdowns, popovers) */
   --depth-4:
     0 4px 8px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.12),
     0 8px 16px rgba(0, 0, 0, 0.06);
-  
+
   /* Level 5: Highest (modals, overlays) */
   --depth-5:
     0 8px 16px rgba(0, 0, 0, 0.1),
@@ -398,7 +398,7 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 --neumorphic-base: inset/outset shadows...
 
 /* Enhanced neumorphic (adds multi-layer depth) */
---neumorphic-enhanced-base: 
+--neumorphic-enhanced-base:
   /* All existing neumorphic layers */
   /* PLUS border-defining shadow */
   /* PLUS depth layers */
@@ -422,7 +422,7 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 ### 4.2 Component-Specific Application
 
 **Code Blocks** (`components/code.css:25-40`):
-- **Current**: 
+- **Current**:
   - `border: 1px solid rgba(0, 0, 0, 0.1)`
   - `box-shadow: var(--elevation-card)` + animated glow
   - `border-radius: var(--radius-2xl)` (16px)
@@ -433,7 +433,7 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 - **Rationale**: Enhanced neumorphic adds depth layers while keeping tactile feel; refined border creates cleaner edge
 
 **Cards** (`components/cards.css:10-23`):
-- **Current**: 
+- **Current**:
   - `border: 1px solid var(--color-border)`
   - `box-shadow: var(--elevation-low)`
   - `border-radius: var(--radius-xl)` (12px)
@@ -451,7 +451,7 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 
 **Copy Buttons** (`components/code.css:276-468`):
 - **Current**: Neumorphic with frosted glass (`backdrop-filter: blur(12px)`)
-- **Proposed Enhancement**: 
+- **Proposed Enhancement**:
   - Keep neumorphic base (works well with frosted glass)
   - Optionally add depth layer on hover: `var(--neumorphic-enhanced-hover)`
 - **Rationale**: Frosted glass + neumorphic is distinctive; enhance hover state only
@@ -478,10 +478,10 @@ border_radius_scale = "soft"  # default: standard (backward compatible)
 
 /* Components check these flags */
 .code-block {
-  box-shadow: var(--use-enhanced-shadows, 1) 
-    ? var(--neumorphic-enhanced-base) 
+  box-shadow: var(--use-enhanced-shadows, 1)
+    ? var(--neumorphic-enhanced-base)
     : var(--elevation-card);
-  
+
   border-radius: var(--use-soft-radius, 1)
     ? var(--radius-soft-xl)
     : var(--radius-2xl);
@@ -740,7 +740,7 @@ border_radius_scale = "soft"  # default: standard (backward compatible)
 
 This RFC proposes **enhancing Bengal's existing neumorphic style** by incorporating multi-layer shadow depth techniques and refined border/shape treatments from modern code block designs. Rather than replacing Bengal's distinctive tactile feel, we'll add sophisticated depth layers while preserving all neumorphic characteristics.
 
-**Recommended Approach**: 
+**Recommended Approach**:
 - **Option 1** (Enhanced Neumorphic with Multi-Layer Depth) + **Option 2** (Refined Border) + **Option 4** (Enhanced Border Radius)
 - Enhance code blocks and cards with multi-layer depth
 - Keep standard neumorphic for buttons (or make configurable)
@@ -763,4 +763,3 @@ This RFC proposes **enhancing Bengal's existing neumorphic style** by incorporat
 ---
 
 *"Enhanced neumorphic" - where Bengal's tactile identity meets refined depth, and distinctive meets sophisticated.*
-

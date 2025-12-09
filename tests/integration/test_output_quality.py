@@ -60,9 +60,9 @@ class TestOutputQuality:
         assert len(stylesheets) > 0, "No stylesheets found in output"
 
         # Check for asset_url helper working
-        assert any(
-            "assets/css" in str(link.get("href", "")) for link in stylesheets
-        ), "No theme CSS linked"
+        assert any("assets/css" in str(link.get("href", "")) for link in stylesheets), (
+            "No theme CSS linked"
+        )
 
         # Must have navigation
         nav = soup.find("nav")
@@ -97,9 +97,9 @@ class TestOutputQuality:
         size = index_html.stat().st_size
 
         # Full themed pages should be substantial
-        assert (
-            size > 3000
-        ), f"Page too small ({size} bytes), likely fallback HTML instead of themed output"
+        assert size > 3000, (
+            f"Page too small ({size} bytes), likely fallback HTML instead of themed output"
+        )
 
         # Check a few other pages too
         about_html = built_site / "about/index.html"
@@ -204,7 +204,7 @@ class TestOutputQuality:
 @pytest.mark.slow
 class TestStrictMode:
     """Test that strict mode catches rendering errors.
-    
+
     Marked slow due to full site builds in each test.
     """
 

@@ -11,8 +11,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-import pytest
-
 from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 
 
@@ -288,9 +286,7 @@ class TestThreadLocalCacheWithExpensiveObjects:
         def create_parser(engine: str = "default") -> FakeParser:
             return FakeParser(engine)
 
-        parser_cache: ThreadLocalCache[FakeParser] = ThreadLocalCache(
-            create_parser, name="parser"
-        )
+        parser_cache: ThreadLocalCache[FakeParser] = ThreadLocalCache(create_parser, name="parser")
 
         # Simulate parsing multiple documents
         parser = parser_cache.get("mistune")
@@ -336,4 +332,3 @@ class TestThreadLocalCacheWithExpensiveObjects:
         # Should have at most 4 unique contexts (one per worker)
         unique_thread_ids = {r[1]["thread_id"] for r in results}
         assert len(unique_thread_ids) <= 4
-

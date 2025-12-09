@@ -231,53 +231,53 @@ from dataclasses import dataclass
 @dataclass
 class LocalizedPage:
     """Page with i18n awareness."""
-    
+
     # Original page
     page: Page
-    
+
     # Locale information
     locale: str
     is_default_locale: bool
-    
+
     # Translations
     translations: dict[str, 'LocalizedPage']  # locale -> page
-    
+
     # URL with locale
     localized_url: str
-    
+
     # Fallback info
     is_fallback: bool = False  # True if showing default for missing translation
-    
+
     @property
     def available_locales(self) -> list[str]:
         """Get list of locales this page is available in."""
         return [self.locale] + list(self.translations.keys())
-    
+
     @property
     def hreflang_tags(self) -> list[dict]:
         """Generate hreflang link data."""
         tags = []
-        
+
         # Self
         tags.append({
             "hreflang": self.locale,
             "href": self.localized_url,
         })
-        
+
         # Translations
         for locale, page in self.translations.items():
             tags.append({
                 "hreflang": locale,
                 "href": page.localized_url,
             })
-        
+
         # x-default (points to default locale version)
         if self.is_default_locale:
             tags.append({
                 "hreflang": "x-default",
                 "href": self.localized_url,
             })
-        
+
         return tags
 ```
 
@@ -288,73 +288,73 @@ class LocalizedPage:
 
 class LocaleResolver:
     """Resolve content for a specific locale."""
-    
+
     def __init__(self, config: I18nConfig):
         self.config = config
         self.default_locale = config.default_locale
-    
+
     def resolve_page(
-        self, 
-        page_path: str, 
+        self,
+        page_path: str,
         locale: str,
     ) -> tuple[Page, bool]:
         """
         Resolve page for locale.
         Returns (page, is_fallback).
         """
-        
+
         if self.config.mode == "suffix":
             # Try locale-specific file first
             localized_path = self._add_locale_suffix(page_path, locale)
             if self._exists(localized_path):
                 return (self._load(localized_path), False)
-            
+
             # Try default locale
             if locale != self.default_locale and self.config.fallback_to_default:
                 default_path = self._add_locale_suffix(page_path, self.default_locale)
                 if self._exists(default_path):
                     return (self._load(default_path), True)
-                
+
                 # Try without suffix (implicit default)
                 if self._exists(page_path):
                     return (self._load(page_path), True)
-        
+
         elif self.config.mode == "folder":
             # Try locale folder
             localized_path = f"{locale}/{page_path}"
             if self._exists(localized_path):
                 return (self._load(localized_path), False)
-            
+
             # Fallback to default
             if locale != self.default_locale and self.config.fallback_to_default:
                 default_path = f"{self.default_locale}/{page_path}"
                 if self._exists(default_path):
                     return (self._load(default_path), True)
-        
+
         raise PageNotFoundError(f"No content found for {page_path} in {locale}")
-    
+
     def find_translations(self, page: Page) -> dict[str, Page]:
         """Find all translations of a page."""
         translations = {}
         base_path = self._strip_locale(page.source_path)
-        
+
         for locale in self.config.locales:
             if locale.code == page.locale:
                 continue
-            
+
             try:
                 translated, _ = self.resolve_page(base_path, locale.code)
                 translations[locale.code] = translated
             except PageNotFoundError:
                 pass
-        
+
         return translations
-    
+
     def _add_locale_suffix(self, path: str, locale: str) -> str:
         """Add locale suffix to path: guide.md -> guide.es.md"""
         if locale == self.default_locale:
             return path
-        
+
         stem = path.rsplit(".", 1)[0]
         ext = path.rsplit(".", 1)[1] if "." in path else "md"
         return f"{stem}.{locale}.{ext}"
@@ -367,16 +367,16 @@ class LocaleResolver:
 
 class LanguageSwitcher:
     """Generate language switcher data for templates."""
-    
+
     def get_switcher_data(
-        self, 
+        self,
         current_page: LocalizedPage,
         site: Site,
     ) -> list[dict]:
         """Generate data for language switcher component."""
-        
+
         items = []
-        
+
         for locale in site.config.i18n.locales:
             # Find translation or fallback
             if locale.code == current_page.locale:
@@ -389,7 +389,7 @@ class LanguageSwitcher:
                 # Link to homepage in that locale
                 url = f"/{locale.code}/" if not locale.default else "/"
                 available = False
-            
+
             items.append({
                 "code": locale.code,
                 "name": locale.name,
@@ -397,7 +397,7 @@ class LanguageSwitcher:
                 "current": locale.code == current_page.locale,
                 "available": available,
             })
-        
+
         return items
 ```
 
@@ -432,35 +432,35 @@ class LanguageSwitcher:
 
 class TranslationCoverage:
     """Analyze translation coverage."""
-    
+
     def analyze(self, site: Site) -> CoverageReport:
         """Generate translation coverage report."""
-        
+
         report = CoverageReport()
         default_locale = site.config.i18n.default_locale
-        
+
         # Get all pages in default locale
         default_pages = [p for p in site.pages if p.locale == default_locale]
-        
+
         for locale in site.config.i18n.locales:
             if locale.code == default_locale:
                 continue
-            
+
             locale_pages = [p for p in site.pages if p.locale == locale.code]
             locale_paths = {self._normalize_path(p) for p in locale_pages}
-            
+
             translated = 0
             missing = []
-            
+
             for page in default_pages:
                 norm_path = self._normalize_path(page)
                 if norm_path in locale_paths:
                     translated += 1
                 else:
                     missing.append(page.path)
-            
+
             coverage_pct = (translated / len(default_pages)) * 100 if default_pages else 100
-            
+
             report.locales[locale.code] = LocaleCoverage(
                 locale=locale.code,
                 total_pages=len(default_pages),
@@ -468,33 +468,33 @@ class TranslationCoverage:
                 missing_pages=missing,
                 coverage_percent=coverage_pct,
             )
-        
+
         return report
-    
+
     def print_report(self, report: CoverageReport):
         """Print coverage report to console."""
-        
+
         console.print("\n📊 [bold]Translation Coverage Report[/bold]\n")
-        
+
         table = Table()
         table.add_column("Locale")
         table.add_column("Translated")
         table.add_column("Missing")
         table.add_column("Coverage")
-        
+
         for locale, coverage in report.locales.items():
             pct = coverage.coverage_percent
             color = "green" if pct >= 80 else "yellow" if pct >= 50 else "red"
-            
+
             table.add_row(
                 locale,
                 str(coverage.translated_pages),
                 str(len(coverage.missing_pages)),
                 f"[{color}]{pct:.1f}%[/{color}]",
             )
-        
+
         console.print(table)
-        
+
         # Show missing pages for low-coverage locales
         for locale, coverage in report.locales.items():
             if coverage.missing_pages and coverage.coverage_percent < 80:
@@ -528,15 +528,15 @@ bengal build --locale en --no-other-locales
 bengal i18n coverage
 
 # Output:
-# 
+#
 # 📊 Translation Coverage Report
-# 
+#
 # Locale    Translated    Missing    Coverage
 # ──────────────────────────────────────────
 # es        45            12         79.0%
 # ja        28            29         49.1%
 # de        52            5          91.2%
-# 
+#
 # Missing in ja:
 #   • docs/advanced/plugins.md
 #   • docs/api/reference.md
@@ -563,16 +563,16 @@ bengal i18n import translations/es.xliff
 
 def generate_sitemap_with_i18n(site: Site) -> str:
     """Generate sitemap with hreflang alternates."""
-    
+
     urls = []
-    
+
     for page in site.pages:
         url_entry = {
             "loc": page.absolute_url,
             "lastmod": page.last_modified,
             "priority": page.sitemap_priority,
         }
-        
+
         # Add alternates for i18n
         if site.config.i18n.enabled:
             alternates = []
@@ -592,11 +592,11 @@ def generate_sitemap_with_i18n(site: Site) -> str:
                     "hreflang": "x-default",
                     "href": page.absolute_url,
                 })
-            
+
             url_entry["alternates"] = alternates
-        
+
         urls.append(url_entry)
-    
+
     return render_sitemap_xml(urls)
 ```
 
@@ -674,6 +674,3 @@ def generate_sitemap_with_i18n(site: Site) -> str:
 - [Docusaurus i18n](https://docusaurus.io/docs/i18n/introduction)
 - [Next.js Internationalization](https://nextjs.org/docs/advanced-features/i18n-routing)
 - [W3C Internationalization](https://www.w3.org/International/)
-
-
-

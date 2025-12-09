@@ -4,7 +4,6 @@ Advanced string manipulation functions for templates.
 Provides 5 advanced string transformation functions.
 """
 
-
 from __future__ import annotations
 
 import re

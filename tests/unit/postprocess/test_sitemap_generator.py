@@ -400,4 +400,3 @@ class TestSitemapGeneratorStatsCounting:
 
         skipped = [p for p in pages if not p.in_sitemap]
         assert len(skipped) == 2
-

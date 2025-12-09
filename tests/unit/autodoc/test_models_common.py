@@ -178,5 +178,3 @@ class TestQualifiedName:
         qn = QualifiedName.from_string("a/b/c", separator="/")
         assert qn.parts == ("a", "b", "c")
         assert str(qn) == "a.b.c"  # str always uses dots
-
-

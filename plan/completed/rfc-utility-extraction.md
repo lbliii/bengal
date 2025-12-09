@@ -71,30 +71,30 @@ Bengal's codebase contains **repeated patterns** scattered across multiple modul
 
 - **Utils** (`bengal/utils/`): Primary target — adding 3 new modules
   - New: `hashing.py`, `retry.py`, `thread_local.py`
-  
+
 - **Cache** (`bengal/cache/`): Will import from `utils/hashing.py`
   - `build_cache/file_tracking.py`
   - `build_cache/parsed_content_cache.py`
   - `build_cache/rendered_output_cache.py`
   - `build_cache/fingerprint.py`
   - `query_index.py`
-  
+
 - **Orchestration** (`bengal/orchestration/`): Will import from `utils/thread_local.py`
   - `render.py`
   - `menu.py`
-  
+
 - **Core** (`bengal/core/`): Will import from `utils/hashing.py` and `utils/thread_local.py`
   - `site/core.py`
   - `asset.py`
-  
+
 - **Rendering** (`bengal/rendering/`): Will import from `utils/thread_local.py`
   - `pipeline/thread_local.py` (becomes thin wrapper)
   - `template_profiler.py`
   - `pygments_cache.py`
-  
+
 - **Health** (`bengal/health/`): Will import from `utils/retry.py`
   - `linkcheck/async_checker.py`
-  
+
 - **Server** (`bengal/server/`): Will import from `utils/thread_local.py`
   - `request_handler.py`
   - `build_handler.py`
@@ -204,16 +204,16 @@ and content-addressable storage.
 
 Example:
     from bengal.utils.hashing import hash_str, hash_file, hash_dict
-    
+
     # Hash string content
     key = hash_str("hello world")  # "b94d27b9..."
-    
+
     # Hash with truncation (for fingerprints)
     fingerprint = hash_str("hello world", truncate=8)  # "b94d27b9"
-    
+
     # Hash file content
     file_hash = hash_file(Path("content/post.md"))
-    
+
     # Hash dict deterministically
     config_hash = hash_dict({"key": "value", "nested": [1, 2, 3]})
 """
@@ -229,15 +229,15 @@ from typing import Any
 def hash_str(content: str, truncate: int | None = None, algorithm: str = "sha256") -> str:
     """
     Hash string content using specified algorithm.
-    
+
     Args:
         content: String content to hash
         truncate: Truncate result to N characters (None = full hash)
         algorithm: Hash algorithm ('sha256', 'md5')
-    
+
     Returns:
         Hex digest of hash, optionally truncated
-    
+
     Examples:
         >>> hash_str("hello")
         '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
@@ -253,12 +253,12 @@ def hash_str(content: str, truncate: int | None = None, algorithm: str = "sha256
 def hash_bytes(content: bytes, truncate: int | None = None, algorithm: str = "sha256") -> str:
     """
     Hash bytes content using specified algorithm.
-    
+
     Args:
         content: Bytes content to hash
         truncate: Truncate result to N characters (None = full hash)
         algorithm: Hash algorithm ('sha256', 'md5')
-    
+
     Returns:
         Hex digest of hash, optionally truncated
     """
@@ -275,15 +275,15 @@ def hash_dict(
 ) -> str:
     """
     Hash dictionary deterministically (sorted keys, string serialization).
-    
+
     Args:
         data: Dictionary to hash
         truncate: Truncate result to N characters (default: 16)
         algorithm: Hash algorithm ('sha256', 'md5')
-    
+
     Returns:
         Hex digest of hash
-    
+
     Examples:
         >>> hash_dict({"b": 2, "a": 1})
         '...'  # Same as hash_dict({"a": 1, "b": 2})
@@ -301,25 +301,25 @@ def hash_file(
 ) -> str:
     """
     Hash file content by streaming (memory-efficient for large files).
-    
+
     Args:
         path: Path to file
         truncate: Truncate result to N characters (None = full hash)
         algorithm: Hash algorithm ('sha256', 'md5')
         chunk_size: Read buffer size in bytes
-    
+
     Returns:
         Hex digest of file content hash
-    
+
     Raises:
         FileNotFoundError: If file doesn't exist
     """
     hasher = hashlib.new(algorithm)
-    
+
     with open(path, "rb") as f:
         while chunk := f.read(chunk_size):
             hasher.update(chunk)
-    
+
     digest = hasher.hexdigest()
     return digest[:truncate] if truncate else digest
 
@@ -331,15 +331,15 @@ def hash_file_with_stat(
 ) -> str:
     """
     Hash file for fingerprinting (includes mtime for fast invalidation).
-    
+
     Combines file content hash with modification time for efficient
     cache invalidation without re-hashing unchanged files.
-    
+
     Args:
         path: Path to file
         truncate: Truncate result to N characters (default: 8 for URLs)
         algorithm: Hash algorithm
-    
+
     Returns:
         Fingerprint string suitable for URLs
     """
@@ -363,7 +363,7 @@ with configurable backoff strategies and jitter.
 
 Example:
     from bengal.utils.retry import retry_with_backoff, calculate_backoff
-    
+
     # Retry function with backoff
     result = retry_with_backoff(
         fetch_data,
@@ -371,7 +371,7 @@ Example:
         base_delay=0.5,
         exceptions=(ConnectionError, TimeoutError),
     )
-    
+
     # Calculate backoff for custom retry loop
     delay = calculate_backoff(attempt=2, base=0.5, max_delay=10.0)
 """
@@ -395,18 +395,18 @@ def calculate_backoff(
 ) -> float:
     """
     Calculate exponential backoff delay with optional jitter.
-    
+
     Uses formula: base * (2 ^ attempt) with ±25% jitter.
-    
+
     Args:
         attempt: Current attempt number (0-indexed)
         base: Base delay in seconds
         max_delay: Maximum delay cap
         jitter: Add random jitter to prevent thundering herd
-    
+
     Returns:
         Delay in seconds
-    
+
     Examples:
         >>> calculate_backoff(0, base=0.5)  # ~0.5s
         >>> calculate_backoff(1, base=0.5)  # ~1.0s
@@ -414,12 +414,12 @@ def calculate_backoff(
     """
     delay = base * (2 ** attempt)
     delay = min(delay, max_delay)
-    
+
     if jitter:
         # ±25% jitter
         jitter_range = delay * 0.25
         delay += random.uniform(-jitter_range, jitter_range)
-    
+
     return max(0.1, delay)  # Minimum 100ms
 
 
@@ -434,7 +434,7 @@ def retry_with_backoff(
 ) -> T:
     """
     Execute function with retry and exponential backoff.
-    
+
     Args:
         func: Function to execute (no arguments)
         retries: Maximum retry attempts
@@ -443,13 +443,13 @@ def retry_with_backoff(
         jitter: Add jitter to prevent thundering herd
         exceptions: Exception types to catch and retry
         on_retry: Optional callback(attempt, exception) on each retry
-    
+
     Returns:
         Result of successful function call
-    
+
     Raises:
         Last exception if all retries exhausted
-    
+
     Example:
         >>> result = retry_with_backoff(
         ...     lambda: requests.get(url),
@@ -458,23 +458,23 @@ def retry_with_backoff(
         ... )
     """
     last_error: Exception | None = None
-    
+
     for attempt in range(retries + 1):
         try:
             return func()
         except exceptions as e:
             last_error = e
-            
+
             if attempt < retries:
                 delay = calculate_backoff(attempt, base_delay, max_delay, jitter)
-                
+
                 if on_retry:
                     on_retry(attempt, e)
-                
+
                 time.sleep(delay)
             else:
                 raise
-    
+
     # Should never reach here, but satisfies type checker
     raise last_error  # type: ignore
 
@@ -490,7 +490,7 @@ async def async_retry_with_backoff(
 ) -> T:
     """
     Execute async function with retry and exponential backoff.
-    
+
     Args:
         coro_func: Async function to execute (no arguments, returns awaitable)
         retries: Maximum retry attempts
@@ -499,13 +499,13 @@ async def async_retry_with_backoff(
         jitter: Add jitter to prevent thundering herd
         exceptions: Exception types to catch and retry
         on_retry: Optional callback(attempt, exception) on each retry
-    
+
     Returns:
         Result of successful coroutine
-    
+
     Raises:
         Last exception if all retries exhausted
-    
+
     Example:
         >>> result = await async_retry_with_backoff(
         ...     lambda: client.get(url),
@@ -514,23 +514,23 @@ async def async_retry_with_backoff(
         ... )
     """
     last_error: Exception | None = None
-    
+
     for attempt in range(retries + 1):
         try:
             return await coro_func()
         except exceptions as e:
             last_error = e
-            
+
             if attempt < retries:
                 delay = calculate_backoff(attempt, base_delay, max_delay, jitter)
-                
+
                 if on_retry:
                     on_retry(attempt, e)
-                
+
                 await asyncio.sleep(delay)
             else:
                 raise
-    
+
     raise last_error  # type: ignore
 ```
 
@@ -547,16 +547,16 @@ like parsers, database connections, or pipeline instances.
 
 Example:
     from bengal.utils.thread_local import ThreadLocalCache
-    
+
     # Create a cache for markdown parsers
     parser_cache = ThreadLocalCache(
         factory=lambda: create_markdown_parser(),
         name="markdown_parser",
     )
-    
+
     # Get or create parser for current thread
     parser = parser_cache.get()
-    
+
     # Get parser with a specific key (e.g., engine type)
     mistune_parser = parser_cache.get("mistune")
 """
@@ -573,25 +573,25 @@ T = TypeVar("T")
 class ThreadLocalCache(Generic[T]):
     """
     Generic thread-local cache with factory pattern.
-    
+
     Creates one instance per thread per key, reusing it for subsequent calls.
     Useful for expensive objects like parsers that are not thread-safe but
     can be reused within a single thread.
-    
+
     Thread Safety:
         Each thread gets its own instance(s), no locking required for access.
         The factory function should be thread-safe if it accesses shared state.
-    
+
     Performance:
         - First access per thread/key: factory() cost (e.g., 10ms for parser)
         - Subsequent access: ~1µs (attribute lookup)
-    
+
     Example:
         >>> cache = ThreadLocalCache(lambda: ExpensiveParser(), name="parser")
         >>> parser = cache.get()  # Creates parser for this thread
         >>> parser = cache.get()  # Reuses same parser
     """
-    
+
     def __init__(
         self,
         factory: Callable[[], T] | Callable[[str], T],
@@ -599,7 +599,7 @@ class ThreadLocalCache(Generic[T]):
     ):
         """
         Initialize thread-local cache.
-        
+
         Args:
             factory: Callable that creates new instances.
                      Can be no-arg or accept a key string.
@@ -609,47 +609,47 @@ class ThreadLocalCache(Generic[T]):
         self._factory = factory
         self._name = name
         self._factory_accepts_key = self._check_factory_signature()
-    
+
     def _check_factory_signature(self) -> bool:
         """Check if factory accepts a key argument."""
         import inspect
         sig = inspect.signature(self._factory)
         params = list(sig.parameters.values())
         return len(params) > 0
-    
+
     def get(self, key: str | None = None) -> T:
         """
         Get or create cached instance for current thread.
-        
+
         Args:
             key: Optional key for multiple instances per thread.
                  Use when caching different variants (e.g., parser engines).
-        
+
         Returns:
             Cached or newly created instance
         """
         cache_key = f"_cache_{self._name}_{key or 'default'}"
-        
+
         if not hasattr(self._local, cache_key):
             if self._factory_accepts_key and key:
                 instance = self._factory(key)  # type: ignore
             else:
                 instance = self._factory()  # type: ignore
             setattr(self._local, cache_key, instance)
-        
+
         return getattr(self._local, cache_key)
-    
+
     def clear(self, key: str | None = None) -> None:
         """
         Clear cached instance for current thread.
-        
+
         Args:
             key: Specific key to clear, or None to clear default
         """
         cache_key = f"_cache_{self._name}_{key or 'default'}"
         if hasattr(self._local, cache_key):
             delattr(self._local, cache_key)
-    
+
     def clear_all(self) -> None:
         """Clear all cached instances for current thread."""
         # Find all cache keys for this cache name
@@ -664,26 +664,26 @@ class ThreadLocalCache(Generic[T]):
 class ThreadSafeSet:
     """
     Thread-safe set for tracking created resources (e.g., directories).
-    
+
     Example:
         >>> created_dirs = ThreadSafeSet()
         >>> if created_dirs.add_if_new("/path/to/dir"):
         ...     os.makedirs("/path/to/dir")  # Only if not already created
     """
-    
+
     def __init__(self):
         self._set: set[str] = set()
         self._lock = threading.Lock()
-    
+
     def add_if_new(self, item: str) -> bool:
         """
         Add item if not present, return True if added.
-        
+
         Thread-safe check-and-add operation.
-        
+
         Args:
             item: Item to add
-        
+
         Returns:
             True if item was new (added), False if already present
         """
@@ -692,11 +692,11 @@ class ThreadSafeSet:
                 return False
             self._set.add(item)
             return True
-    
+
     def __contains__(self, item: str) -> bool:
         with self._lock:
             return item in self._set
-    
+
     def clear(self) -> None:
         with self._lock:
             self._set.clear()
@@ -758,7 +758,7 @@ No new configuration options required. Utilities use sensible defaults:
 **Risk 1: Migration introduces bugs**
 - **Likelihood**: Low
 - **Impact**: Medium (could affect caching, builds)
-- **Mitigation**: 
+- **Mitigation**:
   - Incremental migration (one module at a time)
   - Comprehensive tests before migration
   - Keep old code paths initially, switch via feature flag if needed
@@ -823,7 +823,7 @@ No new configuration options required. Utilities use sensible defaults:
 
 - **Feature flag**: Not needed (internal refactoring)
 - **Beta period**: Not needed (covered by test suite)
-- **Documentation updates**: 
+- **Documentation updates**:
   - `architecture/utils.md` (if exists, or create)
   - Module docstrings (included in implementation)
 
@@ -832,7 +832,7 @@ No new configuration options required. Utilities use sensible defaults:
 ## Decisions (Resolved Questions)
 
 - **Hashing Performance**: `hash_file()` will use SHA256 initially (stdlib only). Adding `xxhash` support is deferred to Phase 3 as an optional optimization if performance benchmarks justify the dependency.
-  
+
 - **Retry Decorators**: Retry utilities will start with function wrappers (`retry_with_backoff`). Decorators can be added later if developer feedback requests them, but explicit wrappers are preferred for transparency.
 
 - **Thread-Local Debugging**: The thread-local cache will include an optional debug mode to log creation counts, aiding in leak detection during development.

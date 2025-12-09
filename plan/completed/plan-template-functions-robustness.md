@@ -26,7 +26,7 @@ Fix the broken `truncatewords_html` function, add performance caching to `resolv
 #### Task 1.1: Implement HTML-preserving `truncatewords_html`
 
 - **Files**: `bengal/rendering/template_functions/strings.py`
-- **Action**: 
+- **Action**:
   - Replace `truncatewords_html` implementation (lines 88-119)
   - Add tag-aware truncation with open tag tracking
   - Include complete HTML5 void elements set
@@ -314,4 +314,3 @@ git add -A && git commit -m "tests(rendering): add comprehensive unit tests for 
 git add -A && git commit -m "rendering(strings): expose filesize filter wrapping humanize_bytes"
 git add -A && git commit -m "tests(rendering): add filesize filter unit tests"
 ```
-

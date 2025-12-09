@@ -5,7 +5,7 @@ info:
   description: |
     A representative "messy" API that has evolved over 5 years.
     Includes inconsistent naming, deprecated endpoints, and complex schemas.
-    
+
     # Authentication
     Supports multiple schemes because we migrated from Basic to OAuth2 but never turned off Basic.
 
@@ -82,10 +82,10 @@ components:
         number:
           type: string
           pattern: '^\d{16}$'
-        cvv: 
+        cvv:
           type: string
           writeOnly: true # sensitive
-    
+
     BankAccount:
       type: object
       required: [type, routing]
@@ -119,7 +119,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrgChartNode'
-    
+
     # Messy schema with inline definitions and no type enforcement
     LegacyConfigBlob:
       type: object
@@ -144,7 +144,7 @@ components:
         type: integer
         default: 1
         minimum: 1
-    
+
     LimitParam:
       name: limit
       in: query
@@ -152,7 +152,7 @@ components:
         type: integer
         default: 20
         maximum: 100
-    
+
     FilterParam:
       name: filter
       in: query
@@ -221,7 +221,7 @@ paths:
       responses:
         '201':
           description: Created
-    
+
   # 2. Deprecated Endpoint (inconsistent naming convention)
   /user/getDetails:
     get:
@@ -328,4 +328,3 @@ paths:
               responses:
                 '200':
                   description: Acknowledged
-

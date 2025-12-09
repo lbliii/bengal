@@ -67,7 +67,7 @@ Every component accepts typed props. **Crucially**, we pass explicit arguments t
     **overrides
 ) %}
     <header class="page-hero {{ extra_classes }}">
-        
+
         {# Explicitly pass data to atoms - SAFE #}
         {{ hero_title(title=page.title, tag=title_tag) }}
 

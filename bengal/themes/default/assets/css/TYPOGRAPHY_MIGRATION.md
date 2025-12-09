@@ -67,4 +67,3 @@ Use these new semantic names going forward:
 2. Verify responsive typography (fluid sizing) works
 3. Check dark mode typography
 4. Test print styles
-

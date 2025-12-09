@@ -11,8 +11,6 @@ Tests config/defaults.py:
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.config.defaults import (
     BOOL_OR_DICT_KEYS,
     DEFAULT_MAX_WORKERS,
@@ -301,6 +299,3 @@ class TestDefaults:
         assert features["rss"] is True
         assert features["sitemap"] is True
         assert features["search"] is True
-
-
-

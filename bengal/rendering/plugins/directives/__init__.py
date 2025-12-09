@@ -25,6 +25,9 @@ from typing import Any
 
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.badge import BadgeDirective
+
+# Directive System v2 - Foundation Classes
+from bengal.rendering.plugins.directives.base import BengalDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
@@ -43,6 +46,18 @@ from bengal.rendering.plugins.directives.cards import (
 from bengal.rendering.plugins.directives.checklist import ChecklistDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.container import ContainerDirective
+from bengal.rendering.plugins.directives.contracts import (
+    CARD_CONTRACT,
+    CARDS_CONTRACT,
+    CODE_TABS_CONTRACT,
+    STEP_CONTRACT,
+    STEPS_CONTRACT,
+    TAB_ITEM_CONTRACT,
+    TAB_SET_CONTRACT,
+    ContractValidator,
+    ContractViolation,
+    DirectiveContract,
+)
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
@@ -59,34 +74,18 @@ from bengal.rendering.plugins.directives.navigation import (
     RelatedDirective,
     SiblingsDirective,
 )
+from bengal.rendering.plugins.directives.options import (
+    ContainerOptions,
+    DirectiveOptions,
+    StyledOptions,
+    TitledOptions,
+)
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabsDirective,
     TabSetDirective,
-)
-from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
-
-# Directive System v2 - Foundation Classes
-from bengal.rendering.plugins.directives.base import BengalDirective
-from bengal.rendering.plugins.directives.contracts import (
-    CARD_CONTRACT,
-    CARDS_CONTRACT,
-    CODE_TABS_CONTRACT,
-    ContractValidator,
-    ContractViolation,
-    DirectiveContract,
-    STEP_CONTRACT,
-    STEPS_CONTRACT,
-    TAB_ITEM_CONTRACT,
-    TAB_SET_CONTRACT,
-)
-from bengal.rendering.plugins.directives.options import (
-    ContainerOptions,
-    DirectiveOptions,
-    StyledOptions,
-    TitledOptions,
 )
 from bengal.rendering.plugins.directives.tokens import DirectiveToken
 from bengal.rendering.plugins.directives.utils import (
@@ -97,6 +96,7 @@ from bengal.rendering.plugins.directives.utils import (
     data_attrs,
     escape_html,
 )
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.logger import get_logger
 
 # =============================================================================

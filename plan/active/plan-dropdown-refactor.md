@@ -125,6 +125,3 @@ Matches theme dropdown pattern, more reliable, and eliminates CSS complexity.
 3. Refactor CSS
 4. Test across browsers/palettes
 5. Update RFC with completion status
-
-
-

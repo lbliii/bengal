@@ -1,4 +1,3 @@
-
 import pytest
 
 from bengal.postprocess.html_output import format_html_output

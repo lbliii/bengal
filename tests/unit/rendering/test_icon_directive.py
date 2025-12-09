@@ -7,9 +7,6 @@ Validates inline SVG icon rendering from Bengal's icon library.
 from __future__ import annotations
 
 import textwrap
-from pathlib import Path
-
-import pytest
 
 
 class TestIconDirective:
@@ -234,6 +231,3 @@ class TestGetAvailableIcons:
         # Should be cached
         assert result1 == result2
         assert "terminal" in _icon_cache
-
-
-

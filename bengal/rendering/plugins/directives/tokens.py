@@ -114,4 +114,3 @@ class DirectiveToken:
             attrs=self.attrs,
             children=children,
         )
-

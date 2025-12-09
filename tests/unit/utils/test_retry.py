@@ -6,7 +6,6 @@ Verifies retry utilities with exponential backoff for both sync and async.
 
 from __future__ import annotations
 
-import asyncio
 import time
 
 import pytest
@@ -271,6 +270,3 @@ class TestAsyncRetryWithBackoff:
 
         # Should have at least 0.1s between calls
         assert call_times[1] - call_times[0] >= 0.09
-
-
-

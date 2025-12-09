@@ -94,14 +94,14 @@ async def stream_page(page: Page, response: StreamingResponse):
     # Immediately send shell (cached)
     yield render_shell_head(page)
     yield render_navigation(site)  # Likely unchanged, cached
-    
+
     # Open content container
     yield '<main class="content">'
-    
+
     # Stream content as it renders
     async for chunk in render_content_streaming(page):
         yield chunk
-    
+
     yield '</main>'
     yield render_footer()
     yield render_scripts()
@@ -148,7 +148,7 @@ async def stream_page(page: Page, response: StreamingResponse):
 class HotReloadServer:
     async def on_file_change(self, path: Path):
         page = self.site.get_page(path)
-        
+
         # Render only the changed section
         if change_type == "content_only":
             new_html = render_content_only(page)
@@ -156,7 +156,7 @@ class HotReloadServer:
         elif change_type == "frontmatter":
             new_html = render_full_page(page)
             patch = {"selector": "body", "html": new_html}
-        
+
         await self.broadcast({"type": "patch", "data": patch})
 ```
 
@@ -208,22 +208,22 @@ class SpeculativeRenderer:
     def __init__(self):
         self.hot_pages: dict[str, RenderedPage] = {}
         self.access_history: list[str] = []
-    
+
     def predict_next_edits(self, current: Page) -> list[Page]:
         """Predict pages likely to be edited next."""
         candidates = []
-        
+
         # Siblings
         candidates.extend(current.section.pages[:5])
-        
+
         # Recently accessed
         candidates.extend(self.get_recent_pages(5))
-        
+
         # Linked pages
         candidates.extend(current.outgoing_links[:3])
-        
+
         return candidates
-    
+
     async def warm_cache(self, pages: list[Page]):
         """Pre-render predicted pages in background."""
         async with TaskGroup() as tg:
@@ -289,11 +289,11 @@ Combine all three options:
 class SurgicalInvalidator:
     def invalidate(self, path: Path, change_type: ChangeType) -> set[str]:
         """Return minimal set of cache keys to invalidate."""
-        
+
         if change_type == ChangeType.CONTENT_BODY:
             # Only content changed, not frontmatter
             return {f"content:{path}"}
-        
+
         elif change_type == ChangeType.FRONTMATTER:
             # Frontmatter changed, may affect navigation
             page = self.site.get_page(path)
@@ -301,7 +301,7 @@ class SurgicalInvalidator:
             if "title" in changed_fields:
                 keys.add(f"nav:{page.section.path}")
             return keys
-        
+
         elif change_type == ChangeType.TEMPLATE:
             # Template changed, all pages using it
             return {f"page:{p.path}" for p in self.get_pages_using(path)}
@@ -388,4 +388,3 @@ class SurgicalInvalidator:
 - [Vite HMR](https://vitejs.dev/guide/features.html#hot-module-replacement)
 - [HTTP Chunked Transfer Encoding](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding)
 - [LiveReload Protocol](http://livereload.com/api/protocol/)
-

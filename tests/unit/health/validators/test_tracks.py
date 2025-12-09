@@ -6,7 +6,6 @@ Tests health/validators/tracks.py:
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -155,7 +154,9 @@ class TestTrackValidatorInvalidStructure:
         results = validator.validate(mock_site)
 
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
-        assert any("missing" in r.message.lower() and "items" in r.message.lower() for r in error_results)
+        assert any(
+            "missing" in r.message.lower() and "items" in r.message.lower() for r in error_results
+        )
 
     def test_error_when_items_not_list(self, validator, mock_site):
         """Returns error when items is not a list."""
@@ -210,7 +211,9 @@ class TestTrackValidatorMissingPages:
         results = validator.validate(mock_site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        assert any("string" in r.message.lower() or "type" in r.message.lower() for r in warning_results)
+        assert any(
+            "string" in r.message.lower() or "type" in r.message.lower() for r in warning_results
+        )
 
 
 class TestTrackValidatorInvalidTrackId:
@@ -283,10 +286,7 @@ class TestTrackValidatorRecommendations:
         results = validator.validate(mock_site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        missing_warning = next(
-            (r for r in warning_results if "missing" in r.message.lower()),
-            None
-        )
+        missing_warning = next((r for r in warning_results if "missing" in r.message.lower()), None)
         assert missing_warning is not None
         assert missing_warning.recommendation is not None
 
@@ -297,10 +297,7 @@ class TestTrackValidatorRecommendations:
         results = validator.validate(mock_site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        track_warning = next(
-            (r for r in warning_results if "track_id" in r.message.lower()),
-            None
-        )
+        track_warning = next((r for r in warning_results if "track_id" in r.message.lower()), None)
         assert track_warning is not None
         assert track_warning.recommendation is not None
 
@@ -320,8 +317,7 @@ class TestTrackValidatorMultipleTracks:
 
         # Should have results for both tracks (success or warning)
         track_results = [
-            r for r in results
-            if "beginner" in r.message.lower() or "advanced" in r.message.lower()
+            r for r in results if "beginner" in r.message.lower() or "advanced" in r.message.lower()
         ]
         assert len(track_results) >= 2
 
@@ -338,4 +334,3 @@ class TestTrackValidatorMultipleTracks:
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
         # Should have error for invalid track
         assert len(error_results) >= 1
-

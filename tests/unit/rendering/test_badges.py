@@ -5,7 +5,6 @@ Validates {bdg-color}`text` syntax support (Sphinx-Design compatible).
 """
 
 
-
 class TestBadgePlugin:
     """Test badge rendering."""
 

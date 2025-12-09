@@ -82,21 +82,21 @@ Users can't optimize what they can't measure. Performance degrades gradually, an
 bengal build --profile
 
 # Output:
-# 
+#
 # ⏱️  Build Profile (2.34s total)
-# 
+#
 # Phase Breakdown:
 # ├─ Discovery       0.12s  (5%)   ████
 # ├─ Parsing         0.78s  (33%)  ████████████████
 # ├─ Taxonomies      0.15s  (6%)   ██████
 # ├─ Rendering       1.20s  (51%)  █████████████████████████
 # └─ Assets          0.09s  (4%)   ███
-# 
+#
 # 🐢 Slowest Pages:
 # 1. api/reference.md          0.45s (parsed + rendered)
 # 2. changelog.md              0.23s
 # 3. docs/advanced/plugins.md  0.18s
-# 
+#
 # 🔧 Recommendations:
 # • api/reference.md: Consider splitting (4,521 lines)
 # • Shortcode 'diagram' took 0.6s total across 12 uses
@@ -109,13 +109,13 @@ bengal build --profile
 bengal build --profile --verbose
 
 # Output includes:
-# 
+#
 # Shortcode Performance:
 # ├─ diagram        12 calls   0.60s total   50ms avg
 # ├─ code-tabs       8 calls   0.12s total   15ms avg
 # ├─ admonition     45 calls   0.05s total    1ms avg
 # └─ include         3 calls   0.02s total    7ms avg
-# 
+#
 # Template Performance:
 # ├─ doc.html       89 renders  0.89s total   10ms avg
 # ├─ api.html       42 renders  0.35s total    8ms avg
@@ -129,9 +129,9 @@ bengal build --profile --verbose
 bengal build --profile --compare
 
 # Output:
-# 
+#
 # ⏱️  Build Comparison
-# 
+#
 #                    Baseline    Current     Change
 # Total              2.10s       2.34s       +11% ⚠️
 # ├─ Discovery       0.11s       0.12s       +9%
@@ -139,7 +139,7 @@ bengal build --profile --compare
 # ├─ Taxonomies      0.14s       0.15s       +7%
 # ├─ Rendering       1.05s       1.20s       +14% ⚠️
 # └─ Assets          0.08s       0.09s       +12%
-# 
+#
 # 📈 New slow pages since baseline:
 # • docs/new-feature.md (not in baseline)
 # • api/reference.md: +0.15s (was 0.30s, now 0.45s)
@@ -161,9 +161,9 @@ bengal build --profile --save-baseline
 bengal profile history
 
 # Output:
-# 
+#
 # Build History (last 10)
-# 
+#
 # Date                 Total    Pages   Δ
 # 2024-12-08 14:30    2.34s    156     +0.24s ⚠️
 # 2024-12-08 10:15    2.10s    154     +0.02s
@@ -192,7 +192,7 @@ class ProfileEvent:
     start: float
     end: float
     metadata: dict = field(default_factory=dict)
-    
+
     @property
     def duration(self) -> float:
         return self.end - self.start
@@ -203,14 +203,14 @@ class BuildProfile:
     start_time: float = 0
     end_time: float = 0
     page_count: int = 0
-    
+
     @property
     def total_duration(self) -> float:
         return self.end_time - self.start_time
-    
+
     def get_phase_duration(self, phase: str) -> float:
         return sum(e.duration for e in self.events if e.phase == phase)
-    
+
     def get_slowest_pages(self, n: int = 5) -> list[tuple[str, float]]:
         page_times = {}
         for e in self.events:
@@ -222,14 +222,14 @@ class BuildProfile:
 
 class ProfileCollector:
     """Thread-safe profile data collector."""
-    
+
     _instance: 'ProfileCollector | None' = None
     _lock = threading.Lock()
-    
+
     def __init__(self):
         self.profile = BuildProfile()
         self._event_lock = threading.Lock()
-    
+
     @classmethod
     def get_instance(cls) -> 'ProfileCollector':
         if cls._instance is None:
@@ -237,7 +237,7 @@ class ProfileCollector:
                 if cls._instance is None:
                     cls._instance = cls()
         return cls._instance
-    
+
     @contextmanager
     def measure(self, name: str, phase: str, **metadata):
         """Context manager to measure a code block."""
@@ -255,7 +255,7 @@ class ProfileCollector:
             )
             with self._event_lock:
                 self.profile.events.append(event)
-    
+
     def record(self, name: str, phase: str, duration: float, **metadata):
         """Record a pre-measured event."""
         event = ProfileEvent(
@@ -278,40 +278,40 @@ from bengal.profiling import ProfileCollector
 class BuildOrchestrator:
     def build(self, profile: bool = False):
         collector = ProfileCollector.get_instance() if profile else None
-        
+
         if collector:
             collector.profile.start_time = perf_counter()
-        
+
         # Discovery phase
         with self._maybe_measure(collector, "discovery", "discovery"):
             pages = self.discover_content()
-        
+
         # Parsing phase
         with self._maybe_measure(collector, "parsing", "parse"):
             for page in pages:
                 with self._maybe_measure(collector, f"parse:{page.path}", "parse", page=page.path):
                     self.parse_page(page)
-        
+
         # Taxonomy phase
         with self._maybe_measure(collector, "taxonomies", "taxonomy"):
             self.build_taxonomies()
-        
+
         # Rendering phase
         with self._maybe_measure(collector, "rendering", "render"):
             for page in pages:
                 with self._maybe_measure(collector, f"render:{page.path}", "render", page=page.path):
                     self.render_page(page)
-        
+
         # Asset phase
         with self._maybe_measure(collector, "assets", "assets"):
             self.process_assets()
-        
+
         if collector:
             collector.profile.end_time = perf_counter()
             collector.profile.page_count = len(pages)
-        
+
         return collector.profile if collector else None
-    
+
     @contextmanager
     def _maybe_measure(self, collector, name, phase, **metadata):
         if collector:
@@ -328,7 +328,7 @@ class BuildOrchestrator:
 class ShortcodeProcessor:
     def __init__(self, collector: ProfileCollector | None = None):
         self.collector = collector
-    
+
     def process(self, name: str, content: str, **kwargs) -> str:
         if self.collector:
             with self.collector.measure(f"shortcode:{name}", "shortcode", shortcode=name):
@@ -343,10 +343,10 @@ class ShortcodeProcessor:
 
 class ProfileAnalyzer:
     """Analyze profile data and generate recommendations."""
-    
+
     def __init__(self, profile: BuildProfile):
         self.profile = profile
-    
+
     def get_phase_breakdown(self) -> dict[str, PhaseStats]:
         """Get timing breakdown by phase."""
         phases = {}
@@ -357,11 +357,11 @@ class ProfileAnalyzer:
                 percentage=duration / self.profile.total_duration * 100,
             )
         return phases
-    
+
     def get_shortcode_stats(self) -> list[ShortcodeStats]:
         """Get shortcode performance statistics."""
         shortcode_events = [e for e in self.profile.events if e.phase == "shortcode"]
-        
+
         stats = {}
         for e in shortcode_events:
             name = e.metadata.get("shortcode", "unknown")
@@ -369,16 +369,16 @@ class ProfileAnalyzer:
                 stats[name] = ShortcodeStats(name=name, calls=0, total_time=0)
             stats[name].calls += 1
             stats[name].total_time += e.duration
-        
+
         for s in stats.values():
             s.avg_time = s.total_time / s.calls
-        
+
         return sorted(stats.values(), key=lambda x: -x.total_time)
-    
+
     def generate_recommendations(self) -> list[Recommendation]:
         """Generate actionable recommendations."""
         recs = []
-        
+
         # Check for slow pages
         slow_pages = self.profile.get_slowest_pages(3)
         for page, duration in slow_pages:
@@ -389,7 +389,7 @@ class ProfileAnalyzer:
                     message=f"Page takes {duration:.2f}s to build",
                     suggestion="Consider splitting into smaller pages",
                 ))
-        
+
         # Check for expensive shortcodes
         for sc in self.get_shortcode_stats():
             if sc.avg_time > 0.1:  # >100ms average
@@ -399,7 +399,7 @@ class ProfileAnalyzer:
                     message=f"Shortcode '{sc.name}' averages {sc.avg_time*1000:.0f}ms per call",
                     suggestion="Consider caching or optimizing",
                 ))
-        
+
         # Check phase balance
         phases = self.get_phase_breakdown()
         if phases["render"].percentage > 70:
@@ -409,7 +409,7 @@ class ProfileAnalyzer:
                 message="Rendering takes >70% of build time",
                 suggestion="Check template complexity or enable caching",
             ))
-        
+
         return recs
 ```
 
@@ -423,30 +423,30 @@ from datetime import datetime
 
 class ProfileStorage:
     """Store and retrieve profile history."""
-    
+
     def __init__(self, cache_dir: Path):
         self.profiles_dir = cache_dir / "profiles"
         self.profiles_dir.mkdir(parents=True, exist_ok=True)
         self.baseline_path = self.profiles_dir / "baseline.json"
-    
+
     def save(self, profile: BuildProfile) -> Path:
         """Save profile with timestamp."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.profiles_dir / f"profile_{timestamp}.json"
         path.write_text(json.dumps(profile.to_dict()))
         return path
-    
+
     def save_baseline(self, profile: BuildProfile):
         """Save profile as baseline for comparison."""
         self.baseline_path.write_text(json.dumps(profile.to_dict()))
-    
+
     def load_baseline(self) -> BuildProfile | None:
         """Load baseline profile."""
         if self.baseline_path.exists():
             data = json.loads(self.baseline_path.read_text())
             return BuildProfile.from_dict(data)
         return None
-    
+
     def get_history(self, limit: int = 10) -> list[BuildProfile]:
         """Get recent profile history."""
         profiles = []
@@ -466,21 +466,21 @@ from rich.progress import Progress, BarColumn
 
 class ProfileReporter:
     """Format and display profile results."""
-    
+
     def __init__(self, profile: BuildProfile, baseline: BuildProfile | None = None):
         self.profile = profile
         self.baseline = baseline
         self.analyzer = ProfileAnalyzer(profile)
         self.console = Console()
-    
+
     def print_summary(self):
         """Print profile summary."""
         self.console.print(f"\n⏱️  [bold]Build Profile[/bold] ({self.profile.total_duration:.2f}s total)\n")
-        
+
         # Phase breakdown
         self.console.print("[bold]Phase Breakdown:[/bold]")
         phases = self.analyzer.get_phase_breakdown()
-        
+
         for name, stats in phases.items():
             bar = "█" * int(stats.percentage / 2)
             delta = ""
@@ -490,16 +490,16 @@ class ProfileReporter:
                     change = (stats.duration - baseline_stats.duration) / baseline_stats.duration * 100
                     if abs(change) > 10:
                         delta = f" [{'red' if change > 0 else 'green'}]{change:+.0f}%[/]"
-            
+
             self.console.print(
                 f"├─ {name:<12} {stats.duration:.2f}s  ({stats.percentage:.0f}%)  {bar}{delta}"
             )
-        
+
         # Slowest pages
         self.console.print("\n[bold]🐢 Slowest Pages:[/bold]")
         for i, (page, duration) in enumerate(self.profile.get_slowest_pages(5), 1):
             self.console.print(f"{i}. {page:<40} {duration:.2f}s")
-        
+
         # Recommendations
         recs = self.analyzer.generate_recommendations()
         if recs:
@@ -572,6 +572,3 @@ format = "rich"  # or "json", "markdown"
 - [Django Debug Toolbar](https://django-debug-toolbar.readthedocs.io/)
 - [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
 - [Gatsby Build Profiling](https://www.gatsbyjs.com/docs/profiling-site-performance-with-react-profiler/)
-
-
-

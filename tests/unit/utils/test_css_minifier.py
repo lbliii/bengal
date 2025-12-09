@@ -114,7 +114,7 @@ class TestMinifyCssStringPreservation:
         css = r'body { content: "say \"hello\""; }'
         result = minify_css(css)
 
-        assert r'\"hello\"' in result
+        assert r"\"hello\"" in result
 
     def test_preserves_url_strings(self) -> None:
         """Test that url() strings are preserved."""
@@ -485,6 +485,3 @@ class TestMinifyCssEdgeCases:
 
         # Should convert to string or return empty
         assert isinstance(result, str)
-
-
-

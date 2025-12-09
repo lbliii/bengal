@@ -6,7 +6,6 @@ Verifies that content types correctly map to template families.
 
 from __future__ import annotations
 
-
 from pathlib import Path
 from unittest.mock import Mock
 

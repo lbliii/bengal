@@ -452,4 +452,3 @@ document.addEventListener('DOMContentLoaded', function() {{
 }});
 """
     atomic_write_text(theme_path / "assets" / "js" / "main.js", js_content)
-

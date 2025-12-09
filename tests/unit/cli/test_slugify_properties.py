@@ -59,14 +59,14 @@ class TestSlugifyProperties:
 
         if result:
             # At minimum, should have no whitespace or special punctuation
-            assert not any(
-                c in string.whitespace for c in result
-            ), f"Slug '{result}' contains whitespace"
+            assert not any(c in string.whitespace for c in result), (
+                f"Slug '{result}' contains whitespace"
+            )
             # Should not have common special characters
             special_chars = "!@#$%^&*()+=[]{}|;:,.<>?/~`\"' "
-            assert not any(
-                c in special_chars for c in result
-            ), f"Slug '{result}' contains special characters"
+            assert not any(c in special_chars for c in result), (
+                f"Slug '{result}' contains special characters"
+            )
 
     @pytest.mark.hypothesis
     @given(text=st.text())
@@ -106,7 +106,7 @@ class TestSlugifyProperties:
         once = slugify(text)
         twice = slugify(once)
         assert once == twice, (
-            f"Not idempotent: slugify('{text}') = '{once}', " f"but slugify('{once}') = '{twice}'"
+            f"Not idempotent: slugify('{text}') = '{once}', but slugify('{once}') = '{twice}'"
         )
 
     @pytest.mark.hypothesis
@@ -141,9 +141,9 @@ class TestSlugifyProperties:
         result = slugify(text)
         # URL encoding shouldn't change the slug
         encoded = quote(result, safe="")
-        assert encoded == result or encoded == quote(
-            result, safe="-_"
-        ), f"Slug '{result}' requires URL encoding: {encoded}"
+        assert encoded == result or encoded == quote(result, safe="-_"), (
+            f"Slug '{result}' requires URL encoding: {encoded}"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -190,9 +190,9 @@ class TestSlugifyProperties:
         parts = [p for p in re.split(r"[-_]+", result) if p]
 
         # Number of parts should be <= number of words
-        assert len(parts) <= len(
-            words
-        ), f"Input '{text}' ({len(words)} words) produced {len(parts)} parts: {parts}"
+        assert len(parts) <= len(words), (
+            f"Input '{text}' ({len(words)} words) produced {len(parts)} parts: {parts}"
+        )
 
     @pytest.mark.hypothesis
     @given(text=st.text(max_size=1000))
@@ -204,9 +204,9 @@ class TestSlugifyProperties:
         be same length or shorter.
         """
         result = slugify(text)
-        assert len(result) <= len(
-            text
-        ), f"Slug longer than input: '{text}' ({len(text)}) → '{result}' ({len(result)})"
+        assert len(result) <= len(text), (
+            f"Slug longer than input: '{text}' ({len(text)}) → '{result}' ({len(result)})"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -238,9 +238,9 @@ class TestSlugifyProperties:
         result2 = slugify(text)
         result3 = slugify(text)
 
-        assert (
-            result1 == result2 == result3
-        ), f"Non-deterministic: {repr(text)} produced {repr(result1)}, {repr(result2)}, {repr(result3)}"
+        assert result1 == result2 == result3, (
+            f"Non-deterministic: {repr(text)} produced {repr(result1)}, {repr(result2)}, {repr(result3)}"
+        )
 
     @pytest.mark.hypothesis
     @given(text=st.text(alphabet=string.whitespace, min_size=1, max_size=50))
@@ -251,9 +251,9 @@ class TestSlugifyProperties:
         Spaces, tabs, newlines, etc. should all be removed.
         """
         result = slugify(text)
-        assert (
-            result == ""
-        ), f"Whitespace-only input {repr(text)} produced non-empty slug '{result}'"
+        assert result == "", (
+            f"Whitespace-only input {repr(text)} produced non-empty slug '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(char=st.characters(blacklist_categories=("Cc", "Cs")))
@@ -279,7 +279,9 @@ class TestSlugifyProperties:
 
             # At minimum, check it's not whitespace or common punctuation
             is_valid = not result.isspace() and result not in "!@#$%^&*()+=[]{}|;:,.<>?/~`\"' "
-            assert is_valid, f"Single char '{char}' (ord={ord(char)}) produced invalid slug '{result}' (ord={ord(result)})"
+            assert is_valid, (
+                f"Single char '{char}' (ord={ord(char)}) produced invalid slug '{result}' (ord={ord(result)})"
+            )
 
 
 class TestSlugifyEdgeCases:
@@ -313,9 +315,9 @@ class TestSlugifyEdgeCases:
         result = slugify(text)
 
         # Should collapse to "a-b"
-        assert (
-            result == "a-b"
-        ), f"{n} spaces between a and b should collapse to 1 hyphen: got '{result}'"
+        assert result == "a-b", (
+            f"{n} spaces between a and b should collapse to 1 hyphen: got '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(text=st.text(alphabet="!@#$%^&*()+=[]{}|;:,.<>?/~`", min_size=1, max_size=50))
@@ -326,9 +328,9 @@ class TestSlugifyEdgeCases:
         Tests that non-alphanumeric characters are all removed.
         """
         result = slugify(text)
-        assert (
-            result == ""
-        ), f"Special chars only {repr(text)} should produce empty slug, got '{result}'"
+        assert result == "", (
+            f"Special chars only {repr(text)} should produce empty slug, got '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -350,9 +352,9 @@ class TestSlugifyEdgeCases:
         assert result.islower(), f"Mixed case '{text}' should be all lowercase, got '{result}'"
 
         # Should equal lowercase version
-        assert (
-            result == text.lower()
-        ), f"Mixed case '{text}' should equal lowercase '{text.lower()}', got '{result}'"
+        assert result == text.lower(), (
+            f"Mixed case '{text}' should equal lowercase '{text.lower()}', got '{result}'"
+        )
 
 
 # Shrinking example documentation

@@ -102,13 +102,13 @@ class ConfigProxy(dict):
 
     def __getitem__(self, key):
         full_key = f"{self._prefix}.{key}" if self._prefix else key
-        
+
         # Record dependency
         if self._tracker:
             self._tracker.track_config_key(full_key)
-            
+
         value = super().__getitem__(key)
-        
+
         # Return nested proxy for dicts
         if isinstance(value, dict):
             return ConfigProxy(value, self._tracker, full_key)

@@ -125,15 +125,15 @@ class DocElement:
             PythonFunctionMetadata,
             PythonModuleMetadata,
         )
-        from bengal.autodoc.models.python import (
-            ParameterInfo,
-            ParsedDocstring,
-            RaisesInfo,
-        )
         from bengal.autodoc.models.openapi import (
             OpenAPIParameterMetadata,
             OpenAPIRequestBodyMetadata,
             OpenAPIResponseMetadata,
+        )
+        from bengal.autodoc.models.python import (
+            ParameterInfo,
+            ParsedDocstring,
+            RaisesInfo,
         )
 
         type_map: dict[str, type] = {
@@ -162,12 +162,8 @@ class DocElement:
         if type_name == "PythonClassMetadata" and type_data.get("parsed_doc"):
             pd = type_data["parsed_doc"]
             if pd:
-                params = tuple(
-                    ParameterInfo(**p) for p in pd.get("params", ())
-                )
-                raises = tuple(
-                    RaisesInfo(**r) for r in pd.get("raises", ())
-                )
+                params = tuple(ParameterInfo(**p) for p in pd.get("params", ()))
+                raises = tuple(RaisesInfo(**r) for r in pd.get("raises", ()))
                 type_data["parsed_doc"] = ParsedDocstring(
                     summary=pd.get("summary", ""),
                     description=pd.get("description", ""),
@@ -180,19 +176,13 @@ class DocElement:
         if type_name == "PythonFunctionMetadata":
             # Convert parameters list to tuple of ParameterInfo
             if type_data.get("parameters"):
-                type_data["parameters"] = tuple(
-                    ParameterInfo(**p) for p in type_data["parameters"]
-                )
+                type_data["parameters"] = tuple(ParameterInfo(**p) for p in type_data["parameters"])
             # Handle parsed_doc
             if type_data.get("parsed_doc"):
                 pd = type_data["parsed_doc"]
                 if pd:
-                    params = tuple(
-                        ParameterInfo(**p) for p in pd.get("params", ())
-                    )
-                    raises = tuple(
-                        RaisesInfo(**r) for r in pd.get("raises", ())
-                    )
+                    params = tuple(ParameterInfo(**p) for p in pd.get("params", ()))
+                    raises = tuple(RaisesInfo(**r) for r in pd.get("raises", ()))
                     type_data["parsed_doc"] = ParsedDocstring(
                         summary=pd.get("summary", ""),
                         description=pd.get("description", ""),
@@ -209,9 +199,7 @@ class DocElement:
                     OpenAPIParameterMetadata(**p) for p in type_data["parameters"]
                 )
             if type_data.get("request_body"):
-                type_data["request_body"] = OpenAPIRequestBodyMetadata(
-                    **type_data["request_body"]
-                )
+                type_data["request_body"] = OpenAPIRequestBodyMetadata(**type_data["request_body"])
             if type_data.get("responses"):
                 type_data["responses"] = tuple(
                     OpenAPIResponseMetadata(**r) for r in type_data["responses"]

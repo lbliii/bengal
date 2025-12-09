@@ -452,9 +452,9 @@ class TestURLStrategy:
         for name, _method in inspect.getmembers(URLStrategy, predicate=inspect.isfunction):
             if not name.startswith("_"):
                 # All public methods should be static
-                assert isinstance(
-                    inspect.getattr_static(URLStrategy, name), staticmethod
-                ), f"Method {name} should be static"
+                assert isinstance(inspect.getattr_static(URLStrategy, name), staticmethod), (
+                    f"Method {name} should be static"
+                )
 
     def test_class_has_docstring(self):
         """Verify URLStrategy has comprehensive docstring."""

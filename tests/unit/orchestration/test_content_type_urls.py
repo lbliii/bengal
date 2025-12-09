@@ -64,9 +64,9 @@ class TestBlogContentTypeURLs:
 
         # All posts should have /blog/ prefix
         for post in blog_posts:
-            assert post.url.startswith(
-                "/blog/"
-            ), f"Blog post {post.source_path.name} has wrong URL: {post.url}"
+            assert post.url.startswith("/blog/"), (
+                f"Blog post {post.source_path.name} has wrong URL: {post.url}"
+            )
 
     def test_blog_nested_year_urls(self, blog_site):
         """Blog posts in year subdirectories should maintain full path."""
@@ -83,9 +83,9 @@ class TestBlogContentTypeURLs:
         assert len(posts_2024) >= 2
 
         for post in posts_2024:
-            assert post.url.startswith(
-                "/blog/2024/"
-            ), f"2024 post should have /blog/2024/ prefix, got: {post.url}"
+            assert post.url.startswith("/blog/2024/"), (
+                f"2024 post should have /blog/2024/ prefix, got: {post.url}"
+            )
 
     def test_blog_cascade_preserves_urls(self, blog_site):
         """Blog cascade: type should not break URLs."""
@@ -147,9 +147,9 @@ class TestTutorialContentTypeURLs:
         assert len(lessons) >= 2
 
         for lesson in lessons:
-            assert lesson.url.startswith(
-                "/tutorials/python/"
-            ), f"Tutorial lesson should have /tutorials/python/ prefix, got: {lesson.url}"
+            assert lesson.url.startswith("/tutorials/python/"), (
+                f"Tutorial lesson should have /tutorials/python/ prefix, got: {lesson.url}"
+            )
 
 
 class TestAPIReferenceURLs:
@@ -168,8 +168,7 @@ class TestAPIReferenceURLs:
 
         # API index
         (content_dir / "api" / "_index.md").write_text(
-            "---\ntitle: API Reference\ntype: api-reference\n"
-            "cascade:\n  type: api-reference\n---"
+            "---\ntitle: API Reference\ntype: api-reference\ncascade:\n  type: api-reference\n---"
         )
 
         # Core module index
@@ -197,9 +196,9 @@ class TestAPIReferenceURLs:
         assert len(api_pages) >= 2
 
         for page in api_pages:
-            assert page.url.startswith(
-                "/api/core/"
-            ), f"API page should have /api/core/ prefix, got: {page.url}"
+            assert page.url.startswith("/api/core/"), (
+                f"API page should have /api/core/ prefix, got: {page.url}"
+            )
 
 
 class TestChangelogURLs:
@@ -243,9 +242,9 @@ class TestChangelogURLs:
         assert len(entries) >= 2
 
         for entry in entries:
-            assert entry.url.startswith(
-                "/changelog/v1.0/"
-            ), f"Changelog entry should have /changelog/v1.0/ prefix, got: {entry.url}"
+            assert entry.url.startswith("/changelog/v1.0/"), (
+                f"Changelog entry should have /changelog/v1.0/ prefix, got: {entry.url}"
+            )
 
 
 class TestMixedContentTypes:

@@ -43,9 +43,9 @@ class TestTruncateWordsProperties:
         result_without_suffix = result[:-3] if result.endswith("...") else result
 
         words = result_without_suffix.split()
-        assert (
-            len(words) <= word_count
-        ), f"truncate_words({word_count}) produced {len(words)} words: {words}"
+        assert len(words) <= word_count, (
+            f"truncate_words({word_count}) produced {len(words)} words: {words}"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -70,9 +70,9 @@ class TestTruncateWordsProperties:
         # Each result word should exactly match an input word
         for i, word in enumerate(result_words):
             if i < len(input_words):
-                assert (
-                    word == input_words[i]
-                ), f"Word mismatch: result[{i}]='{word}' vs input[{i}]='{input_words[i]}'"
+                assert word == input_words[i], (
+                    f"Word mismatch: result[{i}]='{word}' vs input[{i}]='{input_words[i]}'"
+                )
 
     @pytest.mark.hypothesis
     @given(
@@ -87,9 +87,9 @@ class TestTruncateWordsProperties:
 
         if num_words <= word_count:
             result = truncate_words(text, word_count)
-            assert (
-                result == text
-            ), f"Short text ({num_words} words) should be unchanged with limit {word_count}"
+            assert result == text, (
+                f"Short text ({num_words} words) should be unchanged with limit {word_count}"
+            )
             assert not result.endswith("..."), "Short text should not have suffix"
 
 
@@ -114,9 +114,9 @@ class TestTruncateCharsProperties:
         if len(text) > length:
             result = truncate_chars(text, length)
 
-            assert (
-                len(result) <= length
-            ), f"truncate_chars({length}) produced length {len(result)}: '{result}'"
+            assert len(result) <= length, (
+                f"truncate_chars({length}) produced length {len(result)}: '{result}'"
+            )
 
     @pytest.mark.hypothesis
     @given(text=st.text(min_size=0, max_size=50), length=st.integers(min_value=100, max_value=200))
@@ -126,9 +126,9 @@ class TestTruncateCharsProperties:
         """
         if len(text) <= length:
             result = truncate_chars(text, length)
-            assert (
-                result == text
-            ), f"Short text ({len(text)} chars) should be unchanged with limit {length}"
+            assert result == text, (
+                f"Short text ({len(text)} chars) should be unchanged with limit {length}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -157,9 +157,9 @@ class TestTruncateMiddleProperties:
         """
         result = truncate_middle(text, max_length)
 
-        assert (
-            len(result) <= max_length
-        ), f"truncate_middle({max_length}) produced length {len(result)}: '{result}'"
+        assert len(result) <= max_length, (
+            f"truncate_middle({max_length}) produced length {len(result)}: '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(
@@ -186,15 +186,15 @@ class TestTruncateMiddleProperties:
 
             # Result should have original start
             # (at least 1 char from beginning)
-            assert (
-                result[0] == text[0]
-            ), f"Should preserve start: result='{result}', original='{text}'"
+            assert result[0] == text[0], (
+                f"Should preserve start: result='{result}', original='{text}'"
+            )
 
             # Result should have original end
             # (at least 1 char from end)
-            assert (
-                result[-1] == text[-1]
-            ), f"Should preserve end: result='{result}', original='{text}'"
+            assert result[-1] == text[-1], (
+                f"Should preserve end: result='{result}', original='{text}'"
+            )
 
 
 class TestStripHtmlProperties:
@@ -237,9 +237,9 @@ class TestStripHtmlProperties:
         html = f"<{tag}>{content}</{tag}>"
         result = strip_html(html)
 
-        assert (
-            content in result
-        ), f"Content '{content}' should be preserved from '{html}', got '{result}'"
+        assert content in result, (
+            f"Content '{content}' should be preserved from '{html}', got '{result}'"
+        )
         assert f"<{tag}>" not in result, f"Opening tag should be removed from '{result}'"
         assert f"</{tag}>" not in result, f"Closing tag should be removed from '{result}'"
 
@@ -314,9 +314,9 @@ class TestHumanizeBytesProperties:
         Property: Sizes < 1024 should use 'B' unit.
         """
         result = humanize_bytes(size)
-        assert result.endswith("B") or result.endswith(
-            "bytes"
-        ), f"Size {size} should use bytes: '{result}'"
+        assert result.endswith("B") or result.endswith("bytes"), (
+            f"Size {size} should use bytes: '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(size=st.integers(min_value=1024, max_value=1024**2 - 1))
@@ -374,9 +374,9 @@ class TestSlugifyProperties:
     def test_respects_max_length(self, text, max_length):
         """Property: Slugs respect max_length parameter."""
         result = slugify(text, max_length=max_length)
-        assert (
-            len(result) <= max_length
-        ), f"Slug length {len(result)} exceeds max_length {max_length}: '{result}'"
+        assert len(result) <= max_length, (
+            f"Slug length {len(result)} exceeds max_length {max_length}: '{result}'"
+        )
 
     @pytest.mark.hypothesis
     @given(text=st.text())

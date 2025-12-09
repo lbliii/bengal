@@ -41,6 +41,3 @@ from bengal.core.site.core import Site
 __all__ = [
     "Site",
 ]
-
-
-

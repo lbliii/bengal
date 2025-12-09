@@ -2,7 +2,6 @@
 Tests for i18n missing translation warnings.
 """
 
-
 from pathlib import Path
 from unittest.mock import patch
 
@@ -141,5 +140,3 @@ class TestI18nMissingTranslationWarning:
 
             # Should NOT log warning
             mock_logger.debug.assert_not_called()
-
-

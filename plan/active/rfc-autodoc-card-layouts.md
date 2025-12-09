@@ -139,10 +139,10 @@ autodoc:
   python:
     # Minimum requirements for a module to get a standalone page
     min_public_members: 1  # Must have at least 1 public class/function
-    
+
     # Modules with no docstring get "stub" treatment
     stub_modules: collapse  # Options: collapse, hide, show
-    
+
     # Private module handling
     private_pattern: "^_"
     show_private: false
@@ -248,35 +248,35 @@ def should_generate_page(element: DocElement, config: AutodocConfig) -> bool:
     # Always generate for packages with content
     if element.metadata.get('is_package'):
         return True
-    
+
     # Check minimum member threshold
     public_members = [
-        c for c in element.children 
+        c for c in element.children
         if not c.name.startswith('_')
     ]
     if len(public_members) < config.min_public_members:
         return False
-    
+
     # Skip internal modules
     if element.name.startswith('_') and not config.show_private:
         return False
-    
+
     return True
 
 def get_description_preview(element: DocElement, max_length: int = 120) -> str:
     """Extract first sentence or truncate description."""
     desc = element.description or ''
-    
+
     # Try to get first sentence
     if '. ' in desc:
         first_sentence = desc.split('. ')[0] + '.'
         if len(first_sentence) <= max_length:
             return first_sentence
-    
+
     # Truncate if needed
     if len(desc) > max_length:
         return desc[:max_length-3].rsplit(' ', 1)[0] + '...'
-    
+
     return desc
 ```
 
@@ -287,22 +287,22 @@ def get_description_preview(element: DocElement, max_length: int = 120) -> str:
 ```python
 def setup_autodoc_filters(env: Environment) -> None:
     """Add autodoc-specific template filters."""
-    
+
     def module_to_url(qualified_name: str) -> str:
         """Convert module path to URL path."""
         return '/api/' + qualified_name.replace('.', '/') + '/'
-    
+
     def count_public(children: list, element_type: str) -> int:
         """Count public children of a type."""
         return len([
-            c for c in children 
+            c for c in children
             if c.element_type == element_type and not c.name.startswith('_')
         ])
-    
+
     def description_preview(desc: str, max_length: int = 120) -> str:
         """Get description preview."""
         return get_description_preview_text(desc, max_length)
-    
+
     env.filters['module_to_url'] = module_to_url
     env.filters['count_public'] = count_public
     env.filters['description_preview'] = description_preview
@@ -329,7 +329,7 @@ Apply similar patterns to API cards:
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-4) var(--space-5);
-  
+
   /* Subtle gradient overlay on hover */
   position: relative;
   overflow: hidden;
@@ -417,33 +417,33 @@ Apply similar patterns to API cards:
 autodoc:
   python:
     # Existing config...
-    
+
     # NEW: Display options
     display:
       # Use card layout for module index (default: true)
       card_layout: true
-      
+
       # Columns for card grid (responsive: mobile-tablet-desktop)
       card_columns: "1-2-3"
-      
+
       # Show statistics in cards (class/function counts)
       show_stats: true
-      
+
       # Description preview length
       preview_length: 120
-      
+
     # NEW: Filtering options  
     filtering:
       # Minimum public members for standalone page
       min_public_members: 1
-      
+
       # How to handle modules without docstrings
       # Options: show (default), collapse (into parent), hide
       undocumented_modules: show
-      
+
       # Skip internal modules (starting with _)
       skip_private: true
-      
+
       # Modules to always show regardless of filters
       always_include:
         - "bengal.core"
@@ -554,6 +554,3 @@ autodoc:
 - [Existing card CSS](bengal/themes/default/assets/css/components/cards.css)
 - [Current module template](bengal/autodoc/templates/python/module.md.jinja2)
 - [Search modal design](bengal/themes/default/assets/css/components/search.css)
-
-
-

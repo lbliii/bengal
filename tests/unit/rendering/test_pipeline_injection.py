@@ -1,4 +1,3 @@
-
 from types import SimpleNamespace
 
 from bengal.rendering.pipeline import RenderingPipeline

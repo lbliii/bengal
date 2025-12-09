@@ -164,9 +164,7 @@ class BengalDirective(DirectivePlugin):
         # STEP 3: Validate children AFTER parsing
         if self.CONTRACT and self.CONTRACT.has_child_requirement:
             # Convert children to list of dicts for validation
-            child_dicts = [
-                c if isinstance(c, dict) else {"type": "unknown"} for c in children
-            ]
+            child_dicts = [c if isinstance(c, dict) else {"type": "unknown"} for c in children]
             violations = ContractValidator.validate_children(
                 self.CONTRACT, self.TOKEN_TYPE, child_dicts, location
             )
@@ -382,4 +380,3 @@ class BengalDirective(DirectivePlugin):
             bool_attr("open", False)  # Returns: ""
         """
         return bool_attr(name, value)
-

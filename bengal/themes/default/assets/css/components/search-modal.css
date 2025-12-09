@@ -101,7 +101,7 @@ body.search-modal-open {
   .search-modal__container {
     background: var(--color-bg-elevated);
   }
-  
+
   [data-theme="dark"] .search-modal__container {
     background: var(--color-bg-elevated);
   }

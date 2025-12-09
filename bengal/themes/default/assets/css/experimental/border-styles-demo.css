@@ -1,6 +1,6 @@
 /**
  * Border Style Experiments for Bengal Theme
- * 
+ *
  * This file contains experimental border styles for testing.
  * Import selectively or use as reference for final implementation.
  */
@@ -77,8 +77,8 @@
     var(--color-accent) 50%,
     var(--color-primary) 100%
   );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -123,7 +123,7 @@
 .border-double-shadow .card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  box-shadow: 
+  box-shadow:
     0 0 0 1px var(--color-bg-primary),
     0 0 0 2px var(--color-border-light);
 }
@@ -188,21 +188,21 @@
 .border-shadow .card {
   border: none;
   border-radius: var(--radius-xl);
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px var(--color-border-light);
   transition: box-shadow var(--transition-base);
 }
 
 .border-shadow .card:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.08),
     0 0 0 1px var(--color-border);
 }
 
 /* More pronounced shadow */
 .border-shadow-strong .card {
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.08),
     0 0 0 1px var(--color-border);
 }
@@ -268,7 +268,7 @@
 .border-shadow-refined .card {
   border: none;
   border-radius: var(--radius-xl);
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.05),
     0 0 0 1px var(--color-border-light);
 }
@@ -291,7 +291,7 @@
 
 .border-shadow pre {
   border: none;
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.06),
     0 0 0 1px var(--color-border-light);
 }
@@ -332,7 +332,7 @@
 }
 
 [data-theme="dark"] .border-shadow .card {
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.1);
 }
@@ -370,4 +370,3 @@
 .border-experiment-7 {
   /* Rounded with Notch */
 }
-

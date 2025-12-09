@@ -2,7 +2,6 @@
 Pagination utility for splitting long lists into pages.
 """
 
-
 from __future__ import annotations
 
 from math import ceil
