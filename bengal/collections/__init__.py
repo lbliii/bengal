@@ -5,47 +5,53 @@ This module provides content collections with schema validation, enabling
 type-safe frontmatter and early error detection during content discovery.
 
 Usage (Local Content):
-    # collections.py (project root)
-    from dataclasses import dataclass, field
-    from datetime import datetime
-    from typing import Optional
-    from bengal.collections import define_collection
 
-    @dataclass
-    class BlogPost:
-        title: str
-        date: datetime
-        author: str = "Anonymous"
-        tags: list[str] = field(default_factory=list)
-        draft: bool = False
+```python
+# collections.py (project root)
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional
+from bengal.collections import define_collection
 
-    collections = {
-        "blog": define_collection(
-            schema=BlogPost,
-            directory="content/blog",
-        ),
-    }
+@dataclass
+class BlogPost:
+    title: str
+    date: datetime
+    author: str = "Anonymous"
+    tags: list[str] = field(default_factory=list)
+    draft: bool = False
+
+collections = {
+    "blog": define_collection(
+        schema=BlogPost,
+        directory="content/blog",
+    ),
+}
+```
 
 Usage (Remote Content - Content Layer):
-    from bengal.collections import define_collection
-    from bengal.content_layer import github_loader, notion_loader
 
-    collections = {
-        # Local content (default)
-        "docs": define_collection(schema=Doc, directory="content/docs"),
+```python
+from bengal.collections import define_collection
+from bengal.content_layer import github_loader, notion_loader
 
-        # Remote content from GitHub
-        "api": define_collection(
-            schema=APIDoc,
-            loader=github_loader(repo="myorg/api-docs", path="docs/"),
-        ),
+collections = {
+    # Local content (default)
+    "docs": define_collection(schema=Doc, directory="content/docs"),
 
-        # Remote content from Notion
-        "blog": define_collection(
-            schema=BlogPost,
-            loader=notion_loader(database_id="abc123"),
-        ),
-    }
+    # Remote content from GitHub
+    "api": define_collection(
+        schema=APIDoc,
+        loader=github_loader(repo="myorg/api-docs", path="docs/"),
+    ),
+
+    # Remote content from Notion
+    "blog": define_collection(
+        schema=BlogPost,
+        loader=notion_loader(database_id="abc123"),
+    ),
+}
+```
 
 Architecture:
     - Collections are opt-in (backward compatible)

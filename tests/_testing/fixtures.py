@@ -8,12 +8,13 @@ Provides:
 """
 
 import shutil
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
-import toml
+import tomli_w
 
 from bengal.core.site import Site
 
@@ -89,7 +90,8 @@ def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
         if confoverrides:
             config_path = site_dir / "bengal.toml"
             if config_path.exists():
-                config = toml.load(config_path)
+                with open(config_path, "rb") as f:
+                    config = tomllib.load(f)
 
                 # Apply nested overrides (e.g., "site.title" -> config["site"]["title"])
                 for key, value in confoverrides.items():
@@ -102,8 +104,8 @@ def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
                         config[key] = value
 
                 # Write back
-                with open(config_path, "w") as f:
-                    toml.dump(config, f)
+                with open(config_path, "wb") as f:
+                    tomli_w.dump(config, f)
 
         # Create and initialize Site
         site = Site.from_config(site_dir)
