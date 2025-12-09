@@ -3,23 +3,8 @@ title: Configuration System
 description: Flexible, format-agnostic configuration loading
 weight: 20
 category: tooling
-tags:
-- tooling
-- config
-- configuration
-- yaml
-- toml
-- loading
-- architecture
-keywords:
-- configuration
-- config
-- YAML
-- TOML
-- loading
-- site config
-- content config
-- params
+tags: [tooling, config, configuration, yaml, toml, loading, architecture]
+keywords: [configuration, config, YAML, TOML, loading, site config, content config, params]
 ---
 
 # Configuration System
@@ -234,7 +219,7 @@ build:
 **Example: environments/local.yaml**
 ```yaml
 site:
-  baseurl: "http://localhost:8000"  # Local dev URL
+  baseurl: "http://localhost:5173"  # Local dev URL
 
 build:
   minify_html: false  # Faster builds during development

@@ -340,10 +340,11 @@ class ContractValidator:
 # =============================================================================
 
 # Steps directives
+# Note: blank_line is allowed for readability between steps
 STEPS_CONTRACT = DirectiveContract(
     requires_children=("step",),
     min_children=1,
-    allowed_children=("step",),
+    allowed_children=("step", "blank_line"),
 )
 
 STEP_CONTRACT = DirectiveContract(
@@ -361,9 +362,10 @@ TAB_ITEM_CONTRACT = DirectiveContract(
 )
 
 # Cards directives
+# Note: blank_line allowed for readability between cards
 CARDS_CONTRACT = DirectiveContract(
     # Cards can have card children, but they're optional (child-cards auto-generates)
-    allowed_children=("card",),
+    allowed_children=("card", "blank_line"),
 )
 
 CARD_CONTRACT = DirectiveContract(

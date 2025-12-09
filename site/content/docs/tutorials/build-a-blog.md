@@ -166,7 +166,7 @@ Let's see what we have so far. Start the development server:
 bengal site serve
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 *   Navigate to "Blog" to see your "Hello World" post.
 *   Notice the site title and menu matches your configuration.

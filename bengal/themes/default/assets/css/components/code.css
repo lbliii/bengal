@@ -210,6 +210,8 @@ pre code {
   /* Clip code content to border-radius */
   /* Disable glow on inner pre - wrapper handles it */
   animation: none;
+  width: 100%;
+  /* Ensure pre fills wrapper width */
 }
 
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */

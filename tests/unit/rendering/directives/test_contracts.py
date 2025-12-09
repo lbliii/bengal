@@ -410,7 +410,8 @@ class TestPresetContracts:
         """Test STEPS_CONTRACT configuration."""
         assert STEPS_CONTRACT.requires_children == ("step",)
         assert STEPS_CONTRACT.min_children == 1
-        assert STEPS_CONTRACT.allowed_children == ("step",)
+        # blank_line allowed for readability between steps
+        assert STEPS_CONTRACT.allowed_children == ("step", "blank_line")
         assert STEPS_CONTRACT.requires_parent == ()
 
     def test_step_contract(self) -> None:
@@ -430,7 +431,8 @@ class TestPresetContracts:
 
     def test_cards_contract(self) -> None:
         """Test CARDS_CONTRACT configuration."""
-        assert CARDS_CONTRACT.allowed_children == ("card",)
+        # blank_line allowed for readability between cards
+        assert CARDS_CONTRACT.allowed_children == ("card", "blank_line")
         # Cards don't require children (child-cards can auto-generate)
         assert CARDS_CONTRACT.requires_children == ()
 

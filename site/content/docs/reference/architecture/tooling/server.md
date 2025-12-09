@@ -3,20 +3,8 @@ title: Development Server
 description: Built-in development server with file watching and live reload
 weight: 30
 category: tooling
-tags:
-- tooling
-- server
-- dev-server
-- live-reload
-- file-watching
-- development
-keywords:
-- development server
-- dev server
-- live reload
-- file watching
-- SSE
-- development
+tags: [tooling, server, dev-server, live-reload, file-watching, development]
+keywords: [development server, dev server, live reload, file watching, SSE, development]
 ---
 
 # Development Server
@@ -41,7 +29,7 @@ Provide a local development environment with automatic rebuilds
 ```mermaid
 flowchart TD
     Start[Start Server] --> Watch[Watch Files]
-    Watch --> Serve[HTTP Server<br/>Port 8000]
+    Watch --> Serve[HTTP Server<br/>Port 5173]
 
     Watch --> Change{File Changed?}
     Change -->|Yes| Rebuild[Trigger Rebuild]
@@ -130,7 +118,7 @@ eventSource.onmessage = (event) => {
 
 ```toml
 [server]
-port = 8000
+port = 5173
 host = "localhost"
 live_reload = true
 debounce_delay = 0.5  # seconds
@@ -156,7 +144,7 @@ server = DevServer(
     site=site,
     output_dir=site.output_dir,
     watch_dirs=[site.content_dir, site.templates_dir, site.assets_dir],
-    port=8000,
+    port=5173,
 )
 server.run()
 ```

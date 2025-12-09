@@ -118,6 +118,42 @@ Edit config file
         assert "Install" in result or "<ol" in result
         assert "Configure" in result
 
+    def test_steps_with_all_options_named_closers(self, parser: MistuneParser) -> None:
+        """Steps directive with all new options using named closers."""
+        markdown = """\
+:::{steps}
+:start: 3
+
+:::{step} Required Step
+:description: This step must be completed first.
+:duration: 5 min
+Main content here.
+:::{/step}
+
+:::{step} Optional Step
+:optional:
+:description: You can skip this if needed.
+:duration: 10 min
+Optional configuration.
+:::{/step}
+:::{/steps}
+"""
+        result = parser.parse(markdown, {})
+
+        # Check steps container renders with start attribute
+        assert '<div class="steps"' in result
+        assert 'start="3"' in result
+        assert "counter-reset: step 2" in result  # start - 1
+
+        # Check step options render correctly
+        assert "step-description" in result
+        assert "step-duration" in result
+        assert "step-optional" in result
+        assert "step-badge-optional" in result
+        assert "Optional" in result
+        assert "5 min" in result
+        assert "10 min" in result
+
 
 class TestDeeplyNestedNamedClosers:
     """Tests for deeply nested structures with named closers."""
