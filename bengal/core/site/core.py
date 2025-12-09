@@ -133,6 +133,9 @@ class Site(
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _generated_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _listable_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
+    # Page path map cache for O(1) page resolution (used by resolve_pages template function)
+    _page_path_map: dict[str, Page] | None = field(default=None, repr=False, init=False)
+    _page_path_map_version: int = field(default=-1, repr=False, init=False)
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: Any = field(default=None, repr=False, init=False)
 
