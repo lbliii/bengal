@@ -547,21 +547,23 @@ class ChildCardsDirective(BengalDirective):
         layout = attrs.get("layout", "default")
         style = attrs.get("style", "default")
 
+        no_content = '<div class="card-grid" data-columns="auto"><p><em>{}</em></p></div>'
+
         current_page = getattr(renderer, "_current_page", None)
         if not current_page:
             logger.debug("child_cards_no_current_page")
-            return '<div class="card-grid" data-columns="auto"><p><em>No page context available</em></p></div>'
+            return no_content.format("No page context available")
 
         section = getattr(current_page, "_section", None)
         if not section:
             logger.debug("child_cards_no_section", page=str(current_page.source_path))
-            return '<div class="card-grid" data-columns="auto"><p><em>Page has no section</em></p></div>'
+            return no_content.format("Page has no section")
 
         children_items = _collect_children(section, current_page, include)
 
         if not children_items:
             logger.debug("child_cards_no_children", page=str(current_page.source_path))
-            return '<div class="card-grid" data-columns="auto"><p><em>No child content found</em></p></div>'
+            return no_content.format("No child content found")
 
         # Generate card HTML
         cards_html = []
@@ -570,15 +572,15 @@ class ChildCardsDirective(BengalDirective):
             cards_html.append(card_html)
 
         return (
-            f'<div class="card-grid" '
-            f'data-columns="{columns}" '
-            f'data-gap="{gap}" '
-            f'data-style="{style}" '
+        f'<div class="card-grid" '
+        f'data-columns="{columns}" '
+        f'data-gap="{gap}" '
+        f'data-style="{style}" '
             f'data-variant="navigation" '
-            f'data-layout="{layout}">\n'
+        f'data-layout="{layout}">\n'
             f"{''.join(cards_html)}"
-            f"</div>\n"
-        )
+        f"</div>\n"
+    )
 
 
 # =============================================================================
@@ -788,18 +790,18 @@ def _collect_children(section: Any, current_page: Any, include: str) -> list[dic
                     "title": getattr(subsection, "title", subsection.name),
                     "description": (
                         subsection.metadata.get("description", "")
-                        if hasattr(subsection, "metadata")
+                    if hasattr(subsection, "metadata")
                         else ""
                     ),
                     "icon": (
                         subsection.metadata.get("icon", "")
-                        if hasattr(subsection, "metadata")
+                    if hasattr(subsection, "metadata")
                         else ""
                     ),
                     "url": _get_section_url(subsection),
                     "weight": (
                         subsection.metadata.get("weight", 0)
-                        if hasattr(subsection, "metadata")
+                    if hasattr(subsection, "metadata")
                         else 0
                     ),
                 }

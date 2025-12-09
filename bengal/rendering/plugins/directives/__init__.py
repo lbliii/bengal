@@ -115,7 +115,7 @@ from bengal.utils.logger import get_logger
 # =============================================================================
 
 DIRECTIVE_CLASSES: list[type] = [
-    # Admonitions (10 types: note, tip, warning, danger, error, info, example, success, caution, seealso)
+    # Admonitions (note, tip, warning, danger, error, info, example, success, etc.)
     AdmonitionDirective,
     # Badges (badge, bdg)
     BadgeDirective,

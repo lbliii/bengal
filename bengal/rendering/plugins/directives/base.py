@@ -71,7 +71,8 @@ class BengalDirective(DirectivePlugin):
             def render(self, renderer, text, **attrs):
                 title = attrs.get("title", "Details")
                 is_open = attrs.get("open", False)
-                return f'<details{" open" if is_open else ""}><summary>{title}</summary>{text}</details>'
+                open_attr = " open" if is_open else ""
+                return f"<details{open_attr}><summary>{title}</summary>{text}</details>"
 
     Example with Contract:
         class StepDirective(BengalDirective):
