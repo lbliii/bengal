@@ -137,7 +137,8 @@ class BengalDirective(DirectivePlugin):
         location = self._get_source_location(state)
 
         # STEP 1: Validate parent context BEFORE parsing
-        if self.CONTRACT and self.CONTRACT.has_parent_requirement:
+        # Only validate if we know the source file (skip examples/secondary parsing)
+        if self.CONTRACT and self.CONTRACT.has_parent_requirement and location:
             parent_type = self._get_parent_directive_type(state)
             violations = ContractValidator.validate_parent(
                 self.CONTRACT, self.TOKEN_TYPE, parent_type, location
