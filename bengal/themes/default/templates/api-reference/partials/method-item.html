@@ -13,9 +13,9 @@ Receives: element (the class element)
 
 {# Macro to render a single method #}
 {% macro render_method(method) %}
-  {% set params = method.metadata.parameters or [] %}
-  {% set param_count = params | length %}
-  {% set return_type = method.metadata.return_type or 'None' %}
+  {# Use normalized param_count and return_type filters #}
+  {% set method_param_count = method | param_count %}
+  {% set method_return_type = method | return_type %}
   {% set is_async = method.metadata.is_async | default(false) %}
   {% set is_property = method.metadata.is_property | default(false) %}
   {% set is_classmethod = method.metadata.is_classmethod | default(false) %}
@@ -57,14 +57,14 @@ Receives: element (the class element)
       {# Meta info: params + return #}
       <div class="api-member__meta">
         {% if not is_property %}
-        <span class="api-member__params" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">
+        <span class="api-member__params" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">
           {{ icon('brackets-curly', size=12) }}
-          <span>{{ param_count }}</span>
+          <span>{{ method_param_count }}</span>
         </span>
         {% endif %}
-        <span class="api-member__return" title="Returns {{ return_type }}">
+        <span class="api-member__return" title="Returns {{ method_return_type }}">
           {{ icon('arrow-right', size=12) }}
-          <code>{{ return_type | truncate(20, True, '…') }}</code>
+          <code>{{ method_return_type | truncate(20, True, '…') }}</code>
         </span>
       </div>
 

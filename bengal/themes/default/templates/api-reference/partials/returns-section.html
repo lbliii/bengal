@@ -2,26 +2,18 @@
 Returns Section Partial
 
 Renders return type and description.
-Handles both typed metadata (return_type field) and dict format (returns.type).
-Uses semantic CSS tokens from api-docs.css and api-explorer.css.
+Uses the normalized `get_return_info` filter which handles all extractor types.
+Returns a dict with: type, description
 #}
 
-{% if element.metadata.return_type or element.metadata.returns %}
+{% set ret = element | get_return_info %}
+
+{% if ret.type and ret.type != 'None' %}
 <div class="api-returns">
   <h{% if element.element_type == 'method' %}5{% else %}4{% endif %} class="api-label">Returns</h{% if element.element_type == 'method' %}5{% else %}4{% endif %}>
   <p class="api-returns__content">
-    {# Handle typed metadata with return_type field #}
-    {% if element.metadata.return_type %}
-    <code class="api-returns__type">{{ element.metadata.return_type }}</code>
-    {% if element.metadata.returns is string and element.metadata.returns %}<span class="api-returns__desc"> — {{ element.metadata.returns | markdownify | safe }}</span>{% endif %}
-    {# Handle dict format with returns.type #}
-    {% elif element.metadata.returns is mapping %}
-    {% if element.metadata.returns.type %}<code class="api-returns__type">{{ element.metadata.returns.type }}</code>{% if element.metadata.returns.description %}<span class="api-returns__desc"> — </span>{% endif %}{% endif %}
-    <span class="api-returns__desc">{{ element.metadata.returns.description | default('') | markdownify | safe }}</span>
-    {# Handle simple string returns #}
-    {% elif element.metadata.returns is string %}
-    <span class="api-returns__desc">{{ element.metadata.returns | markdownify | safe }}</span>
-    {% endif %}
+    <code class="api-returns__type">{{ ret.type }}</code>
+    {% if ret.description %}<span class="api-returns__desc"> — {{ ret.description | markdownify | safe }}</span>{% endif %}
   </p>
 </div>
 {% endif %}

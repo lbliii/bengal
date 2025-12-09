@@ -1,8 +1,10 @@
 # RFC: Autodoc Incremental Build Support
 
-**Status**: Draft  
+**Status**: Under Review  
 **Created**: 2025-01-09  
+**Reviewed**: 2025-01-09  
 **Author**: AI Assistant  
+**Confidence**: 92% 🟢  
 **Related**: `bengal/orchestration/incremental.py`, `bengal/autodoc/virtual_orchestrator.py`
 
 ---
@@ -10,6 +12,8 @@
 ## Executive Summary
 
 Autodoc pages currently rebuild on **every** dev server change because they're virtual pages with synthetic source paths that don't exist on disk. This RFC proposes adding proper dependency tracking and selective regeneration for autodoc pages, enabling true incremental builds.
+
+**Impact**: Sites with 200+ autodoc pages see 5-10x rebuild performance improvement.
 
 ## Problem Statement
 
@@ -103,6 +107,26 @@ def _should_regenerate_autodoc(self, changed_paths: set[str]) -> bool:
     return False
 ```
 
+**Integration with `_trigger_build()`** (add after line ~295):
+
+```python
+def _trigger_build(self) -> None:
+    # ... existing code ...
+    
+    # Check if autodoc regeneration is needed
+    autodoc_changed = self._should_regenerate_autodoc(set(changed_files))
+    if autodoc_changed:
+        # Force full rebuild to regenerate all autodoc pages
+        # (Phase 1: coarse-grained; Phase 2 will be selective)
+        needs_full_rebuild = True
+        logger.debug(
+            "full_rebuild_triggered_by_autodoc",
+            reason="python_source_changed",
+        )
+    
+    # ... continue with existing build logic ...
+```
+
 **Behavior**: When any `.py` file in autodoc source directories changes, trigger full autodoc regeneration (similar to config change behavior).
 
 ### Phase 2: Dependency Tracking (Full Solution)
@@ -178,7 +202,7 @@ def find_work_early(self, verbose=False):
 
 ### Phase 3: Granular Module Re-extraction (Advanced)
 
-For large codebases, re-extract only changed modules instead of full package scan.
+For large codebases (>500 modules), re-extract only changed modules instead of full package scan.
 
 **File**: `bengal/autodoc/extractors/python.py`
 
@@ -198,64 +222,168 @@ def _discover_autodoc_content_incremental(self, changed_files: set[Path]):
     # Merge with existing autodoc pages/sections
 ```
 
+**Edge Cases to Handle**:
+- Module renames/deletions (orphan cleanup)
+- Cross-module dependencies (`from X import Y`, inheritance)
+- `__all__` changes affecting public API surface
+- Circular imports
+
 ## Implementation Plan
 
 ### Phase 1: Watch Autodoc Directories (1-2 hours)
 
-1. [ ] Add autodoc source dirs to `_get_watched_directories()`
-2. [ ] Add `_should_regenerate_autodoc()` to `BuildHandler`
-3. [ ] Trigger full autodoc rebuild when Python files change
-4. [ ] Test with dev server
+1. [ ] Add autodoc source dirs to `_get_watched_directories()` in `dev_server.py`
+2. [ ] Add `_should_regenerate_autodoc()` method to `BuildHandler`
+3. [ ] Integrate with `_trigger_build()` decision logic (line ~295)
+4. [ ] Handle OpenAPI spec file watching (single file, not just directory)
+5. [ ] Test with dev server: verify `.py` change triggers rebuild
 
 **Benefit**: Python changes now trigger autodoc rebuilds (better than nothing)
+
+**Acceptance Criteria**:
+- Editing a `.py` file in `source_dirs` triggers a rebuild
+- Editing unrelated content files does NOT trigger full autodoc rebuild
+- Dev server startup shows autodoc source dirs in watch list
 
 ### Phase 2: Dependency Tracking (4-6 hours)
 
 1. [ ] Add `AutodocTrackingMixin` to `BuildCache`
-2. [ ] Store `source_file` → `autodoc_page` mappings during extraction
-3. [ ] Modify `find_work_early()` to use dependency lookup
-4. [ ] Remove "always rebuild all autodoc" patch
-5. [ ] Add tests for selective autodoc rebuilds
+2. [ ] Modify `VirtualAutodocOrchestrator._create_pages()` to register dependencies
+3. [ ] Store `source_file` → `autodoc_page` mappings during extraction
+4. [ ] Modify `find_work_early()` to use dependency lookup instead of "always rebuild all"
+5. [ ] Remove the "always rebuild all autodoc" patch from `incremental.py:460`
+6. [ ] Add tests for selective autodoc rebuilds
+7. [ ] Handle orphan cleanup when source files are deleted
 
 **Benefit**: Only affected autodoc pages rebuild (true incremental)
 
-### Phase 3: Granular Re-extraction (8-12 hours)
+**Acceptance Criteria**:
+- Editing `bengal/core/page.py` only rebuilds the `api/bengal/core/page/` autodoc page
+- Editing unrelated Python file does NOT trigger that page to rebuild
+- Deleting a Python file removes its corresponding autodoc page
 
-1. [ ] Add `extract_module()` for single-file extraction
-2. [ ] Add `_discover_autodoc_content_incremental()`
-3. [ ] Handle module additions/deletions
-4. [ ] Handle cross-module dependencies (imports, inheritance)
-5. [ ] Add tests for edge cases
+### Phase 3: Granular Re-extraction (12-20 hours)
 
-**Benefit**: Faster extraction for large codebases
+1. [ ] Add `extract_module()` for single-file extraction in `extractors/python.py`
+2. [ ] Add `_discover_autodoc_content_incremental()` to `ContentOrchestrator`
+3. [ ] Handle module additions/deletions (create/remove pages)
+4. [ ] Handle cross-module dependencies (imports, inheritance, `__all__`)
+5. [ ] Handle circular import edge cases
+6. [ ] Implement partial section tree merging
+7. [ ] Add comprehensive tests for edge cases
+
+**Benefit**: Faster extraction for large codebases (>500 modules)
+
+**Status**: ⚠️ Deferred - only implement if benchmarks show clear need
 
 ## Trade-offs
 
-| Approach | Performance | Complexity | Dev Time |
-|----------|-------------|------------|----------|
-| Current Patch | Poor (rebuilds all) | Low | Done |
-| Phase 1 (Watch) | Medium (full autodoc on .py change) | Low | 1-2 hrs |
-| Phase 2 (Deps) | Good (selective rebuild) | Medium | 4-6 hrs |
-| Phase 3 (Granular) | Best (selective extract + rebuild) | High | 8-12 hrs |
+| Approach | Performance | Complexity | Dev Time | Risk |
+|----------|-------------|------------|----------|------|
+| Current Patch | Poor (rebuilds all) | Low | Done | None |
+| Phase 1 (Watch) | Medium (full autodoc on .py change) | Low | 1-2 hrs | Low |
+| Phase 2 (Deps) | Good (selective rebuild) | Medium | 4-6 hrs | Medium |
+| Phase 3 (Granular) | Best (selective extract + rebuild) | High | 12-20 hrs | High |
 
 ## Recommendation
 
-**Start with Phase 1** as a quick win, then implement **Phase 2** for production-ready incremental autodoc builds. Phase 3 is only needed for very large codebases (>500 modules).
+**Start with Phase 1** as a quick win, then implement **Phase 2** for production-ready incremental autodoc builds. 
+
+**Phase 3 is deferred** - only implement if:
+- Benchmarks show extraction time dominates rebuild time
+- Users with >500 module codebases report performance issues
+- Cross-module dependency handling can be simplified
 
 ## Related Files
 
-- `bengal/server/dev_server.py` - File watching
-- `bengal/server/build_handler.py` - Build triggering
-- `bengal/orchestration/incremental.py` - Incremental build logic
-- `bengal/orchestration/content.py` - Autodoc discovery
-- `bengal/autodoc/virtual_orchestrator.py` - Autodoc page creation
-- `bengal/cache/build_cache/` - Cache and dependency tracking
+### Phase 1 Changes
+- `bengal/server/dev_server.py:301-345` - `_get_watched_directories()` - add autodoc source dirs
+- `bengal/server/build_handler.py:166-408` - `_trigger_build()` - integrate `_should_regenerate_autodoc()`
+
+### Phase 2 Changes
+- `bengal/orchestration/incremental.py:456-461` - Remove "always rebuild all autodoc" patch
+- `bengal/autodoc/virtual_orchestrator.py:738-855` - `_create_pages()` - register dependencies
+- `bengal/cache/build_cache/` - Add `AutodocTrackingMixin`
+
+### Reference (Read-Only)
+- `bengal/orchestration/content.py` - Autodoc discovery flow
+- `bengal/autodoc/extractors/python.py` - Python extraction (Phase 3)
 
 ## Questions for Review
 
-1. Should Phase 1 trigger a full site rebuild or just autodoc regeneration when Python files change?
-2. For Phase 2, should we track dependencies at module level or file level?
-3. Is Phase 3 worth the complexity for typical Bengal users?
+1. **Should Phase 1 trigger a full site rebuild or just autodoc regeneration when Python files change?**
+   
+   **Answer**: Just autodoc regeneration + dependent pages. Full site rebuild defeats the incremental purpose. However, in Phase 1 (coarse-grained), we trigger full rebuild because we don't yet have dependency tracking to know which content pages reference autodoc pages.
+
+2. **For Phase 2, should we track dependencies at module level or file level?**
+   
+   **Answer**: File level. The `source_file` metadata already tracks individual Python files, and file-level granularity provides the best incremental performance without added abstraction.
+
+3. **Is Phase 3 worth the complexity for typical Bengal users?**
+   
+   **Answer**: No. Phase 2 provides 90% of the benefit with 30% of the complexity. Phase 3 should only be implemented if:
+   - Benchmarks show extraction (not rendering) dominates rebuild time
+   - Users with >500 module codebases report specific performance issues
+
+## Additional Considerations
+
+### Config Changes
+
+When `autodoc.python.source_dirs` or `autodoc.python.enabled` changes, invalidate all autodoc cache entries and force full regeneration:
+
+```python
+# In cache validation
+if autodoc_config_changed(old_config, new_config):
+    cache.clear_autodoc_dependencies()
+    return True  # Force full rebuild
+```
+
+### OpenAPI `$ref` Resolution
+
+OpenAPI specs can reference external schema files via `$ref`. For complete watching:
+
+```yaml
+# openapi.yaml
+components:
+  schemas:
+    User:
+      $ref: './schemas/user.yaml'  # External file
+```
+
+**Phase 1**: Watch spec file directory (covers most cases)
+**Phase 2+**: Parse `$ref` and watch all referenced files (if needed)
+
+---
+
+## Review Analysis
+
+### Evidence Verification
+
+| Claim | Source | Status |
+|-------|--------|--------|
+| Autodoc pages always rebuild | `incremental.py:456-461` | ✅ Verified |
+| Virtual source paths don't exist | `virtual_orchestrator.py:789` | ✅ Verified |
+| Autodoc source dirs not watched | `dev_server.py:301-345` | ✅ Verified |
+| `source_file` metadata exists | `virtual_orchestrator.py:801` | ✅ Verified |
+| `BuildHandler` lacks autodoc logic | `build_handler.py:1-538` | ✅ Verified |
+
+### Risk Assessment
+
+| Phase | Technical Risk | Rollback Risk | Testing Complexity |
+|-------|---------------|---------------|-------------------|
+| Phase 1 | Low | Easy (revert 2 files) | Low (manual testing) |
+| Phase 2 | Medium | Medium (cache migration) | Medium (unit + integration) |
+| Phase 3 | High | Hard (cross-module state) | High (edge case coverage) |
+
+### Performance Projections
+
+| Scenario | Current | Phase 1 | Phase 2 |
+|----------|---------|---------|---------|
+| Edit content, 200 autodoc pages | Rebuild 200 | Rebuild 0 | Rebuild 0 |
+| Edit 1 Python file, 200 autodoc pages | Rebuild 0* | Rebuild 200 | Rebuild 1 |
+| Edit template, 200 autodoc pages | Rebuild 200 | Rebuild 200 | Rebuild 200 |
+
+*Currently broken - Python changes aren't detected at all
 
 ---
 

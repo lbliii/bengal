@@ -104,17 +104,17 @@ This fallback includes a minimal header for standalone rendering.
                                 <div class="api-method__description">{{ method.description | markdownify | safe }}</div>
                                 {% endif %}
 
-                                {# Parameters #}
-                                {% if method.metadata.parameters %}
+                                {# Parameters - using normalized get_params filter #}
+                                {% set method_params = method | get_params %}
+                                {% if method_params %}
                                 <div class="api-parameters">
                                     <h5 class="api-label">Parameters</h5>
                                     <table class="api-table api-table--mini">
                                         <tbody>
-                                            {% for param in method.metadata.parameters %}
+                                            {% for param in method_params %}
                                             <tr>
                                                 <td><code>{{ param.name }}</code></td>
-                                                <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif
-                                                    %}</td>
+                                                <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
                                                 <td>{{ param.description | default('') | markdownify | safe }}</td>
                                             </tr>
                                             {% endfor %}
@@ -123,14 +123,14 @@ This fallback includes a minimal header for standalone rendering.
                                 </div>
                                 {% endif %}
 
-                                {# Returns #}
-                                {% if method.metadata.returns %}
+                                {# Returns - using normalized get_return_info filter #}
+                                {% set method_ret = method | get_return_info %}
+                                {% if method_ret.type and method_ret.type != 'None' %}
                                 <div class="api-returns">
                                     <h5 class="api-label">Returns</h5>
                                     <p>
-                                        {% if method.metadata.returns.type
-                                        %}<code>{{ method.metadata.returns.type }}</code> — {% endif %}
-                                        {{ method.metadata.returns.description | default('') | markdownify | safe }}
+                                        <code>{{ method_ret.type }}</code>
+                                        {% if method_ret.description %} — {{ method_ret.description | markdownify | safe }}{% endif %}
                                     </p>
                                 </div>
                                 {% endif %}
@@ -174,8 +174,9 @@ This fallback includes a minimal header for standalone rendering.
                     <div class="api-card__description">{{ func.description | markdownify | safe }}</div>
                     {% endif %}
 
-                    {# Parameters #}
-                    {% if func.metadata.parameters %}
+                    {# Parameters - using normalized get_params filter #}
+                    {% set func_params = func | get_params %}
+                    {% if func_params %}
                     <div class="api-parameters">
                         <h4 class="api-label">Parameters</h4>
                         <table class="api-table api-table--compact">
@@ -188,12 +189,11 @@ This fallback includes a minimal header for standalone rendering.
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for param in func.metadata.parameters %}
+                                {% for param in func_params %}
                                 <tr>
                                     <td><code>{{ param.name }}</code></td>
                                     <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
-                                    <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}
-                                    </td>
+                                    <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}</td>
                                     <td>{{ param.description | default('') | markdownify | safe }}</td>
                                 </tr>
                                 {% endfor %}
@@ -202,13 +202,14 @@ This fallback includes a minimal header for standalone rendering.
                     </div>
                     {% endif %}
 
-                    {# Returns #}
-                    {% if func.metadata.returns %}
+                    {# Returns - using normalized get_return_info filter #}
+                    {% set func_ret = func | get_return_info %}
+                    {% if func_ret.type and func_ret.type != 'None' %}
                     <div class="api-returns">
                         <h4 class="api-label">Returns</h4>
                         <p>
-                            {% if func.metadata.returns.type %}<code>{{ func.metadata.returns.type }}</code>{% endif %}
-                            {{ func.metadata.returns.description | default('') | markdownify | safe }}
+                            <code>{{ func_ret.type }}</code>
+                            {% if func_ret.description %} — {{ func_ret.description | markdownify | safe }}{% endif %}
                         </p>
                     </div>
                     {% endif %}

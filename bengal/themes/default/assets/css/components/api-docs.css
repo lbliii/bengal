@@ -41,11 +41,11 @@
 }
 
 .prose.api-content h3 > code {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
 }
 
 .prose.api-content h4 > code {
-  font-size: 1.15rem;
+  font-size: var(--text-xl);
 }
 
 /* API content inherits prose list styles but maintains spacing */
@@ -82,7 +82,7 @@
 .api-class-icon,
 .api-function-icon {
   font-size: var(--text-2xl);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .api-source-link {
@@ -141,7 +141,7 @@
   font-weight: var(--weight-medium);
   padding: 0.2em 0.5em;
   border-radius: var(--radius-sm);
-  font-size: 0.9em;
+  font-size: var(--text-sm);
 }
 
 /* Parameter list styling - API docs only */
@@ -149,7 +149,7 @@
   /* Parameter names */
   color: var(--color-primary);
   font-family: var(--font-mono);
-  font-size: 0.95em;
+  font-size: var(--text-base);
 }
 
 /* Add subtle background to parameter/argument lists in API docs only */
@@ -537,7 +537,7 @@
 .prose.api-content table tbody td {
   padding: var(--space-3) var(--space-4);
   vertical-align: top;
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 /* First column (Name) - monospace and highlighted */
@@ -565,7 +565,7 @@
 /* Third column (Default) - monospace */
 .prose.api-content table tbody td:nth-child(3) {
   font-family: var(--font-mono);
-  font-size: 0.9em;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
@@ -578,7 +578,7 @@
 /* Fourth column (Description) - regular text */
 .prose.api-content table tbody td:nth-child(4) {
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 /* Responsive table - stack on mobile */
@@ -873,7 +873,7 @@
   margin-left: var(--space-6);
   color: var(--color-text-secondary);
   margin-top: var(--space-1);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 /* ============================================

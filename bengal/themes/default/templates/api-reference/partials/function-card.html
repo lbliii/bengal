@@ -7,10 +7,9 @@ Uses api-member classes from api-explorer.css.
 #}
 
 {% macro function_card(func) %}
-{# Compute preview info #}
-{% set params = func.metadata.parameters or [] %}
-{% set param_count = params | length %}
-{% set return_type = func.metadata.return_type or 'None' %}
+{# Use normalized param_count and return_type filters #}
+{% set func_param_count = func | param_count %}
+{% set func_return_type = func | return_type %}
 {% set is_async = func.metadata.is_async | default(false) %}
 {% set first_sentence = ((func.description or '') | truncate(100, True, '…')) %}
 
@@ -38,13 +37,13 @@ Uses api-member classes from api-explorer.css.
 
     {# Meta: params + return #}
     <div class="api-member__meta">
-      <span class="api-member__params" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">
+      <span class="api-member__params" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">
         {{ icon('brackets-curly', size=12) }}
-        <span>{{ param_count }}</span>
+        <span>{{ func_param_count }}</span>
       </span>
-      <span class="api-member__return" title="Returns {{ return_type }}">
+      <span class="api-member__return" title="Returns {{ func_return_type }}">
         {{ icon('arrow-right', size=12) }}
-        <code>{{ return_type | truncate(20, True, '…') }}</code>
+        <code>{{ func_return_type | truncate(20, True, '…') }}</code>
       </span>
     </div>
 

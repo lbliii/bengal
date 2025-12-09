@@ -544,3 +544,203 @@ def get_openapi_operation_id(element: DocElement) -> str | None:
     if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
         return element.typed_metadata.operation_id
     return element.metadata.get("operation_id")
+
+
+# =============================================================================
+# Normalized Parameter Access
+# =============================================================================
+#
+# Functions that provide a unified parameter format across all extractors.
+# This is the canonical way to access parameters in templates.
+
+
+def get_function_parameters(
+    element: DocElement,
+    exclude_self: bool = True,
+) -> list[dict[str, Any]]:
+    """
+    Get normalized function/method parameters across all extractor types.
+
+    This is the canonical way to access parameters in templates. It handles:
+    - Python functions/methods (typed_metadata.parameters or metadata.args)
+    - CLI options (typed_metadata or metadata.options)
+    - OpenAPI endpoints (typed_metadata.parameters or metadata.parameters)
+
+    Each parameter is normalized to a consistent dict format:
+        {
+            "name": str,           # Parameter name
+            "type": str | None,    # Type annotation/schema type
+            "default": str | None, # Default value
+            "required": bool,      # Whether required (derived from default)
+            "description": str,    # Description from docstring
+        }
+
+    Args:
+        element: DocElement to extract parameters from
+        exclude_self: If True, excludes 'self' and 'cls' parameters (default True)
+
+    Returns:
+        List of normalized parameter dicts (empty list if element has no params)
+
+    Example:
+        >>> params = get_function_parameters(method_element)
+        >>> for p in params:
+        ...     print(f"{p['name']}: {p['type']} = {p['default']}")
+    """
+    # Guard: Only process elements that can have parameters
+    valid_types = {"function", "method", "command", "openapi_endpoint", "endpoint"}
+    if hasattr(element, "element_type") and element.element_type not in valid_types:
+        return []
+
+    from bengal.autodoc.models import (
+        CLICommandMetadata,
+        OpenAPIEndpointMetadata,
+        PythonFunctionMetadata,
+    )
+
+    params: list[dict[str, Any]] = []
+
+    # Python functions/methods
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        for p in element.typed_metadata.parameters:
+            if exclude_self and p.name in ("self", "cls"):
+                continue
+            params.append({
+                "name": p.name,
+                "type": p.type_hint,
+                "default": p.default,
+                "required": p.default is None and p.kind not in ("var_positional", "var_keyword"),
+                "description": p.description or "",
+            })
+        return params
+
+    # OpenAPI endpoints
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        for p in element.typed_metadata.parameters:
+            params.append({
+                "name": p.name,
+                "type": p.schema_type,
+                "default": None,
+                "required": p.required,
+                "description": p.description or "",
+            })
+        return params
+
+    # CLI commands - get options from children
+    if isinstance(element.typed_metadata, CLICommandMetadata):
+        from bengal.autodoc.models import CLIOptionMetadata
+
+        for child in element.children:
+            if isinstance(child.typed_metadata, CLIOptionMetadata):
+                opt = child.typed_metadata
+                # Format default value
+                default_str = None
+                if opt.default is not None and not opt.is_flag:
+                    default_str = str(opt.default)
+
+                params.append({
+                    "name": opt.name,
+                    "type": opt.type_name,
+                    "default": default_str,
+                    "required": opt.required,
+                    "description": opt.help_text or "",
+                })
+        return params
+
+    # Fallback to legacy metadata dict
+    # Try 'args' first (Python extractor), then 'parameters' (others)
+    legacy_params = element.metadata.get("args") or element.metadata.get("parameters") or []
+
+    for p in legacy_params:
+        if isinstance(p, dict):
+            name = p.get("name", "")
+            if exclude_self and name in ("self", "cls"):
+                continue
+            params.append({
+                "name": name,
+                "type": p.get("type_hint") or p.get("type") or p.get("schema_type"),
+                "default": p.get("default"),
+                "required": p.get("required", p.get("default") is None),
+                "description": p.get("description") or p.get("docstring") or p.get("help_text") or "",
+            })
+        elif isinstance(p, str):
+            # Simple string param (just the name)
+            if exclude_self and p in ("self", "cls"):
+                continue
+            params.append({
+                "name": p,
+                "type": None,
+                "default": None,
+                "required": True,
+                "description": "",
+            })
+
+    return params
+
+
+def get_function_return_info(element: DocElement) -> dict[str, Any]:
+    """
+    Get normalized return type information across all extractor types.
+
+    Returns a consistent dict format:
+        {
+            "type": str | None,        # Return type annotation
+            "description": str | None, # Return description from docstring
+        }
+
+    Args:
+        element: DocElement to extract return info from
+
+    Returns:
+        Dict with 'type' and 'description' keys (both None if not applicable)
+
+    Example:
+        >>> ret = get_function_return_info(func_element)
+        >>> if ret['type'] and ret['type'] != 'None':
+        ...     print(f"Returns: {ret['type']}")
+    """
+    # Guard: Only process elements that can have return types
+    valid_types = {"function", "method", "openapi_endpoint", "endpoint"}
+    if hasattr(element, "element_type") and element.element_type not in valid_types:
+        return {"type": None, "description": None}
+
+    from bengal.autodoc.models import (
+        OpenAPIEndpointMetadata,
+        PythonFunctionMetadata,
+    )
+
+    # Python functions/methods
+    if isinstance(element.typed_metadata, PythonFunctionMetadata):
+        return_desc = None
+        if element.typed_metadata.parsed_doc:
+            return_desc = element.typed_metadata.parsed_doc.returns
+        return {
+            "type": element.typed_metadata.return_type,
+            "description": return_desc,
+        }
+
+    # OpenAPI endpoints - return info from responses
+    if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
+        # Find the success response (200, 201, etc.)
+        for resp in element.typed_metadata.responses:
+            if resp.status_code.startswith("2"):
+                return {
+                    "type": resp.schema_ref or resp.content_type,
+                    "description": resp.description,
+                }
+        return {"type": None, "description": None}
+
+    # Fallback to legacy metadata dict
+    returns = element.metadata.get("returns")
+    if isinstance(returns, dict):
+        return {
+            "type": returns.get("type"),
+            "description": returns.get("description"),
+        }
+    elif isinstance(returns, str):
+        return {
+            "type": returns,
+            "description": None,
+        }
+
+    return {"type": None, "description": None}
