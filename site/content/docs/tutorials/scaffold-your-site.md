@@ -128,8 +128,8 @@ Bengal infers section types from names:
 
 ## Customizing After Scaffolding
 
-### 1. Update Site Identity
-
+:::{steps}
+:::{step} Update Site Identity
 Edit `config/_default/site.yaml`:
 
 ```yaml
@@ -139,9 +139,9 @@ site:
   author: "Your Name"
   baseurl: "https://docs.example.com"
 ```
+:::{/step}
 
-### 2. Configure Features
-
+:::{step} Configure Features
 Edit `config/_default/features.yaml`:
 
 ```yaml
@@ -152,9 +152,9 @@ features:
   json: true      # Generate JSON API
   llm_txt: true   # Generate llms.txt
 ```
+:::{/step}
 
-### 3. Add Your Content
-
+:::{step} Add Your Content
 Replace placeholder content in `content/`:
 
 ```bash
@@ -164,6 +164,8 @@ $EDITOR content/index.md
 # Add new page
 touch content/getting-started/configuration.md
 ```
+:::{/step}
+:::{/steps}
 
 ## Preview and Build
 

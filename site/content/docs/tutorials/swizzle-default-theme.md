@@ -67,8 +67,8 @@ When Bengal renders a page, it looks for templates in this order:
 
 If you swizzle a template, your version in `templates/` takes precedence. Everything else continues to use the theme's original templates.
 
-## Step 1: Set Up Your Project
-
+:::{steps}
+:::{step} Set Up Your Project
 Let's start with a fresh Bengal site. If you already have one, you can use it.
 
 ```bash
@@ -96,9 +96,9 @@ my-custom-site/
 **Why `templates/` is empty**
 The `templates/` directory starts empty because Bengal uses templates from the default theme. Once you swizzle templates here, they'll override the theme versions.
 :::
+:::{/step}
 
-## Step 2: Discover Swizzlable Templates
-
+:::{step} Discover Swizzlable Templates
 Before swizzling, let's see what templates are available in the default theme.
 
 ```bash
@@ -118,7 +118,7 @@ partials/search.html
 ...
 ```
 
-### Understanding Template Structure
+**Understanding Template Structure**
 
 The default theme organizes templates into:
 
@@ -133,9 +133,9 @@ The default theme organizes templates into:
 - `base.html` — Site-wide layout
 - `page.html` — Individual page layout
 :::
+:::{/step}
 
-## Step 3: Swizzle Your First Template
-
+:::{step} Swizzle Your First Template
 Let's swizzle the navigation components template. This is a good starting point because navigation is often customized.
 
 ```bash
@@ -148,7 +148,7 @@ You should see:
 ✓ Swizzled to /path/to/my-custom-site/templates/partials/navigation-components.html
 ```
 
-### Verify the Swizzle
+**Verify the Swizzle**
 
 Check that the file was created:
 
@@ -158,7 +158,7 @@ ls -la templates/partials/
 
 You should see `navigation-components.html` in your project's `templates/partials/` directory.
 
-### Check Swizzle Registry
+**Check Swizzle Registry**
 
 Bengal tracks swizzled templates in `.bengal/themes/sources.json`. Let's see what's tracked:
 
@@ -173,12 +173,12 @@ Output:
 ```
 
 This confirms Bengal knows where the template came from.
+:::{/step}
 
-## Step 4: Customize Your Swizzled Template
-
+:::{step} Customize Your Swizzled Template
 Now let's customize the navigation. Open `templates/partials/navigation-components.html` in your editor.
 
-### Understand the Template Structure
+**Understand the Template Structure**
 
 The file contains Jinja2 macros for navigation components. Let's add a simple customization: change the breadcrumb separator.
 
@@ -199,7 +199,7 @@ Find the breadcrumbs macro (around line 30-50) and look for the separator. It mi
 {% endmacro %}
 ```
 
-### Make a Simple Change
+**Make a Simple Change**
 
 Change the separator from `/` to `→`:
 
@@ -219,18 +219,18 @@ Navigate to a page with breadcrumbs and verify the separator changed.
 **Live reload**
 The dev server watches for file changes. Save your template and refresh the browser to see changes immediately.
 :::
+:::{/step}
 
-## Step 5: Swizzle and Customize Multiple Templates
-
+:::{step} Swizzle and Customize Multiple Templates
 Let's swizzle the search modal and customize it.
 
-### Swizzle the Search Modal
+**Swizzle the Search Modal**
 
 ```bash
 bengal utils theme swizzle partials/search-modal.html
 ```
 
-### Customize the Search Modal
+**Customize the Search Modal**
 
 Open `templates/partials/search-modal.html`. You might want to:
 
@@ -259,7 +259,7 @@ Change it to:
 >
 ```
 
-### Verify Your Changes
+**Verify Your Changes**
 
 Check your swizzled templates:
 
@@ -273,18 +273,18 @@ You should see both templates:
 - partials/navigation-components.html (from default)
 - partials/search-modal.html (from default)
 ```
+:::{/step}
 
-## Step 6: Understand Template Inheritance
-
+:::{step} Understand Template Inheritance
 Swizzling copies the entire template. But you can also use **template inheritance** to override only specific parts.
 
-### Swizzle the Base Template
+**Swizzle the Base Template**
 
 ```bash
 bengal utils theme swizzle base.html
 ```
 
-### Use Inheritance Instead
+**Use Inheritance Instead**
 
 Instead of modifying the entire `base.html`, you can create a minimal override that extends the original:
 
@@ -314,12 +314,12 @@ Instead of modifying the entire `base.html`, you can create a minimal override t
 
 Choose based on how much you need to customize.
 :::
+:::{/step}
 
-## Step 7: Track and Update Swizzled Templates
-
+:::{step} Track and Update Swizzled Templates
 Bengal tracks which templates you've swizzled and whether you've modified them. This helps you update templates safely.
 
-### Check Modification Status
+**Check Modification Status**
 
 When you swizzle a template, Bengal records a checksum. If you modify the template locally, Bengal detects the change.
 
@@ -340,7 +340,7 @@ This means:
 - **Skipped (changed): 2** — Two templates were skipped because you changed them
 - **Missing upstream: 0** — All source templates still exist
 
-### When Templates Are Updated
+**When Templates Are Updated**
 
 Templates are only updated if:
 1. The local file matches the original swizzled checksum (you haven't modified it)
@@ -348,12 +348,12 @@ Templates are only updated if:
 3. The source template still exists
 
 This prevents overwriting your customizations.
+:::{/step}
 
-## Step 8: Build and Test
-
+:::{step} Build and Test
 Let's build your customized site and verify everything works.
 
-### Build for Production
+**Build for Production**
 
 ```bash
 bengal site build
@@ -361,13 +361,13 @@ bengal site build
 
 This generates static files in `public/` using your swizzled templates.
 
-### Verify Customizations
+**Verify Customizations**
 
 1. **Check navigation**: Breadcrumbs should use `→` instead of `/`
 2. **Check search**: Search placeholder should say "Find anything..."
 3. **Check structure**: Site should render correctly
 
-### Review Build Output
+**Review Build Output**
 
 ```text
 public/
@@ -379,6 +379,8 @@ public/
 ```
 
 Your customizations are baked into the HTML files.
+:::{/step}
+:::{/steps}
 
 ## Best Practices
 

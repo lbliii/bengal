@@ -33,30 +33,33 @@ What Goes in PageCore?
     - Field is computed from other non-cacheable fields
 
 Example Usage:
-    # Creating a PageCore
-    from datetime import datetime
 
-    core = PageCore(
-        source_path="content/posts/my-post.md",  # String path for JSON compatibility
-        title="My Post",
-        date=datetime(2025, 10, 26),
-        tags=["python", "web"],
-        slug="my-post",
-        type="doc",
-    )
+```python
+# Creating a PageCore
+from datetime import datetime
 
-    # Using in Page (composition)
-    from bengal.core.page import Page
+core = PageCore(
+    source_path="content/posts/my-post.md",  # String path for JSON compatibility
+    title="My Post",
+    date=datetime(2025, 10, 26),
+    tags=["python", "web"],
+    slug="my-post",
+    type="doc",
+)
 
-    page = Page(
-        core=core,
-        content="# Hello World",
-        rendered_html="<h1>Hello World</h1>",
-    )
+# Using in Page (composition)
+from bengal.core.page import Page
 
-    # Accessing fields via property delegates
-    assert page.title == "My Post"  # Property delegate
-    assert page.core.title == "My Post"  # Direct access
+page = Page(
+    core=core,
+    content="# Hello World",
+    rendered_html="<h1>Hello World</h1>",
+)
+
+# Accessing fields via property delegates
+assert page.title == "My Post"  # Property delegate
+assert page.core.title == "My Post"  # Direct access
+```
 
     # Caching (PageMetadata = PageCore)
     from dataclasses import asdict

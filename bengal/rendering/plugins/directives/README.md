@@ -216,10 +216,33 @@ STEPS_CONTRACT = DirectiveContract(
 
 | Directive | Description | Example |
 |-----------|-------------|---------|
-| `tabs` / `tab-set` | Tabbed content | `::::{tab-set}` |
+| `tabs` / `tab-set` | Tabbed content | `:::{tab-set}` |
 | `tab-item` | Individual tab | `:::{tab-item} Label` |
-| `steps` | Step-by-step guide | `::::{steps}` |
-| `step` | Individual step | `:::{step}` |
+| `steps` | Step-by-step guide | `:::{steps}` |
+| `step` | Individual step | `:::{step} Title` |
+
+#### Steps Example (with named closers)
+
+```markdown
+:::{steps}
+:::{step} Install Dependencies
+:description: First, set up your environment with required packages.
+Run the installation command:
+\`\`\`bash
+pip install bengal
+\`\`\`
+:::{/step}
+
+:::{step} Configure Your Site
+:description: Customize Bengal's behavior for your project.
+Edit `bengal.toml` to add your settings.
+:::{/step}
+:::{/steps}
+```
+
+**Step Options:**
+- `:class:` — Custom CSS class for the step
+- `:description:` — Lead-in text with special typography (rendered before main content)
 
 ### Cards and Grids
 
@@ -252,7 +275,15 @@ STEPS_CONTRACT = DirectiveContract(
 The contract system validates parent-child relationships at parse time:
 
 ```markdown
-<!-- ✅ Valid: step inside steps -->
+<!-- ✅ Valid: step inside steps (named closers - preferred) -->
+:::{steps}
+:::{step} First Step
+:description: This is the lead-in text.
+Step content here.
+:::{/step}
+:::{/steps}
+
+<!-- ✅ Valid: fence-depth counting (still works) -->
 ::::{steps}
 :::{step}
 First step

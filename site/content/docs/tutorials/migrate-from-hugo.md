@@ -159,9 +159,9 @@ tags: [python, web]
 # featured can be stored in params or custom frontmatter
 ---
 ```
-::::
+:::{/step}
 
-::::{step} Migrate Content Files
+:::{step} Migrate Content Files
 **Automated Migration Script**
 
 Create a simple Python script to help with bulk conversion:
@@ -235,9 +235,9 @@ for md_file in source_dir.rglob("*.md"):
 3. **Convert frontmatter:**
    - Use the script above or convert manually
    - Check each file for format-specific fields
-::::
+:::{/step}
 
-::::{step} Preserve URLs
+:::{step} Preserve URLs
 Bengal generates URLs from file paths. To preserve existing URLs:
 
 1. **Use `slug` frontmatter** to override generated URLs:
@@ -262,9 +262,9 @@ Bengal generates URLs from file paths. To preserve existing URLs:
    bengal site build
    # Check public/ directory for generated URLs
    ```
-::::
+:::{/step}
 
-::::{step} Migrate Assets
+:::{step} Migrate Assets
 Bengal looks for assets in:
 - `assets/` - Site-specific assets
 - `themes/[theme-name]/static/` - Theme assets
@@ -287,9 +287,9 @@ Bengal looks for assets in:
 3. **Update CSS/JS references:**
    - Move to `assets/css/` and `assets/js/`
    - Update template references if using custom themes
-::::
+:::{/step}
 
-::::{step} Migrate Configuration
+:::{step} Migrate Configuration
 **From Hugo `config.toml`**
 
 ```toml
@@ -334,18 +334,18 @@ name = "Blog"
 url = "/blog/"
 weight = 2
 ```
-::::
+:::{/step}
 
-::::{step} Test Your Migration
+:::{step} Test Your Migration
 :::{checklist} Verification Steps
 - [ ] Build the site: `bengal site build`
 - [ ] Check for errors: `bengal site build --verbose`
 - [ ] Validate links: `bengal health check`
 - [ ] Preview locally: `bengal site serve` (visit http://localhost:5173)
 :::
-::::
+:::{/step}
 
-::::{step} Handle Special Cases
+:::{step} Handle Special Cases
 **Taxonomies**
 
 Bengal uses `tags` and `category` (singular) for taxonomies:
@@ -384,8 +384,8 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
    ```
 
 2. **Use Python scripts** to generate content from data
-::::
-:::::
+:::{/step}
+:::{/steps}
 
 ## Troubleshooting
 

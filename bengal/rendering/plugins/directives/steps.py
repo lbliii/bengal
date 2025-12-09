@@ -9,16 +9,28 @@ Architecture:
     - StepsDirective: requires_children=["step"]
     - StepDirective: requires_parent=["steps"]
 
-Syntax:
+Syntax (preferred - named closers, no colon counting):
+    :::{steps}
+    :::{step} Step Title
+    :description: Brief context before diving into the step content.
+    Step 1 content with **markdown** and nested directives.
+    :::{/step}
+
+    :::{step} Another Step
+    Step 2 content
+    :::{/step}
+    :::{/steps}
+
+Legacy syntax (fence-depth counting - still works):
     ::::{steps}
     :::{step} Step Title
     Step 1 content
     :::
-
-    :::{step} Another Step
-    Step 2 content
-    :::
     ::::
+
+Step Options:
+    :class: - Custom CSS class for the step
+    :description: - Lead-in text with special typography (rendered before main content)
 """
 
 from __future__ import annotations
@@ -59,15 +71,18 @@ class StepOptions(DirectiveOptions):
 
     Attributes:
         css_class: Custom CSS class for the step
+        description: Lead-in text with special typography (rendered before main content)
 
     Example:
         :::{step} Configure Settings
         :class: important-step
+        :description: Before we begin, ensure your environment is properly set up.
         Content here
-        :::
+        :::{/step}
     """
 
     css_class: str = ""
+    description: str = ""
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
@@ -109,12 +124,15 @@ class StepDirective(BengalDirective):
         Build step token from parsed components.
 
         Title becomes the step heading, content is parsed as markdown.
+        Description (if provided) renders as lead-in text with special typography.
         """
         attrs: dict[str, Any] = {}
         if title:
             attrs["title"] = title
         if options.css_class:
             attrs["css_class"] = options.css_class
+        if options.description:
+            attrs["description"] = options.description
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -127,12 +145,20 @@ class StepDirective(BengalDirective):
         Render individual step to HTML.
 
         Step titles are rendered as headings (h2/h3/h4) based on parent level.
+        Descriptions are rendered as lead-in text with special typography.
         """
         title = attrs.get("title", "")
+        description = attrs.get("description", "")
         css_class = attrs.get("css_class", "").strip()
         heading_level = attrs.get("heading_level", 2)
 
         class_attr = f' class="{css_class}"' if css_class else ""
+
+        # Build description HTML if provided
+        description_html = ""
+        if description:
+            desc_text = self._parse_inline_markdown(renderer, description)
+            description_html = f'<p class="step-description">{desc_text}</p>\n'
 
         if title:
             title_html = self._parse_inline_markdown(renderer, title)
@@ -140,10 +166,11 @@ class StepDirective(BengalDirective):
             return (
                 f"<li{class_attr}>"
                 f'<{heading_tag} class="step-title">{title_html}</{heading_tag}>'
+                f"{description_html}"
                 f"{text}</li>\n"
             )
 
-        return f"<li{class_attr}>{text}</li>\n"
+        return f"<li{class_attr}>{description_html}{text}</li>\n"
 
     @staticmethod
     def _parse_inline_markdown(renderer: Any, text: str) -> str:

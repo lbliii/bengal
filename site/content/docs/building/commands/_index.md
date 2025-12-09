@@ -30,8 +30,8 @@ bengal build
 # Production build
 bengal build --environment production --strict
 
-# Clean and rebuild
-bengal build --clean
+# Clean output and rebuild
+bengal build --clean-output
 ```
 :::
 

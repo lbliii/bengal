@@ -79,22 +79,22 @@ bengal/
 
 ## Development Workflow
 
-### 1. Create a Branch
-
+:::{steps}
+:::{step} Create a Branch
 ```bash
 git checkout -b feature/my-feature
 ```
+:::{/step}
 
-### 2. Make Changes
-
+:::{step} Make Changes
 Edit code in `bengal/`, following existing patterns.
+:::{/step}
 
-### 3. Add Tests
-
+:::{step} Add Tests
 Add tests in `tests/unit/` or `tests/integration/`.
+:::{/step}
 
-### 4. Run Linters
-
+:::{step} Run Linters
 ```bash
 # Format code
 ruff format bengal/ tests/
@@ -102,22 +102,24 @@ ruff format bengal/ tests/
 # Lint
 ruff check bengal/ tests/ --fix
 ```
+:::{/step}
 
-### 5. Commit
-
+:::{step} Commit
 ```bash
 git add -A && git commit -m "core: add feature description"
 ```
 
 Follow the commit message format described in the project's [CONTRIBUTING guidelines](https://github.com/lbliii/bengal/blob/main/CONTRIBUTING.md).
+:::{/step}
 
-### 6. Push and Create PR
-
+:::{step} Push and Create PR
 ```bash
 git push origin feature/my-feature
 ```
 
 Then create a Pull Request on GitHub.
+:::{/step}
+:::{/steps}
 
 ## Build the Docs Site
 

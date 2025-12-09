@@ -80,21 +80,20 @@ Stay tuned for more!
 
 ## Customize Your Site
 
-Edit `bengal.toml`:
+Edit `config/_default/site.yaml`:
 
-```toml
-[site]
-title = "My Awesome Blog"
-description = "Thoughts on code, design, and life"
-baseurl = "https://myblog.com"
-author = "Your Name"
-language = "en"
+```yaml
+site:
+  title: "My Awesome Blog"
+  description: "Thoughts on code, design, and life"
+  baseurl: "https://myblog.com"
+  language: "en"
 ```
 
 ## Build for Production
 
 ```bash
-bengal site build
+bengal build
 ```
 
 Your complete site is in `public/`, ready to deploy!
@@ -103,9 +102,9 @@ Your complete site is in `public/`, ready to deploy!
 
 Deploy the `public/` directory to any static hosting:
 
-- **Netlify**: Build command: `bengal site build`, Publish: `public`
+- **Netlify**: Build command: `bengal build`, Publish: `public`
 - **GitHub Pages**: Use the workflow in [Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/)
-- **Vercel**: Build command: `bengal site build`, Output: `public`
+- **Vercel**: Build command: `bengal build`, Output: `public`
 
 ## Frontmatter Reference
 

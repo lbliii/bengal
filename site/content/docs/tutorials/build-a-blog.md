@@ -47,29 +47,32 @@ By the end of this tutorial, you will have:
 First, let's create a new site. Open your terminal and run:
 
 ```bash
-# Create a new directory for your blog
-mkdir my-blog
-cd my-blog
+# Create a new Bengal site
+bengal new site my-blog
 
-# Initialize a fresh Bengal site
-bengal init
+# Enter your site directory
+cd my-blog
 ```
 
 You will see a structure like this:
 
 ```text
 my-blog/
-├── bengal.toml       # Main configuration
-├── site/
-│   ├── content/      # Your markdown files
-│   ├── static/       # Images, CSS, JS
-│   └── templates/    # Theme overrides
-└── themes/           # Installed themes
+├── config/           # Configuration files
+│   ├── _default/     # Default settings
+│   └── environments/ # Environment-specific config
+├── content/          # Your markdown files
+├── assets/           # CSS, JS, images
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── templates/        # Theme overrides
+└── .gitignore        # Git ignore file
 ```
 
 :::{tip}
 **Why this structure?**
-Bengal separates **configuration** (`bengal.toml`) from **data** (`site/`) to keep your project clean. The `site/` folder contains everything that makes your site unique.
+Bengal uses a directory-based configuration system that separates default settings from environment-specific overrides. Your content lives in `content/` and custom styles in `assets/`.
 :::
 :::{/step}
 
@@ -78,10 +81,10 @@ Bengal provides a CLI to generate content with the correct frontmatter.
 
 ```bash
 # Create a new blog post
-bengal new page content/blog/hello-world.md
+bengal new page "Hello World" --section blog
 ```
 
-Open `site/content/blog/hello-world.md` in your editor. You'll see the **Frontmatter** (metadata) at the top:
+Open `content/blog/hello-world.md` in your editor. You'll see the **Frontmatter** (metadata) at the top:
 
 ```yaml
 ---
@@ -122,39 +125,35 @@ By default, new pages are drafts. They won't show up in production builds unless
 :::{/step}
 
 :::{step} Configure Your Site
-Now, let's give your site an identity. Open `bengal.toml` and update the basics.
+Now, let's give your site an identity. Open `config/_default/site.yaml` and update the basics.
 
 :::{tab-set}
-:::{tab-item} bengal.toml
-```toml
-[site]
-title = "My Awesome Blog"
-description = "Thoughts on code and coffee."
-baseurl = "https://example.com"
-author = "Jane Doe"
-language = "en"
+:::{tab-item} config/_default/site.yaml
+```yaml
+title: "My Awesome Blog"
+description: "Thoughts on code and coffee."
+baseurl: "https://example.com"
+author: "Jane Doe"
+language: "en"
 
 # Define navigation menu
-[[site.menu.main]]
-name = "Home"
-url = "/"
-weight = 1
-
-[[site.menu.main]]
-name = "Blog"
-url = "/blog/"
-weight = 2
-
-[[site.menu.main]]
-name = "About"
-url = "/docs/about/"
-weight = 3
+menu:
+  main:
+    - name: "Home"
+      url: "/"
+      weight: 1
+    - name: "Blog"
+      url: "/blog/"
+      weight: 2
+    - name: "About"
+      url: "/about/"
+      weight: 3
 ```
 :::{/tab-item}
 
 :::{tab-item} Explanation
-*   **`[site]`**: Global metadata used by themes (SEO tags, header titles).
-*   **`[[site.menu.main]]`**: Defines the top navigation bar. Each item is an object in the `main` menu list.
+*   **`title`, `description`**: Global metadata used by themes (SEO tags, header titles).
+*   **`menu.main`**: Defines the top navigation bar. Each item is an object in the `main` menu list.
 *   **`weight`**: Controls the sort order (lower numbers appear first).
 :::{/tab-item}
 :::{/tab-set}
@@ -185,10 +184,10 @@ Let's change the header color and add a custom footer.
 
 **Create a Custom CSS File**
 
-Create `site/static/css/custom.css`:
+Create `assets/css/custom.css`:
 
 ```css
-/* site/static/css/custom.css */
+/* assets/css/custom.css */
 :root {
     --primary-color: #6c5ce7; /* Purple header */
     --font-family: 'Helvetica Neue', sans-serif;
@@ -204,10 +203,10 @@ Create `site/static/css/custom.css`:
 
 **Override the Base Template**
 
-Create `site/templates/base.html`. We will extend the default theme and inject our changes.
+Create `templates/base.html`. We will extend the default theme and inject our changes.
 
 ```html
-<!-- site/templates/base.html -->
+<!-- templates/base.html -->
 {% extends "default::base.html" %}
 
 {# Inject our custom CSS into the head #}
@@ -229,7 +228,7 @@ Create `site/templates/base.html`. We will extend the default theme and inject o
 Check your browser. The header color should change (if the theme uses the `--primary-color` variable), and your custom footer should appear.
 
 :::{dropdown} How does this work?
-Bengal looks for templates in your `site/templates/` folder first.
+Bengal looks for templates in your `templates/` folder first.
 *   `{% extends "default::base.html" %}` tells Bengal to load the *original* theme template first.
 *   `{% block %}` allows you to replace specific sections without copy-pasting the whole file.
 :::
@@ -239,7 +238,7 @@ Bengal looks for templates in your `site/templates/` folder first.
 When you're ready to publish, build the static files.
 
 ```bash
-bengal site build
+bengal build
 ```
 
 This creates a `public/` directory containing your complete website: HTML, CSS, and optimized images.
@@ -253,7 +252,7 @@ public/
 │   ├── index.html
 │   └── hello-world/
 │       └── index.html
-└── static/
+└── assets/
     └── css/
         └── custom.a1b2c3d4.css  # Fingerprinted for caching
 ```

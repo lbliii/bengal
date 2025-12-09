@@ -482,17 +482,17 @@ bengal site serve
 
 ## Migration Steps
 
-### Step 1: Copy Content
-
+:::{steps}
+:::{step} Copy Content
 ```bash
 # Copy your Hugo content
 cp -r /path/to/hugo/content/* content/
 
 # Content structure is compatible
 ```
+:::{/step}
 
-### Step 2: Convert Frontmatter
-
+:::{step} Convert Frontmatter
 The only change: `categories` (plural) → `category` (singular)
 
 ```yaml
@@ -503,9 +503,9 @@ categories: [tutorial, python]
 category: tutorial
 tags: [python]  # Use tags for multiple
 ```
+:::{/step}
 
-### Step 3: Convert Shortcodes
-
+:::{step} Convert Shortcodes
 Search for `{{<` and replace with directives:
 
 ```bash
@@ -520,23 +520,25 @@ Common conversions:
 | `{{</* notice note */>}}...{{</* /notice */>}}` | `:::{note}...:::` |
 | `{{</* highlight python */>}}...{{</* /highlight */>}}` | ` ```python...``` ` |
 | `{{</* tabs */>}}...{{</* /tabs */>}}` | `::::{tab-set}...::::` |
+:::{/step}
 
-### Step 4: Update Config
-
+:::{step} Update Config
 ```bash
 # Rename config
 mv config.toml bengal.toml
 
 # Update format (see config mapping above)
 ```
+:::{/step}
 
-### Step 5: Test
-
+:::{step} Test
 ```bash
 bengal site build
 bengal health check
 bengal site serve
 ```
+:::{/step}
+:::{/steps}
 
 ---
 

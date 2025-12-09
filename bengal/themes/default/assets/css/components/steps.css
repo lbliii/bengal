@@ -95,7 +95,8 @@
   box-shadow: 0 0 0 4px var(--color-primary-muted);
 }
 
-/* Headings inside steps */
+/* Step titles (headings inside steps) */
+.steps > ol > li > .step-title,
 .steps > ol > li > strong:first-child,
 .steps > ol > li > h3:first-child,
 .steps > ol > li > h4:first-child {
@@ -105,6 +106,19 @@
   margin-bottom: var(--space-2);
   margin-top: calc((var(--step-marker-size) - var(--text-lg) * 1.5) / 2); /* Align with marker center */
   color: var(--color-text-primary);
+}
+
+/* Step description - lead-in text with special typography */
+.steps > ol > li > .step-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+  font-style: italic;
+  line-height: var(--leading-relaxed);
+  padding-left: var(--space-1);
+  border-left: 2px solid var(--color-border);
+  padding-block: var(--space-1);
 }
 
 /* Content spacing - remove bottom margin from last element */

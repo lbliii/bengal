@@ -11,12 +11,15 @@ Architecture:
 - Incrementally update only changed pages
 
 Example:
-    # Built-in indexes
-    site.indexes.section.get('blog')        # O(1) - all blog posts
-    site.indexes.author.get('Jane Smith')   # O(1) - posts by Jane
 
-    # Custom indexes
-    site.indexes.status.get('published')    # O(1) - published posts
+```python
+# Built-in indexes
+site.indexes.section.get('blog')        # O(1) - all blog posts
+site.indexes.author.get('Jane Smith')   # O(1) - posts by Jane
+
+# Custom indexes
+site.indexes.status.get('published')    # O(1) - published posts
+```
 """
 
 from __future__ import annotations
