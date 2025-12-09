@@ -44,6 +44,8 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 
 :::{steps}
 :::{step} Create Your Bengal Site
+:description: Initialize a fresh Bengal project as your migration destination.
+:duration: 2 min
 Start by creating a new Bengal site:
 
 ```bash
@@ -55,6 +57,8 @@ Choose **Blank** preset if you're migrating existing content, or select a preset
 :::{/step}
 
 :::{step} Understand Content Structure Differences
+:description: Learn how Bengal's file-system routing compares to your current SSG.
+:duration: 5 min
 **File Organization**
 
 Bengal uses **file-system routing** where the `content/` directory structure directly maps to URLs:
@@ -77,6 +81,8 @@ This is different from Hugo's `_index.md` (always a section) and Jekyll's `index
 :::{/step}
 
 :::{step} Convert Frontmatter
+:description: Adapt your frontmatter fields to Bengal's conventions.
+:duration: 10 min
 **From Hugo**
 
 ```yaml
@@ -162,6 +168,8 @@ tags: [python, web]
 :::{/step}
 
 :::{step} Migrate Content Files
+:description: Copy and convert your existing content to Bengal format.
+:duration: 15 min
 **Automated Migration Script**
 
 Create a simple Python script to help with bulk conversion:
@@ -238,6 +246,8 @@ for md_file in source_dir.rglob("*.md"):
 :::{/step}
 
 :::{step} Preserve URLs
+:description: Maintain SEO and prevent broken links during migration.
+:duration: 10 min
 Bengal generates URLs from file paths. To preserve existing URLs:
 
 1. **Use `slug` frontmatter** to override generated URLs:
@@ -265,6 +275,8 @@ Bengal generates URLs from file paths. To preserve existing URLs:
 :::{/step}
 
 :::{step} Migrate Assets
+:description: Move images, CSS, JS, and other static files to Bengal's asset directories.
+:duration: 10 min
 Bengal looks for assets in:
 - `assets/` - Site-specific assets
 - `themes/[theme-name]/static/` - Theme assets
@@ -290,6 +302,8 @@ Bengal looks for assets in:
 :::{/step}
 
 :::{step} Migrate Configuration
+:description: Convert your SSG's config file to Bengal's YAML configuration system.
+:duration: 10 min
 **From Hugo `config.toml`**
 
 ```toml
@@ -337,6 +351,8 @@ weight = 2
 :::{/step}
 
 :::{step} Test Your Migration
+:description: Verify your content renders correctly and links work.
+:duration: 5 min
 :::{checklist} Verification Steps
 - [ ] Build the site: `bengal site build`
 - [ ] Check for errors: `bengal site build --verbose`
@@ -346,6 +362,9 @@ weight = 2
 :::{/step}
 
 :::{step} Handle Special Cases
+:description: Address shortcodes, taxonomies, and data files that need manual conversion.
+:duration: 15 min
+:optional:
 **Taxonomies**
 
 Bengal uses `tags` and `category` (singular) for taxonomies:

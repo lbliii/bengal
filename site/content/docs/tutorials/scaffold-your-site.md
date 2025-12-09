@@ -109,10 +109,10 @@ Already have a site? Add sections without recreating:
 
 ```bash
 # Add docs and tutorials sections
-bengal init --sections docs --sections tutorials
+bengal project init --sections docs --sections tutorials
 
 # Add sections with sample content
-bengal init --sections blog --with-content --pages-per-section 5
+bengal project init --sections blog --with-content --pages-per-section 5
 ```
 
 ### Section Type Inference
@@ -130,6 +130,8 @@ Bengal infers section types from names:
 
 :::{steps}
 :::{step} Update Site Identity
+:description: Replace placeholder values with your project's actual metadata.
+:duration: 2 min
 Edit `config/_default/site.yaml`:
 
 ```yaml
@@ -142,6 +144,9 @@ site:
 :::{/step}
 
 :::{step} Configure Features
+:description: Enable RSS feeds, search, sitemaps, and other built-in features.
+:duration: 1 min
+:optional:
 Edit `config/_default/features.yaml`:
 
 ```yaml
@@ -225,7 +230,7 @@ bengal new site my-docs-v2 --template docs
 Use `--force` to overwrite:
 
 ```bash
-bengal init --sections blog --force
+bengal project init --sections blog --force
 ```
 
 ### Preview Without Creating
@@ -233,5 +238,5 @@ bengal init --sections blog --force
 Use `--dry-run` to see what would be created:
 
 ```bash
-bengal init --sections api --sections guides --dry-run
+bengal project init --sections api --sections guides --dry-run
 ```

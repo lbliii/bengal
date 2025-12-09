@@ -69,6 +69,8 @@ If you swizzle a template, your version in `templates/` takes precedence. Everyt
 
 :::{steps}
 :::{step} Set Up Your Project
+:description: Create or use an existing Bengal site as your starting point.
+:duration: 2 min
 Let's start with a fresh Bengal site. If you already have one, you can use it.
 
 ```bash
@@ -96,6 +98,8 @@ The `templates/` directory starts empty because Bengal uses templates from the d
 :::{/step}
 
 :::{step} Discover Swizzlable Templates
+:description: Explore the default theme's template structure to plan your customizations.
+:duration: 3 min
 Before swizzling, let's see what templates are available in the default theme.
 
 ```bash
@@ -133,6 +137,8 @@ The default theme organizes templates into:
 :::{/step}
 
 :::{step} Swizzle Your First Template
+:description: Copy a theme template to your project for customization.
+:duration: 2 min
 Let's swizzle the navigation components template. This is a good starting point because navigation is often customized.
 
 ```bash
@@ -173,6 +179,8 @@ This confirms Bengal knows where the template came from.
 :::{/step}
 
 :::{step} Customize Your Swizzled Template
+:description: Make targeted changes to the copied template.
+:duration: 5 min
 Now let's customize the navigation. Open `templates/partials/navigation-components.html` in your editor.
 
 **Understand the Template Structure**
@@ -219,6 +227,9 @@ The dev server watches for file changes. Save your template and refresh the brow
 :::{/step}
 
 :::{step} Swizzle and Customize Multiple Templates
+:description: Apply the same pattern to additional components.
+:duration: 5 min
+:optional:
 Let's swizzle the search modal and customize it.
 
 **Swizzle the Search Modal**
@@ -273,6 +284,9 @@ You should see both templates:
 :::{/step}
 
 :::{step} Understand Template Inheritance
+:description: Learn a lighter-weight alternative to full swizzling.
+:duration: 5 min
+:optional:
 Swizzling copies the entire template. But you can also use **template inheritance** to override only specific parts.
 
 **Swizzle the Base Template**
@@ -314,6 +328,8 @@ Choose based on how much you need to customize.
 :::{/step}
 
 :::{step} Track and Update Swizzled Templates
+:description: Keep your customizations maintainable as the theme evolves.
+:duration: 3 min
 Bengal tracks which templates you've swizzled and whether you've modified them. This helps you update templates safely.
 
 **Check Modification Status**
@@ -348,6 +364,8 @@ This prevents overwriting your customizations.
 :::{/step}
 
 :::{step} Build and Test
+:description: Generate production files and verify your customizations work.
+:duration: 2 min
 Let's build your customized site and verify everything works.
 
 **Build for Production**

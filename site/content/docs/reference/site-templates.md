@@ -4,17 +4,8 @@ description: Complete reference for Bengal's site scaffolding and template syste
 weight: 25
 type: doc
 draft: false
-tags:
-- reference
-- templates
-- scaffolding
-- cli
-keywords:
-- templates
-- scaffolding
-- new site
-- init
-- skeleton
+tags: [reference, templates, scaffolding, cli]
+keywords: [templates, scaffolding, new site, init, skeleton]
 category: reference
 ---
 
@@ -27,7 +18,7 @@ Bengal provides a template system for scaffolding new sites with predefined stru
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
 | `bengal new site` | Create new site from template | Starting a new project |
-| `bengal init` | Add sections to existing site | Expanding site structure |
+| `bengal project init` | Add sections to existing site | Expanding site structure |
 | `bengal config init` | Initialize config directory | Converting single-file to directory config |
 
 ---
@@ -79,14 +70,14 @@ All templates create:
 
 ---
 
-## `bengal init`
+## `bengal project init`
 
 Initialize content sections in an existing Bengal site.
 
 ### Syntax
 
 ```bash
-bengal init [OPTIONS]
+bengal project init [OPTIONS]
 ```
 
 ### Options
@@ -103,19 +94,19 @@ bengal init [OPTIONS]
 
 ```bash
 # Default: create blog section
-bengal init
+bengal project init
 
 # Multiple sections
-bengal init --sections blog --sections projects --sections about
+bengal project init --sections blog --sections projects --sections about
 
 # Short form
-bengal init -s docs -s tutorials -s api
+bengal project init -s docs -s tutorials -s api
 
 # With sample content
-bengal init --sections blog --with-content --pages-per-section 10
+bengal project init --sections blog --with-content --pages-per-section 10
 
 # Preview first
-bengal init --sections docs --dry-run
+bengal project init --sections docs --dry-run
 ```
 
 ### Section Type Inference
@@ -336,20 +327,7 @@ data/
 
 ### How Templates Work
 
-Templates are defined in `bengal/cli/templates/<name>/`. Bengal supports two formats:
-
-**1. Skeleton Manifests (Preferred)** - Declarative YAML using the Component Model:
-
-```text
-bengal/cli/templates/blog/
-├── skeleton.yaml     # Declarative structure (preferred)
-└── pages/            # Content files referenced in skeleton
-    ├── index.md
-    └── posts/
-        └── first-post.md
-```
-
-**2. Python Templates (Fallback)** - Imperative Python code:
+Templates are defined in `bengal/cli/templates/<name>/`:
 
 ```text
 bengal/cli/templates/docs/
@@ -361,49 +339,7 @@ bengal/cli/templates/docs/
         └── _index.md
 ```
 
-The template registry automatically prefers `skeleton.yaml` when available, falling back to `template.py` for backward compatibility.
-
-### Skeleton Manifest Format
-
-Skeleton manifests use the Component Model to define site structure:
-
-```yaml
-name: blog
-description: A blog with posts, tags, and categories
-version: "1.0"
-
-structure:
-  - path: index.md
-    type: blog
-    props:
-      title: My Blog
-      description: Welcome to my blog
-    content: |
-      # Welcome to My Blog
-      This is your new Bengal blog!
-
-  - path: posts/first-post.md
-    type: blog
-    props:
-      title: My First Post
-      date: "{{date}}"  # Substituted with current date
-      tags: [welcome, getting-started]
-    content: |
-      # My First Post
-      Welcome to my blog!
-```
-
-**Key Features:**
-- **Component Model**: Uses `type`, `variant`, and `props` to separate Identity, Mode, and Data
-- **Date Substitution**: `{{date}}` is automatically replaced with the current date
-- **Cascade Support**: Can define `cascade` for inheritance to child pages
-- **Nested Structure**: Supports complex nested sections and pages
-
-See [Component Model documentation](/docs/content/component-model/) for details.
-
 ### SiteTemplate Class
-
-The internal Python representation (used by both skeleton manifests and Python templates):
 
 ```python
 @dataclass
@@ -425,17 +361,6 @@ class TemplateFile:
     content: str          # File contents
     target_dir: str       # "content", "data", "templates"
 ```
-
-### Converting Templates to Skeleton Manifests
-
-To convert an existing Python template to a skeleton manifest:
-
-1. Create `skeleton.yaml` in the template directory
-2. Define the structure using Component Model syntax
-3. Reference content from `pages/` directory or inline it
-4. The registry will automatically prefer the skeleton manifest
-
-**Example**: The `blog`, `docs`, and `portfolio` templates now use skeleton manifests. See `bengal/cli/templates/<name>/skeleton.yaml` for examples.
 
 ---
 

@@ -44,6 +44,8 @@ By the end of this tutorial, you will have:
 
 :::{steps}
 :::{step} Initialize Your Project
+:description: Set up the foundation for your blog with Bengal's CLI scaffolding.
+:duration: 2 min
 First, let's create a new site. Open your terminal and run:
 
 ```bash
@@ -77,6 +79,8 @@ Bengal uses a directory-based configuration system that separates default settin
 :::{/step}
 
 :::{step} Create Your First Post
+:description: Write and configure your first blog post with frontmatter metadata.
+:duration: 3 min
 Bengal provides a CLI to generate content with the correct frontmatter.
 
 ```bash
@@ -125,6 +129,8 @@ By default, new pages are drafts. They won't show up in production builds unless
 :::{/step}
 
 :::{step} Configure Your Site
+:description: Personalize your blog with site metadata and navigation menus.
+:duration: 3 min
 Now, let's give your site an identity. Open `config/_default/site.yaml` and update the basics.
 
 :::{tab-set}
@@ -160,6 +166,8 @@ menu:
 :::{/step}
 
 :::{step} Preview Your Site
+:description: Launch the dev server and see your blog come to life.
+:duration: 1 min
 Let's see what we have so far. Start the development server:
 
 ```bash
@@ -178,6 +186,9 @@ Try editing `hello-world.md` while the server is running. Save the file, and the
 :::{/step}
 
 :::{step} Customize the Theme
+:description: Make your blog unique with custom styles and template overrides.
+:duration: 5 min
+:optional:
 You want your blog to stand out. Instead of forking the entire theme, we'll use **Theme Inheritance** to override just the parts we want to change.
 
 Let's change the header color and add a custom footer.
@@ -235,6 +246,8 @@ Bengal looks for templates in your `templates/` folder first.
 :::{/step}
 
 :::{step} Build for Production
+:description: Generate optimized static files ready for deployment.
+:duration: 1 min
 When you're ready to publish, build the static files.
 
 ```bash
