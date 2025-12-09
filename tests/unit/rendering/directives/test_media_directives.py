@@ -5,7 +5,8 @@ Tests YouTube, Vimeo, self-hosted video, Gist, CodePen, CodeSandbox,
 StackBlitz, Asciinema, Figure, and Audio directives.
 
 Related:
-    - RFC: plan/active/rfc-media-embed-directives.md
+    - RFC: plan/implemented/rfc-media-embed-directives.md
+    - Docs: site/content/docs/reference/directives/media.md
     - bengal/rendering/plugins/directives/video.py
     - bengal/rendering/plugins/directives/embed.py
     - bengal/rendering/plugins/directives/terminal.py
@@ -919,4 +920,298 @@ Check out this video:
         # Both admonition and video should render
         assert "admonition" in result
         assert "youtube-nocookie.com" in result
+
+    def test_embeds_in_tabs(self, parser: MistuneParser) -> None:
+        """Test embeds nested in tabs."""
+        markdown = """\
+::::{tab-set}
+
+:::{tab-item} Video
+:::{youtube} dQw4w9WgXcQ
+:title: Demo Video
+:::
+:::
+
+:::{tab-item} Image
+:::{figure} /images/test.png
+:alt: Test Image
+:::
+:::
+
+::::
+"""
+        result = parser.parse(markdown, {})
+
+        # Both tabs and media should render
+        assert "youtube-nocookie.com" in result
+        assert "<figure" in result
+
+    def test_embeds_in_cards(self, parser: MistuneParser) -> None:
+        """Test embeds nested in cards."""
+        markdown = """\
+::::{cards}
+
+:::{card} Video Card
+:::{youtube} dQw4w9WgXcQ
+:title: Demo Video
+:::
+:::
+
+::::
+"""
+        result = parser.parse(markdown, {})
+
+        # Both card and video should render
+        assert "youtube-nocookie.com" in result
+
+
+class TestMediaDirectivesEdgeCases:
+    """Edge case tests for media directives."""
+
+    @pytest.fixture
+    def parser(self) -> MistuneParser:
+        """Create a Mistune parser instance."""
+        return MistuneParser()
+
+    def test_youtube_short_url_format(self, parser: MistuneParser) -> None:
+        """Test YouTube with short URL video ID."""
+        markdown = """\
+:::{youtube} dQw4w9WgXcQ
+:title: Short URL Test
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "dQw4w9WgXcQ" in result
+        assert "youtube-nocookie.com" in result
+
+    def test_youtube_all_options_combined(self, parser: MistuneParser) -> None:
+        """Test YouTube with all options enabled."""
+        markdown = """\
+:::{youtube} dQw4w9WgXcQ
+:title: Full Options Test
+:privacy: true
+:start: 10
+:end: 60
+:autoplay: true
+:muted: true
+:loop: true
+:controls: true
+:aspect: 21/9
+:class: custom-class
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "youtube-nocookie.com" in result
+        assert "start=10" in result
+        assert "end=60" in result
+        assert "autoplay=1" in result
+        assert "mute=1" in result
+        assert "loop=1" in result
+        assert 'data-aspect="21/9"' in result
+        assert "custom-class" in result
+
+    def test_vimeo_all_options_combined(self, parser: MistuneParser) -> None:
+        """Test Vimeo with all options enabled."""
+        markdown = """\
+:::{vimeo} 123456789
+:title: Full Options Test
+:dnt: true
+:color: ff5500
+:background: true
+:autoplay: true
+:muted: true
+:loop: true
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "player.vimeo.com" in result
+        assert "dnt=1" in result
+        assert "color=ff5500" in result
+        assert "background=1" in result
+
+    def test_figure_webp_format(self, parser: MistuneParser) -> None:
+        """Test figure with WebP format."""
+        markdown = """\
+:::{figure} /images/test.webp
+:alt: WebP Image
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "/images/test.webp" in result
+
+    def test_figure_svg_format(self, parser: MistuneParser) -> None:
+        """Test figure with SVG format."""
+        markdown = """\
+:::{figure} /images/diagram.svg
+:alt: SVG Diagram
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "/images/diagram.svg" in result
+
+    def test_figure_avif_format(self, parser: MistuneParser) -> None:
+        """Test figure with AVIF format."""
+        markdown = """\
+:::{figure} /images/test.avif
+:alt: AVIF Image
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "/images/test.avif" in result
+
+    def test_figure_external_url(self, parser: MistuneParser) -> None:
+        """Test figure with external HTTPS URL."""
+        markdown = """\
+:::{figure} https://example.com/image.png
+:alt: External Image
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "https://example.com/image.png" in result
+
+    def test_figure_relative_path(self, parser: MistuneParser) -> None:
+        """Test figure with relative path."""
+        markdown = """\
+:::{figure} ./images/local.png
+:alt: Local Image
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "./images/local.png" in result
+
+    def test_video_mov_format(self, parser: MistuneParser) -> None:
+        """Test video with MOV format."""
+        markdown = """\
+:::{video} /assets/demo.mov
+:title: MOV Video
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert '/assets/demo.mov"' in result
+
+    def test_audio_wav_format(self, parser: MistuneParser) -> None:
+        """Test audio with WAV format."""
+        markdown = """\
+:::{audio} /assets/sound.wav
+:title: WAV Audio
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'type="audio/wav"' in result
+
+    def test_audio_m4a_format(self, parser: MistuneParser) -> None:
+        """Test audio with M4A format."""
+        markdown = """\
+:::{audio} /assets/podcast.m4a
+:title: M4A Audio
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "/assets/podcast.m4a" in result
+
+    def test_gist_with_special_characters_in_filename(self, parser: MistuneParser) -> None:
+        """Test gist with special characters in filename."""
+        markdown = """\
+:::{gist} octocat/12345678901234567890123456789012
+:file: test-file_v1.2.py
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "file=test-file_v1.2.py" in result
+
+    def test_codesandbox_editor_view(self, parser: MistuneParser) -> None:
+        """Test CodeSandbox with editor-only view."""
+        markdown = """\
+:::{codesandbox} abcde12345
+:title: Editor Only
+:view: editor
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "view=editor" in result
+
+    def test_stackblitz_preview_view(self, parser: MistuneParser) -> None:
+        """Test StackBlitz with preview-only view."""
+        markdown = """\
+:::{stackblitz} react-starter
+:title: Preview Only
+:view: preview
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert "view=preview" in result
+
+    def test_asciinema_with_playback_options(self, parser: MistuneParser) -> None:
+        """Test Asciinema with playback options."""
+        markdown = """\
+:::{asciinema} 590029
+:title: Themed Recording
+:speed: 1.5
+:loop: true
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'data-speed="1.5"' in result
+        assert 'data-loop="true"' in result
+
+    def test_youtube_aspect_ratio_4_3(self, parser: MistuneParser) -> None:
+        """Test YouTube with 4:3 aspect ratio."""
+        markdown = """\
+:::{youtube} dQw4w9WgXcQ
+:title: Test Video
+:aspect: 4/3
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'data-aspect="4/3"' in result
+
+    def test_youtube_aspect_ratio_1_1(self, parser: MistuneParser) -> None:
+        """Test YouTube with 1:1 aspect ratio."""
+        markdown = """\
+:::{youtube} dQw4w9WgXcQ
+:title: Test Video
+:aspect: 1/1
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'data-aspect="1/1"' in result
+
+    def test_figure_all_options(self, parser: MistuneParser) -> None:
+        """Test figure with all options."""
+        markdown = """\
+:::{figure} /images/test.png
+:alt: Full Options Image
+:caption: This is a detailed caption
+:width: 600px
+:height: 400px
+:align: center
+:link: https://example.com
+:target: _blank
+:loading: eager
+:class: featured-image
+:::
+"""
+        result = parser.parse(markdown, {})
+        assert 'alt="Full Options Image"' in result
+        assert "This is a detailed caption" in result
+        assert "width: 600px" in result
+        assert "height: 400px" in result
+        assert "align-center" in result
+        assert 'href="https://example.com"' in result
+        assert 'target="_blank"' in result
+        assert 'rel="noopener noreferrer"' in result
+        assert 'loading="eager"' in result
+        assert "featured-image" in result
+
+    def test_special_characters_in_title_escaped(self, parser: MistuneParser) -> None:
+        """Test that special characters in title are properly escaped."""
+        markdown = """\
+:::{youtube} dQw4w9WgXcQ
+:title: Test <script> & "quotes"
+:::
+"""
+        result = parser.parse(markdown, {})
+        # Title should be escaped to prevent XSS
+        assert "<script>" not in result
+        assert "&lt;script&gt;" in result or "Test" in result
 

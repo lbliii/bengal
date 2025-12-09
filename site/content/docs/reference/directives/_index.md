@@ -2,21 +2,11 @@
 title: Directives Reference
 description: Complete reference for all available markdown directives in Bengal
 weight: 10
-tags:
-- reference
-- directives
-- markdown
-- syntax
-keywords:
-- directives
-- markdown
-- syntax
-- reference
-- admonitions
-- tabs
-- cards
 icon: code
+tags: [reference, directives, markdown, syntax]
+keywords: [directives, markdown, syntax, reference, admonitions, tabs, cards, youtube, vimeo, video, audio, figure, media, embed]
 ---
+
 # Directives Reference
 
 Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name} ` syntax. Directives provide rich components like callouts, tabs, cards, and more.
@@ -52,6 +42,16 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 | `{literalinclude}` | ` ```{literalinclude} ` | Include code file | Content Reuse |
 | `{list-table}` | ` :::{list-table} ` | Table from lists | Formatting |
 | `{data-table}` | ` :::{data-table} ` | Interactive data table | Interactive |
+| `{youtube}` | ` :::{youtube} ` | YouTube embed (privacy default) | Media |
+| `{vimeo}` | ` :::{vimeo} ` | Vimeo embed (DNT default) | Media |
+| `{video}` | ` :::{video} ` | Self-hosted HTML5 video | Media |
+| `{figure}` | ` :::{figure} ` | Image with caption | Media |
+| `{audio}` | ` :::{audio} ` | Self-hosted HTML5 audio | Media |
+| `{gist}` | ` :::{gist} ` | GitHub Gist embed | Media |
+| `{codepen}` | ` :::{codepen} ` | CodePen embed | Media |
+| `{codesandbox}` | ` :::{codesandbox} ` | CodeSandbox embed | Media |
+| `{stackblitz}` | ` :::{stackblitz} ` | StackBlitz embed | Media |
+| `{asciinema}` | ` :::{asciinema} ` | Terminal recording | Media |
 | `{child-cards}` | ` :::{child-cards} ` | Auto-generate cards from children | Navigation |
 | `{breadcrumbs}` | ` :::{breadcrumbs} ` | Breadcrumb navigation | Navigation |
 | `{siblings}` | ` :::{siblings} ` | Sibling page list | Navigation |

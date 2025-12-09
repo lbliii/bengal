@@ -106,6 +106,19 @@ Hidden content here.
 :::
 ```
 :::{/tab}
+
+:::{tab} Media
+```markdown
+:::{youtube} dQw4w9WgXcQ
+:title: Video Title
+:::
+
+:::{figure} /images/diagram.png
+:alt: Architecture diagram
+:caption: System overview
+:::
+```
+:::{/tab}
 :::{/tab-set}
 
 ## Syntax Overview
