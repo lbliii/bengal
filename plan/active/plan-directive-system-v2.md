@@ -170,42 +170,42 @@ Create the new infrastructure files without changing any existing code.
 - **Status**: completed
 - **Commit**: `rendering(directives): migrate DropdownDirective to BengalDirective base class`
 
-#### Task 2.4: Migrate ContainerDirective
+#### Task 2.4: Migrate ContainerDirective ✅
 - **Files**: `bengal/rendering/plugins/directives/container.py`
 - **Action**:
-  - Create `ContainerOptions` if not using preset
+  - Create `ContainerOptions` dataclass with css_class field
   - Convert to `BengalDirective`
   - Integrate render method
 - **Dependencies**: Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate ContainerDirective to BengalDirective base class`
 
-#### Task 2.5: Migrate RubricDirective
+#### Task 2.5: Migrate RubricDirective ✅
 - **Files**: `bengal/rendering/plugins/directives/rubric.py`
-- **Action**: Convert to `BengalDirective` pattern
+- **Action**: Convert to `BengalDirective` pattern with `RubricOptions`
 - **Dependencies**: Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate RubricDirective to BengalDirective base class`
 
-#### Task 2.6: Migrate ButtonDirective
+#### Task 2.6: Migrate ButtonDirective ✅
 - **Files**: `bengal/rendering/plugins/directives/button.py`
-- **Action**: Convert to `BengalDirective` pattern
+- **Action**: Convert to `BengalDirective` pattern with `ButtonOptions`
 - **Dependencies**: Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate ButtonDirective to BengalDirective base class`
 
-#### Task 2.7: Migrate BadgeDirective
+#### Task 2.7: Migrate BadgeDirective ✅
 - **Files**: `bengal/rendering/plugins/directives/badge.py`
-- **Action**: Convert to `BengalDirective` pattern
+- **Action**: Convert to `BengalDirective` pattern with `BadgeOptions`
 - **Dependencies**: Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate BadgeDirective to BengalDirective base class`
 
 ---
 
 ### 2.3 Container Directives (with Contracts)
 
-#### Task 2.8: Migrate StepsDirective with contracts
+#### Task 2.8: Migrate StepsDirective with contracts ✅
 - **Files**: `bengal/rendering/plugins/directives/steps.py`
 - **Action**:
   - Create `StepsOptions` and `StepOptions` dataclasses
@@ -214,10 +214,10 @@ Create the new infrastructure files without changing any existing code.
   - Validate parent-child relationship at parse time
   - Integrate render methods into classes
 - **Dependencies**: Task 1.4, Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate StepsDirective with DirectiveContract validation`
 
-#### Task 2.9: Migrate TabsDirective with contracts
+#### Task 2.9: Migrate TabsDirective with contracts ✅
 - **Files**: `bengal/rendering/plugins/directives/tabs.py`
 - **Action**:
   - Create `TabSetOptions`, `TabItemOptions` dataclasses
@@ -225,7 +225,7 @@ Create the new infrastructure files without changing any existing code.
   - Convert `TabItemDirective` with `CONTRACT = TAB_ITEM_CONTRACT`
   - Handle `TabsDirective` (legacy) compatibility
 - **Dependencies**: Task 1.4, Task 2.3
-- **Status**: pending
+- **Status**: completed
 - **Commit**: `rendering(directives): migrate TabsDirective with DirectiveContract validation`
 
 #### Task 2.10: Migrate CardsDirective with contracts
