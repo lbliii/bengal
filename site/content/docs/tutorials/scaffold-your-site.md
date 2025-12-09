@@ -35,7 +35,7 @@ cd my-docs
 bengal serve
 ```
 
-Open `http://localhost:8000` to see your scaffolded site.
+Open `http://localhost:5173` to see your scaffolded site.
 
 ## Available Templates
 

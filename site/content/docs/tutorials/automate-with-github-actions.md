@@ -67,7 +67,7 @@ jobs:
         run: pip install bengal
 
       - name: Build site
-        run: bengal site build --environment production --strict
+        run: bengal build --environment production --strict
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -109,7 +109,7 @@ jobs:
         run: pip install bengal
 
       - name: Build site
-        run: bengal site build --environment production --strict --clean
+        run: bengal build --environment production --strict --clean-output
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
@@ -155,7 +155,7 @@ jobs:
         run: pip install bengal
 
       - name: Build site
-        run: bengal site build --environment preview --build-drafts
+        run: bengal build --environment preview --build-drafts
 
       - name: Comment PR with preview
         uses: actions/github-script@v7
@@ -194,13 +194,13 @@ jobs:
         run: pip install bengal
 
       - name: Validate configuration
-        run: bengal config validate
+        run: bengal config doctor
 
       - name: Check for broken links
-        run: bengal health check
+        run: bengal health linkcheck
 
       - name: Build with strict mode
-        run: bengal site build --strict --verbose
+        run: bengal build --strict --verbose
 ```
 :::{/step}
 
@@ -274,7 +274,7 @@ build:
   stage: build
   script:
     - pip install bengal
-    - bengal site build --environment production --strict
+    - bengal build --environment production --strict
   artifacts:
     paths:
       - public/
@@ -283,7 +283,7 @@ pages:
   stage: deploy
   script:
     - pip install bengal
-    - bengal site build --environment production --strict
+    - bengal build --environment production --strict
   artifacts:
     paths:
       - public
@@ -298,7 +298,7 @@ Create `netlify.toml`:
 ```toml
 [build]
   publish = "public"
-  command = "pip install bengal && bengal site build --environment production --strict"
+  command = "pip install bengal && bengal build --environment production --strict"
 
 [build.environment]
   PYTHON_VERSION = "3.14"
@@ -310,7 +310,7 @@ Create `vercel.json`:
 
 ```json
 {
-  "buildCommand": "pip install bengal && bengal site build --environment production",
+  "buildCommand": "pip install bengal && bengal build --environment production",
   "outputDirectory": "public",
   "installCommand": "pip install bengal"
 }
