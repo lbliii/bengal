@@ -184,7 +184,7 @@ class InlineIconPlugin:
         # Load the SVG content
         svg_content = _load_icon(name)
         if svg_content is None:
-            return f'<span class="bengal-icon bengal-icon-missing" title="Icon not found: {name}">❓</span>'
+            return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {name}">❓</span>'
 
         # Build class list
         classes = ["bengal-icon", f"icon-{name}"]

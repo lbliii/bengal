@@ -169,7 +169,7 @@ class IconDirective(BengalDirective):
         """Render icon directive to inline SVG."""
         name = attrs.get("name", "")
         if not name or attrs.get("error"):
-            return '<span class="bengal-icon bengal-icon-error" aria-hidden="true">⚠️</span>'
+            return '<span class="bengal-icon bengal-icon--error" aria-hidden="true">⚠️</span>'
 
         size = attrs.get("size", 24)
         css_class = attrs.get("css_class", "")
@@ -179,7 +179,7 @@ class IconDirective(BengalDirective):
         svg_content = _load_icon(name)
         if svg_content is None:
             return (
-                f'<span class="bengal-icon bengal-icon-missing" aria-hidden="true" '
+                f'<span class="bengal-icon bengal-icon--missing" aria-hidden="true" '
                 f'title="Icon not found: {name}">❓</span>'
             )
 
