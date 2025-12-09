@@ -9,9 +9,12 @@ Client-side search.js loads the pre-built index via `lunr.Index.load()` instead
 of rebuilding from raw page data on every page load.
 
 Configuration:
-    search:
-      lunr:
-        prebuilt: true  # Enable pre-built index (default: true)
+
+```yaml
+search:
+  lunr:
+    prebuilt: true  # Enable pre-built index (default: true)
+```
 
 Performance Impact:
     - Build time: +5-10s for index pre-building
