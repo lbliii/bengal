@@ -3,8 +3,6 @@ title: Content Sources
 description: Fetch content from external sources
 draft: false
 weight: 40
-aliases:
-- /docs/guides/content-sources/
 lang: en
 tags:
 - sources

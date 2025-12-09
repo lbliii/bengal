@@ -3,8 +3,6 @@ title: Template Cookbook
 description: Common templating patterns and Bengal-specific features
 draft: false
 weight: 50
-aliases:
-- /docs/recipes/
 lang: en
 tags:
 - cookbook

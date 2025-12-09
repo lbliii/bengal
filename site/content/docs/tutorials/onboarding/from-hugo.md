@@ -53,9 +53,9 @@ This is a warning
 
 ### Callout Boxes
 
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Hugo
+:::{tab} Hugo
 ```markdown
 {{</* notice note */>}}
 This is a note with **bold** text.
@@ -69,9 +69,9 @@ Be careful!
 Pro tip here.
 {{</* /notice */>}}
 ```
-::::
+:::{/tab}
 
-::::{tab-item} Bengal
+:::{tab} Bengal
 ```markdown
 :::{note}
 This is a note with **bold** text.
@@ -85,9 +85,9 @@ Be careful!
 Pro tip here.
 :::
 ```
-::::
+:::{/tab}
 
-:::::
+:::{/tab-set}
 
 ### Tabs
 

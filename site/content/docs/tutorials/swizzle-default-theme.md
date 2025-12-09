@@ -17,8 +17,6 @@ keywords:
 - customization
 - default theme
 category: tutorial
-aliases:
-- /docs/guides/swizzle-theme/
 ---
 
 # Swizzle and Customize the Default Theme

@@ -15,8 +15,6 @@ keywords:
 - intersection
 - dynamic
 category: guide
-aliases:
-- /docs/guides/advanced-filtering/
 ---
 
 # Advanced Content Filtering

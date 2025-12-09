@@ -3,8 +3,6 @@ title: Content Collections
 description: Validate frontmatter with typed schemas
 draft: false
 weight: 30
-aliases:
-- /docs/guides/content-collections/
 lang: en
 tags:
 - collections

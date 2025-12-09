@@ -15,8 +15,6 @@ keywords:
 - pyenv
 - uv
 category: onboarding
-aliases:
-- /docs/getting-started/installation/
 ---
 
 # Install Bengal

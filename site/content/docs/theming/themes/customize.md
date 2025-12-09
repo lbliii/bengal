@@ -16,8 +16,6 @@ keywords:
 - css
 - override
 category: guide
-aliases:
-- /docs/guides/customizing-themes/
 ---
 
 # Customize Themes

@@ -3,8 +3,6 @@ title: Writer Quickstart
 description: Create your first site and start writing content
 draft: false
 weight: 20
-aliases:
-- /docs/getting-started/writer-quickstart/
 lang: en
 type: doc
 tags:

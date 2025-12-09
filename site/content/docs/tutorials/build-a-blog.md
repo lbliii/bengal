@@ -17,8 +17,6 @@ keywords:
 - ssg
 - setup
 category: tutorial
-aliases:
-- /docs/guides/blog-from-scratch/
 ---
 
 # Build a Blog in 15 Minutes

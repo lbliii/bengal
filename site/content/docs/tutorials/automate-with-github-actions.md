@@ -16,8 +16,6 @@ keywords:
 - github actions
 - automation
 category: tutorial
-aliases:
-- /docs/guides/ci-cd-setup/
 ---
 
 # Automate with GitHub Actions

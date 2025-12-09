@@ -205,16 +205,32 @@ class DirectiveSyntaxValidator:
         errors = []
         lines = content.split("\n")
 
-        # Stack of (line_number, colon_count, directive_type, is_indented)
-        stack: list[tuple[int, int, str, bool]] = []
+        # Stack of (line_number, colon_count, directive_type, is_indented, uses_named_closer)
+        stack: list[tuple[int, int, str, bool, bool]] = []
 
         # Regex for fence start: ^(\s*)(:{3,})\{([^}]+)\}
         # Regex for fence end: ^(\s*)(:{3,})\s*$
+        # Regex for named closer: ^(\s*)(:{3,})\{/([^}]+)\}
         start_pattern = re.compile(r"^(\s*)(:{3,})\{([^}]+)\}")
         end_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
+        named_closer_pattern = re.compile(r"^(\s*)(:{3,})\{/([^}]+)\}", re.MULTILINE)
+
+        # First pass: check if content uses named closers (enables same-fence-length)
+        uses_named_closers = bool(named_closer_pattern.search(content))
 
         for i, line in enumerate(lines):
             line_num = i + 1
+
+            # Check for named closer first (:::{/name})
+            closer_match = named_closer_pattern.match(line)
+            if closer_match:
+                closer_type = closer_match.group(3).strip()
+                # Find matching opener in stack and pop
+                for idx in range(len(stack) - 1, -1, -1):
+                    if stack[idx][2] == closer_type:
+                        stack.pop(idx)
+                        break
+                continue
 
             # Check for start block
             start_match = start_pattern.match(line)
@@ -225,23 +241,23 @@ class DirectiveSyntaxValidator:
                 count = len(colons)
                 is_indented = len(indent) >= 4
 
-                # Check nesting against parent
-                if stack:
-                    parent_line, parent_count, parent_type, parent_indented = stack[-1]
+                # Check nesting against parent (only warn if NOT using named closers)
+                if stack and not uses_named_closers:
+                    parent_line, parent_count, parent_type, parent_indented, _ = stack[-1]
 
                     # Warning: Nested with same length and no indentation
                     if count == parent_count and not is_indented:
                         errors.append(
                             f"Line {line_num}: Nested directive '{dtype}' uses same fence length ({count}) "
                             f"as parent '{parent_type}' (line {parent_line}). "
-                            "This causes parsing ambiguity. Use variable fence lengths (e.g. ::::) "
-                            "for the parent or indent the child."
+                            f"Recommended: Use named closers for clarity: :::{{{dtype}}} ... :::{{{'/'+dtype}}}. "
+                            "Alternative: Use variable fence lengths (e.g. :::: for parent)."
                         )
 
-                stack.append((line_num, count, dtype, is_indented))
+                stack.append((line_num, count, dtype, is_indented, uses_named_closers))
                 continue
 
-            # Check for end block
+            # Check for end block (fence-depth closing)
             end_match = end_pattern.match(line)
             if end_match:
                 colons = end_match.group(2)
@@ -254,7 +270,7 @@ class DirectiveSyntaxValidator:
                     continue
 
                 # Check against top of stack
-                top_line, top_count, top_type, _ = stack[-1]
+                top_line, top_count, top_type, _, _ = stack[-1]
 
                 if count == top_count:
                     # Perfect match

@@ -17,8 +17,6 @@ keywords:
 - link suggestions
 - seo
 category: guide
-aliases:
-- /docs/guides/graph-analysis/
 ---
 
 # Graph Analysis
