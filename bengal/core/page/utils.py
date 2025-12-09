@@ -52,6 +52,13 @@ STANDARD_FIELDS = {
     "_parse_error",
     "_parse_error_type",
     "_generated",
+    # Autodoc internal fields (contain object references, not JSON-serializable)
+    "autodoc_element",
+    "is_autodoc",
+    "is_section_index",
+    "_autodoc_template",
+    "_autodoc_fallback_template",
+    "_autodoc_fallback_reason",
 }
 
 
@@ -104,6 +111,10 @@ def separate_standard_and_custom_fields(
     for key, value in metadata.items():
         if key in STANDARD_FIELDS:
             standard_fields[key] = value
+        elif key.startswith("_"):
+            # Skip internal/private fields - they shouldn't be in props
+            # (they may contain object references that can't be JSON-serialized)
+            continue
         else:
             custom_props[key] = value
 

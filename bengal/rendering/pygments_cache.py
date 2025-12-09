@@ -70,6 +70,9 @@ def _normalize_language(language: str) -> str:
     """
     # Extract just the language name if colon is present (handles 'language:filepath' pattern)
     lang_part = language.split(":", 1)[0].strip()
+    # Handle empty or whitespace-only languages (e.g., just quotes, punctuation)
+    if not lang_part or not lang_part.strip("'\"` "):
+        return "text"
     lang_lower = lang_part.lower()
     return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
 

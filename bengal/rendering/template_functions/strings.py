@@ -1,7 +1,7 @@
 """
 String manipulation functions for templates.
 
-Provides 10 essential string functions for text processing in templates.
+Provides 11 essential string functions for text processing in templates.
 
 Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
@@ -39,6 +39,7 @@ def register(env: Environment, site: Site) -> None:
             "excerpt": excerpt,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
+            "first_sentence": first_sentence,
         }
     )
 
@@ -337,3 +338,43 @@ def strip_whitespace(text: str) -> str:
         {{ messy_text | strip_whitespace }}
     """
     return text_utils.normalize_whitespace(text, collapse=True)
+
+
+def first_sentence(text: str, max_length: int = 120) -> str:
+    """
+    Extract first sentence from text, or truncate if too long.
+
+    Useful for generating short descriptions from longer text blocks.
+    Looks for sentence-ending punctuation (. ! ?) followed by whitespace.
+
+    Args:
+        text: Text to extract first sentence from
+        max_length: Maximum length before truncation (default: 120)
+
+    Returns:
+        First sentence or truncated text with ellipsis
+
+    Example:
+        {{ page.description | first_sentence }}
+        {{ section.metadata.description | first_sentence(80) }}
+    """
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Try to find first sentence by looking for sentence-ending punctuation
+    for end in [". ", ".\n", "!\n", "?\n", "! ", "? "]:
+        if end in text:
+            first = text.split(end)[0] + end[0]
+            if len(first) <= max_length:
+                return first
+            break
+
+    # Truncate if too long
+    if len(text) > max_length:
+        # Try to break at word boundary
+        truncated = text[: max_length - 3].rsplit(" ", 1)[0]
+        return truncated + "..."
+
+    return text

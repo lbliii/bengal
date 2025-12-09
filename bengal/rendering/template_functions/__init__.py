@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
     from bengal.core.site import Site
 
+from bengal.rendering import template_tests
+
 from . import (
     advanced_collections,
     advanced_strings,
@@ -92,6 +94,9 @@ def register_all(env: Environment, site: Site) -> None:
     # Phase 6: Theme functions
     theme.register(env, site)
 
+    # Phase 7: Template tests (match, draft, featured, etc.)
+    template_tests.register(env, site)
+
     logger.debug("template_functions_registered", count=19)
 
 
@@ -115,6 +120,7 @@ __all__ = [
     "seo",
     "strings",
     "taxonomies",
+    "template_tests",
     "theme",
     "urls",
 ]

@@ -169,8 +169,12 @@ class RenderingPipeline:
         Args:
             page: Page object to process. Must have source_path set.
         """
-        # Handle virtual pages with pre-rendered HTML (autodoc, etc.)
-        if getattr(page, "_virtual", False) and getattr(page, "_prerendered_html", None):
+        # Handle virtual pages (autodoc, etc.)
+        # - Pages with pre-rendered HTML (truthy or empty string)
+        # - Autodoc pages that defer rendering until navigation is available
+        prerendered = getattr(page, "_prerendered_html", None)
+        is_autodoc = page.metadata.get("is_autodoc")
+        if getattr(page, "_virtual", False) and (prerendered is not None or is_autodoc):
             self._process_virtual_page(page)
             return
 
@@ -280,7 +284,7 @@ class RenderingPipeline:
             self._parse_with_legacy(page, need_toc)
 
         # Additional hardening: escape Jinja2 blocks
-        page.parsed_ast = escape_jinja_blocks(page.parsed_ast)
+        page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")
 
         # Transform internal links
         page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)
@@ -387,7 +391,7 @@ class RenderingPipeline:
 
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
-            page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
+            page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
 
     def _cache_parsed_content(self, page: Page, template: str, parser_version: str) -> None:
         """Store parsed content in cache for next build."""
@@ -398,7 +402,7 @@ class RenderingPipeline:
         if not cache or page.metadata.get("_generated"):
             return
 
-        toc_items = extract_toc_structure(page.toc)
+        toc_items = extract_toc_structure(page.toc or "")
         cached_ast = getattr(page, "_ast_cache", None)
 
         cache.store_parsed_content(
@@ -415,7 +419,7 @@ class RenderingPipeline:
     def _render_and_write(self, page: Page, template: str) -> None:
         """Render template and write output."""
         page.extract_links()
-        html_content = self.renderer.render_content(page.parsed_ast)
+        html_content = self.renderer.render_content(page.parsed_ast or "")
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -527,7 +531,7 @@ class RenderingPipeline:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
         else:
             # Wrap content fragment with template
-            html_content = self.renderer.render_content(page.parsed_ast)
+            html_content = self.renderer.render_content(page.parsed_ast or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -550,7 +554,7 @@ class RenderingPipeline:
         Args:
             page: Virtual page with autodoc_element in metadata
         """
-        element = page.metadata.get("autodoc_element")
+        element = self._normalize_autodoc_element(page.metadata.get("autodoc_element"))
         template_name = page.metadata.get("_autodoc_template", "api-reference/module")
 
         # Mark active menu items for this page
@@ -583,17 +587,43 @@ class RenderingPipeline:
                 return
 
         # Render with full site context (same as regular pages)
-        html_content = template.render(
-            element=element,
-            page=page,
-            section=page.section,  # Pass section explicitly for section index pages
-            site=self.site,
-            config=self.site.config,
-        )
+        # Prefer explicit _section reference set by orchestrators; fall back to page.section
+        section = getattr(page, "_section", None) or getattr(page, "section", None)
+
+        try:
+            html_content = template.render(
+                element=element,
+                page=page,
+                section=section,  # Pass section explicitly for section index pages
+                site=self.site,
+                config=self._normalize_config(self.site.config),
+                toc_items=getattr(page, "toc_items", []) or [],
+                toc=getattr(page, "toc", "") or "",
+            )
+        except Exception as e:  # Capture template errors with context
+            logger.error(
+                "autodoc_template_render_failed",
+                template=template_name,
+                page=str(page.source_path),
+                element=getattr(element, "qualified_name", getattr(element, "name", None)),
+                element_type=getattr(element, "element_type", None),
+                metadata=_safe_metadata_summary(getattr(element, "metadata", None)),
+                error=str(e),
+            )
+            # Fallback minimal HTML to keep build moving
+            fallback_desc = getattr(element, "description", "") if element else ""
+            page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            page.parsed_ast = page._prerendered_html
+            page.toc = ""
+            page._toc_items_cache = []  # Set private cache, not read-only property
+            page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
+            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            return
 
         page._prerendered_html = html_content
         page.parsed_ast = html_content
         page.toc = ""
+        page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
         page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -647,7 +677,7 @@ class RenderingPipeline:
                     base_version = "mistune-unknown"
             case "PythonMarkdownParser":
                 try:
-                    import markdown
+                    import markdown  # type: ignore[import-untyped]
 
                     base_version = f"markdown-{markdown.__version__}"
                 except (ImportError, AttributeError):
@@ -693,3 +723,90 @@ class RenderingPipeline:
                     error=truncate_error(e),
                 )
             return page.content
+
+    def _normalize_autodoc_element(self, element: Any) -> Any:
+        """
+        Ensure autodoc element metadata supports both dotted and mapping access.
+        """
+        if element is None:
+            return None
+
+        def _wrap_metadata(meta: Any) -> Any:
+            if isinstance(meta, dict):
+                return _MetadataView(meta)
+            # Fallback to empty metadata view for non-dict types (avoid str access errors)
+            return _MetadataView({})
+
+        def _coerce(obj: Any) -> None:
+            if hasattr(obj, "metadata"):
+                meta_wrapped = _wrap_metadata(obj.metadata)
+                obj.metadata = meta_wrapped
+                meta = meta_wrapped if isinstance(meta_wrapped, dict) else None
+                if meta is not None:
+                    if not hasattr(obj, "description") and "description" in meta:
+                        obj.description = meta.get("description", "")
+                    if not hasattr(obj, "title") and "title" in meta:
+                        obj.title = meta.get("title", "")
+                    # Ensure is_dataclass key exists for templates
+                    if "is_dataclass" not in meta:
+                        meta["is_dataclass"] = False
+                    # Common defaults to avoid Jinja UndefinedError
+                    meta.setdefault("signature", "")
+                    meta.setdefault("parameters", [])
+                    meta.setdefault("properties", {})
+                    meta.setdefault("required", [])
+                    meta.setdefault("example", None)
+                    # Normalize properties values to MetadataView so .type works
+                    if isinstance(meta.get("properties"), dict):
+                        normalized_props: dict[str, Any] = {}
+                        for k, v in meta["properties"].items():
+                            if isinstance(v, dict):
+                                normalized_props[k] = _MetadataView(v)
+                            elif isinstance(v, str):
+                                # If property schema is a string, treat it as a type name
+                                normalized_props[k] = _MetadataView({"type": v})
+                            else:
+                                normalized_props[k] = _MetadataView({})
+                        meta["properties"] = normalized_props
+            if hasattr(obj, "children"):
+                for child in obj.children or []:
+                    _coerce(child)
+
+        _coerce(element)
+        return element
+
+    def _normalize_config(self, config: Any) -> Any:
+        """
+        Wrap config to allow dotted access with safe defaults for github metadata.
+        """
+        base = {}
+        if isinstance(config, dict):
+            base.update(config)
+        else:
+            return config
+
+        base.setdefault("github_repo", "")
+        base.setdefault("github_branch", "main")
+        return _MetadataView(base)
+
+
+class _MetadataView(dict[str, Any]):
+    """
+    Dict that also supports attribute-style access (dotted) used by templates.
+    """
+
+    def __getattr__(self, item: str) -> Any:
+        return self.get(item)
+
+
+def _safe_metadata_summary(meta: Any) -> str:
+    """
+    Summarize metadata for logging without raising on missing attributes.
+    """
+    try:
+        if isinstance(meta, dict):
+            keys = list(meta.keys())[:10]
+            return f"dict keys={keys}"
+        return str(meta)
+    except Exception:
+        return "<unavailable>"

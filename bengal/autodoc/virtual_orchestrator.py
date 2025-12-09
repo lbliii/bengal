@@ -188,7 +188,6 @@ class VirtualAutodocOrchestrator:
 
     def _create_template_environment(self) -> Environment:
         """Create Jinja2 environment for HTML templates."""
-        import re
 
         # Import icon function from main template system
         # Icons are already preloaded during main template engine initialization
@@ -317,34 +316,8 @@ class VirtualAutodocOrchestrator:
 
         env.globals["url_for"] = url_for
 
-        # Add custom tests for template filtering
-        def test_match(value: str | None, pattern: str) -> bool:
-            """Test if value matches a regex pattern."""
-            if value is None:
-                return False
-            return bool(re.search(pattern, str(value)))
-
-        env.tests["match"] = test_match
-
-        # Add custom filters for description extraction
-        def filter_first_sentence(text: str | None, max_length: int = 120) -> str:
-            """Extract first sentence or truncate description."""
-            if not text:
-                return ""
-            text = text.strip()
-            # Try to get first sentence
-            for end in [". ", ".\n", "!\n", "?\n"]:
-                if end in text:
-                    first = text.split(end)[0] + end[0]
-                    if len(first) <= max_length:
-                        return first
-                    break
-            # Truncate if too long
-            if len(text) > max_length:
-                return text[: max_length - 3].rsplit(" ", 1)[0] + "..."
-            return text
-
-        env.filters["first_sentence"] = filter_first_sentence
+        # Note: Custom tests (match) and filters (first_sentence) are now
+        # registered via register_all() from bengal.rendering.template_functions
 
         return env
 

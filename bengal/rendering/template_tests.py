@@ -7,14 +7,15 @@ Tests are used with 'is' operator for cleaner conditionals:
 Available tests:
   - draft: Check if page is a draft
   - featured: Check if page has 'featured' tag
+  - match: Check if value matches a regex pattern
   - outdated: Check if page is older than N days (default 90)
   - section: Check if object is a Section
   - translated: Check if page has translations
 """
 
-
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -38,6 +39,7 @@ def register(env: Environment, site: Site) -> None:
         {
             "draft": test_draft,
             "featured": test_featured,
+            "match": test_match,
             "outdated": test_outdated,
             "section": test_section,
             "translated": test_translated,
@@ -83,6 +85,27 @@ def test_featured(page: Any) -> bool:
     if not has_value(tags):
         return False
     return "featured" in tags
+
+
+def test_match(value: Any, pattern: str) -> bool:
+    """
+    Test if value matches a regex pattern.
+
+    Usage:
+        {% if page.source_path is match('.*_index.*') %}
+        {% if filename is match('^test_') %}
+        {% if value is not match('deprecated') %}
+
+    Args:
+        value: Value to test (will be converted to string)
+        pattern: Regular expression pattern to match
+
+    Returns:
+        True if value matches the pattern
+    """
+    if value is None:
+        return False
+    return bool(re.search(pattern, str(value)))
 
 
 def test_outdated(page: Any, days: int = 90) -> bool:
