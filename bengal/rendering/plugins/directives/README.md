@@ -2,6 +2,64 @@
 
 The directive system provides MyST-style fenced directives for rich content authoring in Bengal documentation.
 
+## Named Closers (New!)
+
+Bengal supports **named closers** as an alternative to fence-depth counting:
+
+```markdown
+<!-- Traditional fence-depth counting (still works) -->
+::::{tab-set}
+:::{tab-item} First
+Content
+:::
+:::{tab-item} Second
+Content
+:::
+::::
+
+<!-- Named closers (new - no counting!) -->
+:::{tab-set}
+:::{tab-item} First
+Content
+:::{/tab-item}
+:::{tab-item} Second
+Content
+:::{/tab-item}
+:::{/tab-set}
+```
+
+### Benefits
+
+- **No mental counting** — Use `:::{/name}` to close any directive
+- **Deeply nested structures** — Works at any nesting depth without adding colons
+- **Mixed syntax** — Combine named closers with fence-depth as needed
+- **Backward compatible** — Traditional fence-depth counting still works
+
+### When to Use Named Closers
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Simple admonition | Fence-depth (concise) |
+| Tabs with 2 items | Either works |
+| 3+ levels of nesting | Named closers (clearer) |
+| Tabs > Cards > Tips | Named closers (essential) |
+
+### Example: Deep Nesting Made Simple
+
+```markdown
+:::{tab-set}
+:::{tab-item} Overview
+:::{cards}
+:::{card} Getting Started
+:::{tip}
+This would require 6+ colons with fence-depth counting!
+:::{/tip}
+:::{/card}
+:::{/cards}
+:::{/tab-item}
+:::{/tab-set}
+```
+
 ## Architecture Overview
 
 Bengal's directive system is built on four core components:
