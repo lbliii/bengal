@@ -39,7 +39,7 @@ By the end of this tutorial, you will have:
 
 ## Prerequisites
 
-*   **Python 3.10+** installed
+*   **Python 3.14+** installed (3.14t recommended for best performance)
 *   **Bengal** installed (`pip install bengal`)
 
 :::{steps}
@@ -276,6 +276,6 @@ public/
 
 Congratulations! You've built a custom blog. Here is where to go next:
 
-*   **[Deployment Guide](/docs/building/deployment/)**: Learn how to host on GitHub Pages or Netlify.
-*   **[Theme Customization](/docs/theming/themes/customize/)**: Deep dive into template overrides.
-*   **[Configuration Reference](/docs/building/configuration/)**: Explore all available settings.
+*   **[[docs/building/deployment|Deployment Guide]]**: Learn how to host on GitHub Pages or Netlify.
+*   **[[docs/theming/themes/customize|Theme Customization]]**: Deep dive into template overrides.
+*   **[[docs/building/configuration|Configuration Reference]]**: Explore all available settings.

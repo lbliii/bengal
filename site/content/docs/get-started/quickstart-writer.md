@@ -24,7 +24,7 @@ Get from zero to published content in 5 minutes. This guide is for content creat
 
 ## Prerequisites
 
-- [Bengal installed](/docs/get-started/installation/)
+- [[docs/get-started/installation|Bengal installed]]
 - Basic knowledge of Markdown
 
 ## Create Your Site
@@ -103,7 +103,7 @@ Your complete site is in `public/`, ready to deploy!
 Deploy the `public/` directory to any static hosting:
 
 - **Netlify**: Build command: `bengal build`, Publish: `public`
-- **GitHub Pages**: Use the workflow in [Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/)
+- **GitHub Pages**: Use the workflow in [[docs/tutorials/automate-with-github-actions|Automate with GitHub Actions]]
 - **Vercel**: Build command: `bengal build`, Output: `public`
 
 ## Frontmatter Reference
@@ -121,9 +121,9 @@ Common frontmatter fields:
 
 ## Next Steps
 
-- **[Build a Blog](/docs/tutorials/build-a-blog/)** — Full tutorial
-- **[Content Authoring](/docs/content/authoring/)** — Markdown features
-- **[Content Organization](/docs/content/organization/)** — Structure your content
-- **[Theming](/docs/theming/)** — Customize appearance
+- **[[docs/tutorials/build-a-blog|Build a Blog]]** — Full tutorial
+- **[[docs/content/authoring|Content Authoring]]** — Markdown features
+- **[[docs/content/organization|Content Organization]]** — Structure your content
+- **[[docs/theming|Theming]]** — Customize appearance
 
 Happy writing! 🎉

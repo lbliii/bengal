@@ -37,7 +37,7 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 ## Prerequisites
 
 :::{checklist} Before You Begin
-- [Bengal installed](/docs/get-started/installation/)
+- [[docs/get-started/installation|Bengal installed]]
 - Access to your existing site's source files
 - Basic knowledge of Markdown and YAML/TOML
 :::
@@ -444,12 +444,12 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 
 ### Getting Help
 
-- Check [Content Organization](/docs/content/organization/) for structure details
-- Review [Configuration](/docs/building/configuration/) for config options
-- See [Get Started](/docs/get-started/) for basics
+- Check [[docs/content/organization|Content Organization]] for structure details
+- Review [[docs/building/configuration|Configuration]] for config options
+- See [[docs/get-started|Get Started]] for basics
 
 ## Next Steps
 
-- **[Content Authoring](/docs/content/authoring/)** - Learn Bengal's content features
-- **[Theming](/docs/theming/)** - Customize your site's appearance
-- **[Deployment](/docs/building/deployment/)** - Deploy your migrated site
+- **[[docs/content/authoring|Content Authoring]]** - Learn Bengal's content features
+- **[[docs/theming|Theming]]** - Customize your site's appearance
+- **[[docs/building/deployment|Deployment]]** - Deploy your migrated site

@@ -197,6 +197,6 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 
 ## See Also
 
-- [Core Concepts](/docs/about/concepts/) — Detailed explanations of how Bengal works
-- [Configuration Reference](/docs/reference/architecture/tooling/config/) — All configuration options
-- [FAQ](/docs/about/faq/) — Answers to common questions
+- [[docs/about/concepts|Core Concepts]] — Detailed explanations of how Bengal works
+- [[docs/reference/architecture/tooling/config|Configuration Reference]] — All configuration options
+- [[docs/about/faq|FAQ]] — Answers to common questions

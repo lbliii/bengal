@@ -25,7 +25,7 @@ icon: arrow-clockwise
 pip install bengal
 ```
 
-Requires Python 3.14+. See [installation guide](/docs/get-started/installation/) for details.
+Requires Python 3.14+. See [[docs/get-started/installation|installation guide]] for details.
 
 ## Create a Site
 
@@ -64,7 +64,7 @@ Hack on Bengal. Fix bugs, add features.
 
 ## Next Steps
 
-- [Tutorials](/docs/tutorials/) — Step-by-step guides
-- [Content](/docs/content/) — Writing and organizing content
-- [Theming](/docs/theming/) — Templates and styling
-- [CLI Reference](/cli/) — All commands
+- [[docs/tutorials|Tutorials]] — Step-by-step guides
+- [[docs/content|Content]] — Writing and organizing content
+- [[docs/theming|Theming]] — Templates and styling
+- [[cli|CLI Reference]] — All commands
