@@ -230,13 +230,13 @@ def _discover_autodoc_content_incremental(self, changed_files: set[Path]):
 
 ## Implementation Plan
 
-### Phase 1: Watch Autodoc Directories (1-2 hours)
+### Phase 1: Watch Autodoc Directories (1-2 hours) ✅
 
-1. [ ] Add autodoc source dirs to `_get_watched_directories()` in `dev_server.py`
-2. [ ] Add `_should_regenerate_autodoc()` method to `BuildHandler`
-3. [ ] Integrate with `_trigger_build()` decision logic (line ~295)
-4. [ ] Handle OpenAPI spec file watching (single file, not just directory)
-5. [ ] Test with dev server: verify `.py` change triggers rebuild
+1. [x] Add autodoc source dirs to `_get_watched_directories()` in `dev_server.py`
+2. [x] Add `_should_regenerate_autodoc()` method to `BuildHandler`
+3. [x] Integrate with `_trigger_build()` decision logic (line ~295)
+4. [x] Handle OpenAPI spec file watching (single file, not just directory)
+5. [x] Test with dev server: verify `.py` change triggers rebuild
 
 **Benefit**: Python changes now trigger autodoc rebuilds (better than nothing)
 
@@ -245,15 +245,15 @@ def _discover_autodoc_content_incremental(self, changed_files: set[Path]):
 - Editing unrelated content files does NOT trigger full autodoc rebuild
 - Dev server startup shows autodoc source dirs in watch list
 
-### Phase 2: Dependency Tracking (4-6 hours)
+### Phase 2: Dependency Tracking (4-6 hours) ✅
 
-1. [ ] Add `AutodocTrackingMixin` to `BuildCache`
-2. [ ] Modify `VirtualAutodocOrchestrator._create_pages()` to register dependencies
-3. [ ] Store `source_file` → `autodoc_page` mappings during extraction
-4. [ ] Modify `find_work_early()` to use dependency lookup instead of "always rebuild all"
-5. [ ] Remove the "always rebuild all autodoc" patch from `incremental.py:460`
-6. [ ] Add tests for selective autodoc rebuilds
-7. [ ] Handle orphan cleanup when source files are deleted
+1. [x] Add `AutodocTrackingMixin` to `BuildCache`
+2. [x] Modify `VirtualAutodocOrchestrator._create_pages()` to register dependencies
+3. [x] Store `source_file` → `autodoc_page` mappings during extraction
+4. [x] Modify `find_work_early()` to use dependency lookup instead of "always rebuild all"
+5. [x] Remove the "always rebuild all autodoc" patch from `incremental.py:460`
+6. [x] Add tests for selective autodoc rebuilds
+7. [x] Handle orphan cleanup when source files are deleted
 
 **Benefit**: Only affected autodoc pages rebuild (true incremental)
 
