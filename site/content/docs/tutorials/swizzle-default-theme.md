@@ -41,9 +41,9 @@ By the end of this tutorial, you will:
 
 ## Prerequisites
 
-- **Python 3.10+** installed
-- **Bengal** installed (`pip install bengal`)
-- A Bengal site initialized (run `bengal init` if you haven't already)
+- **Python 3.14+** installed
+- **Bengal** installed (`pip install bengal` or `uv add bengal`)
+- A Bengal site initialized (run `bengal new site mysite` if you haven't already)
 - Basic knowledge of HTML and Jinja2 templates
 
 ## What is Swizzling?
@@ -72,24 +72,21 @@ If you swizzle a template, your version in `templates/` takes precedence. Everyt
 Let's start with a fresh Bengal site. If you already have one, you can use it.
 
 ```bash
-# Create a new directory
-mkdir my-custom-site
+# Create a new Bengal site
+bengal new site my-custom-site
 cd my-custom-site
-
-# Initialize Bengal
-bengal init
 ```
 
 You should see this structure:
 
 ```text
 my-custom-site/
-├── bengal.toml       # Configuration
-├── site/
-│   ├── content/      # Your markdown files
-│   ├── static/       # CSS, JS, images
-│   └── templates/    # Template overrides (empty initially)
-└── themes/           # Installed themes
+├── config/           # Configuration directory
+│   └── _default/     # Default environment settings
+├── content/          # Your markdown files
+├── assets/           # CSS, JS, images
+├── templates/        # Template overrides (empty initially)
+└── .gitignore
 ```
 
 :::{tip}

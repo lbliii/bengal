@@ -11,13 +11,17 @@ Architecture:
 
 Syntax (preferred - named closers, no colon counting):
     :::{steps}
+    :start: 1
+
     :::{step} Step Title
     :description: Brief context before diving into the step content.
+    :duration: 5 min
     Step 1 content with **markdown** and nested directives.
     :::{/step}
 
-    :::{step} Another Step
-    Step 2 content
+    :::{step} Optional Step
+    :optional:
+    This step can be skipped.
     :::{/step}
     :::{/steps}
 
@@ -28,9 +32,16 @@ Legacy syntax (fence-depth counting - still works):
     :::
     ::::
 
+Steps Container Options:
+    :class: - Custom CSS class for the steps container
+    :style: - Visual style (default, compact)
+    :start: - Start numbering from this value (default: 1)
+
 Step Options:
     :class: - Custom CSS class for the step
     :description: - Lead-in text with special typography (rendered before main content)
+    :optional: - Mark step as optional/skippable (adds visual indicator)
+    :duration: - Estimated time for the step (e.g., "5 min", "1 hour")
 """
 
 from __future__ import annotations
@@ -72,17 +83,23 @@ class StepOptions(DirectiveOptions):
     Attributes:
         css_class: Custom CSS class for the step
         description: Lead-in text with special typography (rendered before main content)
+        optional: Mark step as optional/skippable (adds visual indicator)
+        duration: Estimated time for the step (e.g., "5 min", "1 hour")
 
     Example:
         :::{step} Configure Settings
         :class: important-step
         :description: Before we begin, ensure your environment is properly set up.
+        :duration: 5 min
+        :optional:
         Content here
         :::{/step}
     """
 
     css_class: str = ""
     description: str = ""
+    optional: bool = False
+    duration: str = ""
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
@@ -125,6 +142,7 @@ class StepDirective(BengalDirective):
 
         Title becomes the step heading, content is parsed as markdown.
         Description (if provided) renders as lead-in text with special typography.
+        Optional and duration add visual indicators.
         """
         attrs: dict[str, Any] = {}
         if title:
@@ -133,6 +151,10 @@ class StepDirective(BengalDirective):
             attrs["css_class"] = options.css_class
         if options.description:
             attrs["description"] = options.description
+        if options.optional:
+            attrs["optional"] = True
+        if options.duration:
+            attrs["duration"] = options.duration
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -146,13 +168,35 @@ class StepDirective(BengalDirective):
 
         Step titles are rendered as headings (h2/h3/h4) based on parent level.
         Descriptions are rendered as lead-in text with special typography.
+        Optional steps get a visual indicator.
+        Duration is shown as a time estimate badge.
         """
         title = attrs.get("title", "")
         description = attrs.get("description", "")
         css_class = attrs.get("css_class", "").strip()
         heading_level = attrs.get("heading_level", 2)
+        optional = attrs.get("optional", False)
+        duration = attrs.get("duration", "")
 
-        class_attr = f' class="{css_class}"' if css_class else ""
+        # Build class list
+        classes = []
+        if css_class:
+            classes.append(css_class)
+        if optional:
+            classes.append("step-optional")
+
+        class_attr = f' class="{" ".join(classes)}"' if classes else ""
+
+        # Build metadata line (optional badge + duration)
+        metadata_html = ""
+        metadata_parts = []
+        if optional:
+            metadata_parts.append('<span class="step-badge step-badge-optional">Optional</span>')
+        if duration:
+            duration_text = self._parse_inline_markdown(renderer, duration)
+            metadata_parts.append(f'<span class="step-duration">{duration_text}</span>')
+        if metadata_parts:
+            metadata_html = f'<div class="step-metadata">{" ".join(metadata_parts)}</div>\n'
 
         # Build description HTML if provided
         description_html = ""
@@ -166,11 +210,12 @@ class StepDirective(BengalDirective):
             return (
                 f"<li{class_attr}>"
                 f'<{heading_tag} class="step-title">{title_html}</{heading_tag}>'
+                f"{metadata_html}"
                 f"{description_html}"
                 f"{text}</li>\n"
             )
 
-        return f"<li{class_attr}>{description_html}{text}</li>\n"
+        return f"<li{class_attr}>{metadata_html}{description_html}{text}</li>\n"
 
     @staticmethod
     def _parse_inline_markdown(renderer: Any, text: str) -> str:
@@ -211,17 +256,20 @@ class StepsOptions(DirectiveOptions):
     Attributes:
         css_class: Custom CSS class for the steps container
         style: Step style (compact, default)
+        start: Start numbering from this value (default: 1)
 
     Example:
-        ::::{steps}
+        :::{steps}
         :class: installation-steps
         :style: compact
+        :start: 5
         ...
-        ::::
+        :::{/steps}
     """
 
     css_class: str = ""
     style: str = "default"
+    start: int = 1
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
@@ -288,6 +336,7 @@ class StepsDirective(BengalDirective):
             attrs={
                 "css_class": options.css_class,
                 "style": options.style,
+                "start": options.start,
                 "heading_level": heading_level,
             },
             children=children,
@@ -333,9 +382,11 @@ class StepsDirective(BengalDirective):
         Render steps container to HTML.
 
         Wraps step list items in <ol> if present.
+        Supports custom start number for continuing numbered lists.
         """
         css_class = attrs.get("css_class", "").strip()
         style = attrs.get("style", "default").strip()
+        start = attrs.get("start", 1)
 
         # Build class string
         classes = ["steps"]
@@ -346,9 +397,18 @@ class StepsDirective(BengalDirective):
 
         class_str = " ".join(classes)
 
+        # Build start attribute for <ol> if not 1
+        start_attr = f' start="{start}"' if start != 1 else ""
+
+        # Build style for counter reset if start != 1
+        style_attr = ""
+        if start != 1:
+            # CSS counter needs to start at start-1 because counter-increment happens before display
+            style_attr = f' style="counter-reset: step {start - 1}"'
+
         # Wrap in <ol> if contains step <li> elements
         if "<li>" in text or "<li " in text:
-            return f'<div class="{class_str}">\n<ol>\n{text}</ol>\n</div>\n'
+            return f'<div class="{class_str}"{style_attr}>\n<ol{start_attr}>\n{text}</ol>\n</div>\n'
         return f'<div class="{class_str}">\n{text}</div>\n'
 
 

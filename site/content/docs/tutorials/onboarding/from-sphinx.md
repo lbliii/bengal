@@ -299,8 +299,10 @@ bengal site serve
 Bengal has a separate autodoc system:
 
 ```bash
-# Generate API docs from Python code
-bengal autodoc generate --source src/ --output content/api/
+# Configure autodoc in bengal.toml
+[autodoc.python]
+enabled = true
+source_dirs = ["src/"]
 ```
 
 This creates markdown files you can customize, unlike Sphinx's runtime introspection.
@@ -330,7 +332,7 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 
 :::{checklist} Verify
 - [ ] Build: `bengal site build`
-- [ ] Check links: `bengal health check`
+- [ ] Check links: `bengal health linkcheck`
 - [ ] Preview: `bengal site serve`
 :::
 
@@ -348,7 +350,7 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 | Link to doc | `:doc:\`path\`` | Standard markdown links |
 | Build | `make html` | `bengal site build` |
 | Serve | `sphinx-autobuild` | `bengal site serve` |
-| Check | `sphinx-build -W` | `bengal health check` |
+| Check | `sphinx-build -W` | `bengal health linkcheck` |
 
 ---
 

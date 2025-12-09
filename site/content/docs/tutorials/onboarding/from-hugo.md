@@ -534,7 +534,7 @@ mv config.toml bengal.toml
 :::{step} Test
 ```bash
 bengal site build
-bengal health check
+bengal health linkcheck
 bengal site serve
 ```
 :::{/step}
@@ -570,7 +570,7 @@ bengal site serve
 
 :::{checklist} Verify
 - [ ] Build: `bengal site build`
-- [ ] Check: `bengal health check`
+- [ ] Check: `bengal health linkcheck`
 - [ ] Preview: `bengal site serve`
 :::
 
@@ -584,7 +584,7 @@ bengal site serve
 | Build | `hugo` | `bengal site build` |
 | Serve | `hugo server` | `bengal site serve` |
 | New content | `hugo new docs/page.md` | Create file directly |
-| Check links | External tool | `bengal health check` |
+| Check links | External tool | `bengal health linkcheck` |
 | Note callout | `{{</* notice note */>}}` | `:::{note}` |
 | Warning | `{{</* notice warning */>}}` | `:::{warning}` |
 | Tabs | `{{</* tabs */>}}` | `::::{tab-set}` |

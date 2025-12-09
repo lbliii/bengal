@@ -340,7 +340,7 @@ weight = 2
 :::{checklist} Verification Steps
 - [ ] Build the site: `bengal site build`
 - [ ] Check for errors: `bengal site build --verbose`
-- [ ] Validate links: `bengal health check`
+- [ ] Validate links: `bengal health linkcheck`
 - [ ] Preview locally: `bengal site serve` (visit http://localhost:5173)
 :::
 :::{/step}
@@ -410,7 +410,7 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 **Broken links:**
 
 :::{checklist}
-- Run `bengal health check` to find broken links
+- Run `bengal health linkcheck` to find broken links
 - Update internal links to use relative paths
 - Check URL generation matches expectations
 :::

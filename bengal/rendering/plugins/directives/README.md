@@ -225,8 +225,11 @@ STEPS_CONTRACT = DirectiveContract(
 
 ```markdown
 :::{steps}
+:start: 1
+
 :::{step} Install Dependencies
 :description: First, set up your environment with required packages.
+:duration: 2 min
 Run the installation command:
 \`\`\`bash
 pip install bengal
@@ -235,14 +238,28 @@ pip install bengal
 
 :::{step} Configure Your Site
 :description: Customize Bengal's behavior for your project.
+:duration: 5 min
 Edit `bengal.toml` to add your settings.
+:::{/step}
+
+:::{step} Advanced Configuration
+:optional:
+:description: These settings are for power users.
+Optional advanced configuration here.
 :::{/step}
 :::{/steps}
 ```
 
+**Steps Container Options:**
+- `:class:` — Custom CSS class for the container
+- `:style:` — Visual style (`default`, `compact`)
+- `:start:` — Start numbering from this value (default: 1)
+
 **Step Options:**
 - `:class:` — Custom CSS class for the step
 - `:description:` — Lead-in text with special typography (rendered before main content)
+- `:optional:` — Mark step as optional/skippable (adds visual indicator)
+- `:duration:` — Estimated time for the step (e.g., "2 min", "1 hour")
 
 ### Cards and Grids
 
@@ -277,9 +294,17 @@ The contract system validates parent-child relationships at parse time:
 ```markdown
 <!-- ✅ Valid: step inside steps (named closers - preferred) -->
 :::{steps}
+:start: 1
+
 :::{step} First Step
 :description: This is the lead-in text.
+:duration: 3 min
 Step content here.
+:::{/step}
+
+:::{step} Optional Step
+:optional:
+This step is skippable.
 :::{/step}
 :::{/steps}
 
