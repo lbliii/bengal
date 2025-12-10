@@ -60,7 +60,9 @@ Paths are resolved relative to:
 1. **Current page's directory** - If you're in `content/docs/content/`, `snippets/warning.md` looks in `content/docs/content/snippets/`
 2. **Site root** - Falls back to site root if not found relative to page
 
-**Example**:
+:::{example-label} Path Resolution
+:::
+
 - Page: `content/docs/getting-started/installation.md`
 - Include: `snippets/warning.md`
 - Resolves to: `content/docs/getting-started/snippets/warning.md` (or `content/snippets/warning.md` if not found)

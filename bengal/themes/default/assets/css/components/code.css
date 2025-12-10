@@ -714,6 +714,13 @@ pre code {
    Usage: ```python {5} or ```python {1,3,5-7}
    ============================================ */
 
+/* Clip negative margins to prevent page overflow.
+   The .hll spans use negative margins to extend highlighting beyond
+   code cell padding, which must be contained. */
+div.highlight {
+  overflow: hidden;
+}
+
 /* Highlighted line from Pygments hl_lines
    The parser post-processes to move newlines outside .hll spans,
    allowing display:block without double line spacing. */

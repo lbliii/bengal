@@ -97,7 +97,9 @@ Any fields not part of Bengal's standard frontmatter are automatically available
 - Any field not listed above goes into `page.props`
 - Access via `page.metadata.get('field_name')` or `page.props.get('field_name')`
 
-**Example:**
+:::{example-label}
+:::
+
 ```yaml
 ---
 title: My Page

@@ -107,7 +107,8 @@ Bengal provides three URL properties with clear purposes:
 - Alias for `url` (same value)
 - Maintained for compatibility with existing themes
 
-**Example Usage:**
+:::{example-label} Usage
+:::
 
 ```html
 {# Display URL (includes baseurl) #}

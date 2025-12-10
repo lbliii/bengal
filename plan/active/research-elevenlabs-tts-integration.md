@@ -2,8 +2,10 @@
 
 **Status**: Research  
 **Created**: 2025-12-09  
+**Updated**: 2025-12-10  
 **Author**: AI Assistant  
-**Related**: `plan/active/rfc-media-embed-directives.md`, ElevenLabs API docs
+**Related**: `plan/implemented/rfc-media-embed-directives.md` (Implemented ✅), ElevenLabs API docs  
+**Confidence**: 72% 🟡 (Moderate - needs RFC promotion)
 
 ---
 
@@ -12,6 +14,45 @@
 Investigating the feasibility of integrating ElevenLabs text-to-speech (TTS) capabilities to enable audio narration of Bengal documentation. This would allow users to listen to documentation content, improving accessibility and enabling consumption in contexts where reading isn't practical (commuting, exercising, etc.).
 
 **Key Finding**: ElevenLabs offers both REST and WebSocket APIs suitable for this use case. Integration is feasible at multiple levels (build-time generation, client-side streaming, or hybrid).
+
+---
+
+## Existing Bengal Audio Infrastructure
+
+Bengal already has an `AudioDirective` in `bengal/rendering/plugins/directives/figure.py` that provides HTML5 audio playback for self-hosted files. The proposed TTS integration should complement, not replace, this existing functionality.
+
+### Comparison: `:::{audio}` vs Proposed `:::{audio-tts}`
+
+| Feature | `:::{audio}` (Existing) | `:::{audio-tts}` (Proposed) |
+|---------|-------------------------|------------------------------|
+| **Source** | Self-hosted audio files | AI-generated from page content |
+| **Use Case** | Podcasts, pre-recorded audio | Auto-narration of documentation |
+| **Build Impact** | None (static files) | API calls, caching required |
+| **Options** | `controls`, `autoplay`, `loop`, `muted`, `preload` | `voice`, `model`, `source`, `exclude_selectors` |
+| **Output** | `<audio>` element | `<audio>` element + TTS player UI |
+| **Cost** | None | ElevenLabs API usage |
+
+### Existing AudioDirective Capabilities
+
+From `bengal/rendering/plugins/directives/figure.py:302-469`:
+
+```markdown
+:::{audio} /assets/podcast-ep1.mp3
+:title: Episode 1: Getting Started
+:controls: true
+:preload: metadata
+:::
+```
+
+**Supported options**: `:title:`, `:controls:`, `:autoplay:`, `:loop:`, `:muted:`, `:preload:`, `:class:`
+
+**MIME types**: `.mp3`, `.ogg`, `.wav`, `.flac`, `.m4a`, `.aac`
+
+The TTS directive should:
+1. Use a distinct name (`audio-tts`) to avoid confusion
+2. Build on the same HTML5 `<audio>` output pattern
+3. Add TTS-specific options (voice, model, text source)
+4. Integrate with the build cache for generated audio files
 
 ---
 
@@ -191,47 +232,58 @@ tts:
 
 ### New Config Section
 
-```yaml
-# config/_default/tts.yaml
-tts:
-  provider: elevenlabs
-  enabled: false  # Off by default
-  
-  elevenlabs:
-    api_key: ${ELEVENLABS_API_KEY}  # From environment
-    default_voice: rachel
-    default_model: eleven_turbo_v2_5
-    output_format: mp3_44100_128
-    
-  generation:
-    mode: build_time  # build_time | on_demand | hybrid
-    cache_dir: .cache/tts/
-    max_chars_per_request: 5000  # ElevenLabs limit
-    
-  player:
-    position: top  # top | bottom | floating
-    show_speed_control: true
-    show_download: true
+Bengal uses a single config file (`bengal.toml` or `bengal.yaml`). TTS configuration would be added as a new section:
+
+```toml
+# bengal.toml - TTS configuration section
+
+[tts]
+provider = "elevenlabs"
+enabled = false  # Off by default
+
+[tts.elevenlabs]
+api_key = "${ELEVENLABS_API_KEY}"  # From environment
+default_voice = "rachel"
+default_model = "eleven_turbo_v2_5"
+output_format = "mp3_44100_128"
+
+[tts.generation]
+mode = "build_time"  # build_time | on_demand | hybrid
+cache_dir = ".cache/tts/"
+max_chars_per_request = 5000  # ElevenLabs limit
+
+[tts.player]
+position = "top"  # top | bottom | floating
+show_speed_control = true
+show_download = true
 ```
+
+**Note**: This follows Bengal's existing config patterns (see `ConfigLoader.KNOWN_SECTIONS` in `bengal/config/loader.py`). The `tts` section would need to be added to `KNOWN_SECTIONS`.
 
 ### Module Structure
 
+TTS is a content processing feature, so it belongs within the `rendering/` subsystem (not a top-level package). This aligns with Bengal's architecture patterns where `rendering/` handles content transformation.
+
 ```
 bengal/
-├── tts/                          # NEW: TTS subsystem
-│   ├── __init__.py
-│   ├── providers/
-│   │   ├── __init__.py
-│   │   ├── base.py              # Abstract provider interface
-│   │   └── elevenlabs.py        # ElevenLabs implementation
-│   ├── extractor.py             # Text extraction from HTML
-│   ├── generator.py             # Audio generation orchestrator
-│   └── cache.py                 # TTS-specific caching
-│
 ├── rendering/
+│   ├── tts/                      # NEW: TTS processing (content transformation)
+│   │   ├── __init__.py
+│   │   ├── providers/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py          # Abstract provider interface
+│   │   │   └── elevenlabs.py    # ElevenLabs implementation
+│   │   ├── extractor.py         # Text extraction from HTML
+│   │   ├── generator.py         # Audio generation orchestrator
+│   │   └── cache.py             # TTS-specific caching (extends Cacheable)
+│   │
 │   └── plugins/
 │       └── directives/
-│           └── audio.py         # Extend with TTS directive
+│           ├── figure.py        # Existing AudioDirective lives here
+│           └── audio_tts.py     # NEW: TTS-specific directive
+│
+├── orchestration/
+│   └── tts_orchestrator.py      # NEW: Build integration (post-render hook)
 │
 └── themes/
     └── default/
@@ -242,6 +294,11 @@ bengal/
             └── js/
                 └── audio-player.js
 ```
+
+**Rationale**:
+- `rendering/tts/` - Core TTS logic (providers, extraction, caching)
+- `rendering/plugins/directives/audio_tts.py` - New directive (separate from existing `figure.py`)
+- `orchestration/tts_orchestrator.py` - Build pipeline integration (follows Bengal's orchestrator pattern)
 
 ---
 
@@ -462,30 +519,106 @@ if ('HTMLAudioElement' in window && document.querySelector('[data-audio-src]')) 
 
 ## Open Questions
 
+### Resolved
+
 1. **Scope**: Should TTS be opt-in per page or site-wide toggle?
-2. **Content Types**: Should we support blog posts, not just docs?
-3. **Multilingual**: How to handle multi-language sites?
+   
+   **Decision**: **Opt-in per page via frontmatter** (recommended)
+   
+   Rationale: Consistent with Bengal's existing feature flags (e.g., `draft: true`). Site-wide toggle in config enables/disables the feature, but individual pages opt-in via `tts.enabled: true` in frontmatter. This prevents unexpected API costs and gives authors control.
+   
+   ```yaml
+   # Page frontmatter - opt-in
+   ---
+   title: Getting Started
+   tts:
+     enabled: true
+   ---
+   ```
+
 4. **Code Blocks**: Skip entirely or announce "code block skipped"?
+   
+   **Decision**: **Skip with brief announcement** (recommended)
+   
+   Rationale: Silent skipping loses context; verbose announcements disrupt flow. Best practice: announce once per code block with "Code example omitted" (configurable). This follows WCAG accessibility guidelines for alternative content.
+   
+   ```yaml
+   # Config option
+   [tts.generation]
+   code_block_handling = "announce"  # skip | announce | read_comments_only
+   code_block_announcement = "Code example omitted."
+   ```
+
+### Open
+
+2. **Content Types**: Should we support blog posts, not just docs?
+   - Likely yes, but may need different voice/style settings per content type
+
+3. **Multilingual**: How to handle multi-language sites?
+   - ElevenLabs supports 29-70+ languages depending on model
+   - Need voice selection per language
+
 5. **Updates**: How to handle incremental updates (only changed sections)?
+   - Content hash-based cache invalidation handles full page changes
+   - Section-level would require AST-based diffing (Phase 2+)
+
 6. **Mobile UX**: How should player behave on mobile devices?
+   - Sticky player at bottom of viewport
+   - Respect system audio preferences
+
 7. **Analytics**: Should we track audio engagement metrics?
+   - Optional, privacy-respecting analytics
+   - Defer to site-wide analytics integration
+
+---
+
+## Confidence Scoring
+
+### Formula
+
+```
+Confidence = Evidence(40) + Consistency(30) + Recency(15) + Tests(15)
+```
+
+### Breakdown
+
+| Component | Score | Reasoning |
+|-----------|-------|-----------|
+| **Evidence** | 28/40 | External API docs well-referenced. Bengal internal references now verified. No prototype implementation yet. |
+| **Consistency** | 22/30 | Module placement and config structure now aligned with Bengal patterns. Directive design consistent with existing AudioDirective. |
+| **Recency** | 15/15 | Research created 2025-12-09, updated 2025-12-10. All referenced APIs current. |
+| **Tests** | 7/15 | Test strategy outlined but not executable. No implementation to verify. |
+
+**Total**: **72/100** 🟡 (Moderate Confidence)
+
+**Gate Status**: ✅ Meets 70% threshold for research phase. Needs 85% for RFC promotion.
 
 ---
 
 ## Next Steps
 
 1. **Decision**: Build-time vs. streaming vs. hybrid approach
+   - **Recommendation**: Start with build-time (Option A) for simplicity
 2. **PoC**: Create minimal proof-of-concept with ElevenLabs REST API
+   - Target: Single page audio generation with caching
 3. **User Research**: Survey Bengal users on audio documentation interest
 4. **RFC**: If PoC successful, draft full RFC with architecture details
+   - Must reach 85% confidence threshold
 
 ---
 
 ## References
 
+### External
 - [ElevenLabs Documentation](https://elevenlabs.io/docs/overview/intro)
 - [ElevenLabs WebSocket API](https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input)
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [WCAG 2.1 Audio Accessibility](https://www.w3.org/WAI/media/av/)
-- Bengal Audio Directive: `bengal/rendering/plugins/directives/figure.py`
+
+### Bengal Internal
+- Existing Audio Directive: `bengal/rendering/plugins/directives/figure.py:302-469`
+- Directive Base Class: `bengal/rendering/plugins/directives/base.py`
+- Cache Protocol: `bengal/cache/cacheable.py`
+- Config Loader: `bengal/config/loader.py`
+- Related RFC: `plan/implemented/rfc-media-embed-directives.md`
 

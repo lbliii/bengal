@@ -105,7 +105,8 @@ def hello():
 | `:language: python` | `:language: python` | ✅ Same option |
 | `.. include:: file.md` | `:::{include} file.md` | ✅ Same |
 
-**Example:**
+:::{example-label}
+:::
 
 ```markdown
 :::{literalinclude} ../examples/hello.py

@@ -51,7 +51,8 @@ Available on index pages (`_index.md`) and doc-type pages.
 | `section.subsections` | `list[Section]` | Child sections |
 | `section.metadata` | `dict` | Frontmatter from `_index.md` |
 
-**Example - Auto-Generated Child Cards:**
+:::{example-label} Auto-Generated Child Cards
+:::
 
 ```jinja2
 <div class="child-cards">
@@ -64,7 +65,8 @@ Available on index pages (`_index.md`) and doc-type pages.
 </div>
 ```
 
-**Example - Section Navigation:**
+:::{example-label} Section Navigation
+:::
 
 ```jinja2
 <nav class="section-nav">
@@ -105,7 +107,8 @@ The current page being rendered.
 | `page.next_in_section` | `Page \| None` | Next page in section (by weight/date) |
 | `page.related_posts` | `list[Page]` | Pages with matching tags |
 
-**Example - Custom Breadcrumbs:**
+:::{example-label} Custom Breadcrumbs
+:::
 
 ```jinja2
 <nav class="breadcrumbs">
@@ -117,7 +120,8 @@ The current page being rendered.
 </nav>
 ```
 
-**Example - Prev/Next Navigation:**
+:::{example-label} Prev/Next Navigation
+:::
 
 ```jinja2
 <nav class="prev-next">
@@ -130,7 +134,8 @@ The current page being rendered.
 </nav>
 ```
 
-**Example - Related Posts:**
+:::{example-label} Related Posts
+:::
 
 ```jinja2
 {% if page.related_posts %}
@@ -163,7 +168,8 @@ Bengal provides three URL properties with clear purposes:
 - Alias for `url` (same value)
 - Maintained for compatibility with existing themes
 
-**Example Usage:**
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Display URL (includes baseurl) #}

@@ -204,7 +204,9 @@ class BengalGroup(click.Group):
             raise
 ```
 
-**Example**:
+:::{example-label} Command Suggestion
+:::
+
 ```bash
 $ bengal bild
 Unknown command 'bild'.

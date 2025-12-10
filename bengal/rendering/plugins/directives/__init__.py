@@ -90,6 +90,7 @@ from bengal.rendering.plugins.directives.options import (
 )
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
+from bengal.rendering.plugins.directives.target import TargetDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabsDirective,
@@ -165,6 +166,8 @@ DIRECTIVE_CLASSES: list[type] = [
     StepDirective,
     # Rubric (rubric)
     RubricDirective,
+    # Target (target, anchor) - explicit anchor targets for cross-references
+    TargetDirective,
     # Example label (example-label) - lightweight example section headers
     ExampleLabelDirective,
     # Includes (include, literalinclude)
@@ -304,6 +307,8 @@ __all__ = [
     "AsciinemaDirective",
     "FigureDirective",
     "AudioDirective",
+    # Explicit Anchor Target Directive
+    "TargetDirective",
 ]
 
 
@@ -356,6 +361,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 DropdownDirective(),
                 CodeTabsDirective(),
                 RubricDirective(),  # Pseudo-headings for API docs
+                TargetDirective(),  # Explicit anchor targets for cross-references
                 ExampleLabelDirective(),  # Lightweight example section labels
                 ListTableDirective(),  # MyST list-table for tables without pipe issues
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
