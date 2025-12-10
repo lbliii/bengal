@@ -61,6 +61,7 @@ class TemplateRenderError:
     page_source: Path | None
     suggestion: str | None
     available_alternatives: list[str]  # For unknown filters/variables
+    search_paths: list[Path] | None = None  # Template directories searched
 
     @classmethod
     def from_jinja2_error(
@@ -93,6 +94,17 @@ class TemplateRenderError:
         # Find alternatives (for unknown filters/variables)
         alternatives = cls._find_alternatives(error, error_type, template_engine)
 
+        # Extract search paths from template engine
+        search_paths: list[Path] | None = None
+        if hasattr(template_engine, "template_dirs"):
+            try:
+                dirs = template_engine.template_dirs
+                if dirs and hasattr(dirs, "__iter__"):
+                    search_paths = list(dirs)
+            except (TypeError, AttributeError):
+                # Handle mock objects or other non-iterable cases
+                pass
+
         return cls(
             error_type=error_type,
             message=truncate_error(error),
@@ -101,6 +113,7 @@ class TemplateRenderError:
             page_source=page_source,
             suggestion=suggestion,
             available_alternatives=alternatives,
+            search_paths=search_paths,
         )
 
     @staticmethod
@@ -366,6 +379,17 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
         console.print()
         console.print(f"[cyan]Used by page:[/cyan] {error.page_source}")
 
+    # Template search paths (helpful for debugging template not found errors)
+    if error.search_paths:
+        console.print()
+        console.print("[cyan bold]🔍 Template Search Paths:[/cyan bold]")
+        for i, search_path in enumerate(error.search_paths, 1):
+            # Mark the path where template was found (if found)
+            found_marker = ""
+            if ctx.template_path and ctx.template_path.is_relative_to(search_path):
+                found_marker = " [green]← found here[/green]"
+            console.print(f"   {i}. [dim]{search_path}[/dim]{found_marker}")
+
     # Documentation link
     doc_links = {
         "filter": "https://bengal.dev/docs/templates/filters",
@@ -586,5 +610,14 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
     # Page source
     if error.page_source:
         click.echo(click.style("\n  Used by page: ", fg="cyan") + str(error.page_source))
+
+    # Template search paths
+    if error.search_paths:
+        click.echo(click.style("\n  🔍 Template Search Paths:", fg="cyan", bold=True))
+        for i, search_path in enumerate(error.search_paths, 1):
+            found_marker = ""
+            if ctx.template_path and ctx.template_path.is_relative_to(search_path):
+                found_marker = click.style(" ← found here", fg="green")
+            click.echo(f"     {i}. {search_path}{found_marker}")
 
     click.echo()
