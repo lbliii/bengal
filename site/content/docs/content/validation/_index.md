@@ -1,7 +1,7 @@
 ---
 title: Validation
 description: Content validation and health checks
-weight: 30
+weight: 60
 category: guide
 icon: check-circle
 card_color: purple
@@ -115,3 +115,4 @@ class RequireAuthorValidator(BaseValidator):
 :::{tip}
 **CI integration**: Add `bengal validate` to your CI pipeline to catch issues before deployment. Use `--verbose` to see all checks, not just problems.
 :::
+

@@ -48,4 +48,6 @@ flowchart LR
 
 :::{tip}
 **New to Bengal content?** Start with [Organization](./organization/) to understand how files become pages, then explore [Authoring](./authoring/) for writing syntax.
+
+**Larger sites?** Check out [Analysis](./analysis/) to optimize internal linking and [Validation](./validation/) for automated quality checks.
 :::

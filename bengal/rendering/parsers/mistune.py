@@ -127,9 +127,11 @@ class MistuneParser(BaseMarkdownParser):
         # Note: Variable substitution is added per-page in parse_with_context()
         # Note: Cross-references added via enable_cross_references() when xref_index available
         # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
+        # Note: escape=False allows raw HTML (e.g., <br>) inside table cells and inline content
         self.md = mistune.create_markdown(
             plugins=plugins,
             renderer=self._shared_renderer,  # Use shared renderer
+            escape=False,  # Allow inline HTML in tables and text
         )
 
         # Cache for mistune library (import on first use)
@@ -381,6 +383,7 @@ class MistuneParser(BaseMarkdownParser):
             self._md_with_vars = self._mistune.create_markdown(
                 plugins=var_plugins,
                 renderer=self._shared_renderer,
+                escape=False,  # Allow inline HTML in tables and text
             )
         else:
             # Just update the context on existing plugin (fast!)

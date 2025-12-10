@@ -1,7 +1,7 @@
 ---
 title: Analysis
 description: Site structure analysis tools
-weight: 20
+weight: 50
 category: guide
 icon: search
 card_color: green
@@ -83,3 +83,4 @@ Identifies:
 :::{tip}
 **Start with graph analysis** to visualize your site structure. The visual output often reveals issues that metrics alone miss.
 :::
+

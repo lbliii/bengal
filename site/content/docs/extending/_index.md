@@ -1,6 +1,6 @@
 ---
 title: Extending
-description: Autodoc, analysis, validation, and architecture
+description: Autodoc, architecture, and Bengal internals
 weight: 35
 cascade:
   type: doc
@@ -8,7 +8,7 @@ icon: starburst
 ---
 # Extend Bengal
 
-Power features for documentation teams: auto-generate API docs, analyze site structure, validate content, and contribute to Bengal itself.
+Power features for documentation teams: auto-generate API docs and understand Bengal's architecture to contribute or customize.
 
 ## What Do You Need?
 
@@ -23,18 +23,18 @@ Power features for documentation teams: auto-generate API docs, analyze site str
 ```mermaid
 flowchart TB
     subgraph "Your Code"
-        A[Custom Validators]
+        A[Python Modules]
         B[Content Loaders]
         C[Post-Processors]
     end
 
     subgraph "Bengal Pipeline"
-        D[Discovery] --> E[Validation]
+        D[Discovery] --> E[Processing]
         E --> F[Rendering]
         F --> G[Post-Process]
     end
 
-    A -.->|hooks into| E
+    A -.->|autodoc generates| F
     B -.->|feeds| D
     C -.->|extends| G
 ```
