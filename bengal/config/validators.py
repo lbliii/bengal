@@ -49,6 +49,7 @@ class ConfigValidator:
         "strict_mode",
         "debug",
         "validate_build",
+        "validate_templates",  # Proactive template syntax validation
         "stable_section_references",  # Path-based section references
         "expose_metadata_json",  # Opt-in JSON bootstrap in head
     }

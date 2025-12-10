@@ -89,6 +89,7 @@ DEFAULTS: dict[str, Any] = {
     "strict_mode": False,
     "debug": False,
     "validate_build": True,
+    "validate_templates": False,  # Proactive template syntax validation during build
     "validate_links": True,
     "transform_links": True,
     "cache_templates": True,

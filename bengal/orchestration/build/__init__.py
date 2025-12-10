@@ -219,6 +219,9 @@ class BuildOrchestrator:
         # Phase 1: Font Processing
         initialization.phase_fonts(self, cli)
 
+        # Phase 1.5: Template Validation (optional, controlled by config)
+        initialization.phase_template_validation(self, cli, strict=strict)
+
         # Phase 2: Content Discovery (with content caching for validators)
         initialization.phase_discovery(self, cli, incremental, build_context=early_ctx)
 

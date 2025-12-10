@@ -1,14 +1,14 @@
 """
 Initialization phases for build orchestration.
 
-Phases 1-5: Font processing, content discovery, cache metadata, config check, incremental filtering.
+Phases 1-5: Font processing, template validation, content discovery, cache metadata, config check, incremental filtering.
 """
 
 from __future__ import annotations
 
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
 from bengal.utils.sections import resolve_page_section_path
@@ -72,6 +72,102 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
             cli.warning(f"Font processing failed: {e}")
             cli.info("   Continuing build without custom fonts...")
             orchestrator.logger.warning("fonts_failed", error=str(e))
+
+
+def phase_template_validation(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    strict: bool = False,
+) -> list[Any]:
+    """
+    Phase 1.5: Template Validation (optional).
+
+    Proactively validates all template syntax before rendering begins.
+    This catches template errors early, providing faster feedback.
+
+    Only runs if `[build] validate_templates = true` in site config.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        cli: CLI output for user messages
+        strict: Whether to fail build on template errors
+
+    Returns:
+        List of TemplateRenderError objects found during validation.
+        Empty list if validation is disabled or all templates are valid.
+
+    Side effects:
+        - Creates TemplateEngine for validation
+        - Adds errors to orchestrator.stats.template_errors
+        - May fail build if strict mode and errors found
+    """
+    # Check if template validation is enabled
+    validate_templates = orchestrator.site.config.get("validate_templates", False)
+    if not validate_templates:
+        orchestrator.logger.debug("template_validation_skipped", reason="disabled in config")
+        return []
+
+    with orchestrator.logger.phase("template_validation"):
+        validation_start = time.time()
+
+        try:
+            from bengal.rendering.template_engine import TemplateEngine
+
+            # Create template engine for validation
+            engine = TemplateEngine(orchestrator.site)
+
+            # Validate all templates
+            errors = engine.validate_templates()
+
+            validation_time_ms = (time.time() - validation_start) * 1000
+
+            # Add errors to build stats
+            for error in errors:
+                orchestrator.stats.add_template_error(error)
+
+            if errors:
+                # Report errors
+                cli.warning(f"Found {len(errors)} template syntax error(s)")
+                for error in errors:
+                    template_name = getattr(error.template_context, "template_name", "unknown")
+                    line = getattr(error.template_context, "line_number", "?")
+                    cli.detail(f"  • {template_name}:{line} - {error.message[:80]}")
+
+                orchestrator.logger.warning(
+                    "template_validation_errors",
+                    error_count=len(errors),
+                    duration_ms=validation_time_ms,
+                )
+
+                # In strict mode, fail the build
+                if strict:
+                    raise RuntimeError(
+                        f"Template validation failed with {len(errors)} error(s). "
+                        "Fix template syntax errors or disable strict mode."
+                    )
+            else:
+                cli.phase("Templates", duration_ms=validation_time_ms, details="validated")
+                orchestrator.logger.info(
+                    "template_validation_complete",
+                    error_count=0,
+                    duration_ms=validation_time_ms,
+                )
+
+            return errors
+
+        except RuntimeError:
+            # Re-raise RuntimeError (strict mode failure)
+            raise
+        except Exception as e:
+            # Log other errors but don't fail build
+            cli.warning(f"Template validation failed: {e}")
+            cli.info("   Continuing build without template validation...")
+            orchestrator.logger.warning(
+                "template_validation_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return []
 
 
 def phase_discovery(

@@ -434,6 +434,7 @@ class ConfigLoader:
             "strict_mode": DEFAULTS["strict_mode"],
             "debug": DEFAULTS["debug"],
             "validate_build": DEFAULTS["validate_build"],
+            "validate_templates": DEFAULTS["validate_templates"],
             "stable_section_references": DEFAULTS["stable_section_references"],
             "min_page_size": DEFAULTS["min_page_size"],
             # Theme configuration
