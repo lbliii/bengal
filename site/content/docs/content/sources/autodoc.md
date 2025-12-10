@@ -1,10 +1,22 @@
 ---
 title: Autodoc
-description: Automatic documentation generation
-weight: 10
+description: Generate API docs from source code
+weight: 20
 category: guide
 icon: book
 card_color: blue
+tags:
+- autodoc
+- api-docs
+- python
+- cli
+- openapi
+keywords:
+- autodoc
+- api documentation
+- python docstrings
+- cli documentation
+- openapi
 ---
 # Autodoc
 
@@ -152,3 +164,4 @@ strict = true
 ## See Also
 
 - [Architecture Reference](/docs/reference/architecture/subsystems/autodoc/) — Technical details and API usage
+

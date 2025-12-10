@@ -263,6 +263,10 @@ class MyCustomSource(ContentSource):
 
 Remote loaders are lazy-loaded only when you import them.
 
+## Other Content Sources
+
+- **[Autodoc](./autodoc/)** — Generate API docs from Python, CLI commands, and OpenAPI specs
+
 ## See Also
 
 - [Content Collections](/docs/content/collections/) — Schema validation for any source

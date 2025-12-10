@@ -1,44 +1,49 @@
 ---
 title: Extending
-description: Autodoc, architecture, and Bengal internals
+description: Plugins, custom parsers, and extension points
 weight: 35
 cascade:
   type: doc
 icon: starburst
+draft: true
 ---
 # Extend Bengal
 
-Power features for documentation teams: auto-generate API docs and understand Bengal's architecture to contribute or customize.
+Build plugins, custom parsers, and hook into Bengal's extension points.
 
-## What Do You Need?
+:::{note}
+**Coming soon.** Plugin architecture and extension point documentation is under development.
 
-:::{child-cards}
-:columns: 2
-:include: sections
-:fields: title, description, icon
+For now, see [Architecture Reference](/docs/reference/architecture/) to understand Bengal's internals.
 :::
+
+## Planned Topics
+
+- **Custom Directives** — Create your own MyST directives
+- **Content Loaders** — Build loaders for new content sources
+- **Post-Processors** — Hook into the build pipeline
+- **Custom Parsers** — Support new content formats
+- **Template Functions** — Add custom Jinja filters and functions
 
 ## Extension Points
 
 ```mermaid
 flowchart TB
-    subgraph "Your Code"
-        A[Python Modules]
+    subgraph "Your Extensions"
+        A[Custom Directives]
         B[Content Loaders]
         C[Post-Processors]
+        D[Template Functions]
     end
 
     subgraph "Bengal Pipeline"
-        D[Discovery] --> E[Processing]
-        E --> F[Rendering]
-        F --> G[Post-Process]
+        E[Discovery] --> F[Processing]
+        F --> G[Rendering]
+        G --> H[Post-Process]
     end
 
-    A -.->|autodoc generates| F
-    B -.->|feeds| D
-    C -.->|extends| G
+    B -.->|feeds| E
+    A -.->|extends| F
+    D -.->|extends| G
+    C -.->|hooks| H
 ```
-
-:::{note}
-**Most users don't need this section.** These are power features for documentation teams with specific automation needs. Start with [Content](../content/) and [Theming](../theming/) for standard documentation.
-:::
