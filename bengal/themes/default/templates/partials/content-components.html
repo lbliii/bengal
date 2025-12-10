@@ -105,14 +105,15 @@ Example:
 {#
 Content Tiles Component (Enhanced)
 
-Flexible content display with optional header, multiple content sources,
+Flexible content display with optional headers, multiple content sources,
 and variant display modes. Successor to child_page_tiles.
 
 Args:
-  title: Optional section header (string, or False to suppress)
+  title: Header for children section (string, or None to suppress)
   children: List of child pages to display
   subsections: List of child sections to display
   related: Related pages (list, or True to auto-get from page.related_posts)
+  related_title: Header for related section (string, or None to suppress)
   related_limit: Max related pages when related=True (default: 5)
   variant: Display style - 'compact' (rows) | 'cards' | 'minimal'
   show_descriptions: Show item descriptions (default: True)
@@ -126,14 +127,15 @@ Variants:
 
 Example:
   {{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
-  {{ content_tiles(title="Related", related=page.related_posts[:3], variant='minimal') }}
-  {{ content_tiles(children=posts, related=True, group_by='type') }}
+  {{ content_tiles(related=page.related_posts[:3], related_title="Related", variant='minimal') }}
+  {{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages", group_by='type') }}
 #}
 {% macro content_tiles(
   title=None,
   children=None,
   subsections=None,
   related=None,
+  related_title=None,
   related_limit=5,
   variant='compact',
   show_descriptions=True,
@@ -278,9 +280,9 @@ Example:
     {# Optional group headers when group_by='type' #}
     {% if group_by == 'type' and item.group != current_group.value %}
       {% set current_group.value = item.group %}
-      {% if item.group == 'related' %}
+      {% if item.group == 'related' and related_title %}
       <div class="content-tiles-group-header">
-        <span class="content-tiles-group-label">Related Pages</span>
+        <span class="content-tiles-group-label">{{ related_title }}</span>
       </div>
       {% endif %}
     {% endif %}

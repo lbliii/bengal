@@ -45,33 +45,57 @@ Features:
         {{ content | safe }}
       </div>
 
-      {# Content tiles - children and optionally related pages #}
-      {# Frontmatter options:
-         - show_children: true/false (default: feature flag or true)
-         - children_title: "In This Section" or false (default: none)
-         - show_related: true/false/number (default: false)
-         - children_variant: compact/cards/minimal (default: compact)
+      {# Content tiles - children and related pages #}
+      {# 
+         Smart defaults: Both children and related enabled with default titles.
+         Use discover: frontmatter only to customize or disable.
+         
+         discover:
+           children:
+             title: "Custom Title"    # or false to hide title
+             variant: "cards"         # compact | cards | minimal
+           children: false            # disable children entirely
+           related:
+             title: "Custom Title"
+             limit: 5
+           related: false             # disable related entirely
       #}
-      {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
-      {% set show_children_feature = 'content.children' in site.theme_config.features %}
-      {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
+      {% set discover = page.metadata.get('discover', {}) if page else {} %}
+      {% set children_config = discover.get('children', {}) if discover else {} %}
+      {% set related_config = discover.get('related', {}) if discover else {} %}
       
-      {% if show_children and (posts or subsections or page.metadata.get('show_related')) %}
+      {# Check if explicitly disabled #}
+      {% set children_disabled = children_config is sameas false %}
+      {% set related_disabled = related_config is sameas false %}
+      
+      {# Feature flag fallback #}
+      {% set show_children_feature = 'content.children' in site.theme_config.features %}
+      {% set show_children = (not children_disabled) and show_children_feature %}
+      {% set show_related = not related_disabled %}
+      
+      {# Get config values with smart defaults #}
+      {% set children_title = children_config.get('title', 'In This Section') if children_config is mapping else 'In This Section' %}
+      {% set children_variant = children_config.get('variant', 'compact') if children_config is mapping else 'compact' %}
+      {% set related_title = related_config.get('title', 'Related Pages') if related_config is mapping else 'Related Pages' %}
+      {% set related_limit = related_config.get('limit', 5) if related_config is mapping else (related_config if related_config is number else 5) %}
+      
+      {# Handle title: false to hide title #}
+      {% set children_title = none if children_title is sameas false else children_title %}
+      {% set related_title = none if related_title is sameas false else related_title %}
+      
+      {% set has_children = posts or subsections %}
+      {% set has_related = show_related and page and page.related_posts %}
+      
+      {% if show_children and (has_children or has_related) %}
       <div class="docs-children">
-        {# Get frontmatter options #}
-        {% set children_title = page.metadata.get('children_title', none) if page else none %}
-        {% set show_related = page.metadata.get('show_related', false) if page else false %}
-        {% set related_limit = show_related if show_related is number else 5 %}
-        {% set children_variant = page.metadata.get('children_variant', 'compact') if page else 'compact' %}
-        
         {{ content_tiles(
-          title=children_title,
-          children=posts,
-          subsections=subsections,
-          related=show_related,
-          related_limit=related_limit,
+          title=children_title if has_children else none,
+          children=posts if show_children else none,
+          subsections=subsections if show_children else none,
+          related=page.related_posts[:related_limit] if has_related else none,
+          related_title=related_title,
           variant=children_variant,
-          group_by='type' if show_related else none
+          group_by='type' if has_children and has_related else none
         ) }}
       </div>
       {% endif %}
