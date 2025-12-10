@@ -40,18 +40,19 @@ That's it. Bengal's `reading_time` filter calculates based on word count (200 wp
 
 ### With Word Count
 
-```jinja2
-{% set words = page.content | striptags | wordcount %}
-{% set minutes = page.content | reading_time %}
+Bengal provides a `word_count` filter that strips HTML and counts words:
 
-<span>{{ words }} words · {{ minutes }} min read</span>
+```jinja2
+<span>{{ page.content | word_count }} words · {{ page.content | reading_time }} min read</span>
 ```
+
+Both filters work together seamlessly since they use the same word counting logic.
 
 ### Custom Calculation
 
 ```jinja2
 {# 250 words per minute instead of 200 #}
-{% set words = page.content | striptags | wordcount %}
+{% set words = page.content | word_count %}
 {% set minutes = (words / 250) | round(0, 'ceil') | int %}
 
 <span>{{ minutes }} min read</span>

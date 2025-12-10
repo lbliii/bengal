@@ -37,6 +37,7 @@ def register(env: Environment, site: Site) -> None:
             "pluralize": pluralize,
             "reading_time": reading_time,
             "word_count": word_count,
+            "wordcount": word_count,  # Alias matching Jinja naming convention
             "excerpt": excerpt,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
