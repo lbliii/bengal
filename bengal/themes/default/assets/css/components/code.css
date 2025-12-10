@@ -709,6 +709,35 @@ pre code {
   }
 }
 
+/* ============================================
+   LINE HIGHLIGHTING (Pygments hl_lines)
+   Usage: ```python {5} or ```python {1,3,5-7}
+   ============================================ */
+
+/* Highlighted line wrapper from Pygments */
+.highlight .hll {
+  display: block;
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-6));
+  padding-left: var(--space-4);
+  padding-right: var(--space-6);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* Highlighted line in table layout */
+.highlight td.code .hll {
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-6));
+  padding-left: var(--space-4);
+  padding-right: var(--space-6);
+}
+
+/* Dark mode highlight */
+[data-theme="dark"] .highlight .hll {
+  background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
 /* Legacy Pygments linenos support */
 .highlight .linenos {
   display: inline-block;

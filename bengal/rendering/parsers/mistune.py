@@ -14,6 +14,10 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Pattern to extract line highlight syntax from code fence info string
+# Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}
+_HL_LINES_PATTERN = re.compile(r"^(\S+)\s*\{([^}]+)\}$")
+
 
 class MistuneParser(BaseMarkdownParser):
     """
@@ -170,6 +174,40 @@ class MistuneParser(BaseMarkdownParser):
 
         from bengal.rendering.pygments_cache import get_lexer_cached
 
+        def parse_hl_lines(hl_spec: str) -> list[int]:
+            """
+            Parse line highlight specification into list of line numbers.
+
+            Supports:
+            - Single line: "5" -> [5]
+            - Multiple lines: "1,3,5" -> [1, 3, 5]
+            - Ranges: "1-3" -> [1, 2, 3]
+            - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
+
+            Args:
+                hl_spec: Line specification string (e.g., "1,3-5,7")
+
+            Returns:
+                Sorted list of unique line numbers
+            """
+            lines: set[int] = set()
+            for part in hl_spec.split(","):
+                part = part.strip()
+                if "-" in part:
+                    # Range: "3-5" -> 3, 4, 5
+                    try:
+                        start, end = part.split("-", 1)
+                        lines.update(range(int(start), int(end) + 1))
+                    except ValueError:
+                        continue
+                else:
+                    # Single line
+                    try:
+                        lines.add(int(part))
+                    except ValueError:
+                        continue
+            return sorted(lines)
+
         def plugin_syntax_highlighting(md: Any) -> None:
             """Plugin function to add syntax highlighting to Mistune renderer."""
             # Get the original block_code renderer
@@ -187,8 +225,17 @@ class MistuneParser(BaseMarkdownParser):
                 if info_stripped.startswith("{") and "}" in info_stripped:
                     return original_block_code(code, info)
 
+                # Parse language and optional line highlights: "python {5}" or "yaml {1,3-5}"
+                language = info_stripped
+                hl_lines: list[int] = []
+
+                hl_match = _HL_LINES_PATTERN.match(info_stripped)
+                if hl_match:
+                    language = hl_match.group(1)
+                    hl_lines = parse_hl_lines(hl_match.group(2))
+
                 # Special handling: client-side rendered languages (e.g., Mermaid)
-                lang_lower = info_stripped.lower()
+                lang_lower = language.lower()
                 if lang_lower == "mermaid":
                     # Escape HTML so browsers don't interpret it; Mermaid will read textContent
                     escaped_code = (
@@ -201,7 +248,7 @@ class MistuneParser(BaseMarkdownParser):
 
                 try:
                     # Get cached lexer for the language
-                    lexer = get_lexer_cached(language=info_stripped)
+                    lexer = get_lexer_cached(language=language)
 
                     # Count lines to decide on line numbers
                     line_count = code.count("\n") + 1
@@ -214,6 +261,7 @@ class MistuneParser(BaseMarkdownParser):
                         noclasses=False,  # Use CSS classes instead of inline styles
                         linenos="table" if line_count >= 3 else False,
                         linenostart=1,
+                        hl_lines=hl_lines if hl_lines else None,  # Line highlighting!
                     )
 
                     # Highlight the code
@@ -223,7 +271,7 @@ class MistuneParser(BaseMarkdownParser):
 
                 except Exception as e:
                     # If highlighting fails, return plain code block
-                    logger.warning("pygments_highlight_failed", language=info, error=str(e))
+                    logger.warning("pygments_highlight_failed", language=language, error=str(e))
                     # Escape HTML and return plain code block
                     escaped_code = (
                         code.replace("&", "&amp;")
@@ -231,7 +279,7 @@ class MistuneParser(BaseMarkdownParser):
                         .replace(">", "&gt;")
                         .replace('"', "&quot;")
                     )
-                    return f'<pre><code class="language-{info}">{escaped_code}</code></pre>\n'
+                    return f'<pre><code class="language-{language}">{escaped_code}</code></pre>\n'
 
             # Replace the block_code method
             md.renderer.block_code = highlighted_block_code
