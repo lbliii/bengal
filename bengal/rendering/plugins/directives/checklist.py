@@ -249,7 +249,9 @@ class ChecklistDirective(BengalDirective):
 
         return (
             f'  <div class="checklist-progress">\n'
-            f'    <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
+            f'    <div class="checklist-progress-track">\n'
+            f'      <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
+            f"    </div>\n"
             f'    <span class="checklist-progress-text">{checked}/{total_checkboxes} complete</span>\n'
             f"  </div>\n"
         )

@@ -38,20 +38,12 @@
   max-width: none; /* Full-width app shell */
   padding-block: 0;
   align-items: start;
-  /* Break out of container - edge-to-edge app shell */
-  /* Cleaner breakout technique using calc() - more explicit and maintainable */
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  width: 100%;
 }
 
-/* Ensure docs-layout ignores container constraints */
-.container>.docs-layout {
-  max-width: none;
-}
-
-/* Remove container padding when it contains docs-layout to allow proper breakout */
-.container:has(>.docs-layout) {
+/* Container becomes full-width when it holds docs-layout (avoids 100vw scrollbar issue) */
+.container:has(> .docs-layout) {
+  max-width: 100%;
   padding-inline: 0;
 }
 

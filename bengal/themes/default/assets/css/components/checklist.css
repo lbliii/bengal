@@ -234,9 +234,18 @@
   border: 1px solid var(--color-border-light);
 }
 
-.checklist-progress-bar {
-  height: 6px;
+/* Track is the full-width background */
+.checklist-progress-track {
   flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+/* Bar fills the track based on percentage */
+.checklist-progress-bar {
+  height: 100%;
   background: var(--color-primary);
   border-radius: var(--radius-full);
   transition: width var(--transition-base);
@@ -273,6 +282,10 @@
 [data-theme="dark"] .checklist-progress {
   background: var(--color-bg-tertiary);
   border-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .checklist-progress-track {
+  background: var(--color-border-dark);
 }
 
 [data-theme="dark"] .checklist-progress-bar::before {

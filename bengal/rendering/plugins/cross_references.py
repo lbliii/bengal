@@ -130,8 +130,14 @@ class CrossReferencePlugin:
         """
         Resolve path reference to link.
 
-        O(1) dictionary lookup.
+        O(1) dictionary lookup. Supports path#anchor syntax.
         """
+        # Extract anchor fragment if present (e.g., docs/page#section -> docs/page, section)
+        anchor_fragment = ""
+        if "#" in path:
+            path, anchor_fragment = path.split("#", 1)
+            anchor_fragment = f"#{anchor_fragment}"
+
         # Normalize path (remove .md extension if present)
         clean_path = path.replace(".md", "")
         page = self.xref_index.get("by_path", {}).get(clean_path)
@@ -154,17 +160,19 @@ class CrossReferencePlugin:
                 f'title="Page not found: {path}">[{text or path}]</span>'
             )
 
+        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        full_url = f"{url}{anchor_fragment}"
+
         logger.debug(
             "xref_resolved",
             ref=path,
             type="path",
             target=page.title,
-            url=page.url if hasattr(page, "url") else f"/{page.slug}/",
+            url=full_url,
         )
 
         link_text = text or page.title
-        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-        return f'<a href="{url}">{link_text}</a>'
+        return f'<a href="{full_url}">{link_text}</a>'
 
     def _resolve_id(self, ref_id: str, text: str | None = None) -> str:
         """

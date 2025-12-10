@@ -44,9 +44,9 @@ keywords:
 - **Error Handling**: Beautiful tracebacks with context and locals
 - **Extensibility**: Easy to add new commands in separate modules
 
-## Core Commands
+## Core Commands {#commands}
 
-**Build Commands**:
+**Build Commands** {#build-commands}:
 ```bash
 # Basic build
 bengal build
@@ -67,7 +67,7 @@ bengal build --debug
 bengal build --incremental --verbose
 ```
 
-**Development Commands**:
+**Development Commands** {#serve-commands}:
 ```bash
 # Start development server with live reload
 bengal serve

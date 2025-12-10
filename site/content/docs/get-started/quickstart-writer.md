@@ -42,13 +42,16 @@ cd myblog
 
 Choose a preset that matches your goal (Blog, Documentation, Portfolio, etc.).
 
-## Start the Dev Server
+## Start the Dev Server {#dev-server}
+
+:::{target} hot-reload
+:::
 
 ```bash
 bengal serve
 ```
 
-Open **http://localhost:5173/** in your browser. The dev server automatically rebuilds when you save changes.
+Open **http://localhost:5173/** in your browser. The dev server automatically rebuilds when you save changes (hot reload).
 
 ## Create Your First Post
 
@@ -110,7 +113,7 @@ Deploy the `public/` directory to any static hosting:
 - **GitHub Pages**: Use the workflow in [[docs/tutorials/automate-with-github-actions|Automate with GitHub Actions]]
 - **Vercel**: Build command: `bengal build`, Output: `public`
 
-## Frontmatter Reference
+## Frontmatter Reference {#frontmatter}
 
 Common frontmatter fields:
 
@@ -128,6 +131,7 @@ Common frontmatter fields:
 - **[[docs/tutorials/build-a-blog|Build a Blog]]** — Full tutorial
 - **[[docs/content/authoring|Content Authoring]]** — Markdown features
 - **[[docs/content/organization|Content Organization]]** — Structure your content
+- **[[docs/content/component-model#type|Type System]]** — Content types and templates
 - **[[docs/theming|Theming]]** — Customize appearance
 
 Happy writing! 🎉

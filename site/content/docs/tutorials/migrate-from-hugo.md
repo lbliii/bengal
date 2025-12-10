@@ -139,7 +139,7 @@ draft: false  # published: true → draft: false
 ```
 
 **Key differences:**
-- `layout` → `type` in Bengal
+- `layout` → `type` in Bengal (see [[docs/content/component-model#type|Component Model: Type]])
 - `published: true` → `draft: false`
 - `categories` → `category` (use first category)
 - Date format: Convert to ISO format
