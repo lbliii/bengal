@@ -181,7 +181,7 @@ Example:
 {% endfor %}
 {% endif %}
 
-{# Add related pages #}
+{# Add related pages (deduped - won't repeat pages from children) #}
 {% set related_pages = [] %}
 {% if related is sameas true %}
   {# Auto-get from page.related_posts #}
@@ -192,15 +192,17 @@ Example:
   {% set related_pages = related %}
 {% endif %}
 
+{# Build a set of URLs already in children for O(1) lookup #}
+{% set children_urls = [] %}
+{% for item in all_items %}
+  {% set _ = children_urls.append(item.url) %}
+{% endfor %}
+
 {% for rel_page in related_pages %}
 {# Skip current page and any pages already in children #}
-{% set already_included = false %}
-{% for item in all_items %}
-  {% if item.url == rel_page.url %}
-    {% set already_included = true %}
-  {% endif %}
-{% endfor %}
-{% if not already_included and not ((page is defined and page) and (rel_page.relative_url == page.relative_url)) %}
+{% set is_current = (page is defined and page) and (rel_page.relative_url == page.relative_url) %}
+{% set is_duplicate = rel_page.url in children_urls %}
+{% if not is_current and not is_duplicate %}
 {% set _ = all_items.append({
   'type': 'related',
   'group': 'related',

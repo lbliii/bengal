@@ -13,15 +13,15 @@ Context variables:
 - subsections: Child sections (_subsections)
 
 Frontmatter options (discover: structure):
-  discover:
-    children:
-      title: "Custom Title"    # or false to hide
-      variant: "cards"         # compact | cards | minimal
-    children: false            # disable children entirely
-    related:
-      title: "Custom Title"
-      limit: 5
-    related: false             # disable related entirely
+discover:
+children:
+title: "Custom Title" # or false to hide
+variant: "cards" # compact | cards | minimal
+children: false # disable children entirely
+related:
+title: "Custom Title"
+limit: 5
+related: false # disable related entirely
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
@@ -52,33 +52,36 @@ Frontmatter options (discover: structure):
     {% set discover = page.metadata.get('discover', {}) if (page is defined and page) else {} %}
     {% set children_config = discover.get('children', {}) if discover else {} %}
     {% set related_config = discover.get('related', {}) if discover else {} %}
-    
+
     {% set children_disabled = children_config is sameas false %}
     {% set related_disabled = related_config is sameas false %}
-    
+
     {% set show_children = not children_disabled %}
     {% set show_related = not related_disabled %}
-    
-    {% set children_title = children_config.get('title', 'In This Section') if children_config is mapping else 'In This Section' %}
+
+    {% set children_title = children_config.get('title', 'In This Section') if children_config is mapping else 'In This
+    Section' %}
     {% set children_variant = children_config.get('variant', 'compact') if children_config is mapping else 'compact' %}
-    {% set related_title = related_config.get('title', 'Related Pages') if related_config is mapping else 'Related Pages' %}
-    {% set related_limit = related_config.get('limit', 5) if related_config is mapping else (related_config if related_config is number else 5) %}
-    
+    {% set related_title = related_config.get('title', 'Related Pages') if related_config is mapping else 'Related
+    Pages' %}
+    {% set related_limit = related_config.get('limit', 5) if related_config is mapping else (related_config if
+    related_config is number else 5) %}
+
     {% set children_title = none if children_title is sameas false else children_title %}
     {% set related_title = none if related_title is sameas false else related_title %}
-    
+
     {% set has_children = posts or subsections %}
     {% set has_related = show_related and (page is defined and page) and page.related_posts %}
-    
+
     {% if show_children and (has_children or has_related) %}
     {{ content_tiles(
-      title=children_title if has_children else none,
-      children=posts if show_children else none,
-      subsections=subsections if show_children else none,
-      related=page.related_posts[:related_limit] if has_related else none,
-      related_title=related_title,
-      variant=children_variant,
-      group_by='type' if has_children and has_related else none
+    title=children_title if has_children else none,
+    children=posts if show_children else none,
+    subsections=subsections if show_children else none,
+    related=page.related_posts[:related_limit] if has_related else none,
+    related_title=related_title,
+    variant=children_variant,
+    group_by='type' if has_children and has_related else none
     ) }}
     {% endif %}
 

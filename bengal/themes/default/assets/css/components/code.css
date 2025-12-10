@@ -680,6 +680,7 @@ pre code {
   width: 100%;
   padding: var(--space-6);
   padding-left: var(--space-4);
+  overflow-x: auto;
 }
 
 /* Disable table row hover effect (from typography.css) */
@@ -719,10 +720,15 @@ div.highlight {
 }
 
 /* Clip negative margins on .hll to prevent page overflow.
-   Applied to the code cell, not div.highlight, so copy button isn't clipped. */
-div.highlight > pre,
+   Applied to the code cell, not div.highlight, so copy button isn't clipped.
+   Use overflow-y: hidden to allow horizontal scrolling of long lines. */
+div.highlight > pre {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .highlight td.code {
-  overflow: hidden;
+  overflow-y: hidden;
 }
 
 /* Highlighted line from Pygments hl_lines

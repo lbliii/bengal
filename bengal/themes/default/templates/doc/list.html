@@ -11,12 +11,21 @@ Three-column layout optimized for documentation section index pages:
 Usage: Set `template: doc/list.html` in frontmatter
 Or set `type: doc` to auto-select this template
 
-Features:
-- Automatically displays child pages and subsections as tiles
-- Disable with `show_children: false` in frontmatter
-- Add header with `children_title: "In This Section"` (or false to hide)
-- Show related pages with `show_related: true` (or number for limit)
-- Change variant with `children_variant: "cards"` (compact | cards | minimal)
+Smart Defaults:
+- Children shown with "In This Section" header
+- Related pages shown with "Related Pages" header
+- Both enabled by default - use discover: frontmatter to customize
+
+Frontmatter (discover: structure):
+  discover:
+    children:
+      title: "Custom Title"    # or false to hide
+      variant: "cards"         # compact | cards | minimal
+    children: false            # disable children entirely
+    related:
+      title: "Custom Title"
+      limit: 5
+    related: false             # disable related entirely
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
