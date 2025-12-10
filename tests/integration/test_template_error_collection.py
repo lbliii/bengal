@@ -189,13 +189,12 @@ Content
 
         # Build site with strict mode
         site = Site.from_config(temp_site, None)
-        site.config["strict_mode"] = True
 
         orchestrator = BuildOrchestrator(site)
 
         # Should raise exception in strict mode
         with pytest.raises((RuntimeError, ValueError)):
-            orchestrator.build(parallel=False, verbose=False)
+            orchestrator.build(parallel=False, verbose=False, strict=True)
 
     def test_error_contains_rich_information(self, temp_site):
         """Test that collected errors contain rich debugging information."""
@@ -266,6 +265,7 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
+validate_templates = true
 """)
 
             yield temp_dir
