@@ -45,12 +45,12 @@ The **Type** defines the fundamental nature of the content. It controls:
 :::{tab-item} Documentation Page
 :icon: book-open
 
-```yaml {5}
+```yaml
 ---
 title: Installation Guide
 description: How to install and configure Bengal
 weight: 10
-type: doc
+type: doc                       # <-- TYPE: determines templates + sorting
 tags:
   - getting-started
   - installation
@@ -61,7 +61,7 @@ tags:
 Follow these steps to install Bengal...
 ```
 
-**Line 5**: `type: doc` tells Bengal this is documentation content.
+The `type: doc` line tells Bengal this is documentation content.
 
 **What happens**:
 - Page sorted by `weight` (10) within its section
@@ -72,12 +72,12 @@ Follow these steps to install Bengal...
 :::{tab-item} Blog Post
 :icon: newspaper
 
-```yaml {5}
+```yaml
 ---
 title: Announcing Bengal 1.0
 description: We're excited to announce the stable release
 date: 2025-06-15
-type: blog
+type: blog                      # <-- TYPE: blog posts sort by date
 tags:
   - announcement
   - release
@@ -90,7 +90,7 @@ author: Bengal Team
 We're thrilled to share that Bengal 1.0 is now available...
 ```
 
-**Line 5**: `type: blog` tells Bengal this is a blog post.
+The `type: blog` line tells Bengal this is a blog post.
 
 **What happens**:
 - Page sorted by `date` (newest first)
@@ -102,11 +102,11 @@ We're thrilled to share that Bengal 1.0 is now available...
 :::{tab-item} Static Page
 :icon: file-text
 
-```yaml {4}
+```yaml
 ---
 title: About Us
 description: Learn about our team and mission
-type: page
+type: page                      # <-- TYPE: static pages (no date sorting)
 ---
 
 # About Us
@@ -114,7 +114,7 @@ type: page
 We're a team of developers passionate about documentation...
 ```
 
-**Line 4**: `type: page` tells Bengal this is a static page.
+The `type: page` line tells Bengal this is a static page.
 
 **What happens**:
 - Page sorted by weight if specified
@@ -125,12 +125,12 @@ We're a team of developers passionate about documentation...
 :::{tab-item} Changelog Entry
 :icon: git-commit
 
-```yaml {4-5}
+```yaml
 ---
 title: Bengal 0.2.0
 description: Major performance improvements and new features
-type: changelog
-date: 2025-06-01
+type: changelog                 # <-- TYPE: release notes
+date: 2025-06-01                # <-- sorted by date
 weight: 5
 ---
 
@@ -142,7 +142,7 @@ weight: 5
 - New shortcode system...
 ```
 
-**Lines 4-5**: `type: changelog` with a `date` for this release.
+The `type: changelog` with `date` tells Bengal this is a release note.
 
 **What happens**:
 - Page sorted by date within the releases section
@@ -180,13 +180,13 @@ The **Variant** defines the visual presentation. It controls:
 :::{tab-item} Editorial Article
 :icon: feather
 
-```yaml {6}
+```yaml
 ---
 title: "The Future of Static Sites"
 description: "Why static is making a comeback"
 date: 2025-06-01
 type: blog
-variant: editorial
+variant: editorial             # <-- VARIANT: enhanced typography
 author: "Jane Smith"
 ---
 
@@ -196,7 +196,7 @@ In an era of increasingly complex web applications, there's a
 quiet revolution happening...
 ```
 
-**Line 6**: `variant: editorial` applies enhanced typography.
+The `variant: editorial` applies enhanced typography for long-form reading.
 
 **Visual effect**:
 - Larger body text with better line height
@@ -208,14 +208,14 @@ quiet revolution happening...
 :::{tab-item} Magazine Layout
 :icon: image
 
-```yaml {6-7}
+```yaml
 ---
 title: "Building Beautiful Documentation"
 description: "A visual guide to documentation design"
 date: 2025-06-01
 type: blog
-variant: magazine
-banner_image: "/images/hero-docs.jpg"
+variant: magazine             # <-- VARIANT: visual-heavy layout
+banner_image: "/images/hero-docs.jpg"  # <-- hero image for magazine style
 featured: true
 ---
 
@@ -226,7 +226,7 @@ featured: true
 Documentation doesn't have to be boring...
 ```
 
-**Lines 6-7**: `variant: magazine` with a `banner_image`.
+The `variant: magazine` with `banner_image` creates a visual-first layout.
 
 **Visual effect**:
 - Large hero image at top
@@ -238,13 +238,13 @@ Documentation doesn't have to be boring...
 :::{tab-item} Section Overview
 :icon: layout
 
-```yaml {6}
+```yaml
 ---
 title: Documentation
 description: Complete Bengal documentation
 weight: 100
 type: doc
-variant: overview
+variant: overview             # <-- VARIANT: landing page style
 icon: book-open
 ---
 
@@ -256,7 +256,7 @@ Welcome to Bengal documentation! Choose a section to get started.
 :::
 ```
 
-**Line 6**: `variant: overview` creates a landing page style.
+The `variant: overview` creates a landing page style with card navigation.
 
 **Visual effect**:
 - Section-style header
@@ -268,12 +268,12 @@ Welcome to Bengal documentation! Choose a section to get started.
 :::{tab-item} Wide Code Docs
 :icon: code
 
-```yaml {5}
+```yaml
 ---
 title: API Reference
 description: Complete API documentation
 type: doc
-variant: wide
+variant: wide                 # <-- VARIANT: full-width for code
 ---
 
 # API Reference
@@ -292,7 +292,7 @@ class Page:
 \`\`\`
 ```
 
-**Line 5**: `variant: wide` provides full-width content area.
+The `variant: wide` provides full-width content area for code-heavy docs.
 
 **Visual effect**:
 - No sidebar or narrow margins
@@ -331,28 +331,28 @@ custom_field: "Any value you need"
 :::{tab-item} Blog Post Props
 :icon: newspaper
 
-```yaml {6-15}
+```yaml
 ---
 title: "10 Tips for Better Documentation"
 description: "Practical advice from years of writing docs"
 date: 2025-06-01
 type: blog
-# Props start here
-author: "Jane Doe"
-author_image: "/images/authors/jane.jpg"
+# ↓↓↓ PROPS: everything below is custom data ↓↓↓
+author: "Jane Doe"                              # <-- prop
+author_image: "/images/authors/jane.jpg"        # <-- prop
 author_bio: "Technical writer with 10 years of experience"
 category: "Writing"
 tags:
   - documentation
   - writing
   - best-practices
-reading_time: "8 min"
-featured: true
+reading_time: "8 min"                           # <-- prop
+featured: true                                  # <-- prop
 banner_image: "/images/posts/docs-tips.jpg"
 ---
 ```
 
-**Lines 6-15**: These props are all available in templates.
+All fields after `type` are **props** — custom data available in templates.
 
 **In templates**:
 ```jinja
@@ -367,23 +367,23 @@ banner_image: "/images/posts/docs-tips.jpg"
 :::{tab-item} Documentation Props
 :icon: book-open
 
-```yaml {6-12}
+```yaml
 ---
 title: "Configuration Reference"
 description: "All configuration options for Bengal"
 weight: 30
 type: doc
-# Props start here
-icon: settings
-badge: "Updated"
-badge_color: "green"
+# ↓↓↓ PROPS: customize appearance ↓↓↓
+icon: settings                  # <-- prop: sidebar icon
+badge: "Updated"                # <-- prop: badge text
+badge_color: "green"            # <-- prop: badge styling
 toc_depth: 3
 show_edit_link: true
 github_path: "docs/reference/configuration.md"
 ---
 ```
 
-**Lines 6-12**: Props customize how the doc page appears.
+Props customize how the doc page appears — icons, badges, navigation.
 
 **In templates**:
 ```jinja
@@ -401,30 +401,30 @@ github_path: "docs/reference/configuration.md"
 :::{tab-item} Project/Portfolio Props
 :icon: briefcase
 
-```yaml {6-17}
+```yaml
 ---
 title: "E-Commerce Platform"
 description: "Full-stack e-commerce solution"
 date: 2025-03-15
 type: page
-# Props start here
-project_url: "https://example.com"
+# ↓↓↓ PROPS: rich project metadata ↓↓↓
+project_url: "https://example.com"    # <-- prop: live demo link
 github_url: "https://github.com/user/project"
-technologies:
+technologies:                         # <-- prop: tech stack array
   - React
   - Node.js
   - PostgreSQL
   - Docker
-status: "Production"
+status: "Production"                  # <-- prop
 client: "Acme Corp"
 thumbnail: "/images/projects/ecommerce-thumb.jpg"
-gallery:
+gallery:                              # <-- prop: image array
   - "/images/projects/ecommerce-1.jpg"
   - "/images/projects/ecommerce-2.jpg"
 ---
 ```
 
-**Lines 6-17**: Rich props for portfolio/project pages.
+Rich props for portfolio pages — URLs, arrays, any structure you need.
 
 **In templates**:
 ```jinja
@@ -440,18 +440,18 @@ gallery:
 :::{tab-item} Event/Talk Props
 :icon: calendar
 
-```yaml {6-15}
+```yaml
 ---
 title: "Building Fast Static Sites"
 description: "Conference talk about Bengal SSG"
 date: 2025-09-15
 type: page
-# Props start here
-event_name: "PyCon 2025"
+# ↓↓↓ PROPS: event metadata ↓↓↓
+event_name: "PyCon 2025"              # <-- prop
 event_url: "https://pycon.org/2025"
 location: "San Francisco, CA"
 slides_url: "/slides/building-fast-static-sites.pdf"
-video_url: "https://youtube.com/watch?v=..."
+video_url: "https://youtube.com/watch?v=..."  # <-- prop
 duration: "45 minutes"
 audience_level: "Intermediate"
 topics:
@@ -461,7 +461,7 @@ topics:
 ---
 ```
 
-**Lines 6-15**: Props for event/talk pages.
+Props for event/talk pages — links to slides, videos, event details.
 
 **In templates**:
 ```jinja
@@ -712,7 +712,7 @@ structure:
   - path: projects/project-1.md
     type: page
     variant: project
-    props:
+        props:
       title: E-Commerce Platform
       featured: true
       technologies:

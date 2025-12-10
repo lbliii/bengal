@@ -130,10 +130,10 @@ bengal perf --verbose
 **Utility Commands**:
 ```bash
 # Clean output directory
-bengal site clean
+bengal clean
 
 # Clean cache and output
-bengal site cleanup
+bengal clean --cache
 
 # Create new site
 bengal new site mysite
