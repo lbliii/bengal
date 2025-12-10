@@ -41,6 +41,7 @@ from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
+from bengal.cli.commands.graph import graph_cli
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
 
@@ -117,6 +118,9 @@ main.add_command(sources_group)
 # Utilities
 main.add_command(utils_cli)
 
+# Graph analysis (promoted from utils for discoverability)
+main.add_command(graph_cli)
+
 # =============================================================================
 # TOP-LEVEL ALIASES (most common operations - no nesting required!)
 # =============================================================================
@@ -165,6 +169,14 @@ main.add_command(serve_cmd, name="dev")
 
 # lint → validate (common name for code checking)
 main.add_command(validate_cli, name="lint")
+
+# g → graph (short alias for graph commands)
+main.add_command(graph_cli, name="g")
+
+# analyze → graph report (unified site analysis)
+from bengal.cli.commands.graph import analyze as graph_analyze_cmd
+
+main.add_command(graph_analyze_cmd, name="analyze")
 
 
 if __name__ == "__main__":

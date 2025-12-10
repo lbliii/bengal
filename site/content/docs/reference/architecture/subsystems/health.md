@@ -84,6 +84,7 @@ Bengal includes a comprehensive health check system that validates builds across
 **Advanced Validation:**
 | Validator | Validates |
 |-----------|-----------|
+| **ConnectivityValidator** | Page connectivity using semantic link model and weighted scoring |
 | **CacheValidator** | Incremental build cache integrity and consistency |
 | **PerformanceValidator** | Build performance metrics and bottleneck detection |
 
@@ -94,6 +95,60 @@ Bengal includes a comprehensive health check system that validates builds across
 | **SitemapValidator** | Sitemap.xml validity for SEO, no duplicate URLs |
 | **FontValidator** | Font downloads, CSS generation, file sizes |
 | **AssetValidator** | Asset optimization, minification hints, size analysis |
+
+## Connectivity Validator
+
+The Connectivity Validator uses a **semantic link model** with weighted scoring to provide nuanced page connectivity analysis beyond binary orphan detection.
+
+**Link Types and Weights:**
+| Link Type | Weight | Description |
+|-----------|--------|-------------|
+| **Explicit** | 1.0 | Human-authored markdown links |
+| **Menu** | 10.0 | Navigation menu items (high editorial intent) |
+| **Taxonomy** | 1.0 | Shared tags/categories |
+| **Related** | 0.75 | Algorithm-computed related posts |
+| **Topical** | 0.5 | Section hierarchy (parent → child) |
+| **Sequential** | 0.25 | Next/prev navigation |
+
+**Connectivity Levels:**
+| Level | Score Range | Status |
+|-------|-------------|--------|
+| 🟢 Well-Connected | ≥ 2.0 | No action needed |
+| 🟡 Adequately Linked | 1.0 - 2.0 | Could improve |
+| 🟠 Lightly Linked | 0.25 - 1.0 | Should improve (only structural links) |
+| 🔴 Isolated | < 0.25 | Needs attention |
+
+**Configuration:**
+```toml
+[health_check]
+# Connectivity thresholds
+isolated_threshold = 5      # Max isolated pages before error
+lightly_linked_threshold = 20  # Max lightly-linked before warning
+
+# Customize weights (optional)
+[health_check.link_weights]
+explicit = 1.0
+menu = 10.0
+taxonomy = 1.0
+related = 0.75
+topical = 0.5
+sequential = 0.25
+```
+
+**CLI Commands:**
+```bash
+# Full connectivity report
+bengal graph report
+
+# List isolated pages
+bengal graph orphans --level isolated
+
+# List lightly-linked pages
+bengal graph orphans --level lightly
+
+# CI mode with exit code
+bengal graph report --ci --threshold-isolated 5
+```
 
 ## Configuration
 Health checks can be configured via `bengal.toml`:

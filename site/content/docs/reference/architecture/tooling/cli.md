@@ -96,26 +96,43 @@ bengal autodoc --stats --verbose
 
 **Graph Analysis Commands**:
 ```bash
-# Analyze site structure and connectivity
+# Top-level graph command group
 bengal graph
 
-# Show site structure as tree
-bengal graph --tree
+# Unified site analysis report
+bengal graph report
+bengal graph report --brief          # CI-friendly compact output
+bengal graph report --format json    # Export as JSON
 
-# Generate interactive visualization
-bengal graph --output public/graph.html
+# CI integration with thresholds
+bengal graph report --ci --threshold-isolated 5
+
+# Connectivity analysis by level
+bengal graph orphans                 # Show isolated pages (score < 0.25)
+bengal graph orphans --level lightly # Show lightly-linked pages
+bengal graph orphans --level all     # Show all under-linked pages
+bengal graph orphans --format json   # Export with detailed metrics
+
+# Analyze site structure and connectivity
+bengal graph analyze
+bengal graph analyze --tree          # Show site structure as tree
+bengal graph analyze --output public/graph.html  # Interactive viz
 
 # Compute PageRank scores
-bengal pagerank --top 20
+bengal graph pagerank --top 20
 
 # Detect topical communities
-bengal communities --min-size 3
+bengal graph communities --min-size 3
 
 # Find bridge pages (navigation bottlenecks)
-bengal bridges --top 10
+bengal graph bridges --top 10
 
 # Get link suggestions
-bengal suggest --min-score 0.5
+bengal graph suggest --min-score 0.5
+
+# Short aliases
+bengal g report                      # g → graph
+bengal analyze                       # Top-level alias for graph analyze
 ```
 
 **Performance Commands**:

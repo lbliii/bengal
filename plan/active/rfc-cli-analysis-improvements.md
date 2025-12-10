@@ -9,6 +9,23 @@ Confidence: 91%
 Reviewed: 2025-12-10
 ```
 
+---
+
+## Executive Summary
+
+**Problem**: Graph analysis commands are hidden under `bengal utils graph`, require 4 separate commands for full analysis, and report false orphans for structurally-linked pages (e.g., release notes in sections).
+
+**Solution**: 
+1. **CLI**: Promote `graph` to top-level, add unified `report` command, add `bengal analyze` alias
+2. **Semantic Links**: Track section hierarchy and next/prev relationships with configurable weights
+3. **Connectivity Levels**: Replace binary orphan/not-orphan with continuous scoring (Isolated → Lightly → Adequately → Well-Connected)
+
+**Key Insight**: "Orphan" is a misleading binary concept. Pages in sections aren't orphans—they're structurally linked. Use weighted scoring to distinguish truly isolated pages from those that simply lack explicit cross-references.
+
+**Implementation**: 6 phases, ~9-12 days total. Builds on existing `ConnectivityValidator`.
+
+---
+
 ## Problem Statement
 
 ### Current State
@@ -102,7 +119,8 @@ Bengal's graph analysis commands provide valuable site structure insights but su
   - `commands/validate.py`: Add connectivity check option
   - `commands/graph/__main__.py`: Add `orphans` and unified `report` commands
 - **Health** (`bengal/health/`): Minor changes
-  - Add connectivity validator that checks for orphans
+  - **Enhance existing** `ConnectivityValidator` (already exists at `bengal/health/validators/connectivity.py`)
+  - Add semantic link awareness and connectivity levels to existing validator
 - **Analysis** (`bengal/analysis/`): **Semantic link model** (NEW)
   - `knowledge_graph.py`: Add `_analyze_section_hierarchy()` and `_analyze_navigation_links()`
   - `knowledge_graph.py`: Add `LinkType` enum and weighted scoring
@@ -282,51 +300,67 @@ def orphans(format, limit):
     """
 ```
 
-### 4. Integrate Connectivity into `check`
+### 4. Enhance Existing ConnectivityValidator
 
-Add new validator at `bengal/health/validators/connectivity.py`:
+The `ConnectivityValidator` already exists at `bengal/health/validators/connectivity.py:27-331`. 
+It currently uses binary orphan detection. **Enhance it** to support semantic link awareness:
 
 ```python
-class ConnectivityValidator(Validator):
+# bengal/health/validators/connectivity.py (EXISTING FILE - MODIFY)
+
+class ConnectivityValidator(BaseValidator):
     """Validates site connectivity and link structure."""
     
-    name = "connectivity"
+    name = "Connectivity"  # Already exists
     
-    def validate(self, site: Site) -> list[ValidationResult]:
-        graph = KnowledgeGraph(site)
-        graph.build()
-        analyzer = GraphAnalyzer(graph)
+    def validate(self, site: Site, build_context: BuildContext | Any | None = None) -> list[CheckResult]:
+        # ... existing code ...
         
-        results = []
-        
-        # Check for orphans
-        orphans = analyzer.get_orphans()
-        if orphans:
-            results.append(ValidationResult(
-                level=ValidationLevel.WARNING,
-                message=f"{len(orphans)} orphan pages (no incoming links)",
-                details=[str(p.source_path) for p in orphans[:10]],
-                suggestion="Add links to these pages from navigation or related content"
-            ))
-        
-        # Check link density
-        avg_links = graph.total_links / len(site.pages)
-        if avg_links < 2.0:
-            results.append(ValidationResult(
-                level=ValidationLevel.WARNING,
-                message=f"Low link density ({avg_links:.1f} links/page)",
-                suggestion="Add more internal links for better SEO and navigation"
-            ))
-        
-        return results
+        # ENHANCEMENT: Use connectivity levels instead of binary orphan check
+        try:
+            # Get pages by connectivity level (NEW)
+            connectivity_report = graph.get_connectivity_report()
+            
+            isolated = connectivity_report.get("isolated", [])
+            lightly_linked = connectivity_report.get("lightly_linked", [])
+            
+            # Check 1: Truly isolated pages (score < 0.25)
+            if isolated:
+                orphan_threshold = site.config.get("health_check", {}).get("orphan_threshold", 5)
+                if len(isolated) > orphan_threshold:
+                    results.append(
+                        CheckResult.error(
+                            f"{len(isolated)} isolated pages (connectivity score < 0.25)",
+                            recommendation="Add internal links, menu items, or taxonomy tags",
+                            details=[f"  • {p.source_path.name}" for p in isolated[:10]],
+                        )
+                    )
+                else:
+                    results.append(
+                        CheckResult.warning(
+                            f"{len(isolated)} isolated page(s) found",
+                            recommendation="Consider adding navigation or cross-references",
+                            details=[f"  • {p.source_path.name}" for p in isolated[:5]],
+                        )
+                    )
+            
+            # Check 2: Lightly linked pages (NEW - 0.25 <= score < 1.0)
+            if lightly_linked:
+                lightly_threshold = site.config.get("health_check", {}).get("lightly_linked_threshold", 20)
+                if len(lightly_linked) > lightly_threshold:
+                    results.append(
+                        CheckResult.info(
+                            f"{len(lightly_linked)} pages rely only on structural links",
+                            recommendation="Consider adding explicit cross-references",
+                        )
+                    )
+        except Exception as e:
+            # Fallback to existing binary detection
+            orphans = list(graph.get_orphans() or [])
+            # ... existing fallback logic ...
 ```
 
-Enable in `validate.py`:
-
-```python
-@click.option("--connectivity/--no-connectivity", default=False,
-              help="Include connectivity analysis (orphans, link density)")
-```
+The validator is already enabled and runs with `bengal check`. No CLI changes needed for basic functionality.
 
 ### 5. API Changes Summary
 
@@ -732,9 +766,9 @@ min_avg_connectivity = 1.5  # Warn if site average below this
 14. Add exit code logic for threshold violations
 15. Support category-specific thresholds
 
-**Phase 5: Health Integration (1-2 days)**
-16. Create `ConnectivityValidator`
-17. Add `--connectivity` flag to `bengal check`
+**Phase 5: Health Integration (1 day)**
+16. **Enhance existing** `ConnectivityValidator` (`bengal/health/validators/connectivity.py`) with connectivity levels
+17. Add `get_connectivity_report()` method to KnowledgeGraph
 18. Add configuration schema for link weights and thresholds
 
 **Phase 6: Documentation (1 day)**
@@ -742,6 +776,25 @@ min_avg_connectivity = 1.5  # Warn if site average below this
 20. Add "Site Analysis" how-to guide
 21. Document semantic link model and weights
 22. Update `bengal --help` quick start
+
+### Pre-Implementation Validation
+
+Before finalizing weights and thresholds, run empirical validation on the Bengal documentation site:
+
+```bash
+# Phase 2 validation: After implementing semantic links
+cd site/
+bengal graph analyze --verbose  # Check current orphan count
+
+# Expected outcome: False positives (releases/*.md, etc.) should no longer appear as orphans
+# Tune weights if needed based on results
+```
+
+**Validation Criteria:**
+- [ ] `releases/0.1.x.md` pages should score ≥ 1.5 (topical + sequential)
+- [ ] Truly isolated pages (drafts, misc) should score < 0.25
+- [ ] Menu items should dominate connectivity (score boost visible)
+- [ ] No more than 5-10 truly isolated pages in final analysis
 
 ### Rollout Strategy
 
@@ -754,15 +807,25 @@ min_avg_connectivity = 1.5  # Warn if site average below this
 
 ---
 
-## Open Questions
+## Open Questions (Resolved)
 
-- [ ] **Q1**: Should `bengal analyze` be a top-level alias for `bengal graph report`? (vs. keeping it under `graph`)
-- [ ] **Q2**: Default CI thresholds - what's a reasonable `max_isolated` default? (proposed: 5)
-- [ ] **Q3**: Should `--connectivity` be enabled by default in `bengal check` or opt-in?
-- [ ] **Q4**: Are the proposed connectivity thresholds appropriate? (well_connected=2.0, adequately=1.0, lightly=0.25)
-- [ ] **Q5**: Are the proposed link weights appropriate? (topical=0.5, sequential=0.25)
-- [ ] **Q6**: Should we deprecate the term "orphan" entirely in favor of "isolated"?
-- [ ] **Q7**: Should the `orphans` command be renamed to `isolated` or `connectivity`?
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| **Q1**: `bengal analyze` top-level alias? | ✅ **Yes** | Matches user mental model ("I want to analyze my site"); alias for `bengal graph report` |
+| **Q2**: Default `max_isolated`? | ✅ **5** | Proposed value is reasonable; 0 too strict, 10 too lenient |
+| **Q3**: `--connectivity` default? | ✅ **Opt-in initially** | Avoid surprise slowdown; promote after user feedback. Note: ConnectivityValidator already runs in dev profile! |
+| **Q4**: Connectivity thresholds? | ⏳ **Test empirically** | Run against Bengal site before finalizing. Proposed defaults are reasonable starting points. |
+| **Q5**: Link weights? | ⏳ **Test empirically** | Run against Bengal site before finalizing. Proposed weights have clear rationale. |
+| **Q6**: Deprecate "orphan" term? | ✅ **No** | Keep for familiarity; "isolated" is stricter (score < 0.25) |
+| **Q7**: Rename `orphans` command? | ✅ **Keep both** | `orphans` as alias for `isolated --level isolated`; preserve backward compatibility |
+
+### Decisions Summary
+
+1. **Add `bengal analyze`** as top-level alias for `bengal graph report`
+2. **Use proposed defaults** for thresholds (can be tuned via config)
+3. **ConnectivityValidator already exists** - enhance it, don't create new
+4. **Preserve "orphan" terminology** in CLI for familiarity
+5. **Weights/thresholds are configurable** - start with proposed defaults, tune per-site
 
 ---
 
@@ -783,8 +846,11 @@ min_avg_connectivity = 1.5  # Warn if site average below this
 - `bengal/analysis/knowledge_graph.py:300-328`: `_analyze_taxonomies()` gives +1 for shared tags
 
 **Missing Link Sources:**
-- `bengal/core/page/__init__.py:608-629`: `next_in_section` and `prev_in_section` properties exist but aren't used in graph analysis
+- `bengal/core/page/navigation.py:84-135`: `next_in_section` and `prev_in_section` properties exist but aren't used in graph analysis
 - Section hierarchy (parent `_index.md` → children) not analyzed at all
+
+**Existing Infrastructure:**
+- `bengal/health/validators/connectivity.py:27-331`: ConnectivityValidator exists with binary orphan detection (enhance, don't create)
 
 ### User Experience Evidence
 
@@ -805,11 +871,23 @@ min_avg_connectivity = 1.5  # Warn if site average below this
 - [x] Risks identified with mitigations
 - [x] Performance and compatibility addressed
 - [x] Implementation phases defined (6 phases)
-- [x] Open questions flagged (7 questions)
+- [x] Open questions resolved (7 questions → decisions documented)
 - [x] Semantic link model detailed with weights and rationale
 - [x] Data model specified (LinkType, LinkMetrics, ConnectivityLevel)
 - [x] Threshold-based connectivity model (continuous, not binary)
 - [x] Configuration schema defined (weights + thresholds)
 - [x] Example scoring table with real scenarios
-- [x] Confidence ≥ 85% (88%)
+- [x] **Evidence verified against codebase** (all file:line references validated)
+- [x] **Existing infrastructure identified** (ConnectivityValidator exists)
+- [x] **Pre-implementation validation plan** defined
+- [x] Confidence ≥ 85% (91% after review)
+
+---
+
+## Next Steps
+
+1. **Run `::plan`** to break this RFC into atomic implementation tasks
+2. **Start with Phase 1** (CLI commands) for immediate usability wins
+3. **Phase 2** (semantic links) will resolve false orphan reports
+4. **Validate empirically** on Bengal site before finalizing weights/thresholds
 
