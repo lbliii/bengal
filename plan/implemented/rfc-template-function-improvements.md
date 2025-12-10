@@ -1,6 +1,6 @@
 # RFC: Template Function Convenience Wrappers
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-10  
 **Revised**: 2025-12-10 (v2)  
 **Author**: AI Assistant  

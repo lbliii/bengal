@@ -18,33 +18,55 @@ Supports two modes:
 2. Page-driven: Each release as a separate markdown file
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs %}
-
 {% block content %}
 {# Load changelog data from site.data (preferred) or use pages (fallback) #}
 {% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
 
-<div class="changelog-container">
-    {# For section pages (like changelog list), ensure 'page' refers to the section #}
-    {# The action-bar partial expects 'page' variable. In list templates, 'section' is the main object #}
-    {% if not page is defined and section is defined %}
-    {% set page = section %}
+{# For section pages (like changelog list), ensure 'page' refers to the section #}
+{% if not page is defined and section is defined %}
+{% set page = section %}
+{% endif %}
+
+{# Hero Section - matches home page style #}
+{% set hero_classes = ['hero', 'hero--large'] %}
+{% if page and page.metadata.get('blob_background', false) %}
+{% set _ = hero_classes.append('hero--blob-background') %}
+{% endif %}
+<header class="{{ hero_classes | join(' ') }}">
+    {% if page and page.metadata.get('blob_background', false) %}
+    {# Organic blob background animation #}
+    <div class="hero__blobs" aria-hidden="true">
+        <div class="hero__blob hero__blob--1"></div>
+        <div class="hero__blob hero__blob--2"></div>
+        <div class="hero__blob hero__blob--3"></div>
+        <div class="hero__blob hero__blob--4"></div>
+    </div>
     {% endif %}
+    <div class="hero__container">
+        <div class="hero__content">
+            <h1 class="hero__title">
+                <span class="fluid-text">{{ section.title if section else page.title if page else 'Changelog' }}</span>
+            </h1>
+            {% set hero_description = section.metadata.get('description', '') if section else (page.metadata.get('description', '') if page else '') %}
+            {% if hero_description %}
+            <p class="hero__subtitle">{{ hero_description }}</p>
+            {% endif %}
 
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
+            {% if page and page.metadata.get('cta_buttons') %}
+            <div class="hero__actions">
+                {% for button in page.metadata.get('cta_buttons') %}
+                <a href="{{ button.url | absolute_url }}"
+                    class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
+                    {{ button.text }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</header>
 
-    <header class="page-header page-header--centered">
-        <h1>📋 {{ section.title if section else title | default('Changelog') }}</h1>
-
-        {% if section and section.metadata.get('description', '') %}
-        <p class="changelog-description">{{ section.metadata.get('description', '') }}</p>
-        {% elif page and page.metadata.get('description', '') %}
-        <p class="changelog-description">{{ page.metadata.get('description', '') }}</p>
-        {% elif description is defined %}
-        <p class="changelog-description">{{ description }}</p>
-        {% endif %}
-    </header>
+<div class="changelog-container">
 
     {% if content and content.strip() %}
     <section class="changelog-content prose">

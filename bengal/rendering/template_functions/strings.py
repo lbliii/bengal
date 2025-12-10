@@ -36,6 +36,7 @@ def register(env: Environment, site: Site) -> None:
             "replace_regex": replace_regex,
             "pluralize": pluralize,
             "reading_time": reading_time,
+            "word_count": word_count,
             "excerpt": excerpt,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
@@ -420,6 +421,28 @@ def reading_time(text: str, wpm: int = 200) -> int:
 
     # Always return at least 1 minute
     return max(1, round(minutes))
+
+
+def word_count(text: str) -> int:
+    """
+    Count words in text.
+
+    Strips HTML tags before counting. Uses same logic as reading_time.
+
+    Args:
+        text: Text to count (can contain HTML)
+
+    Returns:
+        Number of words
+
+    Example:
+        {{ page.content | word_count }} words
+        {{ page.content | word_count }} words ({{ page.content | reading_time }} min read)
+    """
+    if not text:
+        return 0
+    clean_text = strip_html(text)
+    return len(clean_text.split())
 
 
 def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) -> str:

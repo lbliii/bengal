@@ -151,8 +151,87 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         # On parse failure, leave parsed_ast as None so template can fall back to content
 
 
+def _build_lookup_maps(site: Site) -> None:
+    """
+    Build page lookup maps on the site object if not already built.
+
+    Creates two maps for O(1) page lookups:
+    - 'full': Full source path (str) -> Page
+    - 'relative': Content-relative path (str) -> Page
+
+    Args:
+        site: Site instance to build maps on
+    """
+    if site._page_lookup_maps is not None:
+        return
+
+    by_full_path: dict[str, Page] = {}
+    by_content_relative: dict[str, Page] = {}
+
+    content_root = site.root_path / "content"
+
+    for p in site.pages:
+        # Full path
+        by_full_path[str(p.source_path)] = p
+
+        # Content relative
+        try:
+            rel = p.source_path.relative_to(content_root)
+            # Normalize path separators to forward slashes for consistent lookup
+            rel_str = str(rel).replace("\\", "/")
+            by_content_relative[rel_str] = p
+        except ValueError:
+            # Path not relative to content root (maybe outside?), skip
+            pass
+
+    site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}  # type: ignore[attr-defined]
+
+
+def page_exists(path: str, site: Site) -> bool:
+    """
+    Check if a page exists without loading it.
+
+    Uses cached lookup maps for O(1) existence check.
+    More efficient than get_page() when you only need existence.
+
+    Args:
+        path: Page path (e.g., 'guides/setup.md' or 'guides/setup')
+        site: Site instance
+
+    Returns:
+        True if page exists, False otherwise
+
+    Example:
+        {% if page_exists('guides/advanced') %}
+          <a href="/guides/advanced/">Advanced Guide</a>
+        {% endif %}
+    """
+    if not path:
+        return False
+
+    _build_lookup_maps(site)
+
+    maps = site._page_lookup_maps  # type: ignore[attr-defined]
+    normalized = path.replace("\\", "/")
+
+    if normalized in maps["relative"]:
+        return True
+    if f"{normalized}.md" in maps["relative"]:
+        return True
+    if normalized.startswith("content/"):
+        stripped = normalized[8:]  # len("content/") = 8
+        return stripped in maps["relative"] or f"{stripped}.md" in maps["relative"]
+    return False
+
+
 def register(env: Environment, site: Site) -> None:
-    """Register the get_page function with Jinja2 environment."""
+    """Register the get_page and page_exists functions with Jinja2 environment."""
+
+    def page_exists_wrapper(path: str) -> bool:
+        """Wrapper with site closure."""
+        return page_exists(path, site)
+
+    env.globals["page_exists"] = page_exists_wrapper
 
     def get_page(path: str) -> Page | None:
         """
@@ -188,32 +267,8 @@ def register(env: Environment, site: Site) -> None:
             logger.debug("get_page_path_traversal_rejected", path=path, caller="template")
             return None
 
-        # Lazy-build lookup maps on the site object
-        if site._page_lookup_maps is None:
-            # Build maps for robust lookup
-            # 1. Full source path (str) -> Page
-            # 2. Content-relative path (str) -> Page (e.g. "guides/setup.md")
-
-            by_full_path = {}
-            by_content_relative = {}
-
-            content_root = site.root_path / "content"
-
-            for p in site.pages:
-                # Full path
-                by_full_path[str(p.source_path)] = p
-
-                # Content relative
-                try:
-                    rel = p.source_path.relative_to(content_root)
-                    # Normalize path separators to forward slashes for consistent lookup
-                    rel_str = str(rel).replace("\\", "/")
-                    by_content_relative[rel_str] = p
-                except ValueError:
-                    # Path not relative to content root (maybe outside?), skip
-                    pass
-
-            site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}  # type: ignore[attr-defined]
+        # Build lookup maps if not already built (shared helper)
+        _build_lookup_maps(site)
 
         maps = site._page_lookup_maps  # type: ignore[attr-defined]
 
