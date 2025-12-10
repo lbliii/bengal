@@ -398,6 +398,9 @@ class MenuOrchestrator:
                     builder.add_from_config(items)
                 for page in self.site.pages:
                     page_menu = page.metadata.get("menu", {})
+                    # Skip if menu is False or not a dict (menu: false means hide from menu)
+                    if not isinstance(page_menu, dict):
+                        continue
                     if menu_name in page_menu:
                         builder.add_from_page(page, menu_name, page_menu[menu_name])
                 self.site.menu[menu_name] = builder.build_hierarchy()
@@ -427,6 +430,9 @@ class MenuOrchestrator:
                         if getattr(page, "lang", None) and page.lang != lang:
                             continue
                         page_menu = page.metadata.get("menu", {})
+                        # Skip if menu is False or not a dict (menu: false means hide from menu)
+                        if not isinstance(page_menu, dict):
+                            continue
                         if menu_name in page_menu:
                             builder.add_from_page(page, menu_name, page_menu[menu_name])
                     menu_tree = builder.build_hierarchy()
