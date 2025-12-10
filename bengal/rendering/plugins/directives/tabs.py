@@ -203,7 +203,7 @@ class TabSetDirective(BengalDirective):
         REQUIRES at least one :::{tab-item} child directive.
     """
 
-    NAMES: ClassVar[list[str]] = ["tab-set"]
+    NAMES: ClassVar[list[str]] = ["tab-set", "tabs"]
     TOKEN_TYPE: ClassVar[str] = "tab_set"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = TabSetOptions
 
@@ -211,7 +211,7 @@ class TabSetDirective(BengalDirective):
     CONTRACT: ClassVar[DirectiveContract] = TAB_SET_CONTRACT
 
     # For backward compatibility with health check introspection
-    DIRECTIVE_NAMES: ClassVar[list[str]] = ["tab-set"]
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["tab-set", "tabs"]
 
     def parse_directive(
         self,
@@ -270,10 +270,14 @@ class TabSetDirective(BengalDirective):
             # Build tab label with optional icon and badge
             label_parts = []
             if tab_data.icon:
-                label_parts.append(f'<span class="tab-icon" data-icon="{self.escape_html(tab_data.icon)}"></span>')
+                label_parts.append(
+                    f'<span class="tab-icon" data-icon="{self.escape_html(tab_data.icon)}"></span>'
+                )
             label_parts.append(self.escape_html(tab_data.title))
             if tab_data.badge:
-                label_parts.append(f'<span class="tab-badge">{self.escape_html(tab_data.badge)}</span>')
+                label_parts.append(
+                    f'<span class="tab-badge">{self.escape_html(tab_data.badge)}</span>'
+                )
             label = "".join(label_parts)
 
             # Build link attributes
@@ -299,8 +303,6 @@ class TabSetDirective(BengalDirective):
         content_html += "  </div>\n</div>\n"
 
         return nav_html + content_html
-
-
 
 
 # =============================================================================
@@ -384,5 +386,3 @@ def _extract_tab_items(text: str) -> list[TabItemData]:
             pos = match.end()
 
     return matches
-
-

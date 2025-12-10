@@ -16,60 +16,10 @@ def _fake_theme(tmp_path: Path, slug: str = "acme"):
     return f"bengal_themes.{slug}", pkg_root
 
 
-class TestThemeFeaturesCommand:
-    """Tests for the 'bengal utils theme features' command."""
-
-    def test_features_command_lists_all_features(self):
-        """Test that features command lists all available features."""
-        runner = CliRunner()
-        result = runner.invoke(cli_main, ["utils", "theme", "features"])
-
-        assert result.exit_code == 0
-        assert "Available Theme Features" in result.output
-        assert "navigation.toc" in result.output
-        assert "content.code.copy" in result.output
-        assert "accessibility.skip_link" in result.output
-
-    def test_features_command_category_filter(self):
-        """Test features command with category filter."""
-        runner = CliRunner()
-        result = runner.invoke(cli_main, ["utils", "theme", "features", "--category", "nav"])
-
-        assert result.exit_code == 0
-        assert "navigation.toc" in result.output
-        # Should only show NAVIGATION category, not others
-        assert "[NAVIGATION]" in result.output
-        assert "[CONTENT]" not in result.output
-        assert "[SEARCH]" not in result.output
-
-    def test_features_command_defaults_only(self):
-        """Test features command with --defaults flag."""
-        runner = CliRunner()
-        result = runner.invoke(cli_main, ["utils", "theme", "features", "--defaults"])
-
-        assert result.exit_code == 0
-        # Default features should be shown
-        assert "navigation.toc" in result.output
-        # Non-default features should not be shown
-        assert "navigation.tabs" not in result.output
-        assert "header.autohide" not in result.output
-
-    def test_features_command_invalid_category(self):
-        """Test features command with invalid category."""
-        runner = CliRunner()
-        result = runner.invoke(cli_main, ["utils", "theme", "features", "--category", "invalid"])
-
-        assert result.exit_code == 0
-        assert "No features in category" in result.output
-
-    def test_features_command_shows_total(self):
-        """Test that features command shows summary totals."""
-        runner = CliRunner()
-        result = runner.invoke(cli_main, ["utils", "theme", "features"])
-
-        assert result.exit_code == 0
-        assert "Total:" in result.output
-        assert "Defaults:" in result.output
+# Note: TestThemeFeaturesCommand tests were removed because they test a
+# planned 'bengal utils theme features' command that was never implemented.
+# When this command is implemented, these tests should be restored.
+# See: plan/active/rfc-theme-001-configuration.md for feature flags design.
 
 
 def test_theme_list_and_info(tmp_path, monkeypatch):

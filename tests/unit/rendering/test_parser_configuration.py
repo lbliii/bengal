@@ -172,29 +172,29 @@ This is a note directive.
 
         # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         markdown = """
-:::{tabs}
+::::{tab-set}
 :id: test-tabs
 
-### Tab: First
-
+:::{tab-item} First
 First tab content
+:::
 
-### Tab: Second
-
+:::{tab-item} Second
 Second tab content
 :::
+::::
 """
 
         html = parser.parse(markdown, {})
 
         # Should contain tabs HTML
         assert 'class="tabs"' in html or 'class="tab' in html, (
-            "Mistune parser should process tabs directive"
+            "Mistune parser should process tab-set directive"
         )
         assert "First" in html
         assert "Second" in html
         # Should NOT contain raw directive syntax
-        assert ":::{tabs}" not in html
+        assert "::::{tab-set}" not in html
 
     @pytest.mark.skipif(
         not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)"

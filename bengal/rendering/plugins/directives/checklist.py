@@ -35,7 +35,7 @@ from bengal.rendering.plugins.directives.tokens import DirectiveToken
 __all__ = ["ChecklistDirective", "ChecklistOptions"]
 
 # Valid style options
-VALID_STYLES = frozenset(["default", "numbered"])
+VALID_STYLES = frozenset(["default", "numbered", "minimal"])
 
 
 @dataclass
@@ -170,7 +170,7 @@ class ChecklistDirective(BengalDirective):
                 progress_html = self._render_progress_bar(text)
                 if progress_html:
                     parts.append(progress_html)
-            parts.append('  </div>\n')
+            parts.append("  </div>\n")
 
         parts.append('  <div class="checklist-content">\n')
         parts.append(f"{text}")
@@ -250,7 +250,7 @@ class ChecklistDirective(BengalDirective):
 
         return (
             f'    <div class="checklist-progress">\n'
-            f'      <span class="checklist-progress-text">{checked}/{total_checkboxes}</span>\n'
+            f'      <span class="checklist-progress-text">{checked}/{total_checkboxes} complete</span>\n'
             f'      <div class="checklist-progress-track">\n'
             f'        <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
             f"      </div>\n"

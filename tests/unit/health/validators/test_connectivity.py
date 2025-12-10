@@ -52,7 +52,7 @@ class TestConnectivityValidator:
 
     @pytest.fixture
     def mock_knowledge_graph(self):
-        """Create a mock KnowledgeGraph."""
+        """Create a mock KnowledgeGraph with connectivity report support."""
         graph = Mock()
         graph.build = Mock()
         graph.get_metrics = Mock(
@@ -60,6 +60,30 @@ class TestConnectivityValidator:
         )
         graph.get_orphans = Mock(return_value=[])
         graph.get_hubs = Mock(return_value=[])
+
+        # Mock the connectivity report with proper structure
+        connectivity_report = Mock()
+        connectivity_report.get_distribution = Mock(
+            return_value={
+                "isolated": 0,
+                "lightly_linked": 0,
+                "adequately_linked": 3,
+                "well_connected": 2,
+            }
+        )
+        connectivity_report.get_percentages = Mock(
+            return_value={
+                "isolated": 0.0,
+                "lightly_linked": 0.0,
+                "adequately_linked": 60.0,
+                "well_connected": 40.0,
+            }
+        )
+        connectivity_report.isolated = []
+        connectivity_report.lightly_linked = []
+        connectivity_report.avg_score = 2.5
+        graph.get_connectivity_report = Mock(return_value=connectivity_report)
+
         return graph
 
     def test_validator_properties(self, validator):

@@ -230,7 +230,9 @@ Hidden content with **markdown**.
 
         assert "<details" in result
         assert "dropdown" in result
-        assert "<summary>Click to expand</summary>" in result
+        # Summary now has richer structure with dropdown-header and dropdown-title spans
+        assert "<summary>" in result
+        assert "Click to expand" in result
         assert "<strong>markdown</strong>" in result
 
     def test_dropdown_open_state(self, parser):
@@ -248,19 +250,19 @@ Visible content.
         assert "open" in result  # open attribute
 
     def test_tabs_directive(self, parser):
-        """Test tabs directive."""
+        """Test tabs directive using MyST-style nested tab-items."""
         content = """
-:::{tabs}
+::::{tab-set}
 :id: example
 
-### Tab: First
-
+:::{tab-item} First
 Content in first tab.
+:::
 
-### Tab: Second
-
+:::{tab-item} Second
 Content in second tab.
 :::
+::::
 """
         result = parser.parse(content, {})
 

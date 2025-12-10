@@ -151,20 +151,22 @@ Hidden content here.
         assert "Hidden content here" in result
 
     def test_colon_tabs(self, parser):
-        """Test MyST-style tabs directive."""
+        """Test MyST-style tabs directive with nested tab-items."""
 
         content = """
-:::{tabs}
-### Tab: Python
+::::{tab-set}
+:::{tab-item} Python
 ```python
 print("Hello")
 ```
+:::
 
-### Tab: JavaScript
+:::{tab-item} JavaScript
 ```javascript
 console.log("Hello");
 ```
 :::
+::::
 """
         result = parser.parse(content, {})
 
