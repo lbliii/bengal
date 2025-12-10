@@ -48,7 +48,7 @@ flowchart LR
 
 ## Components
 
-:::{tab-set}
+::::{tab-set}
 :::{tab-item} Extractors
 **Source Analysis** (`extractors/`)
 
@@ -78,28 +78,28 @@ Converts models into Markdown using templates.
 - **Parallel**: Runs extraction and generation concurrently
 - **Caching**: Smart caching of generated content
 :::
-:::{/tab-set}
+::::
 
 
 ## Template Safety
 
 Autodoc templates are designed to never fail the build, even with malformed docstrings.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 :variant: explanation
 
 :::{card} Error Boundaries
-:icon: shield
+:icon: check-circle
 If a template section fails, only that section shows an error. The rest of the page renders normally.
 :::
 
 :::{card} Safe Filters
-:icon: filter
+:icon: funnel
 Custom filters like `safe_description` handles escaping and fallback for missing data.
 :::
-:::{/cards}
+::::
 
 ## Configuration
 

@@ -236,7 +236,7 @@ Documentation doesn't have to be boring...
 :::{/tab-item}
 
 :::{tab-item} Section Overview
-:icon: layout
+:icon: compass
 
 ```yaml {6}
 ---

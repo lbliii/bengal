@@ -21,31 +21,31 @@ icon: boomerang
 
 Choose the guide that matches your background:
 
-:::{cards}
+::::{cards}
 :columns: 3
 
 :::{card} From Sphinx/RST
-:icon: 📜
+:icon: book
 :link: from-sphinx
 
 You know RST directives, `.. note::`, and `conf.py`. Bengal's MyST syntax will feel familiar.
 :::
 
 :::{card} From Hugo
-:icon: ⚡
+:icon: zap
 :link: from-hugo
 
 You use Hugo shortcodes like `{{</* highlight */>}}` and Go templates. Bengal directives work similarly.
 :::
 
 :::{card} From Docusaurus/MDX
-:icon: ⚛️
+:icon: rocket
 :link: from-docusaurus
 
 You write MDX with React components like `<Tabs>`. Bengal offers the same features without JSX.
 :::
 
-:::{/cards}
+::::
 
 ## Quick Comparison
 

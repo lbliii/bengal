@@ -108,7 +108,7 @@ Bengal extends Markdown with powerful directives using `:::{name}` syntax.
 :variant: info
 
 :::{card} Admonitions
-:icon: alert-circle
+:icon: info
 Callouts like Note, Warning, Tip.
 :::
 
@@ -123,7 +123,7 @@ Collapsible details.
 :::
 
 :::{card} Cards
-:icon: grid
+:icon: layers
 Grid layouts (like this one!).
 :::
 
@@ -133,7 +133,7 @@ Multi-language code blocks.
 :::
 
 :::{card} Buttons
-:icon: square
+:icon: star
 Call-to-action buttons.
 :::
 ::::
