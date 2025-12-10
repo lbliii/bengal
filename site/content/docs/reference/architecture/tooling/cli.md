@@ -135,6 +135,24 @@ bengal g report                      # g → graph
 bengal analyze                       # Top-level alias for graph analyze
 ```
 
+**Example `bengal graph report` output:**
+```
+📊 Site Analysis Report
+================================================================================
+📈 Overview
+   Total pages:        124
+   Avg conn. score:    1.46
+
+🔗 Connectivity Distribution
+   🟢 Well-Connected:      39 pages (31.5%)
+   🟡 Adequately:          38 pages (30.6%)
+   🟠 Lightly Linked:      26 pages (21.0%)
+   🔴 Isolated:            21 pages (16.9%) ⚠️
+================================================================================
+```
+
+See [Graph Analysis Guide](/docs/content/analysis/graph/) for full documentation and [Tutorial](/docs/tutorials/analyze-site-connectivity/) for guided walkthrough.
+
 **Performance Commands**:
 ```bash
 # Performance analysis

@@ -57,16 +57,51 @@ Get a unified analysis report:
 bengal graph report
 ```
 
-This shows:
-- **Connectivity distribution** by level
-- **Isolated pages** that need attention
-- **Bridge pages** (navigation bottlenecks)
-- **Actionable recommendations**
+**Example output:**
+
+```
+================================================================================
+📊 Site Analysis Report
+================================================================================
+
+📈 Overview
+   Total pages:        124
+   Total links:        316
+   Avg links/page:     2.5
+   Avg conn. score:    1.46
+   Communities:        0
+
+🔗 Connectivity Distribution
+   🟢 Well-Connected:      39 pages (31.5%)
+   🟡 Adequately:          38 pages (30.6%)
+   🟠 Lightly Linked:      26 pages (21.0%)
+   🔴 Isolated:            21 pages (16.9%) ⚠️
+
+🔴 Isolated Pages (need attention)
+      • content/_index.md
+      • content/docs/_index.md
+      ... and 19 more
+
+💡 Recommendations
+   • Add explicit cross-references to isolated pages
+   • Add internal links to lightly-linked pages
+================================================================================
+```
 
 For CI pipelines:
 
 ```bash
 bengal graph report --brief --ci --threshold-isolated 5
+```
+
+**Example CI output:**
+
+```
+📊 Site Analysis: 124 pages
+   Isolated: 21 (16.9%) ⚠️
+   Lightly linked: 26 (21.0%)
+   Avg score: 1.46 (good)
+✅ CI PASSED: 21 isolated pages within threshold (25)
 ```
 
 ## Understanding the Analysis
@@ -124,6 +159,52 @@ bengal graph orphans --level lightly
 bengal graph orphans --level all
 ```
 
+**Example output:**
+
+```
+📊 Connectivity Distribution
+==========================================================================================
+  🟢 Well-Connected (≥2.0):      39 pages (31.5%)
+  🟡 Adequately Linked (1-2):    38 pages (30.6%)
+  🟠 Lightly Linked (0.25-1):    26 pages (21.0%)
+  🔴 Isolated (<0.25):           21 pages (16.9%)
+==========================================================================================
+
+🟠 Lightly Linked Pages (26 total)
+==========================================================================================
+#    Score    Path                                          Title
+------------------------------------------------------------------------------------------
+1    0.50     content/authors/lbliii.md                     Lawrence Lane
+2    0.50     content/docs/content/analysis/graph.md        Graph Analysis
+3    0.75     content/docs/about/glossary.md                Glossary
+4    0.75     content/docs/reference/cheatsheet.md          Cheatsheet
+...
+==========================================================================================
+```
+
+**JSON output** (with `--format json`):
+
+```json
+{
+  "level_filter": "lightly",
+  "distribution": {"isolated": 21, "lightly_linked": 26, ...},
+  "pages": [
+    {
+      "path": "content/docs/about/glossary.md",
+      "title": "Glossary",
+      "score": 0.75,
+      "metrics": {
+        "explicit": 0,
+        "menu": 0,
+        "taxonomy": 0,
+        "topical": 1,
+        "sequential": 1
+      }
+    }
+  ]
+}
+```
+
 **Options**:
 - `--level LEVEL`: Filter by level - `isolated`, `lightly`, `adequately`, `all`
 - `--format FORMAT`: Output format - `table`, `json`, `paths`
@@ -154,7 +235,29 @@ bengal analyze         # Top-level alias
 Identify your most important pages using Google's PageRank algorithm:
 
 ```bash
-bengal utils graph pagerank --top-n 20
+bengal graph pagerank --top-n 10
+```
+
+**Example output:**
+
+```
+🏆 Top 10 Pages by PageRank
+====================================================================================================
+Analyzed 124 pages • Converged in 55 iterations • Damping: 0.85
+====================================================================================================
+Rank   Title                                         Score        In    Out
+----------------------------------------------------------------------------------------------------
+1      Template Functions Reference                  0.04669      7.5   2
+2      Templating                                    0.03515      6     1
+3      Analysis System                               0.02980      2.0   2
+4      Health Check System                           0.02592      3.0   2
+5      Theme Variables Reference                     0.02559      5.5   2
+====================================================================================================
+
+📊 Insights
+• Average PageRank score:     0.007300
+• Top 10% threshold:          12 pages (score ≥ 0.016534)
+• Score concentration:        Moderate
 ```
 
 **Options**:
@@ -180,7 +283,41 @@ bengal utils graph communities --top-n 10 --min-size 3
 Find critical navigation pages:
 
 ```bash
-bengal utils graph bridges --top-n 20
+bengal graph bridges --top-n 10
+```
+
+**Example output:**
+
+```
+====================================================================================================
+🌉 Navigation Path Analysis
+====================================================================================================
+Analyzed 124 pages • Avg path: 7.05 • Diameter: 19
+====================================================================================================
+
+🔗 Top 10 Bridge Pages (Betweenness Centrality)
+----------------------------------------------------------------------------------------------------
+Rank   Title                                              Betweenness    In    Out
+----------------------------------------------------------------------------------------------------
+1      Icon Reference                                     0.1419         6.0   5
+2      Navigation Directives                              0.1278         3.75  3
+3      Object Model                                       0.1142         0.75  2
+4      Build Cache                                        0.1117         2.0   2
+5      Site Templates Reference                           0.1037         1.0   5
+
+🎯 Top 10 Most Accessible Pages (Closeness Centrality)
+----------------------------------------------------------------------------------------------------
+Rank   Title                                              Closeness      Out
+----------------------------------------------------------------------------------------------------
+1      Authors                                            1.0000         1
+2      Content Organization                               1.0000         2
+3      Template Functions Reference                       1.0000         2
+====================================================================================================
+
+📊 Insights
+• Average path length:        7.05 hops
+• Network diameter:           19 hops
+• Structure:                  Deep (consider shortening paths)
 ```
 
 **Metrics**:
@@ -321,4 +458,6 @@ Add connectivity gates to your pipeline:
 
 ## See Also
 
+- [Tutorial: Analyze and Improve Site Connectivity](/docs/tutorials/analyze-site-connectivity/) — Step-by-step guided walkthrough
 - [Analysis System Architecture](/docs/reference/architecture/subsystems/analysis/) — Technical details and API usage
+- [Health Check System](/docs/reference/architecture/subsystems/health/) — Automated validation with ConnectivityValidator
