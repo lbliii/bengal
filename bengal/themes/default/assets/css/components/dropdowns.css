@@ -126,6 +126,82 @@ details.dropdown summary:focus:not(:focus-visible) {
 }
 
 /* ============================================
+   DROPDOWN ICON & BADGE
+   ============================================ */
+
+/* Icon wrapper in summary */
+.dropdown-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dropdown-icon .bengal-icon {
+  width: 18px;
+  height: 18px;
+  transition: color var(--transition-fast) var(--ease-out);
+}
+
+/* Title wrapper for consistent flex layout */
+.dropdown-title {
+  flex: 1;
+}
+
+/* Badge styling */
+.dropdown-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125em 0.5em;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+  color: var(--color-text-inverse);
+  background-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-left: auto;
+  margin-right: var(--space-6);
+  /* Leave space for the arrow */
+}
+
+/* Badge color variants */
+details.dropdown.success .dropdown-badge {
+  background-color: var(--color-success);
+}
+
+details.dropdown.warning .dropdown-badge {
+  background-color: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+details.dropdown.danger .dropdown-badge {
+  background-color: var(--color-error);
+}
+
+details.dropdown.info .dropdown-badge {
+  background-color: var(--color-info);
+}
+
+/* Icon color variants */
+details.dropdown.success .dropdown-icon .bengal-icon {
+  color: var(--color-success);
+}
+
+details.dropdown.warning .dropdown-icon .bengal-icon {
+  color: var(--color-warning);
+}
+
+details.dropdown.danger .dropdown-icon .bengal-icon {
+  color: var(--color-error);
+}
+
+details.dropdown.info .dropdown-icon .bengal-icon {
+  color: var(--color-info);
+}
+
+/* ============================================
    DROPDOWN CONTENT
    ============================================ */
 

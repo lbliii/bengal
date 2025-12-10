@@ -17,7 +17,7 @@ Syntax (preferred - named closers):
     :::{/checklist}
 
 Options:
-    :style: - Visual style (default, numbered, minimal)
+    :style: - Visual style (default, numbered)
     :show-progress: - Display completion percentage for task lists
     :compact: - Tighter spacing for dense lists
 """
@@ -35,7 +35,7 @@ from bengal.rendering.plugins.directives.tokens import DirectiveToken
 __all__ = ["ChecklistDirective", "ChecklistOptions"]
 
 # Valid style options
-VALID_STYLES = frozenset(["default", "numbered", "minimal"])
+VALID_STYLES = frozenset(["default", "numbered"])
 
 
 @dataclass
@@ -44,7 +44,7 @@ class ChecklistOptions(DirectiveOptions):
     Options for checklist directive.
 
     Attributes:
-        style: Visual style (default, numbered, minimal)
+        style: Visual style (default, numbered)
         show_progress: Display completion percentage for task lists
         compact: Tighter spacing for dense lists
         css_class: Additional CSS classes
@@ -90,7 +90,6 @@ class ChecklistDirective(BengalDirective):
         :style: - Visual style
             - default: Standard bullet list styling
             - numbered: Ordered list with numbers
-            - minimal: Reduced visual chrome
         :show-progress: - Show completion bar for task lists
         :compact: - Tighter spacing between items
 
@@ -161,15 +160,17 @@ class ChecklistDirective(BengalDirective):
 
         parts = [f'<div class="{class_str}">\n']
 
-        # Title
-        if title:
-            parts.append(f'  <p class="checklist-title">{self.escape_html(title)}</p>\n')
-
-        # Progress bar (if enabled and has checkboxes)
-        if show_progress and has_checkboxes:
-            progress_html = self._render_progress_bar(text)
-            if progress_html:
-                parts.append(progress_html)
+        # Header row: title + progress (inline)
+        has_header = title or (show_progress and has_checkboxes)
+        if has_header:
+            parts.append('  <div class="checklist-header">\n')
+            if title:
+                parts.append(f'    <p class="checklist-title">{self.escape_html(title)}</p>\n')
+            if show_progress and has_checkboxes:
+                progress_html = self._render_progress_bar(text)
+                if progress_html:
+                    parts.append(progress_html)
+            parts.append('  </div>\n')
 
         parts.append('  <div class="checklist-content">\n')
         parts.append(f"{text}")
@@ -221,7 +222,7 @@ class ChecklistDirective(BengalDirective):
         const percentage = Math.round((checked / total) * 100);
 
         progressBar.style.width = percentage + '%';
-        progressText.textContent = checked + '/' + total + ' complete';
+        progressText.textContent = checked + '/' + total;
       }
 
       checkboxes.forEach(function(checkbox) {
@@ -248,12 +249,12 @@ class ChecklistDirective(BengalDirective):
         percentage = int((checked / total_checkboxes) * 100)
 
         return (
-            f'  <div class="checklist-progress">\n'
-            f'    <div class="checklist-progress-track">\n'
-            f'      <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
+            f'    <div class="checklist-progress">\n'
+            f'      <span class="checklist-progress-text">{checked}/{total_checkboxes}</span>\n'
+            f'      <div class="checklist-progress-track">\n'
+            f'        <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
+            f"      </div>\n"
             f"    </div>\n"
-            f'    <span class="checklist-progress-text">{checked}/{total_checkboxes} complete</span>\n'
-            f"  </div>\n"
         )
 
 

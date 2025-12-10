@@ -24,8 +24,7 @@ Learn to customize Bengal themes and create your own designs.
 
 ## Prerequisites
 
-:::{checklist} Skills Needed
-:style: minimal
+:::{checklist}
 :show-progress:
 - [ ] [Bengal installed](/docs/get-started/installation/)
 - [ ] Basic knowledge of HTML
