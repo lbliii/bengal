@@ -21,8 +21,11 @@ from typing import Any, ClassVar
 from bengal.rendering.plugins.directives.base import BengalDirective
 from bengal.rendering.plugins.directives.options import DirectiveOptions
 from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.utils.logger import get_logger
 
 __all__ = ["DropdownDirective", "DropdownOptions"]
+
+logger = get_logger(__name__)
 
 # Valid color variants (match CSS classes in dropdowns.css)
 DROPDOWN_COLORS = frozenset(["success", "warning", "danger", "info", "minimal"])
@@ -165,9 +168,17 @@ class DropdownDirective(BengalDirective):
         color = attrs.get("color", "")
         css_class = attrs.get("css_class", "")
 
-        # Add color variant to class string if valid
-        if color and color in DROPDOWN_COLORS:
-            css_class = f"{color} {css_class}".strip() if css_class else color
+        # Add color variant to class string if valid, warn if invalid
+        if color:
+            if color in DROPDOWN_COLORS:
+                css_class = f"{color} {css_class}".strip() if css_class else color
+            else:
+                logger.warning(
+                    "dropdown_invalid_color",
+                    color=color,
+                    title=title,
+                    valid_colors=list(DROPDOWN_COLORS),
+                )
 
         # Build class string
         class_str = self.build_class_string("dropdown", css_class)
@@ -177,7 +188,7 @@ class DropdownDirective(BengalDirective):
 
         # Add icon if specified
         if icon:
-            icon_html = _render_dropdown_icon(icon)
+            icon_html = _render_dropdown_icon(icon, title)
             if icon_html:
                 summary_parts.append(f'<span class="dropdown-icon">{icon_html}</span>')
 
@@ -202,11 +213,30 @@ class DropdownDirective(BengalDirective):
         )
 
 
-def _render_dropdown_icon(icon_name: str) -> str:
-    """Render dropdown icon using shared icon utilities."""
+def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
+    """
+    Render dropdown icon using shared icon utilities.
+
+    Args:
+        icon_name: Name of the icon to render
+        dropdown_title: Title of the dropdown (for warning context)
+
+    Returns:
+        SVG HTML string, or empty string if icon not found
+    """
     from bengal.rendering.plugins.directives._icons import render_svg_icon
 
-    return render_svg_icon(icon_name, size=18, css_class="dropdown-summary-icon")
+    icon_html = render_svg_icon(icon_name, size=18, css_class="dropdown-summary-icon")
+
+    if not icon_html:
+        logger.warning(
+            "dropdown_icon_not_found",
+            icon=icon_name,
+            dropdown_title=dropdown_title,
+            hint="Check available icons in themes/default/assets/icons/",
+        )
+
+    return icon_html
 
 
 # =============================================================================
