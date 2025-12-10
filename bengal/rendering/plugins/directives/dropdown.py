@@ -41,6 +41,7 @@ class DropdownOptions(DirectiveOptions):
         icon: Icon name to display next to the title
         badge: Badge text (e.g., "New", "Advanced", "Beta")
         color: Color variant (success, warning, danger, info, minimal)
+        description: Secondary text below the title to elaborate on the dropdown content
         css_class: Additional CSS classes for the container
 
     Example:
@@ -49,6 +50,7 @@ class DropdownOptions(DirectiveOptions):
         :icon: info
         :badge: Advanced
         :color: info
+        :description: Additional context about what's inside this dropdown
         :class: my-custom-class
 
         Content here
@@ -59,6 +61,7 @@ class DropdownOptions(DirectiveOptions):
     icon: str = ""
     badge: str = ""
     color: str = ""
+    description: str = ""
     css_class: str = ""
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
@@ -74,6 +77,7 @@ class DropdownDirective(BengalDirective):
         :icon: info
         :badge: Advanced
         :color: info
+        :description: Brief explanation of the dropdown content
         :class: custom-class
 
         Content with **markdown**, code blocks, etc.
@@ -97,6 +101,7 @@ class DropdownDirective(BengalDirective):
         :icon: string - Icon name to display next to title
         :badge: string - Badge text (e.g., "New", "Advanced")
         :color: string - Color variant (success, warning, danger, info, minimal)
+        :description: string - Secondary text to elaborate on dropdown content
         :class: string - Additional CSS classes
     """
 
@@ -141,6 +146,7 @@ class DropdownDirective(BengalDirective):
                 "icon": options.icon,
                 "badge": options.badge,
                 "color": options.color,
+                "description": options.description,
                 "css_class": options.css_class,
             },
             children=children,
@@ -166,6 +172,7 @@ class DropdownDirective(BengalDirective):
         icon = attrs.get("icon", "")
         badge = attrs.get("badge", "")
         color = attrs.get("color", "")
+        description = attrs.get("description", "")
         css_class = attrs.get("css_class", "")
 
         # Add color variant to class string if valid, warn if invalid
@@ -183,7 +190,7 @@ class DropdownDirective(BengalDirective):
         # Build class string
         class_str = self.build_class_string("dropdown", css_class)
 
-        # Build summary content with optional icon and badge
+        # Build summary content with optional icon, description, and badge
         summary_parts = []
 
         # Add icon if specified
@@ -192,8 +199,13 @@ class DropdownDirective(BengalDirective):
             if icon_html:
                 summary_parts.append(f'<span class="dropdown-icon">{icon_html}</span>')
 
-        # Add escaped title
-        summary_parts.append(f'<span class="dropdown-title">{self.escape_html(title)}</span>')
+        # Build title block (title + optional description)
+        title_block = f'<span class="dropdown-title">{self.escape_html(title)}</span>'
+        if description:
+            title_block += (
+                f'<span class="dropdown-description">{self.escape_html(description)}</span>'
+            )
+        summary_parts.append(f'<span class="dropdown-header">{title_block}</span>')
 
         # Add badge if specified
         if badge:

@@ -186,8 +186,8 @@ class TestHllNewlinePlacement:
         """Create a Mistune parser with highlighting enabled."""
         return MistuneParser(enable_highlighting=True)
 
-    def test_hll_newline_outside_single_highlight(self, parser):
-        """Test newline is outside .hll span for single highlighted line."""
+    def test_hll_newline_removed_single_highlight(self, parser):
+        """Test newline is removed from .hll span for single highlighted line."""
         content = """
 ```python {2}
 line1 = 1
@@ -199,11 +199,11 @@ line3 = 3
 
         # Should NOT have newline before closing </span> inside .hll
         assert "\n</span>" not in html, (
-            "Newline should be outside .hll closing tag, not inside"
+            "Newline should be removed from .hll span, not kept inside"
         )
 
-    def test_hll_newline_outside_consecutive_highlights(self, parser):
-        """Test newline placement for consecutive highlighted lines."""
+    def test_hll_newline_removed_consecutive_highlights(self, parser):
+        """Test newline removal for consecutive highlighted lines."""
         content = """
 ```python {2,3}
 line1 = 1
@@ -216,11 +216,11 @@ line4 = 4
 
         # Should NOT have newline before any closing </span>
         assert "\n</span>" not in html, (
-            "Newline should be outside .hll closing tag, not inside"
+            "Newline should be removed from .hll span, not kept inside"
         )
 
-    def test_hll_newline_outside_non_consecutive_highlights(self, parser):
-        """Test newline placement for non-consecutive highlighted lines."""
+    def test_hll_newline_removed_non_consecutive_highlights(self, parser):
+        """Test newline removal for non-consecutive highlighted lines."""
         content = """
 ```python {1,3}
 line1 = 1
@@ -233,7 +233,7 @@ line4 = 4
 
         # Should NOT have newline before any closing </span>
         assert "\n</span>" not in html, (
-            "Newline should be outside .hll closing tag, not inside"
+            "Newline should be removed from .hll span, not kept inside"
         )
 
     def test_hll_structure_correct(self, parser):
@@ -255,6 +255,42 @@ z = 3
             assert not span.endswith("\n</span>"), (
                 f"Span should not have newline before closing tag: {repr(span)}"
             )
+
+    def test_hll_no_trailing_newline(self, parser):
+        """
+        Test that .hll spans have NO trailing newline after closing tag.
+        
+        This is the key fix for display:block spacing issues. The block element
+        already creates a line break, so any trailing newline in the <pre>
+        creates double spacing.
+        """
+        content = """
+```python {2}
+line1 = 1
+line2 = 2
+line3 = 3
+```
+"""
+        html = parser.parse(content, {})
+
+        # Find .hll closing tags and check what follows
+        # Pattern: </span> followed by either another tag or content, but NOT \n
+        import re
+        
+        # Check that .hll spans don't have newlines immediately after closing tag
+        # The pattern </span>\n would indicate the old behavior (moved but not removed)
+        hll_pattern = r'<span class="hll">[^<]*(?:<[^>]+>[^<]*)*</span>'
+        
+        for match in re.finditer(hll_pattern, html):
+            end_pos = match.end()
+            # Check what comes after this .hll span
+            if end_pos < len(html):
+                next_char = html[end_pos]
+                # Should NOT be a newline - display:block handles line breaks
+                assert next_char != '\n', (
+                    f".hll span should not have trailing newline. "
+                    f"Found: ...{html[end_pos-10:end_pos+5]!r}"
+                )
 
 
 class TestCodeBlockEdgeCases:
