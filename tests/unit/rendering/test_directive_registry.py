@@ -196,6 +196,8 @@ class TestDirectiveClassesCompleteness:
             "MarimoCellDirective",
             "IconDirective",
             "ContainerDirective",
+            # Target Directive (RFC: plan/active/rfc-explicit-anchor-targets.md)
+            "TargetDirective",
             # Media Embed Directives (RFC: plan/active/rfc-media-embed-directives.md)
             "YouTubeDirective",
             "VimeoDirective",
@@ -265,6 +267,9 @@ class TestKnownDirectiveNamesContent:
             "step",
             # Rubric
             "rubric",
+            # Target (explicit anchor targets)
+            "target",
+            "anchor",
             # Includes
             "include",
             "literalinclude",
@@ -294,10 +299,10 @@ class TestKnownDirectiveNamesContent:
 
         # 10 admonitions + 2 badges + 1 button + 5 cards + 4 tabs + 2 code-tabs
         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric
-        # + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 containers
+        # + 2 target/anchor + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 containers
         # + 3 video (youtube, vimeo, video) + 4 dev tools (gist, codepen, codesandbox, stackblitz)
-        # + 1 asciinema + 1 figure + 1 audio = 54 total
-        expected_count = 54
+        # + 1 asciinema + 1 figure + 1 audio = 56 total
+        expected_count = 56
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "
