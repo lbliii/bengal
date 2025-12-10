@@ -84,8 +84,9 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-primary: #D1D5DB;
     --color-primary-hover: #E5E7EB;
     --color-primary-active: #9CA3AF;
-    --color-primary-light: rgba(209, 213, 219, 0.15);
+    --color-primary-light: rgba(209, 213, 219, 0.20);
     --color-primary-dark: #6B7280;
+    --color-primary-muted: rgba(209, 213, 219, 0.25);
 
     /* Pure black backgrounds - monochromatic */
     --color-bg-primary: #000000;
@@ -96,11 +97,19 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-bg-active: #333333;
     --color-bg-code: #0F0F0F;
 
+    /* Surface color for components */
+    --color-surface: #0A0A0A;
+
     /* Pure grayscale text - high contrast */
     --color-text-primary: #FFFFFF;
     --color-text-secondary: #D1D5DB;
     --color-text-tertiary: #9CA3AF;
     --color-text-muted: #6B7280;
+    /* CRITICAL: Inverse text must be dark for contrast against light primary */
+    --color-text-inverse: #111827;
+    /* Links: Steel blue with cool undertones - visible and recognizable */
+    --color-text-link: #94A3B8;
+    --color-text-link-hover: #CBD5E1;
 
     /* Adjusted borders for dark mode */
     --color-border: #262626;

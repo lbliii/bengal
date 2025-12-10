@@ -1,0 +1,14 @@
+# Author Registry
+# Reference authors by key in frontmatter: author: lbliii
+# Access in templates: site.data.authors[page.metadata.author]
+
+lbliii:
+  name: Lawrence Lane
+  github: lbliii
+  location: New York, NY
+  company: NVIDIA
+  bio: Creator of Bengal SSG. Technical writer, developer, and documentation enthusiast.
+  avatar: null  # Add path when available, e.g., /images/authors/lbliii.jpg
+  links:
+    - text: GitHub
+      url: https://github.com/lbliii

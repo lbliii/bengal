@@ -67,6 +67,7 @@ from bengal.rendering.plugins.directives.embed import (
     StackBlitzDirective,
 )
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.example_label import ExampleLabelDirective
 from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
@@ -89,9 +90,9 @@ from bengal.rendering.plugins.directives.options import (
 )
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
+from bengal.rendering.plugins.directives.target import TargetDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
-    TabsDirective,
     TabSetDirective,
 )
 from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
@@ -140,8 +141,7 @@ DIRECTIVE_CLASSES: list[type] = [
     ChildCardsDirective,
     GridDirective,
     GridItemCardDirective,
-    # Tabs (tabs, tab-set, tab-item)
-    TabsDirective,
+    # Tabs (tab-set, tab-item)
     TabSetDirective,
     TabItemDirective,
     # Dropdowns (dropdown, details)
@@ -164,6 +164,10 @@ DIRECTIVE_CLASSES: list[type] = [
     StepDirective,
     # Rubric (rubric)
     RubricDirective,
+    # Target (target, anchor) - explicit anchor targets for cross-references
+    TargetDirective,
+    # Example label (example-label) - lightweight example section headers
+    ExampleLabelDirective,
     # Includes (include, literalinclude)
     IncludeDirective,
     LiteralIncludeDirective,
@@ -301,6 +305,8 @@ __all__ = [
     "AsciinemaDirective",
     "FigureDirective",
     "AudioDirective",
+    # Explicit Anchor Target Directive
+    "TargetDirective",
 ]
 
 
@@ -347,12 +353,13 @@ def create_documentation_directives() -> Callable[[Any], None]:
             directives_list = [
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
                 BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
-                TabsDirective(),  # Legacy tabs (backward compatibility)
-                TabSetDirective(),  # Modern MyST tab-set
-                TabItemDirective(),  # Modern MyST tab-item
+                TabSetDirective(),  # MyST tab-set
+                TabItemDirective(),  # MyST tab-item
                 DropdownDirective(),
                 CodeTabsDirective(),
                 RubricDirective(),  # Pseudo-headings for API docs
+                TargetDirective(),  # Explicit anchor targets for cross-references
+                ExampleLabelDirective(),  # Lightweight example section labels
                 ListTableDirective(),  # MyST list-table for tables without pipe issues
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
                 GlossaryDirective(),  # Key terms from centralized glossary data file

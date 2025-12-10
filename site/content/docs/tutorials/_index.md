@@ -69,13 +69,67 @@ flowchart LR
 :::
 
 :::{dropdown} What makes a good tutorial?
+:icon: info
 Tutorials are **learning-oriented** — they teach skills through guided practice.
 
 Each tutorial:
+
 - **Starts from scratch** — No prior Bengal knowledge assumed
 - **Builds progressively** — Each step builds on the previous
 - **Provides working code** — Copy, run, and see results
 - **Explains the "why"** — Understand concepts as you go
 
 This follows the [Diátaxis](https://diataxis.fr/) documentation framework.
+:::
+
+## Troubleshooting
+
+:::{dropdown} Command not found
+:icon: warning
+
+Ensure Python's bin directory is in your PATH.
+
+If using a virtual environment, activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Try reinstalling:
+
+```bash
+pip uninstall bengal && pip install bengal
+```
+
+:::
+
+:::{dropdown} Python version errors
+:icon: warning
+
+Verify your Python version:
+
+```bash
+python --version
+# or
+python3 --version
+```
+
+Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
+:::
+
+:::{dropdown} Permission errors
+:icon: warning
+
+Use the `--user` flag:
+
+```bash
+pip install --user bengal
+```
+
+Or use a virtual environment:
+
+```bash
+python -m venv venv && source venv/bin/activate
+```
+
 :::

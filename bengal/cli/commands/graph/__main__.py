@@ -18,7 +18,9 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 from .bridges import bridges
 from .communities import communities
+from .orphans import orphans
 from .pagerank import pagerank
+from .report import report
 from .suggest import suggest
 
 
@@ -222,6 +224,8 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
 
 
 graph_cli.add_command(analyze)
+graph_cli.add_command(report)
+graph_cli.add_command(orphans)
 graph_cli.add_command(pagerank)
 graph_cli.add_command(communities)
 graph_cli.add_command(bridges)

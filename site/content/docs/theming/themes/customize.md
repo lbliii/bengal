@@ -239,7 +239,8 @@ bengal new theme my-theme
 
 ## Troubleshooting
 
-### Theme Not Found
+:::{dropdown} Theme Not Found
+:icon: alert
 
 **Issue:** `Theme 'my-theme' not found`
 
@@ -247,8 +248,10 @@ bengal new theme my-theme
 - Verify theme directory exists: `themes/my-theme/`
 - Check `theme.yaml` has correct `name` field
 - Run `bengal utils theme list` to see available themes
+:::
 
-### Template Inheritance Not Working
+:::{dropdown} Template Inheritance Not Working
+:icon: alert
 
 **Issue:** Changes to parent theme not reflected
 
@@ -256,8 +259,10 @@ bengal new theme my-theme
 - Verify `extends` path is correct: `"default::base.html"`
 - Check theme chain: `bengal utils theme debug`
 - Clear cache: `bengal clean --cache`
+:::
 
-### CSS Not Loading
+:::{dropdown} CSS Not Loading
+:icon: alert
 
 **Issue:** Custom CSS not applying
 
@@ -265,9 +270,11 @@ bengal new theme my-theme
 - Use `asset_url()` filter: `{{ asset_url('css/style.css') }}`
 - Check file location: `themes/your-theme/static/css/`
 - Hard refresh: `Cmd+Shift+R`
+:::
 
-## See Also
-
+:::{seealso}
 - [Templating](/docs/theming/templating/) — Template basics
 - [Assets](/docs/theming/assets/) — Asset pipeline
+- [Icon Reference](/docs/reference/icons/) — SVG icons and customization
 - [Variables Reference](/docs/theming/variables/) — Available template variables
+:::

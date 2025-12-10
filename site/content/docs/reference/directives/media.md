@@ -74,7 +74,8 @@ Embed YouTube videos with privacy-enhanced mode enabled by default (`youtube-noc
 | `:aspect:` | `16/9` | Aspect ratio (`16/9`, `4/3`, `21/9`) |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -132,7 +133,8 @@ Embed Vimeo videos with Do Not Track enabled by default.
 | `:aspect:` | `16/9` | Aspect ratio |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -179,7 +181,8 @@ Embed videos from your own server using HTML5 `<video>`.
 
 **Supported formats**: `.mp4`, `.webm`, `.ogg`, `.mov`
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -228,7 +231,8 @@ Create semantic `<figure>` elements with optional captions, links, and alignment
 
 **Supported formats**: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.avif`
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic figure with alt text:
 
@@ -292,7 +296,8 @@ Embed self-hosted audio files using HTML5 `<audio>`.
 
 **Supported formats**: `.mp3`, `.ogg`, `.wav`, `.m4a`
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic audio:
 
@@ -333,7 +338,8 @@ Embed GitHub Gists with optional file selection.
 |--------|---------|-------------|
 | `:file:` | — | Specific file from multi-file gist |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic gist:
 
@@ -372,7 +378,8 @@ Embed CodePen pens.
 | `:height:` | `400` | Embed height in pixels |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -414,7 +421,8 @@ Embed CodeSandbox projects.
 | `:height:` | `500` | Embed height in pixels |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -456,7 +464,8 @@ Embed StackBlitz projects.
 | `:height:` | `500` | Embed height in pixels |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 
@@ -503,7 +512,8 @@ Embed terminal recordings from asciinema.org.
 | `:preload:` | `false` | Preload recording data |
 | `:class:` | — | Additional CSS classes |
 
-**Examples**:
+:::{example-label} Examples
+:::
 
 Basic embed:
 

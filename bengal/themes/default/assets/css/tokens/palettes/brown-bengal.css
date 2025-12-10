@@ -86,6 +86,7 @@ html[data-theme="dark"][data-palette="brown-bengal"] {
     --color-primary-active: #E69528;
     --color-primary-light: rgba(255, 173, 61, 0.2);
     --color-primary-dark: #CC8A1E;
+    --color-primary-muted: rgba(255, 173, 61, 0.25);
 
     /* Dark backgrounds with strong warm/orange tint */
     --color-bg-primary: #1F1811;
@@ -96,11 +97,19 @@ html[data-theme="dark"][data-palette="brown-bengal"] {
     --color-bg-active: #524530;
     --color-bg-code: #2D2218;
 
+    /* Surface color for components */
+    --color-surface: #251D14;
+
     /* Warm text colors for dark mode */
     --color-text-primary: #FFF8E7;
     --color-text-secondary: #D9C7A8;
     --color-text-tertiary: #B39772;
     --color-text-muted: #8A7455;
+    /* Inverse text - dark for contrast against bright amber primary */
+    --color-text-inverse: #1F1811;
+    /* Links: Warm amber glow - matches theme */
+    --color-text-link: #FFAD3D;
+    --color-text-link-hover: #FFC266;
 
     /* Adjusted borders for dark mode */
     --color-border: #3D3630;

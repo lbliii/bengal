@@ -177,7 +177,7 @@ pre code {
   background-color: var(--color-bg-code);
   box-shadow: var(--elevation-card);
   overflow: visible;
-  /* Allow tooltips to overflow */
+  /* Allow tooltip to overflow */
   transition: box-shadow var(--transition-base);
   /* Peaceful glow animation - signature Bengal top/bottom border pulse */
   animation: code-border-glow 8s ease-in-out infinite;
@@ -201,13 +201,11 @@ pre code {
 
 .code-block-wrapper pre {
   margin: 0;
-  padding-top: 2.5rem;
-  /* Make room for header */
   border: none;
   border-radius: inherit;
   box-shadow: none;
   overflow: hidden;
-  /* Clip code content to border-radius */
+  /* Clip content to border-radius */
   /* Disable glow on inner pre - wrapper handles it */
   animation: none;
   width: 100%;
@@ -644,7 +642,8 @@ pre code {
 .highlight td.linenos {
   width: 3.5rem;
   padding: 0;
-  border-right: 1px solid var(--color-border-light);
+  /* Use inset box-shadow instead of border so it clips at border-radius */
+  box-shadow: inset -1px 0 0 0 var(--color-border-light);
   background: var(--color-bg-code);
   vertical-align: top;
 }
@@ -681,6 +680,7 @@ pre code {
   width: 100%;
   padding: var(--space-6);
   padding-left: var(--space-4);
+  overflow-x: auto;
 }
 
 /* Disable table row hover effect (from typography.css) */
@@ -690,7 +690,7 @@ pre code {
 
 /* Dark mode adjustments */
 [data-theme="dark"] .highlight td.linenos {
-  border-right-color: var(--color-border);
+  box-shadow: inset -1px 0 0 0 var(--color-border);
 }
 
 [data-theme="dark"] .highlight .highlighttable {
@@ -714,28 +714,55 @@ pre code {
    Usage: ```python {5} or ```python {1,3,5-7}
    ============================================ */
 
-/* Highlighted line wrapper from Pygments */
-.highlight .hll {
-  display: block;
-  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  margin-left: calc(-1 * var(--space-4));
-  margin-right: calc(-1 * var(--space-6));
-  padding-left: var(--space-4);
-  padding-right: var(--space-6);
-  border-left: 3px solid var(--color-primary);
+/* Position context for absolutely-positioned copy button */
+div.highlight {
+  position: relative;
 }
 
-/* Highlighted line in table layout */
+/* Clip negative margins on .hll to prevent page overflow.
+   Applied to the code cell, not div.highlight, so copy button isn't clipped.
+   Use overflow-y: hidden to allow horizontal scrolling of long lines. */
+div.highlight > pre {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.highlight td.code {
+  overflow-y: hidden;
+}
+
+/* Highlighted line from Pygments hl_lines
+   The parser post-processes to move newlines outside .hll spans,
+   allowing display:block without double line spacing. */
+.highlight .hll {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 3px,
+    color-mix(in srgb, var(--color-primary) 12%, transparent) 3px
+  );
+  /* Extend highlight beyond code cell padding */
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-6));
+  padding-left: calc(var(--space-4) - 3px);
+  padding-right: var(--space-6);
+}
+
+/* Table layout: same treatment */
 .highlight td.code .hll {
   margin-left: calc(-1 * var(--space-4));
   margin-right: calc(-1 * var(--space-6));
-  padding-left: var(--space-4);
+  padding-left: calc(var(--space-4) - 3px);
   padding-right: var(--space-6);
 }
 
-/* Dark mode highlight */
+/* Dark mode: more visible highlight */
 [data-theme="dark"] .highlight .hll {
-  background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 3px,
+    color-mix(in srgb, var(--color-primary) 18%, transparent) 3px
+  );
 }
 
 /* Legacy Pygments linenos support */

@@ -1,5 +1,11 @@
 """
 Integration tests for template error collection during builds.
+
+These tests verify that template syntax errors are properly detected and
+collected during the build process when `validate_templates = true` is set.
+
+The template validation phase runs early in the build (after fonts, before
+content discovery) and proactively checks all templates for syntax errors.
 """
 
 import shutil
@@ -28,7 +34,7 @@ class TestTemplateErrorCollection:
             templates_dir = temp_dir / "templates"
             templates_dir.mkdir()
 
-            # Create config
+            # Create config with template validation enabled
             config_file = temp_dir / "bengal.toml"
             config_file.write_text("""
 [site]
@@ -37,6 +43,7 @@ base_url = "https://example.com"
 
 [build]
 output_dir = "public"
+validate_templates = true
 """)
 
             yield temp_dir
@@ -182,13 +189,12 @@ Content
 
         # Build site with strict mode
         site = Site.from_config(temp_site, None)
-        site.config["strict_mode"] = True
 
         orchestrator = BuildOrchestrator(site)
 
         # Should raise exception in strict mode
         with pytest.raises((RuntimeError, ValueError)):
-            orchestrator.build(parallel=False, verbose=False)
+            orchestrator.build(parallel=False, verbose=False, strict=True)
 
     def test_error_contains_rich_information(self, temp_site):
         """Test that collected errors contain rich debugging information."""
@@ -226,8 +232,9 @@ Content
             assert error.template_context is not None
             assert error.template_context.template_name is not None
 
-            # Should have page source
-            assert error.page_source is not None
+            # Note: page_source is None for proactive validation (before pages are processed)
+            # It would only be set if the error was caught during page rendering
+            # assert error.page_source is not None  # Not applicable for proactive validation
 
             # Should have error type
             assert error.error_type in ["syntax", "filter", "undefined", "runtime", "other"]
@@ -258,6 +265,7 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
+validate_templates = true
 """)
 
             yield temp_dir

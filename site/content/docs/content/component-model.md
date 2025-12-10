@@ -20,7 +20,7 @@ Think of every page as a **Component Instance**.
 
 ---
 
-## 1. Identity (Type)
+## 1. Identity (Type) {#type}
 
 The **Type** defines the fundamental nature of the content. It controls:
 
@@ -154,7 +154,7 @@ weight: 5
 
 ---
 
-## 2. Mode (Variant)
+## 2. Mode (Variant) {#variant}
 
 The **Variant** defines the visual presentation. It controls:
 
@@ -192,7 +192,7 @@ author: "Jane Smith"
 
 # The Future of Static Sites
 
-In an era of increasingly complex web applications, there's a 
+In an era of increasingly complex web applications, there's a
 quiet revolution happening...
 ```
 
@@ -236,7 +236,7 @@ Documentation doesn't have to be boring...
 :::{/tab-item}
 
 :::{tab-item} Section Overview
-:icon: layout
+:icon: compass
 
 ```yaml {6}
 ---
@@ -305,7 +305,7 @@ class Page:
 
 ---
 
-## 3. Data (Props)
+## 3. Data (Props) {#props}
 
 **Props** are the data you pass to the component. Any frontmatter field that isn't `type` or `variant` becomes a prop.
 
@@ -574,7 +574,7 @@ Welcome! Choose where to begin based on your experience.
 
 ---
 
-## Cascading from Sections
+## Cascading from Sections {#cascade}
 
 Set `type` and `variant` once in a section's `_index.md` and all child pages inherit them:
 
@@ -604,7 +604,7 @@ weight: 10
 
 ---
 
-## Site Skeletons
+## Site Skeletons {#skeletons}
 
 Define entire site structures using **Skeleton Manifests** (`bengal project skeleton apply`).
 

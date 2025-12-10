@@ -25,7 +25,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
 ## Quick Start
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Basic Template
 ```jinja
 {# templates/layouts/single.html #}
@@ -69,7 +69,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 </header>
 ```
 :::
-::::
+:::{/tab-set}
 
 ## Key Concepts
 

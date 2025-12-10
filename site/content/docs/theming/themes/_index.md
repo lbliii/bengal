@@ -34,7 +34,7 @@ Your files always win. Override only what you need.
 
 ## Choose Your Approach
 
-::::{cards}
+:::{cards}
 :columns: 3
 :gap: small
 
@@ -55,11 +55,11 @@ Override specific templates. No forking required.
 
 Full control. Start from scratch or fork existing.
 :::
-::::
+:::{/cards}
 
 ## Quick Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Use a Theme
 ```toml
 # bengal.toml
@@ -95,7 +95,7 @@ your-project/
 
 Copy the original from `themes/default/templates/`, modify as needed.
 :::
-::::
+:::{/tab-set}
 
 ## Theme Contents
 

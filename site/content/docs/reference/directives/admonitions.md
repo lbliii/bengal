@@ -78,16 +78,16 @@ Renders as "Tip" (capitalized type name).
 
 ### Nested Content
 
-Admonitions support full markdown including nested directives:
+Admonitions support full markdown including nested directives. Use named closers for clarity:
 
 ```markdown
-::::{note}
+:::{note}
 Here's a tip:
 
 :::{tip}
 Nested admonitions work!
 :::
-::::
+:::{/note}
 ```
 
 ### All Types

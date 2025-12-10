@@ -91,12 +91,12 @@ Autodoc templates are designed to never fail the build, even with malformed docs
 :variant: explanation
 
 :::{card} Error Boundaries
-:icon: shield
+:icon: check-circle
 If a template section fails, only that section shows an error. The rest of the page renders normally.
 :::
 
 :::{card} Safe Filters
-:icon: filter
+:icon: funnel
 Custom filters like `safe_description` handles escaping and fallback for missing data.
 :::
 ::::

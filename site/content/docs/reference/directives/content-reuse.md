@@ -60,7 +60,9 @@ Paths are resolved relative to:
 1. **Current page's directory** - If you're in `content/docs/content/`, `snippets/warning.md` looks in `content/docs/content/snippets/`
 2. **Site root** - Falls back to site root if not found relative to page
 
-**Example**:
+:::{example-label} Path Resolution
+:::
+
 - Page: `content/docs/getting-started/installation.md`
 - Include: `snippets/warning.md`
 - Resolves to: `content/docs/getting-started/snippets/warning.md` (or `content/snippets/warning.md` if not found)
@@ -282,7 +284,8 @@ Include with emphasis:
 
 ## Troubleshooting
 
-### File Not Found
+:::{dropdown} File Not Found
+:icon: alert
 
 **Error**: `Include error: File not found: snippets/warning.md`
 
@@ -290,20 +293,25 @@ Include with emphasis:
 - Check the path is correct relative to your page
 - Verify the file exists
 - Try an absolute path from site root: `content/snippets/warning.md`
+:::
 
-### Path Traversal Blocked
+:::{dropdown} Path Traversal Blocked
+:icon: alert
 
 **Error**: `Include path traversal rejected`
 
 **Cause**: Attempted to include files outside the site root (security feature)
 
 **Solution**: Keep all snippets within your site's content directory
+:::
 
-### Syntax Errors in Included Content
+:::{dropdown} Syntax Errors in Included Content
+:icon: alert
 
 If included markdown has syntax errors, they'll appear in the rendered page.
 
 **Solution**: Validate snippet files independently before including them
+:::
 
 ## Related
 

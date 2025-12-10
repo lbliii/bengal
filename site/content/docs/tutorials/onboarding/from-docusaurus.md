@@ -94,7 +94,7 @@ import TabItem from '@theme/TabItem';
 :::{/tab}
 
 :::{tab} Bengal (No imports!)
-```markdown
+````markdown
 :::{tab-set}
 :::{tab} JavaScript
 ```javascript
@@ -107,7 +107,7 @@ print("Hello")
 ```
 :::{/tab}
 :::{/tab-set}
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -121,6 +121,7 @@ No imports, no JSX, no React. Just markdown.
 :::{tab-set}
 
 :::{tab} Docusaurus
+
 ```jsx
 import CodeBlock from '@theme/CodeBlock';
 
@@ -129,6 +130,7 @@ def hello():
     print("Hello!")
 </CodeBlock>
 ```
+
 :::{/tab}
 
 :::{tab} Bengal
@@ -196,6 +198,8 @@ Complete API documentation
 :::{tab} Bengal
 ```markdown
 :::{dropdown} Click to expand
+:icon: info
+
 Hidden content here with **markdown** support.
 :::
 ```
@@ -587,8 +591,8 @@ terms:
 | Build | `npm run build` | `bengal build` |
 | Serve | `npm start` | `bengal serve` |
 | Note | `:::note` | `:::{note}` |
-| Tabs | `<Tabs>` + import | `::::{tab-set}` |
-| Cards | Custom component | `::::{cards}` |
+| Tabs | `<Tabs>` + import | `:::{tab-set}` |
+| Cards | Custom component | `:::{cards}` |
 | Dropdown | `<details>` | `:::{dropdown}` |
 | Include | MDX import | `:::{include}` |
 

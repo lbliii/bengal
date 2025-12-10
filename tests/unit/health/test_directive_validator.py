@@ -303,6 +303,7 @@ Just regular markdown content here.
     def test_validate_with_valid_directives(self, tmp_path):
         """Test validation with valid directives."""
         # Use colon fences (:::) - backtick fences are no longer supported for directives
+        # Use MyST-style nested tab-items instead of ### Tab: headers
         content = """---
 title: Page with Directives
 ---
@@ -311,13 +312,15 @@ title: Page with Directives
 This is important information.
 :::
 
-:::{tabs}
-### Tab: Option 1
+::::{tab-set}
+:::{tab-item} Option 1
 First option content.
+:::
 
-### Tab: Option 2
+:::{tab-item} Option 2
 Second option content.
 :::
+::::
 """
         source_file = tmp_path / "with_directives.md"
         source_file.write_text(content)
@@ -497,6 +500,7 @@ class TestStatistics:
     def test_statistics_with_mixed_directives(self, tmp_path):
         """Test statistics reporting with various directive types."""
         # Use colon fences (:::) - backtick fences are no longer supported for directives
+        # Use MyST-style nested tab-items instead of ### Tab: headers
         content = """
 :::{note} Note 1
 Content
@@ -510,13 +514,15 @@ Content
 Content
 :::
 
-:::{tabs}
-### Tab: A
+::::{tab-set}
+:::{tab-item} A
 Content A
+:::
 
-### Tab: B
+:::{tab-item} B
 Content B
 :::
+::::
 
 :::{dropdown} Dropdown 1
 Content
@@ -541,12 +547,17 @@ Content
         assert len(error_results) == 0
 
         # Verify analyzer correctly counts directives (internal check)
+        # Note: Analyzer counts top-level directives only - nested tab-items are not counted separately
         analyzer = DirectiveAnalyzer()
         data = analyzer.analyze(site)
-        assert data["total_directives"] == 5
+        assert (
+            data["total_directives"] == 5
+        )  # 2 note + 1 tip + 1 tab-set + 1 dropdown (nested tab-items not counted)
         assert data["by_type"]["note"] == 2
         assert data["by_type"]["tip"] == 1
-        assert data["by_type"]["tabs"] == 1
+        assert data["by_type"]["tab-set"] == 1
+        # tab-item is nested inside tab-set, so not counted separately by analyzer
+        assert data["by_type"].get("tab-item", 0) == 0
         assert data["by_type"]["dropdown"] == 1
 
 

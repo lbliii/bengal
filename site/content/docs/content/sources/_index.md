@@ -267,6 +267,6 @@ Remote loaders are lazy-loaded only when you import them.
 
 - **[Autodoc](./autodoc/)** — Generate API docs from Python, CLI commands, and OpenAPI specs
 
-## See Also
-
+:::{seealso}
 - [Content Collections](/docs/content/collections/) — Schema validation for any source
+:::

@@ -1,7 +1,8 @@
 # RFC: Versioned Documentation Support
 
-**Status**: Draft  
+**Status**: Ready for Review  
 **Created**: 2025-12-03  
+**Updated**: 2025-12-10  
 **Author**: AI Assistant + Lawrence Lane
 
 ---
@@ -25,6 +26,97 @@ Bengal currently has no built-in versioning support. Users must manually manage 
 4. **Selective versioning** - Only some sections may be versioned (e.g., `/docs/` but not `/blog/`)
 5. **Shared content** - Some pages shared across versions (changelog, migration guides)
 6. **SEO-friendly** - Canonical URLs, proper redirects, no duplicate content penalties
+7. **Cross-version linking** - Link to specific versions from any page
+
+---
+
+## Key Differentiators vs. Competitors
+
+Bengal's versioning approach provides unique advantages over existing tools:
+
+### 1. Shared Content (`_shared/`)
+
+**No competitor handles this well.** Bengal allows content like changelogs and migration guides to appear in all versions without duplication:
+
+```yaml
+shared:
+  - _shared/    # Included in ALL versions automatically
+```
+
+- **Docusaurus**: Must duplicate files per version
+- **MkDocs+Mike**: Each branch is completely isolated
+- **Sphinx+RTD**: Each branch is separate; no sharing mechanism
+
+### 2. Flexible Multi-Alias System
+
+Bengal supports **multiple named aliases**, not just "latest":
+
+```yaml
+aliases:
+  latest: v3
+  stable: v3
+  lts: v1
+  next: v4-beta
+```
+
+URLs: `/docs/latest/`, `/docs/stable/`, `/docs/lts/`, `/docs/next/`
+
+Docusaurus only supports `current` vs numbered versions with limited aliasing.
+
+### 3. Cross-Version Linking Syntax
+
+**Unique to Bengal.** Link to specific versions from any page:
+
+```markdown
+See the [v2 migration guide]([[v2:migration]]).
+For the latest API, see [[latest:api/reference]].
+```
+
+No competitor provides built-in cross-version linking syntax.
+
+### 4. Version-Aware Directives
+
+Built into Bengal's MyST rendering pipeline:
+
+```markdown
+:::{since}
+3.0
+:::
+
+:::{deprecated}
+2.0
+Use `new_function()` instead.
+:::
+
+:::{version-changed}
+version: 2.5
+The default timeout changed from 30s to 60s.
+:::
+```
+
+Docusaurus requires custom MDX components for this.
+
+### 5. No JavaScript Required
+
+Bengal is Python/Jinja-based. Teams without React/JS expertise can use full versioning without learning a new ecosystem.
+
+---
+
+## Competitive Comparison
+
+| Feature | **Bengal** | Docusaurus | MkDocs+Mike | Sphinx+RTD | Hugo |
+|---------|------------|------------|-------------|------------|------|
+| **Built-in versioning** | ✅ | ✅ | ❌ (plugin) | ❌ (platform) | ❌ |
+| **Shared content across versions** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Multiple aliases** (`latest`, `stable`, `lts`) | ✅ | ⚠️ limited | ✅ | ⚠️ | ❌ |
+| **Cross-version linking** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Version-aware directives** | ✅ | ⚠️ (MDX) | ❌ | ⚠️ | ❌ |
+| **Per-version banners** | ✅ | ✅ | ❌ | ✅ | ❌ |
+| **Local preview all versions** | ✅ | ✅ | ⚠️ | ❌ | N/A |
+| **Git branch mode** | ✅ | ❌ | ✅ | ✅ | N/A |
+| **CLI for versioning** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **No JS/React required** | ✅ | ❌ | ✅ | ✅ | ✅ |
+| **Canonical URL handling** | ✅ | ✅ | ❌ | ✅ | Manual |
 
 ---
 
@@ -50,27 +142,6 @@ versioned_sidebars/
 └── version-1.0-sidebars.json
 ```
 
-**Config:**
-```js
-// docusaurus.config.js
-module.exports = {
-  docs: {
-    lastVersion: 'current',
-    versions: {
-      current: { label: '3.0-next', path: 'next' },
-      '2.0': { label: '2.0', path: '2.0' },
-      '1.0': { label: '1.0 (LTS)', path: '1.0', banner: 'unmaintained' },
-    },
-  },
-};
-```
-
-**URLs:**
-- `/docs/` → Latest stable
-- `/docs/next/` → Unreleased
-- `/docs/2.0/intro` → Version 2.0
-- `/docs/1.0/intro` → Version 1.0
-
 **Pros:**
 - Built-in CLI: `npm run docusaurus docs:version 2.0`
 - Per-version sidebars
@@ -81,39 +152,15 @@ module.exports = {
 - Copies entire docs folder per version (disk space)
 - Complex folder structure
 - Opinionated about "next" vs "current"
+- **No shared content between versions**
+- **No cross-version linking**
+- Requires React/JS knowledge
 
 ---
 
 ### 2. MkDocs + Mike (External Tool)
 
 **Approach:** Each version is a separate build, deployed to version subfolder.
-
-**Structure:**
-```
-site/
-├── 1.0/
-│   ├── index.html
-│   └── ...
-├── 2.0/
-│   ├── index.html
-│   └── ...
-├── latest/              # Symlink or redirect to 2.0
-└── versions.json
-```
-
-**Workflow:**
-```bash
-# Build and deploy version 1.0
-mike deploy 1.0
-
-# Build and deploy version 2.0 and set as latest
-mike deploy 2.0 latest --update-aliases
-
-# List versions
-mike list
-# 2.0 [latest]
-# 1.0
-```
 
 **Pros:**
 - Simple mental model (separate builds)
@@ -122,29 +169,15 @@ mike list
 
 **Cons:**
 - External tool (not built into MkDocs)
-- No content sharing between versions
+- **No content sharing between versions**
 - Each version is full rebuild
+- No local preview of version switching
 
 ---
 
 ### 3. Sphinx + Read the Docs (Platform)
 
 **Approach:** Platform handles versioning via Git branches/tags.
-
-**Config:**
-```yaml
-# .readthedocs.yaml
-version: 2
-build:
-  os: ubuntu-22.04
-  tools:
-    python: "3.11"
-```
-
-**How it works:**
-- Each Git branch/tag = one version
-- RTD builds each automatically
-- Version selector injected by platform
 
 **Pros:**
 - Zero config in Sphinx itself
@@ -155,258 +188,35 @@ build:
 - Requires Read the Docs platform
 - No local preview of version switching
 - Tied to their infrastructure
+- **No shared content**
 
 ---
 
-### 4. Astro Starlight (Built-in Plugin)
+### 4. Hugo
 
-**Structure:**
-```
-src/content/docs/
-├── guides/
-│   └── getting-started.md
-├── v1/
-│   └── guides/
-│       └── getting-started.md
-```
-
-**Config:**
-```ts
-// astro.config.mjs
-export default defineConfig({
-  integrations: [
-    starlight({
-      versions: {
-        root: { label: 'v2 (Latest)' },
-        v1: { label: 'v1' },
-      },
-    }),
-  ],
-});
-```
-
-**Pros:**
-- Clean integration with Astro
-- Shared components across versions
-- Type-safe config
-
-**Cons:**
-- Relatively new, less battle-tested
-- Astro-specific
+Hugo has **no built-in versioning support**. Teams must manually manage version folders or use external tools.
 
 ---
 
-### 5. VuePress/VitePress (Community Plugins)
+## Recommended Design: Option D (Hybrid)
 
-**Approach:** Plugins like `vuepress-plugin-versioning`
+Combine folder-based with smart features for the best balance of simplicity and power.
 
-**Structure:**
-```
-docs/
-├── 1.x/
-│   └── guide.md
-├── 2.x/
-│   └── guide.md
-└── guide.md              # Latest
-```
+### Quick Start (80% of use cases)
 
-**Pros:**
-- Flexible plugin architecture
-- Community-driven
-
-**Cons:**
-- No official solution
-- Plugin quality varies
-- Breaking changes between versions
-
----
-
-### 6. GitBook (Platform)
-
-**Approach:** Platform feature, Git sync per "space"
-
-- Each "space" can have multiple variants/versions
-- Managed entirely through GitBook UI
-- Sync from Git branches
-
-**Pros:**
-- No config needed
-- Beautiful UI
-- Team collaboration
-
-**Cons:**
-- Proprietary platform
-- $$$ for teams
-- Lock-in
-
----
-
-## Comparison Matrix
-
-| Feature | Docusaurus | MkDocs+Mike | Sphinx+RTD | Starlight | GitBook |
-|---------|------------|-------------|------------|-----------|---------|
-| Built-in | ✅ | ❌ (plugin) | ❌ (platform) | ✅ | ✅ (platform) |
-| Git branch = version | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Folder = version | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Shared content | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Per-version sidebar | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Version banners | ✅ | ❌ | ✅ | ✅ | ✅ |
-| "Latest" alias | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Local preview | ✅ | ⚠️ | ❌ | ✅ | ❌ |
-| CLI for versioning | ✅ | ✅ | ❌ | ❌ | ❌ |
-
----
-
-## Proposed Options for Bengal
-
-### Option A: Folder-Based Versioning (Docusaurus-style)
-
-**Structure:**
-```
-site/content/
-├── docs/
-│   ├── _index.md           # Latest (v3)
-│   └── guide.md
-├── docs-v2/
-│   ├── _index.md
-│   └── guide.md
-├── docs-v1/
-│   ├── _index.md
-│   └── guide.md
-└── blog/                    # Not versioned
-```
-
-**Config:**
 ```yaml
-# bengal.yaml
+# bengal.yaml - Minimal config
 versioning:
   enabled: true
-  root: docs                 # Which section is versioned
-  versions:
-    - id: v3
-      path: docs
-      label: "3.0 (Latest)"
-      aliases: [latest]
-    - id: v2
-      path: docs-v2
-      label: "2.0"
-    - id: v1
-      path: docs-v1
-      label: "1.0 (LTS)"
-      banner: "This version is no longer maintained."
+  versions: [v3, v2, v1]  # Auto-discovers from _versions/ folders
 ```
 
-**URLs:**
-- `/docs/` → v3 (latest)
-- `/docs/latest/guide/` → Redirect to `/docs/guide/`
-- `/docs/v2/guide/` → v2 guide
-- `/docs/v1/guide/` → v1 guide
+Bengal auto-discovers:
+- `docs/` → v3 (latest, since it's first)
+- `_versions/v2/docs/` → v2
+- `_versions/v1/docs/` → v1
 
-**Pros:**
-- All content in one repo
-- Easy local preview
-- Works with existing Bengal architecture
-
-**Cons:**
-- Disk space (duplicate content)
-- No automatic version creation
-
----
-
-### Option B: Frontmatter-Driven Versioning
-
-**Structure:**
-```
-site/content/docs/
-├── v3/
-│   ├── _index.md           # version: v3
-│   └── guide.md
-├── v2/
-│   ├── _index.md           # version: v2
-│   └── guide.md
-└── _shared/                 # Shared across versions
-    └── changelog.md
-```
-
-**Frontmatter:**
-```yaml
----
-title: Getting Started
-version: v3
-version_label: "3.0 (Latest)"
----
-```
-
-**Config:**
-```yaml
-# bengal.yaml
-versioning:
-  enabled: true
-  discover: frontmatter      # Or "folder"
-  latest: v3
-  aliases:
-    latest: v3
-  shared_paths:
-    - docs/_shared
-```
-
-**Pros:**
-- Flexible (frontmatter OR folder)
-- Shared content support
-- Version metadata per-page
-
-**Cons:**
-- More complex discovery
-- Frontmatter duplication
-
----
-
-### Option C: Git Branch Versioning (Mike-style)
-
-**Approach:** Each version is a separate Git branch, Bengal builds all branches.
-
-**Config:**
-```yaml
-# bengal.yaml
-versioning:
-  mode: git-branches
-  branches:
-    - branch: main
-      version: v3
-      label: "3.0 (Latest)"
-      aliases: [latest]
-    - branch: v2.x
-      version: v2
-      label: "2.0"
-    - branch: v1.x
-      version: v1
-      label: "1.0 (LTS)"
-```
-
-**CLI:**
-```bash
-# Build all versions
-bengal build --all-versions
-
-# Build specific version
-bengal build --version v2
-```
-
-**Pros:**
-- Git-native workflow
-- Clean separation
-- Works with existing release workflows
-
-**Cons:**
-- Can't preview all versions locally easily
-- Complex build orchestration
-- Cherry-picking fixes across branches
-
----
-
-### Option D: Hybrid (Recommended)
-
-**Combine folder-based with smart features:**
+### Full Configuration
 
 **Structure:**
 ```
@@ -420,7 +230,9 @@ site/content/
 │   └── v1/
 │       └── docs/
 └── _shared/
-    └── changelog.md         # Included in all versions
+    ├── changelog.md         # Included in all versions
+    └── migration/
+        └── v2-to-v3.md
 ```
 
 **Config:**
@@ -449,13 +261,13 @@ versioning:
         type: warning
         message: "You're viewing docs for an older version."
 
-  # Aliases
+  # Multiple aliases (unique to Bengal)
   aliases:
     latest: v3
     stable: v3
     lts: v1
 
-  # Shared content (included in all versions)
+  # Shared content (unique to Bengal)
   shared:
     - _shared/
 
@@ -463,6 +275,11 @@ versioning:
   urls:
     latest_redirect: true    # /docs/latest/* → /docs/*
     version_prefix: true     # /docs/v2/* for older versions
+
+  # SEO
+  seo:
+    canonical_to_latest: true
+    noindex_older_than: null  # Or "v1" to noindex v1
 ```
 
 **Generated URLs:**
@@ -473,106 +290,224 @@ versioning:
 /docs/v2/guide/              # v2 guide
 /docs/v1/                    # v1 index
 /docs/latest/guide/          # Redirects to /docs/guide/
+/docs/lts/guide/             # Redirects to /docs/v1/guide/
 ```
 
-**Features:**
-1. **Version selector component** - Template function/partial
-2. **Version banners** - Automatic "old version" warnings
-3. **Canonical URLs** - Point to latest for SEO
-4. **Sitemap** - Includes all versions with proper priority
-5. **robots.txt** - Optional noindex for old versions
+---
+
+## Cross-Version Linking Syntax
+
+**Syntax:** `[[version:path]]`
+
+```markdown
+# In any page
+See the [previous guide]([[v2:getting-started]]).
+Check the [latest API reference]([[latest:api/reference]]).
+The [LTS documentation]([[lts:overview]]) is also available.
+```
+
+**Rules:**
+- `[[v2:path]]` → `/docs/v2/path/`
+- `[[latest:path]]` → `/docs/path/` (resolves alias)
+- `[[lts:path]]` → `/docs/v1/path/` (resolves alias)
+- Relative links within a version stay in that version
+- Broken cross-version links flagged during build
+
+---
+
+## Version-Aware Directives
+
+```markdown
+:::{since}
+3.0
+:::
+
+:::{deprecated}
+2.0
+Use `new_api()` instead.
+:::
+
+:::{version-changed}
+version: 2.5
+The default timeout changed from 30s to 60s.
+:::
+
+:::{version-note}
+This feature behaves differently in v1. See [[v1:quirks]].
+:::
+```
+
+**Rendering:**
+- `:::{since}` → Badge: "New in 3.0"
+- `:::{deprecated}` → Warning box with deprecation notice
+- `:::{version-changed}` → Info box with change description
+
+---
+
+## Version Selector Component
+
+Bengal ships a default version selector partial. Themes can override.
+
+**Default partial:** `partials/version-selector.html`
+
+```html
+{# themes/default/partials/version-selector.html #}
+<div class="version-selector">
+  <select onchange="window.location.href=this.value">
+    {% for v in versions %}
+    <option value="{{ v.url }}" {% if v.current %}selected{% endif %}>
+      {{ v.label }}{% if v.latest %} (Latest){% endif %}
+    </option>
+    {% endfor %}
+  </select>
+</div>
+```
+
+**Template data available:**
+```python
+# In templates
+{{ versions }}         # List of all versions
+{{ current_version }}  # Current version object
+{{ is_latest }}        # Boolean
+{{ version_banner }}   # Banner HTML if configured
+```
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Foundation
-- [ ] Version config schema
-- [ ] Discovery: find versioned content
+### Phase 1: Foundation (MVP)
+- [ ] Version config schema with validation
+- [ ] Discovery: find versioned content from folders
 - [ ] URL generation with version prefixes
 - [ ] Basic version selector data for templates
+- [ ] Default `version-selector.html` partial
 
 ### Phase 2: Core Features
+- [ ] CLI: `bengal version create v4` (snapshot current docs)
+- [ ] CLI: `bengal version list`
 - [ ] "Latest" alias and redirects
+- [ ] Multiple alias support (`latest`, `stable`, `lts`)
 - [ ] Version banners (frontmatter + auto)
-- [ ] Shared content across versions
+- [ ] Shared content across versions (`_shared/`)
 - [ ] Per-version menus
 
-### Phase 3: Polish
-- [ ] CLI: `bengal version create v4`
-- [ ] CLI: `bengal version list`
+### Phase 3: Cross-Version & SEO
+- [ ] Cross-version linking syntax `[[v2:path]]`
+- [ ] Version-aware directives (`:::{since}`, `:::{deprecated}`)
 - [ ] Canonical URL generation
 - [ ] Sitemap with version awareness
+- [ ] Per-version redirect maps (for renamed pages)
 - [ ] Search integration (per-version or unified)
 
-### Phase 4: Advanced
-- [ ] Git branch mode (optional)
+### Phase 4: Git Integration & Advanced
+- [ ] Git branch mode (optional): build from multiple branches
 - [ ] Version diffing ("What changed in v3?")
-- [ ] Auto-migration guides
+- [ ] Auto-migration guide generation
 - [ ] API version detection from OpenAPI specs
 
 ---
 
-## Open Questions
+## Design Decisions
 
-1. **How to handle cross-version links?**
-   - `[[v2:docs/guide]]` syntax?
-   - Or relative within version, absolute to cross?
+### 1. Cross-version links: `[[v2:docs/guide]]` syntax
 
-2. **Should old versions be noindexed by default?**
-   - Prevents SEO dilution
-   - But users may search for old version docs
+**Decision:** Yes, implement cross-version linking syntax.
 
-3. **How to handle version in development server?**
-   - Serve all versions? (slow)
-   - Serve one + version selector? (faster)
+**Rationale:** No competitor offers this. It's a clear differentiator and solves a real problem (linking to specific version docs from migration guides, changelogs, etc.).
 
-4. **Where does version selector live?**
-   - Theme responsibility?
-   - Bengal provides data, theme renders?
+### 2. Should old versions be noindexed by default?
 
-5. **How to handle breaking URL changes between versions?**
-   - Page renamed in v3 but exists in v2
-   - Redirect map per version?
+**Decision:** No. Index all versions by default.
+
+**Rationale:** Users legitimately search for old version docs. Provide easy opt-in via config:
+```yaml
+seo:
+  noindex_older_than: v1  # Only noindex v1 and older
+```
+
+### 3. Dev server: serve all versions or one?
+
+**Decision:** Serve current version by default + version selector. Flag for all.
+
+**Commands:**
+```bash
+bengal serve                    # Serves latest, version selector works
+bengal serve --version v2       # Serves specific version
+bengal serve --all-versions     # Serves all (slower startup)
+```
+
+### 4. Where does version selector live?
+
+**Decision:** Bengal provides data + default partial. Theme can override.
+
+- Bengal always provides `versions` and `current_version` in template context
+- Ships `partials/version-selector.html` in default theme
+- Themes override by providing their own partial
+
+### 5. Breaking URL changes between versions?
+
+**Decision:** Support per-version redirect maps.
+
+```yaml
+# _versions/v2/redirects.yaml
+redirects:
+  old-guide: new-guide
+  api/old-endpoint: api/new-endpoint
+```
+
+Bengal generates redirects during build.
 
 ---
 
-## Recommendation
+## Why This Beats Docusaurus
 
-**Start with Option D (Hybrid)** because:
+| Pain Point | Docusaurus | Bengal |
+|------------|------------|--------|
+| Shared changelog across versions | Copy to each version folder | `_shared/changelog.md` auto-included |
+| Link to v2 docs from v3 migration guide | Manual relative paths, breaks easily | `[[v2:api/reference]]` |
+| "Added in v2.1" badges | Custom MDX component | Built-in `:::{since}` directive |
+| Team doesn't know React | Steep learning curve | Python/Jinja (familiar to most) |
+| Multiple aliases (`lts`, `stable`) | Limited, workarounds needed | First-class support |
 
-1. **Folder-based** is simpler than Git branches for most users
-2. **Shared content** is a real need (changelog, migration)
-3. **Aliases** (`latest`, `stable`) are essential for linking
-4. **Version banners** prevent user confusion
-5. **Incremental** - Can add Git branch mode later
+---
 
-The renderer state pattern we just implemented would be useful here:
-```python
-# During build, set version context on renderer
-self._shared_renderer._version = current_version
-self._shared_renderer._all_versions = versions_config
+## Quick Reference
+
+**Minimal setup:**
+```yaml
+versioning:
+  enabled: true
+  versions: [v3, v2, v1]
 ```
 
-This enables version-aware directives:
+**Link to other versions:**
 ```markdown
-:::{version-note}
-This feature was added in v2.1.
-:::
+See [[v2:getting-started]] for the old guide.
+```
 
+**Mark new features:**
+```markdown
 :::{since}
 3.0
 :::
+```
+
+**CLI:**
+```bash
+bengal version create v4    # Snapshot current docs as v4
+bengal version list         # Show all versions
+bengal serve --version v2   # Preview specific version
 ```
 
 ---
 
 ## Next Steps
 
-1. **Feedback** on this RFC
-2. **Prototype** Phase 1 (config + discovery)
-3. **Design** version selector component
-4. **Test** with real multi-version docs
+1. ✅ RFC reviewed and updated
+2. **Prototype** Phase 1 (config + discovery + default partial)
+3. **Test** with Bengal's own site (version the docs!)
+4. **Implement** Phase 2 (CLI + aliases + shared content)
 
 ---
 

@@ -2,8 +2,6 @@
 Test checklist directive with new options: style, show-progress, compact.
 """
 
-import pytest
-
 
 class TestChecklistDirective:
     """Test the checklist directive rendering."""
@@ -235,4 +233,3 @@ class TestChecklistWithNamedClosers:
         assert "checklist-numbered" in result
         assert "checklist-progress" in result
         assert "1/2 complete" in result
-

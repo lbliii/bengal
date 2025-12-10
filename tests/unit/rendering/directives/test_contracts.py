@@ -231,14 +231,6 @@ class TestValidateParent:
 
         assert violations == []
 
-        violations = ContractValidator.validate_parent(
-            contract=TAB_ITEM_CONTRACT,
-            directive_type="tab_item",
-            parent_type="legacy_tabs",
-        )
-
-        assert violations == []
-
 
 # =============================================================================
 # ContractValidator.validate_children Tests
@@ -427,7 +419,6 @@ class TestPresetContracts:
     def test_tab_item_contract(self) -> None:
         """Test TAB_ITEM_CONTRACT configuration."""
         assert "tab_set" in TAB_ITEM_CONTRACT.requires_parent
-        assert "legacy_tabs" in TAB_ITEM_CONTRACT.requires_parent
 
     def test_cards_contract(self) -> None:
         """Test CARDS_CONTRACT configuration."""

@@ -42,6 +42,8 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 - Basic knowledge of Markdown and YAML/TOML
 :::
 
+## Steps
+
 :::{steps}
 :::{step} Create Your Bengal Site
 :description: Initialize a fresh Bengal project as your migration destination.
@@ -139,7 +141,7 @@ draft: false  # published: true → draft: false
 ```
 
 **Key differences:**
-- `layout` → `type` in Bengal
+- `layout` → `type` in Bengal (see [[docs/content/component-model#type|Component Model: Type]])
 - `published: true` → `draft: false`
 - `categories` → `category` (use first category)
 - Date format: Convert to ISO format
@@ -408,7 +410,8 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 
 ## Troubleshooting
 
-### Common Issues
+:::{dropdown} Common Issues
+:icon: alert
 
 **Frontmatter parsing errors:**
 
@@ -441,12 +444,15 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 - Check image paths in content (use relative paths)
 - Ensure asset references match Bengal's structure
 :::
+:::
 
-### Getting Help
+:::{dropdown} Getting Help
+:icon: question
 
 - Check [[docs/content/organization|Content Organization]] for structure details
 - Review [[docs/building/configuration|Configuration]] for config options
 - See [[docs/get-started|Get Started]] for basics
+:::
 
 ## Next Steps
 

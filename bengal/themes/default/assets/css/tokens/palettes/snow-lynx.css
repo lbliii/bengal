@@ -39,7 +39,7 @@ html[data-palette="snow-lynx"] {
     --color-text-muted: #AFA9A1;
     --color-text-inverse: #FFFFFF;
     --color-text-link: #4FA8A0;
-    --color-link-hover: #3D9287;
+    --color-text-link-hover: #3D9287;
 
     /* Borders (subtle warmth against clean white) */
     --color-border: #E8E4DD;
@@ -93,6 +93,7 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-primary-active: #55B5AC;
     --color-primary-light: rgba(110, 196, 188, 0.18);
     --color-primary-dark: #3C9B93;
+    --color-primary-muted: rgba(110, 196, 188, 0.25);
 
     /* Dark backgrounds with cool ash-gray tint (less warm, more snow/ice) */
     --color-bg-primary: #18191A;
@@ -103,11 +104,19 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-bg-active: #454850;
     --color-bg-code: #252729;
 
+    /* Surface color for components */
+    --color-surface: #1E2022;
+
     /* Cool text colors for dark mode */
     --color-text-primary: #F5F5F3;
     --color-text-secondary: #C9C7C3;
     --color-text-tertiary: #9D9B97;
     --color-text-muted: #75736F;
+    /* Inverse text - dark for contrast against light teal primary */
+    --color-text-inverse: #18191A;
+    /* Links: Icy teal glow - matches theme */
+    --color-text-link: #6EC4BC;
+    --color-text-link-hover: #87D3CC;
 
     /* Cool borders for dark mode */
     --color-border: #3A3D40;

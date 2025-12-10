@@ -76,7 +76,7 @@ classDiagram
 :::
 
 :::{card} Portfolio
-:icon: grid
+:icon: layers
 **For visual showcases.**
 - URLs: `/projects/slug/`
 - Sort: Featured first
@@ -84,7 +84,7 @@ classDiagram
 :::
 
 :::{card} Landing
-:icon: layout
+:icon: compass
 **For marketing pages.**
 - URLs: `/` (Single page)
 - Layout: Section-based

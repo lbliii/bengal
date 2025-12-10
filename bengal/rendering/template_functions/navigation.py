@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from jinja2 import Environment
 
     from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
 
 
@@ -27,6 +28,15 @@ def register(env: Environment, site: Site) -> None:
             return []
         return combine_track_toc_items(track_items, get_page_func)
 
+    # Convenience wrappers for section lookups
+    def get_section_wrapper(path: str) -> Section | None:
+        """Wrapper with site closure."""
+        return get_section(path, site)
+
+    def section_pages_wrapper(path: str, recursive: bool = False) -> list[Page]:
+        """Wrapper with site closure."""
+        return section_pages(path, site, recursive)
+
     env.globals.update(
         {
             "get_breadcrumbs": get_breadcrumbs,
@@ -35,8 +45,63 @@ def register(env: Environment, site: Site) -> None:
             "get_nav_tree": get_nav_tree,
             "get_auto_nav": lambda: get_auto_nav(site),
             "combine_track_toc": combine_track_toc_with_get_page,
+            "get_section": get_section_wrapper,
+            "section_pages": section_pages_wrapper,
         }
     )
+
+
+def get_section(path: str, site: Site) -> Section | None:
+    """
+    Get a section by its path.
+
+    Convenience wrapper around site.get_section_by_path() with
+    path normalization.
+
+    Args:
+        path: Section path (e.g., 'docs', 'blog/tutorials')
+        site: Site instance
+
+    Returns:
+        Section object if found, None otherwise
+
+    Example:
+        {% set docs = get_section('docs') %}
+        {% if docs %}
+          {% for page in docs.pages | sort_by('weight') %}
+            <a href="{{ page.url }}">{{ page.title }}</a>
+          {% endfor %}
+        {% endif %}
+    """
+    if not path:
+        return None
+    normalized = path.strip("/").replace("\\", "/")
+    return site.get_section_by_path(normalized)
+
+
+def section_pages(path: str, site: Site, recursive: bool = False) -> list[Page]:
+    """
+    Get pages in a section.
+
+    Convenience function combining get_section() with pages access.
+
+    Args:
+        path: Section path (e.g., 'docs', 'blog')
+        site: Site instance
+        recursive: Include pages from subsections (default: False)
+
+    Returns:
+        List of pages (empty if section not found)
+
+    Example:
+        {% for page in section_pages('docs') | sort_by('weight') %}
+          <a href="{{ page.url }}">{{ page.title }}</a>
+        {% endfor %}
+    """
+    section = get_section(path, site)
+    if not section:
+        return []
+    return list(section.get_all_pages(recursive=True)) if recursive else list(section.pages)
 
 
 def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:

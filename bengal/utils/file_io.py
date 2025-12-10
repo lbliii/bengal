@@ -8,7 +8,7 @@ throughout the codebase.
 Example:
 
 ```python
-from bengal.utils.file_io import read_text_file, load_json, load_yaml
+from bengal.utils.file_io import read_text_file, load_json, load_yaml, rmtree_robust
 
 # Read text file with encoding fallback
 content = read_text_file(path, fallback_encoding='latin-1')
@@ -18,12 +18,20 @@ data = load_json(path, on_error='return_empty')
 
 # Auto-detect and load data file
 data = load_data_file(path)  # Works for .json, .yaml, .toml
+
+# Robust directory removal (handles macOS quirks)
+rmtree_robust(Path('/path/to/dir'))
 ```
 """
 
 from __future__ import annotations
 
+import errno
 import json
+import platform
+import shutil
+import subprocess
+import time
 from pathlib import Path
 from typing import Any, cast
 
@@ -558,3 +566,167 @@ def write_json(
             "json_serialize_error", path=str(file_path), error=str(e), caller=caller or "file_io"
         )
         raise
+
+
+# =============================================================================
+# Directory Operations
+# =============================================================================
+
+# Retry delay multiplier for transient filesystem errors
+_RETRY_DELAY_BASE = 0.1  # seconds
+
+
+def _remove_hidden_files(dir_path: Path) -> int:
+    """
+    Remove macOS hidden files that may prevent directory deletion.
+
+    Targets .DS_Store, ._* files, and other dotfiles that macOS creates
+    and can interfere with shutil.rmtree.
+
+    Args:
+        dir_path: Directory to clean hidden files from
+
+    Returns:
+        Number of hidden files removed
+    """
+    removed = 0
+    for hidden in dir_path.rglob(".*"):
+        try:
+            if hidden.is_file():
+                hidden.unlink(missing_ok=True)
+                removed += 1
+            elif hidden.is_dir():
+                shutil.rmtree(hidden, ignore_errors=True)
+                removed += 1
+        except OSError as e:
+            logger.debug(
+                "hidden_file_removal_failed",
+                path=str(hidden),
+                error=str(e),
+            )
+    return removed
+
+
+def rmtree_robust(
+    path: Path,
+    max_retries: int = 3,
+    caller: str | None = None,
+) -> None:
+    """
+    Remove directory tree with robust error handling for filesystem quirks.
+
+    On macOS, shutil.rmtree can fail with Errno 66 (Directory not empty)
+    due to race conditions with Spotlight indexing, Finder metadata files
+    (.DS_Store, ._*), or other processes briefly accessing the directory.
+
+    Strategy:
+        1. Try normal shutil.rmtree
+        2. On ENOTEMPTY, remove hidden files (.DS_Store, ._*) and retry
+        3. Fall back to subprocess `rm -rf` on macOS as last resort
+
+    Args:
+        path: Directory to remove
+        max_retries: Number of retry attempts (default 3)
+        caller: Caller identifier for logging
+
+    Raises:
+        OSError: If deletion fails after all retries
+        FileNotFoundError: If path does not exist
+
+    Examples:
+        >>> rmtree_robust(Path('/path/to/output'))
+        >>> rmtree_robust(Path('.bengal'), max_retries=5)
+    """
+    caller = caller or "file_io"
+
+    if not path.exists():
+        logger.debug("rmtree_path_not_exists", path=str(path), caller=caller)
+        return
+
+    for attempt in range(max_retries):
+        try:
+            shutil.rmtree(path)
+            logger.debug(
+                "rmtree_success",
+                path=str(path),
+                attempt=attempt + 1,
+                caller=caller,
+            )
+            return
+
+        except OSError as e:
+            # Errno 66 (ENOTEMPTY) on macOS, Errno 39 (ENOTEMPTY) on Linux
+            is_not_empty = e.errno in (errno.ENOTEMPTY, 66, 39)
+
+            if not is_not_empty:
+                # Different error - don't retry
+                logger.error(
+                    "rmtree_failed",
+                    path=str(path),
+                    error=str(e),
+                    errno=e.errno,
+                    caller=caller,
+                )
+                raise
+
+            logger.debug(
+                "rmtree_retry",
+                path=str(path),
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                error=str(e),
+                caller=caller,
+            )
+
+            # Try removing hidden files before retrying
+            hidden_removed = _remove_hidden_files(path)
+            if hidden_removed > 0:
+                logger.debug(
+                    "rmtree_hidden_removed",
+                    path=str(path),
+                    count=hidden_removed,
+                    caller=caller,
+                )
+
+            # Brief delay to let filesystem operations settle
+            time.sleep(_RETRY_DELAY_BASE * (attempt + 1))
+
+            # Not last attempt - continue to retry
+            if attempt < max_retries - 1:
+                continue
+
+            # Last resort on macOS: use rm -rf
+            if platform.system() == "Darwin":
+                logger.debug(
+                    "rmtree_fallback_rm",
+                    path=str(path),
+                    caller=caller,
+                )
+                result = subprocess.run(
+                    ["rm", "-rf", str(path)],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    logger.debug(
+                        "rmtree_rm_success",
+                        path=str(path),
+                        caller=caller,
+                    )
+                    return
+
+                # rm -rf failed - include its stderr in error
+                logger.error(
+                    "rmtree_rm_failed",
+                    path=str(path),
+                    returncode=result.returncode,
+                    stderr=result.stderr.strip() if result.stderr else None,
+                    caller=caller,
+                )
+
+            # All retries exhausted - raise original error with context
+            raise OSError(
+                f"Failed to remove directory after {max_retries} attempts: {path}\n"
+                f"Last error: {e}\n"
+                f"Tip: Check for processes holding files open (lsof +D {path})"
+            ) from e

@@ -152,7 +152,7 @@ class GistDirective(BengalDirective):
             return (
                 f'<div class="gist-embed gist-error">\n'
                 f'  <p class="error">Gist Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Reference: <code>{self.escape_html(gist_ref)}</code></p>\n'
+                f"  <p>Reference: <code>{self.escape_html(gist_ref)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -331,7 +331,7 @@ class CodePenDirective(BengalDirective):
             return (
                 f'<div class="code-embed codepen code-error">\n'
                 f'  <p class="error">CodePen Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Reference: <code>{self.escape_html(pen_ref)}</code></p>\n'
+                f"  <p>Reference: <code>{self.escape_html(pen_ref)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -360,17 +360,17 @@ class CodePenDirective(BengalDirective):
 
         return (
             f'<div class="{class_str}" style="height: {height}px">\n'
-            f'  <iframe\n'
+            f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
             f'    style="width: 100%; height: 100%"\n'
-            f'    allowfullscreen\n'
+            f"    allowfullscreen\n"
             f'    loading="lazy"\n'
             f'    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"\n'
-            f'  ></iframe>\n'
-            f'  <noscript>\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
             f'    <p>See the Pen <a href="{pen_url}">{safe_title}</a> by {self.escape_html(username)} on CodePen.</p>\n'
-            f'  </noscript>\n'
+            f"  </noscript>\n"
             f"</div>\n"
         )
 
@@ -515,7 +515,7 @@ class CodeSandboxDirective(BengalDirective):
             return (
                 f'<div class="code-embed codesandbox code-error">\n'
                 f'  <p class="error">CodeSandbox Error: {self.escape_html(error)}</p>\n'
-                f'  <p>ID: <code>{self.escape_html(sandbox_id)}</code></p>\n'
+                f"  <p>ID: <code>{self.escape_html(sandbox_id)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -544,17 +544,17 @@ class CodeSandboxDirective(BengalDirective):
 
         return (
             f'<div class="{class_str}" style="height: {height}px">\n'
-            f'  <iframe\n'
+            f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
             f'    style="width: 100%; height: 100%; border: 0; border-radius: var(--radius-md, 8px); overflow: hidden"\n'
             f'    allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"\n'
             f'    sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"\n'
             f'    loading="lazy"\n'
-            f'  ></iframe>\n'
-            f'  <noscript>\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
             f'    <p>View on CodeSandbox: <a href="{sandbox_url}">{safe_title}</a></p>\n'
-            f'  </noscript>\n'
+            f"  </noscript>\n"
             f"</div>\n"
         )
 
@@ -694,7 +694,7 @@ class StackBlitzDirective(BengalDirective):
             return (
                 f'<div class="code-embed stackblitz code-error">\n'
                 f'  <p class="error">StackBlitz Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Project: <code>{self.escape_html(project_id)}</code></p>\n'
+                f"  <p>Project: <code>{self.escape_html(project_id)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -724,16 +724,15 @@ class StackBlitzDirective(BengalDirective):
 
         return (
             f'<div class="{class_str}" style="height: {height}px">\n'
-            f'  <iframe\n'
+            f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
             f'    style="width: 100%; height: 100%; border: 0; border-radius: var(--radius-md, 8px)"\n'
             f'    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"\n'
             f'    loading="lazy"\n'
-            f'  ></iframe>\n'
-            f'  <noscript>\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
             f'    <p>View on StackBlitz: <a href="{project_url}">{safe_title}</a></p>\n'
-            f'  </noscript>\n'
+            f"  </noscript>\n"
             f"</div>\n"
         )
-

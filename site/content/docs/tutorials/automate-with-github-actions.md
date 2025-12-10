@@ -37,6 +37,8 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site. Autom
 - A hosting provider account (GitHub Pages, Netlify, Vercel, etc.)
 - Basic knowledge of YAML
 
+## Steps
+
 :::{steps}
 :::{step} Basic Build Workflow
 Create `.github/workflows/build.yml`:
@@ -318,7 +320,8 @@ Create `vercel.json`:
 
 ## Troubleshooting
 
-### Build Failures
+:::{dropdown} Build Failures
+:icon: alert
 
 **Issue:** Build fails with "Command not found: bengal"
 
@@ -333,8 +336,10 @@ Create `vercel.json`:
 - Fix broken links: `bengal health check`
 - Fix template errors
 - Remove `--strict` flag temporarily to identify issues
+:::
 
-### Deployment Issues
+:::{dropdown} Deployment Issues
+:icon: alert
 
 **Issue:** Files not deploying
 
@@ -342,6 +347,7 @@ Create `vercel.json`:
 - Verify output directory: `public/`
 - Check build artifacts are uploaded
 - Verify deployment permissions
+:::
 
 ## Next Steps
 

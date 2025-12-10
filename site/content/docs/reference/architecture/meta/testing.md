@@ -27,7 +27,7 @@ Bengal maintains high code quality through a multi-layered testing strategy with
 
 ## Test Layers
 
-::::{cards}
+:::{cards}
 :columns: 3
 :gap: medium
 :variant: concept
@@ -40,17 +40,17 @@ Test individual classes/functions. Mock external deps.
 :::
 
 :::{card} Integration Tests
-:icon: git-merge
+:icon: recycle
 **Workflows** (`tests/integration/`)
 Test subsystem interactions and build flows. Verify cache.
 :::
 
 :::{card} Benchmarks
-:icon: activity
+:icon: zap
 **Performance** (`tests/performance/`)
 Measure speed on large sites. Catch regressions.
 :::
-::::
+:::{/cards}
 
 ## Quick Start
 

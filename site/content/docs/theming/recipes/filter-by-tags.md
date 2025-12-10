@@ -105,7 +105,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% endfor %}
 ```
 
-## See Also
-
+:::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
 - [Group by Category](/docs/theming/recipes/group-by-category/) — Organize filtered results
+:::

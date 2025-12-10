@@ -79,7 +79,8 @@ Bengal provides three URL properties with clear purposes:
 - Alias for `url` (same value)
 - Maintained for compatibility with existing themes
 
-**Example Usage:**
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Display URL (includes baseurl) #}
@@ -146,7 +147,7 @@ You can inspect available variables by printing them in a comment:
 `<!-- {{ page.metadata }} -->`
 :::
 
-## See Also
-
+:::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — Filter and function reference
 - [Templating](/docs/theming/templating/) — Template basics
+:::

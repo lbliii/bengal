@@ -167,6 +167,7 @@ class StepDirective(BengalDirective):
         Render individual step to HTML.
 
         Step titles are rendered as headings (h2/h3/h4) based on parent level.
+        Step markers are rendered as anchor links for direct navigation.
         Descriptions are rendered as lead-in text with special typography.
         Optional steps get a visual indicator.
         Duration is shown as a time estimate badge.
@@ -177,6 +178,10 @@ class StepDirective(BengalDirective):
         heading_level = attrs.get("heading_level", 2)
         optional = attrs.get("optional", False)
         duration = attrs.get("duration", "")
+        step_number = attrs.get("step_number", 1)
+
+        # Generate step ID from title or fallback to step number
+        step_id = self._slugify(title) if title else f"step-{step_number}"
 
         # Build class list
         classes = []
@@ -186,6 +191,12 @@ class StepDirective(BengalDirective):
             classes.append("step-optional")
 
         class_attr = f' class="{" ".join(classes)}"' if classes else ""
+
+        # Build step marker as anchor link
+        marker_html = (
+            f'<a class="step-marker" href="#{step_id}" '
+            f'aria-label="Step {step_number}">{step_number}</a>'
+        )
 
         # Build metadata line (optional badge + duration)
         metadata_html = ""
@@ -208,14 +219,19 @@ class StepDirective(BengalDirective):
             title_html = self._parse_inline_markdown(renderer, title)
             heading_tag = f"h{heading_level}"
             return (
-                f"<li{class_attr}>"
+                f'<li{class_attr} id="{step_id}">'
+                f"{marker_html}"
                 f'<{heading_tag} class="step-title">{title_html}</{heading_tag}>'
                 f"{metadata_html}"
                 f"{description_html}"
                 f"{text}</li>\n"
             )
 
-        return f"<li{class_attr}>{metadata_html}{description_html}{text}</li>\n"
+        return (
+            f'<li{class_attr} id="{step_id}">'
+            f"{marker_html}"
+            f"{metadata_html}{description_html}{text}</li>\n"
+        )
 
     @staticmethod
     def _parse_inline_markdown(renderer: Any, text: str) -> str:
@@ -241,6 +257,26 @@ class StepDirective(BengalDirective):
         text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
         text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
         return text
+
+    @staticmethod
+    def _slugify(text: str) -> str:
+        """
+        Convert text to URL-safe slug for anchor IDs.
+
+        Converts to lowercase, replaces spaces with hyphens,
+        removes non-alphanumeric characters except hyphens.
+        """
+        # Convert to lowercase and strip
+        slug = text.lower().strip()
+        # Replace spaces and underscores with hyphens
+        slug = re.sub(r"[\s_]+", "-", slug)
+        # Remove anything that isn't alphanumeric or hyphen
+        slug = re.sub(r"[^a-z0-9-]", "", slug)
+        # Collapse multiple hyphens
+        slug = re.sub(r"-+", "-", slug)
+        # Strip leading/trailing hyphens
+        slug = slug.strip("-")
+        return slug or "step"
 
 
 # =============================================================================
@@ -323,13 +359,14 @@ class StepsDirective(BengalDirective):
         """
         Build steps token from parsed components.
 
-        Injects heading_level into child step tokens for proper semantic HTML.
+        Injects heading_level and step_number into child step tokens for
+        proper semantic HTML and anchor link support.
         """
         # Detect parent heading level for semantic step titles
         heading_level = self._detect_heading_level(state)
 
-        # Inject heading_level into step children
-        children = self._inject_heading_level(children, heading_level)
+        # Inject heading_level and step_number into step children
+        children = self._inject_step_metadata(children, heading_level, options.start)
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -342,17 +379,22 @@ class StepsDirective(BengalDirective):
             children=children,
         )
 
-    def _inject_heading_level(self, children: list[Any], heading_level: int) -> list[Any]:
+    def _inject_step_metadata(
+        self, children: list[Any], heading_level: int, start: int
+    ) -> list[Any]:
         """
-        Inject heading_level into step tokens.
+        Inject heading_level and step_number into step tokens.
 
         This allows step titles to render as proper headings (h2/h3/h4)
-        based on the document structure.
+        and step markers to be anchor links with the correct number.
         """
         result: list[Any] = []
+        step_num = start
         for child in children:
             if isinstance(child, dict) and child.get("type") == "step":
                 child.setdefault("attrs", {})["heading_level"] = heading_level
+                child["attrs"]["step_number"] = step_num
+                step_num += 1
             result.append(child)
         return result
 

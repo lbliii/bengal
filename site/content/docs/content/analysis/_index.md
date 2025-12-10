@@ -36,7 +36,7 @@ flowchart LR
 
 ## Quick Start
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Graph
 ```bash
 bengal utils graph analyze --output graph.html
@@ -70,7 +70,7 @@ Identifies:
 - Underlinked valuable content
 - Navigation priorities
 :::
-::::
+:::{/tab-set}
 
 ## Use Cases
 
@@ -83,4 +83,3 @@ Identifies:
 :::{tip}
 **Start with graph analysis** to visualize your site structure. The visual output often reveals issues that metrics alone miss.
 :::
-

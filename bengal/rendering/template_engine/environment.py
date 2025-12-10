@@ -10,10 +10,10 @@ Related Modules:
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
-import tomllib
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
@@ -244,6 +244,8 @@ def create_jinja_environment(
         "lstrip_blocks": True,
         "bytecode_cache": bytecode_cache,
         "auto_reload": auto_reload,
+        # Enable 'do' extension for statement execution in templates (e.g., {% do list.append(x) %})
+        "extensions": ["jinja2.ext.do"],
     }
 
     if site.config.get("strict_mode", False):

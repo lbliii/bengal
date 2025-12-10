@@ -241,33 +241,39 @@ a {
     transform 0.05s ease-out;
 }
 
-/* External links (content only) */
+/* ============================================
+   EXTERNAL LINKS (Content Only)
+   Uses inline-flow positioning for consistent
+   icon placement across all edge cases.
+   ============================================ */
+
 :root {
   --external-link-icon-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
 }
 
-/* Primary: data-external attribute set by JavaScript */
-.prose a[data-external="true"],
-/* Fallback: explicit external rel attribute */
-.prose a[rel*="external"],
-/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-.prose a[target="_blank"][href^="http"] {
-  padding-right: 1.2em;
-  position: relative;
+/* External link selector (shared across all rules) */
+.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]),
+.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]),
+.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]) {
+  /* Inline-flex keeps icon attached to text, prevents orphaned icons */
+  display: inline;
 }
 
-/* Primary: data-external attribute set by JavaScript */
-.prose a[data-external="true"]::after,
-/* Fallback: explicit external rel attribute */
-.prose a[rel*="external"]::after,
-/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-.prose a[target="_blank"][href^="http"]::after {
+/* External link icon - inline flow, not absolute */
+.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after,
+.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after,
+.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon])::after {
   content: '';
   display: inline-block;
+  /* Icon size scales with text */
   width: 0.75em;
   height: 0.75em;
-  margin-left: 0.25em;
+  /* Tight left margin, no right margin - icon hugs text */
+  margin-left: 0.2em;
   margin-right: 0;
+  /* Flex-shrink prevents icon from being squished */
+  flex-shrink: 0;
+  /* Icon styling via mask */
   background-color: currentColor;
   -webkit-mask-image: var(--external-link-icon-mask-image);
   mask-image: var(--external-link-icon-mask-image);
@@ -277,23 +283,66 @@ a {
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
+  /* Shorthand for older browsers */
   mask: var(--external-link-icon-mask-image) no-repeat center / contain;
   opacity: 0.6;
-  vertical-align: baseline;
-  position: absolute;
-  right: 0;
-  top: 0.1em;
+  /* Align icon with text baseline - slight offset for visual centering */
+  vertical-align: -0.1em;
+  /* Smooth hover transition */
   transition: opacity var(--transition-fast), transform var(--transition-fast);
+  /* Prevent icon from wrapping alone to next line */
+  white-space: nowrap;
 }
 
-/* Primary: data-external attribute set by JavaScript */
-.prose a[data-external="true"]:hover::after,
-/* Fallback: explicit external rel attribute */
-.prose a[rel*="external"]:hover::after,
-/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-.prose a[target="_blank"][href^="http"]:hover::after {
+/* Hover state - icon becomes more visible and animates */
+.prose a[data-external="true"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after,
+.prose a[rel*="external"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after,
+.prose a[target="_blank"][href^="http"]:not(.button):not(.btn):not(.card):not(.card-link):not([data-no-external-icon]):hover::after {
   opacity: 1;
   transform: translate(1px, -1px);
+}
+
+/* --- Edge Case Exclusions --- */
+
+/* Links containing only images - no icon needed */
+.prose a[data-external="true"]:has(> img:only-child)::after,
+.prose a[rel*="external"]:has(> img:only-child)::after,
+.prose a[target="_blank"][href^="http"]:has(> img:only-child)::after {
+  display: none;
+}
+
+/* Links in tables - use smaller icon to fit cells */
+.prose table a[data-external="true"]::after,
+.prose table a[rel*="external"]::after,
+.prose table a[target="_blank"][href^="http"]::after {
+  width: 0.65em;
+  height: 0.65em;
+  margin-left: 0.15em;
+}
+
+/* Links containing inline code - adjust spacing */
+.prose a[data-external="true"]:has(code)::after,
+.prose a[rel*="external"]:has(code)::after,
+.prose a[target="_blank"][href^="http"]:has(code)::after {
+  margin-left: 0.3em;
+}
+
+/* Tab/Accordion navigation links - never show external icon */
+.tab-nav a::after,
+.accordion-header a::after,
+.track-nav a::after,
+.breadcrumb a::after,
+.pagination a::after {
+  display: none !important;
+}
+
+/* Print: Hide icon, show URL instead (handled in print.css) */
+@media print {
+  .prose a[data-external="true"]::after,
+  .prose a[rel*="external"]::after,
+  .prose a[target="_blank"][href^="http"]::after {
+    display: none;
+  }
 }
 
 /* Anchor links (content only) */

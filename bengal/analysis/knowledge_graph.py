@@ -13,6 +13,14 @@ from typing import TYPE_CHECKING
 
 from bengal.analysis.graph_analysis import GraphAnalyzer
 from bengal.analysis.graph_reporting import GraphReporter
+from bengal.analysis.link_types import (
+    ConnectivityLevel,
+    ConnectivityReport,
+    LinkMetrics,
+    LinkType,
+    DEFAULT_THRESHOLDS,
+    DEFAULT_WEIGHTS,
+)
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 
@@ -124,6 +132,10 @@ class KnowledgeGraph:
         self.outgoing_refs: dict[Page, set[Page]] = defaultdict(set)  # page -> target pages
         # Note: page_by_id no longer needed - pages are directly hashable
 
+        # Semantic link tracking (NEW)
+        self.link_metrics: dict[Page, LinkMetrics] = {}  # page -> detailed link breakdown
+        self.link_types: dict[tuple[Page, Page], LinkType] = {}  # (source, target) -> link type
+
         # Analysis results
         self.metrics: GraphMetrics | None = None
         self._built = False
@@ -177,6 +189,13 @@ class KnowledgeGraph:
         self._analyze_taxonomies()
         self._analyze_related_posts()
         self._analyze_menus()
+
+        # Semantic link analysis (NEW) - track structural relationships
+        self._analyze_section_hierarchy()
+        self._analyze_navigation_links()
+
+        # Build link metrics for each page
+        self._build_link_metrics()
 
         # Compute metrics
         self.metrics = self._compute_metrics()
@@ -265,6 +284,8 @@ class KnowledgeGraph:
                 if target and target != page and target in analysis_pages_set:
                     self.incoming_refs[target] += 1  # Direct page reference
                     self.outgoing_refs[page].add(target)  # Direct page reference
+                    # Track link type
+                    self.link_types[(page, target)] = LinkType.EXPLICIT
 
     def _resolve_link(self, link: str) -> Page | None:
         """
@@ -325,6 +346,8 @@ class KnowledgeGraph:
                         # Each page in a taxonomy gets a small boost
                         # (exists in this conceptual grouping)
                         self.incoming_refs[page] += 1  # Direct page reference
+                        # Track link type (None source = taxonomy)
+                        self.link_types[(None, page)] = LinkType.TAXONOMY
 
     def _analyze_related_posts(self) -> None:
         """
@@ -347,6 +370,8 @@ class KnowledgeGraph:
                 if related != page and related in analysis_pages_set:
                     self.incoming_refs[related] += 1  # Direct page reference
                     self.outgoing_refs[page].add(related)  # Direct page reference
+                    # Track link type
+                    self.link_types[(page, related)] = LinkType.RELATED
 
     def _analyze_menus(self) -> None:
         """
@@ -369,6 +394,125 @@ class KnowledgeGraph:
                 if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
                     # Menu items get a significant boost (10 points)
                     self.incoming_refs[item.page] += 10  # Direct page reference
+                    # Track link type
+                    self.link_types[(None, item.page)] = LinkType.MENU
+
+    def _analyze_section_hierarchy(self) -> None:
+        """
+        Analyze implicit section links (parent _index.md → children).
+
+        Section index pages implicitly link to all child pages in their
+        directory. This represents topical containment—the parent page
+        defines the topic, children belong to that topic.
+
+        Weight: 0.5 (structural but semantically meaningful)
+        """
+        analysis_pages = self.get_analysis_pages()
+        analysis_pages_set = set(analysis_pages)
+
+        for page in analysis_pages:
+            # Only process index pages (detect by filename stem)
+            is_index = (
+                hasattr(page, "source_path")
+                and page.source_path.stem in ("_index", "index")
+            )
+            if not is_index:
+                continue
+
+            # Get the section this index belongs to via the _section property
+            section = getattr(page, "_section", None)
+            if not section:
+                continue
+
+            # Link to all child pages in this section
+            section_pages = getattr(section, "pages", [])
+            for child in section_pages:
+                if child != page and child in analysis_pages_set:
+                    # Topical link: parent defines topic, child belongs to it
+                    # Use reduced weight (0.5) compared to explicit links
+                    self.incoming_refs[child] += 0.5
+                    self.outgoing_refs[page].add(child)
+                    # Track link type
+                    self.link_types[(page, child)] = LinkType.TOPICAL
+
+        logger.debug(
+            "knowledge_graph_section_hierarchy_complete",
+            topical_links=sum(1 for lt in self.link_types.values() if lt == LinkType.TOPICAL),
+        )
+
+    def _analyze_navigation_links(self) -> None:
+        """
+        Analyze next/prev sequential relationships.
+
+        Pages in a section often have prev/next relationships representing
+        a reading order or logical sequence (e.g., tutorial steps, changelogs).
+
+        Weight: 0.25 (pure navigation, lowest editorial intent)
+        """
+        analysis_pages = self.get_analysis_pages()
+        analysis_pages_set = set(analysis_pages)
+
+        for page in analysis_pages:
+            # Check next_in_section
+            next_page = getattr(page, "next_in_section", None)
+            if next_page and next_page in analysis_pages_set:
+                self.incoming_refs[next_page] += 0.25
+                self.outgoing_refs[page].add(next_page)
+                self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
+
+            # Check prev_in_section (bidirectional)
+            prev_page = getattr(page, "prev_in_section", None)
+            if prev_page and prev_page in analysis_pages_set:
+                self.incoming_refs[prev_page] += 0.25
+                self.outgoing_refs[page].add(prev_page)
+                self.link_types[(page, prev_page)] = LinkType.SEQUENTIAL
+
+        logger.debug(
+            "knowledge_graph_navigation_links_complete",
+            sequential_links=sum(1 for lt in self.link_types.values() if lt == LinkType.SEQUENTIAL),
+        )
+
+    def _build_link_metrics(self) -> None:
+        """
+        Build detailed link metrics for each page.
+
+        Aggregates links by type into LinkMetrics objects for
+        weighted connectivity scoring.
+        """
+        analysis_pages = self.get_analysis_pages()
+
+        for page in analysis_pages:
+            metrics = LinkMetrics()
+
+            # Count links by type from link_types tracking
+            for (source, target), link_type in self.link_types.items():
+                if target == page:
+                    if link_type == LinkType.EXPLICIT:
+                        metrics.explicit += 1
+                    elif link_type == LinkType.MENU:
+                        metrics.menu += 1
+                    elif link_type == LinkType.TAXONOMY:
+                        metrics.taxonomy += 1
+                    elif link_type == LinkType.RELATED:
+                        metrics.related += 1
+                    elif link_type == LinkType.TOPICAL:
+                        metrics.topical += 1
+                    elif link_type == LinkType.SEQUENTIAL:
+                        metrics.sequential += 1
+
+            # Fallback: count untracked incoming refs as explicit
+            # (for backward compatibility with existing link tracking)
+            total_tracked = metrics.total_links()
+            total_incoming = int(self.incoming_refs[page])
+            untracked = max(0, total_incoming - total_tracked)
+            metrics.explicit += untracked
+
+            self.link_metrics[page] = metrics
+
+        logger.debug(
+            "knowledge_graph_link_metrics_built",
+            pages_with_metrics=len(self.link_metrics),
+        )
 
     def _compute_metrics(self) -> GraphMetrics:
         """
@@ -496,6 +640,91 @@ class KnowledgeGraph:
         if not self._built or self._analyzer is None:
             raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting orphans.")
         return self._analyzer.get_orphans()
+
+    def get_connectivity_report(
+        self,
+        thresholds: dict[str, float] | None = None,
+        weights: dict[LinkType, float] | None = None,
+    ) -> ConnectivityReport:
+        """
+        Get comprehensive connectivity report with pages grouped by level.
+
+        Uses weighted scoring based on semantic link types to provide
+        nuanced analysis beyond binary orphan detection.
+
+        Args:
+            thresholds: Custom thresholds for connectivity levels.
+                        Defaults to DEFAULT_THRESHOLDS.
+            weights: Custom weights for link types.
+                     Defaults to DEFAULT_WEIGHTS.
+
+        Returns:
+            ConnectivityReport with pages grouped by level and statistics.
+
+        Raises:
+            RuntimeError: If graph hasn't been built yet
+
+        Example:
+            >>> graph.build()
+            >>> report = graph.get_connectivity_report()
+            >>> print(f"Isolated: {len(report.isolated)}")
+            >>> print(f"Distribution: {report.get_distribution()}")
+        """
+        if not self._built:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting connectivity report."
+            )
+
+        t = thresholds or DEFAULT_THRESHOLDS
+        w = weights or DEFAULT_WEIGHTS
+
+        report = ConnectivityReport()
+        analysis_pages = self.get_analysis_pages()
+        total_score = 0.0
+
+        for page in analysis_pages:
+            metrics = self.link_metrics.get(page, LinkMetrics())
+            score = metrics.connectivity_score(w)
+            total_score += score
+
+            level = ConnectivityLevel.from_score(score, t)
+
+            if level == ConnectivityLevel.ISOLATED:
+                report.isolated.append(page)
+            elif level == ConnectivityLevel.LIGHTLY_LINKED:
+                report.lightly_linked.append(page)
+            elif level == ConnectivityLevel.ADEQUATELY_LINKED:
+                report.adequately_linked.append(page)
+            else:  # WELL_CONNECTED
+                report.well_connected.append(page)
+
+        report.total_pages = len(analysis_pages)
+        report.avg_score = total_score / len(analysis_pages) if analysis_pages else 0.0
+
+        # Sort each list by path for consistent output
+        for page_list in [report.isolated, report.lightly_linked, report.adequately_linked, report.well_connected]:
+            page_list.sort(key=lambda p: str(p.source_path))
+
+        return report
+
+    def get_page_link_metrics(self, page: Page) -> LinkMetrics:
+        """
+        Get detailed link metrics for a specific page.
+
+        Args:
+            page: Page to get metrics for
+
+        Returns:
+            LinkMetrics with breakdown by link type
+
+        Raises:
+            RuntimeError: If graph hasn't been built yet
+        """
+        if not self._built:
+            raise RuntimeError(
+                "KnowledgeGraph is not built. Call .build() before getting link metrics."
+            )
+        return self.link_metrics.get(page, LinkMetrics())
 
     def get_connectivity_score(self, page: Page) -> int:
         """

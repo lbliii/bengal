@@ -292,7 +292,7 @@ class YouTubeDirective(VideoDirective):
             return (
                 f'<div class="video-embed youtube video-error">\n'
                 f'  <p class="error">YouTube Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n'
+                f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -307,16 +307,16 @@ class YouTubeDirective(VideoDirective):
 
         return (
             f'<div class="{class_str}" data-aspect="{aspect}">\n'
-            f'  <iframe\n'
+            f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
             f'    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"\n'
-            f'    allowfullscreen\n'
+            f"    allowfullscreen\n"
             f'    loading="lazy"\n'
-            f'  ></iframe>\n'
-            f'  <noscript>\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
             f'    <p>Watch on YouTube: <a href="https://www.youtube.com/watch?v={video_id}">{safe_title}</a></p>\n'
-            f'  </noscript>\n'
+            f"  </noscript>\n"
             f"</div>\n"
         )
 
@@ -470,7 +470,7 @@ class VimeoDirective(VideoDirective):
             return (
                 f'<div class="video-embed vimeo video-error">\n'
                 f'  <p class="error">Vimeo Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n'
+                f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -485,16 +485,16 @@ class VimeoDirective(VideoDirective):
 
         return (
             f'<div class="{class_str}" data-aspect="{aspect}">\n'
-            f'  <iframe\n'
+            f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
             f'    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"\n'
-            f'    allowfullscreen\n'
+            f"    allowfullscreen\n"
             f'    loading="lazy"\n'
-            f'  ></iframe>\n'
-            f'  <noscript>\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
             f'    <p>Watch on Vimeo: <a href="https://vimeo.com/{video_id}">{safe_title}</a></p>\n'
-            f'  </noscript>\n'
+            f"  </noscript>\n"
             f"</div>\n"
         )
 
@@ -670,7 +670,7 @@ class SelfHostedVideoDirective(VideoDirective):
             return (
                 f'<div class="video-embed self-hosted video-error">\n'
                 f'  <p class="error">Video Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Path: <code>{self.escape_html(video_path)}</code></p>\n'
+                f"  <p>Path: <code>{self.escape_html(video_path)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -716,4 +716,3 @@ class SelfHostedVideoDirective(VideoDirective):
             f"  </video>\n"
             f"</figure>\n"
         )
-

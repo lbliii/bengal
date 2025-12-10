@@ -1357,11 +1357,11 @@ a.card:hover {
   display: inline-flex;
   align-items: center;
   margin-left: auto;
-  padding: 0.125rem 0.5rem;
-  font-size: var(--text-2xs);
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.5625rem;
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
+  letter-spacing: 0.025em;
   color: var(--color-text-inverse);
   background: var(--color-primary);
   border-radius: var(--radius-full);
@@ -1411,8 +1411,8 @@ a.card:hover {
   }
 
   .card-badge {
-    font-size: 0.625rem;
-    padding: 0.0625rem 0.375rem;
+    font-size: 0.5rem;
+    padding: 0.0625rem 0.3125rem;
   }
 }
 

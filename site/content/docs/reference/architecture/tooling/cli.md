@@ -44,9 +44,9 @@ keywords:
 - **Error Handling**: Beautiful tracebacks with context and locals
 - **Extensibility**: Easy to add new commands in separate modules
 
-## Core Commands
+## Core Commands {#commands}
 
-**Build Commands**:
+**Build Commands** {#build-commands}:
 ```bash
 # Basic build
 bengal build
@@ -67,7 +67,7 @@ bengal build --debug
 bengal build --incremental --verbose
 ```
 
-**Development Commands**:
+**Development Commands** {#serve-commands}:
 ```bash
 # Start development server with live reload
 bengal serve
@@ -96,27 +96,62 @@ bengal autodoc --stats --verbose
 
 **Graph Analysis Commands**:
 ```bash
-# Analyze site structure and connectivity
+# Top-level graph command group
 bengal graph
 
-# Show site structure as tree
-bengal graph --tree
+# Unified site analysis report
+bengal graph report
+bengal graph report --brief          # CI-friendly compact output
+bengal graph report --format json    # Export as JSON
 
-# Generate interactive visualization
-bengal graph --output public/graph.html
+# CI integration with thresholds
+bengal graph report --ci --threshold-isolated 5
+
+# Connectivity analysis by level
+bengal graph orphans                 # Show isolated pages (score < 0.25)
+bengal graph orphans --level lightly # Show lightly-linked pages
+bengal graph orphans --level all     # Show all under-linked pages
+bengal graph orphans --format json   # Export with detailed metrics
+
+# Analyze site structure and connectivity
+bengal graph analyze
+bengal graph analyze --tree          # Show site structure as tree
+bengal graph analyze --output public/graph.html  # Interactive viz
 
 # Compute PageRank scores
-bengal pagerank --top 20
+bengal graph pagerank --top 20
 
 # Detect topical communities
-bengal communities --min-size 3
+bengal graph communities --min-size 3
 
 # Find bridge pages (navigation bottlenecks)
-bengal bridges --top 10
+bengal graph bridges --top 10
 
 # Get link suggestions
-bengal suggest --min-score 0.5
+bengal graph suggest --min-score 0.5
+
+# Short aliases
+bengal g report                      # g → graph
+bengal analyze                       # Top-level alias for graph analyze
 ```
+
+**Example `bengal graph report` output:**
+```
+📊 Site Analysis Report
+================================================================================
+📈 Overview
+   Total pages:        124
+   Avg conn. score:    1.46
+
+🔗 Connectivity Distribution
+   🟢 Well-Connected:      39 pages (31.5%)
+   🟡 Adequately:          38 pages (30.6%)
+   🟠 Lightly Linked:      26 pages (21.0%)
+   🔴 Isolated:            21 pages (16.9%) ⚠️
+================================================================================
+```
+
+See [Graph Analysis Guide](/docs/content/analysis/graph/) for full documentation and [Tutorial](/docs/tutorials/analyze-site-connectivity/) for guided walkthrough.
 
 **Performance Commands**:
 ```bash
@@ -204,7 +239,9 @@ class BengalGroup(click.Group):
             raise
 ```
 
-**Example**:
+:::{example-label} Command Suggestion
+:::
+
 ```bash
 $ bengal bild
 Unknown command 'bild'.

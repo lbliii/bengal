@@ -39,7 +39,7 @@ html[data-palette="charcoal-bengal"] {
     --color-text-muted: #7D776F;
     --color-text-inverse: #FDFCFB;
     --color-text-link: #8B6914;
-    --color-link-hover: #6B5010;
+    --color-text-link-hover: #6B5010;
 
     /* Borders (warm grays - charcoal mask effect) */
     --color-border: #C9C5BF;
@@ -92,8 +92,9 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-primary: #C9C5BF;
     --color-primary-hover: #DDD9D4;
     --color-primary-active: #B5B0A8;
-    --color-primary-light: rgba(201, 197, 191, 0.15);
+    --color-primary-light: rgba(201, 197, 191, 0.20);
     --color-primary-dark: #9A958D;
+    --color-primary-muted: rgba(201, 197, 191, 0.25);
 
     /* Backgrounds (deep charcoal with warm undertones - the dark coat) */
     --color-bg-primary: #0C0B0A;
@@ -104,11 +105,19 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-bg-active: #302D28;
     --color-bg-code: #14130F;
 
+    /* Surface color for components */
+    --color-surface: #100F0D;
+
     /* Text (warm whites and silvers) */
     --color-text-primary: #F7F6F4;
     --color-text-secondary: #D4D0C9;
     --color-text-tertiary: #A09A91;
     --color-text-muted: #6B655C;
+    /* CRITICAL: Inverse text must be dark for contrast against light primary */
+    --color-text-inverse: #0C0B0A;
+    /* Links: Golden bronze glitter - matches accent theme */
+    --color-text-link: #C9A84D;
+    --color-text-link-hover: #D9BC6D;
 
     /* Borders (subtle warm definition) */
     --color-border: #302D28;

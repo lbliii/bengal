@@ -364,7 +364,7 @@ class CardDirective(BengalDirective):
         if icon or title or badge:
             parts.append('  <div class="card-header">')
             if icon:
-                rendered_icon = _render_icon(icon)
+                rendered_icon = _render_icon(icon, card_title=title)
                 if rendered_icon:
                     parts.append(
                         f'    <span class="card-icon" data-icon="{self.escape_html(icon)}">'
@@ -815,11 +815,25 @@ def _resolve_link_url(renderer: Any, link: str) -> str:
     return link
 
 
-def _render_icon(icon_name: str) -> str:
-    """Render icon using Bengal SVG icons."""
-    from bengal.rendering.plugins.directives._icons import render_icon
+def _render_icon(icon_name: str, card_title: str = "") -> str:
+    """
+    Render icon using Bengal SVG icons.
 
-    return render_icon(icon_name, size=20)
+    Args:
+        icon_name: Name of the icon to render
+        card_title: Title of the card (for warning context)
+
+    Returns:
+        SVG HTML string, or empty string if not found
+    """
+    from bengal.rendering.plugins.directives._icons import render_icon, warn_missing_icon
+
+    icon_html = render_icon(icon_name, size=20)
+
+    if not icon_html and icon_name:
+        warn_missing_icon(icon_name, directive="card", context=card_title)
+
+    return icon_html
 
 
 def _collect_children(section: Any, current_page: Any, include: str) -> list[dict[str, Any]]:
@@ -961,7 +975,7 @@ def _render_child_card(
     if icon or title:
         parts.append('  <div class="card-header">')
         if icon:
-            rendered_icon = _render_icon(icon)
+            rendered_icon = _render_icon(icon, card_title=title)
             if rendered_icon:
                 parts.append(f'    <span class="card-icon" data-icon="{escape_html(icon)}">')
                 parts.append(f"      {rendered_icon}")

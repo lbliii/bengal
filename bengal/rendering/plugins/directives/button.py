@@ -191,7 +191,7 @@ class ButtonDirective(BengalDirective):
         content_parts = []
 
         if icon:
-            rendered_icon = self._render_icon(icon)
+            rendered_icon = self._render_icon(icon, button_text=button_text)
             if rendered_icon:
                 content_parts.append(f'<span class="button-icon">{rendered_icon}</span>')
 
@@ -202,11 +202,25 @@ class ButtonDirective(BengalDirective):
         return f"<a {attrs_str}>{content_html}</a>\n"
 
     @staticmethod
-    def _render_icon(icon_name: str) -> str:
-        """Render icon for button using Bengal SVG icons."""
-        from bengal.rendering.plugins.directives._icons import render_icon
+    def _render_icon(icon_name: str, button_text: str = "") -> str:
+        """
+        Render icon for button using Bengal SVG icons.
 
-        return render_icon(icon_name, size=18)
+        Args:
+            icon_name: Name of the icon to render
+            button_text: Button text (for warning context)
+
+        Returns:
+            SVG HTML string, or empty string if not found
+        """
+        from bengal.rendering.plugins.directives._icons import render_icon, warn_missing_icon
+
+        icon_html = render_icon(icon_name, size=18)
+
+        if not icon_html and icon_name:
+            warn_missing_icon(icon_name, directive="button", context=button_text)
+
+        return icon_html
 
 
 # Backward compatibility

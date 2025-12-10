@@ -296,9 +296,8 @@ class Site(
         """
         Remove directory tree with retry logic for transient filesystem errors.
 
-        On macOS, shutil.rmtree can fail with Errno 66 (Directory not empty)
-        due to race conditions with Spotlight indexing, Finder metadata files,
-        or other processes briefly accessing the directory during deletion.
+        Delegates to bengal.utils.file_io.rmtree_robust for the actual
+        implementation. This method exists for backward compatibility.
 
         Args:
             path: Directory to remove
@@ -307,26 +306,9 @@ class Site(
         Raises:
             OSError: If deletion fails after all retries
         """
-        import errno
-        import time
+        from bengal.utils.file_io import rmtree_robust
 
-        for attempt in range(max_retries):
-            try:
-                shutil.rmtree(path)
-                return
-            except OSError as e:
-                # Errno 66 (ENOTEMPTY) on macOS, Errno 39 (ENOTEMPTY) on Linux
-                if e.errno in (errno.ENOTEMPTY, 66, 39) and attempt < max_retries - 1:
-                    # Brief delay to let filesystem operations settle
-                    time.sleep(0.1 * (attempt + 1))
-                    logger.debug(
-                        "rmtree_retry",
-                        path=str(path),
-                        attempt=attempt + 1,
-                        error=str(e),
-                    )
-                    continue
-                raise
+        rmtree_robust(path, max_retries=max_retries, caller="site")
 
     def reset_ephemeral_state(self) -> None:
         """

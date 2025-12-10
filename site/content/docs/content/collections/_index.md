@@ -181,6 +181,6 @@ collections = {
 
 See [Content Sources](/docs/content/sources/) for GitHub, Notion, REST API loaders.
 
-## See Also
-
+:::{seealso}
 - [Content Sources](/docs/content/sources/) — GitHub, Notion, REST API loaders
+:::

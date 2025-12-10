@@ -102,6 +102,8 @@ Description here
 :::{tab} Dropdowns
 ```markdown
 :::{dropdown} Click to expand
+:icon: info
+
 Hidden content here.
 :::
 ```
@@ -134,7 +136,7 @@ flowchart LR
 ```
 
 :::{tip}
-**Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed.
+**Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed. For visual elements, see the [Icon Reference](/docs/reference/icons/) for inline SVG icons.
 :::
 
 ## Variable Substitution

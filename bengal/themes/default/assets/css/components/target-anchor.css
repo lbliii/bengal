@@ -1,0 +1,45 @@
+/**
+ * Bengal SSG - Target Anchor Styles
+ *
+ * Invisible anchor elements created by the {target} directive.
+ * These enable stable cross-references to arbitrary locations.
+ *
+ * Related: bengal/rendering/plugins/directives/target.py
+ */
+
+/* ============================================
+   TARGET ANCHOR
+   ============================================
+   Invisible by default - only provides anchor point
+   with scroll offset for fixed headers.
+*/
+
+.target-anchor {
+  /* Invisible - no display impact */
+  display: inline-block;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+
+  /* Scroll offset for fixed header navigation */
+  scroll-margin-top: var(--space-20, 5rem);
+
+  /* Accessibility - still navigable */
+  position: relative;
+}
+
+/* Alternative: block display for more precise positioning */
+.target-anchor--block {
+  display: block;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  scroll-margin-top: var(--space-20, 5rem);
+  margin: 0;
+  padding: 0;
+}
+
+/* When target anchor is the :target (URL hash matches) */
+.target-anchor:target {
+  /* Could add subtle highlight effect if desired */
+}

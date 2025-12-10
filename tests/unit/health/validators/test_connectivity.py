@@ -52,7 +52,7 @@ class TestConnectivityValidator:
 
     @pytest.fixture
     def mock_knowledge_graph(self):
-        """Create a mock KnowledgeGraph."""
+        """Create a mock KnowledgeGraph with connectivity report support."""
         graph = Mock()
         graph.build = Mock()
         graph.get_metrics = Mock(
@@ -60,6 +60,30 @@ class TestConnectivityValidator:
         )
         graph.get_orphans = Mock(return_value=[])
         graph.get_hubs = Mock(return_value=[])
+
+        # Mock the connectivity report with proper structure
+        connectivity_report = Mock()
+        connectivity_report.get_distribution = Mock(
+            return_value={
+                "isolated": 0,
+                "lightly_linked": 0,
+                "adequately_linked": 3,
+                "well_connected": 2,
+            }
+        )
+        connectivity_report.get_percentages = Mock(
+            return_value={
+                "isolated": 0.0,
+                "lightly_linked": 0.0,
+                "adequately_linked": 60.0,
+                "well_connected": 40.0,
+            }
+        )
+        connectivity_report.isolated = []
+        connectivity_report.lightly_linked = []
+        connectivity_report.avg_score = 2.5
+        graph.get_connectivity_report = Mock(return_value=connectivity_report)
+
         return graph
 
     def test_validator_properties(self, validator):
@@ -95,34 +119,36 @@ class TestConnectivityValidator:
     def test_orphaned_pages_warning(
         self, mock_kg_class, validator, mock_site, mock_knowledge_graph
     ):
-        """Test detection of orphaned pages (warning level)."""
-        # Create a few orphans (under threshold)
-        orphan_pages = [mock_site.pages[0], mock_site.pages[1]]
-        mock_knowledge_graph.get_orphans.return_value = orphan_pages
+        """Test detection of isolated pages (warning level)."""
+        # Create a few isolated pages (under threshold)
+        isolated_pages = [mock_site.pages[0], mock_site.pages[1]]
+        # Update the connectivity report mock to return isolated pages
+        mock_knowledge_graph.get_connectivity_report.return_value.isolated = isolated_pages
         mock_kg_class.return_value = mock_knowledge_graph
 
         results = validator.validate(mock_site)
 
-        # Should have warning about orphans
+        # Should have warning about isolated pages
         warnings = [r for r in results if r.status == CheckStatus.WARNING]
-        assert any("orphan" in r.message.lower() for r in warnings)
+        assert any("isolated" in r.message.lower() for r in warnings)
 
     @patch("bengal.health.validators.connectivity.KnowledgeGraph")
     def test_orphaned_pages_error(self, mock_kg_class, validator, mock_site, mock_knowledge_graph):
-        """Test detection of many orphaned pages (error level)."""
-        # Create many orphans (over threshold)
-        orphan_pages = mock_site.pages  # All pages are orphans
-        mock_knowledge_graph.get_orphans.return_value = orphan_pages
+        """Test detection of many isolated pages (error level)."""
+        # Create many isolated pages (over threshold)
+        isolated_pages = mock_site.pages  # All pages are isolated
+        # Update the connectivity report mock to return isolated pages
+        mock_knowledge_graph.get_connectivity_report.return_value.isolated = isolated_pages
         mock_kg_class.return_value = mock_knowledge_graph
 
-        # Set low threshold
-        mock_site.config = {"health_check": {"orphan_threshold": 2}}
+        # Set low threshold (uses isolated_threshold or falls back to orphan_threshold)
+        mock_site.config = {"health_check": {"isolated_threshold": 2}}
 
         results = validator.validate(mock_site)
 
-        # Should have error about orphans
+        # Should have error about isolated pages
         errors = [r for r in results if r.status == CheckStatus.ERROR]
-        assert any("orphan" in r.message.lower() for r in errors)
+        assert any("isolated" in r.message.lower() for r in errors)
 
     @patch("bengal.health.validators.connectivity.KnowledgeGraph")
     def test_over_connected_hubs(self, mock_kg_class, validator, mock_site, mock_knowledge_graph):
@@ -156,7 +182,9 @@ class TestConnectivityValidator:
     def test_low_connectivity_density(
         self, mock_kg_class, validator, mock_site, mock_knowledge_graph
     ):
-        """Test detection of low connectivity density."""
+        """Test detection of low connectivity score."""
+        # Update connectivity report to have low avg_score (< 1.0 triggers warning)
+        mock_knowledge_graph.get_connectivity_report.return_value.avg_score = 0.5
         mock_knowledge_graph.get_metrics.return_value = {
             "nodes": 10,
             "edges": 5,
@@ -167,7 +195,7 @@ class TestConnectivityValidator:
 
         results = validator.validate(mock_site)
 
-        # Should have warning about low connectivity
+        # Should have warning about low connectivity score
         warnings = [r for r in results if r.status == CheckStatus.WARNING]
         assert len(warnings) > 0
 
@@ -198,19 +226,20 @@ class TestConnectivityValidator:
     def test_custom_orphan_threshold(
         self, mock_kg_class, validator, mock_site, mock_knowledge_graph
     ):
-        """Test using custom orphan threshold from config."""
-        orphan_pages = [mock_site.pages[0], mock_site.pages[1]]
-        mock_knowledge_graph.get_orphans.return_value = orphan_pages
+        """Test using custom isolated page threshold from config."""
+        isolated_pages = [mock_site.pages[0], mock_site.pages[1]]
+        # Update the connectivity report mock to return isolated pages
+        mock_knowledge_graph.get_connectivity_report.return_value.isolated = isolated_pages
         mock_kg_class.return_value = mock_knowledge_graph
 
-        # Set custom threshold
-        mock_site.config = {"health_check": {"orphan_threshold": 1}}
+        # Set custom threshold (uses isolated_threshold or falls back to orphan_threshold)
+        mock_site.config = {"health_check": {"isolated_threshold": 1}}
 
         results = validator.validate(mock_site)
 
-        # With threshold=1, should be error (2 orphans > 1)
+        # With threshold=1, should be error (2 isolated > 1)
         errors = [r for r in results if r.status == CheckStatus.ERROR]
-        assert any("orphan" in r.message.lower() for r in errors)
+        assert any("isolated" in r.message.lower() for r in errors)
 
     @patch("bengal.health.validators.connectivity.KnowledgeGraph")
     def test_no_orphans_success(self, mock_kg_class, validator, mock_site, mock_knowledge_graph):

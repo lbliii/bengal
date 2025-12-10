@@ -52,7 +52,7 @@ name = "default"
 
 ## Configuration Patterns
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Single File
 Best for small sites:
 
@@ -83,7 +83,7 @@ config/
     └── staging.yaml
 ```
 :::
-::::
+:::{/tab-set}
 
 ## Environment Overrides
 
@@ -105,4 +105,65 @@ build:
 
 :::{tip}
 **Best practice**: Keep development settings in `bengal.toml`, add production overrides in `config/environments/production.yaml`.
+:::
+
+## Build Options Reference
+
+Key `[build]` configuration options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `output_dir` | string | `"public"` | Directory for generated files |
+| `clean` | bool | `false` | Remove output directory before build |
+| `minify` | bool | `false` | Minify HTML/CSS/JS output |
+| `fingerprint` | bool | `false` | Add content hash to asset URLs |
+| `validate_templates` | bool | `false` | Proactive template syntax validation |
+| `validate_build` | bool | `true` | Post-build validation checks |
+| `validate_links` | bool | `true` | Check for broken internal links |
+| `strict_mode` | bool | `false` | Fail build on any error or warning |
+
+### Template Validation
+
+Enable `validate_templates` to catch template syntax errors early during builds:
+
+```toml
+[build]
+validate_templates = true
+```
+
+When enabled, Bengal validates all templates (HTML/XML) in your template directories before rendering. This provides early feedback on syntax errors, even for templates that might not be used by every page.
+
+:::{tab-set}
+:::{tab-item} Development
+Enable template validation during development for immediate feedback:
+
+```toml
+[build]
+validate_templates = true
+```
+:::
+
+:::{tab-item} CI/CD
+Combine with strict mode in CI pipelines to fail builds on template errors:
+
+```toml
+[build]
+validate_templates = true
+strict_mode = true
+```
+:::
+:::{/tab-set}
+
+**When to enable:**
+- During active theme development
+- In CI/CD pipelines
+- When debugging template issues
+
+**What it catches:**
+- Jinja2 syntax errors (unclosed tags, invalid filters)
+- Unknown filter names
+- Template assertion errors
+
+:::{note}
+Template validation adds a small overhead to build time. For large sites, consider enabling it only in development and CI environments.
 :::

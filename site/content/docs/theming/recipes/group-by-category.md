@@ -115,7 +115,7 @@ Pages without the grouped field go into a `None` group:
 {% endfor %}
 ```
 
-## See Also
-
+:::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
 - [Filter by Tags](/docs/theming/recipes/filter-by-tags/) — Multi-criteria filtering
+:::

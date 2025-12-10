@@ -230,7 +230,9 @@ Hidden content with **markdown**.
 
         assert "<details" in result
         assert "dropdown" in result
-        assert "<summary>Click to expand</summary>" in result
+        # Summary now has richer structure with dropdown-header and dropdown-title spans
+        assert "<summary>" in result
+        assert "Click to expand" in result
         assert "<strong>markdown</strong>" in result
 
     def test_dropdown_open_state(self, parser):
@@ -248,19 +250,19 @@ Visible content.
         assert "open" in result  # open attribute
 
     def test_tabs_directive(self, parser):
-        """Test tabs directive."""
+        """Test tabs directive using MyST-style nested tab-items."""
         content = """
-:::{tabs}
+::::{tab-set}
 :id: example
 
-### Tab: First
-
+:::{tab-item} First
 Content in first tab.
+:::
 
-### Tab: Second
-
+:::{tab-item} Second
 Content in second tab.
 :::
+::::
 """
         result = parser.parse(content, {})
 
@@ -566,3 +568,150 @@ Final content.
         lines = toc.split("\n")
         h3_line = [line for line in lines if "H3 Nested" in line][0]
         assert h3_line.startswith("  <li>")  # 2 space indent
+
+
+class TestExplicitAnchorSyntax:
+    """Test MyST-compatible {#custom-id} explicit anchor syntax."""
+
+    @pytest.fixture
+    def parser(self):
+        """Create a Mistune parser instance."""
+        return MistuneParser()
+
+    def test_explicit_id_creates_custom_anchor(self, parser):
+        """Test that {#custom-id} syntax creates custom anchor ID."""
+        content = "## Installation {#install}\n\nContent here."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Should have custom ID, not auto-generated
+        assert 'id="install"' in html
+        assert 'id="installation"' not in html
+
+    def test_explicit_id_stripped_from_display(self, parser):
+        """Test that {#id} is removed from displayed heading text."""
+        content = "## Installation {#install}\n\nContent here."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # {#install} should not appear in visible content
+        assert "{#install}" not in html
+        # But heading text should still be there
+        assert "Installation" in html
+
+    def test_explicit_id_stripped_from_toc(self, parser):
+        """Test that {#id} is removed from TOC display."""
+        content = "## Installation {#install}\n\nContent here."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # TOC should show "Installation" without {#install}
+        assert "{#install}" not in toc
+        assert "Installation" in toc
+        # TOC should link to the explicit ID
+        assert 'href="#install"' in toc
+
+    def test_explicit_id_with_complex_syntax(self, parser):
+        """Test {#id} with hyphens and underscores in ID."""
+        content = "## Getting Started Guide {#getting-started_guide}\n\nContent."
+        html, toc = parser.parse_with_toc(content, {})
+
+        assert 'id="getting-started_guide"' in html
+        assert "{#getting-started_guide}" not in html
+        assert 'href="#getting-started_guide"' in toc
+
+    def test_mixed_explicit_and_auto_anchors(self, parser):
+        """Test that explicit and auto-generated anchors coexist."""
+        content = """
+## With Explicit ID {#explicit}
+
+Content here.
+
+## Without Explicit ID
+
+More content.
+
+## Another Explicit {#another-explicit}
+
+Final content.
+        """
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Explicit IDs used where specified
+        assert 'id="explicit"' in html
+        assert 'id="another-explicit"' in html
+
+        # Auto-generated for the one without explicit ID
+        assert 'id="without-explicit-id"' in html
+
+        # No {#...} in visible output
+        assert "{#explicit}" not in html
+        assert "{#another-explicit}" not in html
+
+    def test_explicit_id_preserves_heading_content(self, parser):
+        """Test that heading content with code and formatting is preserved."""
+        content = "## Using `config.yaml` for Setup {#config-setup}\n\nContent."
+        html, toc = parser.parse_with_toc(content, {})
+
+        assert 'id="config-setup"' in html
+        assert "<code>config.yaml</code>" in html
+        assert "{#config-setup}" not in html
+
+    def test_explicit_id_case_sensitive(self, parser):
+        """Test that explicit ID is used exactly as specified (case preserved)."""
+        content = "## API Reference {#APIRef}\n\nContent."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # ID should be exactly as specified
+        assert 'id="APIRef"' in html
+        assert 'href="#APIRef"' in toc
+
+    def test_explicit_id_with_multiple_levels(self, parser):
+        """Test explicit IDs work across different heading levels."""
+        content = """
+## Level 2 {#lvl2}
+### Level 3 {#lvl3}
+#### Level 4 {#lvl4}
+        """
+        html, toc = parser.parse_with_toc(content, {})
+
+        assert 'id="lvl2"' in html
+        assert 'id="lvl3"' in html
+        assert 'id="lvl4"' in html
+
+        assert 'href="#lvl2"' in toc
+        assert 'href="#lvl3"' in toc
+        assert 'href="#lvl4"' in toc
+
+    def test_explicit_id_pattern_requirements(self, parser):
+        """Test that ID must start with letter."""
+        # Valid: starts with letter
+        content = "## Valid {#a123}\n\nContent."
+        html, toc = parser.parse_with_toc(content, {})
+        assert 'id="a123"' in html
+
+        # The pattern requires ID to start with letter, so {#123abc} won't match
+        # and falls back to auto-generated slug
+        content2 = "## Invalid Start {#123abc}\n\nContent."
+        html2, toc2 = parser.parse_with_toc(content2, {})
+        # Should fall back to auto-generated since pattern doesn't match
+        # The {#123abc} stays in content and auto-slug is generated
+        assert 'id="invalid-start-123abc"' in html2 or "{#123abc}" in html2
+
+    def test_blockquote_headings_without_explicit_id(self, parser):
+        """Test that blockquote headings work without getting IDs."""
+        content = """
+## Regular Heading {#regular}
+
+> ## Quoted Heading {#quoted}
+> This is inside a blockquote
+
+## Another Regular {#another}
+        """
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Regular headings should have explicit IDs
+        assert 'id="regular"' in html
+        assert 'id="another"' in html
+
+        # Blockquote headings should NOT get IDs
+        # (they're inside <blockquote> so we skip them)
+        # The {#quoted} should remain in the blockquote content
+        assert 'href="#quoted"' not in toc

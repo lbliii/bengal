@@ -1,8 +1,22 @@
 """
 Connectivity validator for knowledge graph analysis.
 
-Validates site connectivity, identifies orphaned pages, over-connected hubs,
-and provides insights for better content structure.
+Validates site connectivity using semantic link model and connectivity levels,
+identifies isolated pages, and provides insights for better content structure.
+
+Uses weighted scoring based on link types:
+- EXPLICIT: Human-authored markdown links (weight: 1.0)
+- MENU: Navigation menu items (weight: 10.0)
+- TAXONOMY: Shared tags/categories (weight: 1.0)
+- RELATED: Algorithm-computed related posts (weight: 0.75)
+- TOPICAL: Section hierarchy parent → child (weight: 0.5)
+- SEQUENTIAL: Next/prev navigation (weight: 0.25)
+
+Connectivity Levels:
+- WELL_CONNECTED: Score >= 2.0 (no action needed)
+- ADEQUATELY_LINKED: Score 1.0-2.0 (could improve)
+- LIGHTLY_LINKED: Score 0.25-1.0 (should improve)
+- ISOLATED: Score < 0.25 (needs attention)
 """
 
 from __future__ import annotations
@@ -26,19 +40,23 @@ KnowledgeGraph = None  # type: ignore
 
 class ConnectivityValidator(BaseValidator):
     """
-    Validates site connectivity using knowledge graph analysis.
+    Validates site connectivity using semantic link model and knowledge graph analysis.
 
     Checks:
-    - Orphaned pages (no incoming references)
+    - Isolated pages (weighted score < 0.25)
+    - Lightly linked pages (score 0.25-1.0, only structural links)
     - Over-connected hubs (too many incoming references)
-    - Overall connectivity health
+    - Overall connectivity health (average weighted score)
     - Content discovery issues
+
+    Uses weighted scoring based on link types (explicit, menu, taxonomy, etc.)
+    to provide nuanced analysis beyond binary orphan detection.
 
     This helps writers improve SEO, content discoverability, and site structure.
     """
 
     name = "Connectivity"
-    description = "Analyzes page connectivity and finds orphaned or over-connected pages"
+    description = "Analyzes page connectivity using semantic link model and connectivity levels"
     enabled_by_default = True  # Enabled in dev profile
 
     @override
@@ -167,53 +185,92 @@ class ConnectivityValidator(BaseValidator):
 
             metrics = _safe_get_metrics()
 
-            # Check 1: Orphaned pages
+            # Check 1: Connectivity levels using semantic link model
             try:
-                orphans = list(graph.get_orphans() or [])
+                connectivity_report = graph.get_connectivity_report()
+                dist = connectivity_report.get_distribution()
+                pct = connectivity_report.get_percentages()
+                isolated_pages = connectivity_report.isolated
+                lightly_linked_pages = connectivity_report.lightly_linked
             except Exception as e:
                 logger.debug(
-                    "health_connectivity_orphan_detection_failed",
+                    "health_connectivity_report_failed",
                     error=str(e),
                     error_type=type(e).__name__,
-                    action="skipping_orphan_check",
+                    action="falling_back_to_legacy_orphan_check",
                 )
-                orphans = []
+                # Fallback to legacy orphan detection
+                try:
+                    orphans = list(graph.get_orphans() or [])
+                except Exception:
+                    orphans = []
+                isolated_pages = orphans
+                lightly_linked_pages = []
+                dist = {"isolated": len(orphans), "lightly_linked": 0, "adequately_linked": 0, "well_connected": 0}
+                pct = {"isolated": 0.0, "lightly_linked": 0.0, "adequately_linked": 0.0, "well_connected": 0.0}
+                connectivity_report = None
 
-            if orphans:
-                # Get config threshold
-                orphan_threshold = site.config.get("health_check", {}).get("orphan_threshold", 5)
+            # Get config thresholds
+            health_config = site.config.get("health_check", {})
+            isolated_threshold = health_config.get("isolated_threshold", health_config.get("orphan_threshold", 5))
+            lightly_linked_threshold = health_config.get("lightly_linked_threshold", 20)
 
-                if len(orphans) > orphan_threshold:
-                    # Too many orphans - error
+            # Check 1a: Isolated pages (score < 0.25)
+            if isolated_pages:
+                if len(isolated_pages) > isolated_threshold:
+                    # Too many isolated - error
                     results.append(
                         CheckResult.error(
-                            f"{len(orphans)} pages have no incoming links (orphans)",
+                            f"{len(isolated_pages)} isolated pages (score < 0.25)",
                             recommendation=(
-                                "Add internal links, cross-references, or tags to connect orphaned pages. "
-                                "Orphaned pages are hard to discover and may hurt SEO."
+                                "Add explicit cross-references or internal links to connect isolated pages. "
+                                "Isolated pages have no meaningful connections and are hard to discover."
                             ),
                             details=[
-                                f"  • {getattr(p.source_path, 'name', str(p))}"
-                                for p in orphans[:10]
+                                f"  🔴 {getattr(p.source_path, 'name', str(p))}"
+                                for p in isolated_pages[:10]
                             ],
                         )
                     )
                 else:
-                    # Few orphans - warning
+                    # Few isolated - warning
                     results.append(
                         CheckResult.warning(
-                            f"{len(orphans)} orphaned page(s) found",
+                            f"{len(isolated_pages)} isolated page(s) found",
                             recommendation="Consider adding navigation or cross-references to these pages",
                             details=[
-                                f"  • {getattr(p.source_path, 'name', str(p))}" for p in orphans[:5]
+                                f"  🔴 {getattr(p.source_path, 'name', str(p))}" for p in isolated_pages[:5]
                             ],
                         )
                     )
             else:
-                # No orphans - great!
+                # No isolated - great!
                 results.append(
-                    CheckResult.success("No orphaned pages found - all pages are referenced")
+                    CheckResult.success("No isolated pages - all pages have meaningful connections")
                 )
+
+            # Check 1b: Lightly linked pages (score 0.25-1.0)
+            if lightly_linked_pages:
+                if len(lightly_linked_pages) > lightly_linked_threshold:
+                    results.append(
+                        CheckResult.warning(
+                            f"{len(lightly_linked_pages)} lightly-linked pages (score 0.25-1.0)",
+                            recommendation=(
+                                "These pages rely on structural links only. "
+                                "Add explicit cross-references to improve discoverability."
+                            ),
+                            details=[
+                                f"  🟠 {getattr(p.source_path, 'name', str(p))}"
+                                for p in lightly_linked_pages[:5]
+                            ],
+                        )
+                    )
+                else:
+                    results.append(
+                        CheckResult.info(
+                            f"{len(lightly_linked_pages)} lightly-linked page(s) could use more connections"
+                        )
+                    )
 
             # Check 2: Over-connected hubs (robust to mocked shapes)
             hubs = []
@@ -241,30 +298,58 @@ class ConnectivityValidator(BaseValidator):
                 )
                 hubs = []
 
-            # Check 3: Overall connectivity
+            # Check 3: Overall connectivity (using weighted score if available)
             avg_connectivity = metrics.get("avg_connectivity", 0.0)
-            if avg_connectivity <= 1.0:
-                results.append(
-                    CheckResult.warning(
-                        f"Low average connectivity ({avg_connectivity:.1f} links per page)",
-                        recommendation=(
-                            "Consider adding more internal links, cross-references, or tags. "
-                            "Well-connected content is easier to discover and better for SEO."
-                        ),
+            avg_score = connectivity_report.avg_score if connectivity_report else 0.0
+            
+            # Use weighted score for more nuanced assessment
+            if avg_score > 0:
+                if avg_score < 1.0:
+                    results.append(
+                        CheckResult.warning(
+                            f"Low average connectivity score ({avg_score:.2f})",
+                            recommendation=(
+                                "Consider adding more internal links, cross-references, or tags. "
+                                "Aim for an average score >= 1.0 for good discoverability."
+                            ),
+                        )
                     )
-                )
-            elif avg_connectivity >= 3.0:
-                results.append(
-                    CheckResult.success(
-                        f"Good connectivity ({avg_connectivity:.1f} links per page)"
+                elif avg_score >= 2.0:
+                    results.append(
+                        CheckResult.success(
+                            f"Good connectivity score ({avg_score:.2f})"
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        CheckResult.info(
+                            f"Moderate connectivity score ({avg_score:.2f})"
+                        )
+                    )
             else:
-                results.append(
-                    CheckResult.info(
-                        f"Moderate connectivity ({avg_connectivity:.1f} links per page)"
+                # Fallback to legacy metric
+                if avg_connectivity <= 1.0:
+                    results.append(
+                        CheckResult.warning(
+                            f"Low average connectivity ({avg_connectivity:.1f} links per page)",
+                            recommendation=(
+                                "Consider adding more internal links, cross-references, or tags. "
+                                "Well-connected content is easier to discover and better for SEO."
+                            ),
+                        )
                     )
-                )
+                elif avg_connectivity >= 3.0:
+                    results.append(
+                        CheckResult.success(
+                            f"Good connectivity ({avg_connectivity:.1f} links per page)"
+                        )
+                    )
+                else:
+                    results.append(
+                        CheckResult.info(
+                            f"Moderate connectivity ({avg_connectivity:.1f} links per page)"
+                        )
+                    )
 
             # Check 4: Hub distribution (best-effort)
             try:
@@ -291,22 +376,28 @@ class ConnectivityValidator(BaseValidator):
                     )
                 )
 
-            # Summary info
+            # Summary info with connectivity distribution
             import contextlib
 
             with contextlib.suppress(Exception):
                 results.append(
                     CheckResult.info(
-                        f"Analysis: {metrics.get('total_pages', 0)} pages, {metrics.get('total_links', 0)} links, "
-                        f"{len(hubs)} hubs, {len(orphans)} orphans, {avg_connectivity:.1f} avg connectivity"
+                        f"Analysis: {metrics.get('total_pages', 0)} pages | "
+                        f"🟢 {dist.get('well_connected', 0)} well | "
+                        f"🟡 {dist.get('adequately_linked', 0)} adequate | "
+                        f"🟠 {dist.get('lightly_linked', 0)} lightly | "
+                        f"🔴 {dist.get('isolated', 0)} isolated | "
+                        f"Score: {avg_score:.2f}"
                     )
                 )
 
             logger.debug(
                 "connectivity_validator_complete",
-                orphans=len(orphans),
+                isolated=len(isolated_pages),
+                lightly_linked=len(lightly_linked_pages),
                 hubs=len(hubs),
-                avg_connectivity=avg_connectivity,
+                avg_score=avg_score,
+                distribution=dist,
             )
 
         except ImportError as e:

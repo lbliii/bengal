@@ -358,7 +358,7 @@ TAB_SET_CONTRACT = DirectiveContract(
 )
 
 TAB_ITEM_CONTRACT = DirectiveContract(
-    requires_parent=("tab_set", "legacy_tabs"),
+    requires_parent=("tab_set",),
 )
 
 # Cards directives

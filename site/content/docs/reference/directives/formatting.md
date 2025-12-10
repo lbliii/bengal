@@ -134,29 +134,28 @@ View on GitHub
 
 ## Steps
 
-Create visual step-by-step guides.
+Create visual step-by-step guides using **named closers** for clean, readable syntax.
 
 ### Steps Container (`{steps}`)
 
-Container for multiple steps.
-
-**Important**: Container directives like `{steps}` require **4 fences minimum** (`::::`). Use higher fence counts (5, 6, etc.) for deeper nesting (e.g., admonitions within steps, tabs within sets).
+Container for multiple steps. Use `:::{/steps}` to close.
 
 **Syntax**:
 
 ```markdown
-::::{steps}
+:::{steps}
 :class: custom-class
 :style: compact
 
 :::{step} Step Title
 Step content with **markdown** support.
-:::
+:::{/step}
 
 :::{step} Next Step
 More content
-:::
-::::
+:::{/step}
+
+:::{/steps}
 ```
 
 **Options**:
@@ -166,7 +165,7 @@ More content
 
 ### Individual Step (`{step}`)
 
-Single step within a steps container.
+Single step within a steps container. Use `:::{/step}` to close.
 
 **Syntax**:
 
@@ -175,7 +174,7 @@ Single step within a steps container.
 :class: custom-class
 
 Step content with **markdown** and nested directives.
-:::
+:::{/step}
 ```
 
 **Options**:
@@ -187,48 +186,50 @@ Step content with **markdown** and nested directives.
 **Basic Steps**:
 
 ````markdown
-::::{steps}
+:::{steps}
 
 :::{step} Install Dependencies
 ```bash
 pip install bengal
 ```
-:::
+:::{/step}
 
 :::{step} Create Site
 ```bash
 bengal new mysite
 ```
-:::
+:::{/step}
 
 :::{step} Build Site
 ```bash
 bengal build
 ```
-:::
-::::
+:::{/step}
+
+:::{/steps}
 ````
 
 **Steps with Nested Admonitions**:
 
-For nested directives like admonitions within steps, use 5 fences for the container:
+Named closers eliminate fence-counting for complex nesting:
 
 ````markdown
-:::::{steps}
+:::{steps}
 
-::::{step} First Step
+:::{step} First Step
 :::{tip}
 Remember to check the logs!
 :::
-::::
+:::{/step}
 
-::::{step} Second Step
+:::{step} Second Step
 More content
-::::
-:::::
+:::{/step}
+
+:::{/steps}
 ````
 
-**Note**: The container uses 5 fences (`:::::`), steps use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
+**Note**: Named closers (`:::{/name}`) explicitly close directives, making deeply nested content readable without counting colons.
 
 ## Checklist
 
@@ -312,12 +313,10 @@ Returns a dictionary with results.
 
 Create tables from nested lists (avoids pipe character issues in type annotations).
 
-**Important**: Container directives like `{list-table}` require **4 fences minimum** (`::::`). Use higher fence counts for deeper nesting.
-
 **Syntax**:
 
 ````markdown
-::::{list-table}
+:::{list-table}
 :header-rows: 1
 :widths: 20 30 50
 :class: custom-class
@@ -331,7 +330,7 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 * - Row 2, Col 1
   - Row 2, Col 2
   - Row 2, Col 3
-::::
+:::
 ````
 
 **Options**:
@@ -345,7 +344,7 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 **Basic Table**:
 
 ````markdown
-::::{list-table}
+:::{list-table}
 :header-rows: 1
 
 * - Name
@@ -357,13 +356,13 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 * - `age`
   - `int`
   - User age
-::::
+:::
 ````
 
 **With Column Widths**:
 
 ```markdown
-::::{list-table}
+:::{list-table}
 :header-rows: 1
 :widths: 20 30 50
 
@@ -373,7 +372,7 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 * - Data 1
   - Data 2
   - Data 3
-::::
+:::
 ```
 
 ## Best Practices
@@ -387,5 +386,6 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 
 ## Related
 
+- [Icon Reference](/docs/reference/icons/) - SVG icons for content and templates
 - [Layout Directives](/docs/reference/directives/layout/) - Cards, tabs, dropdowns
 - [Admonitions](/docs/reference/directives/admonitions/) - Callout boxes

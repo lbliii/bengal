@@ -128,6 +128,7 @@ The default theme organizes templates into:
 - **Content types**: `blog/`, `doc/`, `api-reference/` — Type-specific templates
 
 :::{dropdown} What should I swizzle?
+:icon: info
 **Start small**: Swizzle only what you need to customize. Common starting points:
 - `partials/navigation-components.html` — Navigation menus
 - `partials/search.html` — Search functionality
@@ -461,7 +462,8 @@ bengal serve
 
 ## Troubleshooting
 
-### Template Not Found
+:::{dropdown} Template Not Found
+:icon: alert
 
 **Issue**: `FileNotFoundError: Template not found in theme chain`
 
@@ -473,8 +475,10 @@ bengal utils theme discover
 # Use the exact path shown
 bengal utils theme swizzle partials/navigation-components.html
 ```
+:::
 
-### Changes Not Appearing
+:::{dropdown} Changes Not Appearing
+:icon: alert
 
 **Issue**: Customizations don't show up after swizzling
 
@@ -482,8 +486,10 @@ bengal utils theme swizzle partials/navigation-components.html
 - Clear cache: `bengal clean --cache`
 - Restart dev server: Stop and restart `bengal serve`
 - Check file location: Ensure template is in `templates/` (not `themes/`)
+:::
 
-### Swizzle Update Overwrites Changes
+:::{dropdown} Swizzle Update Overwrites Changes
+:icon: alert
 
 **Issue**: `swizzle-update` overwrote your customizations
 
@@ -491,8 +497,10 @@ bengal utils theme swizzle partials/navigation-components.html
 - Check `.bengal/themes/sources.json` for the checksum
 - Restore from git if you use version control
 - Re-apply your customizations
+:::
 
-### Template Inheritance Not Working
+:::{dropdown} Template Inheritance Not Working
+:icon: alert
 
 **Issue**: `{% extends "default::base.html" %}` doesn't work
 
@@ -500,6 +508,7 @@ bengal utils theme swizzle partials/navigation-components.html
 - Verify theme name: Use `bengal utils theme info default` to confirm
 - Check syntax: Use `"default::base.html"` format (theme name, double colon, path)
 - Clear cache: `bengal clean --cache`
+:::
 
 ## What You've Learned
 

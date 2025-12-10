@@ -86,6 +86,7 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-primary-active: #86ABCC;
     --color-primary-light: rgba(157, 189, 217, 0.18);
     --color-primary-dark: #7099BF;
+    --color-primary-muted: rgba(157, 189, 217, 0.25);
 
     /* Dark backgrounds with gentle blue wash */
     --color-bg-primary: #141B22;
@@ -96,11 +97,19 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-bg-active: #354657;
     --color-bg-code: #1B2430;
 
+    /* Surface color for components */
+    --color-surface: #192028;
+
     /* Soft text colors with blue tint */
     --color-text-primary: #F4F8FC;
     --color-text-secondary: #D3DFEB;
     --color-text-tertiary: #A4B5C8;
     --color-text-muted: #738AA1;
+    /* Inverse text - dark for contrast against light blue primary */
+    --color-text-inverse: #141B22;
+    /* Links: Soft powder blue glow - matches theme */
+    --color-text-link: #9DBDD9;
+    --color-text-link-hover: #B4CFE6;
 
     /* Adjusted borders for dark mode */
     --color-border: #2A3849;

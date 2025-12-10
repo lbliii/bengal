@@ -56,7 +56,9 @@ graph LR
 - ✅ **Explicit is Better Than Implicit**: Clear what each setting controls
 - ✅ **Composition Over Inheritance**: Content model composes from config
 
-**Example: Theme Switch Scenario**
+:::{example-label} Theme Switch Scenario
+:::
+
 ```yaml
 # When switching themes, you DON'T touch:
 content:
@@ -150,7 +152,9 @@ config/
     └── dev.yaml       # Workflow: full observability
 ```
 
-**Example: site.yaml (Identity)**
+:::{example-label} site.yaml (Identity)
+:::
+
 ```yaml
 site:
   title: "My Site"
@@ -168,7 +172,9 @@ site:
     - categories
 ```
 
-**Example: content.yaml (Bengal's API)**
+:::{example-label} content.yaml (Bengal's API)
+:::
+
 ```yaml
 content:
   # What Bengal computes
@@ -183,7 +189,9 @@ content:
   sort_order: "asc"
 ```
 
-**Example: params.yaml (User Data)**
+:::{example-label} params.yaml (User Data)
+:::
+
 ```yaml
 params:
   product_name: "Bengal"
@@ -206,7 +214,9 @@ Bengal automatically detects deployment environments and applies environment-spe
 4. GitHub Actions: Detects `GITHUB_ACTIONS=true` (assumes production)
 5. Default: Falls back to `local`
 
-**Example: environments/production.yaml**
+:::{example-label} environments/production.yaml
+:::
+
 ```yaml
 site:
   baseurl: "https://example.com"  # Production URL
@@ -216,7 +226,9 @@ build:
   fingerprint_assets: true
 ```
 
-**Example: environments/local.yaml**
+:::{example-label} environments/local.yaml
+:::
+
 ```yaml
 site:
   baseurl: "http://localhost:5173"  # Local dev URL
@@ -242,7 +254,9 @@ Profiles provide persona-based configuration for optimized workflows.
 - `theme-dev`: Template debugging (verbose template errors)
 - `dev`: Full observability (all logging, validation enabled)
 
-**Example: profiles/writer.yaml**
+:::{example-label} profiles/writer.yaml
+:::
+
 ```yaml
 build:
   parallel: true
@@ -252,7 +266,9 @@ features:
   validation: false  # Skip validation for speed
 ```
 
-**Example: profiles/dev.yaml**
+:::{example-label} profiles/dev.yaml
+:::
+
 ```yaml
 build:
   parallel: true
@@ -285,7 +301,9 @@ Later layers override earlier ones. Feature toggles are expanded after all merge
 
 Feature toggles provide simple flags that expand into detailed configuration.
 
-**Example: features.yaml**
+:::{example-label} features.yaml
+:::
+
 ```yaml
 features:
   rss: true      # Expands to full RSS feed configuration

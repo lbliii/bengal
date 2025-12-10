@@ -57,7 +57,7 @@ flowchart LR
 
 Configure autodoc in your `bengal.toml`:
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Python
 ```toml
 # bengal.toml
@@ -104,7 +104,7 @@ Extracts:
 - Request/response schemas
 - Authentication requirements
 :::
-::::
+:::{/tab-set}
 
 ## Python Configuration Options
 
@@ -161,7 +161,6 @@ strict = true
 **Best practice**: Enable strict mode in CI pipelines to catch documentation issues early.
 :::
 
-## See Also
-
+:::{seealso}
 - [Architecture Reference](/docs/reference/architecture/subsystems/autodoc/) — Technical details and API usage
-
+:::

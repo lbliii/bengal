@@ -27,7 +27,7 @@ tags:
 - **Asset pipeline** — Fingerprinting and minification
 - **MyST Markdown** — Directives, admonitions, cross-references
 
-## See Also
-
+:::{seealso}
 - [[docs/about/benchmarks|Benchmarks]]
 - [[docs/about/limitations|Limitations]]
+:::

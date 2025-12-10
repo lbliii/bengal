@@ -377,3 +377,66 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 | `union(list2)` | Combine lists | `list1 \| union(list2)` |
 | `intersect(list2)` | Common items | `list1 \| intersect(list2)` |
 | `complement(list2)` | Difference | `list1 \| complement(list2)` |
+
+## Navigation Functions
+
+These global functions simplify common navigation patterns.
+
+### get_section
+
+Get a section by its path. Cleaner alternative to `site.get_section_by_path()`.
+
+```jinja2
+{% set docs = get_section('docs') %}
+{% if docs %}
+  <h2>{{ docs.title }}</h2>
+  {% for page in docs.pages | sort_by('weight') %}
+    <a href="{{ page.url }}">{{ page.title }}</a>
+  {% endfor %}
+{% endif %}
+```
+
+### section_pages
+
+Get pages from a section directly. Combines `get_section()` with `.pages` access.
+
+```jinja2
+{# Non-recursive (direct children only) #}
+{% for page in section_pages('docs') | sort_by('weight') %}
+  <a href="{{ page.url }}">{{ page.title }}</a>
+{% endfor %}
+
+{# Recursive (include all nested pages) #}
+{% for page in section_pages('docs', recursive=true) %}
+  <a href="{{ page.url }}">{{ page.title }}</a>
+{% endfor %}
+```
+
+### page_exists
+
+Check if a page exists without loading it. More efficient than `get_page()` for conditional rendering.
+
+```jinja2
+{% if page_exists('guides/advanced') %}
+  <a href="/guides/advanced/">Advanced Guide Available</a>
+{% endif %}
+
+{# Works with or without .md extension #}
+{% if page_exists('docs/getting-started.md') %}...{% endif %}
+{% if page_exists('docs/getting-started') %}...{% endif %}
+```
+
+## String Filters
+
+### word_count
+
+Count words in text, stripping HTML first. Uses same logic as `reading_time`.
+
+```jinja2
+{{ page.content | word_count }} words
+
+{# Combined with reading time #}
+<span>{{ page.content | word_count }} words · {{ page.content | reading_time }} min read</span>
+```
+
+Also available as `wordcount` (Jinja naming convention).

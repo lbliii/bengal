@@ -2,7 +2,7 @@
 
 The directive system provides MyST-style fenced directives for rich content authoring in Bengal documentation.
 
-## Named Closers (New!)
+## Named Closers (New!) {#named-closers}
 
 Bengal supports **named closers** as an alternative to fence-depth counting:
 
@@ -77,7 +77,7 @@ Bengal's directive system is built on four core components:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start: Creating a New Directive
+## Quick Start: Creating a New Directive {#quick-start}
 
 ### 1. Define Options (if needed)
 
@@ -102,16 +102,16 @@ from bengal.rendering.plugins.directives.utils import escape_html
 
 class MyDirective(BengalDirective):
     """My custom directive."""
-    
+
     DIRECTIVE_NAMES = frozenset({"my-directive"})
-    
+
     def parse_directive(
         self, block: Any, m: re.Match, state: Any
     ) -> DirectiveToken:
         """Parse the directive from markdown."""
         info = self.parse_info(m)
         options = self.parse_options(m, MyOptions)
-        
+
         return DirectiveToken(
             directive_type="my_directive",
             raw_info=info,
@@ -119,7 +119,7 @@ class MyDirective(BengalDirective):
             attrs={"color": options.color},
             children=block.parse(m.group("text") or "", state),
         )
-    
+
     def render(
         self, renderer: Any, text: str, title: str = "", **attrs
     ) -> str:
@@ -211,6 +211,7 @@ STEPS_CONTRACT = DirectiveContract(
 | `dropdown` | Collapsible sections | `:::{dropdown} Title` |
 | `container` | Generic wrapper div | `:::{container} my-class` |
 | `rubric` | Pseudo-heading (not in TOC) | `:::{rubric} API Reference` |
+| `example-label` | Lightweight example section label | `:::{example-label} Basic Usage` |
 
 ### Navigation
 
@@ -295,6 +296,42 @@ Optional advanced configuration here.
 - `:description:` — Lead-in text with special typography (rendered before main content)
 - `:optional:` — Mark step as optional/skippable (adds visual indicator)
 - `:duration:` — Estimated time for the step (e.g., "2 min", "1 hour")
+
+#### Example Labels
+
+Lightweight semantic labels for example sections - a "soft header" that doesn't appear in TOC:
+
+```markdown
+:::{example-label} Basic Usage
+:::
+
+Here's how you use it:
+\`\`\`python
+print("hello")
+\`\`\`
+```
+
+**Example Label Options:**
+- `:class:` — Custom CSS class (e.g., `featured`, `compact`)
+- `:prefix:` — Custom prefix text (default: "Example")
+- `:no-prefix:` — Omit the prefix entirely
+
+```markdown
+<!-- Custom prefix -->
+:::{example-label} API Call
+:prefix: Demo
+:::
+
+<!-- No prefix (just the title) -->
+:::{example-label} Simple
+:no-prefix:
+:::
+
+<!-- Featured styling -->
+:::{example-label} Production Setup
+:class: featured
+:::
+```
 
 ### Cards and Grids
 
@@ -440,7 +477,7 @@ class OldDirective(DirectivePlugin):
         options = self.parse_directive_options(m)
         # Manual token creation
         return {"type": "old_directive", ...}
-    
+
     def __call__(self, directive, md):
         directive.register(...)
         md.renderer.old_directive = render_old_directive
@@ -451,11 +488,11 @@ class OldDirective(DirectivePlugin):
 ```python
 class NewDirective(BengalDirective):
     DIRECTIVE_NAMES = frozenset({"new-directive"})
-    
+
     def parse_directive(self, block, m, state) -> DirectiveToken:
         options = self.parse_options(m, MyOptions)
         return DirectiveToken(...)
-    
+
     def render(self, renderer, text, **attrs) -> str:
         return f'<div>{text}</div>'
 ```
@@ -525,6 +562,7 @@ bengal/rendering/plugins/directives/
 ├── container.py         # container, div
 ├── data_table.py        # data-table
 ├── dropdown.py          # dropdown, details
+├── example_label.py     # example-label (lightweight example headers)
 ├── glossary.py          # glossary
 ├── icon.py              # icon, svg-icon
 ├── include.py           # include
@@ -543,4 +581,3 @@ bengal/rendering/plugins/directives/
 - [RFC: Directive System v2](../../../../plan/active/rfc-directive-system-v2.md) - Design rationale
 - [Plan: Directive System v2](../../../../plan/active/plan-directive-system-v2.md) - Implementation plan
 - [MyST Directive Syntax](https://myst-parser.readthedocs.io/en/latest/syntax/directives.html) - Syntax reference
-

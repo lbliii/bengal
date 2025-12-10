@@ -1,0 +1,159 @@
+/**
+ * Label Directive Styles
+ *
+ * Lightweight semantic labels for section headers that don't appear in TOC.
+ * These are "soft headers" - visually distinct but semantically lighter than headings.
+ *
+ * Directives:
+ * - .example-label: Example section labels
+ * - .rubric: API documentation section labels (Parameters, Returns, etc.)
+ */
+
+/* ============================================
+   EXAMPLE LABEL
+   ============================================ */
+
+/**
+ * Example label - lightweight header for example sections
+ *
+ * Usage:
+ *   :::{example-label} Basic Usage
+ *   :::
+ *
+ * Renders as a styled paragraph with semantic meaning but no TOC presence.
+ */
+.example-label {
+  display: block;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.example-label-prefix {
+  color: var(--color-success);
+  font-weight: var(--weight-bold);
+}
+
+/* Variant: Featured example (more prominent) */
+.example-label.featured {
+  font-size: var(--text-base);
+  color: var(--color-success);
+  border-left: 3px solid var(--color-success);
+  padding-left: var(--space-3);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.example-label.featured .example-label-prefix {
+  color: inherit;
+}
+
+/* Variant: Compact (inline-like) */
+.example-label.compact {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* ============================================
+   EXAMPLE LABEL + CODE BLOCK PAIRING
+   ============================================ */
+
+/* When example-label is followed by a code block, add subtle connection */
+.example-label + pre,
+.example-label + .code-block-wrapper {
+  border-left: 3px solid var(--color-success-light);
+  margin-top: 0;
+}
+
+.example-label + pre code,
+.example-label + .code-block-wrapper pre code {
+  /* Maintain code block styling */
+}
+
+/* ============================================
+   PROSE CONTEXT
+   ============================================ */
+
+/* Inside prose content */
+.prose .example-label {
+  /* Slightly more spacing in prose context */
+  margin-top: var(--space-8);
+}
+
+/* First example label in a section doesn't need extra top margin */
+.prose h2 + .example-label,
+.prose h3 + .example-label,
+.prose h4 + .example-label {
+  margin-top: var(--space-4);
+}
+
+/* ============================================
+   API DOCS CONTEXT
+   ============================================ */
+
+/* In API documentation, example labels get success color treatment */
+.prose.api-content .example-label {
+  color: var(--color-success);
+  text-transform: none;
+  font-size: var(--text-base);
+  letter-spacing: normal;
+  border-bottom: 2px solid var(--color-success-light);
+  padding-bottom: var(--space-1);
+}
+
+.prose.api-content .example-label .example-label-prefix {
+  color: inherit;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+
+[data-theme="dark"] .example-label {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .example-label-prefix {
+  color: var(--color-success);
+}
+
+[data-theme="dark"] .example-label + pre,
+[data-theme="dark"] .example-label + .code-block-wrapper {
+  border-left-color: var(--color-success);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .example-label {
+    color: var(--color-text-muted);
+  }
+
+  :root:not([data-theme="light"]) .example-label-prefix {
+    color: var(--color-success);
+  }
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+
+@media print {
+  .example-label {
+    color: #333;
+    border-bottom: 1px solid #999;
+    padding-bottom: 2px;
+  }
+
+  .example-label-prefix {
+    color: #333;
+    font-weight: bold;
+  }
+
+  .example-label + pre {
+    border-left: 2px solid #666;
+  }
+}

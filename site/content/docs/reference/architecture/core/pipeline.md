@@ -396,8 +396,8 @@ result = pipeline.run()
 - `WatchBatch` - Batched changes
 - `ChangeType` - Change type enum
 
-## See Also
-
+:::{seealso}
 - [Build Pipeline Concepts](/docs/about/concepts/build-pipeline/) - High-level build overview
 - [Orchestration](/docs/reference/architecture/core/orchestration/) - Legacy orchestrator docs
 - [Caching](/docs/reference/architecture/core/cache/) - Cache system details
+:::

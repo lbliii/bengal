@@ -137,6 +137,10 @@
 }
 
 @layer components {
+  @import url('components/target-anchor.css');
+}
+
+@layer components {
   @import url('components/buttons.css');
   @import url('components/forms.css');
 }
@@ -187,6 +191,10 @@
 
 @layer components {
   @import url('components/badges.css');
+}
+
+@layer components {
+  @import url('components/labels.css');
 }
 
 @layer components {

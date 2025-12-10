@@ -125,21 +125,55 @@ python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False 
 
 ## Troubleshooting
 
-### "Command not found"
+:::{dropdown} Command not found
+:icon: alert
 
-- Ensure Python's bin directory is in your PATH
-- If using a virtual environment, activate it: `source .venv/bin/activate`
-- Try reinstalling: `pip uninstall bengal && pip install bengal`
+Ensure Python's bin directory is in your PATH.
 
-### Python version errors
+If using a virtual environment, activate it:
 
-- Verify: `python --version` or `python3 --version`
-- Install Python 3.14+ using pyenv or official installer
+```bash
+source .venv/bin/activate
+```
 
-### Permission errors
+Try reinstalling:
 
-- Use `--user` flag: `pip install --user bengal`
-- Or use a virtual environment: `python -m venv venv && source venv/bin/activate`
+```bash
+pip uninstall bengal && pip install bengal
+```
+
+:::
+
+:::{dropdown} Python version errors
+:icon: alert
+
+Verify your Python version:
+
+```bash
+python --version
+# or
+python3 --version
+```
+
+Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
+:::
+
+:::{dropdown} Permission errors
+:icon: alert
+
+Use the `--user` flag:
+
+```bash
+pip install --user bengal
+```
+
+Or use a virtual environment:
+
+```bash
+python -m venv venv && source venv/bin/activate
+```
+
+:::
 
 ## Next Steps
 

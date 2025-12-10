@@ -31,7 +31,7 @@ flowchart TB
     C --> F
 ```
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} 📄 Page
 A single `.md` file → a single HTML page.
 
@@ -70,7 +70,7 @@ content/
 
 Use for: pages with images, data files, or other assets.
 :::
-::::
+:::{/tab-set}
 
 ## Quick Reference
 
@@ -85,6 +85,7 @@ Use for: pages with images, data files, or other assets.
 :::
 
 :::{dropdown} Advanced: Nesting and Cascades
+:icon: settings
 Sections can nest to any depth:
 
 ```

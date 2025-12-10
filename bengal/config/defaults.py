@@ -89,6 +89,7 @@ DEFAULTS: dict[str, Any] = {
     "strict_mode": False,
     "debug": False,
     "validate_build": True,
+    "validate_templates": False,  # Proactive template syntax validation during build
     "validate_links": True,
     "transform_links": True,
     "cache_templates": True,
@@ -193,8 +194,28 @@ DEFAULTS: dict[str, Any] = {
         "enabled": True,
         "verbose": False,
         "strict_mode": False,
+        # Legacy thresholds (for backward compatibility)
         "orphan_threshold": 5,
         "super_hub_threshold": 50,
+        # Semantic connectivity thresholds
+        "isolated_threshold": 5,  # Max isolated pages before error
+        "lightly_linked_threshold": 20,  # Max lightly-linked pages before warning
+        # Connectivity level thresholds (weighted scores)
+        "connectivity_thresholds": {
+            "well_connected": 2.0,  # Score >= 2.0 = well connected
+            "adequately_linked": 1.0,  # Score 1.0-2.0 = adequate
+            "lightly_linked": 0.25,  # Score 0.25-1.0 = lightly linked
+            # Score < 0.25 = isolated
+        },
+        # Link type weights for connectivity scoring
+        "link_weights": {
+            "explicit": 1.0,  # Human-authored markdown links
+            "menu": 10.0,  # Navigation menu items
+            "taxonomy": 1.0,  # Shared tags/categories
+            "related": 0.75,  # Algorithm-computed related posts
+            "topical": 0.5,  # Section hierarchy (parent → child)
+            "sequential": 0.25,  # Next/prev navigation
+        },
         # Tier 1: Always run (fast, <100ms)
         "build_validators": [
             "config",

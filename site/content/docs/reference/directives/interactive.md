@@ -32,8 +32,8 @@ Create tabbed interfaces for multi-language code examples.
 
 **Syntax**:
 
-`````markdown
-::::{code-tabs}
+````markdown
+:::{code-tabs}
 
 ### Tab: Language Name
 ```language
@@ -44,8 +44,9 @@ code here
 ```language
 more code
 ```
-::::
-`````
+
+:::{/code-tabs}
+````
 
 **Note**: You can also use `### Language Name` (without "Tab:" prefix).
 
@@ -55,8 +56,8 @@ more code
 
 **Python and JavaScript**:
 
-`````markdown
-::::{code-tabs}
+````markdown
+:::{code-tabs}
 
 ### Tab: Python
 ```python
@@ -70,13 +71,14 @@ function hello() {
     console.log("Hello, World!");
 }
 ```
-::::
-`````
+
+:::{/code-tabs}
+````
 
 **Multiple Languages**:
 
-`````markdown
-::::{code-tabs}
+````markdown
+:::{code-tabs}
 
 ### Python
 ```python
@@ -92,8 +94,9 @@ console.log("Hello");
 ```go
 fmt.Println("Hello")
 ```
-::::
-`````
+
+:::{/code-tabs}
+````
 
 ### Rendering
 

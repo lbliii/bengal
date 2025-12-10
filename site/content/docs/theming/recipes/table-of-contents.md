@@ -117,7 +117,7 @@ const observer = new IntersectionObserver((entries) => {
 document.querySelectorAll('h2[id], h3[id]').forEach(h => observer.observe(h));
 ```
 
-## See Also
-
+:::{seealso}
 - [Template Variables](/docs/theming/variables/) — All page properties
 - [Configuration](/docs/building/configuration/) — Markup options
+:::
