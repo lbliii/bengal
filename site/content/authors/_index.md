@@ -2,7 +2,9 @@
 title: Authors
 description: Meet the people behind Bengal
 weight: 100
-type: page
+menu: false
+cascade:
+    type: author
 ---
 
 # Authors

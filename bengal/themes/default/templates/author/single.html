@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{#
+Author Single Page Template
+
+Displays an individual author's profile with bio, stats, and all their posts.
+Uses query indexes for O(1) author lookups.
+
+URL Pattern: /authors/lbliii/
+
+Required page metadata:
+  - author_name: "lbliii" (the author key to look up)
+
+Optional metadata:
+  - avatar: "/images/jane.jpg"
+  - bio: "Author bio text"
+  - social: {twitter: "@jane", github: "janesmith"}
+  - section_filter: "blog" (only show posts from specific section)
+
+Can also pull from data/authors.yaml:
+  {% set author_data = site.data.authors[page.metadata.author_name] %}
+
+Context variables:
+  - page: Current author page
+  - page.metadata.author_name: The author key to look up
+  - site.indexes.author: Author index
+  - site.data.authors: Author registry (if data/authors.yaml exists)
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import tag_list %}
+
+{% set author_key = page.metadata.author_name | default(page.title) %}
+
+{# Try to get author data from registry first, fall back to page metadata #}
+{% set author_data = site.data.authors[author_key] if site.data.authors and author_key in site.data.authors else {} %}
+{% set author_name = author_data.name | default(page.title) %}
+{% set author_bio = author_data.bio | default(page.metadata.get('bio', '')) %}
+{% set author_avatar = author_data.avatar | default(page.metadata.get('avatar')) %}
+{% set author_social = author_data.social | default(page.metadata.get('social', {})) %}
+
+{# Merge social links from data file format #}
+{% if author_data.github and not author_social.github %}
+  {% set author_social = author_social | merge({'github': author_data.github}) %}
+{% endif %}
+{% if author_data.links %}
+  {% for link in author_data.links %}
+    {% if 'github' in link.url %}
+      {% set author_social = author_social | merge({'github': link.url | replace('https://github.com/', '')}) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set section_filter = page.metadata.get('section_filter') %}
+
+{% block content %}
+{{ breadcrumbs(page) }}
+
+<div class="author-page">
+  <header class="author-header">
+    {% if author_avatar %}
+    <img src="{{ author_avatar }}"
+         alt="{{ author_name }}"
+         class="author-avatar-large">
+    {% else %}
+    <div class="author-avatar-placeholder">
+      {{ author_name[0] | upper }}
+    </div>
+    {% endif %}
+
+    <div class="author-header-content">
+      <h1 class="author-name">{{ author_name }}</h1>
+
+      {% if author_data.company or author_data.location %}
+      <p class="author-meta">
+        {% if author_data.company %}{{ author_data.company }}{% endif %}
+        {% if author_data.company and author_data.location %} · {% endif %}
+        {% if author_data.location %}{{ author_data.location }}{% endif %}
+      </p>
+      {% endif %}
+
+      {% if author_bio %}
+      <p class="author-bio">{{ author_bio }}</p>
+      {% endif %}
+
+      {# Social links #}
+      {% if author_social or author_data.github %}
+      <div class="author-social">
+        {% if author_social.twitter %}
+        <a href="https://twitter.com/{{ author_social.twitter.lstrip('@') }}"
+           class="social-link"
+           aria-label="Twitter">
+          🐦 Twitter
+        </a>
+        {% endif %}
+
+        {% if author_social.github or author_data.github %}
+        <a href="https://github.com/{{ author_social.github | default(author_data.github) }}"
+           class="social-link"
+           aria-label="GitHub">
+          💻 GitHub
+        </a>
+        {% endif %}
+
+        {% if author_social.linkedin %}
+        <a href="https://linkedin.com/in/{{ author_social.linkedin }}"
+           class="social-link"
+           aria-label="LinkedIn">
+          💼 LinkedIn
+        </a>
+        {% endif %}
+
+        {% if author_social.website %}
+        <a href="{{ author_social.website }}"
+           class="social-link"
+           aria-label="Website">
+          🌐 Website
+        </a>
+        {% endif %}
+
+        {% if author_social.email %}
+        <a href="mailto:{{ author_social.email }}"
+           class="social-link"
+           aria-label="Email">
+          ✉️ Email
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {# O(1) lookup of all posts by this author #}
+  {% set author_posts = site.indexes.author.get(author_key) | resolve_pages %}
+
+  {# Filter by section if specified #}
+  {% if section_filter %}
+    {% set author_posts = author_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
+  {% endif %}
+
+  {% if author_posts %}
+    {# Statistics Section #}
+    <section class="author-stats">
+      <h2 class="sr-only">Author Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-value">{{ author_posts | length }}</span>
+          <span class="stat-label">Post{{ 's' if author_posts | length != 1 }}</span>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-value">{{ author_posts | map(attribute='content') | join('') | wordcount | format_number }}</span>
+          <span class="stat-label">Words</span>
+        </div>
+
+        {% set all_tags = author_posts | map(attribute='tags') | flatten | unique | list %}
+        <div class="stat-card">
+          <span class="stat-value">{{ all_tags | length }}</span>
+          <span class="stat-label">Topic{{ 's' if all_tags | length != 1 }}</span>
+        </div>
+
+        {% set years = author_posts | map(attribute='date.year') | select('defined') | unique | sort %}
+        {% if years %}
+        <div class="stat-card">
+          <span class="stat-value">{{ years | first }}</span>
+          <span class="stat-label">Member Since</span>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {# Main content from markdown #}
+    {% if content %}
+    <div class="author-content prose">
+      {{ content | safe }}
+    </div>
+    {% endif %}
+
+    {# Posts Section #}
+    <section class="author-posts">
+      <h2>Posts by {{ author_name }}</h2>
+
+      {# Group toggle: All / By Year / By Category #}
+      <div class="posts-view-toggle">
+        <button class="view-btn active" data-view="all">All Posts</button>
+        <button class="view-btn" data-view="by-year">By Year</button>
+        {% if all_tags %}
+        <button class="view-btn" data-view="by-tag">By Topic</button>
+        {% endif %}
+      </div>
+
+      {# All Posts View (default) #}
+      <div class="posts-view" data-view-content="all">
+        <div class="post-list">
+          {% for post in author_posts | sort_by('date', reverse=true) %}
+            <article class="author-post-card">
+              <div class="post-card-content">
+                <h3 class="post-title">
+                  <a href="{{ post.url }}">{{ post.title }}</a>
+                </h3>
+
+                {% if post.metadata.get('description') %}
+                <p class="post-excerpt">{{ post.metadata.get('description') }}</p>
+                {% endif %}
+
+                <div class="post-meta">
+                  {% if post.date %}
+                  <time datetime="{{ post.date | date_iso }}">
+                    {{ post.date | dateformat('%B %d, %Y') }}
+                  </time>
+                  {% endif %}
+
+                  {% if post._section %}
+                  <span class="post-section">{{ post._section.name | title }}</span>
+                  {% endif %}
+
+                  {% if post.content %}
+                  <span class="reading-time">
+                    {{ (post.content | wordcount / 200) | round }} min read
+                  </span>
+                  {% endif %}
+                </div>
+
+                {% if post.tags %}
+                <div class="post-tags">
+                  {{ tag_list(post.tags | limit(4)) }}
+                </div>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# By Year View #}
+      <div class="posts-view" data-view-content="by-year" style="display: none;">
+        {% set posts_by_year = author_posts | group_by('date.year') %}
+        {% for year, year_posts in posts_by_year.items() | sort(reverse=true) %}
+          <div class="year-group">
+            <h3>{{ year if year else 'Undated' }} ({{ year_posts | length }})</h3>
+            <ul class="post-list-compact">
+              {% for post in year_posts | sort_by('date', reverse=true) %}
+                <li>
+                  <a href="{{ post.url }}">{{ post.title }}</a>
+                  {% if post.date %}
+                  <time>{{ post.date | dateformat('%b %d') }}</time>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# By Topic View #}
+      {% if all_tags %}
+      <div class="posts-view" data-view-content="by-tag" style="display: none;">
+        {% for tag in all_tags | sort %}
+          {% set tag_posts = [] %}
+          {% for post in author_posts %}
+            {% if post.tags is defined and (tag in post.tags) %}
+              {% set _ = tag_posts.append(post) %}
+            {% endif %}
+          {% endfor %}
+          <div class="tag-group">
+            <h3>{{ tag }} ({{ tag_posts | length }})</h3>
+            <ul class="post-list-compact">
+              {% for post in tag_posts | sort_by('date', reverse=true) %}
+                <li>
+                  <a href="{{ post.url }}">{{ post.title }}</a>
+                  {% if post.date %}
+                  <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+  {% else %}
+    {# Empty State #}
+    <div class="author-empty">
+      <p>No posts found by {{ author_name }}.</p>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+// Simple view toggle
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+
+    // Update buttons
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Update views
+    document.querySelectorAll('[data-view-content]').forEach(v => {
+      v.style.display = v.dataset.viewContent === view ? 'block' : 'none';
+    });
+  });
+});
+</script>
+{% endblock %}
+

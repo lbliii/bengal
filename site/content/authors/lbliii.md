@@ -1,7 +1,7 @@
 ---
 title: Lawrence Lane
 author_name: lbliii
-template: author.html
+type: author
 bio: Creator of Bengal SSG. Technical writer, developer, and documentation enthusiast.
 social:
   github: lbliii
