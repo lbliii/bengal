@@ -128,6 +128,7 @@ The default theme organizes templates into:
 - **Content types**: `blog/`, `doc/`, `api-reference/` — Type-specific templates
 
 :::{dropdown} What should I swizzle?
+:icon: info
 **Start small**: Swizzle only what you need to customize. Common starting points:
 - `partials/navigation-components.html` — Navigation menus
 - `partials/search.html` — Search functionality

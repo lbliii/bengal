@@ -85,6 +85,7 @@ Use for: pages with images, data files, or other assets.
 :::
 
 :::{dropdown} Advanced: Nesting and Cascades
+:icon: settings
 Sections can nest to any depth:
 
 ```

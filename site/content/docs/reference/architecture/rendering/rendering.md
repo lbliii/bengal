@@ -62,7 +62,7 @@ flowchart TD
 
 ## Components
 
-:::{tab-set}
+::::{tab-set}
 :::{tab-item} Parser
 **Markdown Parser** (`rendering/parsers/`)
 
@@ -96,13 +96,13 @@ Orchestrates the flow for each page.
 - Tracks template dependencies
 - Writes atomic output
 :::
-:::{/tab-set}
+::::
 
 ## Mistune Directives
 
 Bengal extends Markdown with powerful directives using `:::{name}` syntax.
 
-:::{cards}
+::::{cards}
 :columns: 3
 :gap: small
 :variant: info
@@ -136,7 +136,7 @@ Multi-language code blocks.
 :icon: square
 Call-to-action buttons.
 :::
-:::{/cards}
+::::
 
 ## Performance
 
@@ -152,6 +152,7 @@ We benchmarked parser performance on a 78-page site:
 The engine includes 17 modules of helper functions available in all templates.
 
 :::{dropdown} Available Function Categories
+:icon: code
 - **Strings**: `truncate`, `slugify`, `markdownify`
 - **Collections**: `where`, `group_by`, `sort_by`
 - **Dates**: `time_ago`, `date_iso`

@@ -258,6 +258,8 @@ bengal new site mysite
 
 ```markdown
 :::{dropdown} Click to expand
+:icon: info
+
 Hidden content here. Supports **full markdown**.
 :::
 ```

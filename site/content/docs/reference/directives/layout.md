@@ -406,6 +406,7 @@ Collapsible sections for optional or advanced content.
 ````markdown
 :::{dropdown} Title
 :open: true
+:icon: info
 
 Content with **markdown** support.
 
@@ -418,6 +419,10 @@ Nested directives work!
 **Options**:
 
 - `:open:` - Open by default: `true`, `false` (default)
+- `:icon:` - Icon name to display next to title (e.g., `info`, `settings`, `star`)
+- `:badge:` - Badge text (e.g., "New", "Advanced")
+- `:color:` - Color variant: `success`, `warning`, `danger`, `info`, `minimal`
+- `:class:` - Additional CSS classes
 
 **Alias**: `{details}` works the same as `{dropdown}`.
 
@@ -427,6 +432,7 @@ Nested directives work!
 
 ````markdown
 :::{dropdown} Advanced Options
+:icon: settings
 Click to expand advanced configuration options.
 :::
 ````
@@ -435,9 +441,22 @@ Click to expand advanced configuration options.
 
 ````markdown
 :::{dropdown} Quick Reference
+:icon: info
 :open: true
 
 Common commands and shortcuts.
+:::
+````
+
+**With Badge and Color**:
+
+````markdown
+:::{dropdown} New Features
+:icon: star
+:badge: New
+:color: success
+
+Check out the latest features!
 :::
 ````
 

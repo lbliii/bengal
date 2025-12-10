@@ -196,6 +196,8 @@ Complete API documentation
 :::{tab} Bengal
 ```markdown
 :::{dropdown} Click to expand
+:icon: info
+
 Hidden content here with **markdown** support.
 :::
 ```

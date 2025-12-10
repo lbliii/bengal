@@ -69,6 +69,7 @@ flowchart LR
 :::
 
 :::{dropdown} What makes a good tutorial?
+:icon: info
 Tutorials are **learning-oriented** — they teach skills through guided practice.
 
 Each tutorial:

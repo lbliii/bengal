@@ -224,17 +224,15 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
     Returns:
         SVG HTML string, or empty string if icon not found
     """
-    from bengal.rendering.plugins.directives._icons import render_svg_icon
+    from bengal.rendering.plugins.directives._icons import (
+        render_svg_icon,
+        warn_missing_icon,
+    )
 
     icon_html = render_svg_icon(icon_name, size=18, css_class="dropdown-summary-icon")
 
     if not icon_html:
-        logger.warning(
-            "dropdown_icon_not_found",
-            icon=icon_name,
-            dropdown_title=dropdown_title,
-            hint="Check available icons in themes/default/assets/icons/",
-        )
+        warn_missing_icon(icon_name, directive="dropdown", context=dropdown_title)
 
     return icon_html
 

@@ -240,6 +240,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
 Check your browser. The header color should change (if the theme uses the `--primary-color` variable), and your custom footer should appear.
 
 :::{dropdown} How does this work?
+:icon: info
 Bengal looks for templates in your `templates/` folder first.
 *   `{% extends "default::base.html" %}` tells Bengal to load the *original* theme template first.
 *   `{% block %}` allows you to replace specific sections without copy-pasting the whole file.
