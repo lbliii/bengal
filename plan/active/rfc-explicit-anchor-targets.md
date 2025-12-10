@@ -396,15 +396,20 @@ class BengalDirective(DirectivePlugin):
 - `plugins/directives/base.py`: `:name:` support (Phase 3)
 
 **Secondary**: `bengal/orchestration/`
-- `content.py`: Update `_build_xref_index()` to index explicit anchors
+- `content.py`: Update `_build_xref_index()` to index explicit heading IDs
+- `render.py`: Add `_index_explicit_anchors()` post-render hook for `{target}` directives
 
 **CSS**: `bengal/themes/default/assets/css/`
 - `.target-anchor`: Invisible anchor styling
 
+**Tertiary**: `bengal/health/`
+- `validators/anchors.py`: New anchor validation (Phase 3)
+
+**Cache Integration**: `bengal/cache/`
+- `dependency_tracker.py`: Track anchor references for incremental builds
+
 **No changes required**:
 - `bengal/core/` — No data model changes
-- `bengal/cache/` — Existing caching applies
-- `bengal/health/` — Existing validators apply
 
 ### xref_index Updates
 

@@ -79,10 +79,10 @@ You should see output like: `Bengal SSG, version X.X.X`
 
 ## Python Version Setup
 
-::::{tab-set}
-
-:::{tab-item} pyenv (Recommended)
-
+:::{tab-set}
+:::{tab-item} pyenv
+:icon: settings
+:badge: Recommended
 pyenv lets you install and switch between multiple Python versions:
 
 ```bash
@@ -98,16 +98,15 @@ pyenv global 3.14.0
 # Verify
 python --version
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Official Installer
-
+:icon: download
 Download Python 3.14 from [python.org/downloads](https://www.python.org/downloads/).
 
 After installation, verify: `python3 --version`
-:::
-
-::::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Free-Threaded Python (Optional)
 
