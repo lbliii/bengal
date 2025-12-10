@@ -64,7 +64,7 @@
   color: var(--color-text-secondary);
 }
 
-/* Bullet styling for regular lists */
+/* Bullet styling for regular lists (non-task lists) */
 .checklist-content ul > li::before {
   content: '▸';
   position: absolute;
@@ -72,6 +72,11 @@
   color: var(--color-primary);
   font-weight: var(--weight-medium);
   font-size: 1em;
+}
+
+/* Hide bullet arrows when checklist has task items (checkboxes) */
+.checklist-has-tasks .checklist-content ul > li::before {
+  content: none;
 }
 
 /* Task list styling (checkboxes) */

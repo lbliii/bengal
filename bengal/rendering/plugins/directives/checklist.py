@@ -145,7 +145,19 @@ class ChecklistDirective(BengalDirective):
         if css_class:
             classes.append(css_class)
 
+        # Check if content has task list checkboxes
+        has_checkboxes = 'type="checkbox"' in text
+
+        # Add class for task list styling (hides bullet arrows)
+        if has_checkboxes:
+            classes.append("checklist-has-tasks")
+
         class_str = " ".join(classes)
+
+        # Remove 'disabled' attribute from checkboxes to make them interactive
+        # Mistune's task_lists plugin adds disabled by default
+        if has_checkboxes:
+            text = self._make_checkboxes_interactive(text)
 
         parts = [f'<div class="{class_str}">\n']
 
@@ -154,7 +166,7 @@ class ChecklistDirective(BengalDirective):
             parts.append(f'  <p class="checklist-title">{self.escape_html(title)}</p>\n')
 
         # Progress bar (if enabled and has checkboxes)
-        if show_progress:
+        if show_progress and has_checkboxes:
             progress_html = self._render_progress_bar(text)
             if progress_html:
                 parts.append(progress_html)
@@ -162,9 +174,62 @@ class ChecklistDirective(BengalDirective):
         parts.append('  <div class="checklist-content">\n')
         parts.append(f"{text}")
         parts.append("  </div>\n")
+
+        # Add JavaScript for interactive progress updates if we have progress bar
+        if show_progress and has_checkboxes:
+            parts.append(self._render_progress_script())
+
         parts.append("</div>\n")
 
         return "".join(parts)
+
+    def _make_checkboxes_interactive(self, html_content: str) -> str:
+        """
+        Remove 'disabled' attribute from checkboxes to allow interaction.
+
+        Mistune's task_lists plugin adds 'disabled' by default. We remove it
+        for checklist directives to enable interactive checklists.
+        """
+        # Remove disabled attribute from checkbox inputs
+        # Pattern handles both 'disabled' and 'disabled=""' formats
+        return re.sub(
+            r'(<input[^>]*type="checkbox"[^>]*)\s+disabled(?:="")?([^>]*>)',
+            r"\1\2",
+            html_content,
+        )
+
+    def _render_progress_script(self) -> str:
+        """
+        Render JavaScript for interactive progress bar updates.
+
+        When a checkbox is toggled, updates the progress bar and text.
+        """
+        return """  <script>
+    (function() {
+      const checklist = document.currentScript.closest('.checklist');
+      if (!checklist) return;
+
+      const progressBar = checklist.querySelector('.checklist-progress-bar');
+      const progressText = checklist.querySelector('.checklist-progress-text');
+      const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
+
+      if (!progressBar || !progressText || !checkboxes.length) return;
+
+      function updateProgress() {
+        const total = checkboxes.length;
+        const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const percentage = Math.round((checked / total) * 100);
+
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = checked + '/' + total + ' complete';
+      }
+
+      checkboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateProgress);
+      });
+    })();
+  </script>
+"""
 
     def _render_progress_bar(self, html_content: str) -> str:
         """
@@ -173,12 +238,8 @@ class ChecklistDirective(BengalDirective):
         Counts checked vs unchecked checkboxes in the rendered HTML.
         Returns empty string if no checkboxes found.
         """
-        # Count checked and unchecked checkboxes
-        checked_pattern = r'<input[^>]*type="checkbox"[^>]*checked[^>]*>'
-        unchecked_pattern = r'<input[^>]*type="checkbox"[^>]*(?!checked)[^>]*>'
-
-        # Simpler patterns that work better
-        checked = len(re.findall(r'checked', html_content))
+        # Count checked and total checkboxes
+        checked = len(re.findall(r"checked", html_content))
         total_checkboxes = len(re.findall(r'type="checkbox"', html_content))
 
         if total_checkboxes == 0:
@@ -190,7 +251,7 @@ class ChecklistDirective(BengalDirective):
             f'  <div class="checklist-progress">\n'
             f'    <div class="checklist-progress-bar" style="width: {percentage}%"></div>\n'
             f'    <span class="checklist-progress-text">{checked}/{total_checkboxes} complete</span>\n'
-            f'  </div>\n'
+            f"  </div>\n"
         )
 
 
