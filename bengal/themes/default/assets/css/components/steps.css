@@ -113,8 +113,7 @@
 }
 
 /* Hide auto-generated heading anchor links - step marker is the anchor */
-.steps > ol > li > .step-title .header-anchor,
-.steps > ol > li > .step-title .anchor-link {
+.steps > ol > li > .step-title.heading-anchor .copy-link {
   display: none;
 }
 
