@@ -428,3 +428,98 @@ class TestBuildStatsCacheStatistics:
         assert stats.cache_hits == 100
         assert stats.cache_misses == 20
         assert stats.time_saved_ms == 5000.0
+
+
+class TestBuildStatsErrorCategorization:
+    """Test BuildStats.syntax_errors and not_found_errors properties."""
+
+    def test_syntax_errors_returns_empty_when_no_errors(self) -> None:
+        """Test syntax_errors returns empty list when no template errors."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        assert stats.syntax_errors == []
+
+    def test_syntax_errors_filters_by_type(self) -> None:
+        """Test syntax_errors filters template_errors by error_type."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        # Add syntax error
+        syntax_error = MagicMock()
+        syntax_error.error_type = "syntax"
+        stats.add_template_error(syntax_error)
+
+        # Add non-syntax error
+        other_error = MagicMock()
+        other_error.error_type = "undefined"
+        stats.add_template_error(other_error)
+
+        assert len(stats.syntax_errors) == 1
+        assert stats.syntax_errors[0].error_type == "syntax"
+
+    def test_not_found_errors_returns_empty_when_no_errors(self) -> None:
+        """Test not_found_errors returns empty list when no template errors."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        assert stats.not_found_errors == []
+
+    def test_not_found_errors_filters_by_type(self) -> None:
+        """Test not_found_errors filters template_errors by error_type."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        # Add not_found error
+        not_found_error = MagicMock()
+        not_found_error.error_type = "not_found"
+        stats.add_template_error(not_found_error)
+
+        # Add syntax error
+        syntax_error = MagicMock()
+        syntax_error.error_type = "syntax"
+        stats.add_template_error(syntax_error)
+
+        assert len(stats.not_found_errors) == 1
+        assert stats.not_found_errors[0].error_type == "not_found"
+
+    def test_categorization_with_mixed_errors(self) -> None:
+        """Test categorization with multiple error types."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        # Add various error types
+        errors = [
+            ("syntax", MagicMock(error_type="syntax")),
+            ("syntax", MagicMock(error_type="syntax")),
+            ("not_found", MagicMock(error_type="not_found")),
+            ("undefined", MagicMock(error_type="undefined")),
+            ("filter", MagicMock(error_type="filter")),
+        ]
+
+        for _, error in errors:
+            stats.add_template_error(error)
+
+        assert len(stats.template_errors) == 5
+        assert len(stats.syntax_errors) == 2
+        assert len(stats.not_found_errors) == 1
+
+    def test_categorization_handles_errors_without_error_type(self) -> None:
+        """Test categorization gracefully handles errors without error_type attribute."""
+        from bengal.utils.build_stats import BuildStats
+
+        stats = BuildStats()
+
+        # Add error without error_type attribute
+        error_no_type = MagicMock(spec=[])  # No attributes
+        stats.add_template_error(error_no_type)
+
+        # Should not include in categorized lists
+        assert len(stats.template_errors) == 1
+        assert len(stats.syntax_errors) == 0
+        assert len(stats.not_found_errors) == 0
