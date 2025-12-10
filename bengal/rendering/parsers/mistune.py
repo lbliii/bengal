@@ -275,14 +275,10 @@ class MistuneParser(BaseMarkdownParser):
                     # Pygments outputs: <span class="hll">content\n</span>
                     # We need: <span class="hll">content</span>\n
                     # This prevents double line spacing when using display:block
+                    # The \n</span> pattern only appears inside .hll spans (token spans
+                    # don't have newlines inside them), so we can safely replace all.
                     if hl_lines:
-                        highlighted = highlighted.replace(
-                            '\n</span><span class="hll">',
-                            '</span>\n<span class="hll">'
-                        ).replace(
-                            '\n</span></code>',
-                            '</span>\n</code>'
-                        )
+                        highlighted = highlighted.replace("\n</span>", "</span>\n")
 
                     return highlighted
 
