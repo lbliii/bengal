@@ -88,44 +88,46 @@ Content here
 
 **Used for**: Cards, tabs, buttons, steps, list-table
 
-### Nesting Rules
+### Nesting with Named Closers
 
-When nesting directives, increase the fence level. **Container directives** (like `{steps}`, `{cards}`, `{grid}`, `{tab-set}`) require **4 fences minimum** (`::::`). Use higher fence counts (5, 6, etc.) for deeper nesting.
+Bengal supports **named closers** to avoid fence-counting when nesting directives. Use `:::{/name}` to explicitly close a directive:
 
 **Basic Nesting** (container with items):
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} Card Title
 Card content here
 :::
-::::
+
+:::{card} Card Title 2
+More content
+:::
+
+:::{/cards}
 ```
 
 **Deep Nesting** (admonitions within steps, tabs within cards, etc.):
 
 ```markdown
-:::::{steps}
+:::{steps}
 
-::::{step} First Step
+:::{step} First Step
 :::{tip}
 Remember to check the logs!
 :::
-::::
+:::{/step}
 
-::::{step} Second Step
+:::{step} Second Step
 More content
-::::
-:::::
+:::{/step}
+
+:::{/steps}
 ```
 
-**Rule**:
-- Container directives: **4 fences minimum** (`::::`)
-- Nested items: 3 fences (`:::`)
-- Each additional nesting level: increment fence count by 1
-- Example: Container (4) → Step (4) → Admonition (3 colons) = Container needs 5 fences
+**Rule**: Use `:::{/directive-name}` to close any container directive. This eliminates the need to count colons.
 
 ## Categories
 
@@ -156,7 +158,7 @@ This is a note with **markdown** support.
 ### Card Grid
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} Card 1
@@ -169,13 +171,14 @@ Content here
 :::{card} Card 2
 Content here
 :::
-::::
+
+:::{/cards}
 ```
 
 ### Tabs
 
 ```markdown
-::::{tab-set}
+:::{tab-set}
 
 :::{tab-item} Python
 ```python
@@ -188,7 +191,8 @@ print("Hello")
 console.log("Hello");
 ```
 :::
-::::
+
+:::{/tab-set}
 ```
 
 ## Glossary Directive

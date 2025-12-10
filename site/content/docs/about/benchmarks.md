@@ -226,8 +226,8 @@ Results may vary based on:
 
 ---
 
-## See Also
-
+:::{seealso}
 - [Comparison with Other SSGs](/docs/about/comparison/)
 - [Performance Optimization Guide](/docs/reference/architecture/meta/performance/)
 - [Limitations](/docs/about/limitations/)
+:::

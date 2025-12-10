@@ -51,7 +51,7 @@ flowchart TD
 
 ## Caching Strategies
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} File Hashing
 **Change Detection**
 
@@ -78,7 +78,7 @@ We store an inverted index of tags to avoid parsing all pages.
 - **Stored**: `tag_to_pages['python'] = ['post1.md', 'post2.md']`
 - **Benefit**: O(1) lookup for taxonomy page generation.
 :::
-::::
+:::{/tab-set}
 
 ## Zstandard Compression
 

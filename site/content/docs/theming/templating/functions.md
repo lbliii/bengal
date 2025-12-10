@@ -218,7 +218,7 @@ Filters can be chained for powerful queries:
 | `intersect(list2)` | Common items | `list1 \| intersect(list2)` |
 | `complement(list2)` | Difference | `list1 \| complement(list2)` |
 
-## See Also
-
+:::{seealso}
 - [Variables Reference](/docs/theming/variables/) — Available template variables
 - [Templating](/docs/theming/templating/) — Template basics
+:::

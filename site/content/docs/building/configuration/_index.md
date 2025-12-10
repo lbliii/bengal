@@ -52,7 +52,7 @@ name = "default"
 
 ## Configuration Patterns
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Single File
 Best for small sites:
 
@@ -83,7 +83,7 @@ config/
     └── staging.yaml
 ```
 :::
-::::
+:::{/tab-set}
 
 ## Environment Overrides
 

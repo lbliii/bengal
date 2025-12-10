@@ -52,7 +52,7 @@ classDiagram
 
 ## Built-in Strategies
 
-::::{cards}
+:::{cards}
 :columns: 2
 :gap: medium
 :variant: info
@@ -89,7 +89,7 @@ classDiagram
 - URLs: `/` (Single page)
 - Layout: Section-based
 :::
-::::
+:::{/cards}
 
 ## Custom Strategies
 

@@ -12,7 +12,7 @@ Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/)
 
 ## Quick Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Text
 ```markdown
 **bold** and *italic*
@@ -52,7 +52,7 @@ def hello():
 ```
 ````
 :::
-::::
+:::{/tab-set}
 
 ## MyST Directives
 

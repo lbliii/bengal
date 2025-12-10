@@ -33,14 +33,12 @@ Create responsive card grids for navigation, feature highlights, or content orga
 
 ### Card Grid (`{cards}`)
 
-Container for multiple cards with responsive column layout.
-
-**Important**: Container directives like `{cards}` require **4 fences minimum** (`::::`). Use higher fence counts (5, 6, etc.) for deeper nesting (e.g., admonitions within cards, tabs within cards).
+Container for multiple cards with responsive column layout. Use `:::{/cards}` to close.
 
 **Syntax**:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 :gap: medium
 :style: default
@@ -55,7 +53,8 @@ Container for multiple cards with responsive column layout.
 
 Card content with **markdown** support.
 :::
-::::
+
+:::{/cards}
 ```
 
 **Options**:
@@ -116,7 +115,7 @@ Footer content
 **Basic Card Grid**:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} Getting Started
@@ -139,13 +138,14 @@ Complete API docs
 
 Step-by-step tutorials
 :::
-::::
+
+:::{/cards}
 ```
 
 **Responsive Columns**:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 1-2-3
 :gap: large
 
@@ -156,31 +156,33 @@ Content
 :::{card} Card 2
 Content
 :::
-::::
+
+:::{/cards}
 ```
 
 **Cards with Nested Admonitions**:
 
-For nested directives like admonitions within cards, use 5 fences for the container:
+Named closers eliminate fence-counting for complex nesting:
 
 ````markdown
-:::::{cards}
+:::{cards}
 :columns: 2
 
-::::{card} Important Card
+:::{card} Important Card
 :::{warning}
 This feature requires special setup.
 :::
-::::
+:::{/card}
 
-::::{card} Regular Card
+:::{card} Regular Card
 Standard content here.
-::::
-:::::
+:::{/card}
+
+:::{/cards}
 ````
 
-:::{tip} Count the Fences
-The container uses 5 fences (`:::::`), cards use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
+:::{tip} Named Closers
+Use `:::{/name}` to explicitly close any container directive, eliminating the need to count colons.
 :::
 
 **Auto-Pull from Linked Pages**:
@@ -188,7 +190,7 @@ The container uses 5 fences (`:::::`), cards use 4 fences (`::::`), and the nest
 Use `:pull:` to automatically fetch metadata from linked pages, reducing content duplication:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card}
@@ -207,7 +209,8 @@ Use `:pull:` to automatically fetch metadata from linked pages, reducing content
 
 Custom content overrides pulled description.
 :::
-::::
+
+:::{/cards}
 ```
 
 The `:pull:` option supports:
@@ -227,7 +230,7 @@ Use `id:ref-name` syntax to reference pages by their frontmatter `id` field inst
 Use `:layout:` for different card arrangements:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 2
 :layout: horizontal
 
@@ -242,7 +245,8 @@ Image on left, content on right.
 
 Great for feature showcases.
 :::
-::::
+
+:::{/cards}
 ```
 
 Layout options:
@@ -254,7 +258,7 @@ Layout options:
 **Portrait Cards (TCG/Phone Style)**:
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 :layout: portrait
 
@@ -269,7 +273,8 @@ Home screen of our mobile app.
 
 Analytics dashboard view.
 :::
-::::
+
+:::{/cards}
 ```
 
 ## Tabs
@@ -278,14 +283,12 @@ Create tabbed content sections for organizing related content.
 
 ### Tab Set (`{tab-set}`)
 
-Container for tab items.
-
-**Important**: Container directives like `{tab-set}` require **4 fences minimum** (`::::`). Use higher fence counts (5, 6, etc.) for deeper nesting (e.g., admonitions within tabs, steps within tabs).
+Container for tab items. Use `:::{/tab-set}` to close.
 
 **Syntax**:
 
 ````markdown
-::::{tab-set}
+:::{tab-set}
 :sync: my-key
 
 :::{tab-item} Tab Title
@@ -297,7 +300,8 @@ Tab content with **markdown** support.
 :::{tab-item} Another Tab
 More content
 :::
-::::
+
+:::{/tab-set}
 ````
 
 **Options**:
@@ -350,7 +354,7 @@ Content in second tab.
 **Basic Tabs**:
 
 ````markdown
-::::{tab-set}
+:::{tab-set}
 
 :::{tab-item} Python
 ```python
@@ -363,52 +367,56 @@ print("Hello")
 console.log("Hello");
 ```
 :::
-::::
+
+:::{/tab-set}
 ````
 
 **Synchronized Tabs**:
 
 ````markdown
-::::{tab-set}
+:::{tab-set}
 :sync: code-example
 
 :::{tab-item} Python
 Python code
 :::
-::::
 
-::::{tab-set}
+:::{/tab-set}
+
+:::{tab-set}
 :sync: code-example
 
 :::{tab-item} Python
 Same Python code (synced)
 :::
-::::
+
+:::{/tab-set}
 ````
 
 **Tabs with Nested Admonitions**:
 
-For nested directives like admonitions within tabs, use 5 fences for the container:
+Named closers eliminate fence-counting for complex nesting:
 
 ````markdown
-:::::{tab-set}
+:::{tab-set}
 
-::::{tab-item} Setup
+:::{tab-item} Setup
 :::{warning}
 Make sure to backup your data first!
 :::
 
 Setup instructions here.
-::::
+:::{/tab-item}
 
-::::{tab-item} Usage
+:::{tab-item} Usage
 Regular usage content.
-::::
-:::::
+:::{/tab-item}
+
+:::{/tab-set}
 ````
 
-:::{tip} Count the Fences!!!
-The container uses 5 fences (`:::::`), tab items use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
+:::{tip} Named Closers
+Use `:::{/name}` to explicitly close any container directive, eliminating the need to count colons.
 :::
 
 ## Dropdown
@@ -417,8 +425,8 @@ Collapsible sections for optional or advanced content.
 
 **Syntax**:
 
-`````markdown
-::::{dropdown} Title
+````markdown
+:::{dropdown} Title
 :open: true
 
 Content with **markdown** support.
@@ -426,8 +434,8 @@ Content with **markdown** support.
 :::{note}
 Nested directives work!
 :::
-::::
-`````
+:::
+````
 
 **Options**:
 
@@ -459,14 +467,10 @@ Common commands and shortcuts.
 
 Compatibility layer for Sphinx-Design grid syntax.
 
-:::{tip}
-Container directives like `{grid}` require **4 fences minimum** (`::::`). Use higher fence counts for deeper nesting.
-:::
-
 **Syntax**:
 
 ```markdown
-::::{grid} 1 2 2 2
+:::{grid} 1 2 2 2
 :gutter: 1
 
 :::{grid-item-card} Title
@@ -474,7 +478,8 @@ Container directives like `{grid}` require **4 fences minimum** (`::::`). Use hi
 
 Content
 :::
-::::
+
+:::{/grid}
 ```
 
 :::{note}

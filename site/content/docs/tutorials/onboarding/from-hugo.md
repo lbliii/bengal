@@ -371,7 +371,7 @@ weight = 20
 ### Cards Grid
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} Feature 1
@@ -388,33 +388,33 @@ Quick description
 Another feature
 :::
 
-::::
+:::{/cards}
 ```
 
 ### Visual Steps
 
 ```markdown
-:::::{steps}
+:::{steps}
 
-::::{step} Install
+:::{step} Install
 ```bash
 pip install bengal
 ```
-::::
+:::{/step}
 
-::::{step} Create Site
+:::{step} Create Site
 ```bash
 bengal new site mysite
 ```
-::::
+:::{/step}
 
-::::{step} Start Server
+:::{step} Start Server
 ```bash
 bengal serve
 ```
-::::
+:::{/step}
 
-:::::
+:::{/steps}
 ```
 
 ### Interactive Data Tables
@@ -519,7 +519,7 @@ Common conversions:
 |------|--------------|
 | `{{</* notice note */>}}...{{</* /notice */>}}` | `:::{note}...:::` |
 | `{{</* highlight python */>}}...{{</* /highlight */>}}` | ` ```python...``` ` |
-| `{{</* tabs */>}}...{{</* /tabs */>}}` | `::::{tab-set}...::::` |
+| `{{</* tabs */>}}...{{</* /tabs */>}}` | `:::{tab-set}...:::{/tab-set}` |
 :::{/step}
 
 :::{step} Update Config
@@ -587,7 +587,7 @@ bengal serve
 | Check links | External tool | `bengal health linkcheck` |
 | Note callout | `{{</* notice note */>}}` | `:::{note}` |
 | Warning | `{{</* notice warning */>}}` | `:::{warning}` |
-| Tabs | `{{</* tabs */>}}` | `::::{tab-set}` |
+| Tabs | `{{</* tabs */>}}` | `:::{tab-set}` |
 | Code | `{{</* highlight */>}}` | ` ```lang ` |
 
 ---

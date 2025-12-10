@@ -36,7 +36,7 @@ flowchart LR
 
 ## Quick Start
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Graph
 ```bash
 bengal utils graph analyze --output graph.html
@@ -70,7 +70,7 @@ Identifies:
 - Underlinked valuable content
 - Navigation priorities
 :::
-::::
+:::{/tab-set}
 
 ## Use Cases
 

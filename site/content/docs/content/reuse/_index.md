@@ -36,7 +36,7 @@ flowchart LR
 
 ## Quick Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Snippets
 Reusable Markdown fragments stored in `_snippets/`:
 
@@ -88,7 +88,7 @@ Query content dynamically:
    | list | slice(5) %}
 ```
 :::
-::::
+:::{/tab-set}
 
 ## When to Use What
 

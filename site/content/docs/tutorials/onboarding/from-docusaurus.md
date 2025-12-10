@@ -587,8 +587,8 @@ terms:
 | Build | `npm run build` | `bengal build` |
 | Serve | `npm start` | `bengal serve` |
 | Note | `:::note` | `:::{note}` |
-| Tabs | `<Tabs>` + import | `::::{tab-set}` |
-| Cards | Custom component | `::::{cards}` |
+| Tabs | `<Tabs>` + import | `:::{tab-set}` |
+| Cards | Custom component | `:::{cards}` |
 | Dropdown | `<details>` | `:::{dropdown}` |
 | Include | MDX import | `:::{include}` |
 

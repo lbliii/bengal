@@ -266,9 +266,9 @@ bengal new theme my-theme
 - Check file location: `themes/your-theme/static/css/`
 - Hard refresh: `Cmd+Shift+R`
 
-## See Also
-
+:::{seealso}
 - [Templating](/docs/theming/templating/) — Template basics
 - [Assets](/docs/theming/assets/) — Asset pipeline
 - [Icon Reference](/docs/reference/icons/) — SVG icons and customization
 - [Variables Reference](/docs/theming/variables/) — Available template variables
+:::

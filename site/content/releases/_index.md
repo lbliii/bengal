@@ -17,7 +17,7 @@ cascade:
 
 To upgrade to the latest version:
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} UV
 
 ```bash
@@ -34,7 +34,7 @@ pip install --upgrade bengal
 
 :::
 
-::::
+:::{/tab-set}
 
 ## Browse Releases
 

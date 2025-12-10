@@ -148,8 +148,8 @@ site:
   baseurl: "https://example.com"
 ```
 
-## See Also
-
+:::{seealso}
 - [Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/) — Full CI/CD tutorial
 - [Configuration](/docs/building/configuration/) — Environment-specific settings
 - [Performance](/docs/building/performance/) — Optimize build times
+:::

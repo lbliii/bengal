@@ -195,7 +195,7 @@ This pattern provides:
 
 ## Orchestrator Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Build
 **BuildOrchestrator** (`build/` package)
 
@@ -240,11 +240,11 @@ The decision maker.
 - **Filters** work to minimal set
 - **Updates** cache on success
 :::
-::::
+:::{/tab-set}
 
 ## Specialized Orchestrators
 
-::::{cards}
+:::{cards}
 :columns: 2
 :gap: medium
 :variant: explanation
@@ -273,7 +273,7 @@ Processes static assets (minify, optimize, fingerprint) in parallel.
 :icon: check-circle
 Generates sitemap, RSS, and runs link validation after rendering.
 :::
-::::
+:::{/cards}
 
 ## Architecture Patterns
 

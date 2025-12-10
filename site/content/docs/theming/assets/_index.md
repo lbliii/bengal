@@ -49,7 +49,7 @@ flowchart LR
 
 ## Quick Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Configuration
 ```toml
 # bengal.toml
@@ -81,7 +81,7 @@ fingerprint = true   # main.css → main.a1b2c3.css
 {% endfor %}
 ```
 :::
-::::
+:::{/tab-set}
 
 :::{tip}
 **Fingerprinting** adds a hash to filenames (`main.a1b2c3.css`) for cache-busting. Enable it in production for optimal caching.

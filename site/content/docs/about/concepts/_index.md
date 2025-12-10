@@ -46,7 +46,7 @@ flowchart LR
 
 ## Mental Model
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Files → Pages
 Your file structure becomes your URL structure:
 
@@ -71,7 +71,7 @@ Static files are copied and optionally processed:
 static/css/main.css → public/css/main.a1b2c3.css
 ```
 :::
-::::
+:::{/tab-set}
 
 :::{tip}
 **Start simple**: Most sites only need pages and a theme. Add sections when you need grouping, bundles when you need co-located assets.

@@ -38,7 +38,9 @@ In this tutorial, you'll learn to use Bengal's graph analysis tools to discover 
 
 ---
 
-## Step 1: Run Your First Analysis
+:::{steps}
+
+:::{step} Run Your First Analysis
 
 Start by getting an overview of your site's connectivity:
 
@@ -49,9 +51,6 @@ bengal graph report
 **Example output:**
 
 ```
-🔍 Discovering site content...
-📊 Analyzing 124 pages...
-
 ================================================================================
 📊 Site Analysis Report
 ================================================================================
@@ -61,7 +60,6 @@ bengal graph report
    Total links:        316
    Avg links/page:     2.5
    Avg conn. score:    1.46
-   Communities:        0
 
 🔗 Connectivity Distribution
    🟢 Well-Connected:      39 pages (31.5%)
@@ -72,8 +70,7 @@ bengal graph report
 🔴 Isolated Pages (need attention)
       • content/_index.md
       • content/docs/_index.md
-      • content/docs/about/_index.md
-      ... and 18 more
+      ... and 19 more
 
 💡 Recommendations
    • Add explicit cross-references to isolated pages
@@ -82,14 +79,14 @@ bengal graph report
 ```
 
 **What this tells you:**
-- **124 pages** are being analyzed (autodoc pages are excluded by default)
+- **124 pages** are being analyzed (autodoc pages excluded by default)
 - **Avg conn. score: 1.46** — This is good (≥1.0 is healthy)
 - **31.5% well-connected** — About a third of your pages have strong linking
 - **16.9% isolated** — These pages have almost no incoming links
 
----
+:::{/step}
 
-## Step 2: Understand the Connectivity Levels
+:::{step} Understand the Connectivity Levels
 
 Bengal uses a **weighted scoring system** based on link types:
 
@@ -111,9 +108,9 @@ Bengal uses a **weighted scoring system** based on link types:
 | 🟠 Lightly Linked | 0.25 - 1.0 | Only structural links (parent/nav) |
 | 🔴 Isolated | < 0.25 | Almost no incoming links |
 
----
+:::{/step}
 
-## Step 3: Investigate Isolated Pages
+:::{step} Investigate Isolated Pages
 
 Let's look at what's actually isolated:
 
@@ -139,14 +136,12 @@ bengal graph orphans --level isolated
 1    0.00     content/_index.md                             Home
 2    0.00     content/docs/_index.md                        Documentation
 3    0.00     content/docs/about/_index.md                  About
-4    0.00     content/docs/about/concepts/_index.md         Core Concepts
-5    0.00     content/docs/building/_index.md               Building
 ...
 ```
 
 **Key insight:** Notice that most isolated pages are `_index.md` files!
 
-### Why Are Index Pages Isolated?
+:::{tip} Why Are Index Pages Isolated?
 
 This is **expected behavior**, not a bug:
 
@@ -157,10 +152,11 @@ This is **expected behavior**, not a bug:
 **Should you "fix" these?** It depends:
 - If the index is in your main menu → It gets menu links (weight 10.0), won't be isolated
 - If it's a deep section index → Consider adding explicit links FROM child pages
+:::
 
----
+:::{/step}
 
-## Step 4: Find Pages That Need Real Attention
+:::{step} Find Pages That Need Real Attention
 
 The **lightly linked** pages are often more actionable than isolated ones:
 
@@ -187,9 +183,9 @@ bengal graph orphans --level lightly
 
 **Action:** Add explicit cross-references to these pages from related content.
 
----
+:::{/step}
 
-## Step 5: Get Detailed Metrics
+:::{step} Get Detailed Metrics
 
 For deeper analysis, export to JSON:
 
@@ -232,9 +228,9 @@ bengal graph orphans --level lightly --format json
 - `sequential: 1` — Has next/prev nav (0.25 × 1 = 0.25)
 - **Total: 0.75** — Only structural links, no human cross-references
 
----
+:::{/step}
 
-## Step 6: Find Important Pages to Prioritize
+:::{step} Find Important Pages to Prioritize
 
 Not all under-linked pages are equally important. Use PageRank:
 
@@ -261,9 +257,9 @@ Rank   Title                                         Score        In    Out
 - Low PageRank + lightly linked = low priority
 - High PageRank + lightly linked = **fix this first**
 
----
+:::{/step}
 
-## Step 7: Fix a Connectivity Issue
+:::{step} Fix a Connectivity Issue
 
 Let's improve the Glossary page (score: 0.75).
 
@@ -308,7 +304,7 @@ bengal graph orphans --format json | grep -A 10 "glossary"
   "path": "content/docs/about/glossary.md",
   "score": 2.75,
   "metrics": {
-    "explicit": 2,    // Was 0, now 2
+    "explicit": 2,
     "topical": 1,
     "sequential": 1
   }
@@ -317,14 +313,14 @@ bengal graph orphans --format json | grep -A 10 "glossary"
 
 **Score improved from 0.75 → 2.75** (now 🟢 Well-Connected!)
 
----
+:::{/step}
 
-## Step 8: Set Up CI Gates
+:::{step} Set Up CI Gates
 
 Prevent connectivity regression with CI checks:
 
 ```bash
-# Fail if more than 5 truly isolated content pages
+# Fail if more than 25 isolated pages
 bengal graph report --ci --threshold-isolated 25
 
 # Brief output for CI logs
@@ -383,9 +379,9 @@ jobs:
           path: connectivity-report.json
 ```
 
----
+:::{/step}
 
-## Step 9: Track Progress Over Time
+:::{step} Track Progress Over Time
 
 Save reports periodically to track improvement:
 
@@ -398,6 +394,7 @@ bengal graph orphans --level all --format json > reports/under-linked-$(date +%Y
 ```
 
 **Compare over time:**
+
 ```bash
 # Week 1
 {"isolated": 21, "lightly_linked": 26, "avg_score": 1.46}
@@ -406,19 +403,25 @@ bengal graph orphans --level all --format json > reports/under-linked-$(date +%Y
 {"isolated": 15, "lightly_linked": 18, "avg_score": 1.82}
 ```
 
+:::{/step}
+
+:::{/steps}
+
 ---
 
 ## Summary
 
 You've learned to:
 
-1. ✅ **Run analysis** with `bengal graph report`
-2. ✅ **Interpret levels** — Isolated vs. lightly linked vs. adequate
-3. ✅ **Understand why** — Index pages being isolated is expected
-4. ✅ **Prioritize** — Use PageRank to focus on important pages
-5. ✅ **Fix issues** — Add explicit cross-references
-6. ✅ **Verify improvement** — Re-run analysis to confirm
-7. ✅ **Prevent regression** — Set up CI gates
+:::{checklist}
+- [x] **Run analysis** with `bengal graph report`
+- [x] **Interpret levels** — Isolated vs. lightly linked vs. adequate
+- [x] **Understand why** — Index pages being isolated is expected
+- [x] **Prioritize** — Use PageRank to focus on important pages
+- [x] **Fix issues** — Add explicit cross-references
+- [x] **Verify improvement** — Re-run analysis to confirm
+- [x] **Prevent regression** — Set up CI gates
+:::
 
 ## Quick Reference
 
@@ -441,4 +444,3 @@ You've learned to:
 ---
 
 **Feedback?** Found this tutorial helpful or confusing? [Open an issue](https://github.com/bengal/bengal/issues) to let us know!
-

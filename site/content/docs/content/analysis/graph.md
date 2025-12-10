@@ -456,8 +456,8 @@ Add connectivity gates to your pipeline:
   run: bengal graph report --ci --threshold-isolated 5
 ```
 
-## See Also
-
+:::{seealso}
 - [Tutorial: Analyze and Improve Site Connectivity](/docs/tutorials/analyze-site-connectivity/) — Step-by-step guided walkthrough
 - [Analysis System Architecture](/docs/reference/architecture/subsystems/analysis/) — Technical details and API usage
 - [Health Check System](/docs/reference/architecture/subsystems/health/) — Automated validation with ConnectivityValidator
+:::

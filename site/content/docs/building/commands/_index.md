@@ -21,7 +21,7 @@ Workflow guides for Bengal's command-line interface.
 
 ## Quick Reference
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Build
 ```bash
 # Development build
@@ -57,7 +57,7 @@ bengal new site my-site
 bengal new page "My Post" --section blog
 ```
 :::
-::::
+:::{/tab-set}
 
 ## Getting Help
 

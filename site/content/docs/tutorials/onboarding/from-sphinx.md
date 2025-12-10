@@ -38,7 +38,7 @@ The only syntax change: `.. name::` becomes `:::{name}`.
 
 ### Side-by-Side Example
 
-::::{tab-set}
+:::{tab-set}
 
 :::{tab-item} Sphinx (RST)
 ```rst
@@ -68,7 +68,7 @@ def hello():
 ````
 :::
 
-::::
+:::{/tab-set}
 
 ---
 
@@ -194,7 +194,7 @@ theme = "bengal"
 ### Cards for Feature Grids
 
 ```markdown
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} Quick Start
@@ -210,13 +210,14 @@ Get started in 5 minutes
 
 Complete API docs
 :::
-::::
+
+:::{/cards}
 ```
 
 ### Tab Sets
 
 ```markdown
-::::{tab-set}
+:::{tab-set}
 
 :::{tab-item} pip
 ```bash
@@ -230,27 +231,27 @@ conda install mypackage
 ```
 :::
 
-::::
+:::{/tab-set}
 ```
 
 ### Visual Steps
 
 ```markdown
-:::::{steps}
+:::{steps}
 
-::::{step} Install Dependencies
+:::{step} Install Dependencies
 ```bash
 pip install bengal
 ```
-::::
+:::{/step}
 
-::::{step} Create Site
+:::{step} Create Site
 ```bash
 bengal new site mysite
 ```
-::::
+:::{/step}
 
-:::::
+:::{/steps}
 ```
 
 ### Dropdowns (Collapsible Sections)

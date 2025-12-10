@@ -21,7 +21,7 @@ icon: boomerang
 
 Choose the guide that matches your background:
 
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} From Sphinx/RST
@@ -45,7 +45,7 @@ You use Hugo shortcodes like `{{</* highlight */>}}` and Go templates. Bengal di
 You write MDX with React components like `<Tabs>`. Bengal offers the same features without JSX.
 :::
 
-::::
+:::{/cards}
 
 ## Quick Comparison
 

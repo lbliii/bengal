@@ -27,7 +27,7 @@ Bengal maintains high code quality through a multi-layered testing strategy with
 
 ## Test Layers
 
-::::{cards}
+:::{cards}
 :columns: 3
 :gap: medium
 :variant: concept
@@ -50,7 +50,7 @@ Test subsystem interactions and build flows. Verify cache.
 **Performance** (`tests/performance/`)
 Measure speed on large sites. Catch regressions.
 :::
-::::
+:::{/cards}
 
 ## Quick Start
 

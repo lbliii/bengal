@@ -29,7 +29,7 @@ Bengal's object model provides a rich, hierarchical representation of site conte
 
 ## Core Objects
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Site
 **Central Data Container** (`bengal/core/site.py`)
 
@@ -102,7 +102,7 @@ Provides hierarchical navigation menus built from config + frontmatter.
 - `MenuItem`: Nested item with active state
 - `MenuBuilder`: Constructs hierarchy and marks active items
 :::
-::::
+:::{/tab-set}
 
 ## PageCore Architecture (Implemented in 0.1.4)
 

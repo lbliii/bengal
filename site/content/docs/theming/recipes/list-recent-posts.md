@@ -94,7 +94,7 @@ Display the most recent posts from a section using Bengal's query filters.
 {% endfor %}
 ```
 
-## See Also
-
+:::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
 - [Group by Category](/docs/theming/recipes/group-by-category/) — Organize posts by category
+:::

@@ -32,7 +32,7 @@ flowchart LR
 
 ## Quick Start
 
-::::{tab-set}
+:::{tab-set}
 :::{tab-item} Validate
 ```bash
 # Run all checks
@@ -72,7 +72,7 @@ bengal build --strict
 
 The `--strict` flag makes warnings into errors.
 :::
-::::
+:::{/tab-set}
 
 ## Built-in Checks
 
