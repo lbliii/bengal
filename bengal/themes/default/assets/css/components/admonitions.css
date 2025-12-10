@@ -404,6 +404,41 @@
   color: var(--color-error-text);
 }
 
+/* See Also - Arrow list markers for navigation-style links */
+.admonition.seealso {
+  --admonition-color: var(--color-info);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 60%, transparent);
+  background-color: var(--color-info-bg);
+}
+
+.admonition.seealso .admonition-title {
+  color: var(--color-info-text);
+}
+
+.admonition.seealso ul {
+  list-style: none;
+  padding-inline-start: var(--space-4);
+}
+
+.admonition.seealso li::before {
+  content: '→';
+  display: inline-block;
+  width: 1.5em;
+  margin-left: -1.5em;
+  color: var(--admonition-color);
+  font-weight: var(--weight-medium);
+}
+
+[data-theme="dark"] .admonition.seealso {
+  background-color: var(--color-info-bg);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 50%, transparent);
+  animation-name: admonition-edge-glow-dark;
+}
+
+[data-theme="dark"] .admonition.seealso .admonition-title {
+  color: var(--color-info-text);
+}
+
 /* Example */
 .admonition.example {
   --admonition-color: var(--color-example);

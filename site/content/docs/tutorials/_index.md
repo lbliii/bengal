@@ -85,7 +85,7 @@ This follows the [Diátaxis](https://diataxis.fr/) documentation framework.
 ## Troubleshooting
 
 :::{dropdown} Command not found
-:icon: alert
+:icon: warning
 
 Ensure Python's bin directory is in your PATH.
 
@@ -104,7 +104,7 @@ pip uninstall bengal && pip install bengal
 :::
 
 :::{dropdown} Python version errors
-:icon: alert
+:icon: warning
 
 Verify your Python version:
 
@@ -118,7 +118,7 @@ Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [offic
 :::
 
 :::{dropdown} Permission errors
-:icon: alert
+:icon: warning
 
 Use the `--user` flag:
 
