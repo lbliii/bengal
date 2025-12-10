@@ -547,10 +547,12 @@ Content
         assert len(error_results) == 0
 
         # Verify analyzer correctly counts directives (internal check)
-        # Note: nested tab-items count as separate directives (1 tab-set + 2 tab-items = 3)
+        # Note: Analyzer counts top-level directives only - nested tab-items are not counted separately
         analyzer = DirectiveAnalyzer()
         data = analyzer.analyze(site)
-        assert data["total_directives"] == 7  # 2 note + 1 tip + 1 tab-set + 2 tab-item + 1 dropdown
+        assert (
+            data["total_directives"] == 5
+        )  # 2 note + 1 tip + 1 tab-set + 1 dropdown (nested tab-items not counted)
         assert data["by_type"]["note"] == 2
         assert data["by_type"]["tip"] == 1
         assert data["by_type"]["tab-set"] == 1

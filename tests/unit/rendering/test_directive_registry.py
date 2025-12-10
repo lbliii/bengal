@@ -302,8 +302,8 @@ class TestKnownDirectiveNamesContent:
         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric
         # + 1 example-label + 2 target/anchor + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 containers
         # + 3 video (youtube, vimeo, video) + 4 dev tools (gist, codepen, codesandbox, stackblitz)
-        # + 1 asciinema + 1 figure + 1 audio = 58 total
-        expected_count = 58
+        # + 1 asciinema + 1 figure + 1 audio = 57 total
+        expected_count = 57
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "
