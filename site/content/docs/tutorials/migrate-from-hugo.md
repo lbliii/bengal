@@ -42,6 +42,8 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 - Basic knowledge of Markdown and YAML/TOML
 :::
 
+## Steps
+
 :::{steps}
 :::{step} Create Your Bengal Site
 :description: Initialize a fresh Bengal project as your migration destination.

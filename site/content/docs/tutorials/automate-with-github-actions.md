@@ -37,6 +37,8 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site. Autom
 - A hosting provider account (GitHub Pages, Netlify, Vercel, etc.)
 - Basic knowledge of YAML
 
+## Steps
+
 :::{steps}
 :::{step} Basic Build Workflow
 Create `.github/workflows/build.yml`:

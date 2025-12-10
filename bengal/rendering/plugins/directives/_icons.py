@@ -136,8 +136,11 @@ def render_svg_icon(
     Uses LRU caching to avoid repeated regex processing for identical
     icon render calls. Typical hit rate >95% for navigation icons.
 
+    Applies ICON_MAP to resolve semantic names (e.g., "alert" -> "warning")
+    before loading the icon file.
+
     Args:
-        name: Icon name (e.g., "terminal", "search", "info")
+        name: Icon name (e.g., "terminal", "search", "info", "alert")
         size: Icon size in pixels (default: 20)
         css_class: Additional CSS classes
         aria_label: Accessibility label
@@ -148,8 +151,13 @@ def render_svg_icon(
     Example:
         >>> render_svg_icon("terminal", size=16, css_class="button-icon")
         '<svg width="16" height="16" class="bengal-icon icon-terminal button-icon" ...'
+        >>> render_svg_icon("alert")  # Maps to "warning" icon
+        '<svg ...'
     """
-    svg_content = _load_icon(name)
+    # Map semantic name to actual icon name (e.g., "alert" -> "warning")
+    icon_name = ICON_MAP.get(name, name)
+
+    svg_content = _load_icon(icon_name)
     if svg_content is None:
         return ""
 

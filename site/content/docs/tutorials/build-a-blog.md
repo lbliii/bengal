@@ -42,6 +42,8 @@ By the end of this tutorial, you will have:
 *   **Python 3.14+** installed (3.14t recommended for best performance)
 *   **Bengal** installed (`pip install bengal`)
 
+## Steps
+
 :::{steps}
 :::{step} Initialize Your Project
 :description: Set up the foundation for your blog with Bengal's CLI scaffolding.

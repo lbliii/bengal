@@ -38,6 +38,8 @@ In this tutorial, you'll learn to use Bengal's graph analysis tools to discover 
 
 ---
 
+## Steps
+
 :::{steps}
 
 :::{step} Run Your First Analysis
@@ -356,22 +358,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install Bengal
         run: pip install bengal
-      
+
       - name: Check connectivity
         run: bengal graph report --ci --threshold-isolated 25
-      
+
       - name: Save report artifact
         if: always()
         run: bengal graph report --format json > connectivity-report.json
-      
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
