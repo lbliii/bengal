@@ -191,13 +191,13 @@ Bengal will soon support **skeleton manifests** - shareable YAML files that defi
 
 ```bash
 # Apply a community skeleton
-bengal skeleton apply @bengal/api-docs-starter
+bengal project skeleton apply @bengal/api-docs-starter
 
 # Export your site's structure for others
-bengal skeleton export --output my-pattern.yaml
+bengal project skeleton export --output my-pattern.yaml
 
 # Browse available skeletons
-bengal skeleton list --category documentation
+bengal project skeleton list --category documentation
 ```
 
 Skeletons will enable:

@@ -115,7 +115,7 @@ Access custom fields via:
 - `page.metadata.get('card_color')`
 - `page.metadata.get('custom_setting')`
 
-**Note**: The `props:` key is only used in skeleton manifests (`bengal skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
+**Note**: The `props:` key is only used in skeleton manifests (`bengal project skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
 
 ## Example
 

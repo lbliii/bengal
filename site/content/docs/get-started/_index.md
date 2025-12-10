@@ -39,28 +39,32 @@ Your site runs at `localhost:5173`.
 
 ## Pick a Path
 
-::::{cards}
+:::{cards}
 :columns: 1-2-3
 :gap: medium
 
-:::{card} 📝 Writer
+:::{card} Writer
+:icon: pencil
 :link: /docs/get-started/quickstart-writer/
+:description: Write content in Markdown with the default theme
+:badge: Start Here
+Get up and running in 5 minutes with Bengal's writer-focused workflow.
+:::{/card}
 
-Write content in Markdown. Use the default theme.
-:::
-
-:::{card} 🎨 Themer
+:::{card} Themer
+:icon: palette
 :link: /docs/get-started/quickstart-themer/
+:description: Customize templates and styles to match your brand
+Build your own theme or override just the parts you want to change.
+:::{/card}
 
-Customize templates and styles. Build your own theme.
-:::
-
-:::{card} 🛠️ Contributor
+:::{card} Contributor
+:icon: code
 :link: /docs/get-started/quickstart-contributor/
-
-Hack on Bengal. Fix bugs, add features.
-:::
-::::
+:description: Hack on Bengal core - fix bugs, add features
+Set up your development environment and start contributing.
+:::{/card}
+:::{/cards}
 
 ## Next Steps
 

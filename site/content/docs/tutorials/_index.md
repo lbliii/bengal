@@ -12,46 +12,44 @@ Hands-on lessons that teach you Bengal step-by-step. Each tutorial starts from s
 
 ## Choose Your Starting Point
 
-::::{cards}
+:::{cards}
 :columns: 1
 :gap: medium
 
-:::{card} 📝 Build a Blog from Scratch
+:::{card} Build a Blog from Scratch
+:icon: pencil
 :link: ./build-a-blog/
+:description: Go from zero to a deployed personal blog in 15 minutes
+:badge: Start Here
 :color: blue
+The perfect first tutorial for writers and beginners. No prior Bengal knowledge required.
+:::{/card}
 
-**15 minutes** · For writers and beginners
-
-Go from zero to a deployed personal blog. The perfect first tutorial.
-:::
-
-:::{card} 🎨 Swizzle and Customize the Default Theme
+:::{card} Swizzle and Customize the Default Theme
+:icon: palette
 :link: ./swizzle-default-theme/
+:description: Learn theme inheritance without breaking updates
 :color: orange
+Copy and customize just the templates you need. Perfect for personalizing your site while staying compatible with theme updates.
+:::{/card}
 
-**20 minutes** · For theme customizers
-
-Learn to copy and customize theme templates without breaking updates. Perfect for personalizing your site.
-:::
-
-:::{card} 🔄 Migrate from Hugo
+:::{card} Migrate from Hugo
+:icon: arrow-right
 :link: ./migrate-from-hugo/
+:description: Step-by-step migration from existing static site generators
+:badge: 30 min
 :color: green
+Complete migration guide from Hugo, Jekyll, Gatsby, or other SSGs. Includes content, templates, and configuration mapping.
+:::{/card}
 
-**30 minutes** · For existing SSG users
-
-Step-by-step migration from Hugo, Jekyll, Gatsby, or other static site generators.
-:::
-
-:::{card} ⚙️ Automate with GitHub Actions
+:::{card} Automate with GitHub Actions
+:icon: settings
 :link: ./automate-with-github-actions/
+:description: Set up CI/CD pipelines for automatic deployment
 :color: purple
-
-**20 minutes** · For DevOps
-
-Set up CI/CD pipelines for automatic builds, testing, and deployment.
-:::
-::::
+Configure GitHub Actions for automatic builds, testing, and deployment to GitHub Pages, Netlify, or Vercel.
+:::{/card}
+:::{/cards}
 
 ## Learning Journey
 

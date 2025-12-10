@@ -51,7 +51,7 @@ banner_image: "/images/hero.jpg"
 ---
 ```
 
-**In Skeleton Manifests** (`bengal skeleton apply`), you can use `props:` to group content separately from structural fields:
+**In Skeleton Manifests** (`bengal project skeleton apply`), you can use `props:` to group content separately from structural fields:
 ```yaml
 structure:
   - path: blog/
@@ -65,7 +65,7 @@ This separation makes it clear what's structural (type, variant) vs what's conte
 
 ## Site Skeletons
 
-You can define an entire site structure using a **Skeleton Manifest** (`bengal skeleton apply`).
+You can define an entire site structure using a **Skeleton Manifest** (`bengal project skeleton apply`).
 
 **Note**: Bengal's built-in templates (`blog`, `docs`, `portfolio`) now use skeleton manifests internally, demonstrating the Component Model in practice. See `bengal/cli/templates/<name>/skeleton.yaml` for examples.
 
