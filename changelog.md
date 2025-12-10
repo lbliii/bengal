@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.5-rc1 - 2025-12-10
 
 ### Proactive Template Validation ✅
 - **rendering(template_engine)**: add `validate_templates()` method for proactive syntax checking

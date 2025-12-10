@@ -184,4 +184,3 @@ grep -n ":::{card}" site/content --include="*.md" -B5 | grep -v "cards"
 - **No syntax changes needed** - v2 is backward compatible
 - **Named closers deferred** - Can revisit when implemented
 - **Contract validation is advisory** - Warnings don't break rendering
-
