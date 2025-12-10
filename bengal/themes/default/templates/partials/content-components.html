@@ -12,16 +12,16 @@ Components:
 - random_posts(count=3): Random post discovery widget
 
 Usage:
-{% from 'partials/content-components.html' import content_tiles, article_card, tag_list %}
+  from 'partials/content-components.html' import content_tiles, article_card, tag_list
 
-{# New recommended API #}
-{{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
-{{ content_tiles(title="Related", related=page.related_posts[:3], variant='minimal') }}
-{{ content_tiles(children=posts, related=True, group_by='type') }}
+New recommended API:
+  content_tiles(title="In This Section", children=posts, subsections=subsections)
+  content_tiles(title="Related", related=page.related_posts[:3], variant='minimal')
+  content_tiles(children=posts, related=True, group_by='type')
 
-{# Legacy (still works) #}
-{{ article_card(post, show_image=True) }}
-{{ tag_list(page.tags, small=True) }}
+Legacy (still works):
+  article_card(post, show_image=True)
+  tag_list(page.tags, small=True)
 #}
 
 {#
