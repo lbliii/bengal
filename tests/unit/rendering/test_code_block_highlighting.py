@@ -170,11 +170,15 @@ line7 = 7
 
 class TestHllNewlinePlacement:
     """
-    Test that .hll spans have newlines outside, not inside.
+    Test that .hll spans have newlines removed entirely.
     
     This is critical for CSS `display: block` to work correctly.
     Pygments outputs: <span class="hll">content\n</span>
-    We need:         <span class="hll">content</span>\n
+    We need:         <span class="hll">content</span>
+    
+    Since .hll uses display:block (for full-width background), the block
+    element already creates a line break. Keeping the newline would create
+    double spacing in <pre> elements where whitespace is preserved.
     """
 
     @pytest.fixture
