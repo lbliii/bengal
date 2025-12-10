@@ -1,8 +1,9 @@
 # RFC: Explicit Anchor Targets for Cross-References
 
-**Status**: Draft (Reviewed)  
+**Status**: Implemented ✅  
 **Created**: 2025-12-09  
 **Updated**: 2025-12-10  
+**Implemented**: 2025-12-10  
 **Author**: AI Assistant  
 **Related**: `bengal/rendering/plugins/cross_references.py`, Sphinx migration  
 **Confidence**: 82% 🟡 (Moderate-High)
@@ -691,35 +692,35 @@ bengal health
 
 ## Implementation Plan
 
-### Phase 1: Heading `{#id}` Syntax (Week 1)
+### Phase 1: Heading `{#id}` Syntax (Week 1) ✅
 
-- [ ] Add `_EXPLICIT_ID_PATTERN` class attribute to `MistuneParser`
-- [ ] Update `_inject_heading_anchors()` to extract and use `{#id}`
-- [ ] Update `_extract_toc()` to strip `{#id}` from display text
-- [ ] Index explicit heading IDs in `by_anchor` during `_build_xref_index()`
-- [ ] Add unit tests for explicit ID parsing
-- [ ] Add unit tests for TOC display text (no `{#id}` visible)
+- [x] Add `_EXPLICIT_ID_PATTERN` class attribute to `MistuneParser`
+- [x] Update `_inject_heading_anchors()` to extract and use `{#id}`
+- [x] Update `_extract_toc()` to strip `{#id}` from display text
+- [x] Index explicit heading IDs in `by_anchor` during `_build_xref_index()`
+- [x] Add unit tests for explicit ID parsing
+- [x] Add unit tests for TOC display text (no `{#id}` visible)
 - [ ] Update documentation with `{#id}` syntax
 
-### Phase 2: `{target}` Directive (Week 1-2)
+### Phase 2: `{target}` Directive (Week 1-2) ✅
 
-- [ ] Create `bengal/rendering/plugins/directives/target.py`
-- [ ] Register `TargetDirective` in `__init__.py`
-- [ ] Add `_index_explicit_anchors()` post-render hook in `render.py`
-- [ ] Add CSS for `.target-anchor` (invisible by default)
-- [ ] Add unit tests for `{target}` directive
-- [ ] Add integration tests for cross-page `[[#anchor]]` resolution
+- [x] Create `bengal/rendering/plugins/directives/target.py`
+- [x] Register `TargetDirective` in `__init__.py`
+- [x] Add `_index_explicit_anchors()` post-render hook in `render.py`
+- [x] Add CSS for `.target-anchor` (invisible by default)
+- [x] Add unit tests for `{target}` directive
+- [x] Add integration tests for cross-page `[[#anchor]]` resolution
 - [ ] Document directive syntax
 
-### Phase 3: Health Checks & Validation (Week 2)
+### Phase 3: Health Checks & Validation (Week 2) ✅
 
-- [ ] Create `bengal/health/validators/anchors.py`
-- [ ] Add `validate_duplicate_anchors()` check
-- [ ] Add `validate_anchor_references()` check
-- [ ] Integrate anchor validation into `bengal health` CLI
-- [ ] Add tests for health check validators
+- [x] Create `bengal/health/validators/anchors.py`
+- [x] Add `validate_duplicate_anchors()` check
+- [x] Add `validate_anchor_references()` check
+- [x] Integrate anchor validation into `bengal health` CLI
+- [x] Add tests for health check validators
 
-### Phase 4: `:name:` Option (Week 2-3, optional)
+### Phase 4: `:name:` Option (Week 2-3, optional) ⏳
 
 - [ ] Add `name` field to `DirectiveOptions` base class
 - [ ] Update `BengalDirective` render flow to wrap with anchor
