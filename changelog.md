@@ -1,5 +1,15 @@
 ## Unreleased
 
+### Proactive Template Validation ✅
+- **rendering(template_engine)**: add `validate_templates()` method for proactive syntax checking
+- **rendering(template_engine)**: enable Jinja2 `do` extension for template statements (`{% do list.append(x) %}`)
+- **orchestration(build)**: add optional template validation phase (runs before content discovery)
+- **config**: add `validate_templates` build option (default: false) for opt-in validation
+- **utils(build_stats)**: add `syntax_errors` and `not_found_errors` properties for categorizing template errors
+- **tests**: add 7 unit tests for `validate_templates()` and BuildStats categorization
+- **tests**: re-enable 6 integration tests for template error collection
+- **docs(plan)**: RFC and implementation plan moved to completed
+
 ### Media Embed Directives ✅
 - **rendering(directives/video)**: add `YouTubeDirective` with privacy-enhanced mode (youtube-nocookie.com) by default
 - **rendering(directives/video)**: add `VimeoDirective` with Do Not Track mode by default
