@@ -125,6 +125,7 @@ class HealthCheck:
     def _register_default_validators(self) -> None:
         """Register all default validators."""
         from bengal.health.validators import (
+            AnchorValidator,
             AssetValidator,
             CacheValidator,
             ConfigValidatorWrapper,
@@ -156,6 +157,7 @@ class HealthCheck:
         self.register(TaxonomyValidator())
         self.register(TrackValidator())
         self.register(LinkValidatorWrapper())
+        self.register(AnchorValidator())  # Explicit anchors and [[#anchor]] references
 
         # Phase 3: Advanced validation
         self.register(CacheValidator())

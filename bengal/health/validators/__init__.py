@@ -31,6 +31,7 @@ Phase 5 (Knowledge Graph):
 
 from __future__ import annotations
 
+from bengal.health.validators.anchors import AnchorValidator
 from bengal.health.validators.assets import AssetValidator
 from bengal.health.validators.cache import CacheValidator
 from bengal.health.validators.config import ConfigValidatorWrapper
@@ -50,6 +51,8 @@ from bengal.health.validators.taxonomy import TaxonomyValidator
 from bengal.health.validators.tracks import TrackValidator
 
 __all__ = [
+    # Anchor validation (RFC: plan/active/rfc-explicit-anchor-targets.md)
+    "AnchorValidator",
     "AssetValidator",
     # Phase 3
     "CacheValidator",
