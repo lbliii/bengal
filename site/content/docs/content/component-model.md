@@ -486,14 +486,14 @@ Here's how all three work together in real examples:
 :::{tab-item} Full Blog Post
 :icon: file-text
 
-```yaml {4-5,7-18}
+```yaml
 ---
 title: "Migrating from WordPress to Bengal"
 description: "A step-by-step guide to moving your blog"
-type: blog
-variant: magazine
+type: blog                      # <-- TYPE: sorted by date
+variant: magazine               # <-- VARIANT: hero image layout
 date: 2025-06-01
-# All other fields are props
+# ↓↓↓ PROPS: all other fields ↓↓↓
 author: "Alex Chen"
 author_image: "/images/authors/alex.jpg"
 banner_image: "/images/posts/wp-migration.jpg"
@@ -510,23 +510,23 @@ series_order: 1
 ---
 ```
 
-**Key lines**:
-- **Line 4**: `type: blog` — sorted by date, uses blog templates
-- **Line 5**: `variant: magazine` — visual layout with hero image
-- **Lines 7-18**: Props for author info, metadata, series tracking
+**All three working together**:
+- `type: blog` — sorted by date, uses blog templates
+- `variant: magazine` — visual layout with hero image
+- Props — author info, metadata, series tracking
 :::{/tab-item}
 
 :::{tab-item} Full Documentation Page
 :icon: book
 
-```yaml {4-5,7-15}
+```yaml
 ---
 title: "Template Functions Reference"
 description: "Complete reference for Bengal template functions"
-type: doc
-variant: wide
+type: doc                       # <-- TYPE: sorted by weight
+variant: wide                   # <-- VARIANT: full-width layout
 weight: 50
-# Props for customization
+# ↓↓↓ PROPS: customization ↓↓↓
 icon: function
 badge: "v0.2+"
 toc_depth: 4
@@ -538,23 +538,23 @@ related_pages:
 ---
 ```
 
-**Key lines**:
-- **Line 4**: `type: doc` — sorted by weight, uses doc templates
-- **Line 5**: `variant: wide` — full-width for code examples
-- **Lines 7-15**: Props for navigation, versioning, related content
+**All three working together**:
+- `type: doc` — sorted by weight, uses doc templates
+- `variant: wide` — full-width for code examples
+- Props — versioning, related content links
 :::{/tab-item}
 
 :::{tab-item} Full Section Index
 :icon: folder
 
-```yaml {4-5,7-12}
+```yaml
 ---
 title: "Getting Started"
 description: "Everything you need to begin with Bengal"
-type: doc
-variant: overview
+type: doc                       # <-- TYPE: documentation section
+variant: overview               # <-- VARIANT: landing page layout
 weight: 10
-# Props for the section landing
+# ↓↓↓ PROPS: section appearance ↓↓↓
 icon: rocket
 show_child_cards: true
 card_columns: 2
@@ -571,10 +571,10 @@ Welcome! Choose where to begin based on your experience.
 :::
 ```
 
-**Key lines**:
-- **Line 4**: `type: doc` — this section contains documentation
-- **Line 5**: `variant: overview` — landing page layout
-- **Lines 7-12**: Props control card layout and section appearance
+**All three working together**:
+- `type: doc` — this section contains documentation
+- `variant: overview` — landing page with card navigation
+- Props — card layout, section appearance
 :::{/tab-item}
 
 :::{/tab-set}

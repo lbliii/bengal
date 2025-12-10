@@ -479,7 +479,7 @@ bengal utils theme swizzle partials/navigation-components.html
 **Issue**: Customizations don't show up after swizzling
 
 **Solutions**:
-- Clear cache: `bengal site clean --cache`
+- Clear cache: `bengal clean --cache`
 - Restart dev server: Stop and restart `bengal serve`
 - Check file location: Ensure template is in `templates/` (not `themes/`)
 
@@ -499,7 +499,7 @@ bengal utils theme swizzle partials/navigation-components.html
 **Solutions**:
 - Verify theme name: Use `bengal utils theme info default` to confirm
 - Check syntax: Use `"default::base.html"` format (theme name, double colon, path)
-- Clear cache: `bengal site clean --cache`
+- Clear cache: `bengal clean --cache`
 
 ## What You've Learned
 

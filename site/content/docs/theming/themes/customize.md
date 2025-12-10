@@ -255,7 +255,7 @@ bengal new theme my-theme
 **Solutions:**
 - Verify `extends` path is correct: `"default::base.html"`
 - Check theme chain: `bengal utils theme debug`
-- Clear cache: `bengal site clean --cache`
+- Clear cache: `bengal clean --cache`
 
 ### CSS Not Loading
 
