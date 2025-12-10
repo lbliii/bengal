@@ -180,11 +180,11 @@ export:
   pdf:
     enabled: true
     engine: weasyprint  # or "paged.js"
-    
+
     # Output options
     output: public/docs.pdf  # or "per-section" for multiple PDFs
     scope: all  # "all", "docs", "blog", or specific path
-    
+
     # Page setup
     paper_size: Letter  # A4, Letter, Legal, or custom [width, height]
     orientation: portrait  # portrait, landscape
@@ -193,19 +193,19 @@ export:
       bottom: 1in
       left: 1in
       right: 1in
-    
+
     # Content options
     cover:
       enabled: true
       template: pdf/cover.html  # in theme
       # OR
       page: docs/book-cover.md  # markdown page with frontmatter
-    
+
     toc:
       enabled: true
       depth: 3  # h1-h3
       title: "Table of Contents"
-    
+
     # Typography
     typography:
       hyphenation: true
@@ -213,21 +213,21 @@ export:
       orphans: 2  # minimum lines at page bottom
       font_size: 11pt
       line_height: 1.4
-    
+
     # Headers and footers
     running_headers:
       odd: "{{ section.title }}"  # Right pages
       even: "{{ site.title }}"     # Left pages
     running_footers:
       center: "{{ page_number }}"
-    
+
     # Code blocks
     code:
       font_size: 9pt
       line_numbers: true
       max_height: null  # null = no limit; or "6in" to break long blocks
       syntax_highlighting: true
-    
+
     # Advanced
     pdf_a: false  # PDF/A compliance for archival
     compress: true
@@ -235,40 +235,40 @@ export:
       author: "{{ site.author }}"
       subject: "{{ site.description }}"
       keywords: "{{ site.tags | join(', ') }}"
-  
+
   epub:
     enabled: true
     output: public/docs.epub
-    
+
     # Metadata
     title: "{{ site.title }}"
     author: "{{ site.author }}"
     language: "{{ site.language | default('en') }}"
     publisher: ""
     isbn: ""
-    
+
     # Cover
     cover:
       image: assets/cover.jpg  # 1600x2400 recommended
       # OR generate from template
       template: epub/cover.html
-    
+
     # Structure
     toc:
       depth: 3
       landmarks: true  # EPUB 3 landmarks for accessibility
-    
+
     # Content
     include_sections:
       - docs
       - tutorials
     exclude_patterns:
       - "**/api-reference/**"  # Too dense for e-readers
-    
+
     # Styling
     stylesheet: epub/styles.css  # in theme
     font_embedding: subset  # "none", "subset", "full"
-    
+
     # Validation
     validate: true  # Run EPUBCheck after generation
 ```
@@ -300,7 +300,7 @@ Bengal directives need special handling for print. The key insight: **print is l
   .sidebar, .navbar, .toc-sidebar, .footer {
     display: none !important;
   }
-  
+
   /* Expand dropdowns */
   details.dropdown {
     display: block !important;
@@ -313,7 +313,7 @@ Bengal directives need special handling for print. The key insight: **print is l
   details.dropdown[open] > summary::after {
     content: none; /* Remove toggle icon */
   }
-  
+
   /* Transform tabs to sequential content */
   .tab-set {
     border: none;
@@ -335,7 +335,7 @@ Bengal directives need special handling for print. The key insight: **print is l
   .tab-set .tab-navigation {
     display: none;
   }
-  
+
   /* Code blocks */
   pre, code {
     font-size: 9pt;
@@ -343,7 +343,7 @@ Bengal directives need special handling for print. The key insight: **print is l
     overflow-wrap: break-word;
     white-space: pre-wrap;
   }
-  
+
   /* Links show URL */
   a[href^="http"]::after {
     content: " (" attr(href) ")";
@@ -353,7 +353,7 @@ Bengal directives need special handling for print. The key insight: **print is l
   a[href^="#"]::after {
     content: " (p. " target-counter(attr(href), page) ")";
   }
-  
+
   /* Cards become list */
   .cards-grid {
     display: block;
@@ -365,7 +365,7 @@ Bengal directives need special handling for print. The key insight: **print is l
     margin-bottom: 1em;
     page-break-inside: avoid;
   }
-  
+
   /* Video to QR code */
   .video-embed {
     page-break-inside: avoid;
@@ -387,19 +387,19 @@ Bengal directives need special handling for print. The key insight: **print is l
 @page {
   size: Letter;
   margin: 1in;
-  
+
   /* Running headers */
   @top-center {
     content: string(chapter-title);
     font-size: 10pt;
     color: #666;
   }
-  
+
   /* Page numbers */
   @bottom-center {
     content: counter(page);
   }
-  
+
   /* First page of chapter */
   @top-center:first {
     content: none;
@@ -463,23 +463,23 @@ class TOCEntry:
 
 class TOCGenerator:
     """Generate table of contents from page structure."""
-    
+
     def __init__(self, depth: int = 3):
         self.depth = depth
-    
+
     def generate(self, pages: list[Page], order: list[str]) -> list[TOCEntry]:
         """
         Generate TOC entries from pages.
-        
+
         Args:
             pages: All pages to include
             order: Page order (from menu or nav config)
-        
+
         Returns:
             Hierarchical TOC structure
         """
         entries = []
-        
+
         for page in self._ordered_pages(pages, order):
             # Top-level entry for the page
             entry = TOCEntry(
@@ -488,15 +488,15 @@ class TOCGenerator:
                 anchor=f"#{page.slug}",
                 page=page,
             )
-            
+
             # Add heading entries from page content
             if self.depth > 1:
                 entry.children = self._extract_headings(page)
-            
+
             entries.append(entry)
-        
+
         return entries
-    
+
     def _extract_headings(self, page: Page) -> list[TOCEntry]:
         """Extract h2-hN headings from page AST."""
         headings = []
@@ -511,7 +511,7 @@ class TOCGenerator:
                         page=page,
                     ))
         return self._nest_headings(headings)
-    
+
     def _nest_headings(self, flat: list[TOCEntry]) -> list[TOCEntry]:
         """Convert flat heading list to nested structure."""
         # ... nesting logic ...
@@ -570,13 +570,13 @@ if TYPE_CHECKING:
 @dataclass
 class PDFEngine:
     """WeasyPrint-based PDF generation engine."""
-    
+
     config: PDFConfig
     font_config: FontConfiguration = None
-    
+
     def __post_init__(self):
         self.font_config = FontConfiguration()
-    
+
     def generate(
         self,
         html_content: str,
@@ -586,13 +586,13 @@ class PDFEngine:
     ) -> Path:
         """
         Generate PDF from HTML content.
-        
+
         Args:
             html_content: Combined HTML document
             output_path: Where to write PDF
             base_url: Base URL for resolving relative paths
             stylesheets: CSS files to apply
-        
+
         Returns:
             Path to generated PDF
         """
@@ -601,19 +601,19 @@ class PDFEngine:
             CSS(filename=str(css), font_config=self.font_config)
             for css in stylesheets
         ]
-        
+
         # Add print and paged CSS
         css_list.extend([
             CSS(string=self._paged_css()),
             CSS(string=self._custom_css()),
         ])
-        
+
         # Generate PDF
         html = HTML(
             string=html_content,
             base_url=base_url,
         )
-        
+
         html.write_pdf(
             target=str(output_path),
             stylesheets=css_list,
@@ -622,48 +622,48 @@ class PDFEngine:
             jpeg_quality=85,
             dpi=150,
         )
-        
+
         return output_path
-    
+
     def _paged_css(self) -> str:
         """Generate @page rules from config."""
         return f"""
         @page {{
             size: {self.config.paper_size} {self.config.orientation};
-            margin: {self.config.margins.top} {self.config.margins.right} 
+            margin: {self.config.margins.top} {self.config.margins.right}
                     {self.config.margins.bottom} {self.config.margins.left};
-            
+
             @top-center {{
                 content: string(section-title);
                 font-size: 9pt;
                 color: #666;
             }}
-            
+
             @bottom-center {{
                 content: counter(page);
                 font-size: 9pt;
             }}
         }}
-        
+
         @page :first {{
             @top-center {{ content: none; }}
             @bottom-center {{ content: none; }}
         }}
-        
+
         h1 {{
             string-set: section-title content();
             page-break-before: always;
         }}
-        
+
         h1:first-of-type {{
             page-break-before: avoid;
         }}
         """
-    
+
     def _custom_css(self) -> str:
         """Additional CSS from config."""
         css = ""
-        
+
         if self.config.typography.hyphenation:
             css += """
             p, li {
@@ -671,23 +671,23 @@ class PDFEngine:
                 -webkit-hyphens: auto;
             }
             """
-        
+
         css += f"""
         p {{
             widows: {self.config.typography.widows};
             orphans: {self.config.typography.orphans};
         }}
-        
+
         body {{
             font-size: {self.config.typography.font_size};
             line-height: {self.config.typography.line_height};
         }}
-        
+
         pre, code {{
             font-size: {self.config.code.font_size};
         }}
         """
-        
+
         return css
 ```
 
@@ -713,9 +713,9 @@ if TYPE_CHECKING:
 @dataclass
 class EPUBGenerator:
     """Generate EPUB 3.3 compliant e-books."""
-    
+
     config: EPUBConfig
-    
+
     def generate(
         self,
         pages: list[Page],
@@ -724,7 +724,7 @@ class EPUBGenerator:
     ) -> Path:
         """
         Generate EPUB from pages and assets.
-        
+
         EPUB structure:
         ├── mimetype
         ├── META-INF/
@@ -740,53 +740,53 @@ class EPUBGenerator:
             │   └── styles.css
             └── images/
                 └── ...
-        
+
         Args:
             pages: Pages to include
             output_path: Where to write EPUB
             assets: Images, CSS to include
-        
+
         Returns:
             Path to generated EPUB
         """
         with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as epub:
             # mimetype must be first and uncompressed
-            epub.writestr('mimetype', 'application/epub+zip', 
+            epub.writestr('mimetype', 'application/epub+zip',
                          compress_type=zipfile.ZIP_STORED)
-            
+
             # Container
             epub.writestr('META-INF/container.xml', self._container_xml())
-            
+
             # Package document
-            epub.writestr('OEBPS/content.opf', 
+            epub.writestr('OEBPS/content.opf',
                          self._package_document(pages, assets))
-            
+
             # Navigation
             epub.writestr('OEBPS/toc.xhtml', self._nav_document(pages))
             epub.writestr('OEBPS/toc.ncx', self._ncx_document(pages))
-            
+
             # Content
             for page in pages:
                 xhtml = self._page_to_xhtml(page)
                 epub.writestr(f'OEBPS/content/{page.slug}.xhtml', xhtml)
-            
+
             # Stylesheets
             epub.writestr('OEBPS/css/styles.css', self._stylesheet())
-            
+
             # Assets (images)
             for asset in assets:
                 epub.write(asset.source_path, f'OEBPS/images/{asset.filename}')
-            
+
             # Cover image if configured
             if self.config.cover.image:
                 epub.write(self.config.cover.image, 'OEBPS/images/cover.jpg')
-        
+
         # Validate if configured
         if self.config.validate:
             self._validate(output_path)
-        
+
         return output_path
-    
+
     def _package_document(self, pages: list[Page], assets: list[Asset]) -> str:
         """Generate content.opf package document."""
         # EPUB 3.3 compliant package document
@@ -799,19 +799,19 @@ class EPUBGenerator:
     <dc:creator>{self.config.author}</dc:creator>
     <meta property="dcterms:modified">{self._timestamp()}</meta>
   </metadata>
-  
+
   <manifest>
     <item id="nav" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="css" href="css/styles.css" media-type="text/css"/>
     {self._manifest_items(pages, assets)}
   </manifest>
-  
+
   <spine toc="ncx">
     {self._spine_items(pages)}
   </spine>
 </package>"""
-    
+
     def _page_to_xhtml(self, page: Page) -> str:
         """Convert page HTML to valid XHTML for EPUB."""
         # Transform Bengal HTML to EPUB-compatible XHTML
@@ -833,7 +833,7 @@ class EPUBGenerator:
   </section>
 </body>
 </html>"""
-    
+
     def _transform_content(self, html: str) -> str:
         """Transform HTML content for EPUB compatibility."""
         # Transform Bengal-specific elements
@@ -847,12 +847,12 @@ class EPUBGenerator:
             # Remove scripts
             (r'<script.*?</script>', ''),
         ]
-        
+
         for pattern, replacement in transformations:
             html = re.sub(pattern, replacement, html, flags=re.DOTALL)
-        
+
         return html
-    
+
     def _validate(self, epub_path: Path) -> None:
         """Run EPUBCheck validation."""
         try:
@@ -899,41 +899,41 @@ def export_pdf(
 ) -> Path:
     """
     Export site to PDF.
-    
+
     Called from build pipeline when --pdf flag is set.
-    
+
     Args:
         site: Built site with rendered pages
         context: Build context with config
         output_path: Override output location
-    
+
     Returns:
         Path to generated PDF
     """
     config = site.config.get("export", {}).get("pdf", {})
     exporter = PDFExporter(config, site)
-    
+
     # Determine pages to include
     scope = config.get("scope", "all")
     pages = _filter_pages_by_scope(site.pages, scope)
-    
+
     # Order pages for PDF
     ordered_pages = _order_pages_for_export(pages, site.menu)
-    
+
     # Generate combined HTML document
     combined_html = exporter.combine_pages(ordered_pages)
-    
+
     # Generate PDF
     output = output_path or Path(config.get("output", "public/docs.pdf"))
     pdf_path = exporter.generate(combined_html, output)
-    
+
     logger.info(
         "pdf_generated",
         path=str(pdf_path),
         pages=len(ordered_pages),
         size_mb=pdf_path.stat().st_size / 1024 / 1024,
     )
-    
+
     return pdf_path
 
 
@@ -944,29 +944,29 @@ def export_epub(
 ) -> Path:
     """
     Export site to EPUB.
-    
+
     Called from build pipeline when --epub flag is set.
     """
     config = site.config.get("export", {}).get("epub", {})
     exporter = EPUBExporter(config, site)
-    
+
     # Similar to PDF but with EPUB-specific handling
     pages = _filter_pages_by_scope(site.pages, config.get("scope", "all"))
     ordered_pages = _order_pages_for_export(pages, site.menu)
-    
+
     # Collect required assets
     assets = _collect_assets_for_epub(ordered_pages, site)
-    
+
     output = output_path or Path(config.get("output", "public/docs.epub"))
     epub_path = exporter.generate(ordered_pages, assets, output)
-    
+
     logger.info(
         "epub_generated",
         path=str(epub_path),
         pages=len(ordered_pages),
         size_mb=epub_path.stat().st_size / 1024 / 1024,
     )
-    
+
     return epub_path
 ```
 
@@ -1438,4 +1438,3 @@ my-book.epub (ZIP archive)
 ---
 
 **End of RFC**
-

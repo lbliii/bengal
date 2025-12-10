@@ -183,9 +183,7 @@ class AnchorValidator(BaseValidator):
 
         return results
 
-    def _validate_anchor_references(
-        self, page: Any, valid_anchors: set[str]
-    ) -> list[CheckResult]:
+    def _validate_anchor_references(self, page: Any, valid_anchors: set[str]) -> list[CheckResult]:
         """
         Check that all [[#anchor]] references resolve to existing anchors.
 
@@ -277,4 +275,3 @@ def create_anchor_validator(strict: bool = False) -> AnchorValidator:
         Configured AnchorValidator
     """
     return AnchorValidator(strict=strict)
-

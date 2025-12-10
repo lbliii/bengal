@@ -2,8 +2,6 @@
 Test tab-item directive with new options: icon, badge, disabled.
 """
 
-import pytest
-
 
 class TestTabItemIconOption:
     """Test the :icon: option for tab-item."""
@@ -267,4 +265,3 @@ JavaScript code here
         assert 'data-icon="javascript"' in result
         assert "tab-badge" in result
         assert "Recommended" in result
-

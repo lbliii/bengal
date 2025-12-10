@@ -97,10 +97,10 @@ from bengal.health.report import CheckResult
 
 class RequireAuthorValidator(BaseValidator):
     """Validator that checks for author field in frontmatter."""
-    
+
     name = "Author Required"
     description = "Ensures all pages have an author field"
-    
+
     def validate(self, site, build_context=None):
         results = []
         for page in site.pages:
@@ -115,4 +115,3 @@ class RequireAuthorValidator(BaseValidator):
 :::{tip}
 **CI integration**: Add `bengal validate` to your CI pipeline to catch issues before deployment. Use `--verbose` to see all checks, not just problems.
 :::
-

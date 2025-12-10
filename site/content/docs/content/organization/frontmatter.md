@@ -46,7 +46,74 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `tags` | list | Tags for categorization |
 | `categories` | list | Categories for grouping |
 | `keywords` | list | SEO keywords |
-| `authors` | list | Page authors |
+| `authors` | list | Page authors (strings or objects) |
+| `author` | string/object | Single author (string key or nested object) |
+
+### Author Patterns
+
+Bengal supports multiple author patterns for flexibility:
+
+**Simple string** (reference to data registry):
+
+```yaml
+author: lbliii
+```
+
+**Nested object** (inline):
+
+```yaml
+author:
+  name: Lawrence Lane
+  github: lbliii
+  bio: Technical writer and developer
+```
+
+**Multiple authors** (list of strings or objects):
+
+```yaml
+authors:
+  - lbliii
+  - name: Jane Smith
+    github: janesmith
+```
+
+**Flat author fields** (legacy pattern):
+
+```yaml
+author: Lawrence Lane
+author_avatar: /images/lawrence.jpg
+author_title: Senior Developer
+author_bio: Technical writer and developer
+author_links:
+  - text: GitHub
+    url: https://github.com/lbliii
+```
+
+### Author Data Registry
+
+Define authors once in `data/authors.yaml` and reference by key:
+
+```yaml
+# data/authors.yaml
+lbliii:
+  name: Lawrence Lane
+  github: lbliii
+  bio: Technical writer and developer
+  avatar: /images/lawrence.jpg
+```
+
+Then reference in frontmatter:
+
+```yaml
+author: lbliii
+```
+
+Access in templates:
+
+```jinja
+{% set author_info = site.data.authors[page.metadata.author] %}
+{{ author_info.name }} — {{ author_info.bio }}
+```
 
 ## Layout Fields
 

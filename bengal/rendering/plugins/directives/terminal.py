@@ -207,7 +207,7 @@ class AsciinemaDirective(BengalDirective):
             return (
                 f'<div class="terminal-embed asciinema terminal-error">\n'
                 f'  <p class="error">Asciinema Error: {self.escape_html(error)}</p>\n'
-                f'  <p>Recording ID: <code>{self.escape_html(recording_id)}</code></p>\n'
+                f"  <p>Recording ID: <code>{self.escape_html(recording_id)}</code></p>\n"
                 f"</div>\n"
             )
 
@@ -254,15 +254,14 @@ class AsciinemaDirective(BengalDirective):
 
         return (
             f'<figure class="{class_str}" role="img" aria-label="{safe_title}">\n'
-            f'  <script\n'
+            f"  <script\n"
             f'    id="asciicast-{recording_id}"\n'
             f'    src="{script_url}"\n'
-            f'    async\n'
-            f'    {data_attrs_str}\n'
-            f'  ></script>\n'
+            f"    async\n"
+            f"    {data_attrs_str}\n"
+            f"  ></script>\n"
             f"  <noscript>\n"
             f'    <a href="{recording_url}">View recording: {safe_title}</a>\n'
             f"  </noscript>\n"
             f"</figure>\n"
         )
-

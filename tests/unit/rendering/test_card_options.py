@@ -2,8 +2,6 @@
 Test card directive with new options: description, badge.
 """
 
-import pytest
-
 
 class TestCardDescriptionOption:
     """Test the :description: option for card directive."""
@@ -258,4 +256,3 @@ More details here.
         assert "The second amazing feature" in result
         assert "New" in result
         assert "Updated" in result
-
