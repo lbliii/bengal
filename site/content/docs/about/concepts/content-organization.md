@@ -153,7 +153,7 @@ keywords: [bengal, static site generator, tutorial]
 - `page` - Regular pages
 - `changelog` - Release notes
 
-**Draft**: Draft pages are excluded from builds by default. Use `bengal site build --build-drafts` to include them.
+**Draft**: Draft pages are excluded from builds by default. Use `bengal build --build-drafts` to include them.
 
 ## Sorting & Ordering
 

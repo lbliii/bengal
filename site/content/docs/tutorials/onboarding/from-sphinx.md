@@ -184,7 +184,7 @@ theme = "bengal"
 | `_templates/` | `themes/[name]/templates/` | Template overrides |
 | `conf.py` | `bengal.toml` | Configuration |
 | `index.rst` | `_index.md` | Section index |
-| `Makefile` | `bengal site build` | Build command |
+| `Makefile` | `bengal build` | Build command |
 
 ---
 
@@ -276,7 +276,7 @@ The current page is: {{ page.title }}
 ### Hot Reload Development Server
 
 ```bash
-bengal site serve
+bengal serve
 # Live preview at http://localhost:5173
 # Auto-reloads on file changes
 ```
@@ -331,9 +331,9 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 :::
 
 :::{checklist} Verify
-- [ ] Build: `bengal site build`
+- [ ] Build: `bengal build`
 - [ ] Check links: `bengal health linkcheck`
-- [ ] Preview: `bengal site serve`
+- [ ] Preview: `bengal serve`
 :::
 
 ---
@@ -348,8 +348,8 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 | Include code | `.. literalinclude::` | `:::{literalinclude}` |
 | Cross-reference | `:ref:\`label\`` | `[[label]]` |
 | Link to doc | `:doc:\`path\`` | Standard markdown links |
-| Build | `make html` | `bengal site build` |
-| Serve | `sphinx-autobuild` | `bengal site serve` |
+| Build | `make html` | `bengal build` |
+| Serve | `sphinx-autobuild` | `bengal serve` |
 | Check | `sphinx-build -W` | `bengal health linkcheck` |
 
 ---

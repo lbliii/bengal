@@ -24,8 +24,14 @@ Learn to customize Bengal themes and create your own designs.
 
 ## Prerequisites
 
-- [Bengal installed](/docs/get-started/installation/)
-- Basic knowledge of HTML, CSS, and Jinja2
+:::{checklist} Skills Needed
+:style: minimal
+:show-progress:
+- [ ] [Bengal installed](/docs/get-started/installation/)
+- [ ] Basic knowledge of HTML
+- [ ] Familiarity with CSS (or willingness to learn)
+- [ ] Basic Jinja2 template syntax
+:::{/checklist}
 
 ## Understand Theme Resolution
 

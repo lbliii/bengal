@@ -24,8 +24,12 @@ Get from zero to published content in 5 minutes. This guide is for content creat
 
 ## Prerequisites
 
-- [[docs/get-started/installation|Bengal installed]]
-- Basic knowledge of Markdown
+:::{checklist} Before You Start
+:show-progress:
+- [x] Basic knowledge of Markdown
+- [ ] [[docs/get-started/installation|Bengal installed]]
+- [ ] Terminal/command line access
+:::{/checklist}
 
 ## Create Your Site
 
@@ -41,7 +45,7 @@ Choose a preset that matches your goal (Blog, Documentation, Portfolio, etc.).
 ## Start the Dev Server
 
 ```bash
-bengal site serve
+bengal serve
 ```
 
 Open **http://localhost:5173/** in your browser. The dev server automatically rebuilds when you save changes.

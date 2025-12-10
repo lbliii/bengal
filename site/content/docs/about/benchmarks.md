@@ -148,7 +148,7 @@ Comparing Python 3.14 with and without the GIL.
 
 ```bash
 # Enable free-threading
-PYTHON_GIL=0 bengal site build --fast
+PYTHON_GIL=0 bengal build --fast
 ```
 
 ---

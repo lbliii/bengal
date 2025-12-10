@@ -201,7 +201,7 @@ The FontValidator checks:
 
 ```bash
 # Font health check runs automatically
-bengal site build
+bengal build
 
 # Example output:
 # 🔤 Fonts:

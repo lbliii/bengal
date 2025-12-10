@@ -23,9 +23,14 @@ Set up Bengal for development and start contributing.
 
 ## Prerequisites
 
-- Python 3.14+ (3.14t recommended for best performance)
-- Git
-- A GitHub account
+:::{checklist} Development Setup
+:style: numbered
+:show-progress:
+- [ ] Python 3.14+ (3.14t recommended for best performance)
+- [ ] Git installed and configured
+- [ ] A GitHub account
+- [ ] Code editor (VS Code, PyCharm, etc.)
+:::{/checklist}
 
 ## Clone and Install
 
@@ -81,20 +86,28 @@ bengal/
 
 :::{steps}
 :::{step} Create a Branch
+:description: Start with a descriptive branch name for your feature or fix.
+:duration: 1 min
 ```bash
 git checkout -b feature/my-feature
 ```
 :::{/step}
 
 :::{step} Make Changes
+:description: Edit code in the appropriate module following existing patterns.
+:duration: varies
 Edit code in `bengal/`, following existing patterns.
 :::{/step}
 
 :::{step} Add Tests
+:description: All changes need tests - unit tests for isolated logic, integration tests for workflows.
+:duration: 10-30 min
 Add tests in `tests/unit/` or `tests/integration/`.
 :::{/step}
 
 :::{step} Run Linters
+:description: Format and lint your code before committing.
+:duration: 1 min
 ```bash
 # Format code
 ruff format bengal/ tests/
@@ -105,6 +118,8 @@ ruff check bengal/ tests/ --fix
 :::{/step}
 
 :::{step} Commit
+:description: Use descriptive atomic commits that read like a changelog.
+:duration: 2 min
 ```bash
 git add -A && git commit -m "core: add feature description"
 ```
@@ -113,6 +128,8 @@ Follow the commit message format described in the project's [CONTRIBUTING guidel
 :::{/step}
 
 :::{step} Push and Create PR
+:description: Push your branch and create a pull request for review.
+:duration: 5 min
 ```bash
 git push origin feature/my-feature
 ```
@@ -125,7 +142,7 @@ Then create a Pull Request on GitHub.
 
 ```bash
 cd site
-bengal site serve
+bengal serve
 ```
 
 Visit http://localhost:5173 to preview documentation changes.

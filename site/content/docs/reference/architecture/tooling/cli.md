@@ -49,34 +49,34 @@ keywords:
 **Build Commands**:
 ```bash
 # Basic build
-bengal site build
+bengal build
 
 # Incremental build (18-42x faster)
-bengal site build --incremental
+bengal build --incremental
 
 # Parallel build (default, 2-4x faster)
-bengal site build --parallel
+bengal build --parallel
 
 # Strict mode (fail on template errors, recommended for CI)
-bengal site build --strict
+bengal build --strict
 
 # Debug mode (full tracebacks)
-bengal site build --debug
+bengal build --debug
 
 # Verbose output (show detailed change info)
-bengal site build --incremental --verbose
+bengal build --incremental --verbose
 ```
 
 **Development Commands**:
 ```bash
 # Start development server with live reload
-bengal site serve
+bengal serve
 
 # Custom port
-bengal site serve --port 8080
+bengal serve --port 8080
 
 # Disable live reload
-bengal site serve --no-reload
+bengal serve --no-reload
 ```
 
 **Documentation Commands**:

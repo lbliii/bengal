@@ -24,7 +24,7 @@ Open the prototype demo:
 
 ```bash
 # Start dev server
-bengal site serve
+bengal serve
 
 # Open demo in browser
 open http://localhost:5173/themes/default/assets/css/experimental/enhanced-neumorphic-demo.html

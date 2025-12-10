@@ -215,7 +215,7 @@ Change the separator from `/` to `→`:
 Save the file and preview your site:
 
 ```bash
-bengal site serve
+bengal serve
 ```
 
 Navigate to a page with breadcrumbs and verify the separator changed.
@@ -371,7 +371,7 @@ Let's build your customized site and verify everything works.
 **Build for Production**
 
 ```bash
-bengal site build
+bengal build
 ```
 
 This generates static files in `public/` using your swizzled templates.
@@ -446,7 +446,7 @@ Periodically run `swizzle-update` to get bug fixes and improvements:
 bengal utils theme swizzle-update
 
 # Review changes, then rebuild
-bengal site build
+bengal build
 ```
 
 ### 5. Test After Updates
@@ -454,7 +454,7 @@ bengal site build
 After updating templates, test your site:
 
 ```bash
-bengal site serve
+bengal serve
 # Navigate through your site
 # Verify customizations still work
 ```
@@ -480,7 +480,7 @@ bengal utils theme swizzle partials/navigation-components.html
 
 **Solutions**:
 - Clear cache: `bengal site clean --cache`
-- Restart dev server: Stop and restart `bengal site serve`
+- Restart dev server: Stop and restart `bengal serve`
 - Check file location: Ensure template is in `templates/` (not `themes/`)
 
 ### Swizzle Update Overwrites Changes

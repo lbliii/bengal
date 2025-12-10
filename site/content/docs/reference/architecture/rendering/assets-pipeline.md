@@ -453,7 +453,7 @@ class AssetOrchestrator:
 Use `--clean-output` flag to ensure clean builds:
 
 ```bash
-bengal site build --clean-output
+bengal build --clean-output
 ```
 
 This removes all output files (including stale fingerprinted assets) before building, ensuring deterministic builds. Perfect for CI/CD pipelines.
@@ -528,7 +528,7 @@ AssetValidator checks:
 - No broken asset references
 
 ```bash
-bengal site build
+bengal build
 # Asset validation runs automatically
 # Reports missing assets, oversized files, etc.
 ```

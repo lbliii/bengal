@@ -571,9 +571,9 @@ terms:
 :::
 
 :::{checklist} Verify
-- [ ] Build: `bengal site build`
+- [ ] Build: `bengal build`
 - [ ] Check: `bengal health linkcheck`
-- [ ] Preview: `bengal site serve`
+- [ ] Preview: `bengal serve`
 :::
 
 ---
@@ -584,8 +584,8 @@ terms:
 |------|------------|--------|
 | Install | `npm install` | `pip install bengal` |
 | New site | `npx create-docusaurus` | `bengal new site` |
-| Build | `npm run build` | `bengal site build` |
-| Serve | `npm start` | `bengal site serve` |
+| Build | `npm run build` | `bengal build` |
+| Serve | `npm start` | `bengal serve` |
 | Note | `:::note` | `:::{note}` |
 | Tabs | `<Tabs>` + import | `::::{tab-set}` |
 | Cards | Custom component | `::::{cards}` |

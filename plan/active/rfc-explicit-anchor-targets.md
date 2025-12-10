@@ -1,10 +1,11 @@
 # RFC: Explicit Anchor Targets for Cross-References
 
-**Status**: Draft  
+**Status**: Draft (Reviewed)  
 **Created**: 2025-12-09  
+**Updated**: 2025-12-10  
 **Author**: AI Assistant  
 **Related**: `bengal/rendering/plugins/cross_references.py`, Sphinx migration  
-**Confidence**: 85% 🟢
+**Confidence**: 82% 🟡 (Moderate-High)
 
 ---
 
@@ -69,11 +70,14 @@ Later, link to it: [see installation](#install)
 
 ### Quantified Gap
 
-- **44 directives** registered in Bengal, **0** support `:name:` option for custom anchors
+- **~35 `BengalDirective` subclasses** registered in Bengal, **0** support `:name:` option for custom anchors
 - Cross-reference plugin supports **4 lookup strategies** (path, slug, id, heading), but **only headings are auto-indexed from content**
 - Frontmatter `id:` works for **page-level** references only, not in-page anchors
+- Current xref_index has **4 keys**: `by_path`, `by_slug`, `by_id`, `by_heading`
 
-**Evidence**: `bengal/rendering/plugins/cross_references.py:21-44` shows supported syntax.
+**Evidence**: 
+- `bengal/rendering/plugins/cross_references.py:21-44` shows supported syntax
+- `bengal/rendering/plugins/directives/base.py:39-385` defines `BengalDirective` base class
 
 ---
 
@@ -119,15 +123,18 @@ Link back: [[#install|Installation section]]
 **Implementation**:
 
 ```python
-# bengal/rendering/parsers/mistune.py - modify _inject_heading_anchors()
+# bengal/rendering/parsers/mistune.py - modify MistuneParser class
 
-import re
-
-# Pattern to extract {#custom-id} from heading text
-HEADING_ID_PATTERN = re.compile(r'\s*\{#([a-zA-Z][a-zA-Z0-9_-]*)\}\s*$')
+# Add class attribute (alongside existing _HEADING_PATTERN, _HTML_TAG_PATTERN)
+_EXPLICIT_ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
+    r'\s*\{#([a-zA-Z][a-zA-Z0-9_-]*)\}\s*$'
+)
 
 def _inject_heading_anchors(self, html: str) -> str:
     """Inject IDs into heading tags, using custom {#id} if present."""
+    # Quick rejection: skip if no headings
+    if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
+        return html
     
     def replace_heading(match: re.Match[str]) -> str:
         tag = match.group(1)  # 'h2', 'h3', or 'h4'
@@ -135,23 +142,29 @@ def _inject_heading_anchors(self, html: str) -> str:
         content = match.group(3)  # Heading content
         
         # Skip if already has id= attribute
-        if "id=" in attrs:
+        if "id=" in attrs or "id =" in attrs:
             return match.group(0)
         
         # Check for explicit {#custom-id} in content
-        id_match = HEADING_ID_PATTERN.search(content)
+        id_match = self._EXPLICIT_ID_PATTERN.search(content)
         if id_match:
             slug = id_match.group(1)
             # Remove {#id} from displayed content
-            content = HEADING_ID_PATTERN.sub('', content)
+            content = self._EXPLICIT_ID_PATTERN.sub('', content)
         else:
-            # Fall back to auto-generated slug
+            # Fall back to auto-generated slug (existing behavior)
             text = self._HTML_TAG_PATTERN.sub("", content).strip()
+            if not text:
+                return match.group(0)
             slug = self._slugify(text)
         
         return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
     
-    return self._HEADING_PATTERN.sub(replace_heading, html)
+    try:
+        return self._HEADING_PATTERN.sub(replace_heading, html)
+    except Exception as e:
+        logger.warning("heading_anchor_injection_error", error=str(e))
+        return html  # Safe fallback
 ```
 
 **Pros**:
@@ -340,14 +353,15 @@ class BengalDirective(DirectivePlugin):
 ```
 
 **Pros**:
-- ✅ Works on all 44+ existing directives automatically
+- ✅ Works on all ~35 existing directives automatically
 - ✅ Matches Sphinx convention exactly
 - ✅ No new directive syntax to learn
 
 **Cons**:
 - ⚠️ More invasive base class change
-- ⚠️ Need to update all directive registrations
+- ⚠️ Need to update `DirectiveOptions` base class and all directive registrations
 - ⚠️ Potential conflicts with directive-specific `id` attrs
+- ⚠️ Requires changes to directive token handling throughout render flow
 
 ---
 
@@ -394,32 +408,73 @@ class BengalDirective(DirectivePlugin):
 
 ### xref_index Updates
 
+**Important**: The xref_index is built during the **discovery phase** (before rendering), but `{target}` directive anchors only exist in **rendered HTML** (after parsing). This requires a **two-phase indexing approach**.
+
+#### Phase 1: Heading Anchors (Discovery Time)
+
+Explicit heading IDs (`{#id}`) are extracted during TOC parsing, before the full render:
+
 ```python
 # bengal/orchestration/content.py - _build_xref_index()
+# This runs during discovery - headings with {#id} are captured in TOC
 
 def _build_xref_index(self) -> None:
-    """Build cross-reference index including explicit anchors."""
+    """Build cross-reference index."""
     
     self.site.xref_index = {
         "by_path": {},
         "by_slug": {},
         "by_id": {},
         "by_heading": {},
-        "by_anchor": {},  # NEW: explicit {target} anchors
+        "by_anchor": {},  # NEW: explicit {target} anchors (populated post-render)
     }
     
     for page in self.site.pages:
-        # ... existing indexing ...
+        # ... existing indexing (by_path, by_slug, by_id) ...
         
-        # Index explicit anchors from rendered HTML
-        # Pattern: <span id="..." class="target-anchor">
-        if hasattr(page, "rendered_html") and page.rendered_html:
-            for match in TARGET_ANCHOR_PATTERN.finditer(page.rendered_html):
-                anchor_id = match.group(1)
-                self.site.xref_index["by_anchor"][anchor_id] = (page, anchor_id)
+        # Index headings from TOC (includes explicit {#id} anchors)
+        # TOC is extracted during parse, which processes {#id} syntax
+        if hasattr(page, "toc_items") and page.toc_items:
+            for toc_item in page.toc_items:
+                heading_text = toc_item.get("title", "").lower()
+                anchor_id = toc_item.get("id", "")
+                if heading_text and anchor_id:
+                    self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
+                        (page, anchor_id)
+                    )
+                    # Also index by explicit anchor ID for direct [[#id]] references
+                    self.site.xref_index["by_anchor"][anchor_id.lower()] = (page, anchor_id)
 ```
 
-### Cross-Reference Resolution Update
+#### Phase 2: Target Directive Anchors (Post-Render)
+
+`{target}` directive anchors must be indexed **after rendering** completes:
+
+```python
+# bengal/orchestration/render.py - add post-render anchor indexing
+
+TARGET_ANCHOR_PATTERN = re.compile(r'<span\s+id="([^"]+)"\s+class="target-anchor"')
+
+def _index_explicit_anchors(self, site: Site) -> None:
+    """
+    Index {target} directive anchors after rendering.
+    
+    Called at the end of render_pages() to capture explicit anchors
+    that were rendered during the build.
+    """
+    for page in site.pages:
+        if not page.rendered_html:
+            continue
+            
+        for match in TARGET_ANCHOR_PATTERN.finditer(page.rendered_html):
+            anchor_id = match.group(1).lower()
+            # Add to xref_index (by_anchor)
+            site.xref_index["by_anchor"][anchor_id] = (page, match.group(1))
+```
+
+#### Cross-Reference Resolution (Updated)
+
+The cross-reference plugin checks both heading and explicit anchor indexes:
 
 ```python
 # bengal/rendering/plugins/cross_references.py
@@ -520,6 +575,112 @@ def test_wikilink_to_explicit_anchor(site_factory):
 | TOC display pollution | Medium | Medium | Strip `{#id}` before display text extraction |
 | Performance regression | Low | Low | Regex is fast, anchor index is O(1) |
 | MyST incompatibility | Low | Medium | Follow MyST spec exactly |
+| xref index timing | Medium | High | Two-phase indexing (discovery + post-render) |
+| Broken anchor references | Medium | Medium | Health check validates `[[#anchor]]` targets exist |
+
+---
+
+## Incremental Build Considerations
+
+Explicit anchors must integrate correctly with Bengal's incremental build and caching system.
+
+### Cache Invalidation Rules
+
+1. **Heading `{#id}` changes**: When a heading's explicit ID changes, pages that reference `[[#old-id]]` should be flagged as potentially stale
+2. **`{target}` directive changes**: Adding/removing/renaming a `{target}` affects the xref index
+3. **Cross-page references**: If page A references `[[page-b#anchor]]` and page B's anchor changes, page A needs rebuild
+
+### Implementation Approach
+
+```python
+# bengal/cache/dependency_tracker.py - extend anchor tracking
+
+class DependencyTracker:
+    """Track cross-reference dependencies for incremental builds."""
+    
+    def track_anchor_reference(self, source_page: str, target_anchor: str) -> None:
+        """Record that source_page references target_anchor."""
+        # Used during incremental builds to invalidate pages
+        # when their referenced anchors change
+        self._anchor_refs.setdefault(target_anchor, set()).add(source_page)
+    
+    def get_pages_referencing_anchor(self, anchor: str) -> set[str]:
+        """Get all pages that reference a specific anchor."""
+        return self._anchor_refs.get(anchor, set())
+```
+
+### Performance Consideration
+
+Anchor tracking adds minimal overhead:
+- Anchor extraction: O(n) per page during render
+- Index update: O(1) dictionary insertion
+- Reference tracking: O(1) per cross-reference
+
+---
+
+## Health Check Integration
+
+Explicit anchors require validation to catch errors at build time.
+
+### New Health Checks
+
+```python
+# bengal/health/validators/anchors.py
+
+class AnchorValidator:
+    """Validate explicit anchors and cross-references."""
+    
+    def validate_duplicate_anchors(self, site: Site) -> list[HealthIssue]:
+        """Check for duplicate anchor IDs within a page."""
+        issues = []
+        for page in site.pages:
+            seen_anchors: dict[str, int] = {}
+            # Scan rendered HTML for id= attributes
+            for match in re.finditer(r'id="([^"]+)"', page.rendered_html or ""):
+                anchor = match.group(1)
+                seen_anchors[anchor] = seen_anchors.get(anchor, 0) + 1
+            
+            for anchor, count in seen_anchors.items():
+                if count > 1:
+                    issues.append(HealthIssue(
+                        level="warning",
+                        message=f"Duplicate anchor ID '{anchor}' ({count} occurrences)",
+                        file=str(page.source_path),
+                    ))
+        return issues
+    
+    def validate_anchor_references(self, site: Site) -> list[HealthIssue]:
+        """Check that all [[#anchor]] references resolve to existing anchors."""
+        issues = []
+        valid_anchors = set(site.xref_index.get("by_anchor", {}).keys())
+        valid_anchors.update(site.xref_index.get("by_heading", {}).keys())
+        
+        for page in site.pages:
+            # Find all [[#anchor]] references in source content
+            for match in re.finditer(r'\[\[#([^\]|]+)', page.content):
+                anchor = match.group(1).lower()
+                if anchor not in valid_anchors:
+                    issues.append(HealthIssue(
+                        level="warning",
+                        message=f"Broken anchor reference '[[#{match.group(1)}]]'",
+                        file=str(page.source_path),
+                    ))
+        return issues
+```
+
+### CLI Integration
+
+```bash
+# Add to health check output
+bengal health
+
+# Example output:
+# ✓ Pages: 42 valid
+# ✓ Links: 156 valid
+# ⚠ Anchors: 2 issues
+#   - docs/guide.md: Duplicate anchor ID 'install' (2 occurrences)
+#   - docs/api.md: Broken anchor reference '[[#nonexistent]]'
+```
 
 ---
 
@@ -527,25 +688,37 @@ def test_wikilink_to_explicit_anchor(site_factory):
 
 ### Phase 1: Heading `{#id}` Syntax (Week 1)
 
-- [ ] Update `_inject_heading_anchors()` in `mistune.py`
-- [ ] Update `_extract_toc()` to strip `{#id}` from display
-- [ ] Update xref index to prefer explicit IDs
-- [ ] Add unit tests
-- [ ] Update documentation
+- [ ] Add `_EXPLICIT_ID_PATTERN` class attribute to `MistuneParser`
+- [ ] Update `_inject_heading_anchors()` to extract and use `{#id}`
+- [ ] Update `_extract_toc()` to strip `{#id}` from display text
+- [ ] Index explicit heading IDs in `by_anchor` during `_build_xref_index()`
+- [ ] Add unit tests for explicit ID parsing
+- [ ] Add unit tests for TOC display text (no `{#id}` visible)
+- [ ] Update documentation with `{#id}` syntax
 
 ### Phase 2: `{target}` Directive (Week 1-2)
 
 - [ ] Create `bengal/rendering/plugins/directives/target.py`
-- [ ] Register in `__init__.py`
-- [ ] Update xref index to scan for target anchors
-- [ ] Add CSS for `.target-anchor`
-- [ ] Add unit and integration tests
+- [ ] Register `TargetDirective` in `__init__.py`
+- [ ] Add `_index_explicit_anchors()` post-render hook in `render.py`
+- [ ] Add CSS for `.target-anchor` (invisible by default)
+- [ ] Add unit tests for `{target}` directive
+- [ ] Add integration tests for cross-page `[[#anchor]]` resolution
 - [ ] Document directive syntax
 
-### Phase 3: `:name:` Option (Week 2, optional)
+### Phase 3: Health Checks & Validation (Week 2)
 
-- [ ] Add `name` to `DirectiveOptions` base
-- [ ] Update `BengalDirective.render()` to wrap with anchor
+- [ ] Create `bengal/health/validators/anchors.py`
+- [ ] Add `validate_duplicate_anchors()` check
+- [ ] Add `validate_anchor_references()` check
+- [ ] Integrate anchor validation into `bengal health` CLI
+- [ ] Add tests for health check validators
+
+### Phase 4: `:name:` Option (Week 2-3, optional)
+
+- [ ] Add `name` field to `DirectiveOptions` base class
+- [ ] Update `BengalDirective` render flow to wrap with anchor
+- [ ] Update post-render indexing to capture `:name:` anchors
 - [ ] Test on sample directives (note, figure)
 - [ ] Document universal `:name:` support
 
@@ -553,22 +726,61 @@ def test_wikilink_to_explicit_anchor(site_factory):
 
 ## Success Criteria
 
-1. **`## Heading {#custom-id}`** creates anchor with custom ID
+1. **`## Heading {#custom-id}`** creates anchor with custom ID (ID not shown in TOC/display)
 2. **`:::{target} my-anchor`** creates invisible anchor at location
 3. **`[[#custom-id]]`** resolves to explicit anchor with O(1) lookup
 4. **Existing auto-anchors** continue to work unchanged
 5. **Sphinx users** can migrate with predictable syntax mapping
-6. **Health checks** warn on duplicate anchor IDs
+6. **Health checks** warn on:
+   - Duplicate anchor IDs within a page
+   - Broken `[[#anchor]]` references to non-existent anchors
+7. **Incremental builds** correctly invalidate pages when anchor dependencies change
+8. **Case-insensitive** anchor resolution (matching existing heading behavior)
 
 ---
 
 ## References
 
+### External Documentation
 - [MyST Markdown - Targets and Cross-References](https://myst-parser.readthedocs.io/en/latest/syntax/cross-referencing.html)
 - [Sphinx - Cross-referencing arbitrary locations](https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#ref-role)
-- Bengal source: `bengal/rendering/plugins/cross_references.py`
-- Bengal source: `bengal/orchestration/content.py:461-518`
-- Bengal source: `bengal/rendering/parsers/mistune.py:717-852`
+
+### Bengal Source Files
+- `bengal/rendering/plugins/cross_references.py:21-44` — CrossReferencePlugin syntax docs
+- `bengal/orchestration/content.py:506-518` — xref_index heading indexing
+- `bengal/rendering/parsers/mistune.py:717-852` — `_inject_heading_anchors()` implementation
+- `bengal/rendering/plugins/directives/base.py:39-385` — BengalDirective base class
+- `bengal/rendering/plugins/directives/options.py` — DirectiveOptions base class
+
+### Related Tests
+- `tests/unit/rendering/test_crossref.py` — Cross-reference unit tests
+- `tests/unit/rendering/test_parser_configuration.py` — Parser configuration tests
+
+---
+
+## Review Notes (2025-12-10)
+
+### Verified Claims ✅
+- xref_index heading indexing at `content.py:506-518` — exact code match
+- CrossReferencePlugin supports 4 lookup strategies — confirmed in docstring
+- Auto-generated anchors only, no custom overrides — confirmed in `_inject_heading_anchors()`
+- Frontmatter `id:` works for page-level only — confirmed at `content.py:502-504`
+- BengalDirective base class structure — confirmed in `base.py`
+
+### Corrections Made
+- **Directive count**: Changed from "44" to "~35" based on actual grep of `BengalDirective` subclasses
+- **xref timing issue**: Added two-phase indexing approach (discovery + post-render)
+- **Implementation code**: Aligned with actual class structure (class attributes, error handling)
+
+### Added Sections
+- Incremental Build Considerations
+- Health Check Integration
+- Phase 3 (Health Checks) in Implementation Plan
+
+### Open Questions
+1. Should explicit anchor IDs be case-sensitive or case-insensitive? (Current heading lookup uses `.lower()`)
+2. Should `[[#anchor]]` resolution prefer explicit anchors over auto-generated heading anchors when both exist?
+3. How should duplicate anchor warnings interact with strict mode? (Error vs. warning)
 
 ---
 

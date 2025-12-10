@@ -417,7 +417,7 @@ include_drafts = false  # Default, but explicit is good
 
 ```bash
 # Build for production
-bengal site build
+bengal build
 
 # Search for draft indicators
 grep -r "draft" public/  # Should return nothing
@@ -429,7 +429,7 @@ grep -r "draft-banner" public/  # Should return nothing
 ```yaml
 - name: Verify no drafts
   run: |
-    bengal site build
+    bengal build
     if grep -rq "draft-banner\|data-draft" public/; then
       echo "ERROR: Draft content found in production build"
       exit 1

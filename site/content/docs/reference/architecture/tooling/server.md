@@ -51,16 +51,16 @@ flowchart TD
 
 ```bash
 # Start development server
-bengal site serve
+bengal serve
 
 # Custom port
-bengal site serve --port 8080
+bengal serve --port 8080
 
 # Disable live reload
-bengal site serve --no-reload
+bengal serve --no-reload
 
 # Watch specific files only
-bengal site serve --watch "content/**/*.md"
+bengal serve --watch "content/**/*.md"
 ```
 
 ### File Watching

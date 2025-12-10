@@ -25,15 +25,10 @@ Bengal requires **Python 3.14 or later**. For best performance, use Python 3.14t
 
 ## Install
 
-::::{tab-set}
-
-:::{tab-item} pip
-```bash
-pip install bengal
-```
-:::
-
+:::{tab-set}
 :::{tab-item} uv
+:icon: rocket
+:badge: Recommended
 ```bash
 uv pip install bengal
 ```
@@ -43,17 +38,27 @@ Or for a one-time run:
 ```bash
 uvx bengal --version
 ```
-:::
+:::{/tab-item}
+
+:::{tab-item} pip
+:icon: package
+```bash
+pip install bengal
+```
+:::{/tab-item}
 
 :::{tab-item} pipx
+:icon: terminal
 ```bash
 pipx install bengal
 ```
 
 This installs Bengal in an isolated environment while making the `bengal` command available globally.
-:::
+:::{/tab-item}
 
 :::{tab-item} From Source
+:icon: code
+:badge: Development
 ```bash
 git clone https://github.com/lbliii/bengal.git
 cd bengal
@@ -61,9 +66,8 @@ pip install -e ".[dev]"
 ```
 
 This installs Bengal in development mode.
-:::
-
-::::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Verify Installation
 

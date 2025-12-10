@@ -410,7 +410,7 @@ bengal new site mysite
 
 ::::{step} Start Server
 ```bash
-bengal site serve
+bengal serve
 ```
 ::::
 
@@ -533,9 +533,9 @@ mv config.toml bengal.toml
 
 :::{step} Test
 ```bash
-bengal site build
+bengal build
 bengal health linkcheck
-bengal site serve
+bengal serve
 ```
 :::{/step}
 :::{/steps}
@@ -569,9 +569,9 @@ bengal site serve
 :::
 
 :::{checklist} Verify
-- [ ] Build: `bengal site build`
+- [ ] Build: `bengal build`
 - [ ] Check: `bengal health linkcheck`
-- [ ] Preview: `bengal site serve`
+- [ ] Preview: `bengal serve`
 :::
 
 ---
@@ -581,8 +581,8 @@ bengal site serve
 | Task | Hugo | Bengal |
 |------|------|--------|
 | New site | `hugo new site` | `bengal new site` |
-| Build | `hugo` | `bengal site build` |
-| Serve | `hugo server` | `bengal site serve` |
+| Build | `hugo` | `bengal build` |
+| Serve | `hugo server` | `bengal serve` |
 | New content | `hugo new docs/page.md` | Create file directly |
 | Check links | External tool | `bengal health linkcheck` |
 | Note callout | `{{</* notice note */>}}` | `:::{note}` |

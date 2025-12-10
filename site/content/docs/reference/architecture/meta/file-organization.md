@@ -104,13 +104,13 @@ The CLI automatically uses organized paths:
 
 ```bash
 # Default: saves to .bengal/profiles/profile.stats
-bengal site build --perf-profile
+bengal build --perf-profile
 
 # Custom path
-bengal site build --perf-profile my-profile.stats
+bengal build --perf-profile my-profile.stats
 
 # Build log: defaults to .bengal-build.log
-bengal site build --log-file custom.log
+bengal build --log-file custom.log
 ```
 
 ## Design Rationale

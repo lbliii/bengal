@@ -93,11 +93,12 @@ Open `content/blog/hello-world.md` in your editor. You'll see the **Frontmatter*
 ```yaml
 ---
 title: Hello World
-date: 2023-10-27
-draft: true
+date: 2023-10-27T14:30:00
 ---
 
-Write your content here...
+# Hello World
+
+Your content goes here.
 ```
 
 Update it to look like this:
@@ -171,7 +172,7 @@ menu:
 Let's see what we have so far. Start the development server:
 
 ```bash
-bengal site serve
+bengal serve
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.

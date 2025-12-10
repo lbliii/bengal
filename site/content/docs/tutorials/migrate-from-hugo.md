@@ -269,7 +269,7 @@ Bengal generates URLs from file paths. To preserve existing URLs:
 
 3. **Check URL generation:**
    ```bash
-   bengal site build
+   bengal build
    # Check public/ directory for generated URLs
    ```
 :::{/step}
@@ -354,10 +354,10 @@ weight = 2
 :description: Verify your content renders correctly and links work.
 :duration: 5 min
 :::{checklist} Verification Steps
-- [ ] Build the site: `bengal site build`
-- [ ] Check for errors: `bengal site build --verbose`
+- [ ] Build the site: `bengal build`
+- [ ] Check for errors: `bengal build --verbose`
 - [ ] Validate links: `bengal health linkcheck`
-- [ ] Preview locally: `bengal site serve` (visit http://localhost:5173)
+- [ ] Preview locally: `bengal serve` (visit http://localhost:5173)
 :::
 :::{/step}
 
