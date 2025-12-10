@@ -197,18 +197,40 @@ class CrossReferencePlugin:
         Resolve heading anchor reference to link.
 
         O(1) dictionary lookup.
+
+        Resolution order:
+        1. Check explicit anchor IDs first (by_anchor) - supports {#custom-id} syntax
+        2. Fall back to heading text lookup (by_heading) - existing behavior
         """
         # Remove leading # if present
-        heading_key = anchor.lstrip("#").lower()
-        results = self.xref_index.get("by_heading", {}).get(heading_key, [])
+        anchor_key = anchor.lstrip("#").lower()
+
+        # First check explicit anchor IDs (supports {#custom-id} syntax)
+        explicit = self.xref_index.get("by_anchor", {}).get(anchor_key)
+        if explicit:
+            page, anchor_id = explicit
+            logger.debug(
+                "xref_resolved",
+                ref=anchor,
+                type="explicit_anchor",
+                target_page=page.title if hasattr(page, "title") else "unknown",
+                anchor_id=anchor_id,
+            )
+            link_text = text or anchor_key.replace("-", " ").title()
+            url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+            return f'<a href="{url}#{anchor_id}">{link_text}</a>'
+
+        # Fall back to heading text lookup
+        results = self.xref_index.get("by_heading", {}).get(anchor_key, [])
 
         if not results:
             logger.debug(
                 "xref_resolution_failed",
                 ref=anchor,
                 type="heading",
-                heading_key=heading_key,
+                anchor_key=anchor_key,
                 available_headings=len(self.xref_index.get("by_heading", {})),
+                available_anchors=len(self.xref_index.get("by_anchor", {})),
             )
             return (
                 f'<span class="broken-ref" data-anchor="{anchor}" '

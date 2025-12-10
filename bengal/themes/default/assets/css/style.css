@@ -190,6 +190,10 @@
 }
 
 @layer components {
+  @import url('components/labels.css');
+}
+
+@layer components {
   @import url('components/icons.css');
 }
 

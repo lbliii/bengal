@@ -48,6 +48,10 @@ class MistuneParser(BaseMarkdownParser):
     # Pattern to strip HTML tags from text
     _HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 
+    # Pattern for explicit heading anchor syntax: ## Title {#custom-id}
+    # MyST Markdown compatible - allows letters, numbers, hyphens, underscores
+    _EXPLICIT_ID_PATTERN = re.compile(r"\s*\{#([a-zA-Z][a-zA-Z0-9_-]*)\}\s*$")
+
     def __init__(self, enable_highlighting: bool = True) -> None:
         """
         Initialize the mistune parser with plugins.
@@ -261,7 +265,7 @@ class MistuneParser(BaseMarkdownParser):
                         noclasses=False,  # Use CSS classes instead of inline styles
                         linenos="table" if line_count >= 3 else False,
                         linenostart=1,
-                        hl_lines=hl_lines if hl_lines else None,  # Line highlighting!
+                        hl_lines=hl_lines,  # Line highlighting (empty list is valid)
                     )
 
                     # Highlight the code
@@ -814,12 +818,18 @@ class MistuneParser(BaseMarkdownParser):
                 if "id=" in attrs or "id =" in attrs:
                     return match.group(0)
 
-                # Extract text for slug (strip any HTML tags from content)
-                text = self._HTML_TAG_PATTERN.sub("", content).strip()
-                if not text:
-                    return match.group(0)
-
-                slug = self._slugify(text)
+                # Check for explicit {#custom-id} syntax (MyST-compatible)
+                id_match = self._EXPLICIT_ID_PATTERN.search(content)
+                if id_match:
+                    slug = id_match.group(1)
+                    # Remove {#id} from displayed content
+                    content = self._EXPLICIT_ID_PATTERN.sub("", content)
+                else:
+                    # Fall back to auto-generated slug (existing behavior)
+                    text = self._HTML_TAG_PATTERN.sub("", content).strip()
+                    if not text:
+                        return match.group(0)
+                    slug = self._slugify(text)
 
                 # Build heading with ID only; theme JS adds copy-link anchor
                 return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
@@ -858,11 +868,17 @@ class MistuneParser(BaseMarkdownParser):
                         if "id=" in attrs or "id =" in attrs:
                             return m.group(0)
 
-                        text = self._HTML_TAG_PATTERN.sub("", content).strip()
-                        if not text:
-                            return m.group(0)
+                        # Check for explicit {#custom-id} syntax (MyST-compatible)
+                        id_match = self._EXPLICIT_ID_PATTERN.search(content)
+                        if id_match:
+                            slug = id_match.group(1)
+                            content = self._EXPLICIT_ID_PATTERN.sub("", content)
+                        else:
+                            text = self._HTML_TAG_PATTERN.sub("", content).strip()
+                            if not text:
+                                return m.group(0)
+                            slug = self._slugify(text)
 
-                        slug = self._slugify(text)
                         return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
 
                     parts.append(self._HEADING_PATTERN.sub(replace_heading, before))
@@ -893,11 +909,17 @@ class MistuneParser(BaseMarkdownParser):
                     if "id=" in attrs or "id =" in attrs:
                         return m.group(0)
 
-                    text = self._HTML_TAG_PATTERN.sub("", content).strip()
-                    if not text:
-                        return m.group(0)
+                    # Check for explicit {#custom-id} syntax (MyST-compatible)
+                    id_match = self._EXPLICIT_ID_PATTERN.search(content)
+                    if id_match:
+                        slug = id_match.group(1)
+                        content = self._EXPLICIT_ID_PATTERN.sub("", content)
+                    else:
+                        text = self._HTML_TAG_PATTERN.sub("", content).strip()
+                        if not text:
+                            return m.group(0)
+                        slug = self._slugify(text)
 
-                    slug = self._slugify(text)
                     return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
 
                 parts.append(self._HEADING_PATTERN.sub(replace_heading, remaining))

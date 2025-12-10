@@ -467,6 +467,7 @@ class ContentOrchestrator:
         - by_slug: Reference by slug (e.g., 'installation')
         - by_id: Reference by custom ID from frontmatter (e.g., 'install-guide')
         - by_heading: Reference by heading text for anchor links
+        - by_anchor: Reference by explicit anchor ID (e.g., {#install})
 
         Performance: O(n) build time, O(1) lookup time
         Thread-safe: Read-only after building, safe for parallel rendering
@@ -476,6 +477,7 @@ class ContentOrchestrator:
             "by_slug": {},  # 'getting-started' -> [Pages]
             "by_id": {},  # Custom IDs from frontmatter -> Page
             "by_heading": {},  # Heading text -> [(Page, anchor)]
+            "by_anchor": {},  # Explicit anchor ID -> (Page, anchor) for [[#anchor]] resolution
         }
 
         content_dir = self.site.root_path / "content"
@@ -516,6 +518,11 @@ class ContentOrchestrator:
                         self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
                             (page, anchor_id)
                         )
+                        # Also index by anchor ID for direct [[#anchor]] resolution
+                        # This enables explicit {#custom-id} heading anchors to be found
+                        anchor_key = anchor_id.lower()
+                        if anchor_key not in self.site.xref_index["by_anchor"]:
+                            self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

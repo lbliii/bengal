@@ -67,6 +67,7 @@ from bengal.rendering.plugins.directives.embed import (
     StackBlitzDirective,
 )
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.example_label import ExampleLabelDirective
 from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
@@ -164,6 +165,8 @@ DIRECTIVE_CLASSES: list[type] = [
     StepDirective,
     # Rubric (rubric)
     RubricDirective,
+    # Example label (example-label) - lightweight example section headers
+    ExampleLabelDirective,
     # Includes (include, literalinclude)
     IncludeDirective,
     LiteralIncludeDirective,
@@ -353,6 +356,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 DropdownDirective(),
                 CodeTabsDirective(),
                 RubricDirective(),  # Pseudo-headings for API docs
+                ExampleLabelDirective(),  # Lightweight example section labels
                 ListTableDirective(),  # MyST list-table for tables without pipe issues
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
                 GlossaryDirective(),  # Key terms from centralized glossary data file

@@ -211,6 +211,7 @@ STEPS_CONTRACT = DirectiveContract(
 | `dropdown` | Collapsible sections | `:::{dropdown} Title` |
 | `container` | Generic wrapper div | `:::{container} my-class` |
 | `rubric` | Pseudo-heading (not in TOC) | `:::{rubric} API Reference` |
+| `example-label` | Lightweight example section label | `:::{example-label} Basic Usage` |
 
 ### Navigation
 
@@ -295,6 +296,42 @@ Optional advanced configuration here.
 - `:description:` — Lead-in text with special typography (rendered before main content)
 - `:optional:` — Mark step as optional/skippable (adds visual indicator)
 - `:duration:` — Estimated time for the step (e.g., "2 min", "1 hour")
+
+#### Example Labels
+
+Lightweight semantic labels for example sections - a "soft header" that doesn't appear in TOC:
+
+```markdown
+:::{example-label} Basic Usage
+:::
+
+Here's how you use it:
+\`\`\`python
+print("hello")
+\`\`\`
+```
+
+**Example Label Options:**
+- `:class:` — Custom CSS class (e.g., `featured`, `compact`)
+- `:prefix:` — Custom prefix text (default: "Example")
+- `:no-prefix:` — Omit the prefix entirely
+
+```markdown
+<!-- Custom prefix -->
+:::{example-label} API Call
+:prefix: Demo
+:::
+
+<!-- No prefix (just the title) -->
+:::{example-label} Simple
+:no-prefix:
+:::
+
+<!-- Featured styling -->
+:::{example-label} Production Setup
+:class: featured
+:::
+```
 
 ### Cards and Grids
 
@@ -525,6 +562,7 @@ bengal/rendering/plugins/directives/
 ├── container.py         # container, div
 ├── data_table.py        # data-table
 ├── dropdown.py          # dropdown, details
+├── example_label.py     # example-label (lightweight example headers)
 ├── glossary.py          # glossary
 ├── icon.py              # icon, svg-icon
 ├── include.py           # include
