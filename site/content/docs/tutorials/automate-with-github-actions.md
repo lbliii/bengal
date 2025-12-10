@@ -318,7 +318,8 @@ Create `vercel.json`:
 
 ## Troubleshooting
 
-### Build Failures
+:::{dropdown} Build Failures
+:icon: alert
 
 **Issue:** Build fails with "Command not found: bengal"
 
@@ -333,8 +334,10 @@ Create `vercel.json`:
 - Fix broken links: `bengal health check`
 - Fix template errors
 - Remove `--strict` flag temporarily to identify issues
+:::
 
-### Deployment Issues
+:::{dropdown} Deployment Issues
+:icon: alert
 
 **Issue:** Files not deploying
 
@@ -342,6 +345,7 @@ Create `vercel.json`:
 - Verify output directory: `public/`
 - Check build artifacts are uploaded
 - Verify deployment permissions
+:::
 
 ## Next Steps
 

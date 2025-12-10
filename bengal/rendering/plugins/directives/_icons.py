@@ -199,9 +199,12 @@ ICON_MAP: dict[str, str] = {
     # Status & Feedback
     "info": "info",
     "warning": "warning",
+    "alert": "warning",  # Alias for warning
     "error": "x-circle",
     "check": "check",
     "success": "check-circle",
+    "question": "question",  # Help/question icon
+    "help": "question",  # Alias for question
     # Files & Content
     "file": "file",
     "file-text": "file-text",

@@ -215,7 +215,8 @@ See [RFC: Skeleton Manifests](https://github.com/bengal-ssg/bengal/blob/main/pla
 
 ## Troubleshooting
 
-### "Directory already exists"
+:::{dropdown} "Directory already exists"
+:icon: alert
 
 ```bash
 # Remove existing directory
@@ -224,19 +225,24 @@ rm -rf my-docs
 # Or use a different name
 bengal new site my-docs-v2 --template docs
 ```
+:::
 
-### "Section already exists"
+:::{dropdown} "Section already exists"
+:icon: alert
 
 Use `--force` to overwrite:
 
 ```bash
 bengal project init --sections blog --force
 ```
+:::
 
-### Preview Without Creating
+:::{dropdown} Preview Without Creating
+:icon: info
 
 Use `--dry-run` to see what would be created:
 
 ```bash
 bengal project init --sections api --sections guides --dry-run
 ```
+:::

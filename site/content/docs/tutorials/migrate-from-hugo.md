@@ -408,7 +408,8 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 
 ## Troubleshooting
 
-### Common Issues
+:::{dropdown} Common Issues
+:icon: alert
 
 **Frontmatter parsing errors:**
 
@@ -441,12 +442,15 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 - Check image paths in content (use relative paths)
 - Ensure asset references match Bengal's structure
 :::
+:::
 
-### Getting Help
+:::{dropdown} Getting Help
+:icon: question
 
 - Check [[docs/content/organization|Content Organization]] for structure details
 - Review [[docs/building/configuration|Configuration]] for config options
 - See [[docs/get-started|Get Started]] for basics
+:::
 
 ## Next Steps
 

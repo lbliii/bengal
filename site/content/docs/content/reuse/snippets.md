@@ -192,7 +192,8 @@ Bengal includes built-in security protections to prevent path traversal attacks 
 
 ## Troubleshooting
 
-### File Not Found
+:::{dropdown} File Not Found
+:icon: alert
 
 **Error**: `Include error: File not found: snippets/warning.md`
 
@@ -201,8 +202,10 @@ Bengal includes built-in security protections to prevent path traversal attacks 
 - Verify the file exists in the expected location
 - Try an absolute path from site root: `content/_snippets/warning.md`
 - Check for typos in the filename (case-sensitive on some systems)
+:::
 
-### Path Traversal Blocked
+:::{dropdown} Path Traversal Blocked
+:icon: alert
 
 **Error**: `Include path traversal rejected` or `Include outside site root`
 
@@ -212,6 +215,7 @@ Bengal includes built-in security protections to prevent path traversal attacks 
 - Move the file into your site's content directory
 - Use a relative path that stays within the site root
 - Check that your site root is correctly configured in `bengal.toml`
+:::
 
 ## Summary
 
