@@ -417,14 +417,19 @@
 
 .admonition.seealso ul {
   list-style: none;
-  padding-inline-start: var(--space-4);
+  padding-inline-start: 0;
+  margin-inline-start: 0;
+}
+
+.admonition.seealso li {
+  padding-inline-start: 1.5em;
+  position: relative;
 }
 
 .admonition.seealso li::before {
   content: '→';
-  display: inline-block;
-  width: 1.5em;
-  margin-left: -1.5em;
+  position: absolute;
+  left: 0;
   color: var(--admonition-color);
   font-weight: var(--weight-medium);
 }
