@@ -327,28 +327,6 @@ Tab content
 
 - `:selected:` - Mark this tab as initially selected (no value needed)
 
-### Legacy Tabs (`{tabs}`)
-
-Backward-compatible tabs syntax.
-
-**Syntax**:
-
-````markdown
-:::{tabs}
-:id: my-tabs
-
-### Tab: First Tab
-
-Content in first tab.
-
-### Tab: Second Tab
-
-Content in second tab.
-:::
-````
-
-**Note**: Prefer `{tab-set}` / `{tab-item}` for new content.
-
 ### Examples
 
 **Basic Tabs**:

@@ -93,7 +93,6 @@ from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirect
 from bengal.rendering.plugins.directives.target import TargetDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
-    TabsDirective,
     TabSetDirective,
 )
 from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
@@ -142,8 +141,7 @@ DIRECTIVE_CLASSES: list[type] = [
     ChildCardsDirective,
     GridDirective,
     GridItemCardDirective,
-    # Tabs (tabs, tab-set, tab-item)
-    TabsDirective,
+    # Tabs (tab-set, tab-item)
     TabSetDirective,
     TabItemDirective,
     # Dropdowns (dropdown, details)
@@ -355,9 +353,8 @@ def create_documentation_directives() -> Callable[[Any], None]:
             directives_list = [
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
                 BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
-                TabsDirective(),  # Legacy tabs (backward compatibility)
-                TabSetDirective(),  # Modern MyST tab-set
-                TabItemDirective(),  # Modern MyST tab-item
+                TabSetDirective(),  # MyST tab-set
+                TabItemDirective(),  # MyST tab-item
                 DropdownDirective(),
                 CodeTabsDirective(),
                 RubricDirective(),  # Pseudo-headings for API docs

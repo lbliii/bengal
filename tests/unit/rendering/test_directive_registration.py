@@ -26,7 +26,6 @@ from bengal.rendering.plugins.directives import (
     ListTableDirective,
     RubricDirective,
     TabItemDirective,
-    TabsDirective,
     TabSetDirective,
 )
 
@@ -50,7 +49,6 @@ class TestDirectiveRegistration:
         assert ListTableDirective is not None
         assert RubricDirective is not None
         assert TabItemDirective is not None
-        assert TabsDirective is not None
         assert TabSetDirective is not None
 
     def test_data_table_directive_registered(self):
@@ -169,7 +167,6 @@ class TestDirectiveModuleConsistency:
             ListTableDirective,
             RubricDirective,
             TabItemDirective,
-            TabsDirective,
             TabSetDirective,
         ]
 

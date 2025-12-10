@@ -194,22 +194,35 @@
   min-width: 1.25em;
 }
 
-/* Style: Minimal - Reduced visual chrome */
+/* Style: Minimal - Reduced visual chrome with subtle left accent
+ * Uses left border for visual anchoring (like blockquotes/admonitions)
+ * Very subtle background tint - just enough to define the container
+ * No box shadow - keeps it lightweight
+ */
 .checklist-minimal {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
+  border-left: 3px solid var(--color-border-light);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   box-shadow: none;
-  padding: var(--space-2) 0;
+  padding: var(--space-3) var(--space-4);
 }
 
 .checklist-minimal .checklist-title {
   font-size: var(--text-sm);
   text-transform: none;
   letter-spacing: normal;
+  color: var(--color-text-secondary);
 }
 
 .checklist-minimal .checklist-title::before {
   display: none;
+}
+
+/* Dark mode: slightly more visible background, adjusted border */
+[data-theme="dark"] .checklist-minimal {
+  background: rgba(255, 255, 255, 0.03);
+  border-left-color: var(--color-border);
 }
 
 /* Compact spacing */
