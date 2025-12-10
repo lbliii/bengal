@@ -273,24 +273,38 @@ line3 = 3
 """
         html = parser.parse(content, {})
 
-        # Find .hll closing tags and check what follows
-        # Pattern: </span> followed by either another tag or content, but NOT \n
+        # Find .hll spans and extract their content to verify structure
+        # The .hll span contains nested token spans, so we need to handle nesting
         import re
         
-        # Check that .hll spans don't have newlines immediately after closing tag
-        # The pattern </span>\n would indicate the old behavior (moved but not removed)
-        hll_pattern = r'<span class="hll">[^<]*(?:<[^>]+>[^<]*)*</span>'
+        # Find where .hll spans START
+        hll_starts = list(re.finditer(r'<span class="hll">', html))
+        assert hll_starts, "Expected at least one .hll span in output"
         
-        for match in re.finditer(hll_pattern, html):
-            end_pos = match.end()
-            # Check what comes after this .hll span
-            if end_pos < len(html):
-                next_char = html[end_pos]
-                # Should NOT be a newline - display:block handles line breaks
-                assert next_char != '\n', (
-                    f".hll span should not have trailing newline. "
-                    f"Found: ...{html[end_pos-10:end_pos+5]!r}"
-                )
+        for start_match in hll_starts:
+            # Find the matching closing </span> by counting nesting
+            pos = start_match.end()
+            depth = 1
+            while pos < len(html) and depth > 0:
+                if html[pos:pos+6] == '<span ':
+                    depth += 1
+                    pos += 6
+                elif html[pos:pos+7] == '</span>':
+                    depth -= 1
+                    if depth == 0:
+                        # This is the closing tag of our .hll span
+                        end_pos = pos + 7  # Position after </span>
+                        if end_pos < len(html):
+                            next_char = html[end_pos]
+                            # Should NOT be a newline - display:block handles line breaks
+                            assert next_char != '\n', (
+                                f".hll span should not have trailing newline. "
+                                f"Context: ...{html[max(0, end_pos-20):end_pos+10]!r}"
+                            )
+                        break
+                    pos += 7
+                else:
+                    pos += 1
 
 
 class TestCodeBlockEdgeCases:
