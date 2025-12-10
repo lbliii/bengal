@@ -585,19 +585,19 @@ Welcome! Choose where to begin based on your experience.
 
 Set `type` and `variant` once in a section's `_index.md` and all child pages inherit them:
 
-```yaml {5-8}
+```yaml
 # content/docs/_index.md
 ---
 title: Documentation
 description: Complete Bengal documentation
-cascade:
-  type: doc
-  variant: standard
+cascade:                        # <-- CASCADE: inheritable defaults
+  type: doc                     # <-- all children get type: doc
+  variant: standard             # <-- all children get variant: standard
 weight: 100
 ---
 ```
 
-**Lines 5-8**: The `cascade` block sets defaults for all pages in this section.
+The `cascade` block sets `type` and `variant` for all child pages automatically.
 
 Now child pages don't need to specify `type`:
 
@@ -620,21 +620,21 @@ Define entire site structures using **Skeleton Manifests** (`bengal project skel
 :::{tab-item} Blog Skeleton
 :icon: newspaper
 
-```yaml {7-8,12-13,24-25}
+```yaml
 name: blog
 description: A blog with posts, tags, and categories
 version: "1.0"
 
 structure:
   - path: index.md
-    type: blog
-    variant: magazine
+    type: blog                  # <-- TYPE
+    variant: magazine           # <-- VARIANT
     props:
       title: My Blog
       description: Welcome to my blog
 
   - path: posts/first-post.md
-    type: blog
+    type: blog                  # <-- TYPE (same as index)
     props:
       title: My First Blog Post
       date: "2025-06-01"
@@ -644,31 +644,30 @@ structure:
       category: meta
 
   - path: about.md
-    type: page
-    variant: standard
+    type: page                  # <-- TYPE (different!)
+    variant: standard           # <-- VARIANT
     props:
       title: About
       description: Learn more about me
 ```
 
-**Key lines**:
-- **Lines 7-8**: Index page is `type: blog` with `variant: magazine`
-- **Lines 12-13**: Posts inherit blog type
-- **Lines 24-25**: About page is different — `type: page`
+**Key points**:
+- Index and posts use `type: blog` with `variant: magazine`
+- About page uses different `type: page` — different template family
 :::{/tab-item}
 
 :::{tab-item} Docs Skeleton
 :icon: book-open
 
-```yaml {7-10,16-17}
+```yaml
 name: docs
 description: Technical documentation
 version: "1.0"
 
 structure:
   - path: _index.md
-    type: doc
-    cascade:
+    type: doc                   # <-- TYPE
+    cascade:                    # <-- CASCADE to children
       type: doc
       variant: standard
     props:
@@ -677,30 +676,30 @@ structure:
 
   - path: getting-started/_index.md
     type: doc
-    variant: overview
+    variant: overview           # <-- VARIANT: overrides cascade
     props:
       title: Getting Started
       weight: 10
       icon: rocket
 ```
 
-**Key lines**:
-- **Lines 7-10**: Root sets `type: doc` and cascades to all children
-- **Lines 16-17**: Getting started section uses `variant: overview`
+**Key points**:
+- Root sets `type: doc` and cascades to all children
+- Getting started overrides `variant: overview` for landing page style
 :::{/tab-item}
 
 :::{tab-item} Portfolio Skeleton
 :icon: briefcase
 
-```yaml {7-8,17-18,24-25}
+```yaml
 name: portfolio
 description: Portfolio site with projects showcase
 version: "1.0"
 
 structure:
   - path: index.md
-    type: page
-    variant: home
+    type: page                  # <-- TYPE
+    variant: home               # <-- VARIANT: homepage layout
     props:
       title: Portfolio
       description: Welcome to my portfolio
@@ -711,20 +710,20 @@ structure:
 
   - path: projects/project-1.md
     type: page
-    variant: project
-        props:
+    variant: project            # <-- VARIANT: project showcase
+    props:
       title: E-Commerce Platform
-      featured: true
-      technologies:
+      featured: true            # <-- PROP
+      technologies:             # <-- PROP: array
         - React
         - Node.js
       demo_url: https://example.com
 ```
 
-**Key lines**:
-- **Lines 7-8**: Home page with special `variant: home`
-- **Lines 17-18**: Projects use `variant: project` for portfolio layout
-- **Lines 24-25**: Rich props for project metadata
+**Key points**:
+- Home page uses `variant: home` for special homepage layout
+- Projects use `variant: project` for portfolio showcase
+- Rich props like `technologies` array and `demo_url`
 :::{/tab-item}
 
 :::{/tab-set}
