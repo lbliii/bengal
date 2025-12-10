@@ -378,8 +378,15 @@ class SectionOrchestrator:
 
         page_type = index_page.metadata.get("type", "")
 
-        # Only enrich pages that need section context (blog, archive, etc.)
-        if page_type in ("blog", "archive", "api-reference", "cli-reference", "tutorial"):
+        # Only enrich pages that need section context (blog, archive, changelog, etc.)
+        if page_type in (
+            "blog",
+            "archive",
+            "api-reference",
+            "cli-reference",
+            "tutorial",
+            "changelog",
+        ):
             # Add section context metadata if not already present
             if "_section" not in index_page.metadata:
                 index_page.metadata["_section"] = section

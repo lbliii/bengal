@@ -293,8 +293,12 @@ class ChangelogStrategy(ContentTypeStrategy):
     allows_pagination = False
 
     def sort_pages(self, pages: list[Page]) -> list[Page]:
-        """Sort by date (newest first) or by version number."""
-        return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
+        """Sort by date (newest first), then by title descending (for same-day releases)."""
+        return sorted(
+            pages,
+            key=lambda p: (p.date if p.date else datetime.min, p.title),
+            reverse=True,
+        )
 
     def detect_from_section(self, section: Section) -> bool:
         """Detect changelog sections by name."""
