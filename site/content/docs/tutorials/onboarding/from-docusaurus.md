@@ -94,7 +94,7 @@ import TabItem from '@theme/TabItem';
 :::{/tab}
 
 :::{tab} Bengal (No imports!)
-```markdown
+````markdown
 :::{tab-set}
 :::{tab} JavaScript
 ```javascript
@@ -107,7 +107,7 @@ print("Hello")
 ```
 :::{/tab}
 :::{/tab-set}
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -121,6 +121,7 @@ No imports, no JSX, no React. Just markdown.
 :::{tab-set}
 
 :::{tab} Docusaurus
+
 ```jsx
 import CodeBlock from '@theme/CodeBlock';
 
@@ -129,6 +130,7 @@ def hello():
     print("Hello!")
 </CodeBlock>
 ```
+
 :::{/tab}
 
 :::{tab} Bengal

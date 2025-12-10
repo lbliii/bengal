@@ -193,4 +193,3 @@ Icons are automatically sized via the `:size:` parameter and inherit colors from
 - [Formatting Directives](/docs/reference/directives/formatting/) — Buttons with icons
 - [Assets](/docs/theming/assets/) — Asset pipeline for custom icons
 - [Content Authoring](/docs/content/authoring/) — Using icons in content
-

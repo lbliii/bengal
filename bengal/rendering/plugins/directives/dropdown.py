@@ -209,9 +209,7 @@ class DropdownDirective(BengalDirective):
 
         # Add badge if specified
         if badge:
-            summary_parts.append(
-                f'<span class="dropdown-badge">{self.escape_html(badge)}</span>'
-            )
+            summary_parts.append(f'<span class="dropdown-badge">{self.escape_html(badge)}</span>')
 
         summary_content = "".join(summary_parts)
 
@@ -237,11 +235,14 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
         SVG HTML string, or empty string if icon not found
     """
     from bengal.rendering.plugins.directives._icons import (
+        ICON_MAP,
         render_svg_icon,
         warn_missing_icon,
     )
 
-    icon_html = render_svg_icon(icon_name, size=18, css_class="dropdown-summary-icon")
+    # Map semantic name to actual icon name (e.g., "alert" -> "warning")
+    mapped_icon_name = ICON_MAP.get(icon_name, icon_name)
+    icon_html = render_svg_icon(mapped_icon_name, size=18, css_class="dropdown-summary-icon")
 
     if not icon_html:
         warn_missing_icon(icon_name, directive="dropdown", context=dropdown_title)

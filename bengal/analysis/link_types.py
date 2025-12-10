@@ -287,7 +287,10 @@ class ConnectivityReport:
     def get_percentages(self) -> dict[str, float]:
         """Get percentage distribution by level."""
         if self.total_pages == 0:
-            return {level: 0.0 for level in ["isolated", "lightly_linked", "adequately_linked", "well_connected"]}
+            return {
+                level: 0.0
+                for level in ["isolated", "lightly_linked", "adequately_linked", "well_connected"]
+            }
         return {
             level: (count / self.total_pages * 100)
             for level, count in self.get_distribution().items()
@@ -305,4 +308,3 @@ class ConnectivityReport:
             "total_pages": self.total_pages,
             "avg_score": round(self.avg_score, 2),
         }
-
