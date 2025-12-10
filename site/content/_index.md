@@ -9,6 +9,10 @@ lang: en
 keywords: [bengal, static site generator, python, ssg]
 category: home
 
+# Cascade default author to all pages
+cascade:
+  author: lbliii
+
 # Hero configuration
 blob_background: true
 
