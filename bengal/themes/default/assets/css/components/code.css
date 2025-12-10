@@ -714,28 +714,38 @@ pre code {
    Usage: ```python {5} or ```python {1,3,5-7}
    ============================================ */
 
-/* Highlighted line wrapper from Pygments */
+/* Highlighted line from Pygments hl_lines
+   The parser post-processes to move newlines outside .hll spans,
+   allowing display:block without double line spacing. */
 .highlight .hll {
   display: block;
-  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 3px,
+    color-mix(in srgb, var(--color-primary) 12%, transparent) 3px
+  );
+  /* Extend highlight beyond code cell padding */
   margin-left: calc(-1 * var(--space-4));
   margin-right: calc(-1 * var(--space-6));
-  padding-left: var(--space-4);
+  padding-left: calc(var(--space-4) - 3px);
   padding-right: var(--space-6);
-  border-left: 3px solid var(--color-primary);
 }
 
-/* Highlighted line in table layout */
+/* Table layout: same treatment */
 .highlight td.code .hll {
   margin-left: calc(-1 * var(--space-4));
   margin-right: calc(-1 * var(--space-6));
-  padding-left: var(--space-4);
+  padding-left: calc(var(--space-4) - 3px);
   padding-right: var(--space-6);
 }
 
-/* Dark mode highlight */
+/* Dark mode: more visible highlight */
 [data-theme="dark"] .highlight .hll {
-  background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 3px,
+    color-mix(in srgb, var(--color-primary) 18%, transparent) 3px
+  );
 }
 
 /* Legacy Pygments linenos support */

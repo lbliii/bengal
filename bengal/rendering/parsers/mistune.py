@@ -267,6 +267,19 @@ class MistuneParser(BaseMarkdownParser):
                     # Highlight the code
                     highlighted = highlight(code, lexer, formatter)
 
+                    # Fix Pygments .hll output: move newlines outside the span
+                    # Pygments outputs: <span class="hll">content\n</span>
+                    # We need: <span class="hll">content</span>\n
+                    # This prevents double line spacing when using display:block
+                    if hl_lines:
+                        highlighted = highlighted.replace(
+                            '\n</span><span class="hll">',
+                            '</span>\n<span class="hll">'
+                        ).replace(
+                            '\n</span></code>',
+                            '</span>\n</code>'
+                        )
+
                     return highlighted
 
                 except Exception as e:
