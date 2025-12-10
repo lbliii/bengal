@@ -117,6 +117,34 @@ class BuildStats:
         return len(self.template_errors) > 0
 
     @property
+    def syntax_errors(self) -> list[Any]:
+        """
+        Get template errors that are syntax errors.
+
+        Filters template_errors to return only those with error_type == "syntax".
+        These are typically Jinja2 TemplateSyntaxError instances (missing endif,
+        unclosed tags, etc.).
+
+        Returns:
+            List of TemplateRenderError objects with syntax errors.
+        """
+        return [e for e in self.template_errors if getattr(e, "error_type", None) == "syntax"]
+
+    @property
+    def not_found_errors(self) -> list[Any]:
+        """
+        Get template errors that are "not found" errors.
+
+        Filters template_errors to return only those with error_type == "not_found".
+        These occur when a page requests a template that doesn't exist in any
+        template directory.
+
+        Returns:
+            List of TemplateRenderError objects for missing templates.
+        """
+        return [e for e in self.template_errors if getattr(e, "error_type", None) == "not_found"]
+
+    @property
     def warnings_by_type(self) -> dict[str, list[BuildWarning]]:
         """Group warnings by type."""
         from collections import defaultdict

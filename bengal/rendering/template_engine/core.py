@@ -22,6 +22,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+# Import Jinja2 exceptions for validation
+from jinja2 import TemplateSyntaxError
+
 from bengal.assets.manifest import AssetManifestEntry
 from bengal.rendering.template_engine.asset_url import AssetURLMixin
 from bengal.rendering.template_engine.environment import (
@@ -286,3 +289,101 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
             Parent theme name if extends is set, None otherwise
         """
         return read_theme_extends(theme_name, self.site)
+
+    def validate_templates(self, include_patterns: list[str] | None = None) -> list[Any]:
+        """
+        Validate syntax of all templates in the search path.
+
+        Proactively checks all discoverable templates for syntax errors by
+        attempting to compile them through Jinja2. This catches errors before
+        rendering, providing early feedback during builds.
+
+        Args:
+            include_patterns: Optional list of glob patterns to limit validation
+                              (e.g., ["page.html", "partials/*.html"]).
+                              If None, validates all .html and .xml templates.
+
+        Returns:
+            List of TemplateRenderError for any templates with syntax errors.
+            Empty list if all templates are valid.
+
+        Examples:
+            # Validate all templates
+            errors = engine.validate_templates()
+
+            # Validate only specific patterns
+            errors = engine.validate_templates(["page.html", "partials/*.html"])
+
+        Note:
+            Templates with the same name in multiple directories are validated
+            using the first match (following Jinja2's FileSystemLoader precedence).
+            Duplicate template names in lower-priority directories are skipped.
+        """
+        from fnmatch import fnmatch
+
+        from bengal.rendering.errors import TemplateRenderError
+
+        errors: list[Any] = []
+        validated_names: set[str] = set()
+
+        # Default patterns: HTML and XML templates
+        default_patterns = ["*.html", "*.xml"]
+        patterns = include_patterns or default_patterns
+
+        for template_dir in self.template_dirs:
+            if not template_dir.exists():
+                continue
+
+            # Find all template files in this directory
+            for template_file in template_dir.rglob("*"):
+                if not template_file.is_file():
+                    continue
+
+                # Get relative name for Jinja2
+                try:
+                    rel_name = str(template_file.relative_to(template_dir))
+                except ValueError:
+                    continue
+
+                # Skip if already validated (higher-priority directory wins)
+                if rel_name in validated_names:
+                    continue
+
+                # Check if file matches any pattern
+                matches_pattern = any(
+                    fnmatch(rel_name, pattern) or fnmatch(template_file.name, pattern)
+                    for pattern in patterns
+                )
+                if not matches_pattern:
+                    continue
+
+                validated_names.add(rel_name)
+
+                # Try to compile the template
+                try:
+                    self.env.get_template(rel_name)
+                    logger.debug("template_validated", template=rel_name, dir=str(template_dir))
+                except TemplateSyntaxError as e:
+                    logger.warning(
+                        "template_syntax_error",
+                        template=rel_name,
+                        error=str(e),
+                        line=getattr(e, "lineno", None),
+                    )
+                    error = TemplateRenderError.from_jinja2_error(e, rel_name, None, self)
+                    errors.append(error)
+                except Exception as e:
+                    # Log but don't fail on other errors (e.g., missing includes)
+                    logger.debug(
+                        "template_validation_skipped",
+                        template=rel_name,
+                        reason=str(e),
+                    )
+
+        logger.info(
+            "template_validation_complete",
+            validated=len(validated_names),
+            errors=len(errors),
+        )
+
+        return errors

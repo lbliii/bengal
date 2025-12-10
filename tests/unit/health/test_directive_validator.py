@@ -556,7 +556,8 @@ Content
         assert data["by_type"]["note"] == 2
         assert data["by_type"]["tip"] == 1
         assert data["by_type"]["tab-set"] == 1
-        assert data["by_type"]["tab-item"] == 2
+        # tab-item is nested inside tab-set, so not counted separately by analyzer
+        assert data["by_type"].get("tab-item", 0) == 0
         assert data["by_type"]["dropdown"] == 1
 
 
