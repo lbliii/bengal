@@ -30,8 +30,8 @@ Only 3 main exports:
 - `CrossReferencePlugin` - Core plugin  
 - `create_documentation_directives()` - Factory for all directives
 
-### Backward Compatibility
-The old `plugin_documentation_directives` function is still available for compatibility.
+### Clean API
+Use `create_documentation_directives()` for all documentation directives.
 
 ## 🚀 Usage
 
@@ -183,23 +183,13 @@ pytest tests/unit/rendering/plugins/ -v
 
 The old `mistune_plugins.py` file (757 lines) has been split into this modular package.
 
-**Old imports:**
-```python
-from bengal.rendering.mistune_plugins import (
-    VariableSubstitutionPlugin,
-    plugin_documentation_directives
-)
-```
-
-**New imports (preferred):**
+**Current imports:**
 ```python
 from bengal.rendering.plugins import (
     VariableSubstitutionPlugin,
     create_documentation_directives
 )
 ```
-
-**Both work!** The old function name is aliased for compatibility.
 
 ### Benefits of New Structure
 

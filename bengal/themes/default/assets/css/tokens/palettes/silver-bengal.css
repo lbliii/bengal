@@ -107,6 +107,9 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-text-muted: #6B7280;
     /* CRITICAL: Inverse text must be dark for contrast against light primary */
     --color-text-inverse: #111827;
+    /* Links: Steel blue with cool undertones - visible and recognizable */
+    --color-text-link: #94A3B8;
+    --color-text-link-hover: #CBD5E1;
 
     /* Adjusted borders for dark mode */
     --color-border: #262626;

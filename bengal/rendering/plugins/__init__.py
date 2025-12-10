@@ -40,43 +40,12 @@ For detailed documentation on each plugin, see:
 
 from __future__ import annotations
 
-import warnings
-from typing import Any
-
 from bengal.rendering.plugins.badges import BadgePlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
 from bengal.rendering.plugins.directives import create_documentation_directives
 from bengal.rendering.plugins.inline_icon import InlineIconPlugin
 from bengal.rendering.plugins.term import TermPlugin
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
-
-
-def plugin_documentation_directives(md: Any) -> None:
-    """
-    DEPRECATED: Use create_documentation_directives() instead.
-
-    This function will be removed in Bengal 2.0.
-
-    Usage::
-
-        # Old (deprecated):
-        md = mistune.create_markdown(
-            plugins=[plugin_documentation_directives]
-        )
-
-        # New (recommended):
-        md = mistune.create_markdown(
-            plugins=[create_documentation_directives()]
-        )
-    """
-    warnings.warn(
-        "plugin_documentation_directives() is deprecated and will be removed in Bengal 2.0. "
-        "Use create_documentation_directives() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return create_documentation_directives()(md)
-
 
 __all__ = [
     "BadgePlugin",
@@ -87,8 +56,6 @@ __all__ = [
     "VariableSubstitutionPlugin",
     # Directive factory
     "create_documentation_directives",
-    # Deprecated (will be removed in Bengal 2.0)
-    "plugin_documentation_directives",
 ]
 
 __version__ = "1.0.0"
