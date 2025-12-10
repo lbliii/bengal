@@ -121,17 +121,18 @@ class MistuneParser(BaseMarkdownParser):
         #
         # Previously, each Markdown instance created its own renderer, requiring
         # manual state synchronization that was error-prone and easy to forget.
-        self._shared_renderer = HTMLRenderer()
+        #
+        # escape=False allows raw HTML (e.g., <br>) inside table cells and inline
+        # content. This is required for GFM tables to support line breaks.
+        self._shared_renderer = HTMLRenderer(escape=False)
 
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
         # Note: Cross-references added via enable_cross_references() when xref_index available
         # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
-        # Note: escape=False allows raw HTML (e.g., <br>) inside table cells and inline content
         self.md = mistune.create_markdown(
             plugins=plugins,
-            renderer=self._shared_renderer,  # Use shared renderer
-            escape=False,  # Allow inline HTML in tables and text
+            renderer=self._shared_renderer,  # Use shared renderer (with escape=False)
         )
 
         # Cache for mistune library (import on first use)
@@ -382,8 +383,7 @@ class MistuneParser(BaseMarkdownParser):
             # This ensures xref_index and other renderer state is automatically shared
             self._md_with_vars = self._mistune.create_markdown(
                 plugins=var_plugins,
-                renderer=self._shared_renderer,
-                escape=False,  # Allow inline HTML in tables and text
+                renderer=self._shared_renderer,  # Inherits escape=False from shared renderer
             )
         else:
             # Just update the context on existing plugin (fast!)
