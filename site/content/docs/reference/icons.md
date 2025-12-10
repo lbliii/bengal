@@ -1,13 +1,19 @@
 ---
 title: Icon Reference
-description: Bengal SVG icon library with theme-aware styling
-date: 2025-12-06
+description: SVG icon library with theme-aware styling
+weight: 25
+icon: star
 tags:
 - reference
 - icons
-weight: 20
+- svg
+keywords:
+- icons
+- svg
+- phosphor
+- inline icons
+- theme-aware
 ---
-
 # Icon Reference
 
 Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a comprehensive open-source icon library with 6,000+ icons. All icons adapt to light/dark mode using `currentColor`.
@@ -146,38 +152,20 @@ All icons at 32px for easy viewing:
 
 ---
 
-## All Icons Preview
-
-Here's a complete gallery of all available icons:
-
-### Navigation Icons
-{icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`link:32` {icon}`external:32`
-
-### Status Icons
-{icon}`check:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32`
-
-### File & Content Icons
-{icon}`file:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`copy:32` {icon}`edit:32` {icon}`bookmark:32` {icon}`tag:32`
-
-### Action Icons
-{icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32`
-
-### Time & Location
-{icon}`clock:32` {icon}`calendar:32` {icon}`pin:32`
-
-### Theme & Settings
-{icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32`
-
----
-
 ## Custom Icons
 
 Place SVG files in `themes/your-theme/assets/icons/`:
 
 ```
 themes/my-theme/assets/icons/
-            ├── my-icon.svg
+├── my-icon.svg
 └── another.svg
+```
+
+Then use with the same syntax:
+
+```markdown
+{icon}`my-icon:24`
 ```
 
 ### Icon Source
@@ -199,3 +187,10 @@ Phosphor icons use:
 - Clean, minimal design optimized for UI
 
 Icons are automatically sized via the `:size:` parameter and inherit colors from the current theme.
+
+## Related
+
+- [Formatting Directives](/docs/reference/directives/formatting/) — Buttons with icons
+- [Assets](/docs/theming/assets/) — Asset pipeline for custom icons
+- [Content Authoring](/docs/content/authoring/) — Using icons in content
+

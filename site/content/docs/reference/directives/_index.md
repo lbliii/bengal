@@ -58,6 +58,7 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 | `{prev-next}` | ` :::{prev-next} ` | Prev/next links | Navigation |
 | `{related}` | ` :::{related} ` | Related pages by tags | Navigation |
 | `{glossary}` | ` :::{glossary} ` | Render terms from glossary data | Data |
+| `{icon}` | `` {icon}`name` `` | Inline SVG icon | [Icons](/docs/reference/icons/) |
 
 ## Directive Syntax
 

@@ -14,11 +14,13 @@ Context variables:
 
 Frontmatter options:
 - show_children: true/false (default: true)
-Controls whether child pages and subsections are displayed as tiles
+- children_title: "In This Section" or false (default: none)
+- show_related: true/false/number (default: false)
+- children_variant: compact/cards/minimal (default: compact)
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
-{% from 'partials/content-components.html' import child_page_tiles %}
+{% from 'partials/content-components.html' import content_tiles %}
 
 {% block content %}
 {{ breadcrumbs(page if page is defined else section) }}
@@ -44,7 +46,22 @@ Controls whether child pages and subsections are displayed as tiles
     {# Child content display - can be disabled via frontmatter: show_children: false #}
     {% set show_children = page.metadata.get('show_children', true) if (page is defined and page) else true %}
     {% if show_children %}
-    {{ child_page_tiles(posts=posts, subsections=subsections) }}
+    {# Get frontmatter options #}
+    {% set children_title = page.metadata.get('children_title', none) if (page is defined and page) else none %}
+    {% set show_related = page.metadata.get('show_related', false) if (page is defined and page) else false %}
+    {% set related_limit = show_related if show_related is number else 5 %}
+    {% set children_variant = page.metadata.get('children_variant', 'compact') if (page is defined and page) else
+    'compact' %}
+
+    {{ content_tiles(
+    title=children_title,
+    children=posts,
+    subsections=subsections,
+    related=show_related,
+    related_limit=related_limit,
+    variant=children_variant,
+    group_by='type' if show_related else none
+    ) }}
     {% endif %}
 
     {# Empty state if no children to display #}
@@ -60,9 +77,11 @@ Controls whether child pages and subsections are displayed as tiles
                     <li>Create a page: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-page.md</code>
                     </li>
                     <li>Add a custom index:
-                        <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code></li>
+                        <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code>
+                    </li>
                     <li>Create a subsection:
-                        <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code></li>
+                        <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code>
+                    </li>
                 </ul>
             </div>
             {% endif %}

@@ -86,3 +86,13 @@ fingerprint = true   # main.css → main.a1b2c3.css
 :::{tip}
 **Fingerprinting** adds a hash to filenames (`main.a1b2c3.css`) for cache-busting. Enable it in production for optimal caching.
 :::
+
+## Icons
+
+Bengal includes a comprehensive [Icon Reference](/docs/reference/icons/) powered by Phosphor Icons. Use inline icons in content with `{icon}`name`` syntax:
+
+```markdown
+{icon}`check:24:icon-success` Task complete!
+```
+
+For custom icons, place SVG files in `themes/your-theme/assets/icons/`. See the [Icon Reference](/docs/reference/icons/) for the full gallery and customization options.

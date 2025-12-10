@@ -387,5 +387,6 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 
 ## Related
 
+- [Icon Reference](/docs/reference/icons/) - SVG icons for content and templates
 - [Layout Directives](/docs/reference/directives/layout/) - Cards, tabs, dropdowns
 - [Admonitions](/docs/reference/directives/admonitions/) - Callout boxes

@@ -19,7 +19,7 @@ Features:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list, child_page_tiles with context %}
+{% from 'partials/content-components.html' import tag_list, content_tiles with context %}
 
 {% block content %}
 {# Ensure page is set - use section.index_page if page not defined #}
@@ -50,13 +50,23 @@ Features:
         {{ content | safe }}
       </div>
 
-      {# Child page tiles - can be disabled via frontmatter: show_children: false or feature flag #}
+      {# Content tiles - can be disabled via frontmatter: show_children: false or feature flag #}
       {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
       {% set show_children_feature = 'content.children' in site.theme_config.features %}
       {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
       {% if show_children and (posts or subsections) %}
       <div class="docs-children">
-        {{ child_page_tiles(posts=posts, subsections=subsections) }}
+        {% set children_title = page.metadata.get('children_title', none) if page else none %}
+        {% set show_related = page.metadata.get('show_related', false) if page else false %}
+        {% set children_variant = page.metadata.get('children_variant', 'compact') if page else 'compact' %}
+        {{ content_tiles(
+          title=children_title,
+          children=posts,
+          subsections=subsections,
+          related=show_related,
+          variant=children_variant,
+          group_by='type' if show_related else none
+        ) }}
       </div>
       {% endif %}
 

@@ -5,7 +5,7 @@ Documentation List Template
 
 Three-column layout optimized for documentation section index pages:
 - Left sidebar: Navigation tree
-- Center: Content + Child page tiles
+- Center: Content + Content tiles (children + related)
 - Right sidebar: Contextual Graph + TOC + metadata
 
 Usage: Set `template: doc/list.html` in frontmatter
@@ -14,10 +14,13 @@ Or set `type: doc` to auto-select this template
 Features:
 - Automatically displays child pages and subsections as tiles
 - Disable with `show_children: false` in frontmatter
+- Add header with `children_title: "In This Section"` (or false to hide)
+- Show related pages with `show_related: true` (or number for limit)
+- Change variant with `children_variant: "cards"` (compact | cards | minimal)
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list, child_page_tiles with context %}
+{% from 'partials/content-components.html' import tag_list, content_tiles with context %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -42,13 +45,34 @@ Features:
         {{ content | safe }}
       </div>
 
-      {# Child page tiles - can be disabled via frontmatter: show_children: false or feature flag #}
+      {# Content tiles - children and optionally related pages #}
+      {# Frontmatter options:
+         - show_children: true/false (default: feature flag or true)
+         - children_title: "In This Section" or false (default: none)
+         - show_related: true/false/number (default: false)
+         - children_variant: compact/cards/minimal (default: compact)
+      #}
       {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
       {% set show_children_feature = 'content.children' in site.theme_config.features %}
       {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
-      {% if show_children and (posts or subsections) %}
+      
+      {% if show_children and (posts or subsections or page.metadata.get('show_related')) %}
       <div class="docs-children">
-        {{ child_page_tiles(posts=posts, subsections=subsections) }}
+        {# Get frontmatter options #}
+        {% set children_title = page.metadata.get('children_title', none) if page else none %}
+        {% set show_related = page.metadata.get('show_related', false) if page else false %}
+        {% set related_limit = show_related if show_related is number else 5 %}
+        {% set children_variant = page.metadata.get('children_variant', 'compact') if page else 'compact' %}
+        
+        {{ content_tiles(
+          title=children_title,
+          children=posts,
+          subsections=subsections,
+          related=show_related,
+          related_limit=related_limit,
+          variant=children_variant,
+          group_by='type' if show_related else none
+        ) }}
       </div>
       {% endif %}
 
