@@ -14,6 +14,8 @@ from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
 from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.utils.build_context import BuildContext
@@ -366,6 +368,8 @@ def phase_incremental_filter(
     incremental: bool,
     verbose: bool,
     build_start: float,
+    changed_sources: set[Path] | None = None,
+    nav_changed_sources: set[Path] | None = None,
 ) -> FilterResult | None:
     """
     Phase 5: Incremental Filtering.
@@ -400,7 +404,11 @@ def phase_incremental_filter(
         if incremental:
             # Find what changed BEFORE generating taxonomies/menus
             pages_to_build, assets_to_process, change_summary_obj = (
-                orchestrator.incremental.find_work_early(verbose=verbose)
+                orchestrator.incremental.find_work_early(
+                    verbose=verbose,
+                    forced_changed_sources=changed_sources,
+                    nav_changed_sources=nav_changed_sources,
+                )
             )
             # Convert ChangeSummary to dict for backward compatibility with existing code
             change_summary = change_summary_obj.to_dict()

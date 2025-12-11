@@ -23,7 +23,6 @@ See Also:
 
 from __future__ import annotations
 
-import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -202,6 +201,8 @@ class Site(
         strict: bool = False,
         full_output: bool = False,
         profile_templates: bool = False,
+        changed_sources: set[Path] | None = None,
+        nav_changed_sources: set[Path] | None = None,
     ) -> BuildStats:
         """
         Build the entire site.
@@ -235,6 +236,8 @@ class Site(
             strict=strict,
             full_output=full_output,
             profile_templates=profile_templates,
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
         )
         # Ensure we return BuildStats (orchestrator.build returns Any)
         # BuildStats is already imported at top of file

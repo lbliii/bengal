@@ -10,7 +10,7 @@ tags:
 
 # Limitations
 
-## No Server-Side Rendering
+## No Server-Side Rendering afada
 
 Bengal generates static HTML at build time. There's no runtime server.
 

@@ -2,6 +2,7 @@
 Tests for IncrementalOrchestrator including phase ordering optimizations.
 """
 
+import json
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -10,6 +11,7 @@ import pytest
 from bengal.cache import BuildCache
 from bengal.core.page import Page
 from bengal.orchestration.incremental import IncrementalOrchestrator
+from bengal.utils.hashing import hash_str
 
 
 @pytest.fixture
@@ -118,6 +120,140 @@ class TestIncrementalOrchestrator:
 
         assert result is True
         orchestrator.cache.validate_config.assert_called_once_with("test_hash_12345")
+
+    def test_nav_frontmatter_same_metadata_skips_section_rebuild(self, tmp_path):
+        """Nav file with unchanged metadata should not trigger section-wide rebuild."""
+        # Files
+        nav_path = tmp_path / "content" / "_index.md"
+        child_path = tmp_path / "content" / "child.md"
+        nav_path.parent.mkdir(parents=True, exist_ok=True)
+        nav_path.write_text("Content", encoding="utf-8")
+        child_path.write_text("Child", encoding="utf-8")
+
+        # Pages
+        metadata = {"title": "Section", "weight": 1}
+        nav_page = Page(source_path=nav_path, content="Content", metadata=metadata)
+        child_page = Page(source_path=child_path, content="Child", metadata={"title": "Child"})
+
+        # Section mock
+        section = Mock()
+        section.pages = [nav_page, child_page]
+        section.regular_pages_recursive = [nav_page, child_page]
+        section.path = Path("/section")
+        nav_page._section = section  # type: ignore[attr-defined]
+        child_page._section = section  # type: ignore[attr-defined]
+
+        # Site
+        site = Mock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.config = Mock()
+        site.pages = [nav_page, child_page]
+        site.assets = []
+        site.sections = [section]
+
+        # Cache with matching metadata hash
+        cache = BuildCache()
+        cache.parsed_content[str(nav_path)] = {
+            "metadata_hash": hash_str(json.dumps(metadata, sort_keys=True, default=str))
+        }
+        # Make is_changed return False for all
+        cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
+
+        orchestrator = IncrementalOrchestrator(site)
+        orchestrator.cache = cache
+        orchestrator.tracker = Mock()
+
+        pages, assets, _summary = orchestrator.find_work_early(
+            verbose=True, forced_changed_sources=set(), nav_changed_sources={nav_path}
+        )
+
+        assert {p.source_path for p in pages} == {nav_path}
+        assert assets == []
+
+    def test_nav_frontmatter_changed_triggers_section_rebuild(self, tmp_path):
+        """Nav file with changed metadata should rebuild its section pages."""
+        nav_path = tmp_path / "content" / "_index.md"
+        child_path = tmp_path / "content" / "child.md"
+        nav_path.parent.mkdir(parents=True, exist_ok=True)
+        nav_path.write_text("Content", encoding="utf-8")
+        child_path.write_text("Child", encoding="utf-8")
+
+        nav_page = Page(
+            source_path=nav_path, content="Content", metadata={"title": "Section", "weight": 1}
+        )
+        child_page = Page(source_path=child_path, content="Child", metadata={"title": "Child"})
+
+        section = Mock()
+        section.pages = [nav_page, child_page]
+        section.regular_pages_recursive = [nav_page, child_page]
+        section.path = Path("/section")
+        nav_page._section = section  # type: ignore[attr-defined]
+        child_page._section = section  # type: ignore[attr-defined]
+
+        site = Mock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.config = Mock()
+        site.pages = [nav_page, child_page]
+        site.assets = []
+        site.sections = [section]
+
+        cache = BuildCache()
+        # Store a different metadata hash to force rebuild
+        cache.parsed_content[str(nav_path)] = {"metadata_hash": "different"}
+        cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
+
+        orchestrator = IncrementalOrchestrator(site)
+        orchestrator.cache = cache
+        orchestrator.tracker = Mock()
+
+        pages, assets, _summary = orchestrator.find_work_early(
+            verbose=True, forced_changed_sources=set(), nav_changed_sources={nav_path}
+        )
+
+        assert {p.source_path for p in pages} == {nav_path, child_path}
+        assert assets == []
+
+    def test_forced_changed_bypasses_section_filter(self, tmp_path):
+        """Forced changed sources should rebuild even if section filtering would skip them."""
+        nav_path = tmp_path / "content" / "_index.md"
+        child_path = tmp_path / "content" / "child.md"
+        nav_path.parent.mkdir(parents=True, exist_ok=True)
+        nav_path.write_text("Content", encoding="utf-8")
+        child_path.write_text("Child", encoding="utf-8")
+
+        nav_page = Page(source_path=nav_path, content="Content", metadata={"title": "Section"})
+        child_page = Page(source_path=child_path, content="Child", metadata={"title": "Child"})
+
+        section = Mock()
+        section.pages = [nav_page, child_page]
+        section.regular_pages_recursive = [nav_page, child_page]
+        section.path = Path("/section")
+        nav_page._section = section  # type: ignore[attr-defined]
+        child_page._section = section  # type: ignore[attr-defined]
+
+        site = Mock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.config = Mock()
+        site.pages = [nav_page, child_page]
+        site.assets = []
+        site.sections = [section]
+
+        cache = BuildCache()
+        cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
+
+        orchestrator = IncrementalOrchestrator(site)
+        orchestrator.cache = cache
+        orchestrator.tracker = Mock()
+
+        pages, assets, _summary = orchestrator.find_work_early(
+            verbose=True, forced_changed_sources={child_path}, nav_changed_sources=set()
+        )
+
+        assert {p.source_path for p in pages} == {child_path}
+        assert assets == []
 
     def test_find_work_early_without_cache(self, orchestrator):
         """Test find_work_early raises error without cache."""

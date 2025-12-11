@@ -6,12 +6,14 @@ Watches for file changes and triggers incremental rebuilds with debouncing.
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
 from bengal.server.reload_controller import ReloadDecision, controller
@@ -289,28 +291,76 @@ class BuildHandler(FileSystemEventHandler):
                     reason="autodoc_source_changed",
                 )
 
-            # Content files (.md) - force full rebuild to guarantee fresh output.
-            # Incremental detection can miss subtle frontmatter/nav changes; dev
-            # correctness beats perf here.
+            nav_frontmatter_keys = {
+                "title",
+                "slug",
+                "permalink",
+                "aliases",
+                "hidden",
+                "draft",
+                "visibility",
+                "menu",
+                "weight",
+                "cascade",
+                "redirect",
+                "lang",
+                "language",
+                "translationkey",
+                "_section",
+            }
+
+            def _frontmatter_nav_change(path_obj: Path) -> bool:
+                """Parse first YAML frontmatter block and detect nav-affecting keys."""
+                try:
+                    text = path_obj.read_text(encoding="utf-8")
+                except Exception as e:
+                    logger.debug(
+                        "frontmatter_read_failed",
+                        file=str(path_obj),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return False
+
+                match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
+                if not match:
+                    return False
+                try:
+                    fm = yaml.safe_load(match.group(1)) or {}
+                except Exception as e:
+                    logger.debug(
+                        "frontmatter_parse_failed",
+                        file=str(path_obj),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return False
+
+                if not isinstance(fm, dict):
+                    return False
+
+                return any(str(key).lower() in nav_frontmatter_keys for key in fm)
+
+            nav_changed_files: set[Path] = set()
+            content_changed_files: set[Path] = set()
+
             if not needs_full_rebuild:
-                content_extensions = {".md", ".markdown"}
                 svg_extensions = {".svg"}
                 for changed_path in changed_files:
                     path_obj = Path(changed_path)
                     suffix = path_obj.suffix.lower()
 
-                    if suffix in content_extensions:
-                        needs_full_rebuild = True
-                        logger.debug(
-                            "full_rebuild_triggered_by_content",
-                            reason="content_file_changed",
-                            file=changed_path,
-                        )
-                        break
+                    if suffix in {".md", ".markdown"}:
+                        content_changed_files.add(path_obj)
+                        if _frontmatter_nav_change(path_obj):
+                            nav_changed_files.add(path_obj)
+                            logger.debug(
+                                "nav_frontmatter_detected",
+                                file=changed_path,
+                            )
 
                     # SVG files in theme assets/icons/ are inlined in HTML, so pages need re-rendering
                     if suffix in svg_extensions:
-                        # Check if it's in a theme icons directory
                         path_str = str(path_obj).replace("\\", "/")
                         if "/themes/" in path_str and "/assets/icons/" in path_str:
                             needs_full_rebuild = True
@@ -320,6 +370,13 @@ class BuildHandler(FileSystemEventHandler):
                                 file=changed_path,
                             )
                             break
+
+                if not needs_full_rebuild:
+                    logger.debug(
+                        "incremental_allowed_for_content",
+                        changed_content=len(content_changed_files),
+                        nav_frontmatter=len(nav_changed_files),
+                    )
 
             logger.info(
                 "rebuild_triggered",
@@ -377,6 +434,8 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=True,
                     incremental=use_incremental,
                     profile=BuildProfile.WRITER,
+                    changed_sources={Path(p) for p in changed_files},
+                    nav_changed_sources=nav_changed_files,
                 )
                 build_duration = time.time() - build_start
 
@@ -458,6 +517,12 @@ class BuildHandler(FileSystemEventHandler):
                         # Public API: send structured payload to clients
                         from bengal.server.live_reload import send_reload_payload
 
+                        logger.info(
+                            "reload_decision",
+                            action=decision.action,
+                            reason=decision.reason,
+                            changed_paths=len(decision.changed_paths or []),
+                        )
                         send_reload_payload(
                             decision.action, decision.reason, decision.changed_paths
                         )

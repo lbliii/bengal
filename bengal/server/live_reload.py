@@ -39,6 +39,7 @@ logger = get_logger(__name__)
 # Global reload generation and condition to wake clients
 _reload_generation: int = 0
 _last_action: str = "reload"
+_reload_sent_count: int = 0
 _reload_condition = threading.Condition()
 
 
@@ -472,17 +473,21 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
         # Fallback to simple action string on serialization failure
         payload = action
 
+    global _reload_sent_count
     with _reload_condition:
         _last_action = payload
         _reload_generation += 1
+        _reload_sent_count += 1
         _reload_condition.notify_all()
 
     logger.info(
         "reload_notification_sent_structured",
         action=action,
         reason=reason,
-        changed=len(changed_paths),
+        changed=min(len(changed_paths), 5),
+        changed_paths=changed_paths[:5],
         generation=_reload_generation,
+        sent_count=_reload_sent_count,
     )
 
 

@@ -88,6 +88,8 @@ class BuildOrchestrator:
         strict: bool = False,
         full_output: bool = False,
         profile_templates: bool = False,
+        changed_sources: set[Path] | None = None,
+        nav_changed_sources: set[Path] | None = None,
     ) -> BuildStats:
         """
         Execute full build pipeline.
@@ -225,7 +227,11 @@ class BuildOrchestrator:
         # Phase 2: Content Discovery (with content caching for validators)
         # Pass BuildCache for autodoc dependency registration
         initialization.phase_discovery(
-            self, cli, incremental, build_context=early_ctx, build_cache=cache
+            self,
+            cli,
+            incremental,
+            build_context=early_ctx,
+            build_cache=cache,
         )
 
         # Phase 3: Cache Discovery Metadata
@@ -238,7 +244,14 @@ class BuildOrchestrator:
 
         # Phase 5: Incremental Filtering (determine what to build)
         filter_result = initialization.phase_incremental_filter(
-            self, cli, cache, incremental, verbose, build_start
+            self,
+            cli,
+            cache,
+            incremental,
+            verbose,
+            build_start,
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
         )
         if filter_result is None:
             # No changes detected - early exit
@@ -293,6 +306,7 @@ class BuildOrchestrator:
             reporter,
             profile_templates=profile_templates,
             early_context=early_ctx,
+            changed_sources=changed_sources,
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)

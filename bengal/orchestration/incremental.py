@@ -23,6 +23,8 @@ See Also:
 
 from __future__ import annotations
 
+import contextlib
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -267,7 +269,10 @@ class IncrementalOrchestrator:
         return changed_sections
 
     def find_work_early(
-        self, verbose: bool = False
+        self,
+        verbose: bool = False,
+        forced_changed_sources: set[Path] | None = None,
+        nav_changed_sources: set[Path] | None = None,
     ) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
@@ -290,6 +295,9 @@ class IncrementalOrchestrator:
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
 
+        forced_changed = {Path(p) for p in (forced_changed_sources or set())}
+        nav_changed = {Path(p) for p in (nav_changed_sources or set())}
+
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
         change_summary = ChangeSummary()
@@ -299,6 +307,17 @@ class IncrementalOrchestrator:
         changed_sections: set[Section] | None = None
         if hasattr(self.site, "sections") and self.site.sections:
             changed_sections = self._get_changed_sections(self.site.sections)
+
+            # Ensure forced/explicit changes keep their sections in scope
+            if changed_sections is not None:
+                for forced_path in forced_changed | nav_changed:
+                    forced_page = next(
+                        (p for p in self.site.pages if p.source_path == forced_path), None
+                    )
+                    sec = getattr(forced_page, "_section", None)
+                    if sec:
+                        changed_sections.add(sec)
+
             if verbose and changed_sections:
                 logger.debug(
                     "section_level_filtering",
@@ -309,12 +328,14 @@ class IncrementalOrchestrator:
         # Only check pages in changed sections (or all pages if section filtering unavailable)
         pages_to_check = self.site.pages
         if changed_sections is not None:
-            # Filter to only pages in changed sections
+            # Filter to only pages in changed sections, but always include forced/nav-changed pages
             changed_section_paths = {s.path for s in changed_sections}
+            forced_paths = forced_changed | nav_changed
             pages_to_check = [
                 p
                 for p in self.site.pages
                 if p.metadata.get("_generated")
+                or p.source_path in forced_paths
                 or (
                     hasattr(p, "_section")
                     and p._section
@@ -339,7 +360,10 @@ class IncrementalOrchestrator:
             ):
                 continue
 
-            if self.cache.is_changed(page.source_path):
+            forced_hit = page.source_path in forced_changed
+            nav_hit = page.source_path in nav_changed
+
+            if forced_hit or nav_hit or self.cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
                     change_summary.modified_content.append(page.source_path)
@@ -378,6 +402,48 @@ class IncrementalOrchestrator:
                 "cascade_dependencies_detected",
                 additional_pages=cascade_affected_count,
                 reason="section_cascade_metadata_changed",
+            )
+
+        # If nav frontmatter changed on a section index, rebuild its section pages
+        nav_section_affected = 0
+        for nav_path in nav_changed:
+            if nav_path.stem not in ("_index", "index"):
+                continue
+            nav_page = next((p for p in self.site.pages if p.source_path == nav_path), None)
+            if not nav_page:
+                continue
+
+            # If cached metadata hash matches current metadata, treat as body-only
+            try:
+                from bengal.utils.hashing import hash_str
+
+                current_hash = hash_str(
+                    json.dumps(nav_page.metadata or {}, sort_keys=True, default=str)
+                )
+                cached = (
+                    self.cache.parsed_content.get(str(nav_path))
+                    if hasattr(self.cache, "parsed_content")
+                    else None
+                )
+                cached_hash = cached.get("metadata_hash") if isinstance(cached, dict) else None
+                if cached_hash is not None and cached_hash == current_hash:
+                    # No metadata change; skip section-wide rebuild for this nav file
+                    continue
+            except Exception:
+                # On any error, fall back to conservative rebuild
+                pass
+
+            section = getattr(nav_page, "_section", None)
+            if section:
+                before = len(pages_to_rebuild)
+                for page in section.regular_pages_recursive:
+                    if not page.metadata.get("_generated"):
+                        pages_to_rebuild.add(page.source_path)
+                nav_section_affected += len(pages_to_rebuild) - before
+        if nav_section_affected > 0 and verbose:
+            change_summary.extra_changes.setdefault("Navigation changes", [])
+            change_summary.extra_changes["Navigation changes"].append(
+                f"Nav frontmatter changed; rebuilt {nav_section_affected} section pages"
             )
 
         # Check for navigation dependencies: when a page changes, rebuild adjacent pages
@@ -429,7 +495,7 @@ class IncrementalOrchestrator:
 
         # Find changed assets
         for asset in self.site.assets:
-            if self.cache.is_changed(asset.source_path):
+            if asset.source_path in forced_changed or self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
                     change_summary.modified_assets.append(asset.source_path)
@@ -491,10 +557,8 @@ class IncrementalOrchestrator:
         # - If no dependency tracking yet, include all autodoc pages (first build)
         has_autodoc_tracking = False
         if self.cache and hasattr(self.cache, "autodoc_dependencies"):
-            try:
+            with contextlib.suppress(TypeError, AttributeError):
                 has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
-            except (TypeError, AttributeError):
-                pass
 
         pages_to_build_list = [
             page

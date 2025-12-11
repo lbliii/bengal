@@ -24,6 +24,7 @@ See Also:
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from bengal.core.page import Page
@@ -97,6 +98,7 @@ class RenderingPipeline:
         quiet: bool = False,
         build_stats: Any = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -155,6 +157,7 @@ class RenderingPipeline:
 
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)
         self.build_context = build_context
+        self.changed_sources = {Path(p) for p in (changed_sources or set())}
 
     def process_page(self, page: Page) -> None:
         """
@@ -190,6 +193,8 @@ class RenderingPipeline:
         # Try cache first (skip caches for changed files to ensure fresh content)
         # Check if file was detected as changed by incremental build
         skip_cache = False
+        if page.source_path in self.changed_sources:
+            skip_cache = True
         if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
             cache = self.dependency_tracker.cache
             if cache and cache.is_changed(page.source_path):
