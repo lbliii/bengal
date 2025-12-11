@@ -4,7 +4,7 @@ Bengal SSG - A pythonic static site generator.
 
 from __future__ import annotations
 
-__version__ = "0.1.4"
+__version__ = "0.1.5-rc1"
 __author__ = "Bengal Contributors"
 
 from bengal.core.asset import Asset
