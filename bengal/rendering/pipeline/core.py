@@ -778,6 +778,9 @@ class RenderingPipeline:
     def _normalize_config(self, config: Any) -> Any:
         """
         Wrap config to allow dotted access with safe defaults for github metadata.
+
+        Extracts github_repo and github_branch from the autodoc section of the config
+        and normalizes github_repo to a full URL if provided in owner/repo format.
         """
         base = {}
         if isinstance(config, dict):
@@ -785,8 +788,22 @@ class RenderingPipeline:
         else:
             return config
 
-        base.setdefault("github_repo", "")
-        base.setdefault("github_branch", "main")
+        # Extract github metadata from autodoc config section if not at top level
+        autodoc_config = base.get("autodoc", {})
+
+        # Get github_repo: prefer top-level, fall back to autodoc section
+        github_repo = base.get("github_repo") or autodoc_config.get("github_repo", "")
+
+        # Normalize owner/repo format to full GitHub URL
+        if github_repo and not github_repo.startswith(("http://", "https://")):
+            github_repo = f"https://github.com/{github_repo}"
+
+        base["github_repo"] = github_repo
+
+        # Get github_branch: prefer top-level, fall back to autodoc section
+        github_branch = base.get("github_branch") or autodoc_config.get("github_branch", "main")
+        base["github_branch"] = github_branch
+
         return _MetadataView(base)
 
 
