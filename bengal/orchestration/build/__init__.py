@@ -223,7 +223,10 @@ class BuildOrchestrator:
         initialization.phase_template_validation(self, cli, strict=strict)
 
         # Phase 2: Content Discovery (with content caching for validators)
-        initialization.phase_discovery(self, cli, incremental, build_context=early_ctx)
+        # Pass BuildCache for autodoc dependency registration
+        initialization.phase_discovery(
+            self, cli, incremental, build_context=early_ctx, build_cache=cache
+        )
 
         # Phase 3: Cache Discovery Metadata
         initialization.phase_cache_metadata(self)
@@ -361,9 +364,11 @@ class BuildOrchestrator:
         """Phase 1: Font Processing."""
         initialization.phase_fonts(self, cli)
 
-    def _phase_discovery(self, cli: CLIOutput, incremental: bool) -> None:
+    def _phase_discovery(
+        self, cli: CLIOutput, incremental: bool, build_cache: BuildCache | None = None
+    ) -> None:
         """Phase 2: Content Discovery."""
-        initialization.phase_discovery(self, cli, incremental)
+        initialization.phase_discovery(self, cli, incremental, build_cache=build_cache)
 
     def _phase_cache_metadata(self) -> None:
         """Phase 3: Cache Discovery Metadata."""

@@ -175,6 +175,7 @@ def phase_discovery(
     cli: CLIOutput,
     incremental: bool,
     build_context: BuildContext | None = None,
+    build_cache: BuildCache | None = None,
 ) -> None:
     """
     Phase 2: Content Discovery.
@@ -192,12 +193,15 @@ def phase_discovery(
         incremental: Whether this is an incremental build
         build_context: Optional BuildContext for caching content during discovery.
                       When provided, enables build-integrated validation optimization.
+        build_cache: Optional BuildCache for registering autodoc dependencies.
+                    When provided, enables selective autodoc rebuilds.
 
     Side effects:
         - Populates orchestrator.site.pages with discovered pages
         - Populates orchestrator.site.sections with discovered sections
         - Updates orchestrator.stats.discovery_time_ms
         - Caches file content in build_context (if provided)
+        - Registers autodoc dependencies in build_cache (if provided)
     """
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
@@ -220,10 +224,12 @@ def phase_discovery(
                 # Continue without cache - will do full discovery
 
         # Discover with optional lazy loading and content caching
+        # Pass both PageDiscoveryCache (for lazy loading) and BuildCache (for autodoc deps)
         orchestrator.content.discover(
             incremental=incremental,
             cache=page_discovery_cache,
             build_context=build_context,
+            build_cache=build_cache,
         )
 
         # Log content cache stats if enabled

@@ -187,11 +187,18 @@ class RenderingPipeline:
         template = determine_template(page)
         parser_version = self._get_parser_version()
 
-        # Try cache first
-        if self._try_rendered_cache(page, template):
+        # Try cache first (skip caches for changed files to ensure fresh content)
+        # Check if file was detected as changed by incremental build
+        skip_cache = False
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
+            cache = self.dependency_tracker.cache
+            if cache and cache.is_changed(page.source_path):
+                skip_cache = True
+
+        if not skip_cache and self._try_rendered_cache(page, template):
             return
 
-        if self._try_parsed_cache(page, template, parser_version):
+        if not skip_cache and self._try_parsed_cache(page, template, parser_version):
             return
 
         # Full pipeline execution

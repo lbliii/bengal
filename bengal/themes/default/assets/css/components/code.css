@@ -238,9 +238,9 @@ pre code {
 }
 
 /* Restore bottom border-radius on last element */
-.code-block-titled > :last-child,
-.code-block-titled > :last-child pre,
-.code-block-titled > :last-child .highlighttable {
+.code-block-titled> :last-child,
+.code-block-titled> :last-child pre,
+.code-block-titled> :last-child .highlighttable {
   border-radius: 0 0 calc(var(--radius-2xl) - 1px) calc(var(--radius-2xl) - 1px);
 }
 
@@ -264,6 +264,7 @@ pre code {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .code-block-titled,
   [data-theme="dark"] .code-block-titled {
     animation: none;
@@ -777,7 +778,7 @@ pre code {
 }
 
 /* Pygments wraps pre in a div - ensure it fills the cell */
-.highlight td.code > div {
+.highlight td.code>div {
   width: 100%;
 }
 
@@ -828,7 +829,7 @@ div.highlight {
 /* Clip negative margins on .hll to prevent page overflow.
    Applied to the code cell, not div.highlight, so copy button isn't clipped.
    Use overflow-y: hidden to allow horizontal scrolling of long lines. */
-div.highlight > pre {
+div.highlight>pre {
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -842,11 +843,9 @@ div.highlight > pre {
    allowing display:block without double line spacing. */
 .highlight .hll {
   display: block;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 3px,
-    color-mix(in srgb, var(--color-primary) 12%, transparent) 3px
-  );
+  background: linear-gradient(90deg,
+      var(--color-primary) 3px,
+      color-mix(in srgb, var(--color-primary) 12%, transparent) 3px);
   /* Extend highlight beyond code cell padding */
   margin-left: calc(-1 * var(--space-4));
   margin-right: calc(-1 * var(--space-6));
@@ -864,11 +863,9 @@ div.highlight > pre {
 
 /* Dark mode: more visible highlight */
 [data-theme="dark"] .highlight .hll {
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 3px,
-    color-mix(in srgb, var(--color-primary) 18%, transparent) 3px
-  );
+  background: linear-gradient(90deg,
+      var(--color-primary) 3px,
+      color-mix(in srgb, var(--color-primary) 18%, transparent) 3px);
 }
 
 /* Legacy Pygments linenos support */

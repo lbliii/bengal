@@ -43,6 +43,7 @@ class ContentOrchestrator:
         incremental: bool = False,
         cache: Any | None = None,
         build_context: BuildContext | None = None,
+        build_cache: Any | None = None,
     ) -> None:
         """
         Discover all content and assets.
@@ -55,8 +56,15 @@ class ContentOrchestrator:
             build_context: Optional BuildContext for caching content during discovery.
                           When provided, raw file content is cached for later use by
                           validators, eliminating redundant disk I/O during health checks.
+            build_cache: Optional BuildCache for registering autodoc dependencies.
+                        When provided, enables selective autodoc rebuilds.
         """
-        self.discover_content(incremental=incremental, cache=cache, build_context=build_context)
+        self.discover_content(
+            incremental=incremental,
+            cache=cache,
+            build_context=build_context,
+            build_cache=build_cache,
+        )
         self.discover_assets()
 
     def discover_content(
@@ -65,6 +73,7 @@ class ContentOrchestrator:
         incremental: bool = False,
         cache: Any | None = None,
         build_context: BuildContext | None = None,
+        build_cache: Any | None = None,
     ) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -80,6 +89,8 @@ class ContentOrchestrator:
             build_context: Optional BuildContext for caching content during discovery.
                           When provided, raw file content is cached for later use by
                           validators, eliminating redundant disk I/O during health checks.
+            build_cache: Optional BuildCache for registering autodoc dependencies.
+                        When provided, enables selective autodoc rebuilds.
         """
         if content_dir is None:
             content_dir = self.site.root_path / "content"
@@ -139,7 +150,8 @@ class ContentOrchestrator:
         # Note: Autodoc pages are NOT rendered during discovery. HTML rendering is
         # deferred to the rendering phase (after menus are built) to ensure full
         # template context (including navigation) is available.
-        autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=cache)
+        # Pass build_cache (not page discovery cache) for autodoc dependency registration
+        autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=build_cache)
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
             self.site.sections.extend(autodoc_sections)

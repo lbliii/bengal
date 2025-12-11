@@ -289,10 +289,9 @@ class BuildHandler(FileSystemEventHandler):
                     reason="autodoc_source_changed",
                 )
 
-            # Content files (.md) always trigger full rebuild for navigation consistency
-            # Frontmatter changes (hidden, visibility, menu, draft) affect site-wide navigation
-            # and listings, which are rendered into every page's HTML
-            # SVG files in theme assets/icons/ also need full rebuild because they're inlined in HTML
+            # Content files (.md) - force full rebuild to guarantee fresh output.
+            # Incremental detection can miss subtle frontmatter/nav changes; dev
+            # correctness beats perf here.
             if not needs_full_rebuild:
                 content_extensions = {".md", ".markdown"}
                 svg_extensions = {".svg"}
