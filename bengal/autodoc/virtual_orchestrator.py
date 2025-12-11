@@ -29,6 +29,24 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _format_source_file_for_display(source_file: Path | str | None, root_path: Path) -> str | None:
+    """
+    Normalize source_file paths for GitHub links.
+
+    - Prefer paths relative to the project root
+    - Otherwise return the POSIX-ified absolute path
+    """
+    if not source_file:
+        return None
+
+    source_path = Path(source_file)
+
+    try:
+        return source_path.relative_to(root_path).as_posix()
+    except ValueError:
+        return source_path.as_posix()
+
+
 @dataclass
 class AutodocRunResult:
     """
@@ -780,6 +798,11 @@ class VirtualAutodocOrchestrator:
         page_data: list[Page] = []
 
         for element in elements:
+            display_source_file = _format_source_file_for_display(
+                element.source_file, self.site.root_path
+            )
+            element.display_source_file = display_source_file
+            source_file_for_tracking = element.source_file
             # Determine which elements get pages based on type
             if (
                 doc_type == "python"
@@ -813,7 +836,7 @@ class VirtualAutodocOrchestrator:
                     "qualified_name": element.qualified_name,
                     "element_type": element.element_type,
                     "description": element.description or f"Documentation for {element.name}",
-                    "source_file": str(element.source_file) if element.source_file else None,
+                    "source_file": display_source_file,
                     "line_number": getattr(element, "line_number", None),
                     "is_autodoc": True,
                     "autodoc_element": element,
@@ -860,8 +883,8 @@ class VirtualAutodocOrchestrator:
                 parent_section.add_page(page)
 
             # Track source file → autodoc page dependency for incremental builds
-            if element.source_file:
-                result.add_dependency(str(element.source_file), source_id)
+            if source_file_for_tracking:
+                result.add_dependency(str(source_file_for_tracking), source_id)
 
             # Store page for return (no HTML rendering yet - deferred to rendering phase)
             page_data.append(page)
@@ -936,6 +959,11 @@ class VirtualAutodocOrchestrator:
         # Determine URL path and template based on element type
         template_name, url_path, page_type = self._get_element_metadata(element, doc_type)
 
+        display_source_file = _format_source_file_for_display(
+            element.source_file, self.site.root_path
+        )
+        element.display_source_file = display_source_file
+
         # Build source ID (synthetic path)
         source_id = f"{doc_type}/{url_path}.md"
 
@@ -953,7 +981,7 @@ class VirtualAutodocOrchestrator:
                 "qualified_name": element.qualified_name,
                 "element_type": element.element_type,
                 "description": element.description or f"Documentation for {element.name}",
-                "source_file": str(element.source_file) if element.source_file else None,
+                "source_file": display_source_file,
                 "line_number": getattr(element, "line_number", None),
                 "is_autodoc": True,
                 "autodoc_element": element,
@@ -1033,6 +1061,12 @@ class VirtualAutodocOrchestrator:
         else:
             element_tags = element.metadata.get("tags", []) if element.metadata else []
 
+        display_source_file = getattr(
+            element,
+            "display_source_file",
+            _format_source_file_for_display(element.source_file, self.site.root_path),
+        )
+
         page_context = _PageContext(
             title=element.name,
             metadata={
@@ -1040,13 +1074,13 @@ class VirtualAutodocOrchestrator:
                 "qualified_name": element.qualified_name,
                 "element_type": element.element_type,
                 "description": element.description or f"Documentation for {element.name}",
-                "source_file": str(element.source_file) if element.source_file else None,
+                "source_file": display_source_file,
                 "line_number": getattr(element, "line_number", None),
                 "is_autodoc": True,
             },
             tags=element_tags,
             relative_url=f"/{url_path}/",
-            source_path=str(element.source_file) if element.source_file else None,
+            source_path=display_source_file,
             section=section,
         )
 

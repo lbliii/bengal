@@ -46,9 +46,9 @@ This template receives:
             <p class="api-module-header__description">{{ element.description }}</p>
             {% endif %}
 
-            {% if element.source_file %}
+            {% if element.display_source_file or element.source_file %}
             <div class="api-module-header__source">
-              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
                 class="api-source-link" target="_blank" rel="noopener">
                 View source
               </a>
@@ -86,7 +86,8 @@ This template receives:
               <tbody>
                 {% for opt in options %}
                 <tr>
-                  <td data-label="Option" class="api-table__name"><code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
+                  <td data-label="Option" class="api-table__name">
+                    <code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
                   <td data-label="Type" class="api-table__type"><code>{{ opt.metadata.type }}</code></td>
                   <td data-label="Default" class="api-table__default">
                     {%- if opt.metadata.default -%}
@@ -122,7 +123,8 @@ This template receives:
                 <tr>
                   <td data-label="Argument" class="api-table__name"><code>{{ arg.name }}</code></td>
                   <td data-label="Type" class="api-table__type"><code>{{ arg.metadata.type }}</code></td>
-                  <td data-label="Required" class="api-table__default">{% if arg.metadata.required %}Yes{% else %}No{% endif %}</td>
+                  <td data-label="Required" class="api-table__default">{% if arg.metadata.required %}Yes{% else %}No{%
+                    endif %}</td>
                   <td data-label="Description" class="api-table__desc">{{ arg.description | default('—') }}</td>
                 </tr>
                 {% endfor %}
