@@ -360,10 +360,10 @@ class IncrementalOrchestrator:
             ):
                 continue
 
-            forced_hit = page.source_path in forced_changed
-            nav_hit = page.source_path in nav_changed
-
-            if forced_hit or nav_hit or self.cache.is_changed(page.source_path):
+            # Use centralized cache bypass helper (RFC: rfc-incremental-hot-reload-invariants)
+            # Combines changed_sources check with is_changed hash check
+            all_changed = forced_changed | nav_changed
+            if self.cache.should_bypass(page.source_path, all_changed):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
                     change_summary.modified_content.append(page.source_path)
@@ -404,42 +404,83 @@ class IncrementalOrchestrator:
                 reason="section_cascade_metadata_changed",
             )
 
-        # If nav frontmatter changed on a section index, rebuild its section pages
+        # Check ALL section index files for nav-affecting frontmatter changes
+        # (RFC: rfc-incremental-hot-reload-invariants Phase 3)
+        # Only trigger section rebuild if nav-affecting keys actually changed, not body-only
         nav_section_affected = 0
-        for nav_path in nav_changed:
-            if nav_path.stem not in ("_index", "index"):
-                continue
-            nav_page = next((p for p in self.site.pages if p.source_path == nav_path), None)
-            if not nav_page:
+        all_changed = forced_changed | nav_changed
+        for changed_path in all_changed:
+            # Only check section index files
+            if changed_path.stem not in ("_index", "index"):
                 continue
 
-            # If cached metadata hash matches current metadata, treat as body-only
+            section_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            if not section_page:
+                continue
+
+            # Compare only nav-affecting keys between current and cached metadata
             try:
                 from bengal.utils.hashing import hash_str
+                from bengal.utils.incremental_constants import extract_nav_metadata
 
-                current_hash = hash_str(
-                    json.dumps(nav_page.metadata or {}, sort_keys=True, default=str)
+                # Hash only the nav-affecting subset of metadata
+                current_nav_meta = extract_nav_metadata(section_page.metadata or {})
+                current_nav_hash = hash_str(
+                    json.dumps(current_nav_meta, sort_keys=True, default=str)
                 )
+
+                # Get cached nav metadata hash (stored as nav_metadata_hash)
                 cached = (
-                    self.cache.parsed_content.get(str(nav_path))
+                    self.cache.parsed_content.get(str(changed_path))
                     if hasattr(self.cache, "parsed_content")
                     else None
                 )
-                cached_hash = cached.get("metadata_hash") if isinstance(cached, dict) else None
-                if cached_hash is not None and cached_hash == current_hash:
-                    # No metadata change; skip section-wide rebuild for this nav file
-                    continue
-            except Exception:
-                # On any error, fall back to conservative rebuild
-                pass
 
-            section = getattr(nav_page, "_section", None)
+                # Fall back to full metadata hash if nav hash not cached yet
+                cached_nav_hash = None
+                if isinstance(cached, dict):
+                    cached_nav_hash = cached.get("nav_metadata_hash")
+                    if cached_nav_hash is None:
+                        # Legacy cache entry - compare full metadata hash as fallback
+                        cached_full_hash = cached.get("metadata_hash")
+                        current_full_hash = hash_str(
+                            json.dumps(section_page.metadata or {}, sort_keys=True, default=str)
+                        )
+                        if cached_full_hash is not None and cached_full_hash == current_full_hash:
+                            # No metadata change at all; skip section rebuild
+                            continue
+                        # Full metadata changed - fall through to section rebuild
+                    elif cached_nav_hash == current_nav_hash:
+                        # Nav-affecting keys unchanged; body-only change, skip section rebuild
+                        logger.debug(
+                            "section_index_body_only_change",
+                            path=str(changed_path),
+                            reason="nav_metadata_unchanged",
+                        )
+                        continue
+            except Exception as e:
+                # On any error, fall back to conservative section rebuild
+                logger.debug(
+                    "nav_metadata_compare_failed",
+                    path=str(changed_path),
+                    error=str(e),
+                )
+
+            # Nav-affecting keys changed - trigger section rebuild
+            section = getattr(section_page, "_section", None)
             if section:
                 before = len(pages_to_rebuild)
                 for page in section.regular_pages_recursive:
                     if not page.metadata.get("_generated"):
                         pages_to_rebuild.add(page.source_path)
                 nav_section_affected += len(pages_to_rebuild) - before
+                logger.debug(
+                    "section_rebuild_triggered",
+                    section=section.name,
+                    index_path=str(changed_path),
+                    pages_affected=len(pages_to_rebuild) - before,
+                )
+
         if nav_section_affected > 0 and verbose:
             change_summary.extra_changes.setdefault("Navigation changes", [])
             change_summary.extra_changes["Navigation changes"].append(
@@ -493,9 +534,9 @@ class IncrementalOrchestrator:
                 reason="adjacent_pages_have_nav_links_to_modified_pages",
             )
 
-        # Find changed assets
+        # Find changed assets using centralized cache bypass helper
         for asset in self.site.assets:
-            if asset.source_path in forced_changed or self.cache.is_changed(asset.source_path):
+            if self.cache.should_bypass(asset.source_path, forced_changed):
                 assets_to_process.append(asset)
                 if verbose:
                     change_summary.modified_assets.append(asset.source_path)

@@ -291,23 +291,10 @@ class BuildHandler(FileSystemEventHandler):
                     reason="autodoc_source_changed",
                 )
 
-            nav_frontmatter_keys = {
-                "title",
-                "slug",
-                "permalink",
-                "aliases",
-                "hidden",
-                "draft",
-                "visibility",
-                "menu",
-                "weight",
-                "cascade",
-                "redirect",
-                "lang",
-                "language",
-                "translationkey",
-                "_section",
-            }
+            # Use shared constant for nav-affecting keys (RFC: rfc-incremental-hot-reload-invariants)
+            from bengal.utils.incremental_constants import NAV_AFFECTING_KEYS
+
+            nav_frontmatter_keys = NAV_AFFECTING_KEYS
 
             def _frontmatter_nav_change(path_obj: Path) -> bool:
                 """Parse first YAML frontmatter block and detect nav-affecting keys."""
@@ -378,6 +365,9 @@ class BuildHandler(FileSystemEventHandler):
                         nav_frontmatter=len(nav_changed_files),
                     )
 
+            # Structural changes (create/delete/move) require full content discovery
+            structural_changed = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
             logger.info(
                 "rebuild_triggered",
                 changed_file_count=file_count,
@@ -385,6 +375,7 @@ class BuildHandler(FileSystemEventHandler):
                 trigger_file=str(changed_files[0]) if changed_files else None,
                 event_types=list(self.pending_event_types),
                 build_strategy="full" if needs_full_rebuild else "incremental",
+                structural_changed=structural_changed,
             )
 
             self.pending_changes.clear()
@@ -436,6 +427,7 @@ class BuildHandler(FileSystemEventHandler):
                     profile=BuildProfile.WRITER,
                     changed_sources={Path(p) for p in changed_files},
                     nav_changed_sources=nav_changed_files,
+                    structural_changed=structural_changed,
                 )
                 build_duration = time.time() - build_start
 
@@ -451,6 +443,8 @@ class BuildHandler(FileSystemEventHandler):
                     pages_built=stats.total_pages,
                     incremental=stats.incremental,
                     parallel=stats.parallel,
+                    cache_bypass_hits=getattr(stats, "cache_bypass_hits", 0),
+                    cache_bypass_misses=getattr(stats, "cache_bypass_misses", 0),
                 )
 
                 # Reload decision (prefer source-gated, then builder hints, then output diff)

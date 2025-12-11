@@ -68,6 +68,9 @@ class ParsedContentCacheMixin:
         - Also caches the true AST for parse-once, use-many patterns
         - AST enables faster TOC/link extraction and plain text generation
 
+        RFC: rfc-incremental-hot-reload-invariants Phase 3:
+        - Also caches nav_metadata_hash for fine-grained section index change detection
+
         Args:
             file_path: Path to source file
             html: Rendered HTML (post-markdown, pre-template)
@@ -78,9 +81,16 @@ class ParsedContentCacheMixin:
             parser_version: Parser version string (e.g., "mistune-3.0-toc2")
             ast: True AST tokens from parser (optional, for Phase 3)
         """
-        # Hash metadata to detect changes
+        from bengal.utils.incremental_constants import extract_nav_metadata
+
+        # Hash full metadata to detect any changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
         metadata_hash = hash_str(metadata_str)
+
+        # Hash only nav-affecting metadata for fine-grained section index change detection
+        nav_metadata = extract_nav_metadata(metadata)
+        nav_metadata_str = json.dumps(nav_metadata, sort_keys=True, default=str)
+        nav_metadata_hash = hash_str(nav_metadata_str)
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
@@ -96,6 +106,7 @@ class ParsedContentCacheMixin:
             "toc_items": toc_items,
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
+            "nav_metadata_hash": nav_metadata_hash,  # RFC: incremental-hot-reload-invariants
             "template": template,
             "parser_version": parser_version,
             "timestamp": datetime.now().isoformat(),

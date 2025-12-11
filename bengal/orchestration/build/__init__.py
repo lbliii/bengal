@@ -90,6 +90,7 @@ class BuildOrchestrator:
         profile_templates: bool = False,
         changed_sources: set[Path] | None = None,
         nav_changed_sources: set[Path] | None = None,
+        structural_changed: bool = False,
     ) -> BuildStats:
         """
         Execute full build pipeline.
@@ -104,6 +105,8 @@ class BuildOrchestrator:
             strict: Whether to fail build on validation errors
             full_output: Show full traditional output instead of live progress
             profile_templates: Enable template profiling for performance analysis
+            structural_changed: Whether structural changes occurred (file create/delete/move).
+                               Forces full content discovery when True, even in incremental mode.
 
         Returns:
             BuildStats object with build statistics

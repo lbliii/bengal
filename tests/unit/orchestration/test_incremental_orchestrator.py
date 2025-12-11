@@ -130,34 +130,57 @@ class TestIncrementalOrchestrator:
         nav_path.write_text("Content", encoding="utf-8")
         child_path.write_text("Child", encoding="utf-8")
 
-        # Pages
-        metadata = {"title": "Section", "weight": 1}
-        nav_page = Page(source_path=nav_path, content="Content", metadata=metadata)
-        child_page = Page(source_path=child_path, content="Child", metadata={"title": "Child"})
-
-        # Section mock
+        # Create section mock FIRST
         section = Mock()
-        section.pages = [nav_page, child_page]
-        section.regular_pages_recursive = [nav_page, child_page]
-        section.path = Path("/section")
-        nav_page._section = section  # type: ignore[attr-defined]
-        child_page._section = section  # type: ignore[attr-defined]
+        section.name = "test_section"
+        section.path = tmp_path / "content"
 
-        # Site
+        # Create site mock with get_section_by_path that returns section
         site = Mock()
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
         site.config = Mock()
-        site.pages = [nav_page, child_page]
-        site.assets = []
+        site.theme = None  # No theme to check
+        site.get_section_by_path = Mock(return_value=section)
         site.sections = [section]
 
-        # Cache with matching metadata hash
+        # Pages with _site reference (needed for _section property lookup)
+        metadata = {"title": "Section", "weight": 1}
+        nav_page = Page(
+            source_path=nav_path,
+            content="Content",
+            metadata=metadata,
+            _site=site,
+            _section_path=section.path,
+        )
+        child_page = Page(
+            source_path=child_path,
+            content="Child",
+            metadata={"title": "Child"},
+            _site=site,
+            _section_path=section.path,
+        )
+
+        # Setup section pages after creating pages
+        section.pages = [nav_page, child_page]
+        section.regular_pages_recursive = [nav_page, child_page]
+        # Only include nav_page in site.pages to isolate nav metadata test
+        # (prevents navigation dependency logic from adding adjacent pages)
+        site.pages = [nav_page]
+        site.assets = []
+
+        # Cache with matching nav_metadata_hash (including nav_metadata_hash for Phase 3)
         cache = BuildCache()
+        from bengal.utils.incremental_constants import extract_nav_metadata
+
+        nav_meta = extract_nav_metadata(metadata)
         cache.parsed_content[str(nav_path)] = {
-            "metadata_hash": hash_str(json.dumps(metadata, sort_keys=True, default=str))
+            "metadata_hash": hash_str(json.dumps(metadata, sort_keys=True, default=str)),
+            "nav_metadata_hash": hash_str(json.dumps(nav_meta, sort_keys=True, default=str)),
         }
-        # Make is_changed return False for all
+        # nav_path IS changed (from file watcher), but nav metadata hash matches
+        # so section rebuild should be skipped
+        cache.should_bypass = lambda p, cs=None: p == nav_path  # type: ignore[attr-defined]
         cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
 
         orchestrator = IncrementalOrchestrator(site)
@@ -168,6 +191,7 @@ class TestIncrementalOrchestrator:
             verbose=True, forced_changed_sources=set(), nav_changed_sources={nav_path}
         )
 
+        # Only nav_path should rebuild (not section pages) because nav metadata unchanged
         assert {p.source_path for p in pages} == {nav_path}
         assert assets == []
 
@@ -179,29 +203,50 @@ class TestIncrementalOrchestrator:
         nav_path.write_text("Content", encoding="utf-8")
         child_path.write_text("Child", encoding="utf-8")
 
-        nav_page = Page(
-            source_path=nav_path, content="Content", metadata={"title": "Section", "weight": 1}
-        )
-        child_page = Page(source_path=child_path, content="Child", metadata={"title": "Child"})
-
+        # Create section mock FIRST
         section = Mock()
-        section.pages = [nav_page, child_page]
-        section.regular_pages_recursive = [nav_page, child_page]
-        section.path = Path("/section")
-        nav_page._section = section  # type: ignore[attr-defined]
-        child_page._section = section  # type: ignore[attr-defined]
+        section.name = "test_section"
+        section.path = tmp_path / "content"
 
+        # Create site mock with get_section_by_path that returns section
         site = Mock()
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
         site.config = Mock()
-        site.pages = [nav_page, child_page]
-        site.assets = []
+        site.theme = None  # No theme to check
+        site.get_section_by_path = Mock(return_value=section)
         site.sections = [section]
 
+        # Create pages with _site reference (needed for _section property lookup)
+        nav_page = Page(
+            source_path=nav_path,
+            content="Content",
+            metadata={"title": "Section", "weight": 1},
+            _site=site,
+            _section_path=section.path,
+        )
+        child_page = Page(
+            source_path=child_path,
+            content="Child",
+            metadata={"title": "Child"},
+            _site=site,
+            _section_path=section.path,
+        )
+
+        # Setup section pages after creating pages
+        section.pages = [nav_page, child_page]
+        section.regular_pages_recursive = [nav_page, child_page]
+        site.pages = [nav_page, child_page]
+        site.assets = []
+
         cache = BuildCache()
-        # Store a different metadata hash to force rebuild
-        cache.parsed_content[str(nav_path)] = {"metadata_hash": "different"}
+        # Store a different nav_metadata_hash to force section rebuild
+        cache.parsed_content[str(nav_path)] = {
+            "metadata_hash": "different",
+            "nav_metadata_hash": "different",
+        }
+        # Make should_bypass return True only for nav_path (RFC: centralized cache bypass)
+        cache.should_bypass = lambda p, *_: p == nav_path  # type: ignore[attr-defined]
         cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
 
         orchestrator = IncrementalOrchestrator(site)
@@ -209,9 +254,10 @@ class TestIncrementalOrchestrator:
         orchestrator.tracker = Mock()
 
         pages, assets, _summary = orchestrator.find_work_early(
-            verbose=True, forced_changed_sources=set(), nav_changed_sources={nav_path}
+            verbose=True, forced_changed_sources={nav_path}, nav_changed_sources=set()
         )
 
+        # Both nav_path and child_path should rebuild because nav metadata changed
         assert {p.source_path for p in pages} == {nav_path, child_path}
         assert assets == []
 
@@ -242,11 +288,14 @@ class TestIncrementalOrchestrator:
         site.sections = [section]
 
         cache = BuildCache()
+        # RFC: should_bypass returns True when path is in changed_sources
+        cache.should_bypass = lambda p, cs=None: cs is not None and p in cs  # type: ignore[attr-defined]
         cache.is_changed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
 
         orchestrator = IncrementalOrchestrator(site)
         orchestrator.cache = cache
         orchestrator.tracker = Mock()
+        site.theme = None  # No theme to check
 
         pages, assets, _summary = orchestrator.find_work_early(
             verbose=True, forced_changed_sources={child_path}, nav_changed_sources=set()
@@ -266,6 +315,8 @@ class TestIncrementalOrchestrator:
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
         orchestrator.cache.is_changed.return_value = False
+        # RFC: should_bypass combines changed_sources check with is_changed
+        orchestrator.cache.should_bypass.return_value = False
 
         # Mock the _get_theme_templates_dir to return None (no templates to check)
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -284,11 +335,12 @@ class TestIncrementalOrchestrator:
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
 
-        # Simulate page1.md changed
-        def is_changed(path):
+        # Simulate page1.md changed using should_bypass (RFC: centralized cache bypass)
+        def should_bypass(path, changed_sources=None):
             return str(path).endswith("page1.md")
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False  # Legacy fallback
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -327,11 +379,12 @@ class TestIncrementalOrchestrator:
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
 
-        # Simulate style.css changed
-        def is_changed(path):
+        # Simulate style.css changed using should_bypass (RFC: centralized cache bypass)
+        def should_bypass(path, changed_sources=None):
             return str(path).endswith("style.css")
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False  # Legacy fallback
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -359,9 +412,11 @@ class TestIncrementalOrchestrator:
         template_file = Path("/fake/theme/templates/page.html")
         mock_rglob.return_value = [template_file]
 
-        # Template changed and affects page1.md
+        # No pages directly changed (using should_bypass)
+        orchestrator.cache.should_bypass.return_value = False
+
+        # Template changed (still uses is_changed for templates)
         def is_changed(path):
-            # Only template is changed, not content pages
             return str(path).endswith("page.html")
 
         orchestrator.cache.is_changed.side_effect = is_changed
@@ -385,6 +440,8 @@ class TestPhaseOrderingOptimization:
         # Setup
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
+        # RFC: should_bypass is now the centralized cache bypass check
+        orchestrator.cache.should_bypass.return_value = True
         orchestrator.cache.is_changed.return_value = True
 
         # Mock the _get_theme_templates_dir to return None
@@ -402,11 +459,12 @@ class TestPhaseOrderingOptimization:
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
 
-        # Only page1.md changed (has tags: python, testing)
-        def is_changed(path):
+        # Only page1.md changed (RFC: use should_bypass for centralized check)
+        def should_bypass(path, changed_sources=None):
             return str(path).endswith("page1.md")
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -455,14 +513,16 @@ class TestCascadeDependencyTracking:
         mock_site.pages = [index_page, child1, child2]
         mock_site.sections = [section]
 
-        # Setup cache - only _index.md changed
+        # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
+        orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
-        def is_changed(path):
+        def should_bypass(path, changed_sources=None):
             return str(path).endswith("_index.md")
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -525,14 +585,16 @@ class TestCascadeDependencyTracking:
         mock_site.pages = [parent_index, parent_page, child_index, nested_page]
         mock_site.sections = [parent_section, child_section]
 
-        # Setup cache - only child _index.md changed
+        # Setup cache - only child _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
+        orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
-        def is_changed(path):
+        def should_bypass(path, changed_sources=None):
             return "advanced/_index.md" in str(path)
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -570,14 +632,16 @@ class TestCascadeDependencyTracking:
         mock_site.pages = [root_index, page1, page2]
         mock_site.sections = []
 
-        # Setup cache - only root index changed
+        # Setup cache - only root index changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
+        orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
-        def is_changed(path):
+        def should_bypass(path, changed_sources=None):
             return "content/index.md" in str(path)
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
@@ -617,14 +681,16 @@ class TestCascadeDependencyTracking:
         mock_site.pages = [index_page, child]
         mock_site.sections = [section]
 
-        # Setup cache - only _index.md changed
+        # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
         orchestrator.tracker = Mock()
+        orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
-        def is_changed(path):
+        def should_bypass(path, changed_sources=None):
             return str(path).endswith("_index.md")
 
-        orchestrator.cache.is_changed.side_effect = is_changed
+        orchestrator.cache.should_bypass.side_effect = should_bypass
+        orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
         with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):

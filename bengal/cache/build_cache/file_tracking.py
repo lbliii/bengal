@@ -70,6 +70,31 @@ class FileTrackingMixin:
             )
             return ""
 
+    def should_bypass(self, source_path: Path, changed_sources: set[Path] | None = None) -> bool:
+        """
+        Determine if cache should be bypassed for a source file.
+
+        This is the single source of truth for cache bypass decisions
+        (RFC: rfc-incremental-hot-reload-invariants).
+
+        Cache bypass is required when:
+        1. File is in the changed_sources set (explicit change from file watcher)
+        2. File hash differs from cached hash (is_changed check)
+
+        Args:
+            source_path: Path to source file
+            changed_sources: Set of paths explicitly marked as changed (from file watcher)
+
+        Returns:
+            True if cache should be bypassed, False if cache can be used
+        """
+        # Check explicit change set first (fast path)
+        if changed_sources and source_path in changed_sources:
+            return True
+
+        # Fall back to hash-based change detection
+        return self.is_changed(source_path)
+
     def is_changed(self, file_path: Path) -> bool:
         """
         Check if a file has changed since last build.
@@ -78,6 +103,10 @@ class FileTrackingMixin:
             - Fast path: mtime + size check (single stat call, no file read)
             - Slow path: SHA256 hash only when mtime/size mismatch detected
             - Handles edge cases: touch/rsync may change mtime but not content
+
+        Note:
+            Prefer using should_bypass() which combines this check with
+            changed_sources for correct incremental build behavior.
 
         Args:
             file_path: Path to file

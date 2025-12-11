@@ -190,15 +190,20 @@ class RenderingPipeline:
         template = determine_template(page)
         parser_version = self._get_parser_version()
 
-        # Try cache first (skip caches for changed files to ensure fresh content)
-        # Check if file was detected as changed by incremental build
+        # Determine cache bypass using centralized helper (RFC: rfc-incremental-hot-reload-invariants)
+        # Single source of truth: should_bypass(source, changed_sources)
         skip_cache = False
-        if page.source_path in self.changed_sources:
-            skip_cache = True
         if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
             cache = self.dependency_tracker.cache
-            if cache and cache.is_changed(page.source_path):
-                skip_cache = True
+            if cache:
+                skip_cache = cache.should_bypass(page.source_path, self.changed_sources)
+
+        # Track cache bypass statistics
+        if self.build_stats:
+            if skip_cache:
+                self.build_stats.cache_bypass_hits += 1
+            else:
+                self.build_stats.cache_bypass_misses += 1
 
         if not skip_cache and self._try_rendered_cache(page, template):
             return
