@@ -120,7 +120,9 @@ This template receives:
           <section class="api-section api-section--quicklinks">
             <h2 class="api-section__title">Explore</h2>
             <div class="api-quicklinks">
-              {% set base_url = page.section.url if page.section else page.url %}
+              {# Use page URL as base - for overview page at /api/, links go to /api/endpoints/ etc. #}
+              {% set base_url = page.url | default('/api/') %}
+              {% set base_url = base_url if base_url.endswith('/') else base_url ~ '/' %}
               <a href="{{ base_url }}endpoints/" class="api-quicklink-card">
                 <span class="api-quicklink-card__icon">{{ icon("zap", size=24, css_class="icon-success") }}</span>
                 <span class="api-quicklink-card__label">Endpoints</span>

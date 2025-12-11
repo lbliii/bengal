@@ -29,38 +29,13 @@ This template receives:
 
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      {# Build module list once for counts + cards #}
+      {# Build module list once for cards #}
       {% set module_pages = [] %}
       {% for page in section.sorted_pages %}
-        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% set _ = module_pages.append(page) %}
-        {% endif %}
+      {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
+      {% set _ = module_pages.append(page) %}
+      {% endif %}
       {% endfor %}
-
-      {# Overview card: description + quick stats #}
-      <div class="api-section-overview">
-        {% set section_desc = section.metadata.description | default('') %}
-        {% if section_desc %}
-        <p class="api-section-overview__description">{{ section_desc | first_sentence }}</p>
-        {% else %}
-        <p class="api-section-overview__description">Browse {{ section.name }} packages and modules.</p>
-        {% endif %}
-
-        <div class="api-section-overview__stats">
-          {% if section.sorted_subsections %}
-          <span class="api-pill">
-            {{ icon("folder", size=14, css_class="icon-muted") }}
-            <span class="api-pill__label">{{ section.sorted_subsections | length }} package{{ 's' if section.sorted_subsections | length != 1 else '' }}</span>
-          </span>
-          {% endif %}
-          {% if module_pages %}
-          <span class="api-pill">
-            {{ icon("code", size=14, css_class="icon-muted") }}
-            <span class="api-pill__label">{{ module_pages | length }} module{{ 's' if module_pages | length != 1 else '' }}</span>
-          </span>
-          {% endif %}
-        </div>
-      </div>
 
       <div class="docs-content">
         {# API Explorer Section Index Content #}
@@ -84,7 +59,8 @@ This template receives:
                   {% if desc %}
                   <p class="api-package-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name | title }} package</p>
+                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name |
+                    title }} package</p>
                   {% endif %}
                 </div>
                 <div class="api-package-card__footer">
@@ -120,14 +96,16 @@ This template receives:
                   </span>
                   <span class="api-module-card__name">{{ page.title }}</span>
                   {% if page.metadata.element_type %}
-                  <span class="api-badge--mini api-badge--{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
+                  <span class="api-badge--mini api-badge--{{ page.metadata.element_type }}">{{
+                    page.metadata.element_type }}</span>
                   {% endif %}
                 </div>
                 <div class="api-module-card__body">
                   {% if desc %}
                   <p class="api-module-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-module-card__description api-module-card__description--empty">No description available</p>
+                  <p class="api-module-card__description api-module-card__description--empty">No description available
+                  </p>
                   {% endif %}
                 </div>
               </a>

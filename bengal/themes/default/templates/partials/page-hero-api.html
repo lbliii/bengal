@@ -17,15 +17,16 @@ Designed for: module.html, class pages, function pages
 {%- endmacro %}
 
 {% if page %}
-{# Compute stats from element if available #}
-{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list if element is defined else [] %}
-{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list if element is defined else [] %}
-{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list if element is defined else [] %}
+{# Compute stats from element if available - check for children attribute (DocElement has it, Section does not) #}
+{% set element_children = element.children if (element is defined and element.children is defined) else [] %}
+{% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
+{% set methods = element_children | selectattr('element_type', 'eq', 'method') | list %}
 {# CLI-specific stats #}
-{% set commands = (element.children or []) | selectattr('element_type', 'eq', 'command') | list if element is defined else [] %}
-{% set command_groups = (element.children or []) | selectattr('element_type', 'eq', 'command-group') | list if element is defined else [] %}
-{% set options = (element.children or []) | selectattr('element_type', 'eq', 'option') | list if element is defined else [] %}
-{% set arguments = (element.children or []) | selectattr('element_type', 'eq', 'argument') | list if element is defined else [] %}
+{% set commands = element_children | selectattr('element_type', 'eq', 'command') | list %}
+{% set command_groups = element_children | selectattr('element_type', 'eq', 'command-group') | list %}
+{% set options = element_children | selectattr('element_type', 'eq', 'option') | list %}
+{% set arguments = element_children | selectattr('element_type', 'eq', 'argument') | list %}
 
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -140,8 +141,10 @@ Designed for: module.html, class pages, function pages
   {% endif %}
 
   {# Description - markdown rendered, stacked vertically #}
+  {# Priority: element.description > page.metadata.description > section.metadata.description #}
   {% set description = element.description if (element is defined and element.description) else
-  page.metadata.get('description', '') %}
+  (page.metadata.get('description', '') if page.metadata.get('description', '') else (section.metadata.description if
+  (section is defined and section.metadata.description) else '')) %}
   {% if description %}
   <div class="page-hero__description page-hero__description--prose">
     {{ description | markdownify | safe }}
@@ -149,10 +152,9 @@ Designed for: module.html, class pages, function pages
   {% endif %}
 
   {# Bottom row: Source link + Stats #}
-  {% if element is defined %}
   <div class="page-hero__footer">
-    {# Source link #}
-    {% if (element.display_source_file or element.source_file) and config is defined %}
+    {# Source link (for elements with source files) #}
+    {% if element is defined and (element.display_source_file or element.source_file) and config is defined %}
     <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
       class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}
@@ -160,7 +162,7 @@ Designed for: module.html, class pages, function pages
     </a>
     {% endif %}
 
-    {# Stats for modules #}
+    {# Stats for modules (element-based) #}
     {% if classes | length > 0 or functions | length > 0 %}
     <div class="page-hero__stats">
       {% if classes | length > 0 %}
@@ -178,7 +180,7 @@ Designed for: module.html, class pages, function pages
     </div>
     {% endif %}
 
-    {# Stats for classes #}
+    {# Stats for classes (element-based) #}
     {% if methods | length > 0 %}
     <div class="page-hero__stats">
       <span class="page-hero__stat">
@@ -188,7 +190,7 @@ Designed for: module.html, class pages, function pages
     </div>
     {% endif %}
 
-    {# Stats for CLI command groups #}
+    {# Stats for CLI command groups (element-based) #}
     {% if commands | length > 0 or command_groups | length > 0 %}
     <div class="page-hero__stats">
       {% if command_groups | length > 0 %}
@@ -206,7 +208,7 @@ Designed for: module.html, class pages, function pages
     </div>
     {% endif %}
 
-    {# Stats for CLI commands #}
+    {# Stats for CLI commands (element-based) #}
     {% if options | length > 0 or arguments | length > 0 %}
     <div class="page-hero__stats">
       {% if options | length > 0 %}
@@ -223,7 +225,39 @@ Designed for: module.html, class pages, function pages
       {% endif %}
     </div>
     {% endif %}
+
+    {# Stats for section index pages (section-based) #}
+    {% if section is defined and not element is defined %}
+    {% set section_subsections = section.sorted_subsections | default([]) | list %}
+    {% set section_pages = section.sorted_pages | default([]) | rejectattr('source_path', 'match', '.*_index.*') | list
+    %}
+    {# Detect if this is a CLI section based on URL path #}
+    {% set is_cli_section = page.url is defined and '/cli' in page.url %}
+    {% if section_subsections | length > 0 or section_pages | length > 0 %}
+    <div class="page-hero__stats">
+      {% if section_subsections | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ section_subsections | length }}</span>
+        {% if is_cli_section %}
+        <span class="page-hero__stat-label">{{ 'Group' if section_subsections | length == 1 else 'Groups' }}</span>
+        {% else %}
+        <span class="page-hero__stat-label">{{ 'Package' if section_subsections | length == 1 else 'Packages' }}</span>
+        {% endif %}
+      </span>
+      {% endif %}
+      {% if section_pages | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ section_pages | length }}</span>
+        {% if is_cli_section %}
+        <span class="page-hero__stat-label">{{ 'Command' if section_pages | length == 1 else 'Commands' }}</span>
+        {% else %}
+        <span class="page-hero__stat-label">{{ 'Module' if section_pages | length == 1 else 'Modules' }}</span>
+        {% endif %}
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 {% endif %}

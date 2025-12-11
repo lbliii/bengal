@@ -64,7 +64,8 @@ This template receives:
                 {% for opt in options %}
                 <tr>
                   <td data-label="Option" class="api-table__name">
-                    <code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code></td>
+                    <code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code>
+                  </td>
                   <td data-label="Type" class="api-table__type"><code>{{ opt.metadata.type }}</code></td>
                   <td data-label="Default" class="api-table__default">
                     {%- if opt.metadata.default -%}
