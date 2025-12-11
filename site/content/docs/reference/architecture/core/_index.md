@@ -36,7 +36,7 @@ graph TB
 | **Site** | Central container, holds all content | `bengal/core/site.py` |
 | **Page** | Single content page with metadata | `bengal/core/page/` |
 | **Section** | Directory container, holds children | `bengal/core/section.py` |
-| **Asset** | Static file with processing metadata | `bengal/core/asset.py` |
+| **Asset** | Static file with processing metadata | `bengal/core/asset/` |
 
 ## Design Principles
 

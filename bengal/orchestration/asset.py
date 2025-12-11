@@ -12,7 +12,7 @@ Key Concepts:
     - Cleanup: Removal of stale fingerprinted files
 
 Related Modules:
-    - bengal.core.asset: Asset representation and processing
+    - bengal.core.asset: Asset representation and processing (package)
     - bengal.assets.manifest: Asset manifest generation
     - bengal.rendering.template_engine: Template access to asset manifest
 

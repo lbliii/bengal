@@ -51,7 +51,7 @@ graph TB
         Site[Site<br/>bengal/core/site.py]
         Pages[Pages<br/>bengal/core/page/]
         Sections[Sections<br/>bengal/core/section.py]
-        Assets[Assets<br/>bengal/core/asset.py]
+        Assets[Assets<br/>bengal/core/asset/]
         Menus[Menus<br/>bengal/core/menu.py]
     end
 
