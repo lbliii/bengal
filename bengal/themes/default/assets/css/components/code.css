@@ -122,7 +122,8 @@ td.code:hover .code-copy-button,
   }
 
   /* Hide line numbers on very small screens if present */
-  .highlight .linenos {
+  .highlight .linenos:not(td),
+  .highlight td.linenos {
     display: none;
   }
 
@@ -755,6 +756,11 @@ pre code {
   vertical-align: top;
 }
 
+/* Keep table-based gutters as table cells so they stretch with the code column */
+.highlight .highlighttable td.linenos {
+  display: table-cell;
+}
+
 /* Line numbers inner div and pre */
 .highlight .linenodiv {
   padding: 0;
@@ -869,7 +875,7 @@ div.highlight>pre {
 }
 
 /* Legacy Pygments linenos support */
-.highlight .linenos {
+.highlight .linenos:not(td) {
   display: inline-block;
   padding-right: var(--space-4);
   margin-right: var(--space-4);

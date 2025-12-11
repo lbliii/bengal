@@ -46,9 +46,9 @@ This template receives:
             <p class="api-module-header__description">{{ element.description }}</p>
             {% endif %}
 
-            {% if element.source_file %}
+            {% if element.display_source_file or element.source_file %}
             <div class="api-module-header__source">
-              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
                 class="api-source-link" target="_blank" rel="noopener">
                 View source
               </a>
@@ -85,7 +85,8 @@ This template receives:
                   {% if child.description %}
                   <p class="api-module-card__description">{{ child.description | truncatewords(15) }}</p>
                   {% else %}
-                  <p class="api-module-card__description api-module-card__description--empty">No description available</p>
+                  <p class="api-module-card__description api-module-card__description--empty">No description available
+                  </p>
                   {% endif %}
                 </div>
               </a>
@@ -99,7 +100,8 @@ This template receives:
                   {% if child.description %}
                   <p class="api-package-card__description">{{ child.description | truncatewords(15) }}</p>
                   {% else %}
-                  <p class="api-package-card__description api-package-card__description--empty">{{ child.name }} commands</p>
+                  <p class="api-package-card__description api-package-card__description--empty">{{ child.name }}
+                    commands</p>
                   {% endif %}
                 </div>
                 <div class="api-package-card__footer">
