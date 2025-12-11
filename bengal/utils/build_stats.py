@@ -76,6 +76,10 @@ class BuildStats:
     cache_misses: int = 0  # Pages/assets rebuilt
     time_saved_ms: float = 0  # Estimated time saved by caching
 
+    # Cache bypass statistics (RFC: rfc-incremental-hot-reload-invariants)
+    cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
+    cache_bypass_misses: int = 0  # Pages that used cache (not changed)
+
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
     related_posts_time_ms: float = 0

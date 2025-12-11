@@ -80,7 +80,7 @@ class TestBuildOrchestrator:
 
         # 2. Content Discovery
         mock_orchestrators["content"].return_value.discover.assert_called_once_with(
-            incremental=False, cache=None, build_context=ANY
+            incremental=False, cache=None, build_context=ANY, build_cache=ANY
         )
 
         # 3. Section Finalization
@@ -128,7 +128,7 @@ class TestBuildOrchestrator:
 
         # Should use incremental discovery
         mock_orchestrators["content"].return_value.discover.assert_called_with(
-            incremental=True, cache=ANY, build_context=ANY
+            incremental=True, cache=ANY, build_context=ANY, build_cache=ANY
         )
 
         # Should use incremental taxonomy generation

@@ -250,8 +250,12 @@ def test_ignores_temp_files_on_create(tmp_path):
 class TestRebuildStrategy:
     """Test the rebuild strategy logic (full vs incremental)."""
 
-    def test_content_file_change_triggers_full_rebuild(self, tmp_path, monkeypatch):
-        """Content file (.md) changes should trigger full rebuild for navigation consistency."""
+    def test_content_file_change_allows_incremental_build(self, tmp_path, monkeypatch):
+        """Content file (.md) modifications allow incremental builds for faster dev rebuilds.
+
+        Since incremental build support, content modifications without nav-affecting
+        frontmatter keys use incremental mode for faster dev server performance.
+        """
         handler = _make_handler(tmp_path)
         handler.pending_changes = {str(tmp_path / "content" / "page.md")}
         handler.pending_event_types = {"modified"}
@@ -281,8 +285,8 @@ class TestRebuildStrategy:
             )
             handler._trigger_build()
 
-        # Content changes should trigger full rebuild (incremental=False)
-        assert build_kwargs.get("incremental") is False
+        # Content modifications (without nav-affecting frontmatter) allow incremental builds
+        assert build_kwargs.get("incremental") is True
 
     def test_css_only_change_allows_incremental_build(self, tmp_path, monkeypatch):
         """CSS-only changes should allow incremental builds."""
@@ -420,8 +424,12 @@ class TestRebuildStrategy:
         # JS-only changes should allow incremental builds
         assert build_kwargs.get("incremental") is True
 
-    def test_markdown_extension_triggers_full_rebuild(self, tmp_path, monkeypatch):
-        """Both .md and .markdown extensions should trigger full rebuild."""
+    def test_markdown_extension_allows_incremental_build(self, tmp_path, monkeypatch):
+        """Both .md and .markdown modifications allow incremental builds.
+
+        Content file modifications without nav-affecting frontmatter keys
+        use incremental mode for faster dev server performance.
+        """
         for ext in [".md", ".markdown"]:
             handler = _make_handler(tmp_path)
             handler.pending_changes = {str(tmp_path / "content" / f"page{ext}")}
@@ -429,11 +437,14 @@ class TestRebuildStrategy:
 
             build_kwargs = {}
 
-            def capture_build(*args, **kwargs):
-                build_kwargs.update(kwargs)
-                return DummyStats()
+            def make_capture(target):
+                def capture_build(*args, **kwargs):
+                    target.update(kwargs)
+                    return DummyStats()
 
-            handler.site.build = capture_build
+                return capture_build
+
+            handler.site.build = make_capture(build_kwargs)
 
             # Silence display/printing
             monkeypatch.setattr(
@@ -454,6 +465,6 @@ class TestRebuildStrategy:
                 )
                 handler._trigger_build()
 
-            assert build_kwargs.get("incremental") is False, (
-                f"Extension {ext} should trigger full rebuild"
+            assert build_kwargs.get("incremental") is True, (
+                f"Extension {ext} should allow incremental build for content modifications"
             )

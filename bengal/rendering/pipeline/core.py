@@ -24,6 +24,7 @@ See Also:
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from bengal.core.page import Page
@@ -97,6 +98,7 @@ class RenderingPipeline:
         quiet: bool = False,
         build_stats: Any = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -155,6 +157,7 @@ class RenderingPipeline:
 
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)
         self.build_context = build_context
+        self.changed_sources = {Path(p) for p in (changed_sources or set())}
 
     def process_page(self, page: Page) -> None:
         """
@@ -187,11 +190,25 @@ class RenderingPipeline:
         template = determine_template(page)
         parser_version = self._get_parser_version()
 
-        # Try cache first
-        if self._try_rendered_cache(page, template):
+        # Determine cache bypass using centralized helper (RFC: rfc-incremental-hot-reload-invariants)
+        # Single source of truth: should_bypass(source, changed_sources)
+        skip_cache = False
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
+            cache = self.dependency_tracker.cache
+            if cache:
+                skip_cache = cache.should_bypass(page.source_path, self.changed_sources)
+
+        # Track cache bypass statistics
+        if self.build_stats:
+            if skip_cache:
+                self.build_stats.cache_bypass_hits += 1
+            else:
+                self.build_stats.cache_bypass_misses += 1
+
+        if not skip_cache and self._try_rendered_cache(page, template):
             return
 
-        if self._try_parsed_cache(page, template, parser_version):
+        if not skip_cache and self._try_parsed_cache(page, template, parser_version):
             return
 
         # Full pipeline execution
@@ -778,6 +795,9 @@ class RenderingPipeline:
     def _normalize_config(self, config: Any) -> Any:
         """
         Wrap config to allow dotted access with safe defaults for github metadata.
+
+        Extracts github_repo and github_branch from the autodoc section of the config
+        and normalizes github_repo to a full URL if provided in owner/repo format.
         """
         base = {}
         if isinstance(config, dict):
@@ -785,8 +805,22 @@ class RenderingPipeline:
         else:
             return config
 
-        base.setdefault("github_repo", "")
-        base.setdefault("github_branch", "main")
+        # Extract github metadata from autodoc config section if not at top level
+        autodoc_config = base.get("autodoc", {})
+
+        # Get github_repo: prefer top-level, fall back to autodoc section
+        github_repo = base.get("github_repo") or autodoc_config.get("github_repo", "")
+
+        # Normalize owner/repo format to full GitHub URL
+        if github_repo and not github_repo.startswith(("http://", "https://")):
+            github_repo = f"https://github.com/{github_repo}"
+
+        base["github_repo"] = github_repo
+
+        # Get github_branch: prefer top-level, fall back to autodoc section
+        github_branch = base.get("github_branch") or autodoc_config.get("github_branch", "main")
+        base["github_branch"] = github_branch
+
         return _MetadataView(base)
 
 

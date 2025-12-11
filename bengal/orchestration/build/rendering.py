@@ -28,6 +28,8 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.cache import DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.page import Page
@@ -153,6 +155,7 @@ def phase_render(
     reporter: ProgressReporter | None,
     profile_templates: bool = False,
     early_context: BuildContext | None = None,
+    changed_sources: set[Path] | None = None,
 ) -> BuildContext:
     """
     Phase 14: Render Pages.
@@ -222,6 +225,7 @@ def phase_render(
                 progress_manager=progress_manager,
                 reporter=reporter,
                 build_context=ctx,
+                changed_sources=changed_sources,
             )
         else:
             from bengal.utils.build_context import BuildContext
@@ -239,16 +243,17 @@ def phase_render(
             # Transfer cached content from early context (build-integrated validation)
             if early_context and early_context.has_cached_content:
                 ctx._page_contents = early_context._page_contents
-            orchestrator.render.process(
-                pages_to_build,
-                parallel=parallel,
-                quiet=quiet_mode,
-                tracker=tracker,
-                stats=orchestrator.stats,
-                progress_manager=progress_manager,
-                reporter=reporter,
-                build_context=ctx,
-            )
+        orchestrator.render.process(
+            pages_to_build,
+            parallel=parallel,
+            quiet=quiet_mode,
+            tracker=tracker,
+            stats=orchestrator.stats,
+            progress_manager=progress_manager,
+            reporter=reporter,
+            build_context=ctx,
+            changed_sources=changed_sources,
+        )
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 

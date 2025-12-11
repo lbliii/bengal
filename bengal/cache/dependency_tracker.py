@@ -171,8 +171,9 @@ class DependencyTracker:
             page_path: Path to the page being processed
         """
         self.current_page.value = page_path
-        # Update the page's own hash
-        self.cache.update_file(page_path)
+        # NOTE: Do NOT update file hash here - that would invalidate the cache
+        # check that happens immediately after. File hashes are updated in
+        # IncrementalOrchestrator.save_cache() AFTER successful rendering.
 
     def track_template(self, template_path: Path) -> None:
         """

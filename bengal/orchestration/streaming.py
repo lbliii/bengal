@@ -8,6 +8,7 @@ Hub-first strategy: Keep highly connected pages in memory, stream leaves.
 from __future__ import annotations
 
 import gc
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
@@ -55,6 +56,7 @@ class StreamingRenderOrchestrator:
         progress_manager: Any | None = None,
         reporter: Any | None = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Render pages in memory-optimized batches using connectivity analysis.
@@ -217,6 +219,7 @@ class StreamingRenderOrchestrator:
                 progress_manager=progress_manager,
                 reporter=reporter,
                 build_context=build_context,
+                changed_sources=changed_sources,
             )
             logger.debug("streaming_render_hubs_complete", count=total_hubs)
 
@@ -237,6 +240,7 @@ class StreamingRenderOrchestrator:
                 stats,
                 "mid-tier",
                 progress_manager=progress_manager,
+                changed_sources=changed_sources,
                 # reporter and context forwarded inside _render_batches via renderer.process
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
@@ -259,6 +263,7 @@ class StreamingRenderOrchestrator:
                 "leaves",
                 release_memory=True,
                 progress_manager=progress_manager,
+                changed_sources=changed_sources,
             )
             logger.debug("streaming_render_leaves_complete", count=total_leaves)
 
@@ -287,6 +292,7 @@ class StreamingRenderOrchestrator:
         batch_label: str = "pages",
         release_memory: bool = False,
         progress_manager: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Render pages in batches with optional memory release.
@@ -319,6 +325,7 @@ class StreamingRenderOrchestrator:
                 stats,
                 progress_manager=progress_manager,
                 build_context=None,
+                changed_sources=changed_sources,
             )
 
             logger.debug(

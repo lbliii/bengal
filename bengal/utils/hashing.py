@@ -24,7 +24,7 @@ config_hash = hash_dict({"key": "value", "nested": [1, 2, 3]})
 
 Related Modules:
     - bengal.cache.build_cache: Uses for file fingerprinting
-    - bengal.core.asset: Uses for asset fingerprinting
+    - bengal.core.asset: Asset fingerprinting
 """
 
 from __future__ import annotations

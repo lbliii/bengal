@@ -18,6 +18,15 @@ logger = get_logger(__name__)
 # Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}
 _HL_LINES_PATTERN = re.compile(r"^(\S+)\s*\{([^}]+)\}$")
 
+# Pattern to parse code fence info with optional title and line highlights
+# Matches: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
+# Order: language [title="..."] [{lines}]
+_CODE_INFO_PATTERN = re.compile(
+    r"^(?P<lang>\S+)"  # Language (required, no spaces)
+    r'(?:\s+title="(?P<title>[^"]*)")?'  # title="..." (optional)
+    r"(?:\s*\{(?P<hl>[^}]+)\})?$"  # {1,3-5} line highlights (optional)
+)
+
 
 class MistuneParser(BaseMarkdownParser):
     """
@@ -229,14 +238,26 @@ class MistuneParser(BaseMarkdownParser):
                 if info_stripped.startswith("{") and "}" in info_stripped:
                     return original_block_code(code, info)
 
-                # Parse language and optional line highlights: "python {5}" or "yaml {1,3-5}"
+                # Parse language, optional title, and line highlights
+                # Supports: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
                 language = info_stripped
+                title: str | None = None
                 hl_lines: list[int] = []
 
-                hl_match = _HL_LINES_PATTERN.match(info_stripped)
-                if hl_match:
-                    language = hl_match.group(1)
-                    hl_lines = parse_hl_lines(hl_match.group(2))
+                # Try new pattern first (supports title)
+                info_match = _CODE_INFO_PATTERN.match(info_stripped)
+                if info_match:
+                    language = info_match.group("lang")
+                    title = info_match.group("title")  # None if not present
+                    hl_spec = info_match.group("hl")
+                    if hl_spec:
+                        hl_lines = parse_hl_lines(hl_spec)
+                else:
+                    # Fall back to old pattern (line highlights only, no title)
+                    hl_match = _HL_LINES_PATTERN.match(info_stripped)
+                    if hl_match:
+                        language = hl_match.group(1)
+                        hl_lines = parse_hl_lines(hl_match.group(2))
 
                 # Special handling: client-side rendered languages (e.g., Mermaid)
                 lang_lower = language.lower()
@@ -282,6 +303,18 @@ class MistuneParser(BaseMarkdownParser):
                     if hl_lines:
                         highlighted = highlighted.replace("\n</span>", "</span>")
 
+                    # Wrap with title if present
+                    if title:
+                        import html as html_mod
+
+                        safe_title = html_mod.escape(title)
+                        return (
+                            f'<div class="code-block-titled">\n'
+                            f'<div class="code-block-title">{safe_title}</div>\n'
+                            f"{highlighted}"
+                            f"</div>\n"
+                        )
+
                     return highlighted
 
                 except Exception as e:
@@ -294,7 +327,23 @@ class MistuneParser(BaseMarkdownParser):
                         .replace(">", "&gt;")
                         .replace('"', "&quot;")
                     )
-                    return f'<pre><code class="language-{language}">{escaped_code}</code></pre>\n'
+                    plain_block = (
+                        f'<pre><code class="language-{language}">{escaped_code}</code></pre>\n'
+                    )
+
+                    # Wrap with title if present
+                    if title:
+                        import html as html_mod
+
+                        safe_title = html_mod.escape(title)
+                        return (
+                            f'<div class="code-block-titled">\n'
+                            f'<div class="code-block-title">{safe_title}</div>\n'
+                            f"{plain_block}"
+                            f"</div>\n"
+                        )
+
+                    return plain_block
 
             # Replace the block_code method
             md.renderer.block_code = highlighted_block_code

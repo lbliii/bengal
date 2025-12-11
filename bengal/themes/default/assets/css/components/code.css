@@ -168,6 +168,113 @@ pre code {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+/* ============================================
+   CODE BLOCK WITH TITLE
+   Usage: ```python title="filename.py"
+   ============================================ */
+
+.code-block-titled {
+  margin-block: 1.5rem;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-card);
+  /* Peaceful glow animation - signature Bengal top/bottom border pulse */
+  animation: code-border-glow 8s ease-in-out infinite;
+}
+
+[data-theme="dark"] .code-block-titled {
+  border-color: rgba(255, 255, 255, 0.1);
+  animation: code-border-glow-dark 8s ease-in-out infinite;
+}
+
+.code-block-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+  /* Subtle file icon */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.code-block-title::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .code-block-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3C/svg%3E");
+}
+
+/* Reset styles for nested highlight/pre elements */
+.code-block-titled .highlight,
+.code-block-titled pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+/* Reset table styles inside titled blocks */
+.code-block-titled .highlighttable {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+/* Restore bottom border-radius on last element */
+.code-block-titled> :last-child,
+.code-block-titled> :last-child pre,
+.code-block-titled> :last-child .highlighttable {
+  border-radius: 0 0 calc(var(--radius-2xl) - 1px) calc(var(--radius-2xl) - 1px);
+}
+
+/* Mobile adjustments */
+@media (max-width: 639px) {
+  .code-block-titled {
+    margin-inline: calc(-1 * var(--space-3));
+    border-radius: var(--radius-md);
+  }
+
+  .code-block-title {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xxs);
+  }
+}
+
+@media (min-width: 400px) and (max-width: 639px) {
+  .code-block-titled {
+    margin-inline: calc(-1 * var(--space-4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .code-block-titled,
+  [data-theme="dark"] .code-block-titled {
+    animation: none;
+    box-shadow:
+      var(--elevation-card),
+      0 -1px 0 0 color-mix(in srgb, var(--color-primary) 4%, transparent),
+      0 1px 0 0 color-mix(in srgb, var(--color-primary) 4%, transparent);
+  }
+}
+
 /* Code block wrapper - contains pre and button */
 .code-block-wrapper {
   position: relative;
@@ -671,7 +778,7 @@ pre code {
 }
 
 /* Pygments wraps pre in a div - ensure it fills the cell */
-.highlight td.code > div {
+.highlight td.code>div {
   width: 100%;
 }
 
@@ -722,7 +829,7 @@ div.highlight {
 /* Clip negative margins on .hll to prevent page overflow.
    Applied to the code cell, not div.highlight, so copy button isn't clipped.
    Use overflow-y: hidden to allow horizontal scrolling of long lines. */
-div.highlight > pre {
+div.highlight>pre {
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -736,11 +843,9 @@ div.highlight > pre {
    allowing display:block without double line spacing. */
 .highlight .hll {
   display: block;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 3px,
-    color-mix(in srgb, var(--color-primary) 12%, transparent) 3px
-  );
+  background: linear-gradient(90deg,
+      var(--color-primary) 3px,
+      color-mix(in srgb, var(--color-primary) 12%, transparent) 3px);
   /* Extend highlight beyond code cell padding */
   margin-left: calc(-1 * var(--space-4));
   margin-right: calc(-1 * var(--space-6));
@@ -758,11 +863,9 @@ div.highlight > pre {
 
 /* Dark mode: more visible highlight */
 [data-theme="dark"] .highlight .hll {
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 3px,
-    color-mix(in srgb, var(--color-primary) 18%, transparent) 3px
-  );
+  background: linear-gradient(90deg,
+      var(--color-primary) 3px,
+      color-mix(in srgb, var(--color-primary) 18%, transparent) 3px);
 }
 
 /* Legacy Pygments linenos support */

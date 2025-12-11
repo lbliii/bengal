@@ -663,11 +663,11 @@ class HealthReport:
                 f"[info]💡 {self.total_suggestions} quality suggestion(s) available (use --suggestions to view)[/info]"
             )
 
-        # Show passed checks in a collapsed summary (reduce noise)
+        # Show passed validators in a collapsed summary (reduce noise)
         if validators_passed:
             if validators_with_problems or (validators_with_suggestions and show_suggestions):
                 lines.append("")
-            lines.append(f"[success]✓ {len(validators_passed)} check(s) passed[/success]")
+            lines.append(f"[success]✓ {len(validators_passed)} validator(s) passed[/success]")
             # List them in a compact format if few, otherwise just count
             if len(validators_passed) <= 5:
                 passed_names = ", ".join([vr.validator_name for vr in validators_passed])
@@ -676,9 +676,7 @@ class HealthReport:
         # Summary
         lines.append("")
         lines.append("━" * 60)
-        lines.append(
-            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
-        )
+        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
 
         score = self.build_quality_score()
         rating = self.quality_rating()
@@ -759,46 +757,24 @@ class HealthReport:
                 if not is_last_problem:
                     lines.append("")
 
-        # Show passed checks (collapsed in verbose too, but expandable)
+        # Show passed validators (collapsed in verbose too, but expandable)
         if validators_passed:
             if validators_with_problems:
                 lines.append("")
-            lines.append(f"[success]✓ {len(validators_passed)} check(s) passed[/success]")
+            lines.append(f"[success]✓ {len(validators_passed)} validator(s) passed[/success]")
 
-            # In verbose mode, show brief summary of passed checks
+            # In verbose mode, show brief summary of passed checks within each validator
             for vr in validators_passed:
-                lines.append(f"   ✓ {vr.validator_name}: {vr.passed_count} check(s) passed")
+                lines.append(f"   ✓ {vr.validator_name}")
 
         # Summary
         lines.append("")
         lines.append("━" * 60)
-        lines.append(
-            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
-        )
+        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
 
         score = self.build_quality_score()
         rating = self.quality_rating()
         lines.append(f"Build Quality: {score}% ({rating})")
-        lines.append("")
-
-        return "\n".join(lines)
-
-        # Summary
-        lines.append("")
-        lines.append("━" * 60)
-        lines.append(
-            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
-        )
-
-        score = self.build_quality_score()
-        rating = self.quality_rating()
-        lines.append(f"Build Quality: {score}% ({rating})")
-
-        # Build stats if available
-        if self.build_stats:
-            build_time = self.build_stats.get("build_time_ms", 0) / 1000
-            lines.append(f"Build Time: {build_time:.2f}s")
-
         lines.append("")
 
         return "\n".join(lines)

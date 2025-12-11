@@ -37,7 +37,7 @@ The asset pipeline (`bengal/assets/pipeline.py`) is a lightweight system that:
 - Copies processed assets to output directory
 - Integrates with incremental builds
 
-## Asset Object (`bengal/core/asset.py`)
+## Asset Object (`bengal/core/asset/`)
 
 ### Purpose
 Represents a static file with metadata and processing capabilities

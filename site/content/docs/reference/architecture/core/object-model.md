@@ -82,7 +82,7 @@ Represents folder-based grouping of pages with hierarchical organization.
 :::
 
 :::{tab-item} Asset
-**Static Resource** (`bengal/core/asset.py`)
+**Static Resource** (`bengal/core/asset/`)
 
 Handles static files (images, CSS, JS) with optimization.
 

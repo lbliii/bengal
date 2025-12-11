@@ -10,17 +10,18 @@
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-primary);
-  overflow: visible; /* Allow tooltips to overflow */
+  overflow: visible;
+  /* Allow tooltips to overflow */
 }
 
 /* Clip navigation to border-radius while allowing tooltips to overflow */
-.tabs > .tab-nav {
+.tabs>.tab-nav {
   overflow: hidden;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 /* Allow tab-content to overflow for tooltips - individual elements handle their own clipping */
-.tabs > .tab-content {
+.tabs>.tab-content {
   overflow: visible;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
@@ -61,7 +62,7 @@
   color: var(--color-text-tertiary);
   text-decoration: none;
   font-weight: var(--weight-medium);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   border-bottom: 2px solid transparent;
   transition: all var(--transition-fast) var(--ease-out);
   cursor: pointer;
@@ -89,16 +90,19 @@
   right: 0;
   height: 3px;
   background: linear-gradient(90deg,
-    color-mix(in srgb, var(--color-primary) 40%, transparent) 0%,
-    var(--color-primary) 50%,
-    color-mix(in srgb, var(--color-primary) 40%, transparent) 100%);
+      color-mix(in srgb, var(--color-primary) 40%, transparent) 0%,
+      var(--color-primary) 50%,
+      color-mix(in srgb, var(--color-primary) 40%, transparent) 100%);
   animation: tab-accent-glow 8s ease-in-out infinite;
 }
 
 @keyframes tab-accent-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 8px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
   }
+
   50% {
     box-shadow: 0 3px 15px 0 color-mix(in srgb, var(--color-primary) 25%, transparent);
   }
@@ -109,9 +113,12 @@
 }
 
 @keyframes tab-accent-glow-dark {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 10px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
   }
+
   50% {
     box-shadow: 0 4px 20px 0 color-mix(in srgb, var(--color-primary) 35%, transparent);
   }
@@ -132,8 +139,15 @@
 }
 
 @keyframes tabFadeIn {
-  from { opacity: 0; transform: translateY(var(--space-1)); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Code Tabs Variant */
@@ -150,7 +164,7 @@
 
 .code-tabs .tab-nav a {
   padding: var(--space-2) var(--space-4);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .code-tabs .tab-content {

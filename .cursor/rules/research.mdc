@@ -158,7 +158,7 @@ Agreement across 2+ paths → high confidence.
 - `bengal/core/site.py` - Site orchestrator
 - `bengal/core/page/*.py` - Page model
 - `bengal/core/theme.py` - Theme resolution
-- `bengal/core/asset.py` - Asset handling
+- `bengal/core/asset/` - Asset handling
 
 **Orchestration**:
 - `bengal/orchestration/render_orchestrator.py` - Render pipeline

@@ -88,6 +88,9 @@ class BuildOrchestrator:
         strict: bool = False,
         full_output: bool = False,
         profile_templates: bool = False,
+        changed_sources: set[Path] | None = None,
+        nav_changed_sources: set[Path] | None = None,
+        structural_changed: bool = False,
     ) -> BuildStats:
         """
         Execute full build pipeline.
@@ -102,6 +105,8 @@ class BuildOrchestrator:
             strict: Whether to fail build on validation errors
             full_output: Show full traditional output instead of live progress
             profile_templates: Enable template profiling for performance analysis
+            structural_changed: Whether structural changes occurred (file create/delete/move).
+                               Forces full content discovery when True, even in incremental mode.
 
         Returns:
             BuildStats object with build statistics
@@ -223,7 +228,14 @@ class BuildOrchestrator:
         initialization.phase_template_validation(self, cli, strict=strict)
 
         # Phase 2: Content Discovery (with content caching for validators)
-        initialization.phase_discovery(self, cli, incremental, build_context=early_ctx)
+        # Pass BuildCache for autodoc dependency registration
+        initialization.phase_discovery(
+            self,
+            cli,
+            incremental,
+            build_context=early_ctx,
+            build_cache=cache,
+        )
 
         # Phase 3: Cache Discovery Metadata
         initialization.phase_cache_metadata(self)
@@ -235,7 +247,14 @@ class BuildOrchestrator:
 
         # Phase 5: Incremental Filtering (determine what to build)
         filter_result = initialization.phase_incremental_filter(
-            self, cli, cache, incremental, verbose, build_start
+            self,
+            cli,
+            cache,
+            incremental,
+            verbose,
+            build_start,
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
         )
         if filter_result is None:
             # No changes detected - early exit
@@ -290,6 +309,7 @@ class BuildOrchestrator:
             reporter,
             profile_templates=profile_templates,
             early_context=early_ctx,
+            changed_sources=changed_sources,
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
@@ -361,9 +381,11 @@ class BuildOrchestrator:
         """Phase 1: Font Processing."""
         initialization.phase_fonts(self, cli)
 
-    def _phase_discovery(self, cli: CLIOutput, incremental: bool) -> None:
+    def _phase_discovery(
+        self, cli: CLIOutput, incremental: bool, build_cache: BuildCache | None = None
+    ) -> None:
         """Phase 2: Content Discovery."""
-        initialization.phase_discovery(self, cli, incremental)
+        initialization.phase_discovery(self, cli, incremental, build_cache=build_cache)
 
     def _phase_cache_metadata(self) -> None:
         """Phase 3: Cache Discovery Metadata."""

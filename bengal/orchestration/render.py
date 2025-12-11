@@ -27,6 +27,7 @@ from __future__ import annotations
 import concurrent.futures
 import sys
 import threading
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import get_max_workers
@@ -133,6 +134,7 @@ class RenderOrchestrator:
         progress_manager: Any | None = None,
         reporter: Any | None = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Render pages (parallel or sequential).
@@ -162,9 +164,13 @@ class RenderOrchestrator:
         # Use parallel rendering only for 5+ pages (avoid thread overhead for small batches)
         PARALLEL_THRESHOLD = 5
         if parallel and len(pages) >= PARALLEL_THRESHOLD:
-            self._render_parallel(pages, tracker, quiet, stats, progress_manager, build_context)
+            self._render_parallel(
+                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+            )
         else:
-            self._render_sequential(pages, tracker, quiet, stats, progress_manager, build_context)
+            self._render_sequential(
+                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+            )
 
     def _render_sequential(
         self,
@@ -174,6 +180,7 @@ class RenderOrchestrator:
         stats: BuildStats | None,
         progress_manager: Any | None = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Build pages sequentially.
@@ -192,7 +199,12 @@ class RenderOrchestrator:
             import time
 
             pipeline = RenderingPipeline(
-                self.site, tracker, quiet=True, build_stats=stats, build_context=build_context
+                self.site,
+                tracker,
+                quiet=True,
+                build_stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
             )
             last_update_time = time.time()
             update_interval = 0.1  # Update every 100ms (throttled for performance)
@@ -232,7 +244,12 @@ class RenderOrchestrator:
         else:
             # Traditional rendering without progress
             pipeline = RenderingPipeline(
-                self.site, tracker, quiet=quiet, build_stats=stats, build_context=build_context
+                self.site,
+                tracker,
+                quiet=quiet,
+                build_stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
             )
             for page in pages:
                 pipeline.process_page(page)
@@ -245,6 +262,7 @@ class RenderOrchestrator:
         stats: BuildStats | None,
         progress_manager: Any | None = None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Build pages in parallel for better performance.
@@ -301,7 +319,7 @@ class RenderOrchestrator:
         # If we have a progress manager, use it with parallel rendering
         if progress_manager:
             self._render_parallel_with_live_progress(
-                pages, tracker, quiet, stats, progress_manager, build_context
+                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
             )
             return
 
@@ -317,9 +335,13 @@ class RenderOrchestrator:
             use_rich = False
 
         if use_rich:
-            self._render_parallel_with_progress(pages, tracker, quiet, stats, build_context)
+            self._render_parallel_with_progress(
+                pages, tracker, quiet, stats, build_context, changed_sources
+            )
         else:
-            self._render_parallel_simple(pages, tracker, quiet, stats, build_context)
+            self._render_parallel_simple(
+                pages, tracker, quiet, stats, build_context, changed_sources
+            )
 
     def _render_parallel_simple(
         self,
@@ -328,6 +350,7 @@ class RenderOrchestrator:
         quiet: bool,
         stats: BuildStats | None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """Parallel rendering without progress (traditional)."""
         from bengal.rendering.pipeline import RenderingPipeline
@@ -338,7 +361,12 @@ class RenderOrchestrator:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
-                    self.site, tracker, quiet=quiet, build_stats=stats, build_context=build_context
+                    self.site,
+                    tracker,
+                    quiet=quiet,
+                    build_stats=stats,
+                    build_context=build_context,
+                    changed_sources=changed_sources,
                 )
             _thread_local.pipeline.process_page(page)
 
@@ -368,6 +396,7 @@ class RenderOrchestrator:
         quiet: bool,
         stats: BuildStats | None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages sequentially with rich progress bar."""
         from rich.progress import (
@@ -384,7 +413,12 @@ class RenderOrchestrator:
 
         console = get_console()
         pipeline = RenderingPipeline(
-            self.site, tracker, quiet=quiet, build_stats=stats, build_context=build_context
+            self.site,
+            tracker,
+            quiet=quiet,
+            build_stats=stats,
+            build_context=build_context,
+            changed_sources=changed_sources,
         )
 
         with Progress(
@@ -421,6 +455,7 @@ class RenderOrchestrator:
         stats: BuildStats | None,
         progress_manager: Any,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages in parallel with live progress manager."""
         import time
@@ -441,7 +476,11 @@ class RenderOrchestrator:
             if not hasattr(_thread_local, "pipeline"):
                 # When using progress manager, suppress individual page output
                 _thread_local.pipeline = RenderingPipeline(
-                    self.site, tracker, quiet=True, build_stats=stats
+                    self.site,
+                    tracker,
+                    quiet=True,
+                    build_stats=stats,
+                    changed_sources=changed_sources,
                 )
             _thread_local.pipeline.process_page(page)
 
@@ -508,6 +547,7 @@ class RenderOrchestrator:
         quiet: bool,
         stats: BuildStats | None,
         build_context: Any | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages in parallel with rich progress bar."""
         from rich.progress import (
@@ -529,7 +569,12 @@ class RenderOrchestrator:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
-                    self.site, tracker, quiet=quiet, build_stats=stats, build_context=build_context
+                    self.site,
+                    tracker,
+                    quiet=quiet,
+                    build_stats=stats,
+                    build_context=build_context,
+                    changed_sources=changed_sources,
                 )
             _thread_local.pipeline.process_page(page)
 

@@ -218,7 +218,6 @@ function Hello() {
   return <div>Hello World!</div>;
 }
 ```
-```
 :::{/tab}
 
 :::{tab} Bengal

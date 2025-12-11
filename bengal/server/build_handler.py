@@ -6,12 +6,14 @@ Watches for file changes and triggers incremental rebuilds with debouncing.
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
 from bengal.server.reload_controller import ReloadDecision, controller
@@ -289,29 +291,63 @@ class BuildHandler(FileSystemEventHandler):
                     reason="autodoc_source_changed",
                 )
 
-            # Content files (.md) always trigger full rebuild for navigation consistency
-            # Frontmatter changes (hidden, visibility, menu, draft) affect site-wide navigation
-            # and listings, which are rendered into every page's HTML
-            # SVG files in theme assets/icons/ also need full rebuild because they're inlined in HTML
+            # Use shared constant for nav-affecting keys (RFC: rfc-incremental-hot-reload-invariants)
+            from bengal.utils.incremental_constants import NAV_AFFECTING_KEYS
+
+            nav_frontmatter_keys = NAV_AFFECTING_KEYS
+
+            def _frontmatter_nav_change(path_obj: Path) -> bool:
+                """Parse first YAML frontmatter block and detect nav-affecting keys."""
+                try:
+                    text = path_obj.read_text(encoding="utf-8")
+                except Exception as e:
+                    logger.debug(
+                        "frontmatter_read_failed",
+                        file=str(path_obj),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return False
+
+                match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
+                if not match:
+                    return False
+                try:
+                    fm = yaml.safe_load(match.group(1)) or {}
+                except Exception as e:
+                    logger.debug(
+                        "frontmatter_parse_failed",
+                        file=str(path_obj),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    return False
+
+                if not isinstance(fm, dict):
+                    return False
+
+                return any(str(key).lower() in nav_frontmatter_keys for key in fm)
+
+            nav_changed_files: set[Path] = set()
+            content_changed_files: set[Path] = set()
+
             if not needs_full_rebuild:
-                content_extensions = {".md", ".markdown"}
                 svg_extensions = {".svg"}
                 for changed_path in changed_files:
                     path_obj = Path(changed_path)
                     suffix = path_obj.suffix.lower()
 
-                    if suffix in content_extensions:
-                        needs_full_rebuild = True
-                        logger.debug(
-                            "full_rebuild_triggered_by_content",
-                            reason="content_file_changed",
-                            file=changed_path,
-                        )
-                        break
+                    if suffix in {".md", ".markdown"}:
+                        content_changed_files.add(path_obj)
+                        if _frontmatter_nav_change(path_obj):
+                            nav_changed_files.add(path_obj)
+                            logger.debug(
+                                "nav_frontmatter_detected",
+                                file=changed_path,
+                            )
 
                     # SVG files in theme assets/icons/ are inlined in HTML, so pages need re-rendering
                     if suffix in svg_extensions:
-                        # Check if it's in a theme icons directory
                         path_str = str(path_obj).replace("\\", "/")
                         if "/themes/" in path_str and "/assets/icons/" in path_str:
                             needs_full_rebuild = True
@@ -322,6 +358,16 @@ class BuildHandler(FileSystemEventHandler):
                             )
                             break
 
+                if not needs_full_rebuild:
+                    logger.debug(
+                        "incremental_allowed_for_content",
+                        changed_content=len(content_changed_files),
+                        nav_frontmatter=len(nav_changed_files),
+                    )
+
+            # Structural changes (create/delete/move) require full content discovery
+            structural_changed = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
             logger.info(
                 "rebuild_triggered",
                 changed_file_count=file_count,
@@ -329,6 +375,7 @@ class BuildHandler(FileSystemEventHandler):
                 trigger_file=str(changed_files[0]) if changed_files else None,
                 event_types=list(self.pending_event_types),
                 build_strategy="full" if needs_full_rebuild else "incremental",
+                structural_changed=structural_changed,
             )
 
             self.pending_changes.clear()
@@ -378,6 +425,9 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=True,
                     incremental=use_incremental,
                     profile=BuildProfile.WRITER,
+                    changed_sources={Path(p) for p in changed_files},
+                    nav_changed_sources=nav_changed_files,
+                    structural_changed=structural_changed,
                 )
                 build_duration = time.time() - build_start
 
@@ -393,6 +443,8 @@ class BuildHandler(FileSystemEventHandler):
                     pages_built=stats.total_pages,
                     incremental=stats.incremental,
                     parallel=stats.parallel,
+                    cache_bypass_hits=getattr(stats, "cache_bypass_hits", 0),
+                    cache_bypass_misses=getattr(stats, "cache_bypass_misses", 0),
                 )
 
                 # Reload decision (prefer source-gated, then builder hints, then output diff)
@@ -459,6 +511,12 @@ class BuildHandler(FileSystemEventHandler):
                         # Public API: send structured payload to clients
                         from bengal.server.live_reload import send_reload_payload
 
+                        logger.info(
+                            "reload_decision",
+                            action=decision.action,
+                            reason=decision.reason,
+                            changed_paths=len(decision.changed_paths or []),
+                        )
                         send_reload_payload(
                             decision.action, decision.reason, decision.changed_paths
                         )
