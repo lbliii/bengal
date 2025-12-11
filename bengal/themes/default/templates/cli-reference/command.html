@@ -25,37 +25,14 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {% include 'partials/page-hero.html' %}
+    {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+    {% include 'partials/page-hero-api.html' %}
 
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <div class="docs-content">
         {# CLI Command Content #}
         <div class="api-explorer">
-          <header class="api-module-header">
-            <div class="api-module-header__badges">
-              <span class="api-badge--compact api-badge--command">Command</span>
-            </div>
-
-            <h1 class="api-module-header__title api-title-wrap">
-              <code>{{ element.name }}</code>
-            </h1>
-
-            {% if element.description %}
-            <p class="api-module-header__description">{{ element.description }}</p>
-            {% endif %}
-
-            {% if element.display_source_file or element.source_file %}
-            <div class="api-module-header__source">
-              <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
-                class="api-source-link" target="_blank" rel="noopener">
-                View source
-              </a>
-            </div>
-            {% endif %}
-          </header>
-
           {# Usage #}
           {% if element.qualified_name %}
           <div class="api-usage">

@@ -47,15 +47,15 @@ This template receives:
           </header>
 
           {# Schema Type #}
-          {% if element.metadata.type %}
+          {% if element.metadata.get('type') %}
           <div class="api-meta">
             <span class="api-meta__label">Type:</span>
-            <code>{{ element.metadata.type }}</code>
+            <code>{{ element.metadata.get('type') }}</code>
           </div>
           {% endif %}
 
           {# Properties #}
-          {% if element.metadata.properties %}
+          {% if element.metadata.get('properties') %}
           <section class="api-section api-section--properties">
             <h2 class="api-section__title">Properties</h2>
             <table class="api-table api-table--compact">
@@ -68,12 +68,12 @@ This template receives:
                 </tr>
               </thead>
               <tbody>
-                {% for prop_name, prop_schema in element.metadata.properties.items() %}
+                {% for prop_name, prop_schema in element.metadata.get('properties', {}).items() %}
                 <tr>
                   <td><code>{{ prop_name }}</code></td>
-                  <td><code>{{ prop_schema.type if prop_schema.type else 'object' }}</code></td>
-                  <td>{% if element.metadata.required and prop_name in element.metadata.required %}Yes{% else %}No{% endif %}</td>
-                  <td>{{ prop_schema.description | default('—') }}</td>
+                  <td><code>{{ prop_schema.get('type', 'object') if prop_schema is mapping else 'object' }}</code></td>
+                  <td>{% if element.metadata.get('required') and prop_name in element.metadata.get('required', []) %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ prop_schema.get('description', '—') if prop_schema is mapping else '—' }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -82,10 +82,10 @@ This template receives:
           {% endif %}
 
           {# Example #}
-          {% if element.metadata.example %}
+          {% if element.metadata.get('example') %}
           <section class="api-section api-section--example">
             <h2 class="api-section__title">Example</h2>
-            <pre class="api-example"><code class="language-json">{{ element.metadata.example | tojson(indent=2) }}</code></pre>
+            <pre class="api-example"><code class="language-json">{{ element.metadata.get('example') | tojson(indent=2) }}</code></pre>
           </section>
           {% endif %}
         </div>

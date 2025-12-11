@@ -41,6 +41,44 @@ class OpenAPIExtractor(Extractor):
     Supports OpenAPI 3.0 and 3.1 (YAML or JSON).
     """
 
+    def __init__(self) -> None:
+        """Initialize the extractor."""
+        self._spec: dict[str, Any] = {}
+
+    def _resolve_ref(self, ref_or_obj: dict[str, Any]) -> dict[str, Any]:
+        """
+        Resolve a $ref reference to its actual definition.
+
+        Args:
+            ref_or_obj: Either a dict with $ref key, or a regular object
+
+        Returns:
+            Resolved object with actual properties
+        """
+        if not isinstance(ref_or_obj, dict):
+            return ref_or_obj
+
+        if "$ref" not in ref_or_obj:
+            return ref_or_obj
+
+        ref_path = ref_or_obj["$ref"]
+        if not ref_path.startswith("#/"):
+            # External references not supported
+            logger.warning(f"External $ref not supported: {ref_path}")
+            return ref_or_obj
+
+        # Parse the JSON pointer (e.g., "#/components/parameters/UserId")
+        parts = ref_path[2:].split("/")  # Remove "#/" and split
+        result = self._spec
+        for part in parts:
+            if isinstance(result, dict) and part in result:
+                result = result[part]
+            else:
+                logger.warning(f"Could not resolve $ref: {ref_path}")
+                return ref_or_obj
+
+        return result if isinstance(result, dict) else ref_or_obj
+
     def extract(self, source: Path) -> list[DocElement]:
         """
         Extract documentation elements from OpenAPI spec file.
@@ -64,6 +102,9 @@ class OpenAPIExtractor(Extractor):
         except Exception as e:
             logger.error(f"Failed to parse OpenAPI spec {source}: {e}")
             return []
+
+        # Store spec for $ref resolution
+        self._spec = spec
 
         elements: list[DocElement] = []
 
@@ -154,8 +195,8 @@ class OpenAPIExtractor(Extractor):
         paths = spec.get("paths", {})
 
         for path, path_item in paths.items():
-            # Handle common parameters at path level
-            path_params = path_item.get("parameters", [])
+            # Handle common parameters at path level (resolve $refs)
+            path_params = [self._resolve_ref(p) for p in path_item.get("parameters", [])]
 
             for method in ["get", "post", "put", "delete", "patch", "head", "options"]:
                 if method not in path_item:
@@ -163,8 +204,8 @@ class OpenAPIExtractor(Extractor):
 
                 operation = path_item[method]
 
-                # Merge path-level parameters with operation-level parameters
-                op_params = operation.get("parameters", [])
+                # Merge path-level parameters with operation-level parameters (resolve $refs)
+                op_params = [self._resolve_ref(p) for p in operation.get("parameters", [])]
                 all_params = path_params + op_params
 
                 # Construct name like "GET /users"
@@ -182,10 +223,11 @@ class OpenAPIExtractor(Extractor):
                     for p in all_params
                 )
 
-                # Build typed request body
+                # Build typed request body (resolve $ref if present)
                 typed_request_body = None
                 req_body = operation.get("requestBody")
                 if req_body:
+                    req_body = self._resolve_ref(req_body)
                     content = req_body.get("content", {})
                     content_type = next(iter(content.keys()), "application/json")
                     schema_ref = content.get(content_type, {}).get("schema", {}).get("$ref")
@@ -196,7 +238,11 @@ class OpenAPIExtractor(Extractor):
                         description=req_body.get("description", ""),
                     )
 
-                # Build typed responses
+                # Build typed responses (resolve $refs)
+                raw_responses = operation.get("responses") or {}
+                resolved_responses = {
+                    status: self._resolve_ref(resp) for status, resp in raw_responses.items()
+                }
                 typed_responses = tuple(
                     OpenAPIResponseMetadata(
                         status_code=str(status),
@@ -213,7 +259,7 @@ class OpenAPIExtractor(Extractor):
                             else None
                         ),
                     )
-                    for status, resp in (operation.get("responses") or {}).items()
+                    for status, resp in resolved_responses.items()
                 )
 
                 # Build typed metadata
@@ -243,9 +289,9 @@ class OpenAPIExtractor(Extractor):
                         "summary": operation.get("summary"),
                         "operation_id": operation.get("operationId"),
                         "tags": operation.get("tags", []),
-                        "parameters": all_params,
-                        "request_body": operation.get("requestBody"),
-                        "responses": operation.get("responses"),
+                        "parameters": all_params,  # Already resolved above
+                        "request_body": req_body if req_body else None,  # Use resolved request body
+                        "responses": resolved_responses,  # Use resolved responses
                         "security": operation.get("security"),
                         "deprecated": operation.get("deprecated", False),
                     },
@@ -259,18 +305,9 @@ class OpenAPIExtractor(Extractor):
 
     def _extract_schemas(self, spec: dict[str, Any]) -> list[DocElement]:
         """Extract component schemas."""
-        print("DEBUG: _extract_schemas called")
         elements = []
         components = spec.get("components", {})
-        print(f"DEBUG: Components type: {type(components)}")
-        print(
-            f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}"
-        )
         schemas = components.get("schemas", {})
-        print(f"DEBUG: Schemas type: {type(schemas)}")
-        print(
-            f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}"
-        )
 
         for name, schema in schemas.items():
             # Build typed metadata

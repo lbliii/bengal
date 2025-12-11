@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{#
+OpenAPI Reference Overview Template
+
+Renders the API overview page with information from the OpenAPI info object.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+
+This template receives:
+- element: DocElement for the overview
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      <div class="docs-content">
+        {# OpenAPI Overview Content #}
+        <div class="api-explorer">
+          <header class="api-module-header">
+            <div class="api-module-header__badges">
+              <span class="api-badge api-badge--info">REST API</span>
+              {% if element.metadata.version %}
+              <span class="api-badge api-badge--version">v{{ element.metadata.version }}</span>
+              {% endif %}
+            </div>
+
+            <h1 class="api-module-header__title">{{ element.name }}</h1>
+
+            {% if element.description %}
+            <div class="api-module-header__description">{{ element.description | safe }}</div>
+            {% endif %}
+          </header>
+
+          {# Servers #}
+          {% if element.metadata.servers %}
+          <section class="api-section api-section--servers">
+            <h2 class="api-section__title">Base URLs</h2>
+            <ul class="api-server-list">
+              {% for server in element.metadata.servers %}
+              <li class="api-server-item">
+                <code class="api-server-url">{{ server.url if server.url is defined else server }}</code>
+                {% if server.description is defined %}
+                <span class="api-server-description">— {{ server.description }}</span>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% endif %}
+
+          {# Tags / Endpoint Groups #}
+          {% if element.metadata.tags %}
+          <section class="api-section api-section--tags">
+            <h2 class="api-section__title">API Groups</h2>
+            <div class="api-tag-grid">
+              {% for tag in element.metadata.tags %}
+              <div class="api-tag-card">
+                <h3 class="api-tag-card__name">{{ tag.name if tag.name is defined else tag }}</h3>
+                {% if tag.description is defined %}
+                <p class="api-tag-card__description">{{ tag.description }}</p>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
+
+          {# Authentication / Security Schemes #}
+          {% if element.metadata.security_schemes %}
+          <section class="api-section api-section--security">
+            <h2 class="api-section__title">Authentication</h2>
+            <table class="api-table api-table--compact">
+              <thead>
+                <tr>
+                  <th>Scheme</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for scheme_name, scheme in element.metadata.security_schemes.items() %}
+                <tr>
+                  <td><code>{{ scheme_name }}</code></td>
+                  <td>
+                    {% if scheme.type == 'http' %}
+                    {{ scheme.scheme | default('bearer') | title }} ({{ scheme.bearerFormat | default('Token') }})
+                    {% elif scheme.type == 'apiKey' %}
+                    API Key ({{ scheme.in }}: {{ scheme.name }})
+                    {% elif scheme.type == 'oauth2' %}
+                    OAuth 2.0
+                    {% else %}
+                    {{ scheme.type }}
+                    {% endif %}
+                  </td>
+                  <td>{{ scheme.description | default('—') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          {% endif %}
+
+          {# Quick Links to Endpoints and Schemas #}
+          <section class="api-section api-section--quicklinks">
+            <h2 class="api-section__title">Explore</h2>
+            <div class="api-quicklinks">
+              {% set base_url = page.section.url if page.section else page.url %}
+              <a href="{{ base_url }}endpoints/" class="api-quicklink-card">
+                <span class="api-quicklink-card__icon">{{ icon("zap", size=24, css_class="icon-success") }}</span>
+                <span class="api-quicklink-card__label">Endpoints</span>
+                <span class="api-quicklink-card__description">Browse API operations</span>
+              </a>
+              <a href="{{ base_url }}schemas/" class="api-quicklink-card">
+                <span class="api-quicklink-card__icon">{{ icon("layers", size=24, css_class="icon-info") }}</span>
+                <span class="api-quicklink-card__label">Schemas</span>
+                <span class="api-quicklink-card__description">View data models</span>
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

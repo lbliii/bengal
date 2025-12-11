@@ -18,12 +18,14 @@ Designed for: module.html, class pages, function pages
 
 {% if page %}
 {# Compute stats from element if available #}
-{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list if element is defined else
-[] %}
-{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list if element is defined
-else [] %}
-{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list if element is defined else
-[] %}
+{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list if element is defined else [] %}
+{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list if element is defined else [] %}
+{% set methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list if element is defined else [] %}
+{# CLI-specific stats #}
+{% set commands = (element.children or []) | selectattr('element_type', 'eq', 'command') | list if element is defined else [] %}
+{% set command_groups = (element.children or []) | selectattr('element_type', 'eq', 'command-group') | list if element is defined else [] %}
+{% set options = (element.children or []) | selectattr('element_type', 'eq', 'option') | list if element is defined else [] %}
+{% set arguments = (element.children or []) | selectattr('element_type', 'eq', 'argument') | list if element is defined else [] %}
 
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -183,6 +185,42 @@ else [] %}
         <span class="page-hero__stat-value">{{ methods | length }}</span>
         <span class="page-hero__stat-label">{{ 'Method' if methods | length == 1 else 'Methods' }}</span>
       </span>
+    </div>
+    {% endif %}
+
+    {# Stats for CLI command groups #}
+    {% if commands | length > 0 or command_groups | length > 0 %}
+    <div class="page-hero__stats">
+      {% if command_groups | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ command_groups | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Group' if command_groups | length == 1 else 'Groups' }}</span>
+      </span>
+      {% endif %}
+      {% if commands | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ commands | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Command' if commands | length == 1 else 'Commands' }}</span>
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Stats for CLI commands #}
+    {% if options | length > 0 or arguments | length > 0 %}
+    <div class="page-hero__stats">
+      {% if options | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ options | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Option' if options | length == 1 else 'Options' }}</span>
+      </span>
+      {% endif %}
+      {% if arguments | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ arguments | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Argument' if arguments | length == 1 else 'Arguments' }}</span>
+      </span>
+      {% endif %}
     </div>
     {% endif %}
   </div>

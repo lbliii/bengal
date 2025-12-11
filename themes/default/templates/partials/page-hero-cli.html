@@ -1,0 +1,112 @@
+{#
+Page Hero - CLI Reference Variant
+
+Unified hero for CLI documentation pages that combines:
+- Breadcrumbs + share (matches api hero layout)
+- Badges for Command / Command Group
+- Title + description
+- Source link + stats (options/arguments/examples or child commands)
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+
+{% macro get_page_url(page) -%}
+{{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
+{% if page %}
+{# Collect CLI stats #}
+{% set children = element.children or [] if element is defined else [] %}
+{% set options = children | selectattr('element_type', 'eq', 'option') | list %}
+{% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
+{% set examples = element.examples or [] if element is defined else [] %}
+{% set commands = children | selectattr('element_type', 'eq', 'command') | list %}
+{% set groups = children | selectattr('element_type', 'eq', 'command-group') | list %}
+
+<div class="page-hero page-hero--api">
+  <div class="page-hero__top">
+    <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+      {% set breadcrumb_items = get_breadcrumbs(page) %}
+      {% if breadcrumb_items and breadcrumb_items | length > 1 %}
+      <ol class="page-hero__breadcrumbs">
+        {% for item in breadcrumb_items[:-1] %}
+        <li>
+          <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </nav>
+  </div>
+
+  {# Badge row #}
+  <div class="page-hero__badges">
+    {% if element is defined and element.element_type == 'command-group' %}
+    <span class="api-badge--compact api-badge--command-group">Command Group</span>
+    {% else %}
+    <span class="api-badge--compact api-badge--command">Command</span>
+    {% endif %}
+  </div>
+
+  {# Title (qualified name preferred) #}
+  {% if element is defined and element.qualified_name %}
+  <h1 class="page-hero__title page-hero__title--code">
+    <code>{{ element.qualified_name }}</code>
+  </h1>
+  {% else %}
+  <h1 class="page-hero__title">{{ page.title }}</h1>
+  {% endif %}
+
+  {# Description #}
+  {% set description = element.description if (element is defined and element.description) else page.metadata.get('description', '') %}
+  {% if description %}
+  <div class="page-hero__description page-hero__description--prose">
+    {{ description | markdownify | safe }}
+  </div>
+  {% endif %}
+
+  {# Footer: Source link + Stats #}
+  <div class="page-hero__footer">
+    {% if (element.display_source_file or element.source_file) and config is defined %}
+    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+      class="page-hero__source-link" target="_blank" rel="noopener">
+      {{ icon('file-code', size=14) }}
+      <span>View source</span>
+    </a>
+    {% endif %}
+
+    <div class="page-hero__stats">
+      {% if options | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ options | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Option' if options | length == 1 else 'Options' }}</span>
+      </span>
+      {% endif %}
+      {% if arguments | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ arguments | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Argument' if arguments | length == 1 else 'Arguments' }}</span>
+      </span>
+      {% endif %}
+      {% if examples | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ examples | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Example' if examples | length == 1 else 'Examples' }}</span>
+      </span>
+      {% endif %}
+      {% if commands | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ commands | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Command' if commands | length == 1 else 'Commands' }}</span>
+      </span>
+      {% endif %}
+      {% if groups | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ groups | length }}</span>
+        <span class="page-hero__stat-label">{{ 'Group' if groups | length == 1 else 'Groups' }}</span>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

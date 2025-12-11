@@ -849,11 +849,11 @@ class PythonExtractor(Extractor):
             Path relative to source root (e.g., "bengal/core/page.py")
         """
         if self._source_root:
-            try:
-                # Get path relative to source root's parent (to include package name)
-                return file_path.relative_to(self._source_root.parent)
-            except ValueError:
-                pass
+            for base in (self._source_root, self._source_root.parent):
+                try:
+                    return file_path.relative_to(base)
+                except ValueError:
+                    continue
         return file_path
 
     def _should_include_inherited(self, element_type: str = "class") -> bool:

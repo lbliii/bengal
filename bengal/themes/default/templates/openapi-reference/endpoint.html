@@ -75,13 +75,15 @@ This template receives:
               </thead>
               <tbody>
                 {% for param in element.metadata.parameters %}
+                {% if param.get('name') %}
                 <tr>
-                  <td><code>{{ param.name }}</code></td>
-                  <td><code>{{ param.in }}</code></td>
-                  <td><code>{{ param.schema.type if param.schema else 'string' }}</code></td>
-                  <td>{% if param.required %}Yes{% else %}No{% endif %}</td>
-                  <td>{{ param.description | default('—') }}</td>
+                  <td><code>{{ param.get('name', '—') }}</code></td>
+                  <td><code>{{ param.get('in', 'query') }}</code></td>
+                  <td><code>{{ param.get('schema', {}).get('type', 'string') }}</code></td>
+                  <td>{% if param.get('required') %}Yes{% else %}No{% endif %}</td>
+                  <td>{{ param.get('description', '—') }}</td>
                 </tr>
+                {% endif %}
                 {% endfor %}
               </tbody>
             </table>

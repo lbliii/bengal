@@ -24,40 +24,47 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description #}
-    {% include 'partials/page-hero.html' %}
+    {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+    {% include 'partials/page-hero-api.html' %}
 
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      {# Build module list once for counts + cards #}
+      {% set module_pages = [] %}
+      {% for page in section.sorted_pages %}
+        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
+          {% set _ = module_pages.append(page) %}
+        {% endif %}
+      {% endfor %}
+
+      {# Overview card: description + quick stats #}
+      <div class="api-section-overview">
+        {% set section_desc = section.metadata.description | default('') %}
+        {% if section_desc %}
+        <p class="api-section-overview__description">{{ section_desc | first_sentence }}</p>
+        {% else %}
+        <p class="api-section-overview__description">Browse {{ section.name }} packages and modules.</p>
+        {% endif %}
+
+        <div class="api-section-overview__stats">
+          {% if section.sorted_subsections %}
+          <span class="api-pill">
+            {{ icon("folder", size=14, css_class="icon-muted") }}
+            <span class="api-pill__label">{{ section.sorted_subsections | length }} package{{ 's' if section.sorted_subsections | length != 1 else '' }}</span>
+          </span>
+          {% endif %}
+          {% if module_pages %}
+          <span class="api-pill">
+            {{ icon("code", size=14, css_class="icon-muted") }}
+            <span class="api-pill__label">{{ module_pages | length }} module{{ 's' if module_pages | length != 1 else '' }}</span>
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
       <div class="docs-content">
         {# API Explorer Section Index Content #}
         <div class="api-explorer api-explorer--index">
-          <header class="api-section-header">
-            <h1 class="api-section-header__title">{{ section.title }}</h1>
-            {% if section.metadata.description %}
-            <p class="api-section-header__description">{{ section.metadata.description | first_sentence }}</p>
-            {% else %}
-            <p class="api-section-header__description">Browse {{ section.name }} packages and modules.</p>
-            {% endif %}
-          </header>
-
-          {# Quick Stats Bar #}
-          <div class="api-stats">
-            {% if section.subsections %}
-            <span class="api-stat">
-              <span class="api-stat__count">{{ section.subsections | length }}</span>
-              <span class="api-stat__label">Packages</span>
-            </span>
-            {% endif %}
-            {% set module_pages = section.sorted_pages | selectattr('metadata.element_type', 'defined') | list %}
-            {% if module_pages %}
-            <span class="api-stat">
-              <span class="api-stat__count">{{ module_pages | length }}</span>
-              <span class="api-stat__label">Modules</span>
-            </span>
-            {% endif %}
-          </div>
-
           {# Subsections (Packages) - Card Grid #}
           {% if section.sorted_subsections %}
           <section class="api-section api-section--packages">
@@ -93,13 +100,6 @@ This template receives:
           {% endif %}
 
           {# Module Pages - Card Grid #}
-          {% set module_pages = [] %}
-          {% for page in section.sorted_pages %}
-            {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-              {% set _ = module_pages.append(page) %}
-            {% endif %}
-          {% endfor %}
-
           {% if module_pages %}
           <section class="api-section api-section--modules">
             <h2 class="api-section__title">Modules</h2>

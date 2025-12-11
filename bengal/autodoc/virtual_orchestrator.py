@@ -29,11 +29,36 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize github repo/branch for autodoc template consumption.
+
+    Mirrors RenderingPipeline._normalize_config for the subset we need
+    inside the autodoc orchestrator (owner/repo → https URL, default branch).
+    """
+    base = {}
+    if isinstance(site_config, dict):
+        base.update(site_config)
+    autodoc_cfg = base.get("autodoc", {}) or {}
+
+    github_repo = base.get("github_repo") or autodoc_cfg.get("github_repo", "")
+    if github_repo and not github_repo.startswith(("http://", "https://")):
+        github_repo = f"https://github.com/{github_repo}"
+
+    github_branch = base.get("github_branch") or autodoc_cfg.get("github_branch", "main")
+
+    normalized = dict(autodoc_cfg)
+    normalized["github_repo"] = github_repo
+    normalized["github_branch"] = github_branch
+    return normalized
+
+
 def _format_source_file_for_display(source_file: Path | str | None, root_path: Path) -> str | None:
     """
     Normalize source_file paths for GitHub links.
 
-    - Prefer paths relative to the project root
+    - Resolve relative paths against the site root (root_path)
+    - Prefer paths relative to the site root or its parent (repo root)
     - Otherwise return the POSIX-ified absolute path
     """
     if not source_file:
@@ -41,10 +66,34 @@ def _format_source_file_for_display(source_file: Path | str | None, root_path: P
 
     source_path = Path(source_file)
 
-    try:
-        return source_path.relative_to(root_path).as_posix()
-    except ValueError:
-        return source_path.as_posix()
+    def _collapse_to_repo_path(path_str: str) -> str:
+        parts = path_str.split("/")
+        if "bengal" in parts:
+            first = parts.index("bengal")
+            parts = parts[first:]
+            if len(parts) > 1 and parts[0] == parts[1]:
+                parts = parts[1:]
+            return "/".join(parts)
+        return path_str
+
+    bases = (root_path, root_path.parent)
+
+    if not source_path.is_absolute():
+        combined = (root_path / source_path).resolve()
+        for base in bases:
+            try:
+                return _collapse_to_repo_path(combined.relative_to(base).as_posix())
+            except ValueError:
+                continue
+        return _collapse_to_repo_path(source_path.as_posix())
+
+    for base in bases:
+        try:
+            return _collapse_to_repo_path(source_path.relative_to(base).as_posix())
+        except ValueError:
+            continue
+
+    return _collapse_to_repo_path(source_path.as_posix())
 
 
 @dataclass
@@ -181,6 +230,7 @@ class VirtualAutodocOrchestrator:
         self.site = site
         # Use site's config directly (supports both YAML and TOML)
         self.config = site.config.get("autodoc", {})
+        self.normalized_config = _normalize_autodoc_config(site.config)
         self.python_config = self.config.get("python", {})
         self.cli_config = self.config.get("cli", {})
         self.openapi_config = self.config.get("openapi", {})
@@ -1090,7 +1140,7 @@ class VirtualAutodocOrchestrator:
             return template.render(
                 element=element,
                 page=page_context,
-                config=self.config,
+                config=self.normalized_config,
                 site=self.site,
             )
         except Exception as e:
@@ -1101,7 +1151,7 @@ class VirtualAutodocOrchestrator:
                 return template.render(
                     element=element,
                     page=page_context,
-                    config=self.config,
+                    config=self.normalized_config,
                     site=self.site,
                 )
             except Exception as fallback_error:

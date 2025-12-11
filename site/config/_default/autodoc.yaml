@@ -43,3 +43,8 @@ autodoc:
     app_module: "bengal.cli:main"
     framework: click
     # output_dir: removed - virtual pages always output to site.output_dir (public/)
+
+  # OpenAPI Documentation
+  openapi:
+    enabled: true
+    spec_file: "api/openapi.yaml"  # Relative to site root
