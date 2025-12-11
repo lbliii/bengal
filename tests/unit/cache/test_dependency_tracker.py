@@ -30,7 +30,9 @@ class TestDependencyTracker:
 
         # current_page is now thread-local, access via .value
         assert tracker.current_page.value == page
-        assert str(page) in cache.file_hashes
+        # Note: File hashes are NOT updated in start_page - they are updated
+        # in IncrementalOrchestrator.save_cache() AFTER successful rendering.
+        # This prevents cache invalidation during the cache check phase.
 
     def test_end_page(self, tmp_path):
         """Test ending page tracking."""

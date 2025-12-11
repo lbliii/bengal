@@ -492,11 +492,11 @@ class TestHealthReportFormatting:
 
         output = report.format_console(mode="normal")
 
-        # Should have summary with counts
+        # Should have summary with error/warning counts
+        # Note: Summary line shows "X error(s), Y warning(s)" format
         assert "Summary:" in output
-        assert "1 passed" in output
-        assert "1 warning" in output
         assert "1 error" in output
+        assert "1 warning" in output
         assert "Build Quality:" in output
 
 
