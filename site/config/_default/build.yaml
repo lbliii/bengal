@@ -7,6 +7,13 @@ build:
   incremental: true
   max_workers: null  # Auto-detect CPU cores (11 on this machine)
 
+# Build-time badge artifacts (written after build finishes)
+# Outputs:
+# - public/bengal/build.svg
+# - public/bengal/build.json
+build_badge:
+  enabled: true
+
 assets:
   minify: true
   fingerprint: true
