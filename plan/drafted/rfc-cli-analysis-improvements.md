@@ -15,7 +15,7 @@ Reviewed: 2025-12-10
 
 **Problem**: Graph analysis commands are hidden under `bengal utils graph`, require 4 separate commands for full analysis, and report false orphans for structurally-linked pages (e.g., release notes in sections).
 
-**Solution**: 
+**Solution**:
 1. **CLI**: Promote `graph` to top-level, add unified `report` command, add `bengal analyze` alias
 2. **Semantic Links**: Track section hierarchy and next/prev relationships with configurable weights
 3. **Connectivity Levels**: Replace binary orphan/not-orphan with continuous scoring (Isolated → Lightly → Adequately → Well-Connected)
@@ -56,7 +56,7 @@ Bengal's graph analysis commands provide valuable site structure insights but su
    - ✅ Taxonomy membership
    - ✅ Related posts
    - ✅ Menu items
-   
+
    **Missing (causes false orphans)**:
    - ❌ Section hierarchy (parent `_index.md` → children)
    - ❌ Sequential navigation (next/prev in section)
@@ -248,7 +248,7 @@ New command at `bengal/cli/commands/graph/report.py`:
 @click.command("report")
 @click.option("--brief", is_flag=True, help="Compact output for CI")
 @click.option("--ci", is_flag=True, help="Exit 1 if thresholds exceeded")
-@click.option("--threshold-orphans", type=int, default=None, 
+@click.option("--threshold-orphans", type=int, default=None,
               help="Max orphans before CI failure")
 @click.option("--threshold-link-density", type=float, default=None,
               help="Min links/page before CI failure")
@@ -257,9 +257,9 @@ New command at `bengal/cli/commands/graph/report.py`:
 def report(brief, ci, threshold_orphans, threshold_link_density, format):
     """
     📊 Generate comprehensive site analysis report.
-    
+
     Combines: analyze, suggest, bridges, communities
-    
+
     Examples:
         bengal graph report
         bengal graph report --brief
@@ -276,7 +276,7 @@ def report(brief, ci, threshold_orphans, threshold_link_density, format):
    Link density: 1.9/page (low)
    Top bridges: Formatting Directives, Icon Reference
    Communities: 9 major clusters
-   
+
 ⚠️ 43 orphans exceed recommended threshold (10)
 ```
 
@@ -292,7 +292,7 @@ New command at `bengal/cli/commands/graph/orphans.py`:
 def orphans(format, limit):
     """
     🔍 List pages with no incoming links.
-    
+
     Examples:
         bengal graph orphans
         bengal graph orphans --format paths  # Just file paths
@@ -302,7 +302,7 @@ def orphans(format, limit):
 
 ### 4. Enhance Existing ConnectivityValidator
 
-The `ConnectivityValidator` already exists at `bengal/health/validators/connectivity.py:27-331`. 
+The `ConnectivityValidator` already exists at `bengal/health/validators/connectivity.py:27-331`.
 It currently uses binary orphan detection. **Enhance it** to support semantic link awareness:
 
 ```python
@@ -310,20 +310,20 @@ It currently uses binary orphan detection. **Enhance it** to support semantic li
 
 class ConnectivityValidator(BaseValidator):
     """Validates site connectivity and link structure."""
-    
+
     name = "Connectivity"  # Already exists
-    
+
     def validate(self, site: Site, build_context: BuildContext | Any | None = None) -> list[CheckResult]:
         # ... existing code ...
-        
+
         # ENHANCEMENT: Use connectivity levels instead of binary orphan check
         try:
             # Get pages by connectivity level (NEW)
             connectivity_report = graph.get_connectivity_report()
-            
+
             isolated = connectivity_report.get("isolated", [])
             lightly_linked = connectivity_report.get("lightly_linked", [])
-            
+
             # Check 1: Truly isolated pages (score < 0.25)
             if isolated:
                 orphan_threshold = site.config.get("health_check", {}).get("orphan_threshold", 5)
@@ -343,7 +343,7 @@ class ConnectivityValidator(BaseValidator):
                             details=[f"  • {p.source_path.name}" for p in isolated[:5]],
                         )
                     )
-            
+
             # Check 2: Lightly linked pages (NEW - 0.25 <= score < 1.0)
             if lightly_linked:
                 lightly_threshold = site.config.get("health_check", {}).get("lightly_linked_threshold", 20)
@@ -444,11 +444,11 @@ class LinkType(Enum):
     # Human-authored (high editorial intent)
     EXPLICIT = "explicit"           # [text](url) in content
     MENU = "menu"                   # Navigation menu item
-    
+
     # Algorithmic (medium intent)
     TAXONOMY = "taxonomy"           # Shared tags/categories
     RELATED = "related"             # Computed related posts
-    
+
     # Structural (semantic context, low editorial intent)
     TOPICAL = "topical"             # Parent section → child
     SEQUENTIAL = "sequential"       # Next/prev in section
@@ -463,11 +463,11 @@ class LinkMetrics:
     related: int = 0        # Weight: 0.75
     topical: int = 0        # Weight: 0.5 (NEW)
     sequential: int = 0     # Weight: 0.25 (NEW)
-    
+
     def connectivity_score(self) -> float:
         """
         Weighted connectivity score (continuous, 0 to ∞).
-        
+
         Higher = better connected, more discoverable.
         """
         return (
@@ -478,11 +478,11 @@ class LinkMetrics:
             self.topical * 0.5 +
             self.sequential * 0.25
         )
-    
+
     def has_human_links(self) -> bool:
         """True if page has any human-authored links."""
         return self.explicit > 0 or self.menu > 0
-    
+
     def has_structural_links(self) -> bool:
         """True if page has structural links (section/nav)."""
         return self.topical > 0 or self.sequential > 0
@@ -491,14 +491,14 @@ class LinkMetrics:
 class ConnectivityLevel(Enum):
     """
     Connectivity classification based on weighted score thresholds.
-    
+
     NOT binary - uses configurable thresholds for nuanced analysis.
     """
     WELL_CONNECTED = "well_connected"     # Score >= 2.0 (no action needed)
     ADEQUATELY_LINKED = "adequately"      # Score 1.0-2.0 (could improve)
     LIGHTLY_LINKED = "lightly"            # Score 0.25-1.0 (should improve)
     ISOLATED = "isolated"                 # Score < 0.25 (needs attention)
-    
+
     @classmethod
     def from_score(cls, score: float, thresholds: dict | None = None) -> "ConnectivityLevel":
         """Classify based on score and configurable thresholds."""
@@ -529,32 +529,32 @@ Add to `bengal/analysis/knowledge_graph.py`:
 def _analyze_section_hierarchy(self) -> None:
     """
     Analyze implicit section links (parent _index.md → children).
-    
+
     Section index pages implicitly link to all child pages in their
     directory. This represents topical containment—the parent page
     defines the topic, children belong to that topic.
-    
+
     Weight: 0.5 (structural but semantically meaningful)
     """
     analysis_pages_set = set(self.get_analysis_pages())
-    
+
     for page in self.get_analysis_pages():
         # Only process index pages
         if not getattr(page, 'is_index', False):
             continue
-        
+
         # Get the section this index belongs to
         section = getattr(page, 'section', None)
         if not section:
             continue
-        
+
         # Link to all child pages in this section
         for child in getattr(section, 'pages', []):
             if child != page and child in analysis_pages_set:
                 # Topical link: parent defines topic, child belongs to it
                 self.incoming_refs[child] += 0.5  # Reduced weight
                 self.outgoing_refs[page].add(child)
-                
+
                 # Track link type for detailed reporting
                 if hasattr(self, 'link_types'):
                     self.link_types[(page, child)] = LinkType.TOPICAL
@@ -563,14 +563,14 @@ def _analyze_section_hierarchy(self) -> None:
 def _analyze_navigation_links(self) -> None:
     """
     Analyze next/prev sequential relationships.
-    
+
     Pages in a section often have prev/next relationships representing
     a reading order or logical sequence (e.g., tutorial steps, changelogs).
-    
+
     Weight: 0.25 (pure navigation, lowest editorial intent)
     """
     analysis_pages_set = set(self.get_analysis_pages())
-    
+
     for page in self.get_analysis_pages():
         # Check next_in_section
         next_page = getattr(page, 'next_in_section', None)
@@ -579,7 +579,7 @@ def _analyze_navigation_links(self) -> None:
             self.outgoing_refs[page].add(next_page)
             if hasattr(self, 'link_types'):
                 self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
-        
+
         # Check prev_in_section (bidirectional)
         prev_page = getattr(page, 'prev_in_section', None)
         if prev_page and prev_page in analysis_pages_set:
@@ -634,7 +634,7 @@ Distribution:
    • /content/orphan.md (score: 0.0)
    • /random/forgotten.md (score: 0.0)
    • /test/temp.md (score: 0.0)
-   
+
 🟠 Lightly linked pages (10) - could use more connections:
    • /releases/0.1.0.md (score: 0.5) - only section link
    • /blog/archive/2020.md (score: 0.5) - only section link
@@ -890,4 +890,3 @@ bengal graph analyze --verbose  # Check current orphan count
 2. **Start with Phase 1** (CLI commands) for immediate usability wins
 3. **Phase 2** (semantic links) will resolve false orphan reports
 4. **Validate empirically** on Bengal site before finalizing weights/thresholds
-

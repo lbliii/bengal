@@ -162,7 +162,7 @@ class LinkMetrics:
     related: int = 0
     topical: int = 0
     sequential: int = 0
-    
+
     def connectivity_score(self, weights: dict | None = None) -> float:
         """Weighted connectivity score."""
         w = weights or DEFAULT_WEIGHTS
@@ -280,7 +280,7 @@ class ConnectivityLevel(Enum):
     ADEQUATELY_LINKED = "adequately"      # Score 1.0-2.0
     LIGHTLY_LINKED = "lightly"            # Score 0.25-1.0
     ISOLATED = "isolated"                 # Score < 0.25
-    
+
     @classmethod
     def from_score(cls, score: float, thresholds: dict | None = None) -> "ConnectivityLevel":
         t = thresholds or DEFAULT_THRESHOLDS
@@ -675,4 +675,3 @@ git commit -m "docs(cli): document graph commands and analyze alias"
 git commit -m "docs: add how-to guide for site structure analysis"
 git commit -m "docs: document semantic link model and connectivity scoring"
 ```
-

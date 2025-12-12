@@ -69,6 +69,59 @@ This design made sense when only one autodoc type was enabled, but creates disco
 
 ---
 
+## Architecture Impact
+
+### Affected Subsystems
+
+| Subsystem | Impact | Files |
+|-----------|--------|-------|
+| **Autodoc** (`bengal/autodoc/`) | Primary | `config.py`, `virtual_orchestrator.py` |
+| **Cache** (`bengal/cache/`) | Indirect | Cache keys include URL paths; prefix changes invalidate entries |
+| **Core** (`bengal/core/`) | None | Section/Page models unchanged |
+| **Orchestration** (`bengal/orchestration/`) | None | Build flow unchanged |
+| **Rendering** (`bengal/rendering/`) | None | Templates receive sections as before |
+
+### Integration Points
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Config Loading                               │
+│  autodoc.yaml → load_autodoc_config() → output_prefix defaults  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               VirtualAutodocOrchestrator                        │
+│  _resolve_output_prefix() → prefix per doc type                 │
+│  _derive_openapi_prefix() → auto-derive from spec title         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 Section Creation                                │
+│  _create_python_sections() → /api/python/...                    │
+│  _create_openapi_sections() → /api/{slug}/...                   │
+│  _create_cli_sections() → /cli/...                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 Page Generation                                 │
+│  _create_pages() → pages with prefixed URLs                     │
+│  _get_element_metadata() → template + URL path resolution       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Design Constraints
+
+1. **Sections are keyed by path**: The `sections` dict uses URL paths as keys. Changing prefixes changes keys but doesn't affect lookup logic.
+
+2. **No cross-subsystem coupling**: Prefix resolution is isolated to `VirtualAutodocOrchestrator`. Downstream consumers (rendering, cache) receive fully-formed Section/Page objects.
+
+3. **Cache invalidation is acceptable**: When `output_prefix` changes, autodoc cache entries become stale. This is expected behavior—the user explicitly requested different URLs.
+
+---
+
 ## Design Options
 
 ### Option A: Separate Prefixes Under `/api/` (Recommended)
@@ -296,11 +349,17 @@ def _derive_openapi_prefix(self) -> str:
     return "api/rest"
 
 def _slugify(self, text: str) -> str:
-    """Convert text to URL-friendly slug."""
+    """
+    Convert text to URL-friendly slug.
+
+    Note: Non-ASCII characters are stripped (not transliterated).
+    Users needing Unicode support should set explicit output_prefix.
+    """
     import re
     # Remove common suffixes
     text = re.sub(r'\s*(api|reference|documentation)$', '', text, flags=re.I)
     # Convert to lowercase, replace non-alphanum with hyphens
+    # Note: This strips Unicode chars; acceptable for MVP
     slug = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
     return slug or "rest"
 ```
@@ -422,7 +481,7 @@ If both Python and OpenAPI are enabled with overlapping prefixes, emit warning:
 
 1. **Prefix resolution**: Test `_resolve_output_prefix()` with various configs
 2. **Auto-derivation**: Test `_derive_openapi_prefix()` with different spec titles
-3. **Slugification**: Test `_slugify()` edge cases (empty, special chars, etc.)
+3. **Slugification**: Test `_slugify()` edge cases (see comprehensive cases below)
 
 ### Integration Tests
 
@@ -460,6 +519,47 @@ def test_sections_are_separate():
     assert python_section is not None
     assert openapi_section is not None
     assert python_section != openapi_section
+
+
+def test_slugify_edge_cases():
+    """Test slugification handles edge cases gracefully."""
+    orchestrator = VirtualAutodocOrchestrator(site)
+
+    # Empty/whitespace → fallback
+    assert orchestrator._slugify("") == "rest"
+    assert orchestrator._slugify("   ") == "rest"
+    assert orchestrator._slugify("API") == "rest"  # Only suffix stripped
+
+    # Common suffix stripping
+    assert orchestrator._slugify("Commerce API") == "commerce"
+    assert orchestrator._slugify("User Reference") == "user"
+    assert orchestrator._slugify("Auth Documentation") == "auth"
+
+    # Special characters
+    assert orchestrator._slugify("User & Auth API") == "user-auth"
+    assert orchestrator._slugify("v2.0 API") == "v2-0"
+
+    # Long titles (preserved, URL length is caller's concern)
+    long_title = "A" * 100 + " API"
+    assert orchestrator._slugify(long_title) == "a" * 100
+
+    # Unicode (basic transliteration)
+    assert orchestrator._slugify("Über API") == "ber"  # ü stripped
+    # Note: Full Unicode support is a non-goal; users can set explicit prefix
+
+
+def test_derive_openapi_prefix_missing_spec():
+    """Test fallback when spec file doesn't exist."""
+    site = site_without_spec_file()
+    orchestrator = VirtualAutodocOrchestrator(site)
+    assert orchestrator._derive_openapi_prefix() == "api/rest"
+
+
+def test_derive_openapi_prefix_missing_title():
+    """Test fallback when spec lacks info.title."""
+    site = site_with_spec_missing_title()
+    orchestrator = VirtualAutodocOrchestrator(site)
+    assert orchestrator._derive_openapi_prefix() == "api/rest"
 ```
 
 ---
@@ -556,6 +656,31 @@ autodoc:
 
 ---
 
+## Performance Impact
+
+### Build Time
+
+- **Prefix resolution**: Negligible (~0.1ms per doc type)
+- **Auto-derivation**: ~1-2ms for YAML title extraction (one-time per build)
+- **Overall**: No measurable impact on typical builds
+
+### Memory
+
+- **No change**: Prefixes are short strings stored in existing config dict
+- **Section paths**: Slightly longer keys in `sections` dict (e.g., `"api/python"` vs `"api"`)
+
+### Cache Implications
+
+| Scenario | Cache Behavior |
+|----------|---------------|
+| First build with new config | Cold build (expected) |
+| Prefix unchanged between builds | Full cache hit |
+| Prefix changed | Cache miss for affected doc type only |
+
+**Note**: Cache keys include URL paths. Changing `output_prefix` invalidates all autodoc-generated cache entries for that doc type. This is intentional—the user explicitly requested different output paths.
+
+---
+
 ## Open Questions
 
 1. **Q**: Should we support multiple OpenAPI specs in one site?  
@@ -567,6 +692,14 @@ autodoc:
 3. **Q**: Should CLI also support auto-derivation?  
    **A**: No clear source to derive from. Keep static default.
 
+4. **Q**: How should `_slugify()` handle Unicode characters (e.g., "Über API")?  
+   **A**: Current implementation strips non-ASCII characters. This is acceptable because:
+   - Full i18n URL handling is complex (punycode, transliteration libraries)
+   - Users needing specific Unicode handling can set explicit `output_prefix`
+   - Most API spec titles use ASCII
+
+   Future enhancement: Add optional `unidecode` dependency for transliteration.
+
 ---
 
 ## Decision
@@ -577,6 +710,15 @@ autodoc:
 - Smart defaults: `api/python`, `api/{spec-slug}`, `cli`
 - Clear separation in navigation
 - Backwards compatible with explicit prefix matching current behavior
+
+### Compatibility Matrix
+
+| Scenario | Before | After | Migration |
+|----------|--------|-------|-----------|
+| Python only | `/api/bengal/...` | `/api/python/bengal/...` | Set `output_prefix: "api"` to preserve URLs |
+| OpenAPI only | `/api/endpoints/...` | `/api/{spec-slug}/...` | Set `output_prefix: "api"` to preserve URLs |
+| Both enabled | Collision at `/api/` | Separate trees | No action needed (improvement) |
+| CLI only | `/cli/...` | `/cli/...` | No change |
 
 ---
 

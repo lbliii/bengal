@@ -183,7 +183,7 @@ strategy:
     method: build-time
     trigger: content_hash_change
     cache: persistent
-    
+
   dynamic_content:   # Blog, Changelog
     method: client-stream
     trigger: on_demand
@@ -311,7 +311,7 @@ bengal/
 ```python
 class TextExtractor:
     """Extract clean text for TTS from HTML content."""
-    
+
     EXCLUDE_SELECTORS = [
         "pre",           # Code blocks
         "code",          # Inline code
@@ -321,23 +321,23 @@ class TextExtractor:
         "script",        # Scripts
         "style",         # Styles
     ]
-    
+
     def extract(self, html: str, exclude: list[str] | None = None) -> str:
         """Extract readable text from HTML."""
         soup = BeautifulSoup(html, 'html.parser')
-        
+
         # Remove excluded elements
         for selector in (exclude or self.EXCLUDE_SELECTORS):
             for el in soup.select(selector):
                 el.decompose()
-        
+
         # Get text with natural spacing
         text = soup.get_text(separator=" ", strip=True)
-        
+
         # Clean up
         text = self._normalize_whitespace(text)
         text = self._handle_special_chars(text)
-        
+
         return text
 ```
 
@@ -357,24 +357,24 @@ class TTSCacheEntry:
 
 class TTSCache:
     """Cache manager for TTS audio files."""
-    
+
     def get_or_generate(
-        self, 
-        text: str, 
-        voice: str, 
+        self,
+        text: str,
+        voice: str,
         model: str,
         generator: TTSGenerator
     ) -> Path:
         """Get cached audio or generate new."""
         cache_key = self._make_key(text, voice, model)
-        
+
         if cached := self._get_cached(cache_key):
             return cached.audio_path
-        
+
         # Generate new audio
         audio_path = generator.generate(text, voice, model)
         self._store(cache_key, audio_path, text)
-        
+
         return audio_path
 ```
 
@@ -440,13 +440,13 @@ For comparison, other TTS options:
     <svg class="icon-play">...</svg>
     <svg class="icon-pause">...</svg>
   </button>
-  
+
   <div class="progress-container">
     <div class="progress-bar"></div>
     <span class="time-current">0:00</span>
     <span class="time-total">5:32</span>
   </div>
-  
+
   <div class="controls">
     <button class="speed" aria-label="Playback speed">1x</button>
     <button class="skip-back" aria-label="Skip back 10s">-10s</button>
@@ -522,11 +522,11 @@ if ('HTMLAudioElement' in window && document.querySelector('[data-audio-src]')) 
 ### Resolved
 
 1. **Scope**: Should TTS be opt-in per page or site-wide toggle?
-   
+
    **Decision**: **Opt-in per page via frontmatter** (recommended)
-   
+
    Rationale: Consistent with Bengal's existing feature flags (e.g., `draft: true`). Site-wide toggle in config enables/disables the feature, but individual pages opt-in via `tts.enabled: true` in frontmatter. This prevents unexpected API costs and gives authors control.
-   
+
    ```yaml
    # Page frontmatter - opt-in
    ---
@@ -537,11 +537,11 @@ if ('HTMLAudioElement' in window && document.querySelector('[data-audio-src]')) 
    ```
 
 4. **Code Blocks**: Skip entirely or announce "code block skipped"?
-   
+
    **Decision**: **Skip with brief announcement** (recommended)
-   
+
    Rationale: Silent skipping loses context; verbose announcements disrupt flow. Best practice: announce once per code block with "Code example omitted" (configurable). This follows WCAG accessibility guidelines for alternative content.
-   
+
    ```yaml
    # Config option
    [tts.generation]
@@ -621,4 +621,3 @@ Confidence = Evidence(40) + Consistency(30) + Recency(15) + Tests(15)
 - Cache Protocol: `bengal/cache/cacheable.py`
 - Config Loader: `bengal/config/loader.py`
 - Related RFC: `plan/implemented/rfc-media-embed-directives.md`
-
