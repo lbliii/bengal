@@ -1460,17 +1460,22 @@ class VirtualAutodocOrchestrator:
 
         parent_sections: dict[str, Section] = {}
 
-        # Find all unique parent paths that have multiple children
+        # Find all unique parent paths that have multiple IMMEDIATE children
         # e.g., "api" is parent of "api/python" and "api/bengal-demo-commerce"
+        # but NOT "api/python/analysis" (that's a grandchild, child of "api/python")
         parent_counts: dict[str, list[str]] = {}
         for section_path in sections:
-            if "/" in section_path:
-                parent = section_path.split("/")[0]
+            parts = section_path.split("/")
+            # Only count IMMEDIATE children (exactly one level deep from top-level)
+            # "api/python" → 2 parts, parent "api" ✓
+            # "api/python/analysis" → 3 parts (skip for top-level parent aggregation)
+            if len(parts) == 2:
+                parent = parts[0]
                 parent_counts.setdefault(parent, []).append(section_path)
 
-        # Create parent sections for paths with 2+ children
+        # Create parent sections for paths with 2+ immediate children
         for parent_path, child_paths in parent_counts.items():
-            # Skip if parent already exists or only one child
+            # Skip if parent already exists or only one immediate child
             if parent_path in sections or len(child_paths) < 2:
                 continue
 
@@ -1492,7 +1497,8 @@ class VirtualAutodocOrchestrator:
                 },
             )
 
-            # Link child sections as subsections
+            # Link only immediate child sections as subsections
+            # (nested sections like api/python/analysis are already children of api/python)
             for child_path in child_paths:
                 child_section = sections[child_path]
                 parent_section.add_subsection(child_section)

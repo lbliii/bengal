@@ -117,7 +117,7 @@ class CacheValidator(BaseValidator):
         results.extend(self._check_cache_size(cache_path, cache_data))
 
         # Check 5: Cache location correctness (new check for v0.1.2+)
-        if cache_path == cache_dir / "cache.json":
+        if cache_path == site.paths.build_cache:
             results.append(CheckResult.success("Cache at correct location (.bengal/)"))
         else:
             results.append(
