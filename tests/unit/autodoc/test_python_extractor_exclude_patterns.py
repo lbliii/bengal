@@ -16,8 +16,7 @@ def test_exclude_pattern_hidden_glob_does_not_skip_normal_files(tmp_path: Path) 
     """
     Pattern "*/.*" should match hidden files/dirs, not all paths.
     """
-    config = {"exclude": ["*/.*"]}
-    extractor = PythonExtractor(config=config)
+    extractor = PythonExtractor(exclude_patterns=["*/.*"], config={"exclude": ["*/.*"]})
 
     normal = tmp_path / "pkg" / "core" / "site.py"
     normal.parent.mkdir(parents=True)
@@ -27,8 +26,7 @@ def test_exclude_pattern_hidden_glob_does_not_skip_normal_files(tmp_path: Path) 
 
 
 def test_exclude_pattern_hidden_glob_skips_hidden_files(tmp_path: Path) -> None:
-    config = {"exclude": ["*/.*"]}
-    extractor = PythonExtractor(config=config)
+    extractor = PythonExtractor(exclude_patterns=["*/.*"], config={"exclude": ["*/.*"]})
 
     hidden = tmp_path / "pkg" / ".hidden" / "x.py"
     hidden.parent.mkdir(parents=True)
@@ -38,8 +36,7 @@ def test_exclude_pattern_hidden_glob_skips_hidden_files(tmp_path: Path) -> None:
 
 
 def test_exclude_pattern_filename_glob_skips_test_files(tmp_path: Path) -> None:
-    config = {"exclude": ["*_test.py"]}
-    extractor = PythonExtractor(config=config)
+    extractor = PythonExtractor(exclude_patterns=["*_test.py"], config={"exclude": ["*_test.py"]})
 
     test_file = tmp_path / "pkg" / "core" / "site_test.py"
     test_file.parent.mkdir(parents=True)
@@ -49,8 +46,7 @@ def test_exclude_pattern_filename_glob_skips_test_files(tmp_path: Path) -> None:
 
 
 def test_exclude_pattern_venv_glob_skips_venv_files(tmp_path: Path) -> None:
-    config = {"exclude": ["*/.venv/*"]}
-    extractor = PythonExtractor(config=config)
+    extractor = PythonExtractor(exclude_patterns=["*/.venv/*"], config={"exclude": ["*/.venv/*"]})
 
     venv_file = tmp_path / "pkg" / ".venv" / "lib" / "x.py"
     venv_file.parent.mkdir(parents=True)

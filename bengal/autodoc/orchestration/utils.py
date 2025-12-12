@@ -20,14 +20,17 @@ def get_template_dir_for_type(page_type: str) -> str:
     the page type to the appropriate template directory.
 
     Args:
-        page_type: The page type (e.g., 'python-reference', 'openapi-reference')
+        page_type: The page type (e.g., 'python-reference', 'openapi-reference', 'api-hub')
 
     Returns:
-        Template directory name (e.g., 'api-reference', 'openapi-reference')
+        Template directory name (e.g., 'api-reference', 'openapi-reference', 'api-hub')
     """
     # Python API docs use api-reference templates but have python-reference type for CSS
     if page_type == "python-reference":
         return "api-reference"
+    # api-hub type uses dedicated hub templates for aggregating sections
+    if page_type == "api-hub":
+        return "api-hub"
     # Other types use their own template directories
     return page_type
 

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{#
+API Hub Section Index Template
+
+Renders an aggregating section that shows all API documentation types (Python, REST, CLI)
+using a card-based layout. This template is used for sections with type="api-hub"
+which aggregate multiple autodoc outputs under a shared prefix (e.g., /api/).
+
+This template receives:
+- section: Section object for the aggregating section
+- page: Page object (section index page)
+- config: Autodoc configuration
+- site: Site instance
+
+The template can be overridden by creating content/<section>/_index.md with custom content.
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description #}
+    <div class="page-hero">
+      {# Breadcrumbs #}
+      {% if page.url != '/' %}
+      <nav class="page-hero__breadcrumbs" aria-label="Breadcrumb">
+        {{ breadcrumbs(page) }}
+      </nav>
+      {% endif %}
+
+      {# Title #}
+      <h1 class="page-hero__title">{{ section.title }}</h1>
+
+      {# Description #}
+      {% set desc = section.metadata.get('description', '') %}
+      {% if desc %}
+      <div class="page-hero__description page-hero__description--prose">
+        {{ desc | markdownify | safe }}
+      </div>
+      {% else %}
+      <p class="page-hero__description">Browse all API documentation for this project.</p>
+      {% endif %}
+
+      {# Stats showing child count #}
+      {% if section.sorted_subsections | length > 0 %}
+      <div class="page-hero__footer">
+        <div class="page-hero__stats">
+          <span class="page-hero__stat">
+            <span class="page-hero__stat-value">{{ section.sorted_subsections | length }}</span>
+            <span class="page-hero__stat-label">{{ 'API' if section.sorted_subsections | length == 1 else 'APIs' }}</span>
+          </span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Article Content #}
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      {# Check if there's custom content from _index.md #}
+      {% if content and content.strip() %}
+      <div class="docs-content api-hub-custom-content">
+        {{ content | safe }}
+      </div>
+      {% endif %}
+
+      <div class="docs-content">
+        {# API Hub Card Grid #}
+        <div class="api-explorer api-explorer--hub">
+          {% if section.sorted_subsections %}
+          <div class="api-hub-grid">
+            {% for subsection in section.sorted_subsections %}
+            {% set sub_type = subsection.metadata.get('type', 'python-reference') %}
+            {% set desc = subsection.metadata.get('description', '') | first_sentence %}
+            {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+
+            <a href="{{ subsection.url }}" class="api-hub-card api-hub-card--{{ sub_type }}">
+              <div class="api-hub-card__icon">
+                {# Icon based on autodoc type #}
+                {%- if 'python' in sub_type -%}
+                {{ icon("code", size=32, css_class="icon-python") }}
+                {%- elif 'openapi' in sub_type -%}
+                {{ icon("globe", size=32, css_class="icon-openapi") }}
+                {%- elif 'cli' in sub_type -%}
+                {{ icon("terminal", size=32, css_class="icon-cli") }}
+                {%- else -%}
+                {{ icon("book", size=32, css_class="icon-default") }}
+                {%- endif -%}
+              </div>
+
+              <div class="api-hub-card__content">
+                <h3 class="api-hub-card__title">{{ subsection.title }}</h3>
+                <p class="api-hub-card__description">
+                  {% if desc %}
+                  {{ desc }}
+                  {% else %}
+                  {# Default descriptions based on type #}
+                  {%- if 'python' in sub_type -%}
+                  Browse Python packages, modules, and classes.
+                  {%- elif 'openapi' in sub_type -%}
+                  Explore REST API endpoints and schemas.
+                  {%- elif 'cli' in sub_type -%}
+                  Command-line tools and options.
+                  {%- else -%}
+                  API documentation.
+                  {%- endif -%}
+                  {% endif %}
+                </p>
+              </div>
+
+              <div class="api-hub-card__footer">
+                <span class="api-hub-card__meta">
+                  {# Item count with appropriate label #}
+                  {%- if 'python' in sub_type -%}
+                  {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
+                  {%- elif 'openapi' in sub_type -%}
+                  {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
+                  {%- elif 'cli' in sub_type -%}
+                  {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
+                  {%- else -%}
+                  {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
+                  {%- endif -%}
+                </span>
+                <span class="api-hub-card__badge api-hub-card__badge--{{ sub_type }}">
+                  {%- if 'python' in sub_type -%}Python
+                  {%- elif 'openapi' in sub_type -%}REST
+                  {%- elif 'cli' in sub_type -%}CLI
+                  {%- else -%}API
+                  {%- endif -%}
+                </span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          {# Empty State #}
+          <div class="api-empty-state">
+            <div class="api-empty-state__icon">{{ icon("book-open", size=48, css_class="icon-muted") }}</div>
+            <p class="api-empty-state__text">No API documentation available yet.</p>
+            <p class="api-empty-state__hint">Enable Python, OpenAPI, or CLI autodoc in your configuration.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

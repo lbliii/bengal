@@ -280,6 +280,10 @@ def create_aggregating_parent_sections(
     - A navigable /api/ page showing all API documentation types
     - Correct Dev dropdown detection (finds 'api' section)
 
+    The aggregating section uses 'api-hub' type which renders an agnostic
+    landing page showing all child API documentation types (Python, REST, etc.)
+    instead of using a type-specific template.
+
     Args:
         sections: Existing section dictionary
 
@@ -308,22 +312,24 @@ def create_aggregating_parent_sections(
         if parent_path in sections:
             continue
 
-        # Determine type based on children (use most common type)
-        child_types = [sections[cp].metadata.get("type", "python-reference") for cp in child_paths]
-        # Use first child's type as default (children of same parent usually share type)
-        section_type = child_types[0] if child_types else "python-reference"
+        # Collect child types for template to display appropriate icons/labels
+        child_types = list(
+            set(sections[cp].metadata.get("type", "python-reference") for cp in child_paths)
+        )
 
-        # Create the parent section
+        # Create the parent section with 'api-hub' type for agnostic landing page
+        # This uses a dedicated template that shows all child API types
         parent_section = Section.create_virtual(
             name=parent_path,
             relative_url=join_url_paths(parent_path),
-            title=f"{parent_path.replace('-', ' ').title()} Reference",
+            title=f"{parent_path.replace('-', ' ').title()} Documentation",
             metadata={
-                "type": section_type,
+                "type": "api-hub",  # Dedicated type for aggregating API sections
                 "weight": 50,
                 "icon": "book-open",
                 "description": f"Browse all {parent_path} documentation.",
                 "is_aggregating_section": True,
+                "child_types": child_types,  # Track aggregated types for template
             },
         )
 
@@ -338,6 +344,7 @@ def create_aggregating_parent_sections(
             "autodoc_aggregating_section_created",
             parent=parent_path,
             children=child_paths,
+            child_types=child_types,
         )
 
     return parent_sections

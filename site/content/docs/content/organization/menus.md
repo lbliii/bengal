@@ -26,6 +26,24 @@ Configure and customize navigation menus in Bengal.
 
 Bengal supports multiple menu types that can be configured in frontmatter or configuration files.
 
+## Auto topbar menu (when `menu.main` is not defined)
+
+If you do not define `menu.main`, Bengal generates a topbar menu automatically.
+
+- **Manual menu overrides auto menu**: If `menu.main` is present and non-empty, Bengal uses it and does not auto-discover topbar items. (`bengal/orchestration/menu.py:401-406`, `bengal/rendering/template_functions/navigation.py:904-915`)
+- **Auto menu only includes “real” sections**: Auto-discovery builds items from sections that exist on disk (virtual sections do not participate). (`bengal/rendering/template_functions/navigation.py:918-926`)
+
+### Dev dropdown bundling
+
+In auto mode, Bengal can bundle development-related links into a **Dev** dropdown in the topbar:
+
+- **GitHub**: If `params.repo_url` is set, it is eligible to appear in Dev (or as a standalone link). (`bengal/orchestration/menu.py:221-226`, `bengal/themes/default/templates/base.html:272-286`)
+- **API Reference**: If an `api` section exists, it is eligible to appear under Dev.
+- **CLI Reference**: If a `cli` section exists, it is eligible to appear under Dev.
+- **Bundling rule**: Dev dropdown appears when 2 or more eligible items exist. If only one eligible item exists, it appears as a normal top-level menu entry.
+
+If you want a specific layout, define `menu.main` explicitly.
+
 ## Frontmatter Configuration
 
 Add pages to menus directly in frontmatter:

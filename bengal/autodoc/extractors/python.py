@@ -204,10 +204,14 @@ class PythonExtractor(Extractor):
         - Build artifacts (__pycache__, build, dist)
         - Test files and directories
         """
-        # Normalize once for consistent matching across platforms.
-        # We match against a POSIX path string (with '/') to make config patterns portable.
         # NOTE: We intentionally do not require paths to exist here; callers may pass synthetic paths.
-        path_str = path.as_posix()
+        #
+        # IMPORTANT: We treat configured exclude patterns as *globs*, but with path-separator-aware
+        # semantics (i.e., "*" should not match "/"). Python's built-in fnmatch works on strings and
+        # allows "*" to span "/" which can cause surprising over-matches when applied to full paths.
+        # We therefore:
+        # - Apply filename patterns to the basename only (e.g., "*_test.py", "*/test_*.py")
+        # - Apply directory patterns to path segments (e.g., "*/tests/*", "*/__pycache__/*")
         name = path.name
         path_parts = path.parts
 
@@ -243,13 +247,36 @@ class PythonExtractor(Extractor):
             if not pattern:
                 continue
 
-            # Treat patterns as globs (portable, predictable). We match against both:
-            # - the full POSIX path (e.g. "bengal/core/site.py")
-            # - the basename (e.g. "site.py") for convenience patterns like "*_test.py"
-            #
-            # This fixes a real-world footgun where substring matching caused patterns like "*/.*"
-            # to degenerate into "." and skip every file.
-            if fnmatch.fnmatch(path_str, pattern) or fnmatch.fnmatch(name, pattern):
+            # 1) Basename-only patterns (recommended): "*_test.py"
+            if "/" not in pattern and fnmatch.fnmatchcase(name, pattern):
+                return True
+
+            # 2) Common config style: "*/<basename_glob>"
+            # Example: "*/test_*.py" should NOT match any directory named "test_*".
+            if pattern.startswith("*/") and pattern.count("/") == 1:
+                if fnmatch.fnmatchcase(name, pattern[2:]):
+                    return True
+                continue
+
+            # 3) Directory containment: "*/<dir_glob>/*"
+            # Example: "*/tests/*", "*/__pycache__/*", "*/.venv/*"
+            if pattern.startswith("*/") and pattern.endswith("/*") and pattern.count("/") == 2:
+                dir_glob = pattern.split("/")[1]
+                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
+                    return True
+                continue
+
+            # 4) Extension dir pattern: "*.egg-info/*" (already covered by egg-info check above,
+            # but keep this for config parity).
+            if pattern.endswith("/*") and pattern.count("/") == 1:
+                dir_glob = pattern[:-2]
+                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
+                    return True
+                continue
+
+            # 5) Fallback: treat as a plain string glob against the basename.
+            # This keeps behavior predictable without introducing "/"-spanning matches.
+            if fnmatch.fnmatchcase(name, pattern):
                 return True
 
         return False
