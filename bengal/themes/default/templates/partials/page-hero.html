@@ -37,7 +37,15 @@ _template_default else _theme_hero_style)) %}
 {% elif hero_style == 'overview' %}
 {% include 'partials/page-hero-overview.html' %}
 {% elif hero_style == 'api' %}
+{# Route to appropriate separated template based on whether element exists #}
+{% if element is defined and element %}
+{% include 'partials/page-hero/element.html' %}
+{% elif section is defined and section %}
+{% include 'partials/page-hero/section.html' %}
+{% else %}
+{# Fallback to legacy for backwards compatibility #}
 {% include 'partials/page-hero-api.html' %}
+{% endif %}
 {% else %}
 {# Default to editorial #}
 {% include 'partials/page-hero-editorial.html' %}

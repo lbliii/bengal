@@ -1,5 +1,22 @@
 {#
-Page Hero - API Reference Variant
+Page Hero - API Reference Variant (DEPRECATED)
+
+⚠️ DEPRECATION WARNING ⚠️
+This template is deprecated and will be removed in a future release.
+Use the new separated templates instead:
+  - partials/page-hero/element.html - For DocElement pages (modules, classes, commands)
+  - partials/page-hero/section.html - For section-index pages
+
+Migration:
+  Replace: {% include 'partials/page-hero-api.html' %}
+  With:    {% include 'partials/page-hero/element.html' %}  (for element pages)
+      or:  {% include 'partials/page-hero/section.html' %}  (for section-index pages)
+
+The dispatcher (partials/page-hero.html) already routes to the new templates when
+hero_style == 'api' is used, so most consumers won't need to change.
+
+---
+Legacy documentation (for reference during migration):
 
 Unified hero for API documentation pages that combines:
 - Breadcrumbs + share dropdown (from editorial hero)

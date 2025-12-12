@@ -30,8 +30,8 @@ This template receives:
 
     {# Main Content #}
     <div class="docs-main">
-        {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
-        {% include 'partials/page-hero-api.html' %}
+        {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+        {% include 'partials/page-hero/element.html' %}
 
         {# Article Content #}
         <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
