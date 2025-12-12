@@ -220,7 +220,7 @@ Building site...
 - Add line numbers when referencing specific lines in text
 :::
 
-## See Also
-
-- [[docs/reference/directives/formatting|Formatting Directives Reference]] - Complete `literalinclude` options
-- [[docs/content/authoring|Authoring Overview]] - Other authoring features
+::::{seealso}
+- [[docs/reference/directives/formatting|Formatting Directives Reference]] — Complete `literalinclude` options
+- [[docs/content/authoring|Authoring Overview]] — Other authoring features
+::::

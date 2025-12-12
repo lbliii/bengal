@@ -190,7 +190,7 @@ Tables automatically scroll horizontally on small screens. For very wide tables,
 - Use `:widths:` to control column proportions
 :::
 
-## See Also
-
-- [[docs/reference/directives/formatting|Formatting Directives Reference]] - Complete `list-table` options
-- [[docs/content/authoring|Authoring Overview]] - Other authoring features
+::::{seealso}
+- [[docs/reference/directives/formatting|Formatting Directives Reference]] — Complete `list-table` options
+- [[docs/content/authoring|Authoring Overview]] — Other authoring features
+::::

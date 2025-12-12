@@ -207,8 +207,8 @@ See [[docs/reference/icons|Icon Reference]] for the complete icon gallery.
 - Consider lazy loading for image-heavy pages
 :::
 
-## See Also
-
-- [[docs/reference/directives/media|Media Directives Reference]] - Complete options
-- [[docs/reference/icons|Icon Reference]] - Available icons
-- [[docs/theming/assets|Asset Pipeline]] - Image optimization
+::::{seealso}
+- [[docs/reference/directives/media|Media Directives Reference]] — Complete options
+- [[docs/reference/icons|Icon Reference]] — Available icons
+- [[docs/theming/assets|Asset Pipeline]] — Image optimization
+::::

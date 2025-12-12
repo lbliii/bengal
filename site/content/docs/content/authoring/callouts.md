@@ -247,7 +247,7 @@ Callouts are rendered with appropriate ARIA roles for screen readers:
 - Limit to 1-2 callouts per section
 :::
 
-## See Also
-
-- [[docs/reference/directives/admonitions|Admonitions Reference]] - Complete options
-- [[docs/content/authoring/interactive|Interactive Elements]] - Dropdowns and more
+::::{seealso}
+- [[docs/reference/directives/admonitions|Admonitions Reference]] — Complete options
+- [[docs/content/authoring/interactive|Interactive Elements]] — Dropdowns and more
+::::

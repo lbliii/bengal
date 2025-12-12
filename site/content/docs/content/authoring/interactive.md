@@ -314,8 +314,8 @@ All interactive elements are keyboard-navigable:
 - **Dropdowns**: Enter/Space to toggle
 - **Cards**: Tab to focus, Enter to follow link
 
-## See Also
-
-- [[docs/reference/directives/interactive|Interactive Directives Reference]] - Complete options
-- [[docs/reference/directives/layout|Layout Directives]] - Cards and grids
-- [[docs/reference/directives/navigation|Navigation Directives]] - Breadcrumbs, prev/next
+::::{seealso}
+- [[docs/reference/directives/interactive|Interactive Directives Reference]] — Complete options
+- [[docs/reference/directives/layout|Layout Directives]] — Cards and grids
+- [[docs/reference/directives/navigation|Navigation Directives]] — Breadcrumbs, prev/next
+::::

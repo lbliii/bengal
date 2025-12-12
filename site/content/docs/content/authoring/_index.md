@@ -182,7 +182,7 @@ This endpoint uses API {{ api_version }}.
 **Common use cases**: Product names, version numbers, feature flags, environment-specific values, and cascaded metadata like API versions or status badges.
 :::
 
-## See Also
-
-- [[docs/reference/directives|Directives Reference]] - Complete directive documentation
-- [[docs/reference/icons|Icon Reference]] - Available icons
+::::{seealso}
+- [[docs/reference/directives|Directives Reference]] — Complete directive documentation
+- [[docs/reference/icons|Icon Reference]] — Available icons
+::::
