@@ -41,6 +41,20 @@ if TYPE_CHECKING:
     from bengal.utils.profile import BuildProfile
 
 
+def __getattr__(name: str) -> Any:
+    """
+    Lazily expose optional orchestration types without creating import cycles.
+
+    Some tests and callers patch/inspect `bengal.orchestration.build.IncrementalOrchestrator`.
+    We keep that surface stable while avoiding eager imports at module import time.
+    """
+    if name == "IncrementalOrchestrator":
+        from bengal.orchestration.incremental import IncrementalOrchestrator
+
+        return IncrementalOrchestrator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 class BuildOrchestrator:
     """
     Main build coordinator that orchestrates the entire build process.
@@ -66,10 +80,9 @@ class BuildOrchestrator:
         self.stats = BuildStats()
         self.logger = get_logger(__name__)
 
-        # Import locally to avoid circular import:
-        # - IncrementalOrchestrator imports build results
-        # - build package is a common import surface via bengal.orchestration
-        from bengal.orchestration.incremental import IncrementalOrchestrator
+        # Import via this module's lazy surface to avoid circular imports and to
+        # preserve a stable patch/inspection target for tests and callers.
+        from bengal.orchestration.build import IncrementalOrchestrator
 
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)

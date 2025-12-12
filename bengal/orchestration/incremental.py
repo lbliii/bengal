@@ -610,7 +610,7 @@ class IncrementalOrchestrator:
         if theme_templates_dir and theme_templates_dir.exists():
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
-                    if verbose:
+                    if verbose and template_file not in change_summary.modified_templates:
                         change_summary.modified_templates.append(template_file)
                     # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
@@ -628,7 +628,7 @@ class IncrementalOrchestrator:
         if site_templates_dir.exists():
             for template_file in site_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
-                    if verbose:
+                    if verbose and template_file not in change_summary.modified_templates:
                         change_summary.modified_templates.append(template_file)
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
