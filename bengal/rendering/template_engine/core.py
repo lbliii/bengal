@@ -20,6 +20,7 @@ Related Modules:
 from __future__ import annotations
 
 import contextlib
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -126,11 +127,45 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         self._asset_manifest_mtime: float | None = None
         self._asset_manifest_cache: dict[str, AssetManifestEntry] = {}
         self._asset_manifest_fallbacks: set[str] = set()
+        # Performance: cache manifest presence + load-once behavior during builds.
+        # For normal builds, the manifest does not change while templates render.
+        self._asset_manifest_present: bool = self._asset_manifest_path.exists()
+        self._asset_manifest_loaded: bool = False
+
+        # Performance: cache fingerprint fallback lookups (glob is expensive).
+        self._fingerprinted_asset_cache: dict[str, str | None] = {}
+
+        # Performance/UX: suppress manifest-miss warnings across threads.
+        # Under parallel rendering each worker has its own TemplateEngine; without a
+        # shared guard, we warn once per logical_path *per worker* (spam + overhead).
+        try:
+            if not hasattr(self.site, "_asset_manifest_fallbacks_global"):
+                self.site._asset_manifest_fallbacks_global = set()  # type: ignore[attr-defined]
+            if not hasattr(self.site, "_asset_manifest_fallbacks_lock"):
+                self.site._asset_manifest_fallbacks_lock = threading.Lock()  # type: ignore[attr-defined]
+        except Exception:
+            # Best-effort only: never fail builds if site object is a mock.
+            pass
 
         # Menu dict cache
         self._menu_dict_cache: dict[str, list[dict[str, Any]]] = {}
         # Cache referenced-template expansion for dependency tracking
         self._referenced_template_cache: dict[str, set[str]] = {}
+        # Performance: cache expanded referenced-template dependency paths per template.
+        # `_track_referenced_templates()` is called once per rendered page; computing the
+        # transitive closure each time is expensive, so we memoize it per TemplateEngine
+        # instance (which is thread-local during parallel rendering).
+        self._referenced_template_paths_cache: dict[str, tuple[Path, ...]] = {}
+        # Performance: cache template name → resolved filesystem path.
+        # This is hot during dependency tracking (includes/extends) and avoids repeated
+        # `exists()` checks across template dirs for the same names.
+        # Disabled in dev_server mode to avoid confusing behavior while iterating.
+        self._template_path_cache_enabled: bool = not bool(
+            self.site.config.get("dev_server", False)
+            if isinstance(self.site.config, dict)
+            else False
+        )
+        self._template_path_cache: dict[str, Path | None] = {}
 
     def render(self, template_name: str, context: dict[str, Any]) -> str:
         """
@@ -200,9 +235,16 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         if not self._dependency_tracker:
             return
 
-        if template_name in self._referenced_template_cache:
-            referenced = self._referenced_template_cache[template_name]
-        else:
+        cached_paths = self._referenced_template_paths_cache.get(template_name)
+        if cached_paths is not None:
+            for ref_path in cached_paths:
+                with contextlib.suppress(Exception):
+                    self._dependency_tracker.track_partial(ref_path)
+            return
+
+        # Resolve direct references for the top-level template (cached by name).
+        referenced = self._referenced_template_cache.get(template_name)
+        if referenced is None:
             referenced = set()
             try:
                 from jinja2 import meta
@@ -216,9 +258,11 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
                 referenced = set()
             self._referenced_template_cache[template_name] = referenced
 
-        # Expand transitively (best-effort), tracking each resolved file path.
+        # Expand transitively once and cache the resolved file paths.
         stack = list(referenced)
         seen: set[str] = set()
+        resolved_paths: list[Path] = []
+
         while stack:
             ref_name = stack.pop()
             if ref_name in seen:
@@ -227,8 +271,7 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
 
             ref_path = self._find_template_path(ref_name)
             if ref_path:
-                with contextlib.suppress(Exception):
-                    self._dependency_tracker.track_partial(ref_path)
+                resolved_paths.append(ref_path)
 
             # Recurse into referenced template (cached)
             if ref_name not in self._referenced_template_cache:
@@ -244,6 +287,11 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
                     self._referenced_template_cache[ref_name] = set()
 
             stack.extend(self._referenced_template_cache.get(ref_name, set()))
+
+        self._referenced_template_paths_cache[template_name] = tuple(resolved_paths)
+        for ref_path in resolved_paths:
+            with contextlib.suppress(Exception):
+                self._dependency_tracker.track_partial(ref_path)
 
     def get_template_profile(self) -> dict[str, Any] | None:
         """
@@ -311,6 +359,10 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         Returns:
             Full path to template file, or None if not found
         """
+        if self._template_path_cache_enabled and template_name in self._template_path_cache:
+            return self._template_path_cache[template_name]
+
+        found: Path | None = None
         for template_dir in self.template_dirs:
             template_path = template_dir / template_name
             if template_path.exists():
@@ -320,8 +372,12 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
                     path=str(template_path),
                     dir=str(template_dir),
                 )
-                return template_path
-        return None
+                found = template_path
+                break
+
+        if self._template_path_cache_enabled:
+            self._template_path_cache[template_name] = found
+        return found
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """

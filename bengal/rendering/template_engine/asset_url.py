@@ -105,6 +105,8 @@ class AssetURLMixin:
 
     site: Any
     _asset_manifest_path: Path
+    _asset_manifest_present: bool
+    _fingerprinted_asset_cache: dict[str, str | None]
 
     # NOTE: Do NOT add stub methods here for _get_manifest_entry, _warn_manifest_fallback.
     # ManifestHelpersMixin must come BEFORE this mixin in class bases to provide them.
@@ -156,7 +158,7 @@ class AssetURLMixin:
             return with_baseurl(f"/{manifest_entry.output_path}", self.site)
 
         # Warn if manifest exists but entry missing
-        if self._asset_manifest_path.exists():
+        if getattr(self, "_asset_manifest_present", False):
             self._warn_manifest_fallback(safe_asset_path)
 
         # Fallback: check output directory for fingerprinted files
@@ -200,11 +202,17 @@ class AssetURLMixin:
         Returns:
             Fingerprinted asset path if found, None otherwise
         """
+        # Performance: globbing for every `asset_url()` call is expensive. Cache per
+        # TemplateEngine instance (thread-local in parallel builds).
+        if safe_asset_path in getattr(self, "_fingerprinted_asset_cache", {}):
+            return self._fingerprinted_asset_cache[safe_asset_path]
+
         asset_path_obj = PurePosixPath(safe_asset_path)
         output_asset_dir = self.site.output_dir / "assets" / asset_path_obj.parent
         output_asset_name = asset_path_obj.name
 
         if not output_asset_dir.exists():
+            self._fingerprinted_asset_cache[safe_asset_path] = None
             return None
 
         # Look for fingerprinted version (e.g., style.12345678.css)
@@ -214,9 +222,11 @@ class AssetURLMixin:
         else:
             pattern = f"{output_asset_name}.*"
 
-        fingerprinted_files = list(output_asset_dir.glob(pattern))
-        if fingerprinted_files:
-            fingerprinted_name = fingerprinted_files[0].name
-            return str(asset_path_obj.parent / fingerprinted_name)
+        match = next(output_asset_dir.glob(pattern), None)
+        if match is not None:
+            result: str | None = str(asset_path_obj.parent / match.name)
+        else:
+            result = None
 
-        return None
+        self._fingerprinted_asset_cache[safe_asset_path] = result
+        return result
