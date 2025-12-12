@@ -358,6 +358,17 @@ def run_health_check(
                 f"   ⚡ {stats.validator_count} validators, {stats.worker_count} workers, "
                 f"{stats.speedup:.1f}x speedup"
             )
+            # Also show exact validator list + per-validator durations to make slow builds diagnosable.
+            # NOTE: ValidatorReport order is non-deterministic in parallel mode (as_completed),
+            # so we sort by duration for stable, high-signal output.
+            if report.validator_reports:
+                ordered = sorted(
+                    report.validator_reports, key=lambda r: r.duration_ms, reverse=True
+                )
+                validators_info = ", ".join(
+                    f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in ordered
+                )
+                cli.info(f"   🔎 Validators: {validators_info}")
         # Show slowest validators if health check took > 1 second
         if health_time_ms > 1000 and report.validator_reports:
             slowest = sorted(report.validator_reports, key=lambda r: r.duration_ms, reverse=True)[

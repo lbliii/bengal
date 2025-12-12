@@ -255,7 +255,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.utils.cli_output.get_cli_output") as mock_get_cli,
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()
@@ -263,13 +263,59 @@ class TestRunHealthCheck:
             mock_report = MagicMock()
             mock_report.has_errors.return_value = False
             mock_report.has_warnings.return_value = False
+            mock_report.validator_reports = []
             mock_health.run.return_value = mock_report
             MockHealth.return_value = mock_health
 
             run_health_check(orchestrator)
 
+        # Should show phase line even when report is clean
+        mock_get_cli.return_value.phase.assert_called()
         MockHealth.assert_called_once()
         mock_health.run.assert_called_once()
+
+    def test_prints_validator_list_with_durations_when_parallel(self, tmp_path):
+        """Prints exact validator list + per-validator durations when using parallel execution."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        with (
+            patch("bengal.config.defaults.get_feature_config") as mock_config,
+            patch("bengal.health.HealthCheck") as MockHealth,
+            patch("bengal.utils.cli_output.get_cli_output") as mock_get_cli,
+        ):
+            mock_config.return_value = {"enabled": True}
+
+            mock_cli = MagicMock()
+            mock_get_cli.return_value = mock_cli
+
+            mock_health = MagicMock()
+            mock_health.last_stats = MagicMock(
+                execution_mode="parallel",
+                validator_count=3,
+                worker_count=3,
+                speedup=1.2,
+            )
+
+            mock_report = MagicMock()
+            mock_report.has_errors.return_value = False
+            mock_report.has_warnings.return_value = False
+            mock_report.validator_reports = [
+                MagicMock(validator_name="Links", duration_ms=10.0),
+                MagicMock(validator_name="Directives", duration_ms=700.0),
+                MagicMock(validator_name="Output", duration_ms=50.0),
+            ]
+
+            mock_health.run.return_value = mock_report
+            MockHealth.return_value = mock_health
+
+            run_health_check(orchestrator)
+
+            # First: parallel summary line
+            mock_cli.info.assert_any_call("   ⚡ 3 validators, 3 workers, 1.2x speedup")
+            # Then: exact validator list with durations (sorted by duration desc)
+            mock_cli.info.assert_any_call(
+                "   🔎 Validators: Directives: 700ms, Output: 50ms, Links: 10ms"
+            )
 
     def test_passes_profile_to_health_check(self, tmp_path):
         """Passes build profile to health check."""
