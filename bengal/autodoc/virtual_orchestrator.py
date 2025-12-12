@@ -1642,10 +1642,11 @@ class VirtualAutodocOrchestrator:
                 parent = parts[0]
                 parent_counts.setdefault(parent, []).append(section_path)
 
-        # Create parent sections for paths with 2+ immediate children
+        # Create parent sections for paths with at least 1 immediate child
+        # (even with 1 child, we need the parent for menu detection - e.g., /api/ for dev dropdown)
         for parent_path, child_paths in parent_counts.items():
-            # Skip if parent already exists or only one immediate child
-            if parent_path in sections or len(child_paths) < 2:
+            # Skip if parent already exists
+            if parent_path in sections:
                 continue
 
             # Determine type based on children (use most common type)

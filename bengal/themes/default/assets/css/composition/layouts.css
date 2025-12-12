@@ -34,8 +34,10 @@
   grid-template-areas:
     "sidebar content toc";
   grid-template-columns: 260px minmax(0, 1fr) 240px;
-  gap: 0; /* Columns handle their own internal padding */
-  max-width: none; /* Full-width app shell */
+  gap: 0;
+  /* Columns handle their own internal padding */
+  max-width: none;
+  /* Full-width app shell */
   padding-block: 0;
   align-items: start;
   width: 100%;
@@ -51,7 +53,8 @@
 .docs-sidebar {
   grid-area: sidebar;
   position: sticky;
-  top: 60px; /* Tighter to header */
+  top: 60px;
+  /* Tighter to header */
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -115,17 +118,20 @@ body[data-type="cli-reference"] .docs-main .prose {
   margin-inline: 0;
 }
 
-/* Constrain prose TEXT elements for readability while keeping structural
-   elements (grids, cards, tables) full-width. This ensures paragraph text
-   respects page gutters on CLI/OpenAPI pages. */
-body[data-type="openapi-reference"] .docs-main .prose > p,
-body[data-type="openapi-reference"] .docs-main .prose > ul,
-body[data-type="openapi-reference"] .docs-main .prose > ol,
-body[data-type="openapi-reference"] .docs-main .prose > blockquote,
-body[data-type="cli-reference"] .docs-main .prose > p,
-body[data-type="cli-reference"] .docs-main .prose > ul,
-body[data-type="cli-reference"] .docs-main .prose > ol,
-body[data-type="cli-reference"] .docs-main .prose > blockquote {
+/* Constrain .docs-content for readability while allowing card grids to
+   have reasonable width. Uses wider max-width than prose (75ch) to
+   accommodate 2-column card layouts while still respecting page gutters. */
+body[data-type="openapi-reference"] .docs-main .docs-content,
+body[data-type="cli-reference"] .docs-main .docs-content {
+  max-width: var(--container-lg, 1024px);
+}
+
+/* Within CLI/OpenAPI content, constrain prose text elements (usage sections,
+   descriptions) to standard reading width for better readability. */
+body[data-type="openapi-reference"] .docs-main .api-usage,
+body[data-type="cli-reference"] .docs-main .api-usage,
+body[data-type="openapi-reference"] .docs-main .cli-usage,
+body[data-type="cli-reference"] .docs-main .cli-usage {
   max-width: var(--prose-width, 75ch);
 }
 
@@ -139,7 +145,8 @@ body[data-type="cli-reference"] .page-hero--api {
 .docs-toc {
   grid-area: toc;
   position: sticky;
-  top: 60px; /* Match sidebar */
+  top: 60px;
+  /* Match sidebar */
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;

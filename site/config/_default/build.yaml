@@ -24,33 +24,8 @@ html_output:
   remove_comments: true
   collapse_blank_lines: true
 
-# Autodoc Configuration - Generate Bengal API documentation
-autodoc:
-  python:
-    enabled: true
-    source_dirs: ["../bengal"]  # Document the main Bengal package
-    output_dir: "content/api"   # Generated API docs go here
-    docstring_style: "auto"     # Auto-detect docstring format
-    display_name: "Bengal API"  # Display name for API documentation section (used in navigation)
-
-    # Exclude test and cache files
-    exclude:
-      - "*/tests/*"
-      - "*/test_*.py"
-      - "*/__pycache__/*"
-      - "*/migrations/*"
-      - "*/.pytest_cache/*"
-
-    # Member visibility
-    include_private: false  # Skip _private methods
-    include_special: false  # Skip __special__ methods
-
-  cli:
-    enabled: true
-    app_module: "bengal.cli:main"
-    framework: "click"
-    output_dir: "content/cli"
-    display_name: "Bengal CLI"  # Display name for CLI documentation section (used in navigation)
+# NOTE: Autodoc configuration is in autodoc.yaml (not here)
+# See: config/_default/autodoc.yaml for Python API, CLI, and OpenAPI settings
 
 # Health check configuration
 # Note: Use --profile writer/theme-dev/dev to control which checks run
