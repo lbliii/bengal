@@ -23,16 +23,29 @@ autodoc:
     # This creates the section at /api/python/...
     output_prefix: "api/python"
 
-    # Exclude test, cache, and virtual environment files
+    # Exclude test, cache, build artifacts, and virtual environment files
     exclude:
+      # Tests
       - "*/tests/*"
       - "*/test_*.py"
+      - "*_test.py"
+      # Build artifacts and caches
       - "*/__pycache__/*"
       - "*/migrations/*"
       - "*/.pytest_cache/*"
+      - "*/build/*"
+      - "*/dist/*"
+      - "*.egg-info/*"
+      # Virtual environments
       - "*/.venv/*"
       - "*/venv/*"
       - "*/.env/*"
+      - "*/env/*"
+      # Non-API directories
+      - "*/scripts/*"
+      - "*/benchmarks/*"
+      # Hidden directories
+      - "*/.*"
 
     # Member visibility
     include_private: false  # Skip _private methods

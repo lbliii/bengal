@@ -123,33 +123,35 @@ Examples:
 
 ### Benchmark results
 
-**Environment**: macOS, Python 3.12, directive-heavy content (tab-sets, code-tabs, dropdowns, notes)
+**Environment**: macOS, Python 3.14.0 (free-threaded), directive-heavy content (tab-sets, code-tabs, dropdowns, notes)
 
-| Pages | Mode | Runs | Avg OFF (ms) | Avg ON (ms) | Savings (ms) | Savings % |
-|-------|------|------|--------------|-------------|--------------|-----------|
-| 500 | no-parallel | 3 | 13,239 | 12,805 | 434 | **3.28%** |
-| 1000 | no-parallel | 3 | 29,201 | 29,187 | 14 | **0.05%** |
+| Pages | Mode | Runs | Avg OFF (ms) | Avg ON (ms) | Δ (ms) | Δ % |
+|-------|------|------|--------------|-------------|--------|-----|
+| 500 | no-parallel | 3 | 13,765 | 14,434 | **+669** | **-4.86%** |
+| 1000 | no-parallel | 3 | 26,482 | 32,135 | **+5,653** | **-21.35%** |
+
+⚠️ **`single_pass_tokens=True` is SLOWER** than `single_pass_tokens=False` on Python 3.14t.
 
 **Analysis**:
-- Savings are **below the 5% threshold** for default-on consideration
-- The 1000-page test shows near-zero improvement, suggesting the optimization is swamped by other build costs (asset processing, template rendering)
-- This aligns with the fact that `persist_tokens=False` (no cache I/O savings) and the redundant parse was only happening when `persist_tokens=True`
+- On Python 3.14t (free-threaded), the "optimization" is actually a **pessimization**
+- 500-page builds: ~5% slower with single_pass_tokens=True
+- 1000-page builds: ~21% slower with single_pass_tokens=True
+- The token capture overhead exceeds any benefit from skipping redundant parsing
 
-**Root cause identified**: Looking at `bengal/rendering/pipeline/core.py:429-439`, the redundant `parse_to_ast()` only runs when:
-- `single_pass_tokens=False` AND
-- `persist_tokens=True`
+**Root cause hypothesis**:
+1. Token capturing adds memory allocation overhead
+2. The redundant `parse_to_ast()` was already conditionally skipped when `persist_tokens=False` (the default)
+3. Free-threaded Python may have different performance characteristics for token list operations
 
-Since `persist_tokens` defaults to `False`, **the redundant parse was already being skipped** in most cases. The optimization has minimal impact because the baseline already avoided the redundant work.
-
-**Recommendation**: Keep `single_pass_tokens=False` as default. The optimization is validated and safe, but provides minimal benefit for typical use cases. Consider enabling by default only if `persist_tokens` becomes commonly used.
+**Recommendation**: Keep `single_pass_tokens=False` as default. The feature should remain opt-in and is **not recommended** for typical use. Consider deprecating or removing if no valid use case emerges.
 
 ### Confidence
 **95% (high)** — All validation complete:
 1. ✅ Phases 0 and 1 implemented and verified
-2. ✅ Benchmark run and documented (results: 0-3% savings)
+2. ✅ Benchmark run on Python 3.14t (results: **-5% to -21% regression**)
 3. ✅ Golden tests pass (output equivalence verified)
 4. ✅ Unit test exists
 
-**Outcome**: The optimization is **correct and safe**, but provides **minimal benefit** because the redundant parse was already conditionally skipped. Keep as opt-in feature.
+**Outcome**: The feature produces **correct output** but causes **performance regression** on Python 3.14t. The optimization hypothesis was invalidated - capturing tokens adds more overhead than the redundant parse it eliminates.
 
-**Recommendation**: Close RFC as **Evaluated - No Default Change Needed**.
+**Recommendation**: Close RFC as **Evaluated - Keep Disabled**. Consider deprecation if no valid use case emerges.
