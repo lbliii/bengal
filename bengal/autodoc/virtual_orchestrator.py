@@ -242,7 +242,16 @@ class VirtualAutodocOrchestrator:
         self.python_config = self.config.get("python", {})
         self.cli_config = self.config.get("cli", {})
         self.openapi_config = self.config.get("openapi", {})
-        self.template_env = self._create_template_environment()
+        # Performance: do not build a Jinja environment unless we actually
+        # generate autodoc pages. Content discovery may probe autodoc enablement
+        # even when autodoc is disabled, and environment setup is expensive.
+        self.template_env: Environment | None = None
+
+    def _ensure_template_env(self) -> Environment:
+        """Create the autodoc Jinja environment lazily (only when needed)."""
+        if self.template_env is None:
+            self.template_env = self._create_template_environment()
+        return self.template_env
 
     def _relativize_paths(self, message: str) -> str:
         """
@@ -1363,7 +1372,7 @@ class VirtualAutodocOrchestrator:
 
         # Try theme template first
         try:
-            template = self.template_env.get_template(f"{template_name}.html")
+            template = self._ensure_template_env().get_template(f"{template_name}.html")
             return template.render(
                 element=element,
                 page=page_context,
@@ -1374,7 +1383,7 @@ class VirtualAutodocOrchestrator:
             # Fall back to generic template or legacy path
             try:
                 # Try without .html extension
-                template = self.template_env.get_template(template_name)
+                template = self._ensure_template_env().get_template(template_name)
                 return template.render(
                     element=element,
                     page=page_context,
@@ -1591,7 +1600,7 @@ class VirtualAutodocOrchestrator:
 
         # Try theme template first
         try:
-            template = self.template_env.get_template(f"{template_name}.html")
+            template = self._ensure_template_env().get_template(f"{template_name}.html")
             return template.render(
                 section=section,
                 page=page_context,
@@ -1601,7 +1610,9 @@ class VirtualAutodocOrchestrator:
         except Exception as e:
             # Fall back to generic section-index or legacy path
             try:
-                template = self.template_env.get_template("api-reference/section-index.html")
+                template = self._ensure_template_env().get_template(
+                    "api-reference/section-index.html"
+                )
                 return template.render(
                     section=section,
                     page=page_context,
@@ -1610,7 +1621,7 @@ class VirtualAutodocOrchestrator:
                 )
             except Exception as e2:
                 try:
-                    template = self.template_env.get_template("section-index.html")
+                    template = self._ensure_template_env().get_template("section-index.html")
                     return template.render(
                         section=section,
                         page=page_context,
