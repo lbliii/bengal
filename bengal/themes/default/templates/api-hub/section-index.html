@@ -74,7 +74,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
 
       <div class="docs-content">
         {# API Hub Card Grid #}
-        <div class="api-explorer api-explorer--hub">
+        <div class="autodoc-explorer autodoc-explorer--hub">
           {% if section.sorted_subsections %}
           <div class="api-hub-grid">
             {% for subsection in section.sorted_subsections %}
@@ -118,7 +118,6 @@ The template can be overridden by creating content/<section>/_index.md with cust
 
               <div class="api-hub-card__footer">
                 <span class="api-hub-card__meta">
-                  {# Item count with appropriate label #}
                   {%- if 'python' in sub_type -%}
                   {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
                   {%- elif 'openapi' in sub_type -%}
@@ -127,15 +126,12 @@ The template can be overridden by creating content/<section>/_index.md with cust
                   {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
                   {%- else -%}
                   {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-                  {%- endif -%}
-                </span>
+                  {%- endif -%}</span>
                 <span class="api-hub-card__badge api-hub-card__badge--{{ sub_type }}">
                   {%- if 'python' in sub_type -%}Python
                   {%- elif 'openapi' in sub_type -%}REST
                   {%- elif 'cli' in sub_type -%}CLI
-                  {%- else -%}API
-                  {%- endif -%}
-                </span>
+                  {%- else -%}API{%- endif -%}</span>
               </div>
             </a>
             {% endfor %}
