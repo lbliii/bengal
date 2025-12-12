@@ -7,9 +7,11 @@ working with any package name (not just 'bengal').
 
 from pathlib import Path
 
-from bengal.autodoc.virtual_orchestrator import (
-    _format_source_file_for_display,
-    _normalize_autodoc_config,
+from bengal.autodoc.orchestration.utils import (
+    format_source_file_for_display as _format_source_file_for_display,
+)
+from bengal.autodoc.orchestration.utils import (
+    normalize_autodoc_config as _normalize_autodoc_config,
 )
 
 # =============================================================================

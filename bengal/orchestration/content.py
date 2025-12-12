@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
+logger = get_logger(__name__)
+
 
 class ContentOrchestrator:
     """
@@ -670,11 +672,32 @@ class ContentOrchestrator:
 
             # Index target directives (:::{target} id)
             # Extract target directives from content for cross-reference indexing
+            # NOTE: Target directives take precedence over heading anchors since they're explicit
             if hasattr(page, "content") and page.content:
                 target_anchors = self._extract_target_directives(page.content)
                 for anchor_id in target_anchors:
                     anchor_key = anchor_id.lower()
                     if anchor_key not in self.site.xref_index["by_anchor"]:
+                        self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
+                    else:
+                        # Collision: target directive conflicts with existing anchor (likely heading)
+                        # Target directives take precedence since they're explicit
+                        existing_page, existing_anchor = self.site.xref_index["by_anchor"][
+                            anchor_key
+                        ]
+                        logger.warning(
+                            "anchor_collision",
+                            anchor_id=anchor_id,
+                            target_page=str(getattr(page, "source_path", "unknown")),
+                            existing_page=str(getattr(existing_page, "source_path", "unknown")),
+                            existing_anchor=existing_anchor,
+                            message=(
+                                f"Target directive '::{{target}} {anchor_id}' collides with "
+                                f"existing anchor '{existing_anchor}' in {existing_page}. "
+                                f"Target directive takes precedence. Consider using a unique anchor ID."
+                            ),
+                        )
+                        # Overwrite with target directive (explicit takes precedence)
                         self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
 
     def _extract_target_directives(self, content: str) -> list[str]:
