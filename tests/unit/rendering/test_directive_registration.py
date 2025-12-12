@@ -14,6 +14,7 @@ import pytest
 from bengal.rendering.parsers import MistuneParser
 from bengal.rendering.plugins.directives import (
     AdmonitionDirective,
+    BuildDirective,
     ButtonDirective,
     CardDirective,
     CardsDirective,
@@ -37,6 +38,7 @@ class TestDirectiveRegistration:
         """Test that all directive classes can be imported from the directives package."""
         # This test ensures __init__.py imports are correct
         assert AdmonitionDirective is not None
+        assert BuildDirective is not None
         assert ButtonDirective is not None
         assert CardDirective is not None
         assert CardsDirective is not None
@@ -87,6 +89,7 @@ class TestDirectiveRegistration:
             ("card", ":::{card} Title\nContent\n:::", "card-title"),
             ("checklist", ":::{checklist}\n- Item one\n- Item two\n:::", "checklist"),
             ("list-table", ":::{list-table}\n* - Row 1\n  - Col 1\n:::", "list-table"),
+            ("build", ":::{build}\n:::", "bengal-build-badge"),
         ]
 
         for directive_name, markdown, expected in test_cases:
@@ -155,6 +158,7 @@ class TestDirectiveModuleConsistency:
         # all directive classes are actually being used
         directive_classes = [
             AdmonitionDirective,
+            BuildDirective,
             ButtonDirective,
             CardDirective,
             CardsDirective,

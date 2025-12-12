@@ -169,6 +169,19 @@ Once enabled, you can reference the generated badge from any template:
 <img src="{{ site.baseurl.rstrip('/') }}/bengal/build.svg" alt="Built in badge">
 ```
 
+### Show the build badge in Markdown docs via a directive
+
+If your content uses Bengal directives, you can embed the badge directly:
+
+```markdown
+:::{build}
+:::
+
+:::{build}
+:json: true
+:::
+```
+
 ## Deploy
 
 After building, deploy the `public/` directory to your hosting provider:
