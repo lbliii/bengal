@@ -1,0 +1,49 @@
+/**
+ * Autodoc Design Tokens
+ *
+ * CSS custom properties for autodoc components.
+ * Centralized design tokens for consistent styling.
+ */
+
+.autodoc-explorer {
+  /* Window chrome */
+  --api-window-bg: var(--color-bg-elevated);
+  --api-window-header-bg: linear-gradient(180deg,
+    var(--color-surface) 0%,
+    color-mix(in srgb, var(--color-surface) 95%, var(--color-bg-secondary)) 100%);
+  --api-window-border: var(--color-border-light);
+  --api-window-radius: 12px;
+
+  /* Terminal-inspired styling */
+  --api-terminal-dot-red: #ff5f57;
+  --api-terminal-dot-yellow: #febc2e;
+  --api-terminal-dot-green: #28c840;
+
+  /* Depth & glow */
+  --api-shadow-diffused:
+    0 4px 24px -4px rgba(0, 0, 0, 0.08),
+    0 8px 32px -8px rgba(0, 0, 0, 0.04);
+  --api-shadow-elevated:
+    0 8px 32px -8px rgba(0, 0, 0, 0.12),
+    0 16px 48px -16px rgba(0, 0, 0, 0.08);
+  --api-glow-primary: 0 0 20px -4px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  --api-glow-accent: 0 0 24px -4px color-mix(in srgb, var(--api-member-accent, var(--color-primary)) 20%, transparent);
+
+  /* Spacing */
+  --api-section-gap: var(--space-8);
+  --api-member-gap: var(--space-3);
+  --api-nested-indent: var(--space-4);
+}
+
+[data-theme="dark"] .autodoc-explorer {
+  --api-window-bg: var(--color-bg-secondary);
+  --api-window-header-bg: linear-gradient(180deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%);
+  --api-shadow-diffused:
+    0 4px 24px -4px rgba(0, 0, 0, 0.25),
+    0 8px 32px -8px rgba(0, 0, 0, 0.15);
+  --api-shadow-elevated:
+    0 8px 32px -8px rgba(0, 0, 0, 0.35),
+    0 16px 48px -16px rgba(0, 0, 0, 0.25);
+}

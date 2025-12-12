@@ -1,0 +1,94 @@
+/**
+ * Autodoc Animations
+ *
+ * Stagger reveal animations and transitions for autodoc components.
+ */
+
+/* Base reveal animation */
+@keyframes api-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hub card reveal animation */
+@keyframes api-hub-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Apply to any grid/list that wants stagger */
+.api-card-list--animated > .api-card,
+.api-cards > .api-card {
+  animation: api-reveal 0.3s ease backwards;
+}
+
+/* Stagger delays (works for any animated list) */
+.api-card-list--animated > *:nth-child(1),
+.api-cards > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.api-card-list--animated > *:nth-child(2),
+.api-cards > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.api-card-list--animated > *:nth-child(3),
+.api-cards > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.api-card-list--animated > *:nth-child(4),
+.api-cards > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.api-card-list--animated > *:nth-child(5),
+.api-cards > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+
+.api-card-list--animated > *:nth-child(n+6),
+.api-cards > *:nth-child(n+6) {
+  animation-delay: 200ms;
+}
+
+/* Container must clip to prevent scrollbar flash */
+.api-card-list--animated,
+.api-cards {
+  overflow: clip;
+}
+
+/* Hub grid animations */
+.api-hub-grid > .api-card--hub {
+  animation: api-hub-card-reveal 0.4s ease backwards;
+}
+
+.api-hub-grid > .api-card--hub:nth-child(1) { animation-delay: 0ms; }
+.api-hub-grid > .api-card--hub:nth-child(2) { animation-delay: 100ms; }
+.api-hub-grid > .api-card--hub:nth-child(3) { animation-delay: 200ms; }
+.api-hub-grid > .api-card--hub:nth-child(4) { animation-delay: 300ms; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .api-card-list--animated > *,
+  .api-cards > *,
+  .api-hub-grid > .api-card--hub,
+  .api-card,
+  .api-card__toggle {
+    animation: none !important;
+    transition: none !important;
+  }
+}

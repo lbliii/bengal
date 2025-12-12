@@ -4,7 +4,7 @@ nav_title: Callouts
 description: Draw attention to important information with notes, warnings, and tips
 weight: 60
 category: how-to
-icon: alert-circle
+icon: info
 ---
 # Callouts & Admonitions
 

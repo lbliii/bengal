@@ -39,7 +39,7 @@ This template receives:
 
       <div class="docs-content">
         {# API Explorer Section Index Content #}
-        <div class="api-explorer api-explorer--index">
+        <div class="autodoc-explorer autodoc-explorer--index">
           {# Subsections (Packages) - Card Grid #}
           {% if section.sorted_subsections %}
           <section class="api-section api-section--packages">
@@ -50,21 +50,20 @@ This template receives:
               {% if subsection.name %}
               {% set desc = subsection.metadata.description | default('') | first_sentence %}
               {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-              <a href="{{ subsection.url }}" class="api-package-card">
-                <div class="api-package-card__header">
-                  <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
-                  <span class="api-package-card__name">{{ subsection.name | title }}</span>
+              <a href="{{ subsection.url }}" class="api-card api-card--package api-card--link">
+                <div class="api-card__header">
+                  <span class="api-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
+                  <span class="api-card__title">{{ subsection.name | title }}</span>
                 </div>
-                <div class="api-package-card__body">
+                <div class="api-card__body">
                   {% if desc %}
-                  <p class="api-package-card__description">{{ desc }}</p>
+                  <p class="api-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name |
-                    title }} package</p>
+                  <p class="api-card__description">{{ subsection.name | title }} package</p>
                   {% endif %}
                 </div>
-                <div class="api-package-card__footer">
-                  <span class="api-package-card__meta">
+                <div class="api-card__footer">
+                  <span class="api-card__meta">
                     {{ child_count }} item{{ 's' if child_count != 1 else '' }}
                   </span>
                 </div>
@@ -83,9 +82,9 @@ This template receives:
             <div class="api-grid api-grid--modules">
               {% for page in module_pages %}
               {% set desc = page.metadata.description | default('') | first_sentence %}
-              <a href="{{ page.url }}" class="api-module-card">
-                <div class="api-module-card__header">
-                  <span class="api-module-card__icon">
+              <a href="{{ page.url }}" class="api-card api-card--link">
+                <div class="api-card__header">
+                  <span class="api-card__icon">
                     {%- if page.metadata.element_type == 'class' -%}
                     {{ icon("layers", size=16, css_class="icon-info") }}
                     {%- elif page.metadata.element_type == 'function' -%}
@@ -94,18 +93,17 @@ This template receives:
                     {{ icon("code", size=16, css_class="icon-muted") }}
                     {%- endif -%}
                   </span>
-                  <span class="api-module-card__name">{{ page.title }}</span>
+                  <span class="api-card__title">{{ page.title }}</span>
                   {% if page.metadata.element_type %}
                   <span class="api-badge--mini api-badge--{{ page.metadata.element_type }}">{{
                     page.metadata.element_type }}</span>
                   {% endif %}
                 </div>
-                <div class="api-module-card__body">
+                <div class="api-card__body">
                   {% if desc %}
-                  <p class="api-module-card__description">{{ desc }}</p>
+                  <p class="api-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-module-card__description api-module-card__description--empty">No description available
-                  </p>
+                  <p class="api-card__description">No description available</p>
                   {% endif %}
                 </div>
               </a>

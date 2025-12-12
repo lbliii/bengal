@@ -4,7 +4,7 @@ nav_title: Tables
 description: Create simple and complex tables in your content
 weight: 50
 category: how-to
-icon: table
+icon: layers
 ---
 # Tables
 

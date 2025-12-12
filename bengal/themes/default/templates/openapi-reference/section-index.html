@@ -31,7 +31,7 @@ This template receives:
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <div class="docs-content">
         {# API Explorer Section Index Content #}
-        <div class="api-explorer api-explorer--index">
+        <div class="autodoc-explorer autodoc-explorer--index">
           <header class="api-section-header">
             <h1 class="api-section-header__title">{{ section.title }}</h1>
             {% if section.metadata.get('description') %}
@@ -67,20 +67,20 @@ This template receives:
               {% for subsection in section.sorted_subsections %}
               {% set desc = subsection.metadata.description | default('') | first_sentence %}
               {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-              <a href="{{ subsection.url }}" class="api-package-card">
-                <div class="api-package-card__header">
-                  <span class="api-package-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
-                  <span class="api-package-card__name">{{ subsection.name | title }}</span>
+              <a href="{{ subsection.url }}" class="api-card api-card--link api-card--package">
+                <div class="api-card__header">
+                  <span class="api-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
+                  <span class="api-card__title">{{ subsection.name | title }}</span>
                 </div>
-                <div class="api-package-card__body">
+                <div class="api-card__body">
                   {% if desc %}
-                  <p class="api-package-card__description">{{ desc }}</p>
+                  <p class="api-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-package-card__description api-package-card__description--empty">{{ subsection.name | title }} resource</p>
+                  <p class="api-card__description">{{ subsection.name | title }} resource</p>
                   {% endif %}
                 </div>
-                <div class="api-package-card__footer">
-                  <span class="api-package-card__meta">
+                <div class="api-card__footer">
+                  <span class="api-card__meta">
                     {{ child_count }} item{{ 's' if child_count != 1 else '' }}
                   </span>
                 </div>
@@ -105,9 +105,9 @@ This template receives:
             <div class="api-grid api-grid--endpoints">
               {% for page in endpoint_pages %}
               {% set desc = page.metadata.description | default('') | first_sentence %}
-              <a href="{{ page.url }}" class="api-endpoint-card">
-                <div class="api-endpoint-card__header">
-                  <span class="api-endpoint-card__icon">
+              <a href="{{ page.url }}" class="api-card api-card--link api-card--endpoint">
+                <div class="api-card__header">
+                  <span class="api-card__icon">
                     {%- if page.metadata.http_method -%}
                     {{ icon("zap", size=16, css_class="icon-" ~ page.metadata.http_method|lower) }}
                     {%- elif page.metadata.element_type == 'schema' -%}
@@ -116,18 +116,18 @@ This template receives:
                     {{ icon("code", size=16, css_class="icon-muted") }}
                     {%- endif -%}
                   </span>
-                  <span class="api-endpoint-card__name">{{ page.title }}</span>
+                  <span class="api-card__title">{{ page.title }}</span>
                   {% if page.metadata.http_method %}
                   <span class="api-badge--mini api-badge--{{ page.metadata.http_method|lower }}">{{ page.metadata.http_method }}</span>
                   {% elif page.metadata.element_type %}
                   <span class="api-badge--mini api-badge--{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
                   {% endif %}
                 </div>
-                <div class="api-endpoint-card__body">
+                <div class="api-card__body">
                   {% if desc %}
-                  <p class="api-endpoint-card__description">{{ desc }}</p>
+                  <p class="api-card__description">{{ desc }}</p>
                   {% else %}
-                  <p class="api-endpoint-card__description api-endpoint-card__description--empty">No description available</p>
+                  <p class="api-card__description">No description available</p>
                   {% endif %}
                 </div>
               </a>

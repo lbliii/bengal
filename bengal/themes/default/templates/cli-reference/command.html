@@ -3,9 +3,9 @@
 {#
 CLI Reference Command Template
 
-Renders a CLI command's documentation using the API Explorer layout.
+Renders a CLI command's documentation using the Autodoc Explorer layout.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses semantic CSS tokens and patterns from api-explorer.css.
+Uses semantic CSS tokens and patterns from autodoc-explorer.css.
 
 This template receives:
 - element: DocElement for the command
@@ -32,7 +32,7 @@ This template receives:
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <div class="docs-content">
         {# CLI Command Content #}
-        <div class="api-explorer">
+        <div class="autodoc-explorer">
           {# Usage #}
           {% if element.qualified_name %}
           <div class="api-usage">

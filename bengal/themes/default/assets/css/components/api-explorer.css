@@ -1,7 +1,12 @@
 /**
- * API Explorer - Terminal-Inspired Documentation Windows
+ * Autodoc Explorer - Terminal-Inspired Documentation Windows
  *
- * Sleek, terminal-like API documentation with:
+ * Unified component system for all autodoc-generated reference documentation:
+ * - Python API (classes, functions, modules)
+ * - CLI Reference (commands, options, arguments)
+ * - OpenAPI/REST (endpoints, schemas)
+ *
+ * Features:
  * - Window chrome title bars
  * - Neumorphic depth & diffused light
  * - Gradient accents & luminescent edges
@@ -13,7 +18,7 @@
    DESIGN TOKENS FOR API EXPLORER
    ============================================ */
 
-.api-explorer {
+.autodoc-explorer {
   /* Window chrome */
   --api-window-bg: var(--color-bg-elevated);
   --api-window-header-bg: linear-gradient(180deg,
@@ -52,7 +57,7 @@
   overflow: hidden;
 }
 
-[data-theme="dark"] .api-explorer {
+[data-theme="dark"] .autodoc-explorer {
   --api-window-bg: var(--color-bg-secondary);
   --api-window-header-bg: linear-gradient(180deg,
     var(--color-bg-elevated) 0%,
@@ -1462,7 +1467,7 @@ details.api-card > summary::marker { display: none; }
    INDEX PAGE - Package/Module Grid
    ============================================ */
 
-.api-explorer--index {
+.autodoc-explorer--index {
   max-width: 100%;
   /* Ensure proper containment within docs-main */
   overflow: hidden;
@@ -2349,7 +2354,7 @@ details.api-card > summary::marker { display: none; }
    multiple API documentation types (Python, REST, CLI)
    ============================================ */
 
-.api-explorer--hub {
+.autodoc-explorer--hub {
   max-width: 100%;
 }
 

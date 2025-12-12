@@ -38,14 +38,14 @@ Add images, figures, videos, and embeds.
 :::{/card}
 
 :::{card} Tables
-:icon: table
+:icon: layers
 :link: ./tables/
 
 Simple pipe tables and complex list-tables.
 :::{/card}
 
 :::{card} Callouts & Admonitions
-:icon: alert-circle
+:icon: info
 :link: ./callouts/
 
 Notes, warnings, tips, and collapsible sections.

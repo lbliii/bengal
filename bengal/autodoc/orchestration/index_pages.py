@@ -167,19 +167,21 @@ def render_section_index_fallback(section: Section) -> str:
         desc = s.metadata.get("description", "")
         desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
         child_count = len(s.subsections) + len(s.pages)
-        desc_span = (
-            f'<span class="api-package-card__description">{desc_preview}</span>'
-            if desc_preview
-            else ""
-        )
+        desc_span = f'<p class="api-card__description">{desc_preview}</p>' if desc_preview else ""
         subsections_cards.append(f'''
-      <a href="{s.relative_url}" class="api-package-card">
-        <span class="api-package-card__icon">{folder_icon}</span>
-        <span class="api-package-card__name">{s.name}</span>
-        {desc_span}
-        <span class="api-package-card__meta">
-          {child_count} item{"s" if child_count != 1 else ""}
-        </span>
+      <a href="{s.relative_url}" class="api-card api-card--link api-card--package">
+        <div class="api-card__header">
+          <span class="api-card__icon">{folder_icon}</span>
+          <span class="api-card__title">{s.name}</span>
+        </div>
+        <div class="api-card__body">
+          {desc_span}
+        </div>
+        <div class="api-card__footer">
+          <span class="api-card__meta">
+            {child_count} item{"s" if child_count != 1 else ""}
+          </span>
+        </div>
       </a>''')
 
     module_cards = []
@@ -189,24 +191,22 @@ def render_section_index_fallback(section: Section) -> str:
         desc = p.metadata.get("description", "")
         desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
         element_type = p.metadata.get("element_type", "")
-        desc_span = (
-            f'<span class="api-module-card__description">{desc_preview}</span>'
-            if desc_preview
-            else ""
-        )
+        desc_span = f'<p class="api-card__description">{desc_preview}</p>' if desc_preview else ""
         badge_span = (
-            '<span class="api-module-card__badges">'
-            f'<span class="api-badge--mini">{element_type}</span>'
-            "</span>"
+            f'<span class="api-badge--mini api-badge--{element_type}">{element_type}</span>'
             if element_type
             else ""
         )
         module_cards.append(f'''
-      <a href="{p.relative_url}" class="api-module-card">
-        <span class="api-module-card__icon">{code_icon}</span>
-        <span class="api-module-card__name">{p.title}</span>
-        {desc_span}
-        {badge_span}
+      <a href="{p.relative_url}" class="api-card api-card--link">
+        <div class="api-card__header">
+          <span class="api-card__icon">{code_icon}</span>
+          <span class="api-card__title">{p.title}</span>
+          {badge_span}
+        </div>
+        <div class="api-card__body">
+          {desc_span}
+        </div>
       </a>''')
 
     subsections_section = ""
@@ -235,7 +235,7 @@ def render_section_index_fallback(section: Section) -> str:
         desc_html = f'<p class="api-section-header__description">{section_desc}</p>'
 
     return f"""
-<div class="api-explorer api-explorer--index">
+<div class="autodoc-explorer autodoc-explorer--index">
   <header class="api-section-header">
     <h1 class="api-section-header__title">{section.title}</h1>
     {desc_html}

@@ -11,7 +11,7 @@ This fallback includes a minimal header for standalone rendering.
 {% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
 {% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
 
-<div class="api-explorer">
+<div class="autodoc-explorer">
     {# Classes Section #}
     {% if classes %}
     <section class="api-section api-section--classes">
@@ -34,7 +34,7 @@ This fallback includes a minimal header for standalone rendering.
                     <span class="api-card__toggle">▸</span>
                 </summary>
 
-                <div class="api-card__content">
+                <div class="api-card__body">
                     {% if cls.description %}
                     <div class="api-card__description">{{ cls.description | markdownify | safe }}</div>
                     {% endif %}
@@ -165,7 +165,7 @@ This fallback includes a minimal header for standalone rendering.
                     <span class="api-card__toggle">▸</span>
                 </summary>
 
-                <div class="api-card__content">
+                <div class="api-card__body">
                     {% if func.metadata.signature %}
                     <pre class="api-signature"><code class="language-python">{{ func.metadata.signature }}</code></pre>
                     {% endif %}
