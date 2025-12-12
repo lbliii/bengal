@@ -15,19 +15,13 @@ autodoc:
   # Python API Documentation
   python:
     enabled: true
-    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     source_dirs:
       - ../bengal  # Document the main Bengal package
-    # output_dir: removed - virtual pages always output to site.output_dir (public/)
     docstring_style: auto  # Auto-detect docstring format
 
-    # Output prefix for Python API docs (default: "api/python")
-    # Controls the URL path where Python docs are generated
-    # Examples:
-    #   output_prefix: "api/python"  # -> /api/python/...
-    #   output_prefix: "api"         # -> /api/...  (legacy, may conflict with OpenAPI)
-    #   output_prefix: "reference"   # -> /reference/...
-    # output_prefix: "api/python"
+    # Output prefix for Python API docs
+    # This creates the section at /api/python/...
+    output_prefix: "api/python"
 
     # Exclude test, cache, and virtual environment files
     exclude:
@@ -47,30 +41,19 @@ autodoc:
   # CLI Documentation
   cli:
     enabled: true
-    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     app_module: "bengal.cli:main"
     framework: click
-    # output_dir: removed - virtual pages always output to site.output_dir (public/)
 
-    # Output prefix for CLI docs (default: "cli")
-    # Controls the URL path where CLI docs are generated
-    # Examples:
-    #   output_prefix: "cli"         # -> /cli/...
-    #   output_prefix: "commands"    # -> /commands/...
-    # output_prefix: "cli"
+    # Output prefix for CLI docs
+    # This creates the section at /cli/...
+    output_prefix: "cli"
 
   # OpenAPI Documentation
   openapi:
     enabled: true
     spec_file: "api/openapi.yaml"  # Relative to site root
 
-    # Output prefix for OpenAPI docs (default: auto-derived from spec title)
-    # Controls the URL path where OpenAPI docs are generated
-    # When empty or not set, derives from spec info.title:
-    #   "Commerce API" -> "api/commerce"
-    #   "Payment Service" -> "api/payment"
-    # Examples:
-    #   output_prefix: ""            # -> auto-derive from spec title
-    #   output_prefix: "api/rest"    # -> /api/rest/...
-    #   output_prefix: "api"         # -> /api/... (legacy, may conflict with Python)
-    # output_prefix: ""  # Auto-derive from OpenAPI spec title
+    # Output prefix for OpenAPI docs
+    # Empty string = auto-derive from spec title "Bengal Demo Commerce API"
+    # This will create the section at /api/bengal-demo-commerce/...
+    output_prefix: ""  # Auto-derive from spec title

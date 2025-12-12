@@ -519,7 +519,11 @@ class RenderingPipeline:
             page.output_path = self.site.output_dir / page.output_path
 
         # Check if this is a deferred autodoc page (render with full context)
-        if page.metadata.get("is_autodoc") and page.metadata.get("autodoc_element"):
+        # Note: Section-index pages have autodoc_element=None but still need autodoc rendering
+        if page.metadata.get("is_autodoc") and (
+            page.metadata.get("autodoc_element") is not None
+            or page.metadata.get("is_section_index")
+        ):
             self._render_autodoc_page(page)
             write_output(page, self.site, self.dependency_tracker)
             logger.debug(
@@ -596,7 +600,8 @@ class RenderingPipeline:
                 page.metadata["_autodoc_fallback_template"] = True
                 page.metadata["_autodoc_fallback_reason"] = str(e)
                 # Fall back to rendering as regular virtual page
-                page._prerendered_html = f"<h1>{page.title}</h1><p>{element.description}</p>"
+                fallback_desc = getattr(element, "description", "") if element else ""
+                page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
                 page.parsed_ast = page._prerendered_html
                 page.toc = ""
                 page.rendered_html = self.renderer.render_page(page, page._prerendered_html)

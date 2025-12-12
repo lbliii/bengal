@@ -1446,7 +1446,11 @@ class VirtualAutodocOrchestrator:
             template_name = f"{section_type}/section-index"
 
             # Create page with deferred rendering - HTML rendered in rendering phase
-            # We pass the section as 'autodoc_element' so RenderingPipeline can pass it to template
+            # NOTE: We pass autodoc_element=None for section-index pages because:
+            # - Templates expect 'element' to be a DocElement with properties like
+            #   element_type, qualified_name, children, description, etc.
+            # - Section objects don't have these properties and would cause StrictUndefined errors
+            # - The section data is already available via the 'section' template variable
             index_page = Page.create_virtual(
                 source_id=f"__virtual__/{section_path}/section-index.md",
                 title=section.title,
@@ -1456,7 +1460,7 @@ class VirtualAutodocOrchestrator:
                     "description": section.metadata.get("description", ""),
                     # Autodoc deferred rendering metadata
                     "is_autodoc": True,
-                    "autodoc_element": section,
+                    "autodoc_element": None,  # Section data available via 'section' variable
                     "_autodoc_template": template_name,
                 },
                 rendered_html=None,  # Deferred - rendered in rendering phase with full context
