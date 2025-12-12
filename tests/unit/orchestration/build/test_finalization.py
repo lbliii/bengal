@@ -199,6 +199,40 @@ class TestPhaseCollectStats:
         # Should store _last_build_stats
         assert hasattr(orchestrator.site, "_last_build_stats")
 
+    def test_build_badge_disabled_by_default(self, tmp_path):
+        """Does not write build badge artifacts unless explicitly enabled."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path, config={})
+        orchestrator.site.taxonomies = {}
+
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        out_dir = orchestrator.site.output_dir
+        assert not (out_dir / "bengal" / "build.svg").exists()
+        assert not (out_dir / "bengal" / "build.json").exists()
+
+    def test_build_badge_writes_svg_and_json_when_enabled(self, tmp_path):
+        """Writes build badge artifacts when build_badge is enabled."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": {"enabled": True}},
+        )
+        orchestrator.site.taxonomies = {}
+
+        phase_collect_stats(orchestrator, build_start=time.time() - 1.2)
+
+        out_dir = orchestrator.site.output_dir
+        svg_path = out_dir / "bengal" / "build.svg"
+        json_path = out_dir / "bengal" / "build.json"
+
+        assert svg_path.exists()
+        assert json_path.exists()
+
+        svg = svg_path.read_text(encoding="utf-8")
+        data = json_path.read_text(encoding="utf-8")
+
+        assert "built in" in svg
+        assert '"build_time_ms"' in data
+
 
 class TestRunHealthCheck:
     """Tests for run_health_check function."""

@@ -113,6 +113,14 @@ pretty_urls = true     # /about/index.html instead of /about.html
 minify = true         # Minify CSS/JS
 optimize = true       # Optimize images
 fingerprint = true    # Add content hash to filenames
+
+# Optional: write a small build-time badge + JSON into your output directory
+# so you can show an accurate "built in 1m 02s" badge on your site.
+[build_badge]
+enabled = true
+# Output paths:
+# - public/bengal/build.svg
+# - public/bengal/build.json
 ```
 
 ## Customize Templates
@@ -151,6 +159,14 @@ Reference them in templates:
 ```html
 <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 <img src="{{ asset_url('images/logo.png') }}" alt="Logo">
+```
+
+### Show the build badge on your site
+
+Once enabled, you can reference the generated badge from any template:
+
+```html
+<img src="{{ site.baseurl.rstrip('/') }}/bengal/build.svg" alt="Built in badge">
 ```
 
 ## Deploy
