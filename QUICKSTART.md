@@ -31,6 +31,22 @@ cd myblog
 # └── templates/           # Custom templates (optional)
 ```
 
+### The `.bengal/` Directory
+
+After your first build, Bengal creates a `.bengal/` directory for caches and state:
+
+```
+.bengal/                    # Project state (auto-created, gitignored)
+├── cache.json             # Build cache for incremental builds
+├── page_metadata.json     # Page discovery cache
+├── taxonomy_index.json    # Taxonomy index
+├── templates/             # Jinja bytecode cache
+├── indexes/               # Query indexes
+└── logs/                  # Build logs
+```
+
+> **Note**: Add `.bengal/` to your `.gitignore` - it contains machine-specific caches that shouldn't be committed.
+
 ## Build and Serve
 
 ```bash
