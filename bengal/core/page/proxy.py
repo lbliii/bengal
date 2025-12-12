@@ -135,6 +135,15 @@ class PageProxy:
         return self.core.title
 
     @property
+    def nav_title(self) -> str:
+        """
+        Get navigation title from cached metadata.
+
+        Falls back to title if nav_title not set.
+        """
+        return self.core.nav_title or self.core.title
+
+    @property
     def date(self) -> datetime | None:
         """Get page date from cached metadata (parsed from ISO string)."""
         if not self.core.date:

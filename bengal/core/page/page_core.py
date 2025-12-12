@@ -207,6 +207,7 @@ class PageCore(Cacheable):
     slug: str | None = None  # URL slug override
     weight: int | None = None  # Sort weight in section
     lang: str | None = None  # Language code (i18n)
+    nav_title: str | None = None  # Short title for navigation (falls back to title)
 
     # Cascaded fields (from section _index.md)
     type: str | None = None  # Page type (routing/strategy)
@@ -257,6 +258,7 @@ class PageCore(Cacheable):
             "slug": self.slug,
             "weight": self.weight,
             "lang": self.lang,
+            "nav_title": self.nav_title,
             "type": self.type,
             "variant": self.variant,
             "description": self.description,
@@ -287,6 +289,7 @@ class PageCore(Cacheable):
             slug=data.get("slug"),
             weight=data.get("weight"),
             lang=data.get("lang"),
+            nav_title=data.get("nav_title"),
             type=data.get("type"),
             variant=data.get("variant"),
             description=data.get("description"),

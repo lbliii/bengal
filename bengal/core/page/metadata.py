@@ -68,6 +68,34 @@ class PageMetadataMixin:
         return self.source_path.stem.replace("-", " ").title()
 
     @property
+    def nav_title(self) -> str:
+        """
+        Get navigation title (shorter title for menus/sidebar).
+
+        Falls back to regular title if nav_title not specified in frontmatter.
+        Use this in navigation/menu templates for compact display.
+
+        Example:
+            ```yaml
+            ---
+            title: Content Authoring Guide
+            nav_title: Authoring
+            ---
+            ```
+
+        In templates:
+            {{ page.nav_title }}  # "Authoring" (or title if not set)
+        """
+        # Check core first (cached)
+        if self.core is not None and self.core.nav_title:
+            return self.core.nav_title
+        # Check metadata (fallback)
+        if "nav_title" in self.metadata:
+            return str(self.metadata["nav_title"])
+        # Fall back to title
+        return self.title
+
+    @property
     def date(self) -> datetime | None:
         """
         Get page date from metadata.

@@ -219,6 +219,7 @@ class Page(
             slug=standard_fields.get("slug"),
             weight=standard_fields.get("weight"),
             lang=self.lang,
+            nav_title=standard_fields.get("nav_title"),  # Short title for navigation
             # Component Model Fields
             type=standard_fields.get("type"),
             variant=variant,

@@ -200,6 +200,28 @@ class Section:
         """Get section title from metadata or generate from name."""
         return str(self.metadata.get("title", self.name.replace("-", " ").title()))
 
+    @property
+    def nav_title(self) -> str:
+        """
+        Get short navigation title (falls back to title).
+
+        Use this in menus and sidebars for compact display.
+
+        Example in _index.md:
+            ---
+            title: Content Authoring Guide
+            nav_title: Authoring
+            ---
+        """
+        if "nav_title" in self.metadata:
+            return str(self.metadata["nav_title"])
+        # Also check index page for nav_title
+        if self.index_page is not None:
+            index_nav = getattr(self.index_page, "nav_title", None)
+            if index_nav and index_nav != self.index_page.title:
+                return index_nav
+        return self.title
+
     @cached_property
     def icon(self) -> str | None:
         """
