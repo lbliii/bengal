@@ -66,7 +66,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       {# Check if there's custom content from _index.md #}
-      {% if content and content.strip() %}
+      {% if content is defined and content and content.strip() %}
       <div class="docs-content api-hub-custom-content">
         {{ content | safe }}
       </div>

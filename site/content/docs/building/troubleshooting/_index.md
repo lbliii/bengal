@@ -3,7 +3,7 @@ title: Troubleshooting
 description: Common issues and how to resolve them
 weight: 50
 category: guide
-icon: help-circle
+icon: question
 ---
 # Troubleshooting
 
