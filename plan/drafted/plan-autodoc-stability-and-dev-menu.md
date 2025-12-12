@@ -165,3 +165,35 @@ Autodoc uses a page `type` to drive CSS (e.g. `python-reference`) while mapping 
   - a stable URL namespace (per output_prefix RFC)
   - a stable template/layout path (per type→template mapping)
 - CI includes unit + integration tests covering the above.
+
+---
+
+## User-permutation support matrix (auto topbar menu)
+
+This section enumerates the main “auto menu” permutations and whether they work **today** (current code), versus the intended target after the phases above.
+
+### Definitions
+
+- **Auto menu mode**: `menu.main` not configured, so `MenuOrchestrator` builds `menu.main` from sections (`bengal/orchestration/menu.py:205-373`).
+- **GitHub link**: rendered directly from `params.repo_url` unless “bundled” into Dev (`bengal/themes/default/templates/base.html:272-286`).
+- **Dev dropdown**: only created when `len(dev_assets) >= 2` (`bengal/orchestration/menu.py:287-334`).
+- **API section detection**: hard-coded `section.name == "api"` (`bengal/orchestration/menu.py:227-234`).
+- **CLI section detection**: hard-coded `section.name == "cli"` (`bengal/orchestration/menu.py:235-241`).
+
+### Results (current behavior)
+
+- [OK] **No Dev assets** (no repo_url, no api section, no cli section): auto menu shows discovered sections.
+- [OK] **GitHub only** (repo_url set; no api, no cli): GitHub appears as a topbar link (not under Dev).
+- [BROKEN] **CLI only** (cli section exists; no repo_url; no api): `cli` is excluded from auto-nav but Dev dropdown is not created (requires 2+ assets), so CLI can disappear.
+- [BROKEN] **API only** (api section exists; no repo_url; no cli): `api` is excluded from auto-nav but Dev dropdown is not created (requires 2+ assets), so API can disappear.
+- [OK] **GitHub + CLI**: Dev dropdown is created; GitHub is bundled (top-level GitHub suppressed) and CLI appears under Dev.
+- [OK] **GitHub + API**: Dev dropdown is created; GitHub is bundled and API appears under Dev.
+- [OK] **API + CLI**: Dev dropdown is created with both entries.
+- [PARTIAL] **OpenAPI only**: no explicit Dev entry for OpenAPI exists today; it is only reachable indirectly via an aggregating `/api/` section when output prefixes create it.
+
+### Target behavior (post plan)
+
+- Phase 0 + Phase 1: ensure “Python API enabled” reliably produces pages and `/api/` so Dev can include **API Reference**.
+- Phase 2: remove hard-coded detection (api/cli) and let autodoc publish the exact “Dev links” to bundle, so:
+  - “just CLI” and “just API” can be shown without disappearing (either as top-level items or as a Dev dropdown with a single item — explicit product decision).
+  - OpenAPI can get its own explicit entry (not only via `/api/` umbrella).

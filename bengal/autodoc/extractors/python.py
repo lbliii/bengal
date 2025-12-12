@@ -8,6 +8,7 @@ No imports required - fast and reliable.
 from __future__ import annotations
 
 import ast
+import fnmatch
 from pathlib import Path
 from typing import Any, override
 
@@ -203,7 +204,11 @@ class PythonExtractor(Extractor):
         - Build artifacts (__pycache__, build, dist)
         - Test files and directories
         """
-        path_str = str(path)
+        # Normalize once for consistent matching across platforms.
+        # We match against a POSIX path string (with '/') to make config patterns portable.
+        # NOTE: We intentionally do not require paths to exist here; callers may pass synthetic paths.
+        path_str = path.as_posix()
+        name = path.name
         path_parts = path.parts
 
         # Skip hidden directories (any part starting with .)
@@ -235,15 +240,17 @@ class PythonExtractor(Extractor):
 
         # Apply user-specified exclude patterns
         for pattern in self.exclude_patterns:
-            # Simple substring matching (for patterns like "*/tests/*")
-            core_pattern = pattern.replace("*/", "").replace("/*", "").replace("*", "")
-            if core_pattern and core_pattern in path_str:
+            if not pattern:
+                continue
+
+            # Treat patterns as globs (portable, predictable). We match against both:
+            # - the full POSIX path (e.g. "bengal/core/site.py")
+            # - the basename (e.g. "site.py") for convenience patterns like "*_test.py"
+            #
+            # This fixes a real-world footgun where substring matching caused patterns like "*/.*"
+            # to degenerate into "." and skip every file.
+            if fnmatch.fnmatch(path_str, pattern) or fnmatch.fnmatch(name, pattern):
                 return True
-            # Filename matching (for patterns like "test_*.py")
-            if pattern.startswith("*/") and "*" in pattern:
-                suffix = pattern[2:].replace("*", "")
-                if path.name.startswith(suffix) or path.name.endswith(suffix):
-                    return True
 
         return False
 

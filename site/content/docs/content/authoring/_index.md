@@ -1,6 +1,6 @@
 ---
 title: Content Authoring
-nav_title: Authoring
+nav_title: Author
 description: Markdown, MyST directives, and shortcodes
 weight: 20
 category: guide

@@ -1,6 +1,6 @@
 ---
 title: Configure Bengal
-nav_title: Configuration
+nav_title: Configure
 description: Configuration reference for site settings, menus, and content processing
 weight: 10
 type: doc
