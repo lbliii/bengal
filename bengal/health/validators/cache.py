@@ -63,8 +63,7 @@ class CacheValidator(BaseValidator):
             return results
 
         # Check 1: Cache location (new location since v0.1.2)
-        cache_dir = site.root_path / ".bengal"
-        cache_path = cache_dir / "cache.json"
+        cache_path = site.paths.build_cache
 
         # Check for old cache location (migration needed)
         old_cache_path = site.output_dir / ".bengal-cache.json"

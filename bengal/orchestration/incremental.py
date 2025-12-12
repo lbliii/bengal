@@ -120,11 +120,11 @@ class IncrementalOrchestrator:
 
         from bengal.cache import BuildCache, DependencyTracker
 
-        cache_dir = self.site.root_path / ".bengal"
-        cache_path = cache_dir / "cache.json"
+        paths = self.site.paths
+        cache_path = paths.build_cache
 
         if enabled:
-            cache_dir.mkdir(parents=True, exist_ok=True)
+            paths.state_dir.mkdir(parents=True, exist_ok=True)
 
             # Migrate legacy cache from output_dir if exists
             old_cache_path = self.site.output_dir / ".bengal-cache.json"
@@ -1072,9 +1072,9 @@ class IncrementalOrchestrator:
             return
 
         # Use same cache location as initialize()
-        cache_dir = self.site.root_path / ".bengal"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / "cache.json"
+        paths = self.site.paths
+        paths.state_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = paths.build_cache
 
         # Track autodoc source files that were used in this build
         autodoc_source_files_updated: set[str] = set()

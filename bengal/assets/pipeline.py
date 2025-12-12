@@ -48,8 +48,11 @@ class NodePipeline:
     """
 
     def __init__(self, config: PipelineConfig) -> None:
+        from bengal.cache.paths import BengalPaths
+
         self.config = config
-        self.temp_out_dir = config.root_path / ".bengal" / "pipeline_out"
+        paths = BengalPaths(config.root_path)
+        self.temp_out_dir = paths.pipeline_out_dir
 
     def build(self) -> list[Path]:
         """

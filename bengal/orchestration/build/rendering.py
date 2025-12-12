@@ -354,9 +354,7 @@ def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any
             from bengal.cache.asset_dependency_map import AssetDependencyMap
             from bengal.rendering.asset_extractor import extract_assets_from_html
 
-            asset_map = AssetDependencyMap(
-                orchestrator.site.root_path / ".bengal" / "asset_deps.json"
-            )
+            asset_map = AssetDependencyMap(orchestrator.site.paths.asset_cache)
 
             # Extract assets from rendered pages
             for page in pages_to_build:

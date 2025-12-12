@@ -150,7 +150,7 @@ class BuildOrchestrator:
         if profile_config.get("collect_metrics", False):
             from bengal.utils.performance_collector import PerformanceCollector
 
-            collector = PerformanceCollector()
+            collector = PerformanceCollector(metrics_dir=self.site.paths.metrics_dir)
             collector.start_build()
 
         # Initialize stats (incremental may be None, resolve later)
@@ -189,8 +189,7 @@ class BuildOrchestrator:
         auto_reason = None
         if incremental is None:
             try:
-                cache_dir = self.site.root_path / ".bengal"
-                cache_path = cache_dir / "cache.json"
+                cache_path = self.site.paths.build_cache
                 cache_exists = cache_path.exists()
                 cached_files = len(getattr(cache, "file_hashes", {}) or {})
                 if cache_exists and cached_files > 0:

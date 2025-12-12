@@ -215,9 +215,7 @@ def phase_discovery(
             try:
                 from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
-                page_discovery_cache = PageDiscoveryCache(
-                    orchestrator.site.root_path / ".bengal" / "page_metadata.json"
-                )
+                page_discovery_cache = PageDiscoveryCache(orchestrator.site.paths.page_cache)
             except Exception as e:
                 orchestrator.logger.debug(
                     "page_discovery_cache_load_failed_for_lazy_loading",
@@ -268,9 +266,7 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
         try:
             from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
-            page_cache = PageDiscoveryCache(
-                orchestrator.site.root_path / ".bengal" / "page_metadata.json"
-            )
+            page_cache = PageDiscoveryCache(orchestrator.site.paths.page_cache)
 
             # Extract metadata from discovered pages (AFTER cascades applied)
             for page in orchestrator.site.pages:
@@ -347,9 +343,7 @@ def phase_config_check(
     if cache and hasattr(orchestrator.incremental, "_cleanup_deleted_files"):
         orchestrator.incremental._cleanup_deleted_files()
         # Save cache immediately so deletions are persisted
-        cache_dir = orchestrator.site.root_path / ".bengal"
-        cache_path = cache_dir / "cache.json"
-        cache.save(cache_path)
+        cache.save(orchestrator.site.paths.build_cache)
 
     # Now clear cache if config changed
     if not incremental and config_changed:

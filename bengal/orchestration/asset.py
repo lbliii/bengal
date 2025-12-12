@@ -548,7 +548,7 @@ class AssetOrchestrator:
                 return None
 
             # Write bundle to temp location
-            bundle_dir = self.site.root_path / ".bengal" / "js_bundle"
+            bundle_dir = self.site.paths.js_bundle_dir
             bundle_dir.mkdir(parents=True, exist_ok=True)
             bundle_path = bundle_dir / "bundle.js"
             bundle_path.write_text(bundled_content, encoding="utf-8")

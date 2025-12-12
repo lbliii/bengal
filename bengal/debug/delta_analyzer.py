@@ -432,9 +432,10 @@ class BuildDeltaAnalyzer(DebugTool):
             history: Optional BuildHistory for trend analysis
         """
         super().__init__(site=site, cache=cache, root_path=root_path)
-        self.history = history or BuildHistory(
-            storage_path=self.root_path / ".bengal" / "build_history.json"
-        )
+        from bengal.cache.paths import BengalPaths
+
+        paths = BengalPaths(self.root_path)
+        self.history = history or BuildHistory(storage_path=paths.build_history)
 
     def analyze(self) -> DebugReport:
         """

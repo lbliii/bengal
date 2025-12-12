@@ -256,4 +256,4 @@ class URLStrategy:
             make_virtual_path(site, 'tags', 'python')
             → /path/to/site/.bengal/generated/tags/python/index.md
         """
-        return site.root_path / ".bengal" / "generated" / Path(*parts) / "index.md"
+        return site.paths.generated_dir / Path(*parts) / "index.md"
