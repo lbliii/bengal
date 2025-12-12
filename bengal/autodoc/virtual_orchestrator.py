@@ -246,6 +246,10 @@ class VirtualAutodocOrchestrator:
         # generate autodoc pages. Content discovery may probe autodoc enablement
         # even when autodoc is disabled, and environment setup is expensive.
         self.template_env: Environment | None = None
+        # Performance: these values are used in tight loops during generation.
+        # Cache them per orchestrator instance (one per build).
+        self._output_prefix_cache: dict[str, str] = {}
+        self._openapi_prefix_cache: str | None = None
 
     def _ensure_template_env(self) -> Environment:
         """Create the autodoc Jinja environment lazily (only when needed)."""
@@ -477,16 +481,21 @@ class VirtualAutodocOrchestrator:
         Returns:
             Derived prefix (e.g., "api/commerce") or "api/rest" as fallback
         """
+        if self._openapi_prefix_cache is not None:
+            return self._openapi_prefix_cache
+
         import yaml
 
         spec_file = self.openapi_config.get("spec_file")
         if not spec_file:
-            return "api/rest"
+            self._openapi_prefix_cache = "api/rest"
+            return self._openapi_prefix_cache
 
         spec_path = self.site.root_path / spec_file
         if not spec_path.exists():
             logger.debug("autodoc_openapi_spec_not_found_for_prefix", path=str(spec_path))
-            return "api/rest"
+            self._openapi_prefix_cache = "api/rest"
+            return self._openapi_prefix_cache
 
         try:
             with open(spec_path, encoding="utf-8") as f:
@@ -494,17 +503,20 @@ class VirtualAutodocOrchestrator:
 
             title = spec.get("info", {}).get("title", "")
             if not title:
-                return "api/rest"
+                self._openapi_prefix_cache = "api/rest"
+                return self._openapi_prefix_cache
 
             slug = self._slugify(title)
-            return f"api/{slug}"
+            self._openapi_prefix_cache = f"api/{slug}"
+            return self._openapi_prefix_cache
         except Exception as e:
             logger.debug(
                 "autodoc_openapi_prefix_derivation_failed",
                 path=str(spec_path),
                 error=str(e),
             )
-            return "api/rest"
+            self._openapi_prefix_cache = "api/rest"
+            return self._openapi_prefix_cache
 
     def _resolve_output_prefix(self, doc_type: str) -> str:
         """
@@ -521,29 +533,27 @@ class VirtualAutodocOrchestrator:
         Returns:
             Resolved output prefix (e.g., "api/python", "api/commerce", "cli")
         """
+        cached = self._output_prefix_cache.get(doc_type)
+        if cached is not None:
+            return cached
+
         if doc_type == "python":
             explicit = self.python_config.get("output_prefix")
-            if explicit:
-                return explicit.strip("/")
-            return "api/python"
+            resolved = explicit.strip("/") if explicit else "api/python"
 
         elif doc_type == "openapi":
             explicit = self.openapi_config.get("output_prefix")
-            if explicit:
-                return explicit.strip("/")
-            # Empty string means auto-derive
-            if explicit == "":
-                return self._derive_openapi_prefix()
-            # None or not set - use default auto-derive
-            return self._derive_openapi_prefix()
+            resolved = explicit.strip("/") if explicit else self._derive_openapi_prefix()
 
         elif doc_type == "cli":
             explicit = self.cli_config.get("output_prefix")
-            if explicit:
-                return explicit.strip("/")
-            return "cli"
+            resolved = explicit.strip("/") if explicit else "cli"
 
-        return f"api/{doc_type}"
+        else:
+            resolved = f"api/{doc_type}"
+
+        self._output_prefix_cache[doc_type] = resolved
+        return resolved
 
     def is_enabled(self) -> bool:
         """Check if virtual autodoc is enabled for any type."""
