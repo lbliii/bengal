@@ -1,5 +1,33 @@
 ## 0.1.5-rc1 - 2025-12-10
 
+### Page Hero Template Separation ✅
+- **templates(page-hero)**: refactor monolithic `page-hero-api.html` (250+ lines) into modular components
+- **templates(page-hero)**: add `_share-dropdown.html` - extracted AI share dropdown component (~100 lines)
+- **templates(page-hero)**: add `_wrapper.html` - shared wrapper with breadcrumbs and share dropdown (~40 lines)
+- **templates(page-hero)**: add `_element-stats.html` - element children stats component (~75 lines)
+- **templates(page-hero)**: add `element.html` - DocElement pages (modules, classes, commands) (~55 lines)
+- **templates(page-hero)**: add `section.html` - section-index pages with explicit `is_cli` support (~70 lines)
+- **templates(page-hero)**: add `hero_context.is_cli` flag for explicit CLI detection (replaces URL sniffing)
+- **templates(dispatcher)**: update `page-hero.html` to route `api` style to new separated templates
+- **templates(api-reference)**: migrate `module.html` and `section-index.html` to use new templates
+- **templates(cli-reference)**: migrate `command.html`, `command-group.html`, and `section-index.html` to use new templates
+- **templates(legacy)**: add deprecation warning to `page-hero-api.html` with migration guide
+- **tests**: add 31 unit tests for page hero template rendering
+- **docs**: document new template structure and `hero_context` usage in theming guide
+
+### Centralized `.bengal/` Cache Directory ✅
+- **cache(paths)**: add `BengalPaths` class as single source of truth for all `.bengal/` directory paths
+- **cache(paths)**: add `STATE_DIR_NAME` constant for consistent directory naming
+- **cache(paths)**: add `migrate_template_cache()` helper for backwards-compatible migration
+- **core(site)**: add `site.paths` property for centralized `.bengal/` access
+- **rendering(template_engine)**: relocate template bytecode cache from `output/.bengal-cache/templates` to `.bengal/templates`
+- **orchestration**: migrate all `.bengal` path references to use `BengalPaths`
+- **cli**: migrate all `.bengal` path references in commands to use `BengalPaths`
+- **utils**: migrate `.bengal` paths in utilities to use `BengalPaths`
+- **server**: use `STATE_DIR_NAME` constant in ignore patterns
+- **tests**: add 29 unit tests for `BengalPaths` class
+- **docs**: document `.bengal/` directory structure in QUICKSTART.md
+
 ### Proactive Template Validation ✅
 - **rendering(template_engine)**: add `validate_templates()` method for proactive syntax checking
 - **rendering(template_engine)**: enable Jinja2 `do` extension for template statements (`{% do list.append(x) %}`)

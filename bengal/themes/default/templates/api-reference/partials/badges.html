@@ -8,7 +8,7 @@ Uses semantic badge classes from api-explorer.css:
 - Type-specific: --module, --class, --dataclass, --async, --property, --command, --command-group, etc.
 
 Note: This partial expects 'element' to be a DocElement, not None.
-The caller (page-hero-api.html) should guard inclusion with {% if element %}.
+The caller (page-hero/element.html) should guard inclusion with {% if element %}.
 #}
 
 {% if element and element.element_type == 'module' %}
