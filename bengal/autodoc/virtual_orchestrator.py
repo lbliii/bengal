@@ -547,6 +547,11 @@ class VirtualAutodocOrchestrator:
 
     def is_enabled(self) -> bool:
         """Check if virtual autodoc is enabled for any type."""
+        # Performance + ergonomics: treat autodoc as opt-in.
+        # If the site does not define an `autodoc` section, do not run autodoc.
+        if not isinstance(self.config, dict) or not self.config:
+            return False
+
         # Virtual pages are now the default (and only) option
         # Only check if explicitly disabled via virtual_pages: false
         # Check Python

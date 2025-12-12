@@ -106,11 +106,18 @@ class ContentOrchestrator:
             use_cache=incremental and cache is not None,
         )
 
+        import time
+
         from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
+        breakdown_ms: dict[str, float] = {}
+        overall_start = time.perf_counter()
+
         # Load collection schemas from project root (if collections.py exists)
+        t0 = time.perf_counter()
         collections = load_collections(self.site.root_path)
+        breakdown_ms["collections"] = (time.perf_counter() - t0) * 1000
 
         # Check if strict validation is enabled
         build_config = (
@@ -118,6 +125,7 @@ class ContentOrchestrator:
         )
         strict_validation = build_config.get("strict_collections", False)
 
+        t0 = time.perf_counter()
         discovery = ContentDiscovery(
             content_dir,
             site=self.site,
@@ -125,10 +133,13 @@ class ContentOrchestrator:
             strict_validation=strict_validation,
             build_context=build_context,
         )
+        breakdown_ms["content_discovery_init"] = (time.perf_counter() - t0) * 1000
 
         # Use lazy loading if incremental build with cache
         use_cache = incremental and cache is not None
+        t0 = time.perf_counter()
         self.site.sections, self.site.pages = discovery.discover(use_cache=use_cache, cache=cache)
+        breakdown_ms["content_discovery"] = (time.perf_counter() - t0) * 1000
 
         # Note: Autodoc synthetic pages disabled - using traditional Markdown generation
 
@@ -151,7 +162,9 @@ class ContentOrchestrator:
         # deferred to the rendering phase (after menus are built) to ensure full
         # template context (including navigation) is available.
         # Pass build_cache (not page discovery cache) for autodoc dependency registration
+        t0 = time.perf_counter()
         autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=build_cache)
+        breakdown_ms["autodoc"] = (time.perf_counter() - t0) * 1000
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
             self.site.sections.extend(autodoc_sections)
@@ -163,27 +176,42 @@ class ContentOrchestrator:
 
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
         # This enables O(1) section lookups via page._section property
+        t0 = time.perf_counter()
         self.site.register_sections()
+        breakdown_ms["register_sections"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("section_registry_built")
 
         # Set up page references for navigation
+        t0 = time.perf_counter()
         self._setup_page_references()
+        breakdown_ms["setup_page_references"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("page_references_setup")
 
         # Apply cascading frontmatter from sections to pages
+        t0 = time.perf_counter()
         self._apply_cascades()
+        breakdown_ms["cascades"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("cascades_applied")
 
         # Set output paths for all pages immediately after discovery
         # This ensures page.url works correctly before rendering
+        t0 = time.perf_counter()
         self._set_output_paths()
+        breakdown_ms["output_paths"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("output_paths_set")
 
         # Build cross-reference index for O(1) lookups
+        t0 = time.perf_counter()
         self._build_xref_index()
+        breakdown_ms["xref_index"] = (time.perf_counter() - t0) * 1000
         self.logger.debug(
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
+
+        breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
+        # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
+        # This is ephemeral, per-build-only state.
+        self.site._discovery_breakdown_ms = breakdown_ms  # type: ignore[attr-defined]
 
     def _discover_autodoc_content(self, cache: Any | None = None) -> tuple[list[Any], list[Any]]:
         """
@@ -197,6 +225,12 @@ class ContentOrchestrator:
             Tuple of (pages, sections) from virtual autodoc generation.
             Returns ([], []) if virtual autodoc is disabled.
         """
+        # Performance: autodoc should be opt-in. If there is no explicit autodoc
+        # configuration, avoid importing and initializing the autodoc subsystem.
+        autodoc_cfg = self.site.config.get("autodoc")
+        if not isinstance(autodoc_cfg, dict) or not autodoc_cfg:
+            return [], []
+
         try:
             from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 

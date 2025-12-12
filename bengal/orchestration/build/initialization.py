@@ -208,6 +208,8 @@ def phase_discovery(
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
         discovery_start = time.time()
+        content_ms: float | None = None
+        assets_ms: float | None = None
 
         # Load cache for incremental builds (lazy loading)
         page_discovery_cache = None
@@ -223,14 +225,20 @@ def phase_discovery(
                 )
                 # Continue without cache - will do full discovery
 
-        # Discover with optional lazy loading and content caching
-        # Pass both PageDiscoveryCache (for lazy loading) and BuildCache (for autodoc deps)
-        orchestrator.content.discover(
+        # Discover content and assets.
+        # We time these separately so the Discovery phase can report a useful breakdown.
+        content_start = time.time()
+        orchestrator.content.discover_content(
             incremental=incremental,
             cache=page_discovery_cache,
             build_context=build_context,
             build_cache=build_cache,
         )
+        content_ms = (time.time() - content_start) * 1000
+
+        assets_start = time.time()
+        orchestrator.content.discover_assets()
+        assets_ms = (time.time() - assets_start) * 1000
 
         # Log content cache stats if enabled
         if build_context and build_context.has_cached_content:
@@ -241,8 +249,25 @@ def phase_discovery(
 
         orchestrator.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
+        # Phase details (shown only when CLI profile enables details).
+        details: str | None = None
+        if content_ms is not None and assets_ms is not None:
+            details = f"content {int(content_ms)}ms, assets {int(assets_ms)}ms"
+            # If we have a richer breakdown from content discovery, include the top 2 items.
+            breakdown = getattr(orchestrator.site, "_discovery_breakdown_ms", None)
+            if isinstance(breakdown, dict) and content_ms >= 500:
+                candidates = [
+                    (k, v)
+                    for k, v in breakdown.items()
+                    if isinstance(v, (int, float)) and k not in {"total"}
+                ]
+                candidates.sort(key=lambda kv: kv[1], reverse=True)
+                top = [(k, int(v)) for k, v in candidates[:2] if v >= 50]
+                if top:
+                    details += "; " + ", ".join(f"{k} {v}ms" for k, v in top)
+
         # Show phase completion
-        cli.phase("Discovery", duration_ms=orchestrator.stats.discovery_time_ms)
+        cli.phase("Discovery", duration_ms=orchestrator.stats.discovery_time_ms, details=details)
 
         orchestrator.logger.info(
             "discovery_complete",
