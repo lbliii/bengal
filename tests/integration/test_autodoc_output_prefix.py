@@ -101,17 +101,20 @@ paths:
             ):
                 pages, sections, result = orchestrator.generate()
 
-        # Verify separate section trees
-        section_names = [s.name for s in sections]
+        # Root sections prefer an aggregating parent when multiple autodoc types share a prefix.
+        # With /api/python/ and /api/rest/, we should return a single /api/ root section that
+        # aggregates both children.
+        assert [s.name for s in sections] == ["api"]
+        assert [s.relative_url for s in sections] == ["/api/"]
 
-        # Should have distinct root sections
-        assert "python" in section_names  # Python root
-        assert "rest" in section_names  # OpenAPI root (derived from "Test REST API")
+        root = sections[0]
+        child_names = [s.name for s in root.subsections]
+        child_urls = [s.relative_url for s in root.subsections]
 
-        # Verify URLs are distinct
-        section_urls = [s.relative_url for s in sections]
-        assert any("api/python" in url for url in section_urls)
-        assert any("api/rest" in url for url in section_urls)
+        assert "python" in child_names
+        assert "rest" in child_names
+        assert "/api/python/" in child_urls
+        assert "/api/rest/" in child_urls
 
 
 class TestBackwardsCompatibility:

@@ -1769,6 +1769,11 @@ class VirtualAutodocOrchestrator:
             return []
 
         spec_path = Path(spec_file)
+        # Treat relative paths as relative to the site root, not the current working directory.
+        # This is critical for public/CI builds that run from a repo root while the site lives
+        # in a subdirectory (e.g., <repo>/site).
+        if not spec_path.is_absolute():
+            spec_path = self.site.root_path / spec_path
         if not spec_path.exists():
             logger.warning("autodoc_openapi_spec_not_found", path=str(spec_path))
             return []

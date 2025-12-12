@@ -97,3 +97,55 @@ components:
 
     # Result is returned (even if pages rendered later)
     assert result is not None
+
+
+def test_openapi_spec_file_is_resolved_relative_to_site_root(tmp_path: Path, monkeypatch) -> None:
+    """
+    Ensure spec_file is resolved relative to site.root_path, not the current working directory.
+
+    This matches how the example site config is written (e.g. spec_file: "api/openapi.yaml")
+    and prevents missing OpenAPI autodocs in public/CI builds that run from the repo root.
+    """
+    site_root = tmp_path / "site"
+    api_dir = site_root / "api"
+    api_dir.mkdir(parents=True)
+    spec_path = api_dir / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.1.0
+info:
+  title: Demo API
+  version: "1.0.0"
+paths:
+  /users:
+    get:
+      tags: [users]
+      summary: List users
+      responses:
+        "200":
+          description: ok
+""",
+        encoding="utf-8",
+    )
+
+    # Ensure CWD is NOT the site root.
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    monkeypatch.chdir(other_dir)
+
+    site = MagicMock()
+    site.root_path = site_root
+    site.output_dir = tmp_path / "public"
+    site.baseurl = "/"
+    site.config = {"autodoc": {"openapi": {"enabled": True, "spec_file": "api/openapi.yaml"}}}
+    site.theme = "default"
+    site.theme_config = {}
+    site.menu = {"main": []}
+    site.menu_localized = {}
+    site._section_registry = {}
+    site._section_url_registry = {}
+
+    orchestrator = VirtualAutodocOrchestrator(site)
+    pages, _sections, _result = orchestrator.generate()
+
+    url_paths = {p.metadata.get("_autodoc_url_path") for p in pages}
+    assert "api/demo/overview" in url_paths
