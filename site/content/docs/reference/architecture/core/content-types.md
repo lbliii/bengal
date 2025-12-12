@@ -1,5 +1,6 @@
 ---
 title: Content Strategies
+nav_title: Strategies
 description: Flexible strategies for different site types
 weight: 30
 category: core

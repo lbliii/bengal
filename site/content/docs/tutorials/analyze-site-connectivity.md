@@ -1,5 +1,6 @@
 ---
 title: Analyze and Improve Site Connectivity
+nav_title: Analyze Site
 description: Learn to discover, interpret, and act on site structure insights using Bengal's graph analysis tools
 weight: 50
 draft: false

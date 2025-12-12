@@ -1,5 +1,6 @@
 ---
 title: Automate with GitHub Actions
+nav_title: GitHub Actions
 description: Set up automated builds, testing, and deployments using GitHub Actions
 weight: 30
 draft: false

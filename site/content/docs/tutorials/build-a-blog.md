@@ -1,5 +1,6 @@
 ---
 title: Build a Blog from Scratch
+nav_title: Build Blog
 description: Create, configure, and customize a personal blog from scratch
 weight: 10
 draft: false

@@ -1,5 +1,6 @@
 ---
 title: Swizzle and Customize the Default Theme
+nav_title: Swizzle Theme
 description: Learn to copy and customize theme templates without breaking updates
 weight: 20
 draft: false

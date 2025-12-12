@@ -1,5 +1,6 @@
 ---
 title: Organize Content
+nav_title: Content
 description: Map files to URLs and organize content into sections
 weight: 20
 type: doc

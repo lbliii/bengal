@@ -1,5 +1,6 @@
 ---
 title: Themer Quickstart
+nav_title: For Themers
 description: Customize themes and create your own designs
 draft: false
 weight: 30

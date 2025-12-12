@@ -1,5 +1,6 @@
 ---
 title: Writer Quickstart
+nav_title: For Writers
 description: Create your first site and start writing content
 draft: false
 weight: 20

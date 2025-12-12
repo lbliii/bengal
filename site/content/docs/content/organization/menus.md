@@ -1,5 +1,6 @@
 ---
 title: Navigation Menus
+nav_title: Menus
 description: Configure navigation menus in Bengal
 weight: 20
 draft: false

@@ -1,5 +1,6 @@
 ---
 title: Learning Tracks
+nav_title: Tracks
 description: Goal-oriented learning journeys through Bengal documentation
 layout: tracks/list
 weight: 5

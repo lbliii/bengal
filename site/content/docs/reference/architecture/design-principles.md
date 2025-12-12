@@ -1,5 +1,6 @@
 ---
 title: Design Principles
+nav_title: Principles
 description: Core patterns and philosophies guiding Bengal's architecture.
 weight: 50
 category: core

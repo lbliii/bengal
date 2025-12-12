@@ -1,5 +1,6 @@
 ---
 title: Add Table of Contents
+nav_title: TOC
 description: Use Bengal's auto-generated page.toc for navigation
 weight: 50
 draft: false

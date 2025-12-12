@@ -1,5 +1,6 @@
 ---
 title: Configuration System
+nav_title: Config
 description: Flexible, format-agnostic configuration loading
 weight: 20
 category: tooling

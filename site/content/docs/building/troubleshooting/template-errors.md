@@ -1,5 +1,6 @@
 ---
 title: Template Errors
+nav_title: Templates
 description: Diagnosing and fixing template syntax errors, undefined variables, and missing templates
 weight: 10
 category: guide

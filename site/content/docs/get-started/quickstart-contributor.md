@@ -1,5 +1,6 @@
 ---
 title: Contributor Quickstart
+nav_title: For Contributors
 description: Set up Bengal for development and start contributing
 draft: false
 weight: 40

@@ -1,5 +1,6 @@
 ---
 title: Linking Guide
+nav_title: Linking
 description: Complete guide to creating links between pages, headings, and external resources
 weight: 10
 category: guide

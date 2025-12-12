@@ -1,5 +1,6 @@
 ---
 title: Analysis System
+nav_title: Analysis
 description: Graph analysis, PageRank, community detection, and link suggestions
 weight: 20
 category: subsystems

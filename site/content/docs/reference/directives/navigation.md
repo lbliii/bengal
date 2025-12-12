@@ -1,5 +1,6 @@
 ---
 title: Navigation Directives
+nav_title: Navigation
 description: Reference for navigation directives (child-cards, breadcrumbs, siblings,
   prev-next, related)
 weight: 15

@@ -1,5 +1,6 @@
 ---
 title: Coming From Another Tool?
+nav_title: Migration
 description: Onboarding guides for users migrating from Sphinx, Hugo, Docusaurus,
   and other documentation tools
 weight: 15

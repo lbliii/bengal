@@ -1,5 +1,6 @@
 ---
 title: Build Pipeline
+nav_title: Build
 description: How Bengal orchestrates builds, processes content, and performs incremental
   builds
 weight: 30

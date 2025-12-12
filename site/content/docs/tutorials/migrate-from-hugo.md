@@ -1,5 +1,6 @@
 ---
 title: Migrate from Hugo
+nav_title: Hugo Migration
 description: Migrate your site from Hugo, Jekyll, Gatsby, or other static site generators
   to Bengal
 weight: 20

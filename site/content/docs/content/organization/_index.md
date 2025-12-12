@@ -1,5 +1,6 @@
 ---
 title: Content Organization
+nav_title: Organization
 description: Pages, sections, and bundles explained
 weight: 10
 category: explanation

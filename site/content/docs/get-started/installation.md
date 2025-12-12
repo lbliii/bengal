@@ -1,5 +1,6 @@
 ---
 title: Install Bengal
+nav_title: Installation
 description: Install Bengal using pip, uv, or from source
 weight: 10
 type: doc
