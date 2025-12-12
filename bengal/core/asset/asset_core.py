@@ -16,15 +16,13 @@ from __future__ import annotations
 
 import shutil
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from bengal.core.asset.css_transforms import transform_css_nesting
+from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.utils.hashing import hash_bytes
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 @dataclass
@@ -55,6 +53,8 @@ class Asset:
     _bundled_content: str | None = None  # CSS content after @import resolution
     _minified_content: str | None = None  # Content after minification
     _optimized_image: Any = None  # Optimized PIL Image (type deferred to avoid PIL import)
+    _site: Any | None = field(default=None, repr=False)
+    _diagnostics: Any | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
@@ -213,7 +213,9 @@ class Asset:
                     # Return bundled content so it can replace the @layer block body
                     return bundled_content
                 except (OSError, PermissionError) as e:
-                    logger.warning(
+                    emit_diagnostic(
+                        self,
+                        "warning",
                         "css_import_read_failed",
                         imported_file=str(imported_file),
                         error=str(e),
@@ -221,7 +223,9 @@ class Asset:
                     )
                     return import_match.group(0)
                 except Exception as e:
-                    logger.error(
+                    emit_diagnostic(
+                        self,
+                        "error",
                         "css_import_unexpected_error",
                         imported_file=str(imported_file),
                         error=str(e),
@@ -381,7 +385,9 @@ class Asset:
             # No transformations that could break CSS
             self._minified_content = minify_css(css_content)
         except Exception as e:
-            logger.error(
+            emit_diagnostic(
+                self,
+                "error",
                 "css_minification_failed",
                 error=str(e),
                 error_type=type(e).__name__,
@@ -400,7 +406,7 @@ class Asset:
             minified_content = jsmin(js_content)
             self._minified_content = minified_content
         except ImportError:
-            logger.warning("jsmin_unavailable", source=str(self.source_path))
+            emit_diagnostic(self, "warning", "jsmin_unavailable", source=str(self.source_path))
 
     def _hash_source_chunks(self) -> Iterator[bytes]:
         """
@@ -450,7 +456,7 @@ class Asset:
         """Optimize image assets."""
         if self.source_path.suffix.lower() == ".svg":
             # Skip SVG optimization - vector format, no raster compression needed
-            logger.debug("svg_optimization_skipped", source=str(self.source_path))
+            emit_diagnostic(self, "debug", "svg_optimization_skipped", source=str(self.source_path))
             self.optimized = True
             return
 
@@ -471,9 +477,11 @@ class Asset:
             # Store optimized image (would be saved during copy_to_output)
             self._optimized_image = img
         except ImportError:
-            logger.warning("pillow_unavailable", source=str(self.source_path))
+            emit_diagnostic(self, "warning", "pillow_unavailable", source=str(self.source_path))
         except Exception as e:
-            logger.warning(
+            emit_diagnostic(
+                self,
+                "warning",
                 "image_optimization_failed",
                 source=str(self.source_path),
                 error=str(e),
@@ -543,7 +551,9 @@ class Asset:
                 self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
                 tmp_path.replace(output_path)
             except Exception as e:
-                logger.error(
+                emit_diagnostic(
+                    self,
+                    "error",
                     "atomic_image_save_failed",
                     path=str(output_path),
                     error=str(e),
@@ -583,10 +593,13 @@ class Asset:
                     f".{self.fingerprint}{self.source_path.suffix}"
                 ):
                     continue
-                # Remove stale fingerprint (any file matching the pattern that isn't the current one)
+                # Remove stale fingerprints (not the current one).
+                # This prevents serving older fingerprinted assets after an update.
                 candidate.unlink(missing_ok=True)
         except Exception as exc:  # pragma: no cover - best-effort cleanup
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "asset_fingerprint_cleanup_failed",
                 asset=str(self.source_path),
                 error=str(exc),

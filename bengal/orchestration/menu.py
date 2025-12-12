@@ -393,7 +393,7 @@ class MenuOrchestrator:
 
         for menu_name, items in menu_config.items():
             if strategy == "none":
-                builder = MenuBuilder()
+                builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                 if isinstance(items, list):
                     builder.add_from_config(items)
                 for page in self.site.pages:
@@ -412,7 +412,7 @@ class MenuOrchestrator:
                 # Build per-locale
                 self.site.menu_localized.setdefault(menu_name, {})
                 for lang in sorted(languages):
-                    builder = MenuBuilder()
+                    builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                     # Config-defined items may have optional 'lang'
                     if isinstance(items, list):
                         filtered_items = []

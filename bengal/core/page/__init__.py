@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar
 
+from bengal.core.diagnostics import emit as emit_diagnostic
+
 from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .metadata import PageMetadataMixin
@@ -440,10 +442,9 @@ class Page(
             # Warn globally about missing site reference (class-level counter)
             warn_key = "missing_site"
             if self._global_missing_section_warnings.get(warn_key, 0) < 3:
-                from bengal.utils.logger import get_logger
-
-                logger = get_logger(__name__)
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     "page_section_lookup_no_site",
                     page=self._format_path_for_log(self.source_path),
                     section_path=self._format_path_for_log(self._section_path),
@@ -473,10 +474,9 @@ class Page(
             count = self._global_missing_section_warnings.get(warn_key, 0)
 
             if count < 3:
-                from bengal.utils.logger import get_logger
-
-                logger = get_logger(__name__)
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     "page_section_not_found",
                     page=self._format_path_for_log(self.source_path),
                     section_path=self._format_path_for_log(self._section_path),
@@ -491,10 +491,9 @@ class Page(
                 self._global_missing_section_warnings[warn_key] = count + 1
             elif count == 3:
                 # Show summary after 3rd warning, then go silent
-                from bengal.utils.logger import get_logger
-
-                logger = get_logger(__name__)
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     "page_section_not_found_summary",
                     page=self._format_path_for_log(self.source_path),
                     section_path=self._format_path_for_log(self._section_path),

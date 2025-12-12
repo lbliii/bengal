@@ -21,15 +21,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
 
 from .page_core import PageCore
-
-logger = get_logger(__name__)
 
 
 class PageProxy:
@@ -243,9 +241,11 @@ class PageProxy:
             if hasattr(self, "_pending_output_path") and self._full_page:
                 self._full_page.output_path = self._pending_output_path
 
-            logger.debug("page_proxy_loaded", source_path=str(self.source_path))
+            emit_diagnostic(self, "debug", "page_proxy_loaded", source_path=str(self.source_path))
         except Exception as e:
-            logger.error(
+            emit_diagnostic(
+                self,
+                "error",
                 "page_proxy_load_failed",
                 source_path=str(self.source_path),
                 error=str(e),
@@ -412,13 +412,13 @@ class PageProxy:
 
     @property
     def relative_url(self) -> str:
-        """Get the relative URL (without baseurl) for the page (lazy-loaded, cached after first access)."""
+        """Get the relative URL (without baseurl) for the page."""
         self._ensure_loaded()
         return self._full_page.relative_url if self._full_page else "/"
 
     @property
     def permalink(self) -> str:
-        """Get the permalink (URL with baseurl) for the page (lazy-loaded, cached after first access)."""
+        """Get the permalink (URL with baseurl) for the page."""
         self._ensure_loaded()
         return self._full_page.permalink if self._full_page else "/"
 

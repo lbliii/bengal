@@ -8,14 +8,12 @@ from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.page.page_core import PageCore
-
-logger = get_logger(__name__)
 
 
 class PageMetadataMixin:
@@ -121,7 +119,9 @@ class PageMetadataMixin:
             #
             # Only log at debug level since this is a known/expected edge case during
             # page construction (PageInitializer checks URL generation early).
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "page_output_path_fallback",
                 output_path=str(self.output_path),
                 output_dir=str(self._site.output_dir),
@@ -172,7 +172,7 @@ class PageMetadataMixin:
         try:
             baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
         except Exception as e:
-            logger.debug("page_baseurl_lookup_failed", error=str(e))
+            emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
         if not baseurl:

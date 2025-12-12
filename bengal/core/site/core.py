@@ -30,6 +30,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.asset import Asset
+from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
@@ -42,12 +43,9 @@ from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.utils.build_stats import BuildStats
-from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.utils.profile import BuildProfile
-
-logger = get_logger(__name__)
 
 
 # Thread-safe output lock for parallel processing.
@@ -182,7 +180,11 @@ class Site(
             # Fallback for legacy config where theme was a string
             self.theme = theme_section if isinstance(theme_section, str) else "default"
 
-        self._theme_obj = Theme.from_config(self.config, root_path=self.root_path)
+        self._theme_obj = Theme.from_config(
+            self.config,
+            root_path=self.root_path,
+            diagnostics_site=self,
+        )
 
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])
@@ -267,7 +269,8 @@ class Site(
             host: Server host
             port: Server port
             watch: Whether to watch for file changes and rebuild
-            auto_port: Whether to automatically find an available port if the specified one is in use
+            auto_port: Whether to automatically find an available port if the specified one is
+                       in use
             open_browser: Whether to automatically open the browser
         """
         from bengal.server.dev_server import DevServer
@@ -295,11 +298,11 @@ class Site(
         """
         if self.output_dir.exists():
             # Use debug level to avoid noise in clean command output
-            logger.debug("cleaning_output_dir", path=str(self.output_dir))
+            emit_diagnostic(self, "debug", "cleaning_output_dir", path=str(self.output_dir))
             self._rmtree_robust(self.output_dir)
-            logger.debug("output_dir_cleaned", path=str(self.output_dir))
+            emit_diagnostic(self, "debug", "output_dir_cleaned", path=str(self.output_dir))
         else:
-            logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
+            emit_diagnostic(self, "debug", "output_dir_does_not_exist", path=str(self.output_dir))
 
     @staticmethod
     def _rmtree_robust(path: Path, max_retries: int = 3) -> None:
@@ -333,7 +336,7 @@ class Site(
         - Clear derived: taxonomies, menu, menu_builders, xref_index (if present)
         - Clear caches: cached page lists
         """
-        logger.debug("site_reset_ephemeral_state", site_root=str(self.root_path))
+        emit_diagnostic(self, "debug", "site_reset_ephemeral_state", site_root=str(self.root_path))
 
         # Content to be rediscovered
         self.pages = []
@@ -362,4 +365,7 @@ class Site(
         self._section_url_registry = {}
 
     def __repr__(self) -> str:
-        return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
+        pages = len(self.pages)
+        sections = len(self.sections)
+        assets = len(self.assets)
+        return f"Site(pages={pages}, sections={sections}, assets={assets})"

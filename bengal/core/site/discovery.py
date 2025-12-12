@@ -15,14 +15,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.section import Section
-
-logger = get_logger(__name__)
 
 
 class ContentDiscoveryMixin:
@@ -77,7 +75,7 @@ class ContentDiscoveryMixin:
             content_dir = self.root_path / "content"
 
         if not content_dir.exists():
-            logger.warning("content_dir_not_found", path=str(content_dir))
+            emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
             return
 
         from bengal.collections import load_collections
@@ -139,11 +137,11 @@ class ContentDiscoveryMixin:
             assets_dir = self.root_path / "assets"
 
         if assets_dir.exists():
-            logger.debug("discovering_site_assets", path=str(assets_dir))
+            emit_diagnostic(self, "debug", "discovering_site_assets", path=str(assets_dir))
             site_discovery = AssetDiscovery(assets_dir)
             self.assets.extend(site_discovery.discover())
         elif not self.assets:
-            logger.warning("assets_dir_not_found", path=str(assets_dir))
+            emit_diagnostic(self, "warning", "assets_dir_not_found", path=str(assets_dir))
 
         # Deduplicate by output path: later entries override earlier (site > child theme > parents)
         if self.assets:
@@ -261,7 +259,9 @@ class ContentDiscoveryMixin:
         if pages_without_section:
             # Log warning with samples (limit to 5 to avoid log spam)
             sample_pages = [(str(p.source_path), s.name) for p, s in pages_without_section[:5]]
-            logger.warning(
+            emit_diagnostic(
+                self,
+                "warning",
                 "pages_missing_section_reference",
                 count=len(pages_without_section),
                 samples=sample_pages,

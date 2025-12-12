@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -22,8 +22,6 @@ if TYPE_CHECKING:
     from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.core.theme import Theme
-
-logger = get_logger(__name__)
 
 
 class SitePropertiesMixin:
@@ -148,7 +146,9 @@ class SitePropertiesMixin:
         from bengal.config.hash import compute_config_hash
 
         self._config_hash = compute_config_hash(self.config)
-        logger.debug(
+        emit_diagnostic(
+            self,
+            "debug",
             "config_hash_computed",
             hash=self._config_hash[:8] if self._config_hash else "none",
         )
@@ -170,7 +170,11 @@ class SitePropertiesMixin:
         if self._theme_obj is None:
             from bengal.core.theme import Theme
 
-            self._theme_obj = Theme.from_config(self.config, root_path=self.root_path)
+            self._theme_obj = Theme.from_config(
+                self.config,
+                root_path=self.root_path,
+                diagnostics_site=self,
+            )
         return self._theme_obj
 
     @property

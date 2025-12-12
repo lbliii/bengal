@@ -14,6 +14,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.core.diagnostics import emit as emit_diagnostic
+
 if TYPE_CHECKING:
     pass
 
@@ -92,10 +94,13 @@ class ThemeIntegrationMixin:
 
             chain = resolve_theme_chain(self.root_path, self.theme)
         except Exception as e:
-            from bengal.utils.logger import get_logger
-
-            logger = get_logger(__name__)
-            logger.debug("theme_chain_resolution_failed", theme=self.theme, error=str(e))
+            emit_diagnostic(
+                self,
+                "debug",
+                "theme_chain_resolution_failed",
+                theme=self.theme,
+                error=str(e),
+            )
             chain = [self.theme] if self.theme else []
 
         for theme_name in reversed(chain):

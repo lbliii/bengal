@@ -11,9 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 
 @dataclass
@@ -87,7 +85,12 @@ class Theme:
         return feature in self.features
 
     @classmethod
-    def from_config(cls, config: dict[str, Any], root_path: Path | None = None) -> Theme:
+    def from_config(
+        cls,
+        config: dict[str, Any],
+        root_path: Path | None = None,
+        diagnostics_site: Any | None = None,
+    ) -> Theme:
         """
         Create Theme object from configuration dictionary.
 
@@ -133,12 +136,24 @@ class Theme:
                 if theme_path:
                     try:
                         theme_config_obj = ThemeConfig.load(theme_path)
-                        logger.debug("theme_yaml_loaded", theme=theme_name, path=str(theme_path))
+                        emit_diagnostic(
+                            diagnostics_site,
+                            "debug",
+                            "theme_yaml_loaded",
+                            theme=theme_name,
+                            path=str(theme_path),
+                        )
                     except FileNotFoundError:
                         # theme.yaml doesn't exist, fall back to config
                         pass
                     except Exception as e:
-                        logger.warning("theme_yaml_load_failed", theme=theme_name, error=str(e))
+                        emit_diagnostic(
+                            diagnostics_site,
+                            "warning",
+                            "theme_yaml_load_failed",
+                            theme=theme_name,
+                            error=str(e),
+                        )
             except ImportError:
                 # ThemeConfig not available (shouldn't happen, but graceful degradation)
                 pass
