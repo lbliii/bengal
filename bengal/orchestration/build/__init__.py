@@ -292,6 +292,11 @@ class BuildOrchestrator:
         changed_page_paths = filter_result.changed_page_paths
         affected_sections = filter_result.affected_sections
 
+        # Propagate incremental state into the shared BuildContext so later phases (especially
+        # health validators) can make safe incremental decisions without re-scanning everything.
+        early_ctx.incremental = bool(incremental)
+        early_ctx.changed_page_paths = set(changed_page_paths)
+
         # Phase 6: Section Finalization
         content.phase_sections(self, cli, incremental, affected_sections)
 
