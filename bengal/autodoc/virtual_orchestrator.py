@@ -6,11 +6,15 @@ that integrate directly into the build pipeline without intermediate
 markdown files.
 
 This is the new architecture that replaces markdown-based autodoc generation.
+
+Note:
+    This module is being modularized. See bengal/autodoc/orchestration/ for
+    the new package structure. The classes and functions are re-imported here
+    for backward compatibility.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +22,17 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2.runtime import Context
 
 from bengal.autodoc.base import DocElement
+from bengal.autodoc.orchestration.result import AutodocRunResult
+from bengal.autodoc.orchestration.result import PageContext as _PageContext
+from bengal.autodoc.orchestration.utils import (
+    format_source_file_for_display as _format_source_file_for_display,
+)
+from bengal.autodoc.orchestration.utils import (
+    get_template_dir_for_type as _get_template_dir_for_type,
+)
+from bengal.autodoc.orchestration.utils import (
+    normalize_autodoc_config as _normalize_autodoc_config,
+)
 from bengal.autodoc.utils import get_openapi_method, get_openapi_path, get_openapi_tags
 from bengal.core.page import Page
 from bengal.core.section import Section
@@ -28,196 +43,6 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
-
-
-def _get_template_dir_for_type(page_type: str) -> str:
-    """
-    Map page types to template directories.
-
-    Page types like 'python-reference' control CSS styling via data-type attribute,
-    but should use 'api-reference/' templates for rendering. This function maps
-    the page type to the appropriate template directory.
-
-    Args:
-        page_type: The page type (e.g., 'python-reference', 'openapi-reference')
-
-    Returns:
-        Template directory name (e.g., 'api-reference', 'openapi-reference')
-    """
-    # Python API docs use api-reference templates but have python-reference type for CSS
-    if page_type == "python-reference":
-        return "api-reference"
-    # Other types use their own template directories
-    return page_type
-
-
-def _normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Normalize github repo/branch for autodoc template consumption.
-
-    Mirrors RenderingPipeline._normalize_config for the subset we need
-    inside the autodoc orchestrator (owner/repo → https URL, default branch).
-    """
-    base = {}
-    if isinstance(site_config, dict):
-        base.update(site_config)
-    autodoc_cfg = base.get("autodoc", {}) or {}
-
-    github_repo = base.get("github_repo") or autodoc_cfg.get("github_repo", "")
-    if github_repo and not github_repo.startswith(("http://", "https://")):
-        github_repo = f"https://github.com/{github_repo}"
-
-    github_branch = base.get("github_branch") or autodoc_cfg.get("github_branch", "main")
-
-    normalized = dict(autodoc_cfg)
-    normalized["github_repo"] = github_repo
-    normalized["github_branch"] = github_branch
-    return normalized
-
-
-def _format_source_file_for_display(source_file: Path | str | None, root_path: Path) -> str | None:
-    """
-    Normalize source_file paths for GitHub links.
-
-    Converts source file paths to repository-relative POSIX paths suitable
-    for constructing GitHub blob URLs.
-
-    Strategy:
-        1. If path is relative, keep as-is (already repo-relative)
-        2. If absolute, try to make relative to repo root (root_path.parent)
-        3. Fall back to site root (root_path)
-        4. If neither works, return POSIX-ified absolute path
-
-    Args:
-        source_file: Path to source file (absolute or relative)
-        root_path: Site root path (typically the site/ directory within a repo)
-
-    Returns:
-        Repository-relative POSIX path, or None if source_file is None
-
-    Example:
-        >>> # Site root: /home/user/myproject/site
-        >>> # Source: /home/user/myproject/mypackage/core/module.py
-        >>> _format_source_file_for_display(source, site_root)
-        'mypackage/core/module.py'
-    """
-    if not source_file:
-        return None
-
-    source_path = Path(source_file)
-
-    # If already relative, assume it's repo-relative and return as POSIX
-    if not source_path.is_absolute():
-        return source_path.as_posix()
-
-    # Resolve to handle any symlinks or relative components
-    source_path = source_path.resolve()
-
-    # Try repo root first (parent of site root), then site root
-    # This handles typical layouts where site/ is inside the repo
-    for base in (root_path.parent.resolve(), root_path.resolve()):
-        try:
-            return source_path.relative_to(base).as_posix()
-        except ValueError:
-            continue
-
-    # Fallback: return absolute POSIX path
-    # This shouldn't happen in normal use but handles edge cases
-    return source_path.as_posix()
-
-
-@dataclass
-class AutodocRunResult:
-    """
-    Summary of an autodoc generation run.
-
-    Tracks successes, failures, and warnings for observability and strict mode enforcement.
-    """
-
-    extracted: int = 0
-    """Number of elements successfully extracted."""
-    rendered: int = 0
-    """Number of pages successfully rendered."""
-    failed_extract: int = 0
-    """Number of extraction failures."""
-    failed_render: int = 0
-    """Number of rendering failures."""
-    warnings: int = 0
-    """Number of warnings emitted."""
-    failed_extract_identifiers: list[str] = field(default_factory=list)
-    """Qualified names of elements that failed extraction."""
-    failed_render_identifiers: list[str] = field(default_factory=list)
-    """Qualified names of elements that failed rendering."""
-    fallback_pages: list[str] = field(default_factory=list)
-    """URL paths of pages rendered via fallback template."""
-    autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
-    """Mapping of source file paths to the autodoc page paths they produce.
-    Used by IncrementalOrchestrator for selective autodoc rebuilds."""
-
-    def has_failures(self) -> bool:
-        """Check if any failures occurred."""
-        return self.failed_extract > 0 or self.failed_render > 0
-
-    def has_warnings(self) -> bool:
-        """Check if any warnings occurred."""
-        return self.warnings > 0
-
-    def add_dependency(self, source_file: str, page_path: str) -> None:
-        """
-        Register a dependency between a source file and an autodoc page.
-
-        Args:
-            source_file: Path to the Python/OpenAPI source file
-            page_path: Path to the generated autodoc page (source_path)
-        """
-        if source_file not in self.autodoc_dependencies:
-            self.autodoc_dependencies[source_file] = set()
-        self.autodoc_dependencies[source_file].add(page_path)
-
-
-class _PageContext:
-    """
-    Lightweight page-like context for autodoc template rendering.
-
-    Templates extend base.html and include partials that expect a 'page' variable
-    with attributes like metadata, tags, title, and relative_url. This class provides
-    those attributes without requiring a full Page object (which doesn't exist yet
-    during the initial render phase).
-
-    The navigation attributes (prev, next, prev_in_section, next_in_section) are
-    set to None since autodoc virtual pages don't participate in linear navigation.
-    """
-
-    def __init__(
-        self,
-        title: str,
-        metadata: dict[str, Any],
-        tags: list[str] | None = None,
-        relative_url: str = "/",
-        variant: str | None = None,
-        source_path: str | None = None,
-        section: Section | None = None,
-    ) -> None:
-        self.title = title
-        self.metadata = metadata
-        self.tags = tags or []
-        self.relative_url = relative_url
-        self.variant = variant
-        self.source_path = source_path
-
-        # Navigation attributes (None = autodoc pages don't have linear navigation)
-        self.prev: _PageContext | None = None
-        self.next: _PageContext | None = None
-        self.prev_in_section: _PageContext | None = None
-        self.next_in_section: _PageContext | None = None
-
-        # Section reference (used by docs-nav.html for sidebar navigation)
-        # Templates check page._section, so we need both aliases
-        self._section = section
-        self.section = section
-
-    def __repr__(self) -> str:
-        return f"_PageContext(title={self.title!r}, relative_url={self.relative_url!r})"
 
 
 class VirtualAutodocOrchestrator:

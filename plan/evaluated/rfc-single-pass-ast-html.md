@@ -1,5 +1,5 @@
 ---
-status: Evaluated
+status: Evaluated - Keep Disabled
 ---
 
 ## RFC: Single-pass token capture (Mistune) to eliminate redundant AST parsing
