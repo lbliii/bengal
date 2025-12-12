@@ -179,16 +179,18 @@ class BengalPaths:
         return output_dir / ".bengal-cache.json"
 
     @staticmethod
-    def get_template_cache_dir(output_dir: Path) -> Path:
+    def get_template_cache_dir(source_dir: Path) -> Path:
         """
         Get the directory for Jinja2 bytecode cache.
 
         Args:
-            output_dir: Output directory (public/)
+            source_dir: Source directory (site root)
 
         Returns:
-            Path to .bengal-cache/templates/
+            Path to .bengal/templates/
         """
-        cache_dir = output_dir / ".bengal-cache" / "templates"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        return cache_dir
+        from bengal.cache.paths import BengalPaths as CachePaths
+
+        paths = CachePaths(source_dir)
+        paths.templates_dir.mkdir(parents=True, exist_ok=True)
+        return paths.templates_dir

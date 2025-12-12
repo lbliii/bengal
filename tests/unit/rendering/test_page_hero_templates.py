@@ -881,3 +881,232 @@ class TestPageHeroEdgeCases:
         html = render_page_hero(template_env, element=element, page=page)
 
         assert_contains(html, "page-hero__breadcrumbs")
+
+
+# ==============================================================================
+# Phase 1 Tests: New Template Equivalence
+# ==============================================================================
+
+
+def _render_new_element_hero(
+    env: Environment,
+    *,
+    element: MockDocElement,
+    section: MockSection | None = None,
+    page: MockPage | None = None,
+    config: MockConfig | None = None,
+    site: MockSite | None = None,
+) -> str:
+    """
+    Render the NEW page-hero/element.html template.
+
+    This uses the new separated template for element pages.
+    """
+    if page is None:
+        page = MockPage()
+    if config is None:
+        config = MockConfig()
+    if site is None:
+        site = MockSite()
+
+    template = env.get_template("partials/page-hero/element.html")
+
+    return template.render(
+        element=element,
+        section=section,
+        page=page,
+        config=config,
+        site=site,
+    )
+
+
+def _render_new_section_hero(
+    env: Environment,
+    *,
+    section: MockSection,
+    page: MockPage | None = None,
+    config: MockConfig | None = None,
+    site: MockSite | None = None,
+    hero_context: dict[str, Any] | None = None,
+) -> str:
+    """
+    Render the NEW page-hero/section.html template.
+
+    This uses the new separated template for section-index pages.
+    """
+    if page is None:
+        page = MockPage()
+    if config is None:
+        config = MockConfig()
+    if site is None:
+        site = MockSite()
+
+    template = env.get_template("partials/page-hero/section.html")
+
+    context: dict[str, Any] = {
+        "section": section,
+        "page": page,
+        "config": config,
+        "site": site,
+    }
+    if hero_context:
+        context["hero_context"] = hero_context
+
+    return template.render(**context)
+
+
+class TestNewElementTemplate:
+    """Test the new page-hero/element.html produces equivalent output."""
+
+    def test_renders_qualified_name(self, template_env: Environment) -> None:
+        """Verify element.qualified_name appears in title."""
+        element = MockDocElement(
+            name="Site",
+            qualified_name="bengal.core.site.Site",
+            description="Site container",
+            element_type="class",
+        )
+        page = MockPage(title="Site")
+
+        html = _render_new_element_hero(template_env, element=element, page=page)
+
+        assert_contains(html, "bengal.core.site.Site")
+        assert "page-hero__title--code" in html
+
+    def test_renders_element_description(self, template_env: Environment) -> None:
+        """Verify element.description renders."""
+        element = MockDocElement(
+            name="test",
+            qualified_name="test.module",
+            description="Module description here.",
+            element_type="module",
+        )
+        page = MockPage(title="Test")
+
+        html = _render_new_element_hero(template_env, element=element, page=page)
+
+        assert_contains(html, "Module description here.")
+
+    def test_renders_classes_functions_stats(self, template_env: Environment) -> None:
+        """Verify stats show Classes and Functions."""
+        element = MockDocElement(
+            name="utils",
+            qualified_name="bengal.utils",
+            description="Utilities",
+            element_type="module",
+            children=[
+                MockDocElement.create_class_child("Helper"),
+                MockDocElement.create_function_child("process"),
+            ],
+        )
+        page = MockPage(title="Utils")
+
+        html = _render_new_element_hero(template_env, element=element, page=page)
+
+        assert_contains(html, "1", "Class")
+        assert_contains(html, "1", "Function")
+
+    def test_renders_cli_stats(self, template_env: Environment) -> None:
+        """Verify CLI element renders options/arguments stats."""
+        element = MockDocElement(
+            name="build",
+            qualified_name="bengal build",
+            description="Build command",
+            element_type="command",
+            children=[
+                MockDocElement.create_option_child("--verbose"),
+                MockDocElement.create_argument_child("PATH"),
+            ],
+        )
+        page = MockPage(title="build")
+
+        html = _render_new_element_hero(template_env, element=element, page=page)
+
+        assert_contains(html, "1", "Option")
+        assert_contains(html, "1", "Argument")
+
+
+class TestNewSectionTemplate:
+    """Test the new page-hero/section.html produces equivalent output."""
+
+    def test_renders_section_title(self, template_env: Environment) -> None:
+        """Verify section.title appears in title."""
+        section = MockSection(
+            name="core",
+            title="Core Package",
+            metadata={"description": "Core functionality"},
+        )
+        page = MockPage(title="Core Package", url="/api/core/")
+
+        html = _render_new_section_hero(template_env, section=section, page=page)
+
+        assert_contains(html, "Core Package")
+
+    def test_renders_section_description(self, template_env: Environment) -> None:
+        """Verify section.metadata.description renders."""
+        section = MockSection(
+            name="rendering",
+            title="Rendering",
+            metadata={"description": "Rendering components"},
+        )
+        page = MockPage(title="Rendering", url="/api/rendering/")
+
+        html = _render_new_section_hero(template_env, section=section, page=page)
+
+        assert_contains(html, "Rendering components")
+
+    def test_renders_packages_modules_stats(self, template_env: Environment) -> None:
+        """Verify stats show Packages and Modules for API sections."""
+        section = MockSection(
+            name="api",
+            title="API Reference",
+            subsections=[MockSection(name="core", title="Core")],
+            pages=[
+                MockPage(title="utils", url="/api/utils/", source_path=Path("utils.md"))
+            ],
+        )
+        page = MockPage(title="API Reference", url="/api/")
+
+        html = _render_new_section_hero(template_env, section=section, page=page)
+
+        assert_contains(html, "1", "Package")
+        assert_contains(html, "1", "Module")
+
+    def test_renders_groups_commands_for_cli(self, template_env: Environment) -> None:
+        """Verify CLI sections show Groups and Commands labels."""
+        section = MockSection(
+            name="cli",
+            title="CLI Reference",
+            subsections=[MockSection(name="site", title="Site")],
+            pages=[
+                MockPage(title="build", url="/cli/build/", source_path=Path("build.md"))
+            ],
+        )
+        page = MockPage(title="CLI Reference", url="/cli/")
+
+        html = _render_new_section_hero(template_env, section=section, page=page)
+
+        # URL sniffing should detect /cli/
+        assert_contains(html, "1", "Group")
+        assert_contains(html, "1", "Command")
+
+    def test_explicit_hero_context_is_cli(self, template_env: Environment) -> None:
+        """Verify explicit hero_context.is_cli works."""
+        section = MockSection(
+            name="commands",
+            title="Commands",
+            subsections=[MockSection(name="group", title="Group")],
+            pages=[],
+        )
+        page = MockPage(title="Commands", url="/some/other/path/")
+
+        # Explicit context should override URL detection
+        html = _render_new_section_hero(
+            template_env,
+            section=section,
+            page=page,
+            hero_context={"is_cli": True},
+        )
+
+        assert_contains(html, "Group")
+        assert_not_contains(html, "Package")

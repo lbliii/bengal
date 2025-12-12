@@ -241,3 +241,56 @@ class BengalPaths:
     def __repr__(self) -> str:
         """Return string representation."""
         return f"BengalPaths(root={self.root})"
+
+
+def migrate_template_cache(paths: BengalPaths, output_dir: Path) -> bool:
+    """
+    Migrate template cache from legacy location to new location.
+
+    Legacy location: output_dir/.bengal-cache/templates/
+    New location: .bengal/templates/
+
+    Args:
+        paths: BengalPaths instance for the site
+        output_dir: Output directory (e.g., public/)
+
+    Returns:
+        True if migration was performed, False if not needed
+    """
+    import shutil
+
+    old_cache = output_dir / ".bengal-cache" / "templates"
+
+    if not old_cache.exists():
+        return False
+
+    if paths.templates_dir.exists() and any(paths.templates_dir.iterdir()):
+        # New location already has content, don't overwrite
+        # Just clean up old location
+        try:
+            shutil.rmtree(old_cache)
+            # Remove parent if empty
+            old_parent = output_dir / ".bengal-cache"
+            if old_parent.exists() and not any(old_parent.iterdir()):
+                old_parent.rmdir()
+        except Exception:
+            pass
+        return False
+
+    # Migrate cache to new location
+    try:
+        paths.templates_dir.mkdir(parents=True, exist_ok=True)
+        for item in old_cache.iterdir():
+            shutil.move(str(item), str(paths.templates_dir / item.name))
+
+        # Clean up old directory
+        shutil.rmtree(old_cache)
+
+        # Remove parent if empty
+        old_parent = output_dir / ".bengal-cache"
+        if old_parent.exists() and not any(old_parent.iterdir()):
+            old_parent.rmdir()
+
+        return True
+    except Exception:
+        return False

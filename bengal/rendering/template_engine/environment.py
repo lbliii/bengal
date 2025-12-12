@@ -227,7 +227,12 @@ def create_jinja_environment(
     cache_templates = site.config.get("cache_templates", True)
 
     if cache_templates:
-        cache_dir = site.output_dir / ".bengal-cache" / "templates"
+        # Migrate template cache from legacy location if exists
+        from bengal.cache.paths import migrate_template_cache
+
+        migrate_template_cache(site.paths, site.output_dir)
+
+        cache_dir = site.paths.templates_dir
         cache_dir.mkdir(parents=True, exist_ok=True)
         bytecode_cache = FileSystemBytecodeCache(
             directory=str(cache_dir), pattern="__bengal_template_%s.cache"
