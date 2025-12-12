@@ -136,7 +136,7 @@ def test_basic_site_output_identical_with_single_pass(rootdir, tmp_path):
             lines_off = html_off[rel_path].splitlines()
             lines_on = html_on[rel_path].splitlines()
 
-            for i, (line_off, line_on) in enumerate(zip(lines_off, lines_on)):
+            for i, (line_off, line_on) in enumerate(zip(lines_off, lines_on, strict=False)):
                 if line_off != line_on:
                     pytest.fail(
                         f"Output differs in {rel_path} at line {i + 1}:\n"
@@ -189,7 +189,7 @@ def test_directive_heavy_site_output_identical_with_single_pass(rootdir, tmp_pat
             lines_off = html_off[rel_path].splitlines()
             lines_on = html_on[rel_path].splitlines()
             diff_detail = ""
-            for i, (line_off, line_on) in enumerate(zip(lines_off, lines_on)):
+            for i, (line_off, line_on) in enumerate(zip(lines_off, lines_on, strict=False)):
                 if line_off != line_on:
                     diff_detail = (
                         f"\n      First diff at line {i + 1}:\n"
