@@ -21,9 +21,12 @@ class TestSectionOrchestrator:
     @pytest.fixture
     def mock_site(self, tmp_path):
         """Create a mock site for testing."""
+        from bengal.cache.paths import BengalPaths
+
         site = Mock(spec=Site)
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
+        site.paths = BengalPaths(tmp_path)
         site.sections = []
         site.pages = []
         site.config = {"pagination": {"per_page": 10}}

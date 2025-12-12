@@ -1,5 +1,6 @@
 ---
 title: Use Templates
+nav_title: Templates
 description: Access variables and objects in Jinja2 templates
 weight: 25
 type: doc

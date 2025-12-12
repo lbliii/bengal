@@ -1,0 +1,156 @@
+diff --git a/QUICKSTART.md b/QUICKSTART.md
+index e521dfb7..eaa4740b 100644
+--- a/QUICKSTART.md
++++ b/QUICKSTART.md
+@@ -169,6 +169,19 @@ Once enabled, you can reference the generated badge from any template:
+ <img src="{{ site.baseurl.rstrip('/') }}/bengal/build.svg" alt="Built in badge">
+ ```
+ 
++### Show the build badge in Markdown docs via a directive
++
++If your content uses Bengal directives, you can embed the badge directly:
++
++```markdown
++:::{build}
++:::
++
++:::{build}
++:json: true
++:::
++```
++
+ ## Deploy
+ 
+ After building, deploy the `public/` directory to your hosting provider:
+diff --git a/bengal/rendering/plugins/directives/__init__.py b/bengal/rendering/plugins/directives/__init__.py
+index 70d5e3ad..6d66a2ae 100644
+--- a/bengal/rendering/plugins/directives/__init__.py
++++ b/bengal/rendering/plugins/directives/__init__.py
+@@ -28,6 +28,7 @@ from bengal.rendering.plugins.directives.badge import BadgeDirective
+ 
+ # Directive System v2 - Foundation Classes
+ from bengal.rendering.plugins.directives.base import BengalDirective
++from bengal.rendering.plugins.directives.build import BuildDirective
+ from bengal.rendering.plugins.directives.button import ButtonDirective
+ from bengal.rendering.plugins.directives.cache import (
+     DirectiveCache,
+@@ -68,8 +69,8 @@ from bengal.rendering.plugins.directives.embed import (
+ )
+ from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+ from bengal.rendering.plugins.directives.example_label import ExampleLabelDirective
+-from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
+ from bengal.rendering.plugins.directives.fenced import FencedDirective
++from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
+ from bengal.rendering.plugins.directives.glossary import GlossaryDirective
+ from bengal.rendering.plugins.directives.icon import IconDirective
+ from bengal.rendering.plugins.directives.include import IncludeDirective
+@@ -90,18 +91,13 @@ from bengal.rendering.plugins.directives.options import (
+ )
+ from bengal.rendering.plugins.directives.rubric import RubricDirective
+ from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
+-from bengal.rendering.plugins.directives.target import TargetDirective
+ from bengal.rendering.plugins.directives.tabs import (
+     TabItemDirective,
+     TabSetDirective,
+ )
++from bengal.rendering.plugins.directives.target import TargetDirective
+ from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
+ from bengal.rendering.plugins.directives.tokens import DirectiveToken
+-from bengal.rendering.plugins.directives.video import (
+-    SelfHostedVideoDirective,
+-    VimeoDirective,
+-    YouTubeDirective,
+-)
+ from bengal.rendering.plugins.directives.utils import (
+     attr_str,
+     bool_attr,
+@@ -111,6 +107,11 @@ from bengal.rendering.plugins.directives.utils import (
+     escape_html,
+ )
+ from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
++from bengal.rendering.plugins.directives.video import (
++    SelfHostedVideoDirective,
++    VimeoDirective,
++    YouTubeDirective,
++)
+ from bengal.utils.logger import get_logger
+ 
+ # =============================================================================
+@@ -133,6 +134,8 @@ DIRECTIVE_CLASSES: list[type] = [
+     AdmonitionDirective,
+     # Badges (badge, bdg)
+     BadgeDirective,
++    # Build badge (build)
++    BuildDirective,
+     # Buttons (button)
+     ButtonDirective,
+     # Cards (cards, card, child-cards, grid, grid-item-card)
+@@ -353,6 +356,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
+             directives_list = [
+                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
+                 BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
++                BuildDirective(),  # Build badge: embeds /bengal/build.svg (optional link to build.json)
+                 TabSetDirective(),  # MyST tab-set
+                 TabItemDirective(),  # MyST tab-item
+                 DropdownDirective(),
+diff --git a/tests/unit/rendering/test_directive_registration.py b/tests/unit/rendering/test_directive_registration.py
+index c213c18e..a84cad8d 100644
+--- a/tests/unit/rendering/test_directive_registration.py
++++ b/tests/unit/rendering/test_directive_registration.py
+@@ -14,6 +14,7 @@ import pytest
+ from bengal.rendering.parsers import MistuneParser
+ from bengal.rendering.plugins.directives import (
+     AdmonitionDirective,
++    BuildDirective,
+     ButtonDirective,
+     CardDirective,
+     CardsDirective,
+@@ -37,6 +38,7 @@ class TestDirectiveRegistration:
+         """Test that all directive classes can be imported from the directives package."""
+         # This test ensures __init__.py imports are correct
+         assert AdmonitionDirective is not None
++        assert BuildDirective is not None
+         assert ButtonDirective is not None
+         assert CardDirective is not None
+         assert CardsDirective is not None
+@@ -87,6 +89,7 @@ class TestDirectiveRegistration:
+             ("card", ":::{card} Title\nContent\n:::", "card-title"),
+             ("checklist", ":::{checklist}\n- Item one\n- Item two\n:::", "checklist"),
+             ("list-table", ":::{list-table}\n* - Row 1\n  - Col 1\n:::", "list-table"),
++            ("build", ":::{build}\n:::", "bengal-build-badge"),
+         ]
+ 
+         for directive_name, markdown, expected in test_cases:
+@@ -155,6 +158,7 @@ class TestDirectiveModuleConsistency:
+         # all directive classes are actually being used
+         directive_classes = [
+             AdmonitionDirective,
++            BuildDirective,
+             ButtonDirective,
+             CardDirective,
+             CardsDirective,
+diff --git a/tests/unit/rendering/test_directive_registry.py b/tests/unit/rendering/test_directive_registry.py
+index 83c3d3cf..748b2ddb 100644
+--- a/tests/unit/rendering/test_directive_registry.py
++++ b/tests/unit/rendering/test_directive_registry.py
+@@ -169,6 +169,7 @@ class TestDirectiveClassesCompleteness:
+         expected_classes = {
+             "AdmonitionDirective",
+             "BadgeDirective",
++            "BuildDirective",
+             "ButtonDirective",
+             "CardsDirective",
+             "CardDirective",
+@@ -301,9 +302,10 @@ class TestKnownDirectiveNamesContent:
+         # 10 admonitions + 2 badges + 1 button + 5 cards + 4 tabs (tab-set, tabs, tab-item, tab) + 2 code-tabs
+         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric
+         # + 1 example-label + 2 target/anchor + 2 includes + 4 navigation + 1 marimo + 2 icons + 2 containers
++        # + 1 build badge (build)
+         # + 3 video (youtube, vimeo, video) + 4 dev tools (gist, codepen, codesandbox, stackblitz)
+-        # + 1 asciinema + 1 figure + 1 audio = 57 total
+-        expected_count = 57
++        # + 1 asciinema + 1 figure + 1 audio = 58 total
++        expected_count = 58
+ 
+         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
+             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "

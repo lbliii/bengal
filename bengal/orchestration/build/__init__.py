@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
-from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
@@ -40,6 +39,20 @@ if TYPE_CHECKING:
     from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
+
+
+def __getattr__(name: str) -> Any:
+    """
+    Lazily expose optional orchestration types without creating import cycles.
+
+    Some tests and callers patch/inspect `bengal.orchestration.build.IncrementalOrchestrator`.
+    We keep that surface stable while avoiding eager imports at module import time.
+    """
+    if name == "IncrementalOrchestrator":
+        from bengal.orchestration.incremental import IncrementalOrchestrator
+
+        return IncrementalOrchestrator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class BuildOrchestrator:
@@ -66,6 +79,10 @@ class BuildOrchestrator:
         self.site = site
         self.stats = BuildStats()
         self.logger = get_logger(__name__)
+
+        # Import via this module's lazy surface to avoid circular imports and to
+        # preserve a stable patch/inspection target for tests and callers.
+        from bengal.orchestration.build import IncrementalOrchestrator
 
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)
@@ -150,7 +167,7 @@ class BuildOrchestrator:
         if profile_config.get("collect_metrics", False):
             from bengal.utils.performance_collector import PerformanceCollector
 
-            collector = PerformanceCollector()
+            collector = PerformanceCollector(metrics_dir=self.site.paths.metrics_dir)
             collector.start_build()
 
         # Initialize stats (incremental may be None, resolve later)
@@ -163,6 +180,17 @@ class BuildOrchestrator:
             incremental=incremental,
             root_path=str(self.site.root_path),
         )
+
+        # Attach a diagnostics collector for core-model events (core must not log).
+        # This is intentionally best-effort: if anything goes wrong, we continue
+        # without diagnostics rather than impacting builds.
+        if not hasattr(self.site, "diagnostics"):
+            try:
+                from bengal.core.diagnostics import DiagnosticsCollector
+
+                self.site.diagnostics = DiagnosticsCollector()  # type: ignore[attr-defined]
+            except Exception:
+                pass
 
         # Show build header
         cli.header("Building your site...")
@@ -189,8 +217,7 @@ class BuildOrchestrator:
         auto_reason = None
         if incremental is None:
             try:
-                cache_dir = self.site.root_path / ".bengal"
-                cache_path = cache_dir / "cache.json"
+                cache_path = self.site.paths.build_cache
                 cache_exists = cache_path.exists()
                 cached_files = len(getattr(cache, "file_hashes", {}) or {})
                 if cache_exists and cached_files > 0:
@@ -264,6 +291,11 @@ class BuildOrchestrator:
         affected_tags = filter_result.affected_tags
         changed_page_paths = filter_result.changed_page_paths
         affected_sections = filter_result.affected_sections
+
+        # Propagate incremental state into the shared BuildContext so later phases (especially
+        # health validators) can make safe incremental decisions without re-scanning everything.
+        early_ctx.incremental = bool(incremental)
+        early_ctx.changed_page_paths = set(changed_page_paths)
 
         # Phase 6: Section Finalization
         content.phase_sections(self, cli, incremental, affected_sections)

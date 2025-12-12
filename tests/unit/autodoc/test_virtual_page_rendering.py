@@ -78,7 +78,7 @@ def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Page:
         source_id="python/api/test_module.md",
         title="test_module",
         metadata={
-            "type": "api-reference",
+            "type": "python-reference",
             "qualified_name": "bengal.test_module",
             "element_type": "module",
             "description": "A test module",
@@ -86,7 +86,7 @@ def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Page:
             "autodoc_element": mock_doc_element,
             "_autodoc_template": "api-reference/module",
             "_autodoc_url_path": "api/test_module",
-            "_autodoc_page_type": "api-reference",
+            "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
         template_name="api-reference/module",
@@ -103,12 +103,12 @@ def section_index_page(mock_site: MagicMock) -> Page:
         source_id="python/api/core/_index.md",
         title="Core",
         metadata={
-            "type": "api-reference",
+            "type": "python-reference",
             "is_section_index": True,
             "is_autodoc": True,
             "_autodoc_template": "api-reference/section-index",
             "_autodoc_url_path": "api/core",
-            "_autodoc_page_type": "api-reference",
+            "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
         template_name="api-reference/section-index",
@@ -125,12 +125,12 @@ def root_index_page(mock_site: MagicMock) -> Page:
         source_id="python/api/_index.md",
         title="API Reference",
         metadata={
-            "type": "api-reference",
+            "type": "python-reference",
             "is_section_index": True,
             "is_autodoc": True,
             "_autodoc_template": "api-reference/section-index",
             "_autodoc_url_path": "api",
-            "_autodoc_page_type": "api-reference",
+            "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
         template_name="api-reference/section-index",
@@ -157,7 +157,7 @@ class TestVirtualPageDetection:
         """Autodoc pages have rendering metadata."""
         assert autodoc_page.metadata.get("_autodoc_template") == "api-reference/module"
         assert autodoc_page.metadata.get("_autodoc_url_path") == "api/test_module"
-        assert autodoc_page.metadata.get("_autodoc_page_type") == "api-reference"
+        assert autodoc_page.metadata.get("_autodoc_page_type") == "python-reference"
 
     def test_section_index_detected(self, section_index_page: Page) -> None:
         """Section index pages have is_section_index=True."""
@@ -293,7 +293,7 @@ class TestPageTypes:
             source_id=f"python/api/{page_type}.md",
             title=f"Test{page_type.title()}",
             metadata={
-                "type": "api-reference",
+                "type": "python-reference",
                 "element_type": page_type,
                 "is_autodoc": True,
                 "autodoc_element": mock_doc_element,

@@ -101,10 +101,9 @@ def clean(
 
     # Clean cache if requested
     if clean_cache:
-        cache_dir = site.root_path / ".bengal"
-        if cache_dir.exists():
+        if site.paths.state_dir.exists():
             # Use the same robust removal that Site.clean() uses
-            site._rmtree_robust(cache_dir)
+            site._rmtree_robust(site.paths.state_dir)
             cli.info("   ✓ Removed cache directory")
 
     # Show success

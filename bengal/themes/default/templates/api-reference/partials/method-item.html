@@ -23,10 +23,10 @@ Receives: element (the class element)
   {% set is_private = method.name.startswith('_') %}
   {% set first_sentence = ((method.description or '') | truncate(80, True, '…')) %}
 
-  <details class="api-member api-member--method{% if is_property %} api-member--property{% endif %}{% if is_async %} api-member--async{% endif %}{% if is_private %} api-member--private{% endif %}">
-    <summary class="api-member__summary">
+  <details class="api-card api-card--collapsible api-card--method{% if is_property %} api-card--property{% endif %}{% if is_async %} api-card--async{% endif %}{% if is_private %} api-card--private{% endif %}">
+    <summary class="api-card__header">
       {# Icon based on type #}
-      <span class="api-member__icon">
+      <span class="api-card__icon">
         {% if is_property %}
         {{ icon('tag', size=16) }}
         {% elif is_async %}
@@ -39,9 +39,9 @@ Receives: element (the class element)
       </span>
 
       {# Name + signature preview #}
-      <div class="api-member__info">
-        <div class="api-member__name-row">
-          <code class="api-member__name">{{ method.name }}</code>
+      <div class="api-card__info">
+        <div class="api-card__name-row">
+          <code class="api-card__name">{{ method.name }}</code>
           {# Inline badges #}
           {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
           {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
@@ -50,38 +50,38 @@ Receives: element (the class element)
         </div>
         {# Description preview #}
         {% if first_sentence %}
-        <span class="api-member__desc-preview">{{ first_sentence }}</span>
+        <span class="api-card__desc-preview">{{ first_sentence }}</span>
         {% endif %}
       </div>
 
       {# Meta info: params + return #}
-      <div class="api-member__meta">
+      <div class="api-card__meta">
         {% if not is_property %}
-        <span class="api-member__params" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">
+        <span class="api-card__params" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">
           {{ icon('brackets-curly', size=12) }}
           <span>{{ method_param_count }}</span>
         </span>
         {% endif %}
-        <span class="api-member__return" title="Returns {{ method_return_type }}">
+        <span class="api-card__return" title="Returns {{ method_return_type }}">
           {{ icon('arrow-right', size=12) }}
           <code>{{ method_return_type | truncate(20, True, '…') }}</code>
         </span>
       </div>
 
       {# Expand indicator #}
-      <span class="api-member__toggle">
+      <span class="api-card__toggle">
         {{ icon('caret-right', size=14) }}
       </span>
     </summary>
 
-    <div class="api-member__content">
+    <div class="api-card__body">
       {# Full signature #}
       {% set element = method %}
       {% include 'api-reference/partials/signature.html' %}
 
       {# Full description (markdown rendered) #}
       {% if method.description %}
-      <div class="api-member__description">{{ method.description | markdownify | safe }}</div>
+      <div class="api-card__description">{{ method.description | markdownify | safe }}</div>
       {% endif %}
 
       {# Parameters, Returns, Raises #}
@@ -114,7 +114,7 @@ Receives: element (the class element)
         <span>Internal Methods</span>
         <span class="api-label__count">{{ private_methods | length }}</span>
       </span>
-      <span class="api-member__toggle">
+      <span class="api-card__toggle">
         {{ icon('caret-right', size=14) }}
       </span>
     </summary>

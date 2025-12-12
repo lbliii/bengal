@@ -1,5 +1,6 @@
 ---
 title: Layout Directives
+nav_title: Layout
 description: Reference for layout directives (cards, tabs, dropdown, grid)
 weight: 12
 tags:

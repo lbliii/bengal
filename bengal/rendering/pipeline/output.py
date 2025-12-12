@@ -118,7 +118,12 @@ def write_output(
         # Atomic write (crash-safe, slightly slower)
         from bengal.utils.atomic_write import atomic_write_text
 
-        atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
+        atomic_write_text(
+            page.output_path,
+            page.rendered_html,
+            encoding="utf-8",
+            ensure_parent=False,  # parent dir already ensured above (cached)
+        )
 
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)

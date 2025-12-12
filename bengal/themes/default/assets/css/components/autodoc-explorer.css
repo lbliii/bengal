@@ -1,0 +1,21 @@
+/**
+ * Autodoc Explorer - Terminal-Inspired Documentation Windows
+ *
+ * Unified component system for all autodoc-generated reference documentation:
+ * - Python API (classes, functions, modules)
+ * - CLI Reference (commands, options, arguments)
+ * - OpenAPI/REST (endpoints, schemas)
+ *
+ * Features:
+ * - Window chrome title bars
+ * - Neumorphic depth & diffused light
+ * - Gradient accents & luminescent edges
+ * - Collapsed by default with smooth reveals
+ * - Clear visual hierarchy for nested content
+ *
+ * This file now imports the modular CSS structure from components/autodoc/
+ * See components/autodoc/index.css for the module breakdown.
+ */
+
+/* Import modular autodoc CSS */
+@import url('./autodoc/index.css');

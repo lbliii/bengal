@@ -1,5 +1,6 @@
 ---
 title: Performance Benchmarks
+nav_title: Benchmarks
 description: Measured build times for Bengal vs Hugo, Jekyll, and Eleventy
 weight: 15
 type: doc

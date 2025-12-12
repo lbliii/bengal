@@ -40,6 +40,8 @@ def mock_site(temp_site):
     site = MagicMock()
     site.root_path = temp_site
     site.theme = "default"
+    # Mock paths object to return correct Path for swizzle_registry
+    site.paths.swizzle_registry = temp_site / ".bengal" / "themes" / "sources.json"
     return site
 
 

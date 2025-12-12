@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 import click
 
+from bengal.cache.paths import STATE_DIR_NAME
 from bengal.cli.helpers import (
     configure_traceback,
     get_cli_output,
@@ -136,9 +137,7 @@ def validate(
         # Find changed files using build cache
         from bengal.cache import BuildCache
 
-        cache_dir = site.root_path / ".bengal"
-        cache_path = cache_dir / "cache.json"
-        cache = BuildCache.load(cache_path)
+        cache = BuildCache.load(site.paths.build_cache)
 
         context = []
         for page in site.pages:
@@ -156,9 +155,7 @@ def validate(
     if incremental or changed:
         from bengal.cache import BuildCache
 
-        cache_dir = site.root_path / ".bengal"
-        cache_path = cache_dir / "cache.json"
-        cache = BuildCache.load(cache_path)
+        cache = BuildCache.load(site.paths.build_cache)
 
     # Run health checks
     cli.blank()
@@ -258,9 +255,7 @@ def _run_watch_mode(
         if incremental:
             from bengal.cache import BuildCache
 
-            cache_dir = site.root_path / ".bengal"
-            cache_path = cache_dir / "cache.json"
-            cache = BuildCache.load(cache_path)
+            cache = BuildCache.load(site.paths.build_cache)
 
         # Run validation
         health_check = HealthCheck(site)
@@ -298,7 +293,7 @@ def _run_watch_mode(
                 return False
 
             # Ignore output directory
-            if "public" in str(file_path) or ".bengal" in str(file_path):
+            if "public" in str(file_path) or STATE_DIR_NAME in str(file_path):
                 return False
 
             # Ignore temp files

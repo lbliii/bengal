@@ -147,66 +147,97 @@ def create_jinja_environment(
     """
     import sys
 
-    # Look for templates in multiple locations with theme inheritance
+    # Dev server should always reflect filesystem changes (do not cache).
+    auto_reload = site.config.get("dev_server", False)
+
+    # Look for templates in multiple locations with theme inheritance.
+    # Optimization: avoid repeating filesystem scanning N times when rendering in parallel
+    # (each worker thread creates its own TemplateEngine + Jinja Environment).
     template_dirs: list[str] = []
+    used_cache = False
+    cache_key = (getattr(site, "theme", None), str(getattr(site, "root_path", "")))
+    cached = getattr(site, "_bengal_template_dirs_cache", None)
+    if not auto_reload and isinstance(cached, dict) and cached.get("key") == cache_key:
+        cached_dirs = cached.get("template_dirs")
+        if isinstance(cached_dirs, list) and all(isinstance(d, str) for d in cached_dirs):
+            template_dirs = list(cached_dirs)
+            used_cache = True
 
     # Custom templates directory
-    custom_templates = site.root_path / "templates"
-    if custom_templates.exists():
-        template_dirs.append(str(custom_templates))
+    if not used_cache:
+        custom_templates = site.root_path / "templates"
+        if custom_templates.exists():
+            template_dirs.append(str(custom_templates))
 
     # Theme templates with inheritance (child first, then parents)
-    for theme_name in resolve_theme_chain(site.theme, site):
-        theme_found = False
+    if not used_cache:
+        theme_chain_cached = getattr(site, "_bengal_theme_chain_cache", None)
+        if (
+            not auto_reload
+            and isinstance(theme_chain_cached, dict)
+            and theme_chain_cached.get("key") == cache_key
+        ):
+            theme_chain = theme_chain_cached.get("chain", [])
+        else:
+            theme_chain = resolve_theme_chain(site.theme, site)
+            if not auto_reload:
+                try:
+                    site._bengal_theme_chain_cache = {"key": cache_key, "chain": list(theme_chain)}
+                except Exception:
+                    # Best-effort cache only; never fail environment creation
+                    pass
 
-        # Site-level theme directory
-        site_theme_templates = site.root_path / "themes" / theme_name / "templates"
-        if site_theme_templates.exists():
-            template_dirs.append(str(site_theme_templates))
-            theme_found = True
-            continue
+        for theme_name in theme_chain:
+            theme_found = False
 
-        # Installed theme directory (via entry point)
-        try:
-            pkg = get_theme_package(theme_name)
-            if pkg:
-                resolved = pkg.resolve_resource_path("templates")
-                if resolved and resolved.exists():
-                    template_dirs.append(str(resolved))
-                    theme_found = True
-                    continue
-        except Exception as e:
-            logger.debug(
-                "theme_resolution_installed_failed",
-                theme=theme_name,
-                error=str(e),
-            )
+            # Site-level theme directory
+            site_theme_templates = site.root_path / "themes" / theme_name / "templates"
+            if site_theme_templates.exists():
+                template_dirs.append(str(site_theme_templates))
+                theme_found = True
+                continue
 
-        # Bundled theme directory
-        bundled_theme_templates = (
-            Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
-        )
-        if bundled_theme_templates.exists():
-            template_dirs.append(str(bundled_theme_templates))
-            theme_found = True
+            # Installed theme directory (via entry point)
+            try:
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("templates")
+                    if resolved and resolved.exists():
+                        template_dirs.append(str(resolved))
+                        theme_found = True
+                        continue
+            except Exception as e:
+                logger.debug(
+                    "theme_resolution_installed_failed",
+                    theme=theme_name,
+                    error=str(e),
+                )
 
-        # Warn if theme not found in any location
-        if not theme_found:
-            logger.warning(
-                "theme_not_found",
-                theme=theme_name,
-                checked_site=str(site_theme_templates),
-                checked_bundled=str(bundled_theme_templates),
-                hint="Theme may be missing or incorrectly configured",
+            # Bundled theme directory
+            bundled_theme_templates = (
+                Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
             )
-            print(
-                f"⚠️  Theme '{theme_name}' not found. Using default theme.",
-                file=sys.stderr,
-            )
-            print(
-                f"    Searched: {site_theme_templates}, {bundled_theme_templates}",
-                file=sys.stderr,
-            )
+            if bundled_theme_templates.exists():
+                template_dirs.append(str(bundled_theme_templates))
+                theme_found = True
+
+            # Warn if theme not found in any location
+            if not theme_found:
+                logger.warning(
+                    "theme_not_found",
+                    theme=theme_name,
+                    checked_site=str(site_theme_templates),
+                    checked_bundled=str(bundled_theme_templates),
+                    hint="Theme may be missing or incorrectly configured",
+                )
+                print(
+                    f"⚠️  Theme '{theme_name}' not found. Using default theme.",
+                    file=sys.stderr,
+                )
+                print(
+                    f"    Searched: {site_theme_templates}, {bundled_theme_templates}",
+                    file=sys.stderr,
+                )
 
     # Ensure default exists as ultimate fallback
     default_templates = Path(__file__).parent.parent.parent / "themes" / "default" / "templates"
@@ -227,7 +258,16 @@ def create_jinja_environment(
     cache_templates = site.config.get("cache_templates", True)
 
     if cache_templates:
-        cache_dir = site.output_dir / ".bengal-cache" / "templates"
+        # Migrate template cache from legacy location if exists
+        if hasattr(site, "paths"):
+            from bengal.cache.paths import migrate_template_cache
+
+            migrate_template_cache(site.paths, site.output_dir)
+            cache_dir = site.paths.templates_dir
+        else:
+            # Fallback for tests using DummySite or mocks without paths
+            cache_dir = site.output_dir / ".bengal-cache" / "templates"
+
         cache_dir.mkdir(parents=True, exist_ok=True)
         bytecode_cache = FileSystemBytecodeCache(
             directory=str(cache_dir), pattern="__bengal_template_%s.cache"
@@ -235,8 +275,6 @@ def create_jinja_environment(
         logger.debug("template_bytecode_cache_enabled", cache_dir=str(cache_dir))
 
     # Create environment
-    auto_reload = site.config.get("dev_server", False)
-
     env_kwargs = {
         "loader": FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader("."),
         "autoescape": select_autoescape(["html", "xml"]),
@@ -293,5 +331,15 @@ def create_jinja_environment(
 
     # Register all template functions
     register_all(env, site)
+
+    # Best-effort cache of template search paths for non-dev builds.
+    if not auto_reload:
+        try:
+            site._bengal_template_dirs_cache = {
+                "key": cache_key,
+                "template_dirs": list(template_dirs),
+            }
+        except Exception:
+            pass
 
     return env, template_dir_paths

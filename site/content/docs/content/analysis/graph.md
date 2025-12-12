@@ -1,5 +1,6 @@
 ---
 title: Graph Analysis
+nav_title: Graph
 description: Analyze your site's structure, improve internal linking, and optimize
   navigation
 weight: 10

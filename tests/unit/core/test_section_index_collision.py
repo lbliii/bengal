@@ -3,8 +3,8 @@ Tests for index file collision detection (_index.md vs index.md).
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
+from bengal.core.diagnostics import DiagnosticsCollector
 from bengal.core.page import Page
 from bengal.core.section import Section
 
@@ -63,18 +63,16 @@ class TestIndexFileCollision:
             metadata={"title": "Underscore Index"},
         )
 
-        with patch("bengal.core.section.logger") as mock_logger:
-            section.add_page(underscore_index)
+        collector = DiagnosticsCollector()
+        section._diagnostics = collector
+        section.add_page(underscore_index)
 
-            # Should log warning about collision
-            mock_logger.warning.assert_called_once()
-            # First argument is the message key
-            call_args_positional = mock_logger.warning.call_args[0]
-            call_args_kwargs = mock_logger.warning.call_args[1]
-
-            assert call_args_positional[0] == "index_file_collision"
-            assert call_args_kwargs["section"] == "docs"
-            assert call_args_kwargs["action"] == "preferring_underscore_version"
+        events = collector.drain()
+        assert len(events) == 1
+        assert events[0].level == "warning"
+        assert events[0].code == "index_file_collision"
+        assert events[0].data["section"] == "docs"
+        assert events[0].data["action"] == "preferring_underscore_version"
 
         # _index.md should be the index page
         assert section.index_page == underscore_index
@@ -100,13 +98,14 @@ class TestIndexFileCollision:
             metadata={"title": "Index"},
         )
 
-        with patch("bengal.core.section.logger") as mock_logger:
-            section.add_page(regular_index)
+        collector = DiagnosticsCollector()
+        section._diagnostics = collector
+        section.add_page(regular_index)
 
-            # Should log warning about collision
-            mock_logger.warning.assert_called_once()
-            call_args_positional = mock_logger.warning.call_args[0]
-            assert call_args_positional[0] == "index_file_collision"
+        events = collector.drain()
+        assert len(events) == 1
+        assert events[0].level == "warning"
+        assert events[0].code == "index_file_collision"
 
         # _index.md should remain the index page
         assert section.index_page == underscore_index
@@ -155,8 +154,9 @@ class TestIndexFileCollision:
             metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},
         )
 
-        with patch("bengal.core.section.logger"):
-            section.add_page(underscore_index)
+        collector = DiagnosticsCollector()
+        section._diagnostics = collector
+        section.add_page(underscore_index)
 
         # _index.md cascade should override
         assert section.metadata["cascade"]["layout"] == "guide"

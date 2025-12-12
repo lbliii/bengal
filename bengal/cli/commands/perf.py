@@ -43,9 +43,13 @@ def perf(last: int, format: str, compare: bool) -> None:
       bengal perf -f json      # Output as JSON
       bengal perf --compare    # Compare last two builds
     """
+    from pathlib import Path
+
+    from bengal.cache.paths import BengalPaths
     from bengal.utils.performance_report import PerformanceReport
 
-    report = PerformanceReport()
+    paths = BengalPaths(Path.cwd())
+    report = PerformanceReport(metrics_dir=paths.metrics_dir)
 
     if compare:
         report.compare()

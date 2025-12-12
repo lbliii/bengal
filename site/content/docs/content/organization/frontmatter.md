@@ -1,5 +1,6 @@
 ---
 title: Frontmatter Reference
+nav_title: Frontmatter
 description: Complete reference for all frontmatter fields
 weight: 10
 draft: false

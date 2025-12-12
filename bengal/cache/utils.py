@@ -25,8 +25,10 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
     Returns:
         True if cache was cleared, False if no cache existed
     """
-    cache_dir = Path(site_root_path) / ".bengal"
-    cache_path = cache_dir / "cache.json"
+    from bengal.cache.paths import BengalPaths
+
+    paths = BengalPaths(Path(site_root_path))
+    cache_path = paths.build_cache
 
     if not cache_path.exists():
         return False

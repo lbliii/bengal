@@ -6,6 +6,7 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 
 from __future__ import annotations
 
+import json
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -100,6 +101,194 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
         "total_assets": orchestrator.stats.total_assets,
     }
 
+    _write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
+
+
+def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> None:
+    """
+    Write build-time artifacts into the output directory (opt-in).
+
+    Why this exists:
+        `BuildStats.build_time_ms` is only finalized after templates render (Phase 19).
+        Writing a small SVG/JSON artifact here allows templates to display build time
+        accurately by referencing a static path like `/bengal/build.svg`.
+    """
+    config = getattr(site, "config", {}) or {}
+    build_badge_cfg = _normalize_build_badge_config(config.get("build_badge"))
+    if not build_badge_cfg["enabled"]:
+        return
+
+    output_dir = getattr(site, "output_dir", None)
+    if not output_dir:
+        return
+
+    from pathlib import Path
+
+    from bengal.utils.atomic_write import AtomicFile
+    from bengal.utils.build_badge import build_shields_like_badge_svg, format_duration_ms_compact
+
+    duration_ms = float(last_build_stats.get("build_time_ms") or 0)
+    duration_text = format_duration_ms_compact(duration_ms)
+
+    payload = {
+        "build_time_ms": duration_ms,
+        "build_time_human": duration_text,
+        "total_pages": int(last_build_stats.get("total_pages") or 0),
+        "total_assets": int(last_build_stats.get("total_assets") or 0),
+        "rendering_time_ms": float(last_build_stats.get("rendering_time_ms") or 0),
+        "timestamp": _safe_isoformat(getattr(site, "build_time", None)),
+    }
+
+    svg = build_shields_like_badge_svg(
+        label=build_badge_cfg["label"],
+        message=duration_text,
+        label_color=build_badge_cfg["label_color"],
+        message_color=build_badge_cfg["message_color"],
+    )
+    json_text = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+
+    for root in _iter_output_roots(site):
+        target_dir = Path(root) / build_badge_cfg["dir_name"]
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        _write_if_changed_atomic(target_dir / "build.svg", svg, AtomicFile)
+        _write_if_changed_atomic(target_dir / "build.json", json_text, AtomicFile)
+
+
+def _write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> None:
+    """
+    Write file atomically, but only if content differs.
+
+    This prevents unnecessary touching of outputs across builds.
+    """
+    try:
+        if path.exists():
+            existing = path.read_text(encoding="utf-8")
+            if existing == content:
+                return
+    except Exception:
+        # Best-effort; if read fails, proceed to write.
+        pass
+
+    with atomic_file_cls(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _normalize_build_badge_config(value: Any) -> dict[str, Any]:
+    """
+    Normalize `build_badge` config.
+
+    Supported:
+      - False / None: disabled
+      - True: enabled with defaults
+      - {enabled: bool, ...}: enabled with overrides
+    """
+    if value is None or value is False:
+        return {
+            "enabled": False,
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+
+    if value is True:
+        return {
+            "enabled": True,
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+
+    if isinstance(value, dict):
+        enabled = bool(value.get("enabled", True))
+        return {
+            "enabled": enabled,
+            "dir_name": str(value.get("dir_name", "bengal")),
+            "label": str(value.get("label", "built in")),
+            "label_color": str(value.get("label_color", "#555")),
+            "message_color": str(value.get("message_color", "#4c1d95")),
+        }
+
+    # Unknown type: treat as disabled rather than guessing.
+    return {
+        "enabled": False,
+        "dir_name": "bengal",
+        "label": "built in",
+        "label_color": "#555",
+        "message_color": "#4c1d95",
+    }
+
+
+def _iter_output_roots(site: Any) -> list[Any]:
+    """
+    Determine which output roots should receive build artifacts.
+
+    For i18n prefix strategy, some sites render into language subdirectories.
+    We mirror the behavior of site-wide outputs by also writing into those
+    subdirectories so that `/en/bengal/build.svg` resolves when the site is
+    deployed under a language prefix.
+    """
+    output_dir = getattr(site, "output_dir", None)
+    if not output_dir:
+        return []
+
+    roots: list[Any] = [output_dir]
+
+    config = getattr(site, "config", {}) or {}
+    i18n = config.get("i18n", {}) or {}
+    if i18n.get("strategy") != "prefix":
+        return roots
+
+    default_lang = str(i18n.get("default_language", "en"))
+    default_in_subdir = bool(i18n.get("default_in_subdir", False))
+
+    lang_codes: list[str] = []
+    for entry in i18n.get("languages", []) or []:
+        if isinstance(entry, str):
+            lang_codes.append(entry)
+        elif isinstance(entry, dict):
+            code = entry.get("code") or entry.get("lang") or entry.get("language")
+            if isinstance(code, str) and code:
+                lang_codes.append(code)
+
+    for code in sorted(set(lang_codes)):
+        if code == default_lang and not default_in_subdir:
+            continue
+        roots.append(_join(output_dir, code))
+
+    if default_in_subdir:
+        roots.append(_join(output_dir, default_lang))
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    deduped: list[Any] = []
+    for r in roots:
+        key = str(r)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(r)
+    return deduped
+
+
+def _join(root: Any, child: str) -> Any:
+    from pathlib import Path
+
+    return Path(root) / child
+
+
+def _safe_isoformat(value: Any) -> str | None:
+    try:
+        from datetime import datetime
+
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return None
+    except Exception:
+        return None
+
 
 def run_health_check(
     orchestrator: BuildOrchestrator,
@@ -169,6 +358,17 @@ def run_health_check(
                 f"   ⚡ {stats.validator_count} validators, {stats.worker_count} workers, "
                 f"{stats.speedup:.1f}x speedup"
             )
+            # Also show exact validator list + per-validator durations to make slow builds diagnosable.
+            # NOTE: ValidatorReport order is non-deterministic in parallel mode (as_completed),
+            # so we sort by duration for stable, high-signal output.
+            if report.validator_reports:
+                ordered = sorted(
+                    report.validator_reports, key=lambda r: r.duration_ms, reverse=True
+                )
+                validators_info = ", ".join(
+                    f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in ordered
+                )
+                cli.info(f"   🔎 Validators: {validators_info}")
         # Show slowest validators if health check took > 1 second
         if health_time_ms > 1000 and report.validator_reports:
             slowest = sorted(report.validator_reports, key=lambda r: r.duration_ms, reverse=True)[
@@ -234,6 +434,29 @@ def phase_finalize(
         log_data["memory_heap_mb"] = orchestrator.stats.memory_heap_mb
 
     orchestrator.logger.info("build_complete", **log_data)
+
+    # Flush any core diagnostics that were collected during the build.
+    # These are emitted by core models via a sink/collector rather than logging directly.
+    try:
+        diagnostics = getattr(orchestrator.site, "diagnostics", None)
+        if diagnostics is not None and hasattr(diagnostics, "drain"):
+            events = diagnostics.drain()
+            for event in events:
+                data = getattr(event, "data", {}) or {}
+                code = getattr(event, "code", "core_diagnostic")
+                level = getattr(event, "level", "info")
+
+                if level == "warning":
+                    orchestrator.logger.warning(code, **data)
+                elif level == "error":
+                    orchestrator.logger.error(code, **data)
+                elif level == "debug":
+                    orchestrator.logger.debug(code, **data)
+                else:
+                    orchestrator.logger.info(code, **data)
+    except Exception:
+        # Diagnostics must never break build finalization.
+        pass
 
     # Restore normal logger console output if we suppressed it
     if not verbose:

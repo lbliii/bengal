@@ -53,6 +53,7 @@ class ParsedContentCacheMixin:
         html: str,
         toc: str,
         toc_items: list[dict[str, Any]],
+        links: list[str] | None,
         metadata: dict[str, Any],
         template: str,
         parser_version: str,
@@ -76,6 +77,7 @@ class ParsedContentCacheMixin:
             html: Rendered HTML (post-markdown, pre-template)
             toc: Table of contents HTML
             toc_items: Structured TOC data
+            links: Extracted links from the page (raw markdown extraction)
             metadata: Page metadata (frontmatter)
             template: Template name used
             parser_version: Parser version string (e.g., "mistune-3.0-toc2")
@@ -94,6 +96,9 @@ class ParsedContentCacheMixin:
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
+        if links:
+            # Rough estimate for link list size (strings + separators)
+            size_bytes += sum(len(link.encode("utf-8")) for link in links)
         if ast:
             # Estimate AST size (JSON serialization)
             ast_str = json.dumps(ast, default=str)
@@ -104,6 +109,7 @@ class ParsedContentCacheMixin:
             "html": html,
             "toc": toc,
             "toc_items": toc_items,
+            "links": links or [],
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "nav_metadata_hash": nav_metadata_hash,  # RFC: incremental-hot-reload-invariants

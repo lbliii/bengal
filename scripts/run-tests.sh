@@ -1,18 +1,16 @@
 #!/bin/zsh
 set -e  # Exit on error
 
-# Activate the venv (use venv-3.14t if free-threaded)
-VENV_PATH="venv-3.14"
+# Canonical: use the project .venv + uv dependency groups (see Makefile).
+VENV_PATH=".venv"
 if [ ! -d "$VENV_PATH" ]; then
-  echo "Error: $VENV_PATH not found. Create it with: python3.14 -m venv $VENV_PATH"
+  echo "Error: $VENV_PATH not found. Run: make setup"
   exit 1
 fi
 
-source "$VENV_PATH/bin/activate"
-echo "Using Python: $(python --version) from $(which python)"
+# Ensure dev dependencies are synced (frozen by default).
+make install
 
-# Install/reinstall if needed (editable mode for dev)
-pip install -e '.[dev]'
+echo "Using Python: $(uv run python --version) from $(uv run python -c 'import sys; print(sys.executable)')"
 
-# Run pytest with your preferred flags (from pytest.ini: -n auto for parallel, etc.)
-exec python -m pytest "$@"
+exec uv run pytest "$@"

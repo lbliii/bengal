@@ -1,0 +1,391 @@
+"""
+Page builders for autodoc.
+
+Creates virtual Page objects and handles rendering for autodoc elements.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from jinja2 import Environment
+
+from bengal.autodoc.base import DocElement
+from bengal.autodoc.orchestration.result import AutodocRunResult, PageContext
+from bengal.autodoc.orchestration.template_env import relativize_paths
+from bengal.autodoc.orchestration.utils import format_source_file_for_display
+from bengal.autodoc.utils import get_openapi_method, get_openapi_path, get_openapi_tags
+from bengal.core.page import Page
+from bengal.core.section import Section
+from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
+
+logger = get_logger(__name__)
+
+
+def create_pages(
+    elements: list[DocElement],
+    sections: dict[str, Section],
+    site: Site,
+    doc_type: str,
+    resolve_output_prefix: callable,
+    get_element_metadata: callable,
+    find_parent_section: callable,
+    result: AutodocRunResult | None = None,
+) -> tuple[list[Page], AutodocRunResult]:
+    """
+    Create virtual pages for documentation elements.
+
+    This uses a two-pass approach to ensure navigation works correctly:
+    1. First pass: Create all Page objects and add them to sections
+    2. Second pass: Render HTML (now sections have all their pages)
+
+    Args:
+        elements: DocElements to create pages for
+        sections: Section hierarchy for page placement
+        site: Site instance
+        doc_type: Type of documentation ("python", "cli", "openapi")
+        resolve_output_prefix: Function to resolve output prefix
+        get_element_metadata: Function to get element metadata
+        find_parent_section: Function to find parent section
+        result: AutodocRunResult to track failures and warnings
+
+    Returns:
+        Tuple of (list of virtual Page objects, updated result)
+    """
+    if result is None:
+        result = AutodocRunResult()
+
+    # First pass: Create pages without HTML and add to sections
+    page_data: list[Page] = []
+
+    for element in elements:
+        display_source_file = format_source_file_for_display(element.source_file, site.root_path)
+        element.display_source_file = display_source_file
+        source_file_for_tracking = element.source_file
+        # Determine which elements get pages based on type
+        if (
+            doc_type == "python"
+            and element.element_type != "module"
+            or doc_type == "cli"
+            and element.element_type not in ("command", "command-group")
+            or doc_type == "openapi"
+            and element.element_type
+            not in (
+                "openapi_endpoint",
+                "openapi_schema",
+                "openapi_overview",
+            )
+        ):
+            continue
+
+        # Determine section for this element
+        parent_section = find_parent_section(element, sections, doc_type)
+
+        # Create page metadata without rendering HTML yet
+        template_name, url_path, page_type = get_element_metadata(element, doc_type)
+        source_id = f"{doc_type}/{url_path}.md"
+        output_path = site.output_dir / f"{url_path}/index.html"
+
+        # Create page with deferred rendering - HTML rendered in rendering phase
+        page = Page.create_virtual(
+            source_id=source_id,
+            title=element.name,
+            metadata={
+                "type": page_type,
+                "qualified_name": element.qualified_name,
+                "element_type": element.element_type,
+                "description": element.description or f"Documentation for {element.name}",
+                "source_file": display_source_file,
+                "line_number": getattr(element, "line_number", None),
+                "is_autodoc": True,
+                "autodoc_element": element,
+                # Rendering metadata - used by RenderingPipeline to render with full context
+                "_autodoc_template": template_name,
+                "_autodoc_url_path": url_path,
+                "_autodoc_page_type": page_type,
+            },
+            rendered_html=None,  # Deferred - rendered in rendering phase with full context
+            template_name=template_name,
+            output_path=output_path,
+        )
+        page._site = site
+        # Set section reference via setter (handles virtual sections with URL-based lookup)
+        page._section = parent_section
+
+        # Check if this element corresponds to an existing section (e.g. it's a package)
+        # If so, this page should be the index page of that section
+        target_section = None
+
+        # Get the prefix for this doc type to construct correct section paths
+        prefix = resolve_output_prefix(doc_type)
+
+        if doc_type == "python" and element.element_type == "module":
+            # Check if we have a section for this module (i.e., it is a package)
+            # Section path format from create_python_sections: {prefix}/part1/part2
+            section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+            target_section = sections.get(section_path)
+
+        elif doc_type == "cli" and element.element_type == "command-group":
+            # Section path format from create_cli_sections: {prefix}/part1/part2
+            section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+            target_section = sections.get(section_path)
+
+        # Add to section
+        if target_section:
+            # This page is the index for target_section
+            # Set section reference to the target section (it belongs TO the section
+            # as its index).
+            page._section = target_section
+
+            # Set as index page manually
+            # We don't use add_page() because it relies on filename stem for index detection
+            target_section.index_page = page
+            target_section.pages.append(page)
+        else:
+            # Regular page - add to parent section
+            parent_section.add_page(page)
+
+        # Track source file → autodoc page dependency for incremental builds
+        if source_file_for_tracking:
+            result.add_dependency(str(source_file_for_tracking), source_id)
+
+        # Store page for return (no HTML rendering yet - deferred to rendering phase)
+        page_data.append(page)
+
+    # Note: HTML rendering is now DEFERRED to the rendering phase
+    # This ensures menus and full template context are available.
+    # See: RenderingPipeline._process_virtual_page() and _render_autodoc_page()
+    logger.debug("autodoc_pages_created", count=len(page_data), type=doc_type)
+
+    return page_data, result
+
+
+def find_parent_section(
+    element: DocElement,
+    sections: dict[str, Section],
+    doc_type: str,
+    resolve_output_prefix: callable,
+) -> Section:
+    """Find the appropriate parent section for an element."""
+    prefix = resolve_output_prefix(doc_type)
+
+    # Get the first section from sections dict as fallback
+    default_section = next(iter(sections.values()), None)
+    if default_section is None:
+        # Create a fallback section if none exists
+        from bengal.utils.url_normalization import join_url_paths
+
+        default_section = Section.create_virtual(
+            name="api",
+            relative_url=join_url_paths(prefix),
+            title="API Reference",
+            metadata={},
+        )
+
+    if doc_type == "python":
+        parts = element.qualified_name.split(".")
+        section_path = f"{prefix}/" + "/".join(parts[:-1]) if len(parts) > 1 else prefix
+        return sections.get(section_path) or sections.get(prefix) or default_section
+    elif doc_type == "cli":
+        if element.element_type == "command-group":
+            return sections.get(prefix) or default_section
+        parts = element.qualified_name.split(".")
+        if len(parts) > 1:
+            section_path = f"{prefix}/{'.'.join(parts[:-1]).replace('.', '/')}"
+            return sections.get(section_path) or sections.get(prefix) or default_section
+        return sections.get(prefix) or default_section
+    elif doc_type == "openapi":
+        if element.element_type == "openapi_overview":
+            return sections.get(prefix) or default_section
+        elif element.element_type == "openapi_schema":
+            return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
+        elif element.element_type == "openapi_endpoint":
+            tags = get_openapi_tags(element)
+            if tags:
+                tag_section = sections.get(f"{prefix}/tags/{tags[0]}")
+                if tag_section:
+                    return tag_section
+            return sections.get(prefix) or default_section
+    return sections.get(prefix) or default_section
+
+
+def get_element_metadata(
+    element: DocElement, doc_type: str, resolve_output_prefix: callable
+) -> tuple[str, str, str]:
+    """Get template name, URL path, and page type for an element."""
+    prefix = resolve_output_prefix(doc_type)
+
+    if doc_type == "python":
+        url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+        # Python API docs use python-reference type for prose-constrained layout
+        return "api-reference/module", url_path, "python-reference"
+    elif doc_type == "cli":
+        if element.element_type == "command-group":
+            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+            return "cli-reference/command-group", url_path, "cli-reference"
+        else:
+            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+            return "cli-reference/command", url_path, "cli-reference"
+    elif doc_type == "openapi":
+        # OpenAPI docs use openapi-reference type for full-width 3-panel layout
+        if element.element_type == "openapi_overview":
+            return "openapi-reference/overview", f"{prefix}/overview", "openapi-reference"
+        elif element.element_type == "openapi_schema":
+            schema_name = element.name
+            return (
+                "openapi-reference/schema",
+                f"{prefix}/schemas/{schema_name}",
+                "openapi-reference",
+            )
+        elif element.element_type == "openapi_endpoint":
+            method = get_openapi_method(element).lower()
+            path = get_openapi_path(element).strip("/").replace("/", "-")
+            return (
+                "openapi-reference/endpoint",
+                f"{prefix}/endpoints/{method}-{path}",
+                "openapi-reference",
+            )
+    # Fallback - use python-reference for prose-constrained layout
+    return "api-reference/module", f"{prefix}/{element.name}", "python-reference"
+
+
+def render_element(
+    element: DocElement,
+    template_name: str,
+    url_path: str,
+    page_type: str,
+    site: Site,
+    template_env: Environment,
+    normalized_config: dict,
+    section: Section | None = None,
+) -> str:
+    """
+    Render element documentation to HTML.
+
+    Args:
+        element: DocElement to render
+        template_name: Template name (e.g., "api-reference/module")
+        url_path: URL path for this element (e.g., "cli/bengal/serve")
+        page_type: Page type (e.g., "cli-reference", "api-reference")
+        site: Site instance
+        template_env: Jinja2 template environment
+        normalized_config: Normalized autodoc config
+        section: Parent section (for sidebar navigation)
+
+    Returns:
+        Rendered HTML string
+    """
+    # Create a page-like context for templates that expect a 'page' variable.
+    # Templates extend base.html and include partials (page-hero, docs-nav, etc.)
+    # that require page.metadata, page.tags, page.title, etc.
+    # Get tags: use typed helper for OpenAPI, fall back to metadata dict for others
+    if element.element_type == "openapi_endpoint":
+        element_tags = list(get_openapi_tags(element))
+    else:
+        element_tags = element.metadata.get("tags", []) if element.metadata else []
+
+    display_source_file = getattr(
+        element,
+        "display_source_file",
+        format_source_file_for_display(element.source_file, site.root_path),
+    )
+
+    page_context = PageContext(
+        title=element.name,
+        metadata={
+            "type": page_type,
+            "qualified_name": element.qualified_name,
+            "element_type": element.element_type,
+            "description": element.description or f"Documentation for {element.name}",
+            "source_file": display_source_file,
+            "line_number": getattr(element, "line_number", None),
+            "is_autodoc": True,
+        },
+        tags=element_tags,
+        relative_url=f"/{url_path}/",
+        source_path=display_source_file,
+        section=section,
+    )
+
+    # Try theme template first
+    try:
+        template = template_env.get_template(f"{template_name}.html")
+        return template.render(
+            element=element,
+            page=page_context,
+            config=normalized_config,
+            site=site,
+        )
+    except Exception as e:
+        # Fall back to generic template or legacy path
+        try:
+            # Try without .html extension
+            template = template_env.get_template(template_name)
+            return template.render(
+                element=element,
+                page=page_context,
+                config=normalized_config,
+                site=site,
+            )
+        except Exception as fallback_error:
+            logger.warning(
+                "autodoc_template_render_failed",
+                element=element.qualified_name,
+                template=template_name,
+                error=relativize_paths(str(e), site),
+                fallback_error=relativize_paths(str(fallback_error), site),
+            )
+            # Return minimal fallback HTML
+            # Note: In deferred rendering path, fallback tagging happens in RenderingPipeline
+            return render_fallback(element)
+
+
+def render_fallback(element: DocElement) -> str:
+    """Render minimal fallback HTML when template fails."""
+    classes = [c for c in element.children if c.element_type == "class"]
+    functions = [f for f in element.children if f.element_type == "function"]
+
+    return f"""
+<div class="api-explorer">
+    <div class="api-module">
+        <h1 class="api-module__title">{element.name}</h1>
+        <p class="api-module__description">{element.description or "No description available."}</p>
+
+        <div class="api-module__stats">
+            <span class="api-stat">Classes: {len(classes)}</span>
+            <span class="api-stat">Functions: {len(functions)}</span>
+        </div>
+
+        <div class="api-classes">
+            {"".join(render_fallback_class(c) for c in classes)}
+        </div>
+
+        <div class="api-functions">
+            {"".join(render_fallback_function(f) for f in functions)}
+        </div>
+    </div>
+</div>
+"""
+
+
+def render_fallback_class(element: DocElement) -> str:
+    """Render minimal class HTML."""
+    return f"""
+<div class="api-card api-card--class">
+    <h2 class="api-card__title">{element.name}</h2>
+    <p class="api-card__description">{element.description or ""}</p>
+</div>
+"""
+
+
+def render_fallback_function(element: DocElement) -> str:
+    """Render minimal function HTML."""
+    return f"""
+<div class="api-card api-card--function">
+    <h3 class="api-card__title">{element.name}</h3>
+    <p class="api-card__description">{element.description or ""}</p>
+</div>
+"""

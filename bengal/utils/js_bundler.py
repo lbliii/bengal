@@ -105,15 +105,16 @@ def get_theme_js_bundle_order() -> list[str]:
     4. core/search.js - Search (merged from search.js, search-modal.js, search-page.js, search-preload.js)
     5. core/nav-dropdown.js - Navigation dropdowns (always needed)
     6. core/session-path-tracker.js - Analytics (always needed)
-    7. enhancements/mobile-nav.js - Mobile navigation
-    8. enhancements/tabs.js - Tab component
-    9. enhancements/toc.js - Table of contents
-    10. enhancements/action-bar.js - Action bar (copy, etc.)
-    11. enhancements/interactive.js - Interactive elements
-    12. main.js - Main initialization
-    13. enhancements/copy-link.js - Copy link functionality
-    14. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
-    15. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
+    7. core/build-badge.js - Footer build-time badge (optional; no-op if absent)
+    8. enhancements/mobile-nav.js - Mobile navigation
+    9. enhancements/tabs.js - Tab component
+    10. enhancements/toc.js - Table of contents
+    11. enhancements/action-bar.js - Action bar (copy, etc.)
+    12. enhancements/interactive.js - Interactive elements
+    13. main.js - Main initialization
+    14. enhancements/copy-link.js - Copy link functionality
+    15. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
+    16. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
 
     Returns:
         List of JS filenames in load order (with paths relative to js/ directory)
@@ -125,6 +126,7 @@ def get_theme_js_bundle_order() -> list[str]:
         "core/search.js",
         "core/nav-dropdown.js",
         "core/session-path-tracker.js",
+        "core/build-badge.js",
         "enhancements/mobile-nav.js",
         "enhancements/tabs.js",
         "enhancements/toc.js",
@@ -212,10 +214,9 @@ def discover_js_files(
     for name in bundle_order:
         # Try relative path first, then filename
         ordered_js_file: Path | None = all_files.get(name) or files_by_name.get(name)
-        if ordered_js_file and name not in excluded:
-            if ordered_js_file not in seen_paths:
-                ordered.append(ordered_js_file)
-                seen_paths.add(ordered_js_file)
+        if ordered_js_file and name not in excluded and ordered_js_file not in seen_paths:
+            ordered.append(ordered_js_file)
+            seen_paths.add(ordered_js_file)
 
     # Then: any remaining files not already added or excluded (alphabetically)
     # Check exclusion using the canonical relative path

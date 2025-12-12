@@ -290,6 +290,11 @@ DEFAULTS: dict[str, Any] = {
     "markdown": {
         "parser": "mistune",
         "toc_depth": "2-4",
+        "ast_cache": {
+            # Persist tokens into the parsed-content cache. This can increase cache size and
+            # cold-build write time. Keep False until there is a stable downstream consumer.
+            "persist_tokens": False,
+        },
     },
 }
 

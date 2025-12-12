@@ -110,7 +110,7 @@ class MistuneParser(BaseMarkdownParser):
 
         self._validator = DirectiveSyntaxValidator()
 
-        # Build plugins list
+        # Build plugins list (reused for consistent parser configuration)
         plugins = [
             "table",  # Built-in: GFM tables
             "strikethrough",  # Built-in: ~~text~~
@@ -151,6 +151,7 @@ class MistuneParser(BaseMarkdownParser):
             plugins=plugins,
             renderer=self._shared_renderer,  # Use shared renderer (with escape=False)
         )
+        self._base_plugins = list(plugins)
 
         # Cache for mistune library (import on first use)
         import mistune
@@ -724,9 +725,16 @@ class MistuneParser(BaseMarkdownParser):
         if not content:
             return []
 
-        # Create AST parser lazily (shares plugins with main parser)
+        # Create AST parser lazily.
+        #
+        # IMPORTANT: Use the same plugin set as the HTML parser so directive tokens
+        # are present in the returned token stream.
         if self._ast_parser is None:
-            self._ast_parser = self._mistune.create_markdown(renderer=None)
+            plugins = getattr(self, "_base_plugins", None)
+            self._ast_parser = self._mistune.create_markdown(
+                renderer=None,
+                plugins=list(plugins) if isinstance(plugins, list) else [],
+            )
 
         try:
             # Parse returns AST when renderer=None

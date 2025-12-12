@@ -14,12 +14,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.utils.dotdict import DotDict
-
-logger = get_logger(__name__)
 
 
 class DataLoadingMixin:
@@ -53,10 +51,10 @@ class DataLoadingMixin:
         data_dir = self.root_path / "data"
 
         if not data_dir.exists():
-            logger.debug("data_directory_not_found", path=str(data_dir))
+            emit_diagnostic(self, "debug", "data_directory_not_found", path=str(data_dir))
             return DotDict()
 
-        logger.debug("loading_data_directory", path=str(data_dir))
+        emit_diagnostic(self, "debug", "loading_data_directory", path=str(data_dir))
 
         data: dict[str, Any] = {}
         supported_extensions = [".json", ".yaml", ".yml", ".toml"]
@@ -88,7 +86,9 @@ class DataLoadingMixin:
                 if parts[-1] == "tracks" and isinstance(content, dict):
                     self._validate_tracks_structure(content)
 
-                logger.debug(
+                emit_diagnostic(
+                    self,
+                    "debug",
                     "data_file_loaded",
                     file=str(relative),
                     key=".".join(parts),
@@ -96,7 +96,9 @@ class DataLoadingMixin:
                 )
 
             except Exception as e:
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     "data_file_load_failed",
                     file=str(relative),
                     error=str(e),
@@ -106,7 +108,9 @@ class DataLoadingMixin:
         wrapped_data: DotDict = wrap_data(data)
 
         if data:
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "data_directory_loaded",
                 files_loaded=len(list(data_dir.rglob("*.*"))),
                 top_level_keys=list(data.keys()) if isinstance(data, dict) else [],
@@ -125,7 +129,9 @@ class DataLoadingMixin:
             tracks_data: Dictionary loaded from tracks.yaml
         """
         if not isinstance(tracks_data, dict):
-            logger.warning(
+            emit_diagnostic(
+                self,
+                "warning",
                 "tracks.yaml root must be a dictionary",
                 event="tracks_invalid_structure",
             )
@@ -133,7 +139,9 @@ class DataLoadingMixin:
 
         for track_id, track in tracks_data.items():
             if not isinstance(track, dict):
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     f"Track '{track_id}' must be a dictionary",
                     event="track_invalid_structure",
                     track_id=track_id,
@@ -142,7 +150,9 @@ class DataLoadingMixin:
 
             # Check required fields
             if "items" not in track:
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     f"Track '{track_id}' is missing required 'items' field",
                     event="track_missing_items",
                     track_id=track_id,
@@ -150,7 +160,9 @@ class DataLoadingMixin:
                 continue
 
             if not isinstance(track["items"], list):
-                logger.warning(
+                emit_diagnostic(
+                    self,
+                    "warning",
                     f"Track '{track_id}' has 'items' field that is not a list",
                     event="track_items_not_list",
                     track_id=track_id,
@@ -159,7 +171,9 @@ class DataLoadingMixin:
 
             # Warn about empty tracks (may be intentional, but worth noting)
             if len(track["items"]) == 0:
-                logger.debug(
+                emit_diagnostic(
+                    self,
+                    "debug",
                     f"Track '{track_id}' has no items",
                     event="track_empty_items",
                     track_id=track_id,

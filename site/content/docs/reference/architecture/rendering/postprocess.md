@@ -1,5 +1,6 @@
 ---
 title: Post-Processing
+nav_title: Post-Process
 description: Site-wide operations after rendering - sitemap, RSS, and link validation
 weight: 50
 category: rendering

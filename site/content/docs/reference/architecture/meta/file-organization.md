@@ -1,5 +1,6 @@
 ---
 title: File Organization
+nav_title: Files
 description: Directory structure and organization of generated files, cache, and development
   artifacts
 weight: 30

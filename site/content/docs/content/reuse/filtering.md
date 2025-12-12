@@ -1,5 +1,6 @@
 ---
 title: Advanced Filtering
+nav_title: Filtering
 description: Build dynamic pages that filter content by multiple tags or criteria
 weight: 30
 draft: false

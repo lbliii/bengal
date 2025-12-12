@@ -1,5 +1,6 @@
 ---
 title: Formatting Directives
+nav_title: Formatting
 description: Reference for formatting directives (badge, button, steps, checklist,
   rubric, list-table)
 weight: 13

@@ -1,5 +1,6 @@
 ---
 title: Frequently Asked Questions
+nav_title: FAQ
 description: Answers to common questions about Bengal's features, limitations, and
   compatibility.
 weight: 20

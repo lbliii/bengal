@@ -141,8 +141,10 @@ def cache_status(ctx: click.Context) -> None:
         return
 
     # Initialize manager and check cache status
-    cache_dir = site_root / ".bengal" / "content_cache"
-    manager = ContentLayerManager(cache_dir=cache_dir)
+    from bengal.cache.paths import BengalPaths
+
+    paths = BengalPaths(site_root)
+    manager = ContentLayerManager(cache_dir=paths.content_dir)
 
     # Register sources
     for name, config in remote_collections.items():
@@ -219,8 +221,10 @@ def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
         return
 
     # Initialize manager
-    cache_dir = site_root / ".bengal" / "content_cache"
-    manager = ContentLayerManager(cache_dir=cache_dir)
+    from bengal.cache.paths import BengalPaths
+
+    paths = BengalPaths(site_root)
+    manager = ContentLayerManager(cache_dir=paths.content_dir)
 
     # Register sources
     for name, config in remote_collections.items():
@@ -261,12 +265,13 @@ def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
 @click.pass_context
 def clear_cache(ctx: click.Context, source: str | None, yes: bool) -> None:
     """Clear cached content from remote sources."""
+    from bengal.cache.paths import BengalPaths
     from bengal.content_layer.manager import ContentLayerManager
 
     site_root = _get_site_root(ctx)
-    cache_dir = site_root / ".bengal" / "content_cache"
+    paths = BengalPaths(site_root)
 
-    if not cache_dir.exists():
+    if not paths.content_dir.exists():
         console.print("[dim]No cache to clear.[/dim]")
         return
 
@@ -278,7 +283,7 @@ def clear_cache(ctx: click.Context, source: str | None, yes: bool) -> None:
             return
 
     # Clear cache
-    manager = ContentLayerManager(cache_dir=cache_dir)
+    manager = ContentLayerManager(cache_dir=paths.content_dir)
     deleted = manager.clear_cache(source)
 
     if deleted > 0:

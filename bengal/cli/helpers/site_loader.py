@@ -37,7 +37,9 @@ def _check_parent_project_conflict(root_path: Path, cli: CLIOutput) -> None:
         # 2. bengal.toml/yaml config file
         # 3. config/_default/ directory structure
 
-        parent_bengal_cache = parent / ".bengal"
+        from bengal.cache.paths import STATE_DIR_NAME
+
+        parent_bengal_cache = parent / STATE_DIR_NAME
         parent_config_toml = parent / "bengal.toml"
         parent_config_yaml = parent / "bengal.yaml"
         parent_config_dir = parent / "config" / "_default"

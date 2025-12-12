@@ -240,8 +240,13 @@ class MenuOrchestrator:
             dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
             dev_sections_to_remove.add("cli")
 
-        # Mark dev sections to exclude from auto-nav
-        if dev_sections_to_remove:
+        # Only exclude API/CLI sections from auto-nav when we are actually bundling them
+        # into the Dev dropdown (2+ dev assets). If there is only one dev asset, it should
+        # remain visible as a normal top-level nav item.
+        should_bundle = len(dev_assets) >= 2
+
+        # Mark dev sections to exclude from auto-nav (only when bundling is active)
+        if should_bundle and dev_sections_to_remove:
             if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["exclude_sections"] = list(dev_sections_to_remove)
@@ -250,7 +255,7 @@ class MenuOrchestrator:
         auto_items = get_auto_nav(self.site)
 
         # Clear the exclude flag after use
-        if (
+        if should_bundle and (
             self.site._dev_menu_metadata is not None
             and "exclude_sections" in self.site._dev_menu_metadata
         ):
@@ -285,7 +290,7 @@ class MenuOrchestrator:
                 seen_names.add(item_name)
 
         # Bundle dev assets if 2+ exist
-        if len(dev_assets) >= 2:
+        if should_bundle:
             parent_id = "dev-auto"
 
             # Check if Dev already exists
@@ -330,6 +335,36 @@ class MenuOrchestrator:
             self.site._dev_menu_metadata["github_bundled"] = any(
                 a["type"] == "github" for a in dev_assets
             )
+        else:
+            # Single dev asset case: do NOT hide it behind Dev (Dev requires 2+), but also
+            # do NOT rely on section auto-nav for virtual autodoc sections (path=None).
+            #
+            # If the only available dev asset is API or CLI, expose it as a normal top-level
+            # menu item so it remains discoverable.
+            for asset in dev_assets:
+                if asset.get("type") not in {"api", "cli"}:
+                    continue
+
+                asset_url = asset.get("url", "").rstrip("/")
+                asset_name = asset.get("name", "").lower()
+
+                if (asset_url and asset_url in seen_urls) or (
+                    asset_name and asset_name in seen_names
+                ):
+                    continue
+
+                menu_items.append(
+                    {
+                        "name": asset["name"],
+                        "url": asset["url"],
+                        "identifier": asset["type"],
+                        "weight": 90,
+                    }
+                )
+                if asset_url:
+                    seen_urls.add(asset_url)
+                if asset_name:
+                    seen_names.add(asset_name)
 
         return menu_items
 
@@ -393,7 +428,7 @@ class MenuOrchestrator:
 
         for menu_name, items in menu_config.items():
             if strategy == "none":
-                builder = MenuBuilder()
+                builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                 if isinstance(items, list):
                     builder.add_from_config(items)
                 for page in self.site.pages:
@@ -412,7 +447,7 @@ class MenuOrchestrator:
                 # Build per-locale
                 self.site.menu_localized.setdefault(menu_name, {})
                 for lang in sorted(languages):
-                    builder = MenuBuilder()
+                    builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                     # Config-defined items may have optional 'lang'
                     if isinstance(items, list):
                         filtered_items = []

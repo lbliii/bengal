@@ -28,9 +28,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     pass
@@ -168,7 +166,9 @@ class PageContentMixin:
             return renderer(self._ast_cache, state)
         except (ImportError, AttributeError, Exception) as e:
             # Fallback to empty string if rendering fails
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "page_ast_to_html_failed",
                 error=str(e),
                 error_type=type(e).__name__,

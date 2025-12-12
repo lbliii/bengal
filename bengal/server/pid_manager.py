@@ -64,9 +64,11 @@ class PIDManager:
         Returns:
             Path to PID file in .bengal/ directory
         """
-        bengal_dir = project_root / ".bengal"
-        bengal_dir.mkdir(parents=True, exist_ok=True)
-        return bengal_dir / "server.pid"
+        from bengal.cache.paths import BengalPaths
+
+        paths = BengalPaths(project_root)
+        paths.state_dir.mkdir(parents=True, exist_ok=True)
+        return paths.server_pid
 
     @staticmethod
     def is_bengal_process(pid: int) -> bool:

@@ -42,7 +42,7 @@ class SwizzleManager:
     def __init__(self, site: Site) -> None:
         self.site = site
         self.root = site.root_path
-        self.registry_path = self.root / ".bengal" / "themes" / "sources.json"
+        self.registry_path = site.paths.swizzle_registry
 
     def swizzle(self, template_rel_path: str) -> Path:
         """

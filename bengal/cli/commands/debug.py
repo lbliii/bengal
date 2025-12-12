@@ -91,8 +91,7 @@ def incremental(
     configure_traceback(debug=False, traceback=traceback, site=site)
 
     # Load cache
-    cache_path = site.root_path / ".bengal" / "cache.json"
-    cache = BuildCache.load(cache_path)
+    cache = BuildCache.load(site.paths.build_cache)
 
     cli.info(f"Loaded cache with {len(cache.file_hashes)} tracked files")
 
@@ -211,8 +210,7 @@ def delta(
     site = load_site_from_cli(source=".", config=None, environment=None, profile=None, cli=cli)
     configure_traceback(debug=False, traceback=traceback, site=site)
 
-    cache_path = site.root_path / ".bengal" / "cache.json"
-    cache = BuildCache.load(cache_path)
+    cache = BuildCache.load(site.paths.build_cache)
 
     # Create analyzer
     analyzer = BuildDeltaAnalyzer(site=site, cache=cache, root_path=site.root_path)
@@ -331,8 +329,7 @@ def deps(
     site = load_site_from_cli(source=".", config=None, environment=None, profile=None, cli=cli)
     configure_traceback(debug=False, traceback=traceback, site=site)
 
-    cache_path = site.root_path / ".bengal" / "cache.json"
-    cache = BuildCache.load(cache_path)
+    cache = BuildCache.load(site.paths.build_cache)
 
     cli.info(f"Loaded {len(cache.dependencies)} pages with dependencies")
 

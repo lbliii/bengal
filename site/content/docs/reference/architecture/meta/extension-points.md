@@ -1,5 +1,6 @@
 ---
 title: Extension Points
+nav_title: Extensions
 description: Plugin hooks and customization points for extending Bengal
 weight: 40
 category: meta

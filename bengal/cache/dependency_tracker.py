@@ -150,6 +150,26 @@ class DependencyTracker:
         self.invalidator = CacheInvalidator(
             self._hash_config(), self.content_paths, self.template_paths
         )
+        # Performance: avoid hashing/stat'ing the same dependency files (partials/templates)
+        # repeatedly during a build. This tracker is shared across threads, so use
+        # the existing lock for atomic check-and-add.
+        self._dependency_files_updated: set[Path] = set()
+
+    def _update_dependency_file_once(self, path: Path) -> None:
+        """
+        Update a dependency file in the cache at most once per build.
+
+        `BuildCache.update_file()` can be expensive (stat + hash), and template rendering
+        may reference the same partials hundreds/thousands of times across pages.
+        """
+        should_update = False
+        with self.lock:
+            if path not in self._dependency_files_updated:
+                self._dependency_files_updated.add(path)
+                should_update = True
+
+        if should_update:
+            self.cache.update_file(path)
 
     def _hash_config(self) -> str:
         """Hash config for invalidation."""
@@ -186,7 +206,7 @@ class DependencyTracker:
             return
 
         self.cache.add_dependency(self.current_page.value, template_path)
-        self.cache.update_file(template_path)
+        self._update_dependency_file_once(template_path)
 
     def track_partial(self, partial_path: Path) -> None:
         """
@@ -199,7 +219,7 @@ class DependencyTracker:
             return
 
         self.cache.add_dependency(self.current_page.value, partial_path)
-        self.cache.update_file(partial_path)
+        self._update_dependency_file_once(partial_path)
 
     def track_config(self, config_path: Path) -> None:
         """

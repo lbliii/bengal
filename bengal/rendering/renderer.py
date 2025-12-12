@@ -324,185 +324,174 @@ class Renderer:
         """
         page_type = page.metadata.get("type")
 
-        if page_type in (
+        archive_like_types = {
             "archive",
             "blog",
             "api-reference",
             "cli-reference",
             "tutorial",
             "changelog",
+        }
+
+        if page_type in archive_like_types:
+            self._add_archive_like_generated_page_context(page, context)
+            return
+
+        if page_type == "tag":
+            self._add_tag_generated_page_context(page, context)
+            return
+
+        if page_type == "tag-index":
+            self._add_tag_index_generated_page_context(page, context)
+            return
+
+    def _add_archive_like_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+        """
+        Add context for archive/reference/blog-like generated pages.
+
+        Note: Posts are already filtered and sorted by the content type strategy
+        in the SectionOrchestrator, so we do not re-sort here.
+        """
+        section = page.metadata.get("_section") if page.metadata is not None else None
+        all_posts = (
+            page.metadata.get("_posts", []) if page.metadata is not None else []
+        )  # Already filtered & sorted!
+        page_metadata = page.metadata if page.metadata is not None else {}
+        subsections = page_metadata.get("_subsections", [])
+        paginator = page_metadata.get("_paginator")
+        page_num = page_metadata.get("_page_num", 1)
+
+        if paginator:
+            posts = paginator.page(page_num)
+            section_name = section.name if section is not None else ""
+            pagination = paginator.page_context(page_num, f"/{section_name}/")
+        else:
+            posts = all_posts
+            pagination = {
+                "current_page": 1,
+                "total_pages": 1,
+                "has_next": False,
+                "has_prev": False,
+                "base_url": f"/{section.name}/" if section else "/",
+            }
+
+        context.update(
+            {
+                "section": section if section else None,
+                "posts": posts,
+                "pages": posts,  # Alias
+                "subsections": subsections,
+                "total_posts": len(all_posts),
+                **pagination,
+            }
+        )
+
+    def _add_tag_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+        """Add context for an individual tag page."""
+        tag_name = page.metadata.get("_tag")
+        tag_slug = page.metadata.get("_tag_slug")
+        page_num = page.metadata.get("_page_num", 1)
+
+        page_map = None
+        str_page_map = None
+
+        # Get pages directly from site.taxonomies (most reliable source)
+        # But resolve them from site.pages to ensure we have current Page objects
+        # (Page objects in taxonomies might be stale)
+        all_posts = []
+        if (
+            tag_slug
+            and self.site.taxonomies.get("tags")
+            and tag_slug in self.site.taxonomies["tags"]
         ):
-            # Archive/Reference/Blog page context
-            # Note: Posts are already filtered and sorted by the content type strategy
-            # in the SectionOrchestrator, so we don't need to re-sort here
-            section = page.metadata.get("_section") if page.metadata is not None else None
-            all_posts = (
-                page.metadata.get("_posts", []) if page.metadata is not None else []
-            )  # Already filtered & sorted!
-            page_metadata = page.metadata if page.metadata is not None else {}
-            subsections = page_metadata.get("_subsections", [])
-            paginator = page_metadata.get("_paginator")
-            page_num = page_metadata.get("_page_num", 1)
+            tag_data = self.site.taxonomies["tags"][tag_slug]
+            taxonomy_pages = tag_data.get("pages", [])
 
-            # Get posts for this page
-            if paginator:
-                posts = paginator.page(page_num)
-                section_name = section.name if section is not None else ""
-                pagination = paginator.page_context(page_num, f"/{section_name}/")
-            else:
-                # Use pre-sorted posts directly (no re-sorting needed)
-                posts = all_posts
+            # Build lookup map from site.pages for reliable resolution
+            page_map = {p.source_path: p for p in self.site.pages}
+            # Also build map with string keys for robust fallback
+            str_page_map = {str(p.source_path): p for p in self.site.pages}
 
-                pagination = {
-                    "current_page": 1,
-                    "total_pages": 1,
-                    "has_next": False,
-                    "has_prev": False,
-                    "base_url": f"/{section.name}/" if section else "/",
-                }
+            for tax_page in taxonomy_pages:
+                resolved_page = None
+                if hasattr(tax_page, "source_path"):
+                    resolved_page = page_map.get(tax_page.source_path)
+                    if not resolved_page:
+                        resolved_page = str_page_map.get(str(tax_page.source_path))
 
-            # Pages and sections already have _site reference, no wrapping needed
-            context.update(
-                {
-                    "section": section if section else None,
-                    "posts": posts,
-                    "pages": posts,  # Alias
-                    "subsections": subsections,
-                    "total_posts": len(all_posts),
-                    **pagination,
-                }
-            )
+                if resolved_page:
+                    source_str = str(resolved_page.source_path)
+                    if (
+                        not resolved_page.metadata.get("_generated")
+                        and "content/api" not in source_str
+                        and "content/cli" not in source_str
+                    ):
+                        all_posts.append(resolved_page)
+                elif tax_page and hasattr(tax_page, "title"):
+                    source_str = str(tax_page.source_path)
+                    if (
+                        not tax_page.metadata.get("_generated")
+                        and "content/api" not in source_str
+                        and "content/cli" not in source_str
+                    ):
+                        all_posts.append(tax_page)
 
-        elif page_type == "tag":
-            # Individual tag page context
-            tag_name = page.metadata.get("_tag")
-            tag_slug = page.metadata.get("_tag_slug")
-            page_num = page.metadata.get("_page_num", 1)
+        # Fallback: Try to resolve from stored metadata if taxonomy yielded nothing
+        if not all_posts and page.metadata is not None:
+            stored_posts = page.metadata.get("_posts", [])
+            if stored_posts:
+                if page_map is None:
+                    page_map = {p.source_path: p for p in self.site.pages}
+                    str_page_map = {str(p.source_path): p for p in self.site.pages}
 
-            page_map = None
-            str_page_map = None
-
-            # Get pages directly from site.taxonomies (most reliable source)
-            # But resolve them from site.pages to ensure we have current Page objects
-            # (Page objects in taxonomies might be stale)
-            all_posts = []
-            if (
-                tag_slug
-                and self.site.taxonomies.get("tags")
-                and tag_slug in self.site.taxonomies["tags"]
-            ):
-                tag_data = self.site.taxonomies["tags"][tag_slug]
-                taxonomy_pages = tag_data.get("pages", [])
-
-                # Build lookup map from site.pages for reliable resolution
-                page_map = {p.source_path: p for p in self.site.pages}
-                # Also build map with string keys for robust fallback
-                str_page_map = {str(p.source_path): p for p in self.site.pages}
-
-                # Resolve each page from site.pages to get current Page objects
-                for tax_page in taxonomy_pages:
+                for stored_item in stored_posts:
                     resolved_page = None
-                    if hasattr(tax_page, "source_path"):
-                        # Try Path object first
-                        resolved_page = page_map.get(tax_page.source_path)
-                        # Try string path fallback
+                    if (
+                        hasattr(stored_item, "source_path")
+                        and page_map is not None
+                        and str_page_map is not None
+                    ):
+                        resolved_page = page_map.get(stored_item.source_path)
                         if not resolved_page:
-                            resolved_page = str_page_map.get(str(tax_page.source_path))
+                            page_from_str_map = str_page_map.get(str(stored_item.source_path))
+                            if page_from_str_map is not None:
+                                resolved_page = page_from_str_map
 
-                    if resolved_page:
-                        # Filter out ineligible pages
-                        source_str = str(resolved_page.source_path)
-                        if (
-                            not resolved_page.metadata.get("_generated")
-                            and "content/api" not in source_str
-                            and "content/cli" not in source_str
-                        ):
+                        if resolved_page:
                             all_posts.append(resolved_page)
-                    elif tax_page and hasattr(tax_page, "title"):
-                        # Fallback: use taxonomy page if resolution fails
-                        # (This happens if page was removed from site.pages or paths don't match)
-                        source_str = str(tax_page.source_path)
-                        if (
-                            not tax_page.metadata.get("_generated")
-                            and "content/api" not in source_str
-                            and "content/cli" not in source_str
-                        ):
-                            all_posts.append(tax_page)
+                        else:
+                            all_posts.append(stored_item)
 
-            # Fallback: Try to resolve from stored metadata if taxonomy yielded nothing
-            if not all_posts and page.metadata is not None:
-                stored_posts = page.metadata.get("_posts", [])
-                if stored_posts:
-                    # Build lookup map from site.pages for reliable resolution
-                    if page_map is None:
-                        page_map = {p.source_path: p for p in self.site.pages}
-                        str_page_map = {str(p.source_path): p for p in self.site.pages}
+                    elif (
+                        isinstance(stored_item, str)
+                        and page_map is not None
+                        and str_page_map is not None
+                    ):
+                        from pathlib import Path
 
-                    for stored_item in stored_posts:
-                        resolved_page = None
-                        if (
-                            hasattr(stored_item, "source_path")
-                            and page_map is not None
-                            and str_page_map is not None
-                        ):
-                            resolved_page = page_map.get(stored_item.source_path)
-                            if not resolved_page:
-                                page_from_str_map = str_page_map.get(str(stored_item.source_path))
-                                if page_from_str_map is not None:
-                                    resolved_page = page_from_str_map
+                        path_obj = Path(stored_item)
+                        resolved_page = page_map.get(path_obj)
+                        if not resolved_page:
+                            resolved_page = str_page_map.get(str(path_obj))
 
-                            if resolved_page:
-                                all_posts.append(resolved_page)
-                            else:
-                                # Fallback to stored item if resolution fails
-                                all_posts.append(stored_item)
+                        if resolved_page:
+                            all_posts.append(resolved_page)
 
-                        elif (
-                            isinstance(stored_item, str)
-                            and page_map is not None
-                            and str_page_map is not None
-                        ):
-                            from pathlib import Path
+        page_metadata = page.metadata if page.metadata is not None else {}
+        paginator = page_metadata.get("_paginator")
 
-                            path_obj = Path(stored_item)
-                            resolved_page = page_map.get(path_obj)
-                            if not resolved_page:
-                                resolved_page = str_page_map.get(str(path_obj))
+        if all_posts:
+            total_posts_count = len(all_posts)
 
-                            if resolved_page:
-                                all_posts.append(resolved_page)
+            if paginator and hasattr(paginator, "per_page"):
+                from bengal.utils.pagination import Paginator
 
-            # Get paginator info from metadata (for per_page setting)
-            page_metadata = page.metadata if page.metadata is not None else {}
-            paginator = page_metadata.get("_paginator")
-
-            # Get posts for this page
-            # Always prefer all_posts from metadata (most reliable)
-            if all_posts:
-                total_posts_count = len(all_posts)
-
-                # Recreate paginator from all_posts to ensure it has correct items
-                # (stored paginator might have lost its items reference)
-                if paginator and hasattr(paginator, "per_page"):
-                    from bengal.utils.pagination import Paginator
-
-                    per_page = paginator.per_page
-                    fresh_paginator = Paginator(all_posts, per_page=per_page)
-                    try:
-                        posts = fresh_paginator.page(page_num)
-                        pagination = fresh_paginator.page_context(page_num, f"/tags/{tag_slug}/")
-                    except ValueError:
-                        # Page number out of range - use all posts
-                        posts = all_posts
-                        pagination = {
-                            "current_page": 1,
-                            "total_pages": 1,
-                            "has_next": False,
-                            "has_prev": False,
-                            "base_url": f"/tags/{tag_slug}/",
-                        }
-                else:
-                    # No paginator info - use all_posts directly
+                per_page = paginator.per_page
+                fresh_paginator = Paginator(all_posts, per_page=per_page)
+                try:
+                    posts = fresh_paginator.page(page_num)
+                    pagination = fresh_paginator.page_context(page_num, f"/tags/{tag_slug}/")
+                except ValueError:
                     posts = all_posts
                     pagination = {
                         "current_page": 1,
@@ -511,40 +500,36 @@ class Renderer:
                         "has_prev": False,
                         "base_url": f"/tags/{tag_slug}/",
                     }
-            elif paginator and hasattr(paginator, "items") and paginator.items:
-                # Fallback: use paginator.items if all_posts is empty
-                # Resolve pages from site.pages for reliability (page_map already built above)
-                resolved_items = []
-                if page_map is None:
-                    page_map = {p.source_path: p for p in self.site.pages}
-                for item in paginator.items:
-                    if hasattr(item, "source_path") and page_map is not None:
-                        resolved = page_map.get(item.source_path)
-                        if resolved:
-                            resolved_items.append(resolved)
-                        elif item and hasattr(item, "title"):
-                            resolved_items.append(item)
-
-                if resolved_items:
-                    all_posts = resolved_items
-                    from bengal.utils.pagination import Paginator
-
-                    fresh_paginator = Paginator(all_posts, per_page=paginator.per_page)
-                    posts = fresh_paginator.page(page_num)
-                    total_posts_count = len(all_posts)
-                    pagination = fresh_paginator.page_context(page_num, f"/tags/{tag_slug}/")
-                else:
-                    posts = []
-                    total_posts_count = 0
-                    pagination = {
-                        "current_page": 1,
-                        "total_pages": 1,
-                        "has_next": False,
-                        "has_prev": False,
-                        "base_url": f"/tags/{tag_slug}/",
-                    }
             else:
-                # No posts available
+                posts = all_posts
+                pagination = {
+                    "current_page": 1,
+                    "total_pages": 1,
+                    "has_next": False,
+                    "has_prev": False,
+                    "base_url": f"/tags/{tag_slug}/",
+                }
+        elif paginator and hasattr(paginator, "items") and paginator.items:
+            resolved_items = []
+            if page_map is None:
+                page_map = {p.source_path: p for p in self.site.pages}
+            for item in paginator.items:
+                if hasattr(item, "source_path") and page_map is not None:
+                    resolved = page_map.get(item.source_path)
+                    if resolved:
+                        resolved_items.append(resolved)
+                    elif item and hasattr(item, "title"):
+                        resolved_items.append(item)
+
+            if resolved_items:
+                all_posts = resolved_items
+                from bengal.utils.pagination import Paginator
+
+                fresh_paginator = Paginator(all_posts, per_page=paginator.per_page)
+                posts = fresh_paginator.page(page_num)
+                total_posts_count = len(all_posts)
+                pagination = fresh_paginator.page_context(page_num, f"/tags/{tag_slug}/")
+            else:
                 posts = []
                 total_posts_count = 0
                 pagination = {
@@ -554,51 +539,57 @@ class Renderer:
                     "has_prev": False,
                     "base_url": f"/tags/{tag_slug}/",
                 }
+        else:
+            posts = []
+            total_posts_count = 0
+            pagination = {
+                "current_page": 1,
+                "total_pages": 1,
+                "has_next": False,
+                "has_prev": False,
+                "base_url": f"/tags/{tag_slug}/",
+            }
 
-            # Debug: Log what we're passing to template
-            logger.debug(
-                "tag_page_context",
-                tag_slug=tag_slug,
-                posts_count=len(posts) if posts else 0,
-                total_posts=total_posts_count,
-                all_posts_count=len(all_posts) if all_posts else 0,
-                page_num=page_num,
-            )
+        logger.debug(
+            "tag_page_context",
+            tag_slug=tag_slug,
+            posts_count=len(posts) if posts else 0,
+            total_posts=total_posts_count,
+            all_posts_count=len(all_posts) if all_posts else 0,
+            page_num=page_num,
+        )
 
-            # Pages already have _site reference, no wrapping needed
-            context.update(
-                {
-                    "tag": tag_name,
-                    "tag_slug": tag_slug,
-                    "posts": posts,
-                    "total_posts": total_posts_count,
-                    **pagination,
-                }
-            )
+        context.update(
+            {
+                "tag": tag_name,
+                "tag_slug": tag_slug,
+                "posts": posts,
+                "total_posts": total_posts_count,
+                **pagination,
+            }
+        )
 
-        elif page_type == "tag-index":
-            # Tag index page context
-            tags = page.metadata.get("_tags", {})
+    def _add_tag_index_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+        """Add context for the tag index page."""
+        tags = page.metadata.get("_tags", {})
 
-            # Convert to sorted list for template
-            tags_list = [
-                {
-                    "name": data["name"],
-                    "slug": data["slug"],
-                    "count": len(data["pages"]),
-                    "pages": data["pages"],
-                }
-                for data in tags.values()
-            ]
-            # Sort by count (descending) then name
-            tags_list.sort(key=lambda t: (-t["count"], t["name"].lower()))
+        tags_list = [
+            {
+                "name": data["name"],
+                "slug": data["slug"],
+                "count": len(data["pages"]),
+                "pages": data["pages"],
+            }
+            for data in tags.values()
+        ]
+        tags_list.sort(key=lambda t: (-t["count"], t["name"].lower()))
 
-            context.update(
-                {
-                    "tags": tags_list,
-                    "total_tags": len(tags_list),
-                }
-            )
+        context.update(
+            {
+                "tags": tags_list,
+                "total_tags": len(tags_list),
+            }
+        )
 
     def _get_template_name(self, page: Page) -> str:
         """

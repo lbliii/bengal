@@ -31,7 +31,11 @@ setup:
 
 install:
 	@echo "Installing dependencies..."
-	uv pip install -e ".[dev]"
+	@if [ ! -d "$(VENV_DIR)" ]; then \
+		echo "Error: $(VENV_DIR) not found. Run 'make setup' first."; \
+		exit 1; \
+	fi
+	@bash -c 'source "$(VENV_DIR)/bin/activate" && uv sync --active --group dev --frozen'
 
 build:
 	@echo "Building site..."

@@ -442,3 +442,134 @@ class TestRoundTrip:
 
         # Unknown type should be deserialized as None
         assert element.typed_metadata is None
+
+
+class TestDeserializationErrors:
+    """Tests for deserialization error handling with invalid data formats."""
+
+    def test_from_dict_with_string_parameters_raises_clear_error(self) -> None:
+        """Test that string parameters (legacy format) raise clear error."""
+        import pytest
+
+        data = {
+            "name": "func",
+            "qualified_name": "module.func",
+            "description": "A function",
+            "element_type": "function",
+            "source_file": None,
+            "line_number": 10,
+            "metadata": {},
+            "typed_metadata": {
+                "type": "PythonFunctionMetadata",
+                "data": {
+                    "signature": "def func(x, y)",
+                    "parameters": ["x", "y"],  # Invalid: strings instead of dicts
+                    "return_type": "None",
+                    "is_async": False,
+                    "is_classmethod": False,
+                    "is_staticmethod": False,
+                    "is_property": False,
+                    "is_generator": False,
+                    "decorators": [],
+                    "parsed_doc": None,
+                },
+            },
+            "children": [],
+            "examples": [],
+            "see_also": [],
+            "deprecated": None,
+        }
+
+        with pytest.raises(TypeError, match="Autodoc cache format mismatch"):
+            DocElement.from_dict(data)
+
+    def test_from_dict_with_string_parsed_doc_params_raises_clear_error(self) -> None:
+        """Test that string params in parsed_doc raise clear error."""
+        import pytest
+
+        data = {
+            "name": "func",
+            "qualified_name": "module.func",
+            "description": "A function",
+            "element_type": "function",
+            "source_file": None,
+            "line_number": 10,
+            "metadata": {},
+            "typed_metadata": {
+                "type": "PythonFunctionMetadata",
+                "data": {
+                    "signature": "def func(x)",
+                    "parameters": [
+                        {
+                            "name": "x",
+                            "type_hint": "int",
+                            "default": None,
+                            "kind": "positional_or_keyword",
+                            "description": None,
+                        }
+                    ],
+                    "return_type": "None",
+                    "is_async": False,
+                    "is_classmethod": False,
+                    "is_staticmethod": False,
+                    "is_property": False,
+                    "is_generator": False,
+                    "decorators": [],
+                    "parsed_doc": {
+                        "summary": "A function",
+                        "description": "",
+                        "params": ["x"],  # Invalid: strings instead of dicts
+                        "returns": None,
+                        "raises": [],
+                        "examples": [],
+                    },
+                },
+            },
+            "children": [],
+            "examples": [],
+            "see_also": [],
+            "deprecated": None,
+        }
+
+        with pytest.raises(TypeError, match="Autodoc cache format mismatch"):
+            DocElement.from_dict(data)
+
+    def test_error_message_includes_cache_clear_hint(self) -> None:
+        """Test that error message includes hint to clear cache."""
+        import pytest
+
+        data = {
+            "name": "func",
+            "qualified_name": "module.func",
+            "description": "A function",
+            "element_type": "function",
+            "source_file": None,
+            "line_number": 10,
+            "metadata": {},
+            "typed_metadata": {
+                "type": "PythonFunctionMetadata",
+                "data": {
+                    "signature": "def func(x)",
+                    "parameters": ["x"],  # Invalid format
+                    "return_type": "None",
+                    "is_async": False,
+                    "is_classmethod": False,
+                    "is_staticmethod": False,
+                    "is_property": False,
+                    "is_generator": False,
+                    "decorators": [],
+                    "parsed_doc": None,
+                },
+            },
+            "children": [],
+            "examples": [],
+            "see_also": [],
+            "deprecated": None,
+        }
+
+        with pytest.raises(TypeError) as exc_info:
+            DocElement.from_dict(data)
+
+        # Verify helpful error message
+        assert "rm -rf .bengal/cache/" in str(exc_info.value)
+        assert "older version" in str(exc_info.value)

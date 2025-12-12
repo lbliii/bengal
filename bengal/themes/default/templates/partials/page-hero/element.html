@@ -1,0 +1,54 @@
+{#
+Element Hero - for DocElement pages (modules, classes, functions, commands)
+
+Contract:
+  - element: DocElement instance (REQUIRED, not None)
+  - page: Page instance
+  - section: Section instance (may be None)
+  - site: Site instance (from global context)
+  - config: Autodoc config dict
+
+Data access: All via element.attribute (dataclass properties)
+
+Usage:
+  {% include 'partials/page-hero/element.html' %}
+#}
+
+{# Include shared wrapper (opens .page-hero div) #}
+{% include 'partials/page-hero/_wrapper.html' %}
+
+  {# Badges - element type indicators #}
+  <div class="page-hero__badges">
+    {% include 'api-reference/partials/badges.html' %}
+  </div>
+
+  {# Title - qualified name for elements #}
+  <h1 class="page-hero__title page-hero__title--code">
+    <code>{{ element.qualified_name }}</code>
+  </h1>
+
+  {# Description from element (attribute access) #}
+  {% if element.description %}
+  <div class="page-hero__description page-hero__description--prose">
+    {{ element.description | markdownify | safe }}
+  </div>
+  {% endif %}
+
+  {# Footer: Source link + stats #}
+  <div class="page-hero__footer">
+    {# Source link (for elements with source files) #}
+    {% if element.display_source_file or element.source_file %}
+    {% if config is defined and config %}
+    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+      class="page-hero__source-link" target="_blank" rel="noopener">
+      {{ icon('file-code', size=14) }}
+      <span>View source</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {# Stats computed from element.children #}
+    {% set children = element.children | default([]) %}
+    {% include 'partials/page-hero/_element-stats.html' %}
+  </div>
+</div>

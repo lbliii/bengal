@@ -1,5 +1,6 @@
 ---
 title: Content Sources
+nav_title: Sources
 description: Fetch content from external sources
 draft: false
 weight: 40

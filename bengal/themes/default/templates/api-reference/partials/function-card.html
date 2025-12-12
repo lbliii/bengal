@@ -3,7 +3,7 @@ Function Card Macro
 
 Renders a function as an information-rich collapsible card.
 Shows: icon, name, param count, return type, description preview.
-Uses api-member classes from api-explorer.css.
+Uses unified api-card classes from autodoc CSS modules.
 #}
 
 {% macro function_card(func) %}
@@ -13,10 +13,10 @@ Uses api-member classes from api-explorer.css.
 {% set is_async = func.metadata.is_async | default(false) %}
 {% set first_sentence = ((func.description or '') | truncate(100, True, '…')) %}
 
-<details class="api-member api-member--function{% if is_async %} api-member--async{% endif %}{% if func.name.startswith('_') %} api-member--private{% endif %}">
-  <summary class="api-member__summary">
+<details class="api-card api-card--collapsible api-card--function{% if is_async %} api-card--async{% endif %}{% if func.name.startswith('_') %} api-card--private{% endif %}">
+  <summary class="api-card__header">
     {# Icon #}
-    <span class="api-member__icon">
+    <span class="api-card__icon">
       {% if is_async %}
       {{ icon('lightning', size=18) }}
       {% else %}
@@ -25,42 +25,42 @@ Uses api-member classes from api-explorer.css.
     </span>
 
     {# Name + description preview #}
-    <div class="api-member__info">
-      <div class="api-member__name-row">
-        <code class="api-member__name">{{ func.name }}</code>
+    <div class="api-card__info">
+      <div class="api-card__name-row">
+        <code class="api-card__name">{{ func.name }}</code>
         {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
       </div>
       {% if first_sentence %}
-      <span class="api-member__desc-preview">{{ first_sentence }}</span>
+      <span class="api-card__desc-preview">{{ first_sentence }}</span>
       {% endif %}
     </div>
 
     {# Meta: params + return #}
-    <div class="api-member__meta">
-      <span class="api-member__params" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">
+    <div class="api-card__meta">
+      <span class="api-card__params" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">
         {{ icon('brackets-curly', size=12) }}
         <span>{{ func_param_count }}</span>
       </span>
-      <span class="api-member__return" title="Returns {{ func_return_type }}">
+      <span class="api-card__return" title="Returns {{ func_return_type }}">
         {{ icon('arrow-right', size=12) }}
         <code>{{ func_return_type | truncate(20, True, '…') }}</code>
       </span>
     </div>
 
     {# Toggle #}
-    <span class="api-member__toggle">
+    <span class="api-card__toggle">
       {{ icon('caret-right', size=14) }}
     </span>
   </summary>
 
-  <div class="api-member__content">
+  <div class="api-card__body">
     {# Full signature #}
     {% set element = func %}
     {% include 'api-reference/partials/signature.html' %}
 
     {# Full description (markdown rendered) #}
     {% if func.description %}
-    <div class="api-member__description">{{ func.description | markdownify | safe }}</div>
+    <div class="api-card__description">{{ func.description | markdownify | safe }}</div>
     {% endif %}
 
     {# Parameters, Returns, Raises #}

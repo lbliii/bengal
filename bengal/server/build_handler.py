@@ -16,6 +16,7 @@ from typing import Any
 import yaml
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
+from bengal.cache.paths import STATE_DIR_NAME
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
@@ -206,7 +207,7 @@ class BuildHandler(FileSystemEventHandler):
         # Ignore when file lives under these directories anywhere in the path
         dir_ignores = {
             ".git",
-            ".bengal",  # Build cache and server state (prevents rebuild loops)
+            STATE_DIR_NAME,  # Build cache and server state (prevents rebuild loops)
             "node_modules",
             "__pycache__",
             ".pytest_cache",

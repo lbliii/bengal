@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.renderer import Renderer
+from bengal.utils.pagination import Paginator
 
 
 class TestRendererTagContext(unittest.TestCase):
@@ -91,6 +92,44 @@ class TestRendererTagContext(unittest.TestCase):
         self.assertEqual(len(context["posts"]), 1)
         # Should have resolved to FRESH page
         self.assertEqual(context["posts"][0].title, "P1 Fresh")
+
+    def test_add_generated_page_context_tag_pagination_uses_paginator_context(self):
+        page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1 Fresh", "tags": ["t1"]})
+        page2 = Page(Path("content/p2.md"), "", metadata={"title": "P2 Fresh", "tags": ["t1"]})
+        self.site.pages = [page1, page2]
+
+        self.site.taxonomies = {
+            "tags": {
+                "t1": {
+                    "name": "t1",
+                    "pages": [page1, page2],
+                }
+            }
+        }
+
+        tag_page = Page(
+            Path("tags/t1/index.html"),
+            "",
+            metadata={
+                "type": "tag",
+                "_tag": "t1",
+                "_tag_slug": "t1",
+                "_generated": True,
+                "_page_num": 2,
+                "_paginator": Paginator([page1, page2], per_page=1),
+            },
+        )
+
+        context = {}
+        self.renderer._add_generated_page_context(tag_page, context)
+
+        self.assertIn("posts", context)
+        self.assertEqual([p.title for p in context["posts"]], ["P2 Fresh"])
+        self.assertEqual(context["current_page"], 2)
+        self.assertEqual(context["total_pages"], 2)
+        self.assertTrue(context["has_prev"])
+        self.assertFalse(context["has_next"])
+        self.assertEqual(context["base_url"], "/tags/t1/")
 
 
 if __name__ == "__main__":

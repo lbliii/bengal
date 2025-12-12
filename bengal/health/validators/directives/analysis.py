@@ -88,6 +88,7 @@ class DirectiveAnalyzer:
         skip_no_path = 0
         skip_generated = 0
         skip_autodoc = 0
+        skip_no_changes = 0
         cache_hits = 0
         disk_reads = 0
 
@@ -106,6 +107,21 @@ class DirectiveAnalyzer:
             if is_autodoc_page(page):
                 skip_autodoc += 1
                 continue
+
+            # Incremental fast path: when build context provides changed pages, only analyze those.
+            # This keeps dev-server rebuilds fast when only templates/assets changed.
+            if (
+                build_context is not None
+                and getattr(build_context, "incremental", False)
+                and hasattr(build_context, "changed_page_paths")
+            ):
+                changed_page_paths = getattr(build_context, "changed_page_paths", None)
+                if (
+                    isinstance(changed_page_paths, set)
+                    and page.source_path not in changed_page_paths
+                ):
+                    skip_no_changes += 1
+                    continue
 
             pages_processed += 1
 
@@ -247,6 +263,7 @@ class DirectiveAnalyzer:
                 "no_path": skip_no_path,
                 "generated": skip_generated,
                 "autodoc": skip_autodoc,
+                "no_changes": skip_no_changes,
             },
             "cache_hits": cache_hits,
             "cache_misses": disk_reads,

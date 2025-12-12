@@ -1,5 +1,6 @@
 ---
 title: Content Collections
+nav_title: Collections
 description: Validate frontmatter with typed schemas
 draft: false
 weight: 30

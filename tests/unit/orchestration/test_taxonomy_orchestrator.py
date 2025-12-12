@@ -15,9 +15,12 @@ from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 @pytest.fixture
 def mock_site():
     """Create a mock site with pages."""
+    from bengal.cache.paths import BengalPaths
+
     site = Mock()
     site.root_path = Path("/fake/site")
     site.output_dir = Path("/fake/site/public")
+    site.paths = BengalPaths(site.root_path)
     site.config = {"pagination": {"per_page": 10}}
     site.taxonomies = {}
     site.pages = []

@@ -1,5 +1,6 @@
 ---
 title: Build Cache
+nav_title: Cache
 description: How Bengal caches builds for incremental rebuilds
 weight: 20
 category: core

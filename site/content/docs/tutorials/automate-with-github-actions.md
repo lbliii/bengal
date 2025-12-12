@@ -1,5 +1,6 @@
 ---
 title: Automate with GitHub Actions
+nav_title: GitHub Actions
 description: Set up automated builds, testing, and deployments using GitHub Actions
 weight: 30
 draft: false
@@ -353,4 +354,4 @@ Create `vercel.json`:
 
 - **[Deployment Options](/docs/building/deployment/)** - Explore other hosting platforms
 - **[Configuration](/docs/building/configuration/)** - Environment-specific settings
-- **[Validation](/docs/extending/validation/)** - Set up health checks
+- **[Health Checks](/docs/content/validation/)** - Set up content validation

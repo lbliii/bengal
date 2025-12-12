@@ -1,5 +1,6 @@
 ---
 title: Health Check System
+nav_title: Health
 description: Comprehensive build validation and health checks
 weight: 30
 category: subsystems

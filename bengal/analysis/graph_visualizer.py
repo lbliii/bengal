@@ -326,7 +326,7 @@ class GraphVisualizer:
             manifest_path = self.site.output_dir / "asset-manifest.json"
             if not manifest_path.exists():
                 # Fallback to .bengal cache location
-                manifest_path = self.site.root_path / ".bengal" / "asset-manifest.json"
+                manifest_path = self.site.paths.asset_manifest
 
             if manifest_path.exists():
                 manifest = AssetManifest.load(manifest_path)

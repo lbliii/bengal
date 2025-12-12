@@ -1,5 +1,6 @@
 ---
 title: Content Organization
+nav_title: Organize
 description: Pages, sections, and bundles explained
 weight: 10
 category: explanation
@@ -112,3 +113,9 @@ cascade:
 
 All pages under `docs/` inherit `type: doc` and `toc: true` unless they override it.
 :::
+
+::::{seealso}
+- [[docs/content/organization/component-model|Component Model]] — Understanding type, variant, and props
+- [[docs/content/organization/frontmatter|Frontmatter Reference]] — All frontmatter fields
+- [[docs/content/organization/menus|Menu Configuration]] — Navigation menus
+::::

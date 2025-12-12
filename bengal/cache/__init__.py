@@ -17,11 +17,13 @@ from bengal.cache.compression import (
     save_compressed,
 )
 from bengal.cache.dependency_tracker import DependencyTracker
+from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
 from bengal.cache.query_index import IndexEntry, QueryIndex
 from bengal.cache.query_index_registry import QueryIndexRegistry
 from bengal.cache.utils import clear_build_cache, clear_output_directory
 
 __all__ = [
+    "BengalPaths",
     "BuildCache",
     "Cacheable",
     "CacheStore",
@@ -30,6 +32,7 @@ __all__ = [
     "IndexEntry",
     "QueryIndex",
     "QueryIndexRegistry",
+    "STATE_DIR_NAME",
     "clear_build_cache",
     "clear_output_directory",
     "load_compressed",

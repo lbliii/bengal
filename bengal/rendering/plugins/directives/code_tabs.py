@@ -17,6 +17,7 @@ from typing import Any, ClassVar
 
 from bengal.rendering.plugins.directives.base import BengalDirective
 from bengal.rendering.plugins.directives.options import DirectiveOptions
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 __all__ = ["CodeTabsDirective", "CodeTabsOptions"]
@@ -106,7 +107,9 @@ class CodeTabsDirective(BengalDirective):
 
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
         """Render code tabs to HTML."""
-        tab_id = f"code-tabs-{id(text)}"
+        # Stable IDs are critical for deterministic builds and output diffs.
+        # Previous behavior used `id(text)` which varies between runs/processes.
+        tab_id = f"code-tabs-{hash_str(text or '', truncate=12)}"
 
         # Extract code blocks from rendered text
         matches = _CODE_TAB_ITEM_PATTERN.findall(text)

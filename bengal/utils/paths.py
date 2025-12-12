@@ -85,9 +85,11 @@ class BengalPaths:
         Returns:
             Path to .bengal/profiles/ directory
         """
-        profile_dir = source_dir / ".bengal" / "profiles"
-        profile_dir.mkdir(parents=True, exist_ok=True)
-        return profile_dir
+        from bengal.cache.paths import BengalPaths as CachePaths
+
+        paths = CachePaths(source_dir)
+        paths.profiles_dir.mkdir(parents=True, exist_ok=True)
+        return paths.profiles_dir
 
     @staticmethod
     def get_log_dir(source_dir: Path) -> Path:
@@ -100,9 +102,11 @@ class BengalPaths:
         Returns:
             Path to .bengal/logs/ directory
         """
-        log_dir = source_dir / ".bengal" / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        return log_dir
+        from bengal.cache.paths import BengalPaths as CachePaths
+
+        paths = CachePaths(source_dir)
+        paths.logs_dir.mkdir(parents=True, exist_ok=True)
+        return paths.logs_dir
 
     @staticmethod
     def get_build_log_path(source_dir: Path, custom_path: Path | None = None) -> Path:

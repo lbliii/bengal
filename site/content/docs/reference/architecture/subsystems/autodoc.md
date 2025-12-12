@@ -1,5 +1,6 @@
 ---
 title: Autodoc System
+nav_title: Autodoc
 description: AST-based Python documentation generator
 weight: 10
 category: subsystems

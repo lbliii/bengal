@@ -1,5 +1,6 @@
 ---
 title: Template Cookbook
+nav_title: Recipes
 description: Common templating patterns and Bengal-specific features
 draft: false
 weight: 50

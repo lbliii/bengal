@@ -1,5 +1,6 @@
 ---
 title: Icon Reference
+nav_title: Icons
 description: SVG icon library with theme-aware styling
 weight: 25
 icon: star

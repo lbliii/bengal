@@ -237,6 +237,7 @@ footer .container {
 .footer-right {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
 }
 
 /* ============================================
@@ -376,6 +377,56 @@ footer .container {
 .bengal-badge[data-tooltip]:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(-10px);
+}
+
+/* ============================================
+   BUILD TIME BADGE (built in 1.2s)
+   ============================================ */
+
+.bengal-build-time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tertiary);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xxs);
+  line-height: 1;
+  box-shadow: var(--neumorphic-subtle);
+  transition: color var(--transition-fast) var(--ease-out),
+    border-color var(--transition-fast) var(--ease-out),
+    background-color var(--transition-fast) var(--ease-out),
+    transform var(--transition-fast) var(--ease-out);
+}
+
+.bengal-build-time__label {
+  color: var(--color-text-tertiary);
+}
+
+.bengal-build-time__value {
+  font-weight: var(--weight-medium);
+  color: var(--color-primary);
+}
+
+.bengal-build-time:hover,
+.bengal-build-time:focus-visible {
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-tertiary));
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bengal-build-time {
+    transition: none;
+  }
+  .bengal-build-time:hover,
+  .bengal-build-time:focus-visible {
+    transform: none;
+  }
 }
 
 /* Dark theme tooltip contrast */

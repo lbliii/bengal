@@ -1,0 +1,654 @@
+openapi: 3.1.0
+info:
+  title: Bengal Demo Commerce API
+  version: "1.0.0"
+  description: >
+    Example OpenAPI specification used to demonstrate Bengal's autodoc OpenAPI extraction.
+    The demo covers authentication, pagination, nested schemas, and polymorphic payment methods.
+servers:
+  - url: https://api.demo.bengal.sh
+    description: Production
+  - url: https://staging.demo.bengal.sh
+    description: Staging
+tags:
+  - name: users
+    description: User accounts and authentication
+  - name: orders
+    description: Order lifecycle and fulfillment
+  - name: inventory
+    description: Inventory lookup and pricing
+  - name: payments
+    description: Payment capture and refunds
+security:
+  - bearerAuth: []
+
+paths:
+  /users:
+    get:
+      tags: [users]
+      summary: List users
+      description: Returns a paginated list of users with optional role filtering.
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of results per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 25
+        - name: role
+          in: query
+          description: Filter by role
+          required: false
+          schema:
+            type: string
+            enum: [admin, support, member]
+      responses:
+        "200":
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedUserList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      summary: Get user
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{userId}/sessions:
+    post:
+      tags: [users]
+      summary: Create session token
+      description: Issue a short-lived session token using password credentials or MFA code.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCreate"
+      responses:
+        "201":
+          description: Session token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /orders:
+    get:
+      tags: [orders]
+      summary: List orders
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+        - name: customer_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Paginated orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedOrderList"
+    post:
+      tags: [orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreate"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /orders/{orderId}:
+    parameters:
+      - $ref: "#/components/parameters/OrderId"
+    get:
+      tags: [orders]
+      summary: Get order
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [orders]
+      summary: Update order status or metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [orders]
+      summary: Cancel order
+      responses:
+        "204":
+          description: Order cancelled
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/payments:
+    parameters:
+      - $ref: "#/components/parameters/OrderId"
+    post:
+      tags: [payments]
+      summary: Capture payment for an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      responses:
+        "201":
+          description: Payment captured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "402":
+          description: Payment required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentFailure"
+
+  /inventory/items/{sku}:
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [inventory]
+      summary: Get inventory item
+      responses:
+        "200":
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+    NotFound:
+      description: Resource not found
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.demo.bengal.sh/oauth/authorize
+          tokenUrl: https://auth.demo.bengal.sh/oauth/token
+          scopes:
+            orders: Manage orders
+            users: Manage users
+
+  schemas:
+    BaseResource:
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserBase:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, support, member]
+
+    User:
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - $ref: "#/components/schemas/UserBase"
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [pending, active, suspended]
+            addresses:
+              type: array
+              items:
+                $ref: "#/components/schemas/Address"
+            preferences:
+              type: object
+              properties:
+                newsletter:
+                  type: boolean
+                  default: false
+                locale:
+                  type: string
+                  default: en-US
+
+    UserCreate:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+        display_name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, support, member]
+        addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+
+    UserUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, support, member]
+        preferences:
+          type: object
+          additionalProperties: true
+
+    Address:
+      type: object
+      required: [line1, city, country]
+      properties:
+        line1:
+          type: string
+        line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+
+    SessionCreate:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+        mfa_code:
+          type: string
+
+    SessionToken:
+      type: object
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int32
+        refresh_token:
+          type: string
+
+    OrderStatus:
+      type: string
+      enum: [draft, pending, paid, shipped, cancelled, refunded]
+
+    Money:
+      type: object
+      properties:
+        currency:
+          type: string
+          example: USD
+        amount:
+          type: integer
+          description: Amount in minor units
+
+    OrderLineItem:
+      type: object
+      required: [sku, quantity]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        unit_price:
+          $ref: "#/components/schemas/Money"
+        total:
+          $ref: "#/components/schemas/Money"
+
+    Order:
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          properties:
+            number:
+              type: string
+            status:
+              $ref: "#/components/schemas/OrderStatus"
+            customer_id:
+              type: string
+            line_items:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrderLineItem"
+            totals:
+              type: object
+              properties:
+                subtotal:
+                  $ref: "#/components/schemas/Money"
+                tax:
+                  $ref: "#/components/schemas/Money"
+                shipping:
+                  $ref: "#/components/schemas/Money"
+                grand_total:
+                  $ref: "#/components/schemas/Money"
+
+    OrderCreate:
+      type: object
+      required: [customer_id, line_items]
+      properties:
+        customer_id:
+          type: string
+        line_items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderLineItem"
+        shipping_address:
+          $ref: "#/components/schemas/Address"
+        billing_address:
+          $ref: "#/components/schemas/Address"
+
+    OrderUpdate:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    PaginatedUserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+
+    PaginatedOrderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        page:
+          type: integer
+        total:
+          type: integer
+
+    PaymentMethodCard:
+      type: object
+      required: [type, brand, last4]
+      properties:
+        type:
+          type: string
+          enum: [card]
+        brand:
+          type: string
+        last4:
+          type: string
+          pattern: "^[0-9]{4}$"
+        exp_month:
+          type: integer
+        exp_year:
+          type: integer
+
+    PaymentMethodBank:
+      type: object
+      required: [type, routing_number, account_number_last4]
+      properties:
+        type:
+          type: string
+          enum: [bank_transfer]
+        routing_number:
+          type: string
+        account_number_last4:
+          type: string
+          pattern: "^[0-9]{4}$"
+
+    PaymentRequest:
+      type: object
+      required: [amount, method]
+      properties:
+        amount:
+          $ref: "#/components/schemas/Money"
+        method:
+          oneOf:
+            - $ref: "#/components/schemas/PaymentMethodCard"
+            - $ref: "#/components/schemas/PaymentMethodBank"
+        capture:
+          type: boolean
+          default: true
+
+    Payment:
+      allOf:
+        - $ref: "#/components/schemas/BaseResource"
+        - type: object
+          properties:
+            order_id:
+              type: string
+            status:
+              type: string
+              enum: [pending, captured, failed, refunded]
+            method:
+              oneOf:
+                - $ref: "#/components/schemas/PaymentMethodCard"
+                - $ref: "#/components/schemas/PaymentMethodBank"
+            amount:
+              $ref: "#/components/schemas/Money"
+
+    PaymentFailure:
+      type: object
+      properties:
+        reason:
+          type: string
+        retry_after_seconds:
+          type: integer
+
+    InventoryItem:
+      type: object
+      required: [sku, name, availability]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        availability:
+          type: string
+          enum: [in_stock, backorder, discontinued]
+        price:
+          $ref: "#/components/schemas/Money"
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        field_errors:
+          type: object
+          additionalProperties:
+            type: string

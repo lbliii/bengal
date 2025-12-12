@@ -1,5 +1,6 @@
 ---
 title: Documentation Team Lead
+nav_title: Team Lead
 description: Set up scalable documentation workflows with validation and CI/CD.
 layout: tracks/single
 track_id: team-lead

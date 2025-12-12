@@ -162,7 +162,7 @@ def phase_taxonomy_index(orchestrator: BuildOrchestrator) -> None:
         try:
             from bengal.cache.taxonomy_index import TaxonomyIndex
 
-            index = TaxonomyIndex(orchestrator.site.root_path / ".bengal" / "taxonomy_index.json")
+            index = TaxonomyIndex(orchestrator.site.paths.taxonomy_cache)
 
             # Populate index from collected taxonomies
             if hasattr(orchestrator.site, "taxonomies") and "tags" in orchestrator.site.taxonomies:

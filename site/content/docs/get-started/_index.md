@@ -19,6 +19,12 @@ icon: arrow-clockwise
 ---
 # Get Started
 
+## Build status
+
+:::{build}
+:json: true
+:::
+
 ## Install
 
 ```bash
@@ -51,7 +57,7 @@ Your site runs at `localhost:5173`.
 Get up and running in 5 minutes with Bengal's writer-focused workflow.
 :::{/card}
 
-:::{card} Themer
+:::{card} Theme developer
 :icon: palette
 :link: /docs/get-started/quickstart-themer/
 :description: Customize templates and styles to match your brand

@@ -42,6 +42,7 @@ from bengal.rendering.plugins.directives.contracts import (
 )
 from bengal.rendering.plugins.directives.options import DirectiveOptions
 from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
 __all__ = [
@@ -238,7 +239,9 @@ class TabSetDirective(BengalDirective):
         Extracts tab items from rendered children and builds
         navigation + content panels.
         """
-        tab_id = attrs.get("id") or f"tabs-{id(text)}"
+        # Stable IDs are critical for deterministic builds and output diffs.
+        # Previous behavior used `id(text)` which varies between runs/processes.
+        tab_id = attrs.get("id") or f"tabs-{hash_str(text or '', truncate=12)}"
         sync_key = attrs.get("sync", "")
 
         # Extract tab items from rendered HTML
