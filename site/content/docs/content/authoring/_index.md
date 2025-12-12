@@ -25,7 +25,8 @@ Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/)
 ```markdown
 [External](https://example.com)
 [Internal](/docs/get-started/)
-[Relative](../other-page/)
+[[Cross-reference]] docs/page
+[[#heading]] Anchor link
 ```
 :::
 
@@ -138,6 +139,17 @@ flowchart LR
 :::{tip}
 **Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed. For visual elements, see the [Icon Reference](/docs/reference/icons/) for inline SVG icons.
 :::
+
+## Linking
+
+Bengal provides multiple ways to create links:
+
+- **Markdown links**: `[text](url)` for standard links
+- **Cross-references**: `[[path]]` for intelligent internal linking
+- **Template functions**: `{{ ref('path') }}` for dynamic links
+- **Anchor links**: `#heading` or `[[#heading]]` for heading references
+
+See the [[docs/content/authoring/linking|Linking Guide]] for complete documentation on all linking options.
 
 ## Variable Substitution
 
