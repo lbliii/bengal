@@ -115,6 +115,20 @@ body[data-type="cli-reference"] .docs-main .prose {
   margin-inline: 0;
 }
 
+/* Constrain prose TEXT elements for readability while keeping structural
+   elements (grids, cards, tables) full-width. This ensures paragraph text
+   respects page gutters on CLI/OpenAPI pages. */
+body[data-type="openapi-reference"] .docs-main .prose > p,
+body[data-type="openapi-reference"] .docs-main .prose > ul,
+body[data-type="openapi-reference"] .docs-main .prose > ol,
+body[data-type="openapi-reference"] .docs-main .prose > blockquote,
+body[data-type="cli-reference"] .docs-main .prose > p,
+body[data-type="cli-reference"] .docs-main .prose > ul,
+body[data-type="cli-reference"] .docs-main .prose > ol,
+body[data-type="cli-reference"] .docs-main .prose > blockquote {
+  max-width: var(--prose-width, 75ch);
+}
+
 body[data-type="openapi-reference"] .page-hero--api,
 body[data-type="cli-reference"] .page-hero--api {
   max-width: 100%;

@@ -50,7 +50,7 @@ autodoc:
 
   # OpenAPI Documentation
   openapi:
-    enabled: true
+    enabled: false
     spec_file: "api/openapi.yaml"  # Relative to site root
 
     # Output prefix for OpenAPI docs
