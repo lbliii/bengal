@@ -28,6 +28,7 @@ Bengal provides multiple ways to create links between pages, headings, and exter
 | **Cross-References** | Internal page links with auto-title | `[[path]]` |
 | **Template Functions** | Dynamic links in templates | `{{ ref('path') }}` |
 | **Anchor Links** | Link to headings | `[[#heading]]` or `#heading` |
+| **Reference Targets** | Arbitrary anchors mid-page | `:::{target} id` |
 
 ## Standard Markdown Links
 
@@ -181,13 +182,50 @@ This heading gets ID: `installation`
 
 ### Custom Anchor IDs
 
-Use `{#custom-id}` syntax for custom anchor IDs:
+Use `{#custom-id}` syntax for custom anchor IDs on headings:
 
 ```markdown
 ## Installation {#install-guide}
 
 Link to it: [[#install-guide]]
 ```
+
+### Arbitrary Reference Targets
+
+Create anchor targets anywhere in content (not just on headings) using the `{target}` directive. This is similar to RST's `.. _label:` syntax.
+
+**Syntax**:
+
+```markdown
+:::{target} my-anchor-id
+:::
+```
+
+**Example**:
+
+```markdown
+:::{target} important-caveat
+:::
+
+:::{warning}
+This caveat is critical for production use.
+:::
+
+See [[#important-caveat|the caveat]] for details.
+```
+
+**Use cases**:
+- Anchor before a note/warning that users should link to
+- Stable anchor that survives heading text changes
+- Anchor in middle of content (not tied to heading)
+- Migration from Sphinx (`.. _label:`) or RST reference targets
+
+**Anchor ID requirements**:
+- Must start with a letter (a-z, A-Z)
+- May contain letters, numbers, hyphens, underscores
+- Case-sensitive in output, case-insensitive for resolution
+
+**Note**: The target renders as an invisible anchor element. Any content inside the directive is ignored (targets are point anchors, not containers).
 
 ### Cross-Page Anchors
 
@@ -344,6 +382,12 @@ Relative paths resolve from the current page's directory:
 - Linking to specific sections
 - Creating table of contents
 - Cross-referencing specific content
+
+**Use Reference Targets** (`:::{target}`) when:
+- Creating anchors not tied to headings
+- Need stable anchors that survive content restructuring
+- Migrating from RST/Sphinx (`.. _label:`)
+- Anchoring before notes/warnings for direct linking
 
 ### Link Stability
 
