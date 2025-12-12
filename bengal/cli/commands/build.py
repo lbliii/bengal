@@ -252,6 +252,9 @@ def build(
         if clean_output:
             cli.info("Cleaning output directory before build (--clean-output).")
             site.clean()
+            # Internal hint for build phases: on a clean output directory, we do not
+            # need to run stale-fingerprint cleanup (there cannot be any).
+            site.config["_clean_output_this_run"] = True
 
         # Apply file-based traceback config after site is loaded (lowest precedence)
         configure_traceback(debug=debug, traceback=traceback, site=site)
@@ -346,7 +349,7 @@ def build(
             if perf_profile is True:
                 # Flag set without path - use default organized location
                 perf_profile_path = BengalPaths.get_profile_path(
-                    root_path, filename="profile.stats"
+                    Path(source), filename="profile.stats"
                 )
             else:
                 # User specified custom path

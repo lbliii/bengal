@@ -163,6 +163,18 @@ function hello() {
         # Asset should be marked as minified even if nothing happened
         assert asset.minified is True
 
+    def test_skips_minification_for_min_js(self, temp_asset_dir):
+        """Files ending in .min.js should not be re-minified."""
+        js_file = temp_asset_dir / "vendor.min.js"
+        js_file.write_text("function x(){return 1}/*already-min*/", encoding="utf-8")
+
+        asset = Asset(source_path=js_file)
+        asset.minify()
+
+        assert asset.minified is True
+        # We intentionally do not populate _minified_content in this case.
+        assert asset._minified_content is None
+
 
 class TestAssetFingerprinting:
     """Test asset fingerprinting/hashing."""

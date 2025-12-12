@@ -14,15 +14,16 @@ Key Methods:
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from bengal.assets.manifest import AssetManifest
 from bengal.core.asset.css_transforms import transform_css_nesting
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.utils.hashing import hash_bytes
 
 
 @dataclass
@@ -397,6 +398,11 @@ class Asset:
 
     def _minify_js(self) -> None:
         """Minify JavaScript content."""
+        # If a file is already explicitly minified (common for third-party libs),
+        # do not re-minify. This avoids expensive `jsmin()` work and prevents
+        # unnecessary content churn.
+        if self.source_path.name.endswith(".min.js"):
+            return
         try:
             from jsmin import jsmin
 
@@ -434,9 +440,12 @@ class Asset:
         Returns:
             Hash string (first 8 characters of SHA256)
         """
-        # Concatenate all chunks and hash
-        all_bytes = b"".join(self._hash_source_chunks())
-        self.fingerprint = hash_bytes(all_bytes, truncate=8)
+        # Performance: stream the hash computation to avoid allocating the entire
+        # asset bytes in memory (many assets, some large).
+        hasher = hashlib.sha256()
+        for chunk in self._hash_source_chunks():
+            hasher.update(chunk)
+        self.fingerprint = hasher.hexdigest()[:8]
         return self.fingerprint
 
     def optimize(self) -> Asset:
@@ -528,7 +537,12 @@ class Asset:
             # Write minified content atomically (crash-safe)
             from bengal.utils.atomic_write import atomic_write_text
 
-            atomic_write_text(output_path, self._minified_content, encoding="utf-8")
+            atomic_write_text(
+                output_path,
+                self._minified_content,
+                encoding="utf-8",
+                ensure_parent=False,  # parent dir already ensured above
+            )
         elif self._optimized_image is not None:
             # Save optimized image atomically using unique temp file to prevent race conditions
             import os
@@ -579,11 +593,39 @@ class Asset:
             output_dir: Output directory where assets are written
         """
         try:
+            site = getattr(self, "_site", None)
+            if site is not None and bool(getattr(site, "config", {}).get("_clean_output_this_run")):
+                # Clean output implies no stale fingerprints can exist.
+                return
+
             # Determine where the file will be written
             parent = (output_dir / self.output_path).parent if self.output_path else output_dir
 
             if not parent.exists():
                 return  # Directory doesn't exist yet, nothing to clean
+
+            # Performance: if we have the previous manifest loaded, delete the exact
+            # stale fingerprinted output path (if any) instead of scanning directories.
+            if site is not None:
+                try:
+                    prev: AssetManifest | None = getattr(site, "_asset_manifest_previous", None)
+                    if prev is not None and self.logical_path is not None:
+                        logical_str = self.logical_path.as_posix()
+                        prev_entry = prev.get(logical_str)
+                        if prev_entry is not None and prev_entry.output_path:
+                            old_full = Path(site.output_dir) / Path(prev_entry.output_path)
+                            if (
+                                old_full.exists()
+                                and self.fingerprint is not None
+                                and not old_full.name.endswith(
+                                    f".{self.fingerprint}{self.source_path.suffix}"
+                                )
+                            ):
+                                old_full.unlink(missing_ok=True)
+                            return
+                except Exception:
+                    # Best-effort only; fall back to directory scan.
+                    pass
 
             # Find all existing fingerprinted versions of this asset
             pattern = f"{self.source_path.stem}.*{self.source_path.suffix}"

@@ -185,6 +185,14 @@ class AssetOrchestrator:
 
         start_time = time.time()
 
+        # Performance: load the previous manifest once so stale fingerprint cleanup
+        # can delete exact old outputs (O(1)) instead of scanning directories (glob).
+        try:
+            manifest_path = self.site.output_dir / "asset-manifest.json"
+            self.site._asset_manifest_previous = AssetManifest.load(manifest_path)  # type: ignore[attr-defined]
+        except Exception:
+            self.site._asset_manifest_previous = None  # type: ignore[attr-defined]
+
         # Separate CSS entry points, CSS modules, and other assets
         css_entries = [a for a in assets if a.is_css_entry_point()]
         css_modules = [a for a in assets if a.is_css_module()]
@@ -566,6 +574,7 @@ class AssetOrchestrator:
                 output_path=Path("js/bundle.js"),
                 asset_type="javascript",
             )
+            bundle_asset._site = self.site  # type: ignore[attr-defined]
             # Mark as already minified to avoid double-minification
             if minify:
                 bundle_asset._minified_content = bundled_content
@@ -598,6 +607,7 @@ class AssetOrchestrator:
             Exception: If CSS bundling or minification fails
         """
         try:
+            css_entry._site = self.site  # type: ignore[attr-defined]
             assets_output = self.site.output_dir / "assets"
 
             # Step 1: Bundle CSS (resolve all @imports)
@@ -637,6 +647,9 @@ class AssetOrchestrator:
             Exception: If asset processing fails
         """
         try:
+            # Provide site context for best-effort performance caches and diagnostics.
+            # (Assets are passive models, but storing context on the instance is safe and local.)
+            asset._site = self.site  # type: ignore[attr-defined]
             if minify and asset.asset_type in ("css", "javascript"):
                 asset.minify()
 
