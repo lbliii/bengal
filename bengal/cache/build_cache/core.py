@@ -163,8 +163,9 @@ class BuildCache(
         # Synthetic pages is already in dict format (no conversion needed)
         # Validation results are already in dict format (no conversion needed)
 
-        # Migrate legacy file_hashes to file_fingerprints (VERSION < 5 compatibility)
-        # Legacy hashes become fingerprints with hash only (mtime/size will be updated on next check)
+        # Migrate legacy file_hashes to file_fingerprints (VERSION < 5 compatibility).
+        # Legacy hashes become fingerprints with hash only (mtime/size will be updated
+        # on next check).
         if self.file_hashes and not self.file_fingerprints:
             logger.debug(
                 "migrating_file_hashes_to_fingerprints",
@@ -286,6 +287,10 @@ class BuildCache(
                     k: set(v) for k, v in data["autodoc_dependencies"].items()
                 }
 
+            # Synthetic pages cache (tolerate missing)
+            if "synthetic_pages" not in data or not isinstance(data["synthetic_pages"], dict):
+                data["synthetic_pages"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -405,6 +410,8 @@ class BuildCache(
             "autodoc_dependencies": {
                 k: list(v) for k, v in self.autodoc_dependencies.items()
             },  # Autodoc source → pages
+            # Cached synthetic payloads (e.g., autodoc elements)
+            "synthetic_pages": self.synthetic_pages,
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }

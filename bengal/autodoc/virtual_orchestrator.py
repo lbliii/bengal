@@ -21,6 +21,7 @@ from bengal.autodoc.base import DocElement
 from bengal.autodoc.utils import get_openapi_method, get_openapi_path, get_openapi_tags
 from bengal.core.page import Page
 from bengal.core.section import Section
+from bengal.utils.hashing import hash_dict
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -250,6 +251,120 @@ class VirtualAutodocOrchestrator:
         # Cache them per orchestrator instance (one per build).
         self._output_prefix_cache: dict[str, str] = {}
         self._openapi_prefix_cache: str | None = None
+        # Ephemeral: used by the build cache integration to persist extracted elements
+        # for incremental builds (rebuild virtual pages without re-parsing sources).
+        self._last_extracted_elements: dict[str, list[DocElement]] = {}
+
+    def get_cache_payload(self) -> dict[str, Any]:
+        """
+        Return a JSON-serializable payload representing the latest extracted elements.
+
+        Intended for BuildCache persistence. Only valid after generate().
+        """
+        autodoc_cfg = self.site.config.get("autodoc", {})
+        cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
+        return {
+            "version": 1,
+            "autodoc_config_hash": cfg_hash,
+            "elements": {
+                k: [e.to_dict() for e in v]
+                for k, v in (self._last_extracted_elements or {}).items()
+            },
+        }
+
+    def generate_from_cache_payload(
+        self, payload: dict[str, Any]
+    ) -> tuple[list[Page], list[Section], AutodocRunResult]:
+        """
+        Rebuild autodoc virtual pages/sections from a cached extraction payload.
+
+        This avoids expensive re-extraction (AST parsing, import/inspect) when sources
+        are unchanged, while still creating the in-memory Page/Section objects needed
+        for rendering.
+        """
+        result = AutodocRunResult()
+
+        elements_section = payload.get("elements") if isinstance(payload, dict) else None
+        if not isinstance(elements_section, dict):
+            return [], [], result
+
+        python_elements = [
+            DocElement.from_dict(e)
+            for e in (elements_section.get("python") or [])
+            if isinstance(e, dict)
+        ]
+        cli_elements = [
+            DocElement.from_dict(e)
+            for e in (elements_section.get("cli") or [])
+            if isinstance(e, dict)
+        ]
+        openapi_elements = [
+            DocElement.from_dict(e)
+            for e in (elements_section.get("openapi") or [])
+            if isinstance(e, dict)
+        ]
+
+        # Reuse the normal generation pipeline, but skip extraction.
+        all_elements: list[DocElement] = []
+        all_sections: dict[str, Section] = {}
+        all_pages: list[Page] = []
+
+        if (
+            python_elements
+            and self.python_config.get("virtual_pages", True)
+            and self.python_config.get("enabled", True)
+        ):
+            all_elements.extend(python_elements)
+            result.extracted += len(python_elements)
+            python_sections = self._create_python_sections(python_elements)
+            all_sections.update(python_sections)
+            python_pages, _ = self._create_pages(
+                python_elements, python_sections, doc_type="python", result=result
+            )
+            all_pages.extend(python_pages)
+            result.rendered += len(python_pages)
+
+        if (
+            cli_elements
+            and self.cli_config.get("virtual_pages", True)
+            and self.cli_config.get("enabled", True)
+        ):
+            all_elements.extend(cli_elements)
+            result.extracted += len(cli_elements)
+            cli_sections = self._create_cli_sections(cli_elements)
+            all_sections.update(cli_sections)
+            cli_pages, _ = self._create_pages(
+                cli_elements, cli_sections, doc_type="cli", result=result
+            )
+            all_pages.extend(cli_pages)
+            result.rendered += len(cli_pages)
+
+        if (
+            openapi_elements
+            and self.openapi_config.get("virtual_pages", True)
+            and self.openapi_config.get("enabled", True)
+        ):
+            all_elements.extend(openapi_elements)
+            result.extracted += len(openapi_elements)
+            openapi_sections = self._create_openapi_sections(openapi_elements, all_sections)
+            all_sections.update(openapi_sections)
+            openapi_pages, _ = self._create_pages(
+                openapi_elements, openapi_sections, doc_type="openapi", result=result
+            )
+            all_pages.extend(openapi_pages)
+            result.rendered += len(openapi_pages)
+
+        if not all_elements:
+            return [], [], result
+
+        parent_sections = self._create_aggregating_parent_sections(all_sections)
+        all_sections.update(parent_sections)
+
+        index_pages = self._create_index_pages(all_sections)
+        all_pages.extend(index_pages)
+
+        root_sections = [section for section in all_sections.values() if section.parent is None]
+        return all_pages, root_sections, result
 
     def _ensure_template_env(self) -> Environment:
         """Create the autodoc Jinja environment lazily (only when needed)."""
@@ -334,7 +449,8 @@ class VirtualAutodocOrchestrator:
         # Add icon function from main template system
         env.globals["icon"] = icon
 
-        # Register ALL template functions (strings, collections, dates, urls, i18n, navigation, seo, etc.)
+        # Register ALL template functions (strings, collections, dates, urls, i18n,
+        # navigation, seo, etc.)
         # This ensures autodoc templates have access to the same functions as regular templates
         from bengal.rendering.template_functions import register_all
 
@@ -660,6 +776,7 @@ class VirtualAutodocOrchestrator:
         all_elements: list[DocElement] = []
         all_sections: dict[str, Section] = {}
         all_pages: list[Page] = []
+        self._last_extracted_elements = {}
 
         # 1. Extract Python documentation
         # Virtual pages are now the default (and only) option
@@ -669,6 +786,7 @@ class VirtualAutodocOrchestrator:
             try:
                 python_elements = self._extract_python()
                 if python_elements:
+                    self._last_extracted_elements["python"] = python_elements
                     all_elements.extend(python_elements)
                     result.extracted += len(python_elements)
                     python_sections = self._create_python_sections(python_elements)
@@ -696,6 +814,7 @@ class VirtualAutodocOrchestrator:
             try:
                 cli_elements = self._extract_cli()
                 if cli_elements:
+                    self._last_extracted_elements["cli"] = cli_elements
                     all_elements.extend(cli_elements)
                     result.extracted += len(cli_elements)
                     cli_sections = self._create_cli_sections(cli_elements)
@@ -726,6 +845,7 @@ class VirtualAutodocOrchestrator:
             try:
                 openapi_elements = self._extract_openapi()
                 if openapi_elements:
+                    self._last_extracted_elements["openapi"] = openapi_elements
                     all_elements.extend(openapi_elements)
                     result.extracted += len(openapi_elements)
                     openapi_sections = self._create_openapi_sections(openapi_elements, all_sections)
@@ -756,7 +876,8 @@ class VirtualAutodocOrchestrator:
                 )
             return [], [], result
 
-        # 4. Create aggregating parent sections for shared prefixes (e.g., /api/ for /api/python/ and /api/openapi/)
+        # 4. Create aggregating parent sections for shared prefixes
+        # (e.g., /api/ for /api/python/ and /api/openapi/)
         parent_sections = self._create_aggregating_parent_sections(all_sections)
         all_sections.update(parent_sections)
 
@@ -1168,7 +1289,8 @@ class VirtualAutodocOrchestrator:
             # Add to section
             if target_section:
                 # This page is the index for target_section
-                # Set section reference to the target section (it belongs TO the section as its index)
+                # Set section reference to the target section (it belongs TO the section
+                # as its index).
                 page._section = target_section
 
                 # Set as index page manually
@@ -1668,11 +1790,16 @@ class VirtualAutodocOrchestrator:
             desc = s.metadata.get("description", "")
             desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
             child_count = len(s.subsections) + len(s.pages)
+            desc_span = (
+                f'<span class="api-package-card__description">{desc_preview}</span>'
+                if desc_preview
+                else ""
+            )
             subsections_cards.append(f'''
       <a href="{s.relative_url}" class="api-package-card">
         <span class="api-package-card__icon">{folder_icon}</span>
         <span class="api-package-card__name">{s.name}</span>
-        {f'<span class="api-package-card__description">{desc_preview}</span>' if desc_preview else ""}
+        {desc_span}
         <span class="api-package-card__meta">
           {child_count} item{"s" if child_count != 1 else ""}
         </span>
@@ -1685,12 +1812,24 @@ class VirtualAutodocOrchestrator:
             desc = p.metadata.get("description", "")
             desc_preview = (desc[:80] + "..." if len(desc) > 80 else desc) if desc else ""
             element_type = p.metadata.get("element_type", "")
+            desc_span = (
+                f'<span class="api-module-card__description">{desc_preview}</span>'
+                if desc_preview
+                else ""
+            )
+            badge_span = (
+                '<span class="api-module-card__badges">'
+                f'<span class="api-badge--mini">{element_type}</span>'
+                "</span>"
+                if element_type
+                else ""
+            )
             module_cards.append(f'''
       <a href="{p.relative_url}" class="api-module-card">
         <span class="api-module-card__icon">{code_icon}</span>
         <span class="api-module-card__name">{p.title}</span>
-        {f'<span class="api-module-card__description">{desc_preview}</span>' if desc_preview else ""}
-        {f'<span class="api-module-card__badges"><span class="api-badge--mini">{element_type}</span></span>' if element_type else ""}
+        {desc_span}
+        {badge_span}
       </a>''')
 
         subsections_section = ""

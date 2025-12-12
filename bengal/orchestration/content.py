@@ -233,12 +233,66 @@ class ContentOrchestrator:
 
         try:
             from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+            from bengal.utils.hashing import hash_dict
 
             orchestrator = VirtualAutodocOrchestrator(self.site)
 
             if not orchestrator.is_enabled():
                 self.logger.debug("virtual_autodoc_not_enabled")
                 return [], []
+
+            cache_key = "__autodoc_elements_v1"
+            current_cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
+
+            def _is_external_autodoc_source(path: Path) -> bool:
+                # We intentionally ignore dependencies that live in virtualenv / site-packages.
+                # These paths can vary by interpreter/env and cause spurious incremental rebuilds.
+                parts = path.parts
+                return (
+                    "site-packages" in parts
+                    or "dist-packages" in parts
+                    or ".venv" in parts
+                    or ".tox" in parts
+                )
+
+            # Incremental fast path: if autodoc sources are unchanged and we have a cached
+            # extraction payload, rebuild virtual pages without re-extracting.
+            if (
+                cache is not None
+                and hasattr(cache, "get_page_cache")
+                and hasattr(cache, "is_changed")
+            ):
+                cached_payload = cache.get_page_cache(cache_key)
+                if (
+                    isinstance(cached_payload, dict)
+                    and cached_payload.get("version") == 1
+                    and cached_payload.get("autodoc_config_hash") == current_cfg_hash
+                ):
+                    changed = False
+                    if hasattr(cache, "get_autodoc_source_files"):
+                        try:
+                            for source in cache.get_autodoc_source_files():
+                                src_path = Path(source)
+                                if _is_external_autodoc_source(src_path):
+                                    continue
+                                if cache.is_changed(src_path):
+                                    changed = True
+                                    break
+                        except Exception:
+                            changed = True
+                    else:
+                        changed = True
+
+                    if not changed:
+                        pages, sections, _run = orchestrator.generate_from_cache_payload(
+                            cached_payload
+                        )
+                        self.logger.debug(
+                            "autodoc_cache_hit",
+                            pages=len(pages),
+                            sections=len(sections),
+                        )
+                        return pages, sections
 
             # Tolerate both 2-tuple (legacy) and 3-tuple (new) return values
             result = orchestrator.generate()
@@ -251,6 +305,9 @@ class ContentOrchestrator:
                 # Register autodoc dependencies with cache for selective rebuilds
                 if cache is not None and hasattr(cache, "add_autodoc_dependency"):
                     for source_file, page_paths in run_result.autodoc_dependencies.items():
+                        src_path = Path(source_file)
+                        if _is_external_autodoc_source(src_path):
+                            continue
                         for page_path in page_paths:
                             cache.add_autodoc_dependency(source_file, page_path)
 
@@ -261,6 +318,46 @@ class ContentOrchestrator:
                             total_mappings=sum(
                                 len(p) for p in run_result.autodoc_dependencies.values()
                             ),
+                        )
+
+                # Critical for incremental cache hits: fingerprint the autodoc source files now.
+                # The incremental cache saver only sees rendered pages, and autodoc "source_file"
+                # in metadata is display-oriented (may be repo-relative), so we update the cache
+                # using the dependency tracker keys (absolute paths) here.
+                if cache is not None and hasattr(cache, "update_file"):
+                    try:
+                        for source_file in run_result.autodoc_dependencies:
+                            src_path = Path(source_file)
+                            if _is_external_autodoc_source(src_path):
+                                continue
+                            if src_path.exists():
+                                cache.update_file(src_path)
+                    except Exception as e:
+                        self.logger.debug(
+                            "autodoc_source_fingerprints_update_failed",
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+
+                # Persist extraction payload for incremental cache hits.
+                if cache is not None and hasattr(cache, "set_page_cache"):
+                    try:
+                        payload = orchestrator.get_cache_payload()
+                        if (
+                            isinstance(payload, dict)
+                            and payload.get("version") == 1
+                            and payload.get("autodoc_config_hash") == current_cfg_hash
+                        ):
+                            cache.set_page_cache(cache_key, payload)
+                            self.logger.debug(
+                                "autodoc_cache_saved",
+                                types=list((payload.get("elements") or {}).keys()),
+                            )
+                    except Exception as e:
+                        self.logger.debug(
+                            "autodoc_cache_save_failed",
+                            error=str(e),
+                            error_type=type(e).__name__,
                         )
             else:
                 # Legacy 2-tuple return

@@ -488,7 +488,8 @@ class IncrementalOrchestrator:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
 
-        This is called BEFORE taxonomies/menus are generated, so it only checks content/asset changes.
+        This is called BEFORE taxonomies/menus are generated, so it only checks
+        content/asset changes.
         Generated pages (tags, etc.) will be determined later based on affected tags.
 
         Uses section-level optimization: skips checking individual pages in unchanged sections.
@@ -498,7 +499,8 @@ class IncrementalOrchestrator:
 
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
-            where change_summary is a ChangeSummary dataclass (supports dict-like access for compatibility)
+            where change_summary is a ChangeSummary dataclass (supports dict-like access
+            for compatibility)
         """
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
@@ -644,11 +646,23 @@ class IncrementalOrchestrator:
             and hasattr(self.cache, "get_autodoc_source_files")
         ):
             try:
+
+                def _is_external_autodoc_source(path: Path) -> bool:
+                    parts = path.parts
+                    return (
+                        "site-packages" in parts
+                        or "dist-packages" in parts
+                        or ".venv" in parts
+                        or ".tox" in parts
+                    )
+
                 # Get all tracked autodoc source files
                 source_files = self.cache.get_autodoc_source_files()
                 if source_files:  # Check if iterable and non-empty
                     for source_file in source_files:
                         source_path = Path(source_file)
+                        if _is_external_autodoc_source(source_path):
+                            continue
                         if self.cache.is_changed(source_path):
                             # Source file changed - mark all its autodoc pages for rebuild
                             affected_pages = self.cache.get_affected_autodoc_pages(source_path)
@@ -658,9 +672,10 @@ class IncrementalOrchestrator:
                                 if verbose:
                                     if "Autodoc changes" not in change_summary.extra_changes:
                                         change_summary.extra_changes["Autodoc changes"] = []
-                                    change_summary.extra_changes["Autodoc changes"].append(
-                                        f"{source_path.name} changed, affects {len(affected_pages)} autodoc pages"
-                                    )
+                                    msg = f"{source_path.name} changed"
+                                    msg += f", affects {len(affected_pages)}"
+                                    msg += " autodoc pages"
+                                    change_summary.extra_changes["Autodoc changes"].append(msg)
 
                 if autodoc_pages_to_rebuild:
                     logger.info(

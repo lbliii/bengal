@@ -7,7 +7,7 @@ Provides common interfaces for all documentation extractors.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -52,6 +52,29 @@ class DocElement:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for caching/serialization."""
+
+        def _to_jsonable(value: Any) -> Any:
+            """
+            Convert a value to a JSON-serializable form.
+
+            Used to ensure autodoc cache payloads can be persisted in BuildCache
+            without failing serialization on domain objects (e.g., ParameterInfo).
+            """
+            if value is None:
+                return None
+            if isinstance(value, str | int | float | bool):
+                return value
+            if isinstance(value, Path):
+                return str(value)
+            if is_dataclass(value):
+                return _to_jsonable(asdict(value))
+            if isinstance(value, dict):
+                return {str(k): _to_jsonable(v) for k, v in value.items()}
+            if isinstance(value, list | tuple | set):
+                return [_to_jsonable(v) for v in value]
+            # Last resort: represent unknown objects as strings (stable enough for caching)
+            return str(value)
+
         result = {
             "name": self.name,
             "qualified_name": self.qualified_name,
@@ -59,7 +82,7 @@ class DocElement:
             "element_type": self.element_type,
             "source_file": str(self.source_file) if self.source_file else None,
             "line_number": self.line_number,
-            "metadata": self.metadata,
+            "metadata": _to_jsonable(self.metadata),
             "typed_metadata": None,
             "children": [child.to_dict() for child in self.children],
             "examples": self.examples,
