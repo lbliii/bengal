@@ -36,7 +36,7 @@ Usage:
 
 {# Normalize current page URL once for all comparisons #}
 {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
-{% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
+{% set section_title = section.nav_title or section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
 {% set section_url_normalized = section.index_page.relative_url.rstrip('/') if (section.index_page and section.index_page.relative_url) else '' %}
 {% set is_active = (page is defined and page and current_url == section_url_normalized) %}
 {% set section_icon = section.icon if section.icon else none %}
@@ -80,8 +80,9 @@ Usage:
     {# Regular pages in this section (excluding index page) - sorted by weight #}
     {% for p in section_sorted_pages %}
     {% if p.relative_url != section_index_url and p.title %}
-    {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
-    {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
+    {# Use nav_title if available, otherwise extract short name for nested items #}
+    {% set base_title = p.nav_title or p.title %}
+    {% set display_title = base_title.split('.')[-1] if ('.' in base_title) else base_title %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}"
