@@ -148,6 +148,9 @@ class Site(
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
+    # BengalPaths instance for centralized .bengal directory access
+    _paths: Any = field(default=None, repr=False, init=False)
+
     # Dynamic runtime attributes (set by various orchestrators)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
     _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)

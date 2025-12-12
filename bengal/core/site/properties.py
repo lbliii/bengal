@@ -19,6 +19,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.core.theme import Theme
 
@@ -43,6 +44,30 @@ class SitePropertiesMixin:
     _theme_obj: Theme | None
     _config_hash: str | None
     _query_registry: Any
+    _paths: BengalPaths | None
+
+    @property
+    def paths(self) -> BengalPaths:
+        """
+        Access to .bengal directory paths.
+
+        Provides centralized access to all paths within the Bengal state directory.
+        Use this instead of hardcoding ".bengal" strings throughout the codebase.
+
+        Returns:
+            BengalPaths instance with all state directory paths
+
+        Examples:
+            site.paths.build_cache      # .bengal/cache.json
+            site.paths.page_cache       # .bengal/page_metadata.json
+            site.paths.templates_dir    # .bengal/templates/
+            site.paths.ensure_dirs()    # Create all necessary directories
+        """
+        if self._paths is None:
+            from bengal.cache.paths import BengalPaths
+
+            self._paths = BengalPaths(self.root_path)
+        return self._paths
 
     @property
     def title(self) -> str | None:
@@ -174,6 +199,5 @@ class SitePropertiesMixin:
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            cache_dir = self.root_path / ".bengal" / "indexes"
-            self._query_registry = QueryIndexRegistry(self, cache_dir)
+            self._query_registry = QueryIndexRegistry(self, self.paths.indexes_dir)
         return self._query_registry
