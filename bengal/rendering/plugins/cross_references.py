@@ -26,6 +26,7 @@ class CrossReferencePlugin:
         [[docs/installation]]           -> Link with page title
         [[docs/installation|Install]]   -> Link with custom text
         [[#heading-name]]               -> Link to heading anchor
+        [[!target-id]]                  -> Link to target directive anchor
         [[id:my-page]]                  -> Link by custom ID
         [[id:my-page|Custom]]          -> Link by ID with custom text
 
@@ -117,11 +118,17 @@ class CrossReferencePlugin:
             text = match.group(2).strip() if match.group(2) else None
 
             # Resolve reference to HTML link
-            if ref.startswith("#"):
+            if ref.startswith("!"):
+                # Target directive reference: [[!target-id]]
+                return self._resolve_target(ref[1:], text)
+            elif ref.startswith("#"):
+                # Heading anchor reference: [[#heading-name]]
                 return self._resolve_heading(ref, text)
             elif ref.startswith("id:"):
+                # Custom ID reference: [[id:my-page]]
                 return self._resolve_id(ref[3:], text)
             else:
+                # Path reference: [[docs/page]]
                 return self._resolve_path(ref, text)
 
         return self.pattern.sub(replace_xref, text)
@@ -200,6 +207,47 @@ class CrossReferencePlugin:
         url = page.url if hasattr(page, "url") else f"/{page.slug}/"
         return f'<a href="{url}">{link_text}</a>'
 
+    def _resolve_target(self, anchor_id: str, text: str | None = None) -> str:
+        """
+        Resolve target directive reference to link.
+
+        O(1) dictionary lookup. Only checks by_anchor (target directives).
+
+        Args:
+            anchor_id: Target directive anchor ID (without ! prefix)
+            text: Optional custom link text
+
+        Returns:
+            HTML link or broken reference indicator
+        """
+        anchor_key = anchor_id.lower()
+        explicit = self.xref_index.get("by_anchor", {}).get(anchor_key)
+
+        if not explicit:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=f"!{anchor_id}",
+                type="target",
+                anchor_key=anchor_key,
+                available_anchors=len(self.xref_index.get("by_anchor", {})),
+            )
+            return (
+                f'<span class="broken-ref" data-ref="!{anchor_id}" '
+                f'title="Target directive not found: {anchor_id}">[{text or anchor_id}]</span>'
+            )
+
+        page, anchor_id_resolved = explicit
+        logger.debug(
+            "xref_resolved",
+            ref=f"!{anchor_id}",
+            type="target",
+            target_page=page.title if hasattr(page, "title") else "unknown",
+            anchor_id=anchor_id_resolved,
+        )
+        link_text = text or anchor_id.replace("-", " ").title()
+        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        return f'<a href="{url}#{anchor_id_resolved}">{link_text}</a>'
+
     def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
         """
         Resolve heading anchor reference to link.
@@ -209,11 +257,15 @@ class CrossReferencePlugin:
         Resolution order:
         1. Check explicit anchor IDs first (by_anchor) - supports {#custom-id} syntax
         2. Fall back to heading text lookup (by_heading) - existing behavior
+
+        Note: This resolves both heading anchors and target directives.
+        Use [[!target-id]] for explicit target directive references to avoid collisions.
         """
         # Remove leading # if present
         anchor_key = anchor.lstrip("#").lower()
 
         # First check explicit anchor IDs (supports {#custom-id} syntax)
+        # This includes both heading anchors and target directives
         explicit = self.xref_index.get("by_anchor", {}).get(anchor_key)
         if explicit:
             page, anchor_id = explicit

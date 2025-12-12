@@ -21,7 +21,7 @@ keywords:
 Bengal provides multiple ways to create links between pages, headings, and external resources. Choose the method that best fits your use case.
 
 :::{tip}
-**Try it out**: This guide includes a [[#test-target|test target anchor]] that demonstrates arbitrary reference targets. Scroll down to see it in action!
+**Try it out**: This guide includes a [[!test-target|test target anchor]] that demonstrates arbitrary reference targets. Scroll down to see it in action!
 :::
 
 ## Quick Reference
@@ -32,7 +32,8 @@ Bengal provides multiple ways to create links between pages, headings, and exter
 | **Cross-References** | Internal page links with auto-title | `[[path]]` |
 | **Template Functions** | Dynamic links in templates | `{{ ref('path') }}` |
 | **Anchor Links** | Link to headings | `[[#heading]]` or `#heading` |
-| **Reference Targets** | Arbitrary anchors mid-page | `:::{target} id` |
+| **Target Directives** | Arbitrary anchors mid-page | `:::{target} id` |
+| **Target References** | Link to target directives | `[[!target-id]]` |
 
 ## Standard Markdown Links
 
@@ -215,8 +216,25 @@ Create anchor targets anywhere in content (not just on headings) using the `{tar
 This caveat is critical for production use.
 :::
 
-See [[#important-caveat|the caveat]] for details.
+See [[!important-caveat|the caveat]] for details.
 ```
+
+**Reference Syntax**:
+
+Use `[[!target-id]]` to explicitly reference target directives:
+
+```markdown
+[[!test-target]]              # Link with auto-generated text
+[[!test-target|Custom Text]]   # Link with custom text
+```
+
+**Why `!` instead of `#`?**
+
+The `!` prefix distinguishes target directive references from heading anchor references:
+- `[[#heading]]` - References heading anchors (auto-generated or custom `{#id}`)
+- `[[!target-id]]` - References target directives (explicit `:::{target}`)
+
+This eliminates collisions and makes your intent explicit.
 
 **Use cases**:
 - Anchor before a note/warning that users should link to
@@ -231,12 +249,12 @@ See [[#important-caveat|the caveat]] for details.
 
 **Note**: The target renders as an invisible anchor element. Any content inside the directive is ignored (targets are point anchors, not containers).
 
-**Try it**: This page has a test target below. Jump to it: [[#test-target|Test Target]]
+**Try it**: This page has a test target below. Jump to it: [[!test-target|Test Target]]
 
 :::{target} test-target
 :::
 
-This is a test target anchor. You can link to it using `[[#test-target]]` from anywhere in your site.
+This is a test target anchor. You can link to it using `[[!test-target]]` from anywhere in your site.
 
 ### Cross-Page Anchors
 
@@ -394,11 +412,16 @@ Relative paths resolve from the current page's directory:
 - Creating table of contents
 - Cross-referencing specific content
 
-**Use Reference Targets** (`:::{target}`) when:
+**Use Target Directives** (`:::{target}`) when:
 - Creating anchors not tied to headings
 - Need stable anchors that survive content restructuring
 - Migrating from RST/Sphinx (`.. _label:`)
 - Anchoring before notes/warnings for direct linking
+
+**Reference with `[[!target-id]]`**:
+- Explicit syntax avoids collisions with heading anchors
+- Makes intent clear (target directive vs heading)
+- Required for target directive references
 
 ### Link Stability
 

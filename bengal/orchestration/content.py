@@ -685,7 +685,7 @@ class ContentOrchestrator:
                         existing_page, existing_anchor = self.site.xref_index["by_anchor"][
                             anchor_key
                         ]
-                        logger.warning(
+                        self.self.logger.warning(
                             "anchor_collision",
                             anchor_id=anchor_id,
                             target_page=str(getattr(page, "source_path", "unknown")),
@@ -694,7 +694,8 @@ class ContentOrchestrator:
                             message=(
                                 f"Target directive '::{{target}} {anchor_id}' collides with "
                                 f"existing anchor '{existing_anchor}' in {existing_page}. "
-                                f"Target directive takes precedence. Consider using a unique anchor ID."
+                                f"Use '[[!{anchor_id}]]' to explicitly reference the target directive, "
+                                f"or rename one anchor to avoid collisions."
                             ),
                         )
                         # Overwrite with target directive (explicit takes precedence)
