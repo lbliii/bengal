@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
-from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
@@ -66,6 +65,11 @@ class BuildOrchestrator:
         self.site = site
         self.stats = BuildStats()
         self.logger = get_logger(__name__)
+
+        # Import locally to avoid circular import:
+        # - IncrementalOrchestrator imports build results
+        # - build package is a common import surface via bengal.orchestration
+        from bengal.orchestration.incremental import IncrementalOrchestrator
 
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)

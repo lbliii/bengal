@@ -28,6 +28,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.orchestration.build.results import ChangeSummary
 from bengal.utils.build_context import BuildContext
 from bengal.utils.logger import get_logger
 
@@ -39,7 +40,6 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.orchestration.build.results import ChangeSummary
 
 
 class IncrementalOrchestrator:
@@ -268,6 +268,217 @@ class IncrementalOrchestrator:
 
         return changed_sections
 
+    def _select_pages_to_check(
+        self,
+        *,
+        changed_sections: set[Section] | None,
+        forced_changed: set[Path],
+        nav_changed: set[Path],
+    ) -> list[Page]:
+        """
+        Select pages that should be checked for changes.
+
+        When section-level filtering is available, restrict checks to pages within
+        changed sections, but always include explicitly changed (forced/nav) pages.
+        """
+        if changed_sections is None:
+            return self.site.pages
+
+        changed_section_paths = {s.path for s in changed_sections}
+        forced_paths = forced_changed | nav_changed
+        return [
+            p
+            for p in self.site.pages
+            if p.metadata.get("_generated")
+            or p.source_path in forced_paths
+            or (hasattr(p, "_section") and p._section and p._section.path in changed_section_paths)
+            or (
+                # Handle pages without section (root level)
+                not hasattr(p, "_section") or p._section is None
+            )
+        ]
+
+    def _apply_cascade_rebuilds(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        verbose: bool,
+        change_summary: ChangeSummary,
+    ) -> int:
+        """
+        Expand `pages_to_rebuild` based on cascade metadata changes.
+
+        When a section index page (_index.md or index.md) has "cascade" metadata,
+        descendant pages inherit metadata and must be rebuilt.
+
+        Returns:
+            Count of newly affected pages added due to cascade expansion.
+        """
+        cascade_affected_count = 0
+        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
+            if changed_path.stem not in ("_index", "index"):
+                continue
+
+            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            if not changed_page or "cascade" not in changed_page.metadata:
+                continue
+
+            affected_pages = self._find_cascade_affected_pages(changed_page)
+            before_count = len(pages_to_rebuild)
+            pages_to_rebuild.update(affected_pages)
+            after_count = len(pages_to_rebuild)
+            newly_affected = after_count - before_count
+            cascade_affected_count += newly_affected
+
+            if verbose and newly_affected > 0:
+                change_summary.extra_changes.setdefault("Cascade changes", [])
+                change_summary.extra_changes["Cascade changes"].append(
+                    f"{changed_path.name} cascade affects {newly_affected} descendant pages"
+                )
+
+        return cascade_affected_count
+
+    def _apply_nav_frontmatter_section_rebuilds(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        all_changed: set[Path],
+        verbose: bool,
+        change_summary: ChangeSummary,
+    ) -> int:
+        """
+        Expand `pages_to_rebuild` when nav-affecting section index frontmatter changes.
+
+        Only triggers section-wide rebuild when nav-affecting keys changed, not body-only changes.
+
+        Returns:
+            Count of pages added due to section-wide rebuilds.
+        """
+        nav_section_affected = 0
+
+        for changed_path in all_changed:
+            if changed_path.stem not in ("_index", "index"):
+                continue
+
+            section_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            if not section_page:
+                continue
+
+            # Compare only nav-affecting keys between current and cached metadata
+            try:
+                from bengal.utils.hashing import hash_str
+                from bengal.utils.incremental_constants import extract_nav_metadata
+
+                current_nav_meta = extract_nav_metadata(section_page.metadata or {})
+                current_nav_hash = hash_str(
+                    json.dumps(current_nav_meta, sort_keys=True, default=str)
+                )
+
+                cached = (
+                    self.cache.parsed_content.get(str(changed_path))
+                    if hasattr(self.cache, "parsed_content")
+                    else None
+                )
+
+                if isinstance(cached, dict):
+                    cached_nav_hash = cached.get("nav_metadata_hash")
+                    if cached_nav_hash is None:
+                        cached_full_hash = cached.get("metadata_hash")
+                        current_full_hash = hash_str(
+                            json.dumps(section_page.metadata or {}, sort_keys=True, default=str)
+                        )
+                        if cached_full_hash is not None and cached_full_hash == current_full_hash:
+                            continue
+                    elif cached_nav_hash == current_nav_hash:
+                        logger.debug(
+                            "section_index_body_only_change",
+                            path=str(changed_path),
+                            reason="nav_metadata_unchanged",
+                        )
+                        continue
+            except Exception as e:
+                # On any error, fall back to conservative section rebuild
+                logger.debug(
+                    "nav_metadata_compare_failed",
+                    path=str(changed_path),
+                    error=str(e),
+                )
+
+            section = getattr(section_page, "_section", None)
+            if section:
+                before = len(pages_to_rebuild)
+                for page in section.regular_pages_recursive:
+                    if not page.metadata.get("_generated"):
+                        pages_to_rebuild.add(page.source_path)
+                added = len(pages_to_rebuild) - before
+                nav_section_affected += added
+                logger.debug(
+                    "section_rebuild_triggered",
+                    section=section.name,
+                    index_path=str(changed_path),
+                    pages_affected=added,
+                )
+
+        if nav_section_affected > 0 and verbose:
+            change_summary.extra_changes.setdefault("Navigation changes", [])
+            change_summary.extra_changes["Navigation changes"].append(
+                f"Nav frontmatter changed; rebuilt {nav_section_affected} section pages"
+            )
+
+        return nav_section_affected
+
+    def _apply_adjacent_navigation_rebuilds(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        verbose: bool,
+        change_summary: ChangeSummary,
+    ) -> int:
+        """
+        Expand `pages_to_rebuild` for prev/next navigation dependencies.
+
+        When a page changes, adjacent pages may need rebuild because they render
+        the changed page's title in prev/next navigation.
+
+        Returns:
+            Count of pages added due to adjacent navigation dependencies.
+        """
+        navigation_affected_count = 0
+        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
+            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            if not changed_page or changed_page.metadata.get("_generated"):
+                continue
+
+            if hasattr(changed_page, "prev") and changed_page.prev:
+                prev_page = changed_page.prev
+                if (
+                    not prev_page.metadata.get("_generated")
+                    and prev_page.source_path not in pages_to_rebuild
+                ):
+                    pages_to_rebuild.add(prev_page.source_path)
+                    navigation_affected_count += 1
+                    if verbose:
+                        change_summary.extra_changes.setdefault("Navigation changes", [])
+                        change_summary.extra_changes["Navigation changes"].append(
+                            f"{prev_page.source_path.name} references modified {changed_path.name}"
+                        )
+
+            if hasattr(changed_page, "next") and changed_page.next:
+                next_page = changed_page.next
+                if (
+                    not next_page.metadata.get("_generated")
+                    and next_page.source_path not in pages_to_rebuild
+                ):
+                    pages_to_rebuild.add(next_page.source_path)
+                    navigation_affected_count += 1
+                    if verbose:
+                        change_summary.extra_changes.setdefault("Navigation changes", [])
+                        change_summary.extra_changes["Navigation changes"].append(
+                            f"{next_page.source_path.name} references modified {changed_path.name}"
+                        )
+
+        return navigation_affected_count
+
     def find_work_early(
         self,
         verbose: bool = False,
@@ -289,9 +500,6 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
             where change_summary is a ChangeSummary dataclass (supports dict-like access for compatibility)
         """
-        # Import here to avoid circular import
-        from bengal.orchestration.build.results import ChangeSummary
-
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
 
@@ -325,27 +533,11 @@ class IncrementalOrchestrator:
                     changed_sections=len(changed_sections),
                 )
 
-        # Only check pages in changed sections (or all pages if section filtering unavailable)
-        pages_to_check = self.site.pages
-        if changed_sections is not None:
-            # Filter to only pages in changed sections, but always include forced/nav-changed pages
-            changed_section_paths = {s.path for s in changed_sections}
-            forced_paths = forced_changed | nav_changed
-            pages_to_check = [
-                p
-                for p in self.site.pages
-                if p.metadata.get("_generated")
-                or p.source_path in forced_paths
-                or (
-                    hasattr(p, "_section")
-                    and p._section
-                    and p._section.path in changed_section_paths
-                )
-                or (
-                    # Handle pages without section (root level)
-                    not hasattr(p, "_section") or p._section is None
-                )
-            ]
+        pages_to_check = self._select_pages_to_check(
+            changed_sections=changed_sections,
+            forced_changed=forced_changed,
+            nav_changed=nav_changed,
+        )
 
         for page in pages_to_check:
             if page.metadata.get("_generated"):
@@ -370,32 +562,11 @@ class IncrementalOrchestrator:
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
-        # Check for cascade changes and mark dependent pages for rebuild
-        # When a section _index.md with cascade metadata changes, all descendant pages
-        # need to be rebuilt because their inherited metadata has changed
-        cascade_affected_count = 0
-        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
-            # Check if this is a section index page (_index.md or index.md)
-            if changed_path.stem in ("_index", "index"):
-                # Find the Page object for this changed file
-                changed_page = next(
-                    (p for p in self.site.pages if p.source_path == changed_path), None
-                )
-                if changed_page and "cascade" in changed_page.metadata:
-                    # This is a section index with cascade - find all affected pages
-                    affected_pages = self._find_cascade_affected_pages(changed_page)
-                    before_count = len(pages_to_rebuild)
-                    pages_to_rebuild.update(affected_pages)
-                    after_count = len(pages_to_rebuild)
-                    newly_affected = after_count - before_count
-                    cascade_affected_count += newly_affected
-
-                    if verbose and newly_affected > 0:
-                        if "Cascade changes" not in change_summary.extra_changes:
-                            change_summary.extra_changes["Cascade changes"] = []
-                        change_summary.extra_changes["Cascade changes"].append(
-                            f"{changed_path.name} cascade affects {newly_affected} descendant pages"
-                        )
+        cascade_affected_count = self._apply_cascade_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            verbose=verbose,
+            change_summary=change_summary,
+        )
 
         if cascade_affected_count > 0:
             logger.info(
@@ -406,126 +577,19 @@ class IncrementalOrchestrator:
 
         # Check ALL section index files for nav-affecting frontmatter changes
         # (RFC: rfc-incremental-hot-reload-invariants Phase 3)
-        # Only trigger section rebuild if nav-affecting keys actually changed, not body-only
-        nav_section_affected = 0
         all_changed = forced_changed | nav_changed
-        for changed_path in all_changed:
-            # Only check section index files
-            if changed_path.stem not in ("_index", "index"):
-                continue
+        self._apply_nav_frontmatter_section_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            all_changed=all_changed,
+            verbose=verbose,
+            change_summary=change_summary,
+        )
 
-            section_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
-            if not section_page:
-                continue
-
-            # Compare only nav-affecting keys between current and cached metadata
-            try:
-                from bengal.utils.hashing import hash_str
-                from bengal.utils.incremental_constants import extract_nav_metadata
-
-                # Hash only the nav-affecting subset of metadata
-                current_nav_meta = extract_nav_metadata(section_page.metadata or {})
-                current_nav_hash = hash_str(
-                    json.dumps(current_nav_meta, sort_keys=True, default=str)
-                )
-
-                # Get cached nav metadata hash (stored as nav_metadata_hash)
-                cached = (
-                    self.cache.parsed_content.get(str(changed_path))
-                    if hasattr(self.cache, "parsed_content")
-                    else None
-                )
-
-                # Fall back to full metadata hash if nav hash not cached yet
-                cached_nav_hash = None
-                if isinstance(cached, dict):
-                    cached_nav_hash = cached.get("nav_metadata_hash")
-                    if cached_nav_hash is None:
-                        # Legacy cache entry - compare full metadata hash as fallback
-                        cached_full_hash = cached.get("metadata_hash")
-                        current_full_hash = hash_str(
-                            json.dumps(section_page.metadata or {}, sort_keys=True, default=str)
-                        )
-                        if cached_full_hash is not None and cached_full_hash == current_full_hash:
-                            # No metadata change at all; skip section rebuild
-                            continue
-                        # Full metadata changed - fall through to section rebuild
-                    elif cached_nav_hash == current_nav_hash:
-                        # Nav-affecting keys unchanged; body-only change, skip section rebuild
-                        logger.debug(
-                            "section_index_body_only_change",
-                            path=str(changed_path),
-                            reason="nav_metadata_unchanged",
-                        )
-                        continue
-            except Exception as e:
-                # On any error, fall back to conservative section rebuild
-                logger.debug(
-                    "nav_metadata_compare_failed",
-                    path=str(changed_path),
-                    error=str(e),
-                )
-
-            # Nav-affecting keys changed - trigger section rebuild
-            section = getattr(section_page, "_section", None)
-            if section:
-                before = len(pages_to_rebuild)
-                for page in section.regular_pages_recursive:
-                    if not page.metadata.get("_generated"):
-                        pages_to_rebuild.add(page.source_path)
-                nav_section_affected += len(pages_to_rebuild) - before
-                logger.debug(
-                    "section_rebuild_triggered",
-                    section=section.name,
-                    index_path=str(changed_path),
-                    pages_affected=len(pages_to_rebuild) - before,
-                )
-
-        if nav_section_affected > 0 and verbose:
-            change_summary.extra_changes.setdefault("Navigation changes", [])
-            change_summary.extra_changes["Navigation changes"].append(
-                f"Nav frontmatter changed; rebuilt {nav_section_affected} section pages"
-            )
-
-        # Check for navigation dependencies: when a page changes, rebuild adjacent pages
-        # that have prev/next links to it (they display the changed page's title)
-        navigation_affected_count = 0
-        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
-            # Find the Page object for this changed file
-            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
-            if changed_page and not changed_page.metadata.get("_generated"):
-                # Find pages that have this page as next or prev
-                # Check prev page (it has this page as 'next')
-                if hasattr(changed_page, "prev") and changed_page.prev:
-                    prev_page = changed_page.prev
-                    if (
-                        not prev_page.metadata.get("_generated")
-                        and prev_page.source_path not in pages_to_rebuild
-                    ):
-                        pages_to_rebuild.add(prev_page.source_path)
-                        navigation_affected_count += 1
-                        if verbose:
-                            if "Navigation changes" not in change_summary.extra_changes:
-                                change_summary.extra_changes["Navigation changes"] = []
-                            change_summary.extra_changes["Navigation changes"].append(
-                                f"{prev_page.source_path.name} references modified {changed_path.name}"
-                            )
-
-                # Check next page (it has this page as 'prev')
-                if hasattr(changed_page, "next") and changed_page.next:
-                    next_page = changed_page.next
-                    if (
-                        not next_page.metadata.get("_generated")
-                        and next_page.source_path not in pages_to_rebuild
-                    ):
-                        pages_to_rebuild.add(next_page.source_path)
-                        navigation_affected_count += 1
-                        if verbose:
-                            if "Navigation changes" not in change_summary.extra_changes:
-                                change_summary.extra_changes["Navigation changes"] = []
-                            change_summary.extra_changes["Navigation changes"].append(
-                                f"{next_page.source_path.name} references modified {changed_path.name}"
-                            )
+        navigation_affected_count = self._apply_adjacent_navigation_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            verbose=verbose,
+            change_summary=change_summary,
+        )
 
         if navigation_affected_count > 0:
             logger.info(

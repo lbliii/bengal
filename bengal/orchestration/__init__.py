@@ -27,15 +27,17 @@ stats = orchestrator.build(parallel=True, incremental=True)
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.orchestration.asset import AssetOrchestrator
-from bengal.orchestration.content import ContentOrchestrator
-from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.orchestration.menu import MenuOrchestrator
-from bengal.orchestration.postprocess import PostprocessOrchestrator
-from bengal.orchestration.render import RenderOrchestrator
-from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+if TYPE_CHECKING:
+    from bengal.orchestration.asset import AssetOrchestrator
+    from bengal.orchestration.build import BuildOrchestrator
+    from bengal.orchestration.content import ContentOrchestrator
+    from bengal.orchestration.incremental import IncrementalOrchestrator
+    from bengal.orchestration.menu import MenuOrchestrator
+    from bengal.orchestration.postprocess import PostprocessOrchestrator
+    from bengal.orchestration.render import RenderOrchestrator
+    from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 
 __all__ = [
     "AssetOrchestrator",
@@ -49,11 +51,47 @@ __all__ = [
 ]
 
 
-# Lazy import BuildOrchestrator to avoid circular import
-# (build/__init__.py imports from other orchestration modules)
 def __getattr__(name: str) -> Any:
+    """
+    Lazily resolve orchestration re-exports.
+
+    This keeps `import bengal.orchestration` lightweight and avoids import
+    cycles between orchestration packages.
+    """
+    if name == "AssetOrchestrator":
+        from bengal.orchestration.asset import AssetOrchestrator
+
+        return AssetOrchestrator
     if name == "BuildOrchestrator":
         from bengal.orchestration.build import BuildOrchestrator
 
         return BuildOrchestrator
+    if name == "ContentOrchestrator":
+        from bengal.orchestration.content import ContentOrchestrator
+
+        return ContentOrchestrator
+    if name == "IncrementalOrchestrator":
+        from bengal.orchestration.incremental import IncrementalOrchestrator
+
+        return IncrementalOrchestrator
+    if name == "MenuOrchestrator":
+        from bengal.orchestration.menu import MenuOrchestrator
+
+        return MenuOrchestrator
+    if name == "PostprocessOrchestrator":
+        from bengal.orchestration.postprocess import PostprocessOrchestrator
+
+        return PostprocessOrchestrator
+    if name == "RenderOrchestrator":
+        from bengal.orchestration.render import RenderOrchestrator
+
+        return RenderOrchestrator
+    if name == "TaxonomyOrchestrator":
+        from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+
+        return TaxonomyOrchestrator
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted([*globals().keys(), *__all__])
