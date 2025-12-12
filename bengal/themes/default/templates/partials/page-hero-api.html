@@ -142,9 +142,10 @@ Designed for: module.html, class pages, function pages
 
   {# Description - markdown rendered, stacked vertically #}
   {# Priority: element.description > page.metadata.description > section.metadata.description #}
+  {# Note: section.metadata is a dict, use .get() not attribute access #}
   {% set description = element.description if (element and element.description) else
-  (page.metadata.get('description', '') if page.metadata.get('description', '') else (section.metadata.description if
-  (section is defined and section.metadata.description) else '')) %}
+  (page.metadata.get('description', '') if page.metadata.get('description', '') else
+  (section.metadata.get('description', '') if section else '')) %}
   {% if description %}
   <div class="page-hero__description page-hero__description--prose">
     {{ description | markdownify | safe }}
