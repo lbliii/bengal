@@ -112,7 +112,7 @@ class BuildDirective(BengalDirective):
 
         img_html = (
             f'<img class="bengal-build-badge__img" src="{escape_html(svg_url)}" '
-            f'alt="{escape_html(alt)}" loading="lazy">'
+            f'alt="{escape_html(alt)}">'
         )
 
         if link_json:
