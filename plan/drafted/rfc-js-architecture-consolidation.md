@@ -1,5 +1,7 @@
 # RFC: JavaScript Architecture Consolidation
 
+**Priority**: P3 (Low)  
+
 **Status:** Draft  
 **Created:** 2025-12-06  
 **Author:** AI Assistant  

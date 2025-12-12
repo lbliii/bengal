@@ -1,6 +1,7 @@
 # RFC: Incremental Build & Hot Reload Invariants
 
 - **Status:** Draft (revised)
+- **Priority:** P2 (Medium)
 - **Owner:** AI (pairing with llane)
 - **Date:** 2025-12-11
 - **Scope:** Dev server incremental builds, cache validity, change classification, and reload delivery

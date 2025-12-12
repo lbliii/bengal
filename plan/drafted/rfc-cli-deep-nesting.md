@@ -1,5 +1,7 @@
 ## RFC: Support Deeply Nested CLI Navigation
 
+**Priority**: P3 (Low)  
+
 ### Problem
 - CLI autodoc currently flattens command-group sections: every group is added directly under the root `cli` section even if its qualified name implies deeper nesting. Evidence: `_create_cli_sections` always calls `cli_section.add_subsection(group_section)` regardless of depth. `group_parts` are used only to build the URL/title, not the hierarchy. (`bengal/autodoc/virtual_orchestrator.py:528-584`)
 - Users with multi-level CLI hierarchies (e.g., `bengal.utils.graph.analyze`) cannot browse nested structure; sidebar renders a long flat list, hurting discoverability and making keyboard navigation noisy.

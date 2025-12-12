@@ -4,6 +4,7 @@
 **Date**: 2025-12-03  
 **Status**: 📋 Draft  
 **Confidence**: 85% 🟢
+**Priority**: P1 (High)  
 
 ---
 

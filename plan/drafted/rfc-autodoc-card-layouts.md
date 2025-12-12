@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-01-08  
+**Priority**: P2 (Medium)  
 **Related**: `bengal/autodoc/`, `bengal/themes/default/assets/css/components/cards.css`
 
 ---

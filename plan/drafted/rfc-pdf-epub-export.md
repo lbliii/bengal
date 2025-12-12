@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Author**: AI Assistant + Lawrence Lane  
 **Created**: 2025-12-10  
+**Priority**: P2 (Medium)  
 **Target**: Bengal 1.x  
 
 ---

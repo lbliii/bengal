@@ -4,6 +4,7 @@ Author: AI Assistant
 Date: 2025-12-08
 Status: Draft
 Confidence: 90%
+Priority: P2 (Medium)
 ---
 
 # RFC: Granular Configuration Dependency Tracking

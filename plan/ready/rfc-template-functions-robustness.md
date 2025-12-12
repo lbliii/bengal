@@ -6,6 +6,7 @@
 **Author**: AI Assistant  
 **Subsystems**: `rendering/template_functions/`, `utils/`  
 **Confidence**: 92% 🟢
+**Priority**: P1 (High)  
 
 ---
 

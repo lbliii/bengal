@@ -1,6 +1,7 @@
 # RFC: Fast & Correct Hot Reload for Markdown Changes
 
 - **Status:** Draft
+- **Priority:** P2 (Medium)
 - **Owner:** AI (pairing with llane)
 - **Date:** 2025-12-11
 - **Scope:** Dev server hot reload, incremental build, caching

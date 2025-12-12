@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2024-12-08  
 **Part of**: [Theme Architecture Series](rfc-theme-architecture-series.md)  
-**Priority**: Medium  
+**Priority**: P2 (Medium)  
 **Dependencies**: RFC-001 (Theme Configuration)  
 **Note**: Renumbered from RFC-007 in series refactor; template dependencies dropped  
 

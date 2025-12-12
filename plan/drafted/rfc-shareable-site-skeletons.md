@@ -3,7 +3,7 @@
 **Status**: Draft
 **Author**: AI Assistant
 **Created**: 2025-12-06
-**Priority**: HIGH
+**Priority**: P1 (High)
 
 ---
 

@@ -4,6 +4,7 @@
 **Author**: AI Assistant  
 **Created**: 2025-12-12  
 **Confidence**: 86% 🟢
+**Priority**: P0 (Blocker)  
 
 ---
 

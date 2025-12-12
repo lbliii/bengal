@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-11  
+**Priority**: P2 (Medium)  
 **Updated**: 2025-12-11  
 **Related**: `bengal/health/report.py`, `bengal/health/base.py`
 

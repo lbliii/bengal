@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-08  
 **Author**: AI Assistant  
+**Priority**: P2 (Medium)  
 **Subsystems**: utils, rendering, config, discovery, cli
 
 ---

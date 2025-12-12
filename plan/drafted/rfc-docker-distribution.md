@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2024-12-03  
+**Priority**: P2 (Medium)  
 **Subsystems**: `cli`, `distribution`, `dev-server`
 
 ---

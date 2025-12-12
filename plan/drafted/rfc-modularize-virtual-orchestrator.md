@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-11  
 **Author**: AI Assistant  
+**Priority**: P2 (Medium)  
 **Scope**: `bengal/autodoc/virtual_orchestrator.py` → `bengal/autodoc/virtual/`
 
 ---

@@ -1,5 +1,7 @@
 # RFC: Next-Generation Build Paradigms for Python 3.14t
 
+**Priority**: P3 (Low)  
+
 ## Status
 - **Owner**: AI Assistant
 - **Created**: 2024-12-05

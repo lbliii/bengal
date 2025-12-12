@@ -6,6 +6,7 @@
 | **Author** | AI + Human reviewer |
 | **Date** | 2025-12-10 |
 | **Status** | Draft |
+| **Priority** | P1 (High) |
 | **Confidence** | 85% 🟢 |
 
 ---

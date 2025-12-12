@@ -25,6 +25,7 @@ Add automatic social card (Open Graph image) generation to Bengal. When sharing 
 Bengal supports OG image meta tags via manual specification:
 
 ```yaml
+Priority: P2 (Medium)
 # Frontmatter approach
 ---
 image: /assets/images/my-custom-card.png

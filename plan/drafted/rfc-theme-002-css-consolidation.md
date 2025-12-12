@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2024-12-08  
 **Part of**: [Theme Architecture Series](rfc-theme-architecture-series.md)  
-**Priority**: Medium  
+**Priority**: P2 (Medium)  
 **Dependencies**: None  
 **Note**: Renumbered from RFC-005 in series refactor  
 

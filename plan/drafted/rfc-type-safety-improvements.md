@@ -4,6 +4,7 @@ Author: AI Assistant
 Date: 2025-01-XX
 Status: Draft
 Confidence: 88%
+Priority: P2 (Medium)
 ---
 
 # RFC: Type Safety Improvements for Bengal
@@ -252,7 +253,7 @@ dev = [
 
 #### 5.1.4 Fix `no-any-return` Errors
 
-**Priority**: Functions in public APIs or critical paths
+**Priority areas**: Functions in public APIs or critical paths
 
 **Example**: `bengal/utils/file_io.py`:
 ```python

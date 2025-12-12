@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-02  
 **Author**: AI Assistant  
-**Priority**: Medium  
+**Priority**: P1 (High)  
 **Confidence**: 78% 🟡  
 **Est. Impact**: Zero-JS by default, selective interactivity, faster page loads
 

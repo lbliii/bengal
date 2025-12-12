@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-01-23  
 **Author**: Design System Team  
+**Priority**: P2 (Medium)  
 **Related**: `rfc-premium-tactile-theme.md`, `experimental/border-styles-demo.css`  
 **Inspiration**: Modern code block designs with subtle depth (Iconoir-style documentation)
 

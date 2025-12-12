@@ -1,5 +1,7 @@
 # RFC: Stubbed Link Functionality
 
+**Priority**: P2 (Medium)  
+
 ## Summary
 
 Add a `stub_link()` template function that allows writers to create placeholder links for planned future content without triggering broken link warnings.

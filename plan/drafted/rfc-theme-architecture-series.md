@@ -2,6 +2,7 @@
 
 **Status**: Draft (Revised)  
 **Created**: 2024-12-08  
+**Priority**: P2 (Medium)  
 **Revised**: 2024-12-08 (Post-Investigation)  
 **Scope**: Bengal Theme System  
 

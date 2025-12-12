@@ -3,6 +3,7 @@
 **Status**: Draft
 **Created**: 2025-12-05
 **Author**: AI-assisted analysis
+**Priority**: P2 (Medium)  
 **Related**: `bengal/analysis/`, `rfc-lazy-build-artifacts.md`
 
 ---

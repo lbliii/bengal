@@ -4,6 +4,7 @@
 **Author**: AI Assistant  
 **Created**: 2025-12-11  
 **Confidence**: 88% 🟢  
+**Priority**: P2 (Medium)  
 **Plan**: `plan-autodoc-output-prefix.md`
 
 ---

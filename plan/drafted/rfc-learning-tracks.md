@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-04  
 **Author**: AI Assistant  
+**Priority**: P2 (Medium)  
 
 ---
 

@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-01-23  
 **Author**: AI Assistant  
-**Priority**: Medium  
+**Priority**: P2 (Medium)  
 **Confidence**: 85% 🟢  
 **Est. Impact**: Better performance, cleaner code, automatic free-threading benefits across multiple subsystems
 
@@ -718,7 +718,7 @@ pages_stream
 
 ### Phase 1: High-Value, Low-Risk (Week 1-2)
 
-**Priority**: High  
+**Phase Priority**: P2 (Medium)  
 **Risk**: Low  
 **Impact**: High
 
@@ -742,7 +742,7 @@ pages_stream
 
 ### Phase 2: Architectural Improvements (Week 3-4)
 
-**Priority**: Medium  
+**Phase Priority**: P2 (Medium)  
 **Risk**: Medium  
 **Impact**: High
 
@@ -766,7 +766,7 @@ pages_stream
 
 ### Phase 3: Remaining Opportunities (Week 5-6)
 
-**Priority**: Low  
+**Phase Priority**: P2 (Medium)  
 **Risk**: Low  
 **Impact**: Medium
 

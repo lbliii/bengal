@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-06  
-**Priority**: MEDIUM  
+**Priority**: P2 (Medium)  
 **Depends On**: rfc-shareable-site-skeletons.md (Component Model)
 
 ---

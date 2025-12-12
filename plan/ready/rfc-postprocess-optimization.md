@@ -3,6 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-05  
 **Author**: AI-assisted analysis  
+**Priority**: P1 (High)  
 **Related**: `bengal/postprocess/`, `bengal/rendering/pipeline.py`
 
 ---

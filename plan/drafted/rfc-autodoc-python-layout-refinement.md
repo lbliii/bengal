@@ -3,6 +3,7 @@
 **Status**: Accepted  
 **Created**: 2025-12-07  
 **Author**: AI Pair Programmer  
+**Priority**: P2 (Medium)  
 **Context**: Refining autodoc Python layouts to match the quality and intentionality of the docs layouts, search modal, and other recent UI work.
 
 ---
