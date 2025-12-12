@@ -45,12 +45,16 @@ class BuildOptions(DirectiveOptions):
 
     Attributes:
         json: If True, wrap the badge in a link to build.json.
+        inline: If True, render as inline content (useful inside sentences).
+        align: Optional alignment for block rendering: left | center | right.
         css_class: Additional CSS classes on wrapper.
         alt: Image alt text.
         dir_name: Directory name used for artifacts (default: "bengal").
     """
 
     json: bool = False
+    inline: bool = False
+    align: str = ""
     css_class: str = ""
     alt: str = "Built in badge"
     dir_name: str = "bengal"
@@ -58,6 +62,10 @@ class BuildOptions(DirectiveOptions):
     _field_aliases: ClassVar[dict[str, str]] = {
         "class": "css_class",
         "dir": "dir_name",
+    }
+
+    _allowed_values: ClassVar[dict[str, list[str]]] = {
+        "align": ["", "left", "center", "right"],
     }
 
 
@@ -88,6 +96,8 @@ class BuildDirective(BengalDirective):
             type=self.TOKEN_TYPE,
             attrs={
                 "json": bool(options.json),
+                "inline": bool(options.inline),
+                "align": options.align or "",
                 "css_class": options.css_class or "",
                 "alt": options.alt or "Built in badge",
                 "dir_name": options.dir_name or "bengal",
@@ -100,28 +110,65 @@ class BuildDirective(BengalDirective):
         page = getattr(renderer, "_current_page", None)
         dir_name = str(attrs.get("dir_name") or "bengal").strip("/") or "bengal"
         link_json = bool(attrs.get("json", False))
+        inline = bool(attrs.get("inline", False))
+        align = str(attrs.get("align") or "").strip().lower()
         css_class = str(attrs.get("css_class") or "").strip()
         alt = str(attrs.get("alt") or "Built in badge")
 
         svg_url, json_url = _resolve_build_artifact_urls(site, page=page, dir_name=dir_name)
 
         wrapper_classes = ["bengal-build-badge"]
+        if inline:
+            wrapper_classes.append("bengal-build-badge--inline")
+        elif align in ("left", "center", "right"):
+            wrapper_classes.append(f"bengal-build-badge--{align}")
         if css_class:
             wrapper_classes.extend(css_class.split())
         class_attr = escape_html(" ".join(wrapper_classes))
 
+        wrapper_style, img_style = _resolve_layout_styles(inline=inline, align=align)
+        wrapper_style_attr = f' style="{escape_html(wrapper_style)}"' if wrapper_style else ""
+        img_style_attr = f' style="{escape_html(img_style)}"' if img_style else ""
+
         img_html = (
             f'<img class="bengal-build-badge__img" src="{escape_html(svg_url)}" '
-            f'alt="{escape_html(alt)}">'
+            f'alt="{escape_html(alt)}"{img_style_attr}>'
         )
 
         if link_json:
             return (
                 f'<a class="{class_attr}" href="{escape_html(json_url)}" '
-                f'aria-label="Build stats">{img_html}</a>'
+                f'aria-label="Build stats"{wrapper_style_attr}>{img_html}</a>'
             )
 
-        return f'<span class="{class_attr}">{img_html}</span>'
+        return f'<span class="{class_attr}"{wrapper_style_attr}>{img_html}</span>'
+
+
+def _resolve_layout_styles(*, inline: bool, align: str) -> tuple[str, str]:
+    """
+    Return (wrapper_style, img_style) to control placement.
+
+    Why inline styles:
+        The default theme applies global `img { display: block; margin: auto; }`
+        rules inside prose. Inline styles let authors place the badge inline or
+        align it without needing custom CSS.
+    """
+    # Default: preserve existing theme behavior (do not force styles).
+    if not inline and align not in ("left", "center", "right"):
+        return "", ""
+
+    # For inline usage, override common prose image rules.
+    if inline:
+        return (
+            "display:inline-flex;align-items:center;vertical-align:middle;",
+            "display:inline-block;margin:0;vertical-align:middle;",
+        )
+
+    # Block alignment requested.
+    return (
+        f"display:block;text-align:{align};",
+        "display:inline-block;margin:0;",
+    )
 
 
 def _resolve_build_artifact_urls(site: Any, *, page: Any, dir_name: str) -> tuple[str, str]:
