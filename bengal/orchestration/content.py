@@ -668,6 +668,51 @@ class ContentOrchestrator:
                         if anchor_key not in self.site.xref_index["by_anchor"]:
                             self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
 
+            # Index target directives (:::{target} id)
+            # Extract target directives from content for cross-reference indexing
+            if hasattr(page, "content") and page.content:
+                target_anchors = self._extract_target_directives(page.content)
+                for anchor_id in target_anchors:
+                    anchor_key = anchor_id.lower()
+                    if anchor_key not in self.site.xref_index["by_anchor"]:
+                        self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
+
+    def _extract_target_directives(self, content: str) -> list[str]:
+        """
+        Extract target directive anchor IDs from markdown content.
+
+        Finds all :::{target} id directives and returns their anchor IDs.
+        This enables indexing target anchors for cross-reference resolution.
+
+        Args:
+            content: Markdown content to search
+
+        Returns:
+            List of anchor IDs found in target directives
+        """
+        import re
+
+        anchor_ids = []
+        # Pattern matches :::{target} id or :::{anchor} id
+        # Handles optional whitespace and closing ::: on same or next line
+        pattern = r"^(\s*):{3,}\{(?:target|anchor)\}([^\n]*)$"
+        lines = content.split("\n")
+        i = 0
+        while i < len(lines):
+            match = re.match(pattern, lines[i])
+            if match:
+                indent = len(match.group(1))
+                # Skip if indented 4+ spaces (code block)
+                if indent < 4:
+                    # Extract anchor ID from title (everything after directive name)
+                    title = match.group(2).strip()
+                    # Validate it looks like an anchor ID (starts with letter)
+                    if title and re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", title):
+                        anchor_ids.append(title)
+            i += 1
+
+        return anchor_ids
+
     def _get_theme_assets_dir(self) -> Path | None:
         """
         Get the assets directory for the current theme.
