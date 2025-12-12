@@ -17,8 +17,8 @@ Designed for: module.html, class pages, function pages
 {%- endmacro %}
 
 {% if page %}
-{# Compute stats from element if available - check for children attribute (DocElement has it, Section does not) #}
-{% set element_children = element.children if (element is defined and element.children is defined) else [] %}
+{# Compute stats from element if available - element may be None for section-index pages #}
+{% set element_children = element.children if (element and element.children is defined) else [] %}
 {% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
 {% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
 {% set methods = element_children | selectattr('element_type', 'eq', 'method') | list %}
@@ -124,15 +124,15 @@ Designed for: module.html, class pages, function pages
     </div>
   </div>
 
-  {# Badge row - element type indicators #}
-  {% if element is defined %}
+  {# Badge row - element type indicators (skip if element is None) #}
+  {% if element %}
   <div class="page-hero__badges">
     {% include 'api-reference/partials/badges.html' %}
   </div>
   {% endif %}
 
   {# Title - qualified name for API, regular title otherwise #}
-  {% if element is defined and element.qualified_name %}
+  {% if element and element.qualified_name %}
   <h1 class="page-hero__title page-hero__title--code">
     <code>{{ element.qualified_name }}</code>
   </h1>
@@ -142,7 +142,7 @@ Designed for: module.html, class pages, function pages
 
   {# Description - markdown rendered, stacked vertically #}
   {# Priority: element.description > page.metadata.description > section.metadata.description #}
-  {% set description = element.description if (element is defined and element.description) else
+  {% set description = element.description if (element and element.description) else
   (page.metadata.get('description', '') if page.metadata.get('description', '') else (section.metadata.description if
   (section is defined and section.metadata.description) else '')) %}
   {% if description %}
@@ -154,7 +154,7 @@ Designed for: module.html, class pages, function pages
   {# Bottom row: Source link + Stats #}
   <div class="page-hero__footer">
     {# Source link (for elements with source files) #}
-    {% if element is defined and (element.display_source_file or element.source_file) and config is defined %}
+    {% if element and (element.display_source_file or element.source_file) and config is defined %}
     <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
       class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}

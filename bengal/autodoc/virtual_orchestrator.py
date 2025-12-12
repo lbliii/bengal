@@ -732,7 +732,11 @@ class VirtualAutodocOrchestrator:
                 )
             return [], [], result
 
-        # 4. Create index pages for all sections
+        # 4. Create aggregating parent sections for shared prefixes (e.g., /api/ for /api/python/ and /api/openapi/)
+        parent_sections = self._create_aggregating_parent_sections(all_sections)
+        all_sections.update(parent_sections)
+
+        # 5. Create index pages for all sections
         index_pages = self._create_index_pages(all_sections)
         all_pages.extend(index_pages)
 
@@ -753,22 +757,33 @@ class VirtualAutodocOrchestrator:
             failed_render=result.failed_render,
         )
 
-        # Return root-level sections for each enabled autodoc type
-        # These are the sections that will appear in the navigation menu
-        # We identify roots by matching against the resolved prefixes
+        # Return root-level sections for navigation menu
+        # Priority: aggregating parent sections > individual type sections
+        # e.g., if "api" aggregates "api/python" and "api/openapi", return only "api"
         root_section_keys = set()
-        if self.python_config.get("enabled", False):
-            prefix = self._resolve_output_prefix("python")
-            if prefix in all_sections:
-                root_section_keys.add(prefix)
-        if self.openapi_config.get("enabled", False):
-            prefix = self._resolve_output_prefix("openapi")
-            if prefix in all_sections:
-                root_section_keys.add(prefix)
-        if self.cli_config.get("enabled", False):
-            prefix = self._resolve_output_prefix("cli")
-            if prefix in all_sections:
-                root_section_keys.add(prefix)
+
+        # First, add aggregating parent sections (they take priority)
+        aggregating_keys = {
+            key for key, s in all_sections.items() if s.metadata.get("is_aggregating_section")
+        }
+        root_section_keys.update(aggregating_keys)
+
+        # Then add individual type sections that aren't children of aggregating sections
+        for doc_type, config in [
+            ("python", self.python_config),
+            ("openapi", self.openapi_config),
+            ("cli", self.cli_config),
+        ]:
+            if not config.get("enabled", False):
+                continue
+            prefix = self._resolve_output_prefix(doc_type)
+            if prefix not in all_sections:
+                continue
+            # Skip if this prefix is a child of an aggregating section
+            parent = prefix.split("/")[0] if "/" in prefix else None
+            if parent and parent in aggregating_keys:
+                continue
+            root_section_keys.add(prefix)
 
         root_sections = [s for key, s in all_sections.items() if key in root_section_keys]
 
@@ -777,6 +792,7 @@ class VirtualAutodocOrchestrator:
             count=len(root_sections),
             names=[s.name for s in root_sections],
             keys=list(root_section_keys),
+            aggregating=list(aggregating_keys),
         )
 
         return all_pages, root_sections, result
@@ -1421,6 +1437,74 @@ class VirtualAutodocOrchestrator:
     <p class="api-card__description">{element.description or ""}</p>
 </div>
 """
+
+    def _create_aggregating_parent_sections(
+        self, sections: dict[str, Section]
+    ) -> dict[str, Section]:
+        """
+        Create aggregating parent sections for shared prefixes.
+
+        When multiple autodoc types share a common prefix (e.g., api/python and
+        api/openapi), this creates a parent section (e.g., api/) that aggregates
+        them. This enables:
+        - A navigable /api/ page showing all API documentation types
+        - Correct Dev dropdown detection (finds 'api' section)
+
+        Args:
+            sections: Existing section dictionary
+
+        Returns:
+            Dictionary of newly created parent sections
+        """
+        from bengal.utils.url_normalization import join_url_paths
+
+        parent_sections: dict[str, Section] = {}
+
+        # Find all unique parent paths that have multiple children
+        # e.g., "api" is parent of "api/python" and "api/bengal-demo-commerce"
+        parent_counts: dict[str, list[str]] = {}
+        for section_path in sections:
+            if "/" in section_path:
+                parent = section_path.split("/")[0]
+                parent_counts.setdefault(parent, []).append(section_path)
+
+        # Create parent sections for paths with 2+ children
+        for parent_path, child_paths in parent_counts.items():
+            # Skip if parent already exists or only one child
+            if parent_path in sections or len(child_paths) < 2:
+                continue
+
+            # Determine type based on children (prefer api-reference)
+            child_types = [sections[cp].metadata.get("type", "api-reference") for cp in child_paths]
+            section_type = "api-reference" if "api-reference" in child_types else child_types[0]
+
+            # Create the parent section
+            parent_section = Section.create_virtual(
+                name=parent_path,
+                relative_url=join_url_paths(parent_path),
+                title=f"{parent_path.replace('-', ' ').title()} Reference",
+                metadata={
+                    "type": section_type,
+                    "weight": 50,
+                    "icon": "book-open",
+                    "description": f"Browse all {parent_path} documentation.",
+                    "is_aggregating_section": True,
+                },
+            )
+
+            # Link child sections as subsections
+            for child_path in child_paths:
+                child_section = sections[child_path]
+                parent_section.add_subsection(child_section)
+
+            parent_sections[parent_path] = parent_section
+            logger.debug(
+                "autodoc_aggregating_section_created",
+                parent=parent_path,
+                children=child_paths,
+            )
+
+        return parent_sections
 
     def _create_index_pages(self, sections: dict[str, Section]) -> list[Page]:
         """

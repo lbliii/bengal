@@ -3,7 +3,8 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-11  
-**Confidence**: 85% 🟢
+**Evaluated**: 2025-12-11  
+**Confidence**: 88% 🟢
 
 ---
 
@@ -21,12 +22,12 @@ Refactor the `.bengal/` cache directory to:
 
 ### Current Issues
 
-#### 1. Hardcoded `.bengal` String (39+ occurrences)
+#### 1. Hardcoded `.bengal` String (34 unique call sites)
 
-The string `.bengal` appears hardcoded throughout the codebase:
+The string `.bengal` appears hardcoded in 34 unique locations across 22 files:
 
 ```python
-# bengal/orchestration/incremental.py:122
+# bengal/orchestration/incremental.py:123
 cache_dir = self.site.root_path / ".bengal"
 
 # bengal/cache/utils.py:28
@@ -35,7 +36,7 @@ cache_dir = Path(site_root_path) / ".bengal"
 # bengal/cli/commands/clean.py:104
 cache_dir = site.root_path / ".bengal"
 
-# ... 36+ more instances
+# ... 31 more call sites (see Appendix for full audit)
 ```
 
 This creates maintenance burden and makes it difficult to:
@@ -116,11 +117,11 @@ Issues:
 .bengal/                        # Project state directory (gitignored)
 ├── README.md                   # Auto-generated structure documentation
 │
-├── cache/                      # Build caches (hot path, compressed)
-│   ├── build.json.zst         # Main build cache (renamed from cache.json)
-│   ├── pages.json.zst         # Page metadata cache
-│   ├── assets.json.zst        # Asset dependency map
-│   └── taxonomy.json.zst      # Taxonomy index
+├── cache/                      # Build caches (hot path)
+│   ├── build.json             # Main build cache (renamed from cache.json)
+│   ├── pages.json             # Page metadata cache
+│   ├── assets.json            # Asset dependency map
+│   └── taxonomy.json          # Taxonomy index
 │
 ├── indexes/                    # Query indexes
 │   ├── section.json
@@ -220,22 +221,22 @@ class BengalPaths:
     @property
     def build_cache(self) -> Path:
         """Main build cache file."""
-        return self.cache_dir / "build.json.zst"
+        return self.cache_dir / "build.json"
 
     @property
     def page_cache(self) -> Path:
         """Page metadata cache file."""
-        return self.cache_dir / "pages.json.zst"
+        return self.cache_dir / "pages.json"
 
     @property
     def asset_cache(self) -> Path:
         """Asset dependency cache file."""
-        return self.cache_dir / "assets.json.zst"
+        return self.cache_dir / "assets.json"
 
     @property
     def taxonomy_cache(self) -> Path:
         """Taxonomy index cache file."""
-        return self.cache_dir / "taxonomy.json.zst"
+        return self.cache_dir / "taxonomy.json"
 
     # --- Indexes ---
     @property
@@ -349,7 +350,7 @@ class Site:
 **Usage**:
 
 ```python
-# Before (39+ places)
+# Before (34 call sites)
 cache_dir = self.site.root_path / ".bengal"
 cache_path = cache_dir / "cache.json"
 
@@ -370,7 +371,7 @@ cache_path = paths.build_cache
 
 **Cons**:
 - Adds a new module
-- Requires updating 39+ call sites
+- Requires updating 34 call sites in source + ~54 test files
 
 ---
 
@@ -426,11 +427,12 @@ state_dir = site.config.get("build", {}).get("state_dir", ".bengal")
 
 Implementation order:
 1. Create `BengalPaths` class with current structure (no file renames yet)
-2. Migrate all 39+ call sites to use `BengalPaths`
-3. Add `site.paths` property for convenience
-4. Relocate template cache from output dir
-5. (Optional) Add configurable `state_dir` to config
-6. (Future) Reorganize into proposed structure
+2. Migrate all 34 source call sites to use `BengalPaths`
+3. Update ~54 test files to use `BengalPaths` or constants
+4. Add `site.paths` property for convenience
+5. Relocate template cache from output dir
+6. (Optional) Add configurable `state_dir` to config
+7. (Future) Reorganize into proposed structure
 
 ---
 
@@ -440,8 +442,9 @@ Implementation order:
 
 1. Create `bengal/cache/paths.py` with `BengalPaths` class
 2. Keep current file names/locations for backwards compatibility
-3. Update all 39+ call sites to use `BengalPaths`
-4. Add deprecation warning for direct `.bengal` string usage
+3. Update all 34 call sites in `bengal/` to use `BengalPaths`
+4. Update ~54 test files that reference `.bengal` paths
+5. Add deprecation warning for direct `.bengal` string usage
 
 ```python
 # Before
@@ -467,12 +470,37 @@ cache_path = site.paths.build_cache  # Still points to .bengal/cache.json
 # Migration helper
 def migrate_cache_layout(paths: BengalPaths) -> None:
     """Migrate from flat to organized structure."""
-    # Move cache.json → cache/build.json.zst
+    # Move cache.json → cache/build.json
     old_cache = paths.state_dir / "cache.json"
     if old_cache.exists() and not paths.build_cache.exists():
         paths.cache_dir.mkdir(parents=True, exist_ok=True)
-        # Decompress old, recompress to new location
-        ...
+        shutil.copy2(old_cache, paths.build_cache)
+```
+
+### Phase 4: Compression (Optional, Future)
+
+**Deferred**: Compression adds complexity and may not be worthwhile for typical cache sizes.
+
+**Trade-offs**:
+- Cache files are typically 50KB-500KB (small sites) to 5MB (10k pages)
+- zstd compression ratio: ~70-80% (saves 150KB-4MB)
+- Compression time: ~1-5ms per file
+- Bengal already uses `bengal/cache/compression.py` for some caches
+
+**When to add compression**:
+- Sites with >5k pages
+- Slow disk I/O (network drives, CI environments)
+- Users request it
+
+**If implemented**:
+```python
+# Add to BengalPaths
+@property
+def build_cache(self) -> Path:
+    """Main build cache file (compressed if available)."""
+    zst_path = self.cache_dir / "build.json.zst"
+    json_path = self.cache_dir / "build.json"
+    return zst_path if zst_path.exists() else json_path
 ```
 
 ---
@@ -505,14 +533,20 @@ def migrate_cache_layout(paths: BengalPaths) -> None:
 
 | File | Usage | Instances |
 |------|-------|-----------|
-| `utils/paths.py` | Logs, profiles | 4 |
+| `utils/paths.py` | Logs, profiles, templates | 4 |
 | `utils/performance_collector.py` | Metrics | 1 |
 | `utils/performance_report.py` | Metrics | 1 |
-| `debug/delta_analyzer.py` | Build history | 2 |
-| `server/pid_manager.py` | PID file | 3 |
+| `debug/delta_analyzer.py` | Build history | 1 |
+| `server/pid_manager.py` | PID file | 1 |
 | `utils/swizzle.py` | Swizzle registry | 1 |
 | `cli/commands/sources.py` | Content cache | 3 |
-| `content_layer/manager.py` | Content cache | 2 |
+| `content_layer/manager.py` | Content cache | 1 |
+| `assets/pipeline.py` | Pipeline temp output | 1 |
+| `cli/helpers/site_loader.py` | Site detection | 1 |
+| `utils/url_strategy.py` | Generated content | 1 |
+| `cli/commands/explain.py` | Cache loading | 1 |
+| `analysis/graph_visualizer.py` | Asset manifest | 1 |
+| `health/validators/cache.py` | Cache validation | 1 |
 
 ### Special Case (Template cache - different location)
 
@@ -521,6 +555,20 @@ def migrate_cache_layout(paths: BengalPaths) -> None:
 | `rendering/template_engine/environment.py` | `output/.bengal-cache/templates` | `.bengal/templates` |
 | `rendering/template_engine/core.py` | (docstring only) | Update docs |
 | `utils/paths.py` | `output/.bengal-cache/templates` | `.bengal/templates` |
+
+### Test Files (~54 files, 251 matches)
+
+Test files reference `.bengal` paths extensively. Key files to update:
+
+| Category | Files | Matches |
+|----------|-------|---------|
+| Unit tests (cache) | `test_build_cache.py`, `test_cache_corruption.py`, etc. | ~25 |
+| Unit tests (utils) | `test_paths.py`, `test_swizzle.py`, etc. | ~50 |
+| Integration tests | `test_phase2b_cache_integration.py`, etc. | ~40 |
+| Performance tests | `benchmark_*.py`, profiling guides | ~30 |
+| Other | READMEs, helpers, markers | ~30 |
+
+**Strategy**: Most test files can use `BengalPaths` or a test constant. Some paths are in assertions checking specific behavior and may need individual review.
 
 ---
 
@@ -563,6 +611,32 @@ def test_build_uses_centralized_paths(tmp_site):
     assert site.paths.page_cache.exists()
 ```
 
+### Test File Migration Strategy
+
+For the ~54 test files with `.bengal` references:
+
+```python
+# Option 1: Use BengalPaths (preferred for path assertions)
+from bengal.cache.paths import BengalPaths
+
+def test_cache_location(tmp_path):
+    paths = BengalPaths(tmp_path)
+    assert paths.build_cache == tmp_path / ".bengal" / "cache" / "build.json"
+
+# Option 2: Use constant for string comparisons
+from bengal.cache.paths import STATE_DIR_NAME
+
+def test_cache_ignored(site):
+    assert STATE_DIR_NAME in site.ignored_paths
+
+# Option 3: Keep raw string for tests verifying specific behavior
+def test_legacy_cache_migration(tmp_path):
+    # Intentionally use raw string to test migration from old path
+    old_path = tmp_path / ".bengal-cache.json"
+    old_path.write_text("{}")
+    # ... test migration
+```
+
 ---
 
 ## Documentation Updates
@@ -582,6 +656,8 @@ def test_build_uses_centralized_paths(tmp_site):
 | Performance overhead from Path objects | Low | Low | Paths are cached, minimal overhead |
 | Users have custom scripts expecting old paths | Low | Medium | Document in changelog, deprecation period |
 | Template cache move breaks dev server | Medium | Medium | Test thoroughly, gradual rollout |
+| Test file updates introduce regressions | Medium | Medium | Update tests incrementally, run full suite after each batch |
+| Some tests intentionally test raw `.bengal` paths | Low | Low | Keep `STATE_DIR_NAME` constant accessible for tests |
 
 ---
 
@@ -600,10 +676,13 @@ def test_build_uses_centralized_paths(tmp_site):
 
 | Phase | Description | Effort |
 |-------|-------------|--------|
-| Phase 1 | Create `BengalPaths`, migrate call sites | 2-3 hours |
+| Phase 1a | Create `BengalPaths` class + unit tests | 1 hour |
+| Phase 1b | Migrate 34 source call sites | 1-2 hours |
+| Phase 1c | Update ~54 test files | 1-2 hours |
 | Phase 2 | Relocate template cache | 1 hour |
 | Phase 3 | Add documentation, README generator | 1 hour |
 | Phase 4 | (Future) Reorganize directory structure | 2-3 hours |
+| Phase 5 | (Future, Optional) Add compression | 1-2 hours |
 
 **Total**: ~5-7 hours for Phases 1-3
 
@@ -611,65 +690,66 @@ def test_build_uses_centralized_paths(tmp_site):
 
 ## References
 
-- **Codebase audit**: 39+ instances of hardcoded `.bengal` found
+- **Codebase audit**: 34 unique call sites in source, ~54 test files (251 total matches)
 - **Template cache issue**: `output/.bengal-cache/templates` inconsistent location
 - **Similar patterns**: Hugo uses `.hugo_build.lock`, Jekyll uses `.jekyll-cache`
 - **Related RFC**: `rfc-autodoc-output-prefix.md` (similar centralization pattern)
+- **Existing compression**: `bengal/cache/compression.py` (for future Phase 4)
 
 ---
 
 ## Appendix: Full Audit of `.bengal` Usage
 
 <details>
-<summary>Click to expand full list of 39+ occurrences</summary>
+<summary>Click to expand full list (34 unique source call sites)</summary>
 
-### Cache Files
-- `orchestration/incremental.py:123` - `.bengal/cache.json`
-- `orchestration/incremental.py:1075` - `.bengal/cache.json`
+### Cache Files (17 call sites)
+- `orchestration/incremental.py:123,1075` - `.bengal/cache.json`
 - `orchestration/build/__init__.py:192` - `.bengal/cache.json`
-- `orchestration/build/initialization.py:219` - `.bengal/page_metadata.json`
-- `orchestration/build/initialization.py:272` - `.bengal/page_metadata.json`
-- `orchestration/build/initialization.py:350` - `.bengal/cache.json`
+- `orchestration/build/initialization.py:219,272,350` - Page/build cache
 - `orchestration/build/rendering.py:358` - `.bengal/asset_deps.json`
 - `orchestration/build/content.py:165` - `.bengal/taxonomy_index.json`
-- `orchestration/taxonomy.py:100` - `.bengal/taxonomy_index.json`
-- `orchestration/taxonomy.py:177` - `.bengal/taxonomy_index.json`
+- `orchestration/taxonomy.py:100,177` - `.bengal/taxonomy_index.json`
 - `cache/utils.py:28` - `.bengal/cache.json`
 - `cli/commands/debug.py:94,214,334` - `.bengal/cache.json`
 - `cli/commands/validate.py:139,159,261` - `.bengal/cache.json`
 - `cli/commands/explain.py:120` - `.bengal/cache.json`
 
-### Index Files
+### Index Files (1 call site)
 - `core/site/properties.py:177` - `.bengal/indexes/`
 
-### Temp Files
+### Temp Files (2 call sites)
 - `orchestration/asset.py:551` - `.bengal/js_bundle/`
+- `assets/pipeline.py:52` - `.bengal/pipeline_out/`
 
-### Log/Metric Files
+### Log/Metric Files (4 call sites)
 - `utils/paths.py:88,103` - `.bengal/profiles/`, `.bengal/logs/`
 - `utils/performance_collector.py:71` - `.bengal/metrics/`
 - `utils/performance_report.py:99` - `.bengal/metrics/`
 
-### History Files
-- `debug/delta_analyzer.py:342,436` - `.bengal/build_history.json`
+### History Files (1 call site)
+- `debug/delta_analyzer.py:436` - `.bengal/build_history.json`
 
-### State Files
+### State Files (2 call sites)
 - `server/pid_manager.py:67` - `.bengal/server.pid`
 - `utils/swizzle.py:45` - `.bengal/themes/sources.json`
 
-### Content Cache
+### Content Cache (4 call sites)
 - `cli/commands/sources.py:144,222,267` - `.bengal/content_cache/`
 - `content_layer/manager.py:67` - `.bengal/content_cache/`
 
-### Asset Manifest
+### Other (3 call sites)
 - `analysis/graph_visualizer.py:329` - `.bengal/asset-manifest.json`
+- `cli/helpers/site_loader.py:40` - `.bengal` (site detection)
+- `utils/url_strategy.py:259` - `.bengal/generated/`
 
-### Template Cache (Different Location!)
+### Template Cache (Different Location - 2 call sites)
 - `rendering/template_engine/environment.py:230` - `output/.bengal-cache/templates`
 - `utils/paths.py:188` - `output/.bengal-cache/templates`
 
-### CLI/Server Ignores
-- `server/build_handler.py:48,199,209` - Documentation/ignore patterns
-- `cli/commands/validate.py:301` - Path filtering
+### References Only (not call sites, but need updating)
+- `health/validators/cache.py:66,70` - Cache validation checks
+- `cli/commands/clean.py:72,76,104` - Clean command output
+- `server/build_handler.py:48,199,203,209` - Ignore patterns
 
 </details>
