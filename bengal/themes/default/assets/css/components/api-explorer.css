@@ -46,6 +46,10 @@
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-relaxed);
+
+  /* Containment - prevent content overflow */
+  max-width: 100%;
+  overflow: hidden;
 }
 
 [data-theme="dark"] .api-explorer {
@@ -267,6 +271,9 @@
 
 .api-section {
   margin-bottom: var(--api-section-gap);
+  /* Contain wide tables/code blocks - allow horizontal scroll if needed */
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .api-section__title {

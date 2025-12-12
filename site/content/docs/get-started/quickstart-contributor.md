@@ -156,6 +156,6 @@ Visit http://localhost:5173 to preview documentation changes.
 
 ## Next Steps
 
-- **[Architecture](/docs/extending/architecture/)** — Understand Bengal's internals
-- **[Testing Patterns](/docs/extending/validation/)** — Test best practices
+- **[Architecture](/docs/reference/architecture/)** — Understand Bengal's internals
+- **[Testing Patterns](/docs/reference/architecture/meta/testing/)** — Test best practices
 - **[Contributing Guide](/docs/about/)** — Full contribution guidelines

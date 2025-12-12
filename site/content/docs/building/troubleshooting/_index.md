@@ -11,4 +11,4 @@ Guides for diagnosing and resolving common Bengal issues.
 
 ## Common Issues
 
-- [Template Errors](template-errors.md) - Syntax errors, undefined variables, and missing templates
+- [Template Errors](/docs/building/troubleshooting/template-errors/) - Syntax errors, undefined variables, and missing templates
