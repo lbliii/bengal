@@ -168,6 +168,17 @@ class BuildOrchestrator:
             root_path=str(self.site.root_path),
         )
 
+        # Attach a diagnostics collector for core-model events (core must not log).
+        # This is intentionally best-effort: if anything goes wrong, we continue
+        # without diagnostics rather than impacting builds.
+        if not hasattr(self.site, "diagnostics"):
+            try:
+                from bengal.core.diagnostics import DiagnosticsCollector
+
+                self.site.diagnostics = DiagnosticsCollector()  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
         # Show build header
         cli.header("Building your site...")
         cli.info(f"   ↪ {self.site.root_path}")

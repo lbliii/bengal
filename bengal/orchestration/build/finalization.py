@@ -235,6 +235,29 @@ def phase_finalize(
 
     orchestrator.logger.info("build_complete", **log_data)
 
+    # Flush any core diagnostics that were collected during the build.
+    # These are emitted by core models via a sink/collector rather than logging directly.
+    try:
+        diagnostics = getattr(orchestrator.site, "diagnostics", None)
+        if diagnostics is not None and hasattr(diagnostics, "drain"):
+            events = diagnostics.drain()
+            for event in events:
+                data = getattr(event, "data", {}) or {}
+                code = getattr(event, "code", "core_diagnostic")
+                level = getattr(event, "level", "info")
+
+                if level == "warning":
+                    orchestrator.logger.warning(code, **data)
+                elif level == "error":
+                    orchestrator.logger.error(code, **data)
+                elif level == "debug":
+                    orchestrator.logger.debug(code, **data)
+                else:
+                    orchestrator.logger.info(code, **data)
+    except Exception:
+        # Diagnostics must never break build finalization.
+        pass
+
     # Restore normal logger console output if we suppressed it
     if not verbose:
         from bengal.utils.logger import set_console_quiet
