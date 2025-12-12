@@ -379,7 +379,6 @@ class RenderingPipeline:
             context = self._build_variable_context(page)
             md_cfg = self.site.config.get("markdown", {}) or {}
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
-            use_single_pass_tokens = bool(ast_cache_cfg.get("single_pass_tokens", False))
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
             # Type narrowing: check if parser supports context methods (MistuneParser)
@@ -387,34 +386,13 @@ class RenderingPipeline:
                 self.parser, "parse_with_context"
             ):
                 if need_toc:
-                    if use_single_pass_tokens and hasattr(
-                        self.parser, "parse_with_toc_and_context_and_tokens"
-                    ):
-                        parsed_content, toc, tokens = (
-                            self.parser.parse_with_toc_and_context_and_tokens(
-                                page.content, page.metadata, context
-                            )
-                        )
-                        # Capture tokens for this build; optionally persist to cache.
-                        if isinstance(tokens, list) and (persist_tokens or use_single_pass_tokens):
-                            page._ast_cache = tokens
-                    else:
-                        parsed_content, toc = self.parser.parse_with_toc_and_context(
-                            page.content, page.metadata, context
-                        )
+                    parsed_content, toc = self.parser.parse_with_toc_and_context(
+                        page.content, page.metadata, context
+                    )
                 else:
-                    if use_single_pass_tokens and hasattr(
-                        self.parser, "parse_with_context_and_tokens"
-                    ):
-                        parsed_content, tokens = self.parser.parse_with_context_and_tokens(
-                            page.content, page.metadata, context
-                        )
-                        if isinstance(tokens, list) and (persist_tokens or use_single_pass_tokens):
-                            page._ast_cache = tokens
-                    else:
-                        parsed_content = self.parser.parse_with_context(
-                            page.content, page.metadata, context
-                        )
+                    parsed_content = self.parser.parse_with_context(
+                        page.content, page.metadata, context
+                    )
                     toc = ""
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
@@ -428,8 +406,7 @@ class RenderingPipeline:
 
             # Extract AST for caching
             if (
-                not use_single_pass_tokens
-                and hasattr(self.parser, "supports_ast")
+                hasattr(self.parser, "supports_ast")
                 and self.parser.supports_ast
                 and hasattr(self.parser, "parse_to_ast")
                 and persist_tokens
