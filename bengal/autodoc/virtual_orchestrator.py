@@ -57,43 +57,51 @@ def _format_source_file_for_display(source_file: Path | str | None, root_path: P
     """
     Normalize source_file paths for GitHub links.
 
-    - Resolve relative paths against the site root (root_path)
-    - Prefer paths relative to the site root or its parent (repo root)
-    - Otherwise return the POSIX-ified absolute path
+    Converts source file paths to repository-relative POSIX paths suitable
+    for constructing GitHub blob URLs.
+
+    Strategy:
+        1. If path is relative, keep as-is (already repo-relative)
+        2. If absolute, try to make relative to repo root (root_path.parent)
+        3. Fall back to site root (root_path)
+        4. If neither works, return POSIX-ified absolute path
+
+    Args:
+        source_file: Path to source file (absolute or relative)
+        root_path: Site root path (typically the site/ directory within a repo)
+
+    Returns:
+        Repository-relative POSIX path, or None if source_file is None
+
+    Example:
+        >>> # Site root: /home/user/myproject/site
+        >>> # Source: /home/user/myproject/mypackage/core/module.py
+        >>> _format_source_file_for_display(source, site_root)
+        'mypackage/core/module.py'
     """
     if not source_file:
         return None
 
     source_path = Path(source_file)
 
-    def _collapse_to_repo_path(path_str: str) -> str:
-        parts = path_str.split("/")
-        if "bengal" in parts:
-            first = parts.index("bengal")
-            parts = parts[first:]
-            if len(parts) > 1 and parts[0] == parts[1]:
-                parts = parts[1:]
-            return "/".join(parts)
-        return path_str
-
-    bases = (root_path, root_path.parent)
-
+    # If already relative, assume it's repo-relative and return as POSIX
     if not source_path.is_absolute():
-        combined = (root_path / source_path).resolve()
-        for base in bases:
-            try:
-                return _collapse_to_repo_path(combined.relative_to(base).as_posix())
-            except ValueError:
-                continue
-        return _collapse_to_repo_path(source_path.as_posix())
+        return source_path.as_posix()
 
-    for base in bases:
+    # Resolve to handle any symlinks or relative components
+    source_path = source_path.resolve()
+
+    # Try repo root first (parent of site root), then site root
+    # This handles typical layouts where site/ is inside the repo
+    for base in (root_path.parent.resolve(), root_path.resolve()):
         try:
-            return _collapse_to_repo_path(source_path.relative_to(base).as_posix())
+            return source_path.relative_to(base).as_posix()
         except ValueError:
             continue
 
-    return _collapse_to_repo_path(source_path.as_posix())
+    # Fallback: return absolute POSIX path
+    # This shouldn't happen in normal use but handles edge cases
+    return source_path.as_posix()
 
 
 @dataclass
