@@ -165,7 +165,11 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         if section.pages:
             for page in section.pages[:3]:
                 page_type = page.metadata.get("type", "")
-                if "python-module" in page_type or "api-reference" in page_type:
+                if "python-module" in page_type or page_type in (
+                    "python-reference",
+                    "openapi-reference",
+                    "api-reference",
+                ):
                     return True
 
         return False

@@ -34,8 +34,8 @@ This template receives:
         <div class="api-explorer api-explorer--index">
           <header class="api-section-header">
             <h1 class="api-section-header__title">{{ section.title }}</h1>
-            {% if section.metadata.description %}
-            <p class="api-section-header__description">{{ section.metadata.description | first_sentence }}</p>
+            {% if section.metadata.get('description') %}
+            <p class="api-section-header__description">{{ section.metadata.get('description') | first_sentence }}</p>
             {% else %}
             <p class="api-section-header__description">Browse {{ section.name }} resources and endpoints.</p>
             {% endif %}

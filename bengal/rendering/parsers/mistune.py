@@ -558,7 +558,7 @@ class MistuneParser(BaseMarkdownParser):
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
     # =========================================================================
-    # Experimental: single-pass token capture (Option A spike)
+    # Single-pass token capture (feature-flagged in RenderingPipeline)
     # =========================================================================
 
     def parse_with_context_and_tokens(
@@ -571,7 +571,8 @@ class MistuneParser(BaseMarkdownParser):
         `Markdown.parse()` to capture `BlockState.tokens` from the SAME configured
         Markdown instance that renders HTML (directives, term plugin, etc.).
 
-        This is intended for investigation only (RFC spike).
+        This supports the feature-flagged pipeline path that captures tokens
+        from the same parse used to produce HTML (see RFC and pipeline flags).
         """
         if not content:
             return "", []

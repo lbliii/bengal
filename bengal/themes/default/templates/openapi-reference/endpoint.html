@@ -64,12 +64,12 @@ This template receives:
       <section class="api-section" id="request-body">
         <h2 class="api-section__heading">Request Body</h2>
         <div class="api-request-body">
-          {% if element.metadata.request_body.description %}
-          <p class="api-request-body__description">{{ element.metadata.request_body.description }}</p>
+          {% if element.metadata.request_body.get('description') %}
+          <p class="api-request-body__description">{{ element.metadata.request_body.get('description') }}</p>
           {% endif %}
-          {% if element.metadata.request_body.content %}
+          {% if element.metadata.request_body.get('content') %}
           <div class="api-content-types">
-            {% for content_type, schema in element.metadata.request_body.content.items() %}
+            {% for content_type, schema in element.metadata.request_body.get('content', {}).items() %}
             <div class="api-content-type">
               <span class="api-content-type__label">{{ content_type }}</span>
             </div>
@@ -89,11 +89,11 @@ This template receives:
           <div class="api-response api-response--{{ status_code[:1] }}xx">
             <div class="api-response__header">
               <span class="api-response__status api-response__status--{{ status_code[:1] }}xx">{{ status_code }}</span>
-              <span class="api-response__description">{{ response.description | default('No description') }}</span>
+              <span class="api-response__description">{{ response.get('description', 'No description') }}</span>
             </div>
-            {% if response.content %}
+            {% if response.get('content') %}
             <div class="api-response__content">
-              {% for content_type, schema in response.content.items() %}
+              {% for content_type, schema in response.get('content', {}).items() %}
               <span class="api-content-type__label">{{ content_type }}</span>
               {% endfor %}
             </div>

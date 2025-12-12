@@ -17,13 +17,18 @@ from pathlib import Path
 
 
 def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
-    """Ensure API/CLI reference pages opt out of prose centering constraints."""
+    """Ensure OpenAPI/CLI reference pages opt out of prose centering constraints.
+
+    Note: Python API docs (python-reference) intentionally KEEP prose constraints
+    for readable docstring content. Only REST/OpenAPI and CLI docs need full-width.
+    """
     css_path = Path("bengal/themes/default/assets/css/composition/layouts.css")
     css = css_path.read_text(encoding="utf-8")
 
-    assert 'body[data-type="api-reference"] .docs-main .prose' in css
+    # OpenAPI and CLI reference pages should bypass prose constraints
+    assert 'body[data-type="openapi-reference"] .docs-main .prose' in css
     assert 'body[data-type="cli-reference"] .docs-main .prose' in css
-    assert 'body[data-type="api-reference"] .page-hero--api' in css
+    assert 'body[data-type="openapi-reference"] .page-hero--api' in css
     assert 'body[data-type="cli-reference"] .page-hero--api' in css
 
 

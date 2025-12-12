@@ -103,16 +103,19 @@
   margin-inline: auto;
 }
 
-/* API/CLI reference pages use app-like card layouts (not long-form prose).
+/* OpenAPI/CLI reference pages use app-like card layouts (not long-form prose).
    Do not center/constrain the main column on these pages, otherwise the hero
-   and card grids look "broken" (large left gutter + cramped cards). */
-body[data-type="api-reference"] .docs-main .prose,
+   and card grids look "broken" (large left gutter + cramped cards).
+
+   Note: Python API docs (python-reference) keep prose constraints for readable
+   docstring content. Only REST/OpenAPI and CLI docs need full-width layouts. */
+body[data-type="openapi-reference"] .docs-main .prose,
 body[data-type="cli-reference"] .docs-main .prose {
   max-width: 100%;
   margin-inline: 0;
 }
 
-body[data-type="api-reference"] .page-hero--api,
+body[data-type="openapi-reference"] .page-hero--api,
 body[data-type="cli-reference"] .page-hero--api {
   max-width: 100%;
   margin-inline: 0;

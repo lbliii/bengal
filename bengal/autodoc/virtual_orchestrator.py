@@ -30,6 +30,27 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _get_template_dir_for_type(page_type: str) -> str:
+    """
+    Map page types to template directories.
+
+    Page types like 'python-reference' control CSS styling via data-type attribute,
+    but should use 'api-reference/' templates for rendering. This function maps
+    the page type to the appropriate template directory.
+
+    Args:
+        page_type: The page type (e.g., 'python-reference', 'openapi-reference')
+
+    Returns:
+        Template directory name (e.g., 'api-reference', 'openapi-reference')
+    """
+    # Python API docs use api-reference templates but have python-reference type for CSS
+    if page_type == "python-reference":
+        return "api-reference"
+    # Other types use their own template directories
+    return page_type
+
+
 def _normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize github repo/branch for autodoc template consumption.
@@ -980,7 +1001,7 @@ class VirtualAutodocOrchestrator:
             relative_url=join_url_paths(prefix),
             title="Python API Reference",
             metadata={
-                "type": "api-reference",
+                "type": "python-reference",
                 "weight": 100,
                 "icon": "book",
                 "description": "Browse Python API documentation by package.",
@@ -1019,7 +1040,7 @@ class VirtualAutodocOrchestrator:
                         relative_url=relative_url,
                         title=part.replace("_", " ").title(),
                         metadata={
-                            "type": "api-reference",
+                            "type": "python-reference",
                             "qualified_name": qualified_name,
                             "description": description,
                         },
@@ -1125,7 +1146,7 @@ class VirtualAutodocOrchestrator:
             relative_url=join_url_paths(prefix),
             title="REST API Reference",
             metadata={
-                "type": "api-reference",
+                "type": "openapi-reference",
                 "weight": 100,
                 "icon": "book",
                 "description": "REST API documentation.",
@@ -1159,7 +1180,7 @@ class VirtualAutodocOrchestrator:
                         relative_url=join_url_paths(prefix, "schemas"),
                         title="Schemas",
                         metadata={
-                            "type": "api-reference",
+                            "type": "openapi-reference",
                             "description": "API data schemas and models.",
                         },
                     )
@@ -1173,7 +1194,7 @@ class VirtualAutodocOrchestrator:
                 relative_url=join_url_paths(prefix, "tags", tag),
                 title=tag.replace("-", " ").title(),
                 metadata={
-                    "type": "api-reference",
+                    "type": "openapi-reference",
                     "tag": tag,
                 },
             )
@@ -1425,7 +1446,8 @@ class VirtualAutodocOrchestrator:
 
         if doc_type == "python":
             url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            return "api-reference/module", url_path, "api-reference"
+            # Python API docs use python-reference type for prose-constrained layout
+            return "api-reference/module", url_path, "python-reference"
         elif doc_type == "cli":
             if element.element_type == "command-group":
                 url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
@@ -1434,14 +1456,15 @@ class VirtualAutodocOrchestrator:
                 url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
                 return "cli-reference/command", url_path, "cli-reference"
         elif doc_type == "openapi":
+            # OpenAPI docs use openapi-reference type for full-width 3-panel layout
             if element.element_type == "openapi_overview":
-                return "openapi-reference/overview", f"{prefix}/overview", "api-reference"
+                return "openapi-reference/overview", f"{prefix}/overview", "openapi-reference"
             elif element.element_type == "openapi_schema":
                 schema_name = element.name
                 return (
                     "openapi-reference/schema",
                     f"{prefix}/schemas/{schema_name}",
-                    "api-reference",
+                    "openapi-reference",
                 )
             elif element.element_type == "openapi_endpoint":
                 method = get_openapi_method(element).lower()
@@ -1449,10 +1472,10 @@ class VirtualAutodocOrchestrator:
                 return (
                     "openapi-reference/endpoint",
                     f"{prefix}/endpoints/{method}-{path}",
-                    "api-reference",
+                    "openapi-reference",
                 )
-        # Fallback
-        return "api-reference/module", f"{prefix}/{element.name}", "api-reference"
+        # Fallback - use python-reference for prose-constrained layout
+        return "api-reference/module", f"{prefix}/{element.name}", "python-reference"
 
     def _render_element(
         self,
@@ -1625,9 +1648,12 @@ class VirtualAutodocOrchestrator:
             if parent_path in sections or len(child_paths) < 2:
                 continue
 
-            # Determine type based on children (prefer api-reference)
-            child_types = [sections[cp].metadata.get("type", "api-reference") for cp in child_paths]
-            section_type = "api-reference" if "api-reference" in child_types else child_types[0]
+            # Determine type based on children (use most common type)
+            child_types = [
+                sections[cp].metadata.get("type", "python-reference") for cp in child_paths
+            ]
+            # Use first child's type as default (children of same parent usually share type)
+            section_type = child_types[0] if child_types else "python-reference"
 
             # Create the parent section
             parent_section = Section.create_virtual(
@@ -1678,8 +1704,10 @@ class VirtualAutodocOrchestrator:
             output_path = self.site.output_dir / f"{section_path}/index.html"
 
             # Determine template and page type based on section metadata
-            section_type = section.metadata.get("type", "api-reference")
-            template_name = f"{section_type}/section-index"
+            # Page type controls CSS styling, template dir may differ
+            section_type = section.metadata.get("type", "python-reference")
+            template_dir = _get_template_dir_for_type(section_type)
+            template_name = f"{template_dir}/section-index"
 
             # Create page with deferred rendering - HTML rendered in rendering phase
             # NOTE: We pass autodoc_element=None for section-index pages because:
@@ -1719,8 +1747,9 @@ class VirtualAutodocOrchestrator:
 
     def _render_section_index(self, section: Section) -> str:
         """Render section index page HTML."""
-        section_type = section.metadata.get("type", "api-reference")
-        template_name = f"{section_type}/section-index"
+        section_type = section.metadata.get("type", "python-reference")
+        template_dir = _get_template_dir_for_type(section_type)
+        template_name = f"{template_dir}/section-index"
 
         # Create a page-like context for templates that expect a 'page' variable
         page_context = _PageContext(
