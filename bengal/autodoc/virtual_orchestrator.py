@@ -415,6 +415,119 @@ class VirtualAutodocOrchestrator:
         theme_dir = bengal_dir / "themes" / self.site.theme / "templates"
         return theme_dir if theme_dir.exists() else None
 
+    def _slugify(self, text: str) -> str:
+        """
+        Convert text to URL-friendly slug.
+
+        Strips common suffixes (API, Reference, Documentation), converts to lowercase,
+        replaces non-alphanumeric characters with hyphens, and collapses multiple hyphens.
+
+        Args:
+            text: Text to slugify (e.g., "Commerce API Reference")
+
+        Returns:
+            URL-friendly slug (e.g., "commerce"), or "rest" as fallback for empty results
+        """
+        import re
+
+        if not text or not text.strip():
+            return "rest"
+
+        slug = text.strip().lower()
+
+        # Strip common suffixes (case-insensitive, already lowercased)
+        for suffix in ["api", "reference", "documentation", "docs", "service"]:
+            if slug.endswith(f" {suffix}"):
+                slug = slug[: -(len(suffix) + 1)]
+            elif slug == suffix:
+                slug = ""
+
+        # Replace non-alphanumeric characters with hyphens
+        slug = re.sub(r"[^a-z0-9]+", "-", slug)
+
+        # Collapse multiple hyphens and strip leading/trailing hyphens
+        slug = re.sub(r"-+", "-", slug).strip("-")
+
+        return slug if slug else "rest"
+
+    def _derive_openapi_prefix(self) -> str:
+        """
+        Derive output prefix from OpenAPI spec title.
+
+        Loads the OpenAPI spec file (if exists), extracts info.title,
+        slugifies it, and prepends "api/".
+
+        Returns:
+            Derived prefix (e.g., "api/commerce") or "api/rest" as fallback
+        """
+        import yaml
+
+        spec_file = self.openapi_config.get("spec_file")
+        if not spec_file:
+            return "api/rest"
+
+        spec_path = self.site.root_path / spec_file
+        if not spec_path.exists():
+            logger.debug("autodoc_openapi_spec_not_found_for_prefix", path=str(spec_path))
+            return "api/rest"
+
+        try:
+            with open(spec_path, encoding="utf-8") as f:
+                spec = yaml.safe_load(f)
+
+            title = spec.get("info", {}).get("title", "")
+            if not title:
+                return "api/rest"
+
+            slug = self._slugify(title)
+            return f"api/{slug}"
+        except Exception as e:
+            logger.debug(
+                "autodoc_openapi_prefix_derivation_failed",
+                path=str(spec_path),
+                error=str(e),
+            )
+            return "api/rest"
+
+    def _resolve_output_prefix(self, doc_type: str) -> str:
+        """
+        Resolve output prefix for a documentation type.
+
+        Checks explicit config value first, then applies type-specific defaults:
+        - python: "api/python"
+        - openapi: auto-derived from spec title, or "api/rest"
+        - cli: "cli"
+
+        Args:
+            doc_type: Documentation type ("python", "openapi", "cli")
+
+        Returns:
+            Resolved output prefix (e.g., "api/python", "api/commerce", "cli")
+        """
+        if doc_type == "python":
+            explicit = self.python_config.get("output_prefix")
+            if explicit:
+                return explicit.strip("/")
+            return "api/python"
+
+        elif doc_type == "openapi":
+            explicit = self.openapi_config.get("output_prefix")
+            if explicit:
+                return explicit.strip("/")
+            # Empty string means auto-derive
+            if explicit == "":
+                return self._derive_openapi_prefix()
+            # None or not set - use default auto-derive
+            return self._derive_openapi_prefix()
+
+        elif doc_type == "cli":
+            explicit = self.cli_config.get("output_prefix")
+            if explicit:
+                return explicit.strip("/")
+            return "cli"
+
+        return f"api/{doc_type}"
+
     def is_enabled(self) -> bool:
         """Check if virtual autodoc is enabled for any type."""
         # Virtual pages are now the default (and only) option
@@ -439,6 +552,58 @@ class VirtualAutodocOrchestrator:
 
         return bool(python_enabled or cli_enabled or openapi_enabled)
 
+    def _check_prefix_overlaps(self) -> None:
+        """
+        Check for and warn about overlapping output prefixes.
+
+        Emits a warning when multiple autodoc types share the same or overlapping
+        prefixes, which could cause navigation conflicts.
+        """
+        enabled_prefixes: dict[str, str] = {}  # prefix -> doc_type
+
+        # Collect prefixes for enabled doc types
+        if self.python_config.get("enabled", False):
+            enabled_prefixes[self._resolve_output_prefix("python")] = "python"
+
+        if self.openapi_config.get("enabled", False):
+            enabled_prefixes[self._resolve_output_prefix("openapi")] = "openapi"
+
+        if self.cli_config.get("enabled", False):
+            enabled_prefixes[self._resolve_output_prefix("cli")] = "cli"
+
+        # Check for exact matches (multiple types with same prefix)
+        prefix_counts: dict[str, list[str]] = {}
+        for prefix, doc_type in enabled_prefixes.items():
+            if prefix not in prefix_counts:
+                prefix_counts[prefix] = []
+            prefix_counts[prefix].append(doc_type)
+
+        for prefix, doc_types in prefix_counts.items():
+            if len(doc_types) > 1:
+                logger.warning(
+                    "autodoc_prefix_overlap",
+                    prefix=prefix,
+                    doc_types=doc_types,
+                    hint=f"Multiple autodoc types share prefix '{prefix}': {', '.join(doc_types)}. "
+                    f"Consider distinct output_prefix values to avoid navigation conflicts.",
+                )
+
+        # Check for hierarchical overlaps (e.g., "api" and "api/python")
+        prefixes = list(enabled_prefixes.keys())
+        for i, p1 in enumerate(prefixes):
+            for p2 in prefixes[i + 1 :]:
+                # Check if one is a prefix of the other
+                if p1.startswith(f"{p2}/") or p2.startswith(f"{p1}/"):
+                    logger.warning(
+                        "autodoc_prefix_hierarchy_overlap",
+                        prefix1=p1,
+                        prefix2=p2,
+                        doc_type1=enabled_prefixes[p1],
+                        doc_type2=enabled_prefixes[p2],
+                        hint=f"Autodoc prefixes overlap: '{p1}' ({enabled_prefixes[p1]}) and "
+                        f"'{p2}' ({enabled_prefixes[p2]}). This may cause navigation issues.",
+                    )
+
     def generate(self) -> tuple[list[Page], list[Section], AutodocRunResult]:
         """
         Generate documentation as virtual pages and sections for all enabled types.
@@ -456,6 +621,9 @@ class VirtualAutodocOrchestrator:
         if not self.is_enabled():
             logger.debug("virtual_autodoc_disabled")
             return [], [], result
+
+        # Check for prefix overlaps before generating
+        self._check_prefix_overlaps()
 
         all_elements: list[DocElement] = []
         all_sections: dict[str, Section] = {}
@@ -577,14 +745,30 @@ class VirtualAutodocOrchestrator:
             failed_render=result.failed_render,
         )
 
-        # Return root-level sections only (e.g., "api", "cli")
+        # Return root-level sections for each enabled autodoc type
         # These are the sections that will appear in the navigation menu
-        root_sections = [s for key, s in all_sections.items() if "/" not in key.replace("\\", "/")]
+        # We identify roots by matching against the resolved prefixes
+        root_section_keys = set()
+        if self.python_config.get("enabled", False):
+            prefix = self._resolve_output_prefix("python")
+            if prefix in all_sections:
+                root_section_keys.add(prefix)
+        if self.openapi_config.get("enabled", False):
+            prefix = self._resolve_output_prefix("openapi")
+            if prefix in all_sections:
+                root_section_keys.add(prefix)
+        if self.cli_config.get("enabled", False):
+            prefix = self._resolve_output_prefix("cli")
+            if prefix in all_sections:
+                root_section_keys.add(prefix)
+
+        root_sections = [s for key, s in all_sections.items() if key in root_section_keys]
 
         logger.debug(
             "virtual_autodoc_root_sections",
             count=len(root_sections),
             names=[s.name for s in root_sections],
+            keys=list(root_section_keys),
         )
 
         return all_pages, root_sections, result
@@ -594,9 +778,9 @@ class VirtualAutodocOrchestrator:
         Create virtual section hierarchy from doc elements.
 
         Creates sections for:
-        - /api/ (root API section)
-        - /api/<package>/ (for each top-level package)
-        - /api/<package>/<subpackage>/ (nested packages)
+        - /{prefix}/ (root Python API section, e.g., /api/python/)
+        - /{prefix}/<package>/ (for each top-level package)
+        - /{prefix}/<package>/<subpackage>/ (nested packages)
 
         Args:
             elements: List of DocElements (modules) to process
@@ -606,6 +790,11 @@ class VirtualAutodocOrchestrator:
         """
         sections: dict[str, Section] = {}
 
+        # Resolve output prefix for Python docs
+        prefix = self._resolve_output_prefix("python")
+        prefix_parts = prefix.split("/") if prefix else []
+        root_name = prefix_parts[-1] if prefix_parts else "python"
+
         # Build lookup of package descriptions from __init__.py modules
         # Key: qualified_name (e.g., "bengal.core"), Value: description
         package_descriptions: dict[str, str] = {}
@@ -614,21 +803,21 @@ class VirtualAutodocOrchestrator:
                 # This module's description can describe its package
                 package_descriptions[element.qualified_name] = element.description
 
-        # Create root API section
+        # Create root Python API section
         from bengal.utils.url_normalization import join_url_paths
 
         api_section = Section.create_virtual(
-            name="api",
-            relative_url=join_url_paths("api"),
-            title="API Reference",
+            name=root_name,
+            relative_url=join_url_paths(prefix),
+            title="Python API Reference",
             metadata={
                 "type": "api-reference",
                 "weight": 100,
                 "icon": "book",
-                "description": "Browse Bengal's Python API documentation by package.",
+                "description": "Browse Python API documentation by package.",
             },
         )
-        sections["api"] = api_section
+        sections[prefix] = api_section
 
         # Track package hierarchy
         for element in elements:
@@ -640,7 +829,7 @@ class VirtualAutodocOrchestrator:
 
             # Create sections for package hierarchy
             current_section = api_section
-            section_path = "api"
+            section_path = prefix
 
             for i, part in enumerate(parts[:-1]):  # Skip the final module
                 section_path = f"{section_path}/{part}"
@@ -650,7 +839,7 @@ class VirtualAutodocOrchestrator:
                     # Use join_url_paths to ensure proper normalization
                     from bengal.utils.url_normalization import join_url_paths
 
-                    relative_url = join_url_paths("api", *parts[: i + 1])
+                    relative_url = join_url_paths(prefix, *parts[: i + 1])
                     qualified_name = ".".join(parts[: i + 1])
 
                     # Try to find description from the package's __init__.py
@@ -684,12 +873,17 @@ class VirtualAutodocOrchestrator:
         """Create CLI section hierarchy."""
         sections: dict[str, Section] = {}
 
+        # Resolve output prefix for CLI docs
+        prefix = self._resolve_output_prefix("cli")
+        prefix_parts = prefix.split("/") if prefix else []
+        root_name = prefix_parts[-1] if prefix_parts else "cli"
+
         # Create root CLI section
         from bengal.utils.url_normalization import join_url_paths
 
         cli_section = Section.create_virtual(
-            name="cli",
-            relative_url=join_url_paths("cli"),
+            name=root_name,
+            relative_url=join_url_paths(prefix),
             title="CLI Reference",
             metadata={
                 "type": "cli-reference",
@@ -698,7 +892,7 @@ class VirtualAutodocOrchestrator:
                 "description": "Command-line interface documentation.",
             },
         )
-        sections["cli"] = cli_section
+        sections[prefix] = cli_section
 
         # Group commands by command-group
         command_groups: dict[str, list[DocElement]] = {}
@@ -725,10 +919,10 @@ class VirtualAutodocOrchestrator:
 
             # Build URL path components
             group_parts = group_name.split(".")
-            section_path = f"cli/{group_name.replace('.', '/')}"
+            section_path = f"{prefix}/{group_name.replace('.', '/')}"
             group_section = Section.create_virtual(
                 name=group_parts[-1],
-                relative_url=join_url_paths("cli", *group_parts),
+                relative_url=join_url_paths(prefix, *group_parts),
                 title=group_parts[-1].replace("_", " ").title(),
                 metadata={
                     "type": "cli-reference",
@@ -746,28 +940,29 @@ class VirtualAutodocOrchestrator:
     ) -> dict[str, Section]:
         """Create OpenAPI section hierarchy."""
         sections: dict[str, Section] = {}
-        existing_sections = existing_sections or {}
+        # Note: existing_sections parameter kept for API compatibility but no longer used
+        # Each autodoc type now creates its own distinct section tree
 
-        # Create root API section (or use existing if Python also enabled)
+        # Resolve output prefix for OpenAPI docs
+        prefix = self._resolve_output_prefix("openapi")
+        prefix_parts = prefix.split("/") if prefix else []
+        root_name = prefix_parts[-1] if prefix_parts else "rest"
+
+        # Create root OpenAPI section (always new, never reuse)
         from bengal.utils.url_normalization import join_url_paths
 
-        if "api" not in existing_sections:
-            api_section = Section.create_virtual(
-                name="api",
-                relative_url=join_url_paths("api"),
-                title="API Reference",
-                metadata={
-                    "type": "api-reference",
-                    "weight": 100,
-                    "icon": "book",
-                    "description": "REST API documentation.",
-                },
-            )
-            sections["api"] = api_section
-        else:
-            # Reuse existing API section from Python
-            api_section = existing_sections["api"]
-            sections["api"] = api_section
+        api_section = Section.create_virtual(
+            name=root_name,
+            relative_url=join_url_paths(prefix),
+            title="REST API Reference",
+            metadata={
+                "type": "api-reference",
+                "weight": 100,
+                "icon": "book",
+                "description": "REST API documentation.",
+            },
+        )
+        sections[prefix] = api_section
 
         # Group endpoints by tags
         tagged_endpoints: dict[str, list[DocElement]] = {}
@@ -788,10 +983,11 @@ class VirtualAutodocOrchestrator:
                 pass
             elif element.element_type == "openapi_schema":
                 # Schemas go in a schemas section
-                if "api/schemas" not in sections:
+                schemas_key = f"{prefix}/schemas"
+                if schemas_key not in sections:
                     schemas_section = Section.create_virtual(
                         name="schemas",
-                        relative_url=join_url_paths("api", "schemas"),
+                        relative_url=join_url_paths(prefix, "schemas"),
                         title="Schemas",
                         metadata={
                             "type": "api-reference",
@@ -799,13 +995,13 @@ class VirtualAutodocOrchestrator:
                         },
                     )
                     api_section.add_subsection(schemas_section)
-                    sections["api/schemas"] = schemas_section
+                    sections[schemas_key] = schemas_section
 
         # Create sections for tags
         for tag, _endpoints in tagged_endpoints.items():
             tag_section = Section.create_virtual(
                 name=tag,
-                relative_url=join_url_paths("api", "tags", tag),
+                relative_url=join_url_paths(prefix, "tags", tag),
                 title=tag.replace("-", " ").title(),
                 metadata={
                     "type": "api-reference",
@@ -813,7 +1009,7 @@ class VirtualAutodocOrchestrator:
                 },
             )
             api_section.add_subsection(tag_section)
-            sections[f"api/tags/{tag}"] = tag_section
+            sections[f"{prefix}/tags/{tag}"] = tag_section
 
         logger.debug("autodoc_sections_created", count=len(sections), type="openapi")
         return sections
@@ -907,15 +1103,18 @@ class VirtualAutodocOrchestrator:
             # If so, this page should be the index page of that section
             target_section = None
 
+            # Get the prefix for this doc type to construct correct section paths
+            prefix = self._resolve_output_prefix(doc_type)
+
             if doc_type == "python" and element.element_type == "module":
                 # Check if we have a section for this module (i.e., it is a package)
-                # Section path format from _create_python_sections: api/part1/part2
-                section_path = f"api/{element.qualified_name.replace('.', '/')}"
+                # Section path format from _create_python_sections: {prefix}/part1/part2
+                section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
                 target_section = sections.get(section_path)
 
             elif doc_type == "cli" and element.element_type == "command-group":
-                # Section path format from _create_cli_sections: cli/part1/part2
-                section_path = f"cli/{element.qualified_name.replace('.', '/')}"
+                # Section path format from _create_cli_sections: {prefix}/part1/part2
+                section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
                 target_section = sections.get(section_path)
 
             # Add to section
@@ -950,44 +1149,46 @@ class VirtualAutodocOrchestrator:
         self, element: DocElement, sections: dict[str, Section], doc_type: str
     ) -> Section:
         """Find the appropriate parent section for an element."""
-        # Ensure we have a default section
-        default_section = sections.get("api") or sections.get("cli")
+        prefix = self._resolve_output_prefix(doc_type)
+
+        # Get the first section from sections dict as fallback
+        default_section = next(iter(sections.values()), None)
         if default_section is None:
             # Create a fallback section if none exists
             from bengal.utils.url_normalization import join_url_paths
 
             default_section = Section.create_virtual(
                 name="api",
-                relative_url=join_url_paths("api"),
+                relative_url=join_url_paths(prefix),
                 title="API Reference",
                 metadata={},
             )
 
         if doc_type == "python":
             parts = element.qualified_name.split(".")
-            section_path = "api/" + "/".join(parts[:-1]) if len(parts) > 1 else "api"
-            return sections.get(section_path) or sections.get("api") or default_section
+            section_path = f"{prefix}/" + "/".join(parts[:-1]) if len(parts) > 1 else prefix
+            return sections.get(section_path) or sections.get(prefix) or default_section
         elif doc_type == "cli":
             if element.element_type == "command-group":
-                return sections.get("cli") or default_section
+                return sections.get(prefix) or default_section
             parts = element.qualified_name.split(".")
             if len(parts) > 1:
-                section_path = f"cli/{'.'.join(parts[:-1]).replace('.', '/')}"
-                return sections.get(section_path) or sections.get("cli") or default_section
-            return sections.get("cli") or default_section
+                section_path = f"{prefix}/{'.'.join(parts[:-1]).replace('.', '/')}"
+                return sections.get(section_path) or sections.get(prefix) or default_section
+            return sections.get(prefix) or default_section
         elif doc_type == "openapi":
             if element.element_type == "openapi_overview":
-                return sections.get("api") or default_section
+                return sections.get(prefix) or default_section
             elif element.element_type == "openapi_schema":
-                return sections.get("api/schemas") or sections.get("api") or default_section
+                return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
             elif element.element_type == "openapi_endpoint":
                 tags = get_openapi_tags(element)
                 if tags:
-                    tag_section = sections.get(f"api/tags/{tags[0]}")
+                    tag_section = sections.get(f"{prefix}/tags/{tags[0]}")
                     if tag_section:
                         return tag_section
-                return sections.get("api") or default_section
-        return sections.get("api") or sections.get("cli") or default_section
+                return sections.get(prefix) or default_section
+        return sections.get(prefix) or default_section
 
     def _create_element_page(
         self,
@@ -1050,24 +1251,26 @@ class VirtualAutodocOrchestrator:
 
     def _get_element_metadata(self, element: DocElement, doc_type: str) -> tuple[str, str, str]:
         """Get template name, URL path, and page type for an element."""
+        prefix = self._resolve_output_prefix(doc_type)
+
         if doc_type == "python":
-            url_path = f"api/{element.qualified_name.replace('.', '/')}"
+            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
             return "api-reference/module", url_path, "api-reference"
         elif doc_type == "cli":
             if element.element_type == "command-group":
-                url_path = f"cli/{element.qualified_name.replace('.', '/')}"
+                url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
                 return "cli-reference/command-group", url_path, "cli-reference"
             else:
-                url_path = f"cli/{element.qualified_name.replace('.', '/')}"
+                url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
                 return "cli-reference/command", url_path, "cli-reference"
         elif doc_type == "openapi":
             if element.element_type == "openapi_overview":
-                return "openapi-reference/overview", "api/overview", "api-reference"
+                return "openapi-reference/overview", f"{prefix}/overview", "api-reference"
             elif element.element_type == "openapi_schema":
                 schema_name = element.name
                 return (
                     "openapi-reference/schema",
-                    f"api/schemas/{schema_name}",
+                    f"{prefix}/schemas/{schema_name}",
                     "api-reference",
                 )
             elif element.element_type == "openapi_endpoint":
@@ -1075,11 +1278,11 @@ class VirtualAutodocOrchestrator:
                 path = get_openapi_path(element).strip("/").replace("/", "-")
                 return (
                     "openapi-reference/endpoint",
-                    f"api/endpoints/{method}-{path}",
+                    f"{prefix}/endpoints/{method}-{path}",
                     "api-reference",
                 )
         # Fallback
-        return "api-reference/module", f"api/{element.name}", "api-reference"
+        return "api-reference/module", f"{prefix}/{element.name}", "api-reference"
 
     def _render_element(
         self,

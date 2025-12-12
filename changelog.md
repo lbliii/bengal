@@ -341,6 +341,45 @@
 - **health**: update build_quality_score to include suggestions (0.9 points)
 - **cache**: bump BuildCache.VERSION to 2 for validation_results field
 
+### Theme Configuration Consolidation ✅
+- **themes(config)**: consolidate theme configuration into single `theme.yaml` file
+- **themes(config)**: add `ThemeConfig` dataclass with `load()` method for validated configuration
+- **themes(config)**: add `FeatureFlags`, `AppearanceConfig`, `IconConfig` nested dataclasses
+- **themes(default)**: create `theme.yaml` with features, appearance, and icon aliases
+- **themes**: remove deprecated `features.py` Python registry (migrated to YAML)
+- **docs**: RFC-001 moved to implemented
+
+### Lazy Build Artifacts ✅
+- **utils(build_context)**: add lazy `knowledge_graph` property to eliminate 3x redundant graph construction
+- **orchestration(postprocess)**: use `build_context.knowledge_graph` instead of building local graph
+- **orchestration(streaming)**: accept `build_context` and use shared knowledge graph
+- **health(connectivity)**: use shared graph from build context
+- **perf**: ~400-1000ms faster builds by eliminating redundant graph construction
+- **docs**: RFC moved to implemented
+
+### Progressive Enhancements Architecture ✅
+- **themes(js)**: formalize `data-bengal` attribute pattern for declaring enhancements
+- **themes(js)**: add central enhancement registry with auto-discovery
+- **themes(js)**: implement conditional script loading for all enhancements
+- **docs**: formalize "layered enhancement" philosophy (HTML works, CSS delights, JS elevates)
+- **docs**: RFC moved to implemented
+
+### Orchestrator Performance Improvements ✅
+- **cache(build_cache)**: add `rendered_output` cache for full HTML caching
+- **cache(build_cache)**: add `FileFingerprint` with mtime+size fast path (~200ms saved)
+- **rendering(template_engine)**: leverage Jinja2 `FileSystemBytecodeCache` for template caching
+- **discovery(content)**: parallel content discovery via `ThreadPoolExecutor`
+- **orchestration(incremental)**: add `_get_changed_sections()` for section-level invalidation
+- **cache(dependency_tracker)**: implement `get_affected_pages()` for dependency-aware rebuilds
+- **docs**: RFC Phase 1 & 2 moved to implemented
+
+### Utility Extraction and Consolidation ✅
+- **utils(hashing)**: consolidate SHA256 hashing utilities from 12+ files into single module
+- **utils(retry)**: extract exponential backoff retry logic with sync and async variants
+- **utils(thread_local)**: add `ThreadLocalCache[T]` generic class for thread-safe caching
+- **perf**: eliminate ~150 lines of duplicated logic across codebase
+- **docs**: RFC moved to implemented
+
 ## 0.1.4 - 2025-11-25
 
 ### Configuration System Overhaul (MAJOR)

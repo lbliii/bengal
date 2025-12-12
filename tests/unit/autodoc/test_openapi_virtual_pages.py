@@ -80,16 +80,20 @@ components:
     assert "openapi_schema" in element_types
     assert "openapi_endpoint" in element_types
 
-    assert "api/overview" in url_paths
-    assert "api/schemas/User" in url_paths
-    assert "api/endpoints/get-users" in url_paths
+    # OpenAPI prefix is auto-derived from spec title "Demo API" -> "api/demo"
+    assert "api/demo/overview" in url_paths
+    assert "api/demo/schemas/User" in url_paths
+    assert "api/demo/endpoints/get-users" in url_paths
 
-    # Sections should include the API root and schemas/tag sections
-    section_keys = set(sections.keys())
-    assert "api" in section_keys
-    assert "api/schemas" in section_keys
-    # Tag section created for "users"
-    assert "api/tags/users" in section_keys
+    # Root section should be returned (only root sections are returned by generate())
+    section_names = [s.name for s in sections]
+    assert "demo" in section_names  # Root section with derived name from "Demo API"
+
+    # Verify subsections exist by checking the root section's subsections
+    root_section = sections[0]
+    subsection_names = [s.name for s in root_section.subsections]
+    assert "schemas" in subsection_names  # Schemas subsection
+    assert "users" in subsection_names  # Tag section for "users"
 
     # Result is returned (even if pages rendered later)
     assert result is not None

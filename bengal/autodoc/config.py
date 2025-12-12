@@ -6,10 +6,9 @@ Loads autodoc settings from config/ directory or bengal.toml.
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 
 def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
@@ -32,6 +31,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "strict": False,  # Strict mode: raise on extraction/render failures
         "python": {
             "enabled": False,  # Disabled by default - enable in config
+            "output_prefix": "api/python",  # URL prefix for Python API docs
             "source_dirs": ["."],
             # output_dir removed - virtual pages always output to site.output_dir (public/)
             "exclude": [
@@ -81,11 +81,13 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         },
         "openapi": {
             "enabled": False,
+            "output_prefix": "",  # Empty = auto-derive from spec title (e.g., "api/commerce")
             "spec_file": "api/openapi.yaml",  # Default spec file location
             # output_dir removed - virtual pages always output to site.output_dir (public/)
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config
+            "output_prefix": "cli",  # URL prefix for CLI docs
             "app_module": None,  # e.g., 'bengal.cli:main'
             "framework": "click",  # 'click', 'argparse', 'typer'
             # output_dir removed - virtual pages always output to site.output_dir (public/)

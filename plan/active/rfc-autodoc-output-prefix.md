@@ -1,10 +1,9 @@
 # RFC: Separate Output Paths for Autodoc Types
 
-**Status**: Evaluated  
+**Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-11  
-**Confidence**: 88% 🟢  
-**Plan**: `plan-autodoc-output-prefix.md`
+**Confidence**: 88% 🟢
 
 ---
 
