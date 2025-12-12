@@ -19,6 +19,7 @@ Related Modules:
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -128,6 +129,8 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
 
         # Menu dict cache
         self._menu_dict_cache: dict[str, list[dict[str, Any]]] = {}
+        # Cache referenced-template expansion for dependency tracking
+        self._referenced_template_cache: dict[str, set[str]] = {}
 
     def render(self, template_name: str, context: dict[str, Any]) -> str:
         """
@@ -152,6 +155,8 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
                 logger.debug(
                     "tracked_template_dependency", template=template_name, path=str(template_path)
                 )
+            # Track referenced templates (extends/include/import) as dependencies too.
+            self._track_referenced_templates(template_name)
 
         # Add site to context
         context.setdefault("site", self.site)
@@ -183,6 +188,62 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
                 context_keys=list(context.keys()),
             )
             raise
+
+    def _track_referenced_templates(self, template_name: str) -> None:
+        """
+        Track referenced templates (extends/include/import) as dependencies.
+
+        Jinja templates often extend or include other templates (e.g. `base.html`).
+        To make incremental builds correct, we need to treat these referenced templates
+        as dependencies of the current page too.
+        """
+        if not self._dependency_tracker:
+            return
+
+        if template_name in self._referenced_template_cache:
+            referenced = self._referenced_template_cache[template_name]
+        else:
+            referenced = set()
+            try:
+                from jinja2 import meta
+
+                source, _filename, _uptodate = self.env.loader.get_source(self.env, template_name)
+                ast = self.env.parse(source)
+                for ref in meta.find_referenced_templates(ast) or []:
+                    if isinstance(ref, str):
+                        referenced.add(ref)
+            except Exception:
+                referenced = set()
+            self._referenced_template_cache[template_name] = referenced
+
+        # Expand transitively (best-effort), tracking each resolved file path.
+        stack = list(referenced)
+        seen: set[str] = set()
+        while stack:
+            ref_name = stack.pop()
+            if ref_name in seen:
+                continue
+            seen.add(ref_name)
+
+            ref_path = self._find_template_path(ref_name)
+            if ref_path:
+                with contextlib.suppress(Exception):
+                    self._dependency_tracker.track_partial(ref_path)
+
+            # Recurse into referenced template (cached)
+            if ref_name not in self._referenced_template_cache:
+                try:
+                    from jinja2 import meta
+
+                    src, _filename, _uptodate = self.env.loader.get_source(self.env, ref_name)
+                    ast = self.env.parse(src)
+                    self._referenced_template_cache[ref_name] = {
+                        r for r in (meta.find_referenced_templates(ast) or []) if isinstance(r, str)
+                    }
+                except Exception:
+                    self._referenced_template_cache[ref_name] = set()
+
+            stack.extend(self._referenced_template_cache.get(ref_name, set()))
 
     def get_template_profile(self) -> dict[str, Any] | None:
         """

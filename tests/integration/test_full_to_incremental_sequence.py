@@ -10,6 +10,7 @@ Bug History:
 - Fix: Always save cache after successful builds
 """
 
+import os
 import shutil
 import time
 
@@ -50,17 +51,24 @@ class TestIncrementalSequence:
             "config",  # Modify bengal.toml
         ],
     )
-    @pytest.mark.skip(
-        reason="Flaky: File hash comparison in incremental builds not detecting changes reliably. "
-        "Issue: After modifying files and creating new Site object, incremental build "
-        "still reports 'No changes detected'. Needs investigation of hash computation timing."
-    )
     def test_change_detection(self, tmp_site, change_type):
         """
         Test that incremental builds detect and rebuild only affected files.
 
         Parametrized to reduce redundant site creation across change types.
         """
+
+        def bump_mtime(file_path):
+            """
+            Ensure filesystem mtime differs even on coarse timestamp resolution.
+
+            Incremental change detection uses an (mtime, size) fast path, so tests must
+            deterministically advance mtime to avoid flaky "no changes detected" results.
+            """
+            stat = file_path.stat()
+            new_time = stat.st_mtime + 2.0
+            os.utime(file_path, (new_time, new_time))
+
         site_dir = tmp_site
 
         # Setup basic site
@@ -96,8 +104,9 @@ Original content.""")
             f.write("""
 <!DOCTYPE html>
 <html>
-<head><title>{{ page.title }}</title></head>
+<head><title>{{ site.title }} :: {{ page.title }}</title></head>
 <body>
+<div id="site-title">{{ site.title }}</div>
 <h1>{{ page.title }}</h1>
 {{ content }}
 </body>
@@ -120,29 +129,30 @@ Original content.""")
             page1.write_text("""---
 title: "Page 1"
 ---
-Modified content.""")
+Modified content (updated).""")
+            bump_mtime(page1)
         elif change_type == "template":
             base_html.write_text("""
 <!DOCTYPE html>
 <html>
-<head><title>{{ page.title }} - Updated</title></head>
+<head><title>{{ site.title }} :: {{ page.title }} - Updated</title></head>
 <body>
+<div id="site-title">{{ site.title }}</div>
 <h1>{{ page.title }}</h1>
 {{ content }}
 <footer>Modified template</footer>
 </body>
 </html>
 """)
+            bump_mtime(base_html)
         elif change_type == "config":
             config_path.write_text(
                 config_content.replace('title = "Test Incremental"', 'title = "Updated Title"')
             )
+            bump_mtime(config_path)
 
-        # Wait for file system to update and ensure file handles are closed
-        import os
-
-        time.sleep(0.2)  # Increased wait time for file system to ensure mtime updates
-        os.sync()  # Force file system sync on Unix systems
+        # Give the filesystem a moment to settle after utime/write.
+        time.sleep(0.02)
 
         # Create a new Site object to ensure fresh state after file changes
         # This prevents flakiness where the site object might have stale page references
@@ -166,12 +176,12 @@ Modified content.""")
             elif change_type == "template":
                 assert "Updated" in content or "footer>Modified template" in content
             elif change_type == "config":
-                assert "Updated Title" in content  # Via page title update
+                assert "Updated Title" in content  # Via site.title in template
 
         # Additional incremental (no change) should be very fast
         time.sleep(0.1)
         no_change_stats = site2.build(incremental=True)
-        assert no_change_stats.total_pages > 0
+        assert no_change_stats.skipped is True
 
 
 @pytest.mark.slow

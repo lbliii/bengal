@@ -620,6 +620,22 @@ class IncrementalOrchestrator:
                     # Template unchanged - still update its hash in cache to avoid re-checking
                     self.cache.update_file(template_file)
 
+        # Also check site-level custom templates directory (`root/templates`).
+        # This directory participates in Jinja template resolution (see:
+        # bengal/rendering/template_engine/environment.py:create_jinja_environment),
+        # so changes here must invalidate dependent pages.
+        site_templates_dir = self.site.root_path / "templates"
+        if site_templates_dir.exists():
+            for template_file in site_templates_dir.rglob("*.html"):
+                if self.cache.is_changed(template_file):
+                    if verbose:
+                        change_summary.modified_templates.append(template_file)
+                    affected = self.cache.get_affected_pages(template_file)
+                    for page_path_str in affected:
+                        pages_to_rebuild.add(Path(page_path_str))
+                else:
+                    self.cache.update_file(template_file)
+
         # Check which autodoc pages need to be rebuilt based on source file changes
         autodoc_pages_to_rebuild: set[str] = set()
         if (
