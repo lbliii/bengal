@@ -8,43 +8,26 @@ Quick commands for working with Bengal using `uv`.
 # One-time: Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Create virtual environment
-uv venv
-
-# Activate environment
-source .venv/bin/activate  # macOS/Linux
-# or
-.venv\Scripts\activate  # Windows
-
-# Install Bengal in development mode
-uv pip install -e ".[dev]"
+# Recommended (uses Python 3.14t if available)
+make setup
+make install
 ```
 
 ## Daily Development
 
 ```bash
-# Install a new dependency
-uv pip install package-name
-
-# Install and add to pyproject.toml (manual edit still needed)
-uv pip install package-name
-# Then add to pyproject.toml dependencies
-
-# Upgrade all dependencies
-uv pip install -e ".[dev]" --upgrade
-
-# Reinstall/sync current environment
-uv pip install -e ".[dev]"
+# Re-sync dev dependencies (frozen by default in Makefile)
+make install
 ```
 
 ## Lock File Management
 
 ```bash
-# Generate/update lock file after changing pyproject.toml
-uv pip compile pyproject.toml -o requirements.lock --all-extras
+# Update the uv lockfile after changing pyproject.toml
+uv lock
 
-# Install from lock file (exact versions)
-uv pip sync requirements.lock
+# Sync dependencies (includes dev group when requested)
+uv sync --group dev
 ```
 
 ## Why uv?
@@ -59,19 +42,19 @@ uv pip sync requirements.lock
 
 ```bash
 # Run tests
-pytest
+uv run pytest
 
 # Run tests with coverage
-pytest --cov=bengal
+uv run pytest --cov=bengal
 
 # Format code
-black bengal/
+uv run ruff format bengal/ tests/
 
 # Lint
-ruff check bengal/
+uv run ruff check bengal/ tests/
 
 # Type check
-mypy bengal/
+uv run mypy bengal/
 
 # Build example site
 cd examples/showcase
@@ -88,9 +71,8 @@ bengal site serve
 rm -rf .venv
 
 # Create fresh environment
-uv venv
-source .venv/bin/activate
-uv pip install -e ".[dev]"
+make setup
+make install
 ```
 
 ## CI/CD Integration (Future)
@@ -140,4 +122,3 @@ uv pip install -e ".[dev]" --resolution=highest
 
 - [uv Documentation](https://docs.astral.sh/uv/)
 - [Bengal Contributing Guide](CONTRIBUTING.md)
-- [Bengal Getting Started](GETTING_STARTED.md)

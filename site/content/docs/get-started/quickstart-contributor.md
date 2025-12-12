@@ -39,12 +39,11 @@ Set up Bengal for development and start contributing.
 git clone https://github.com/YOUR-USERNAME/bengal.git
 cd bengal
 
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Create virtual environment (Python 3.14t recommended)
+make setup
 
-# Install in development mode with all dependencies
-pip install -e ".[dev]"
+# Install dependencies (PEP 735 dependency groups) into .venv
+make install
 
 # Verify installation
 bengal --version
@@ -54,13 +53,13 @@ bengal --version
 
 ```bash
 # Run all tests
-pytest
+make test
 
 # Run specific test file
-pytest tests/unit/test_page.py
+uv run pytest tests/unit/test_page.py
 
 # Run with coverage
-pytest --cov=bengal
+uv run pytest --cov=bengal
 ```
 
 ## Project Structure
@@ -110,10 +109,10 @@ Add tests in `tests/unit/` or `tests/integration/`.
 :duration: 1 min
 ```bash
 # Format code
-ruff format bengal/ tests/
+uv run ruff format bengal/ tests/
 
 # Lint
-ruff check bengal/ tests/ --fix
+uv run ruff check bengal/ tests/ --fix
 ```
 :::{/step}
 
@@ -124,7 +123,7 @@ ruff check bengal/ tests/ --fix
 git add -A && git commit -m "core: add feature description"
 ```
 
-Follow the commit message format described in the project's [CONTRIBUTING guidelines](https://github.com/lbliii/bengal/blob/main/CONTRIBUTING.md).
+Follow the commit message format described in `CONTRIBUTING.md`.
 :::{/step}
 
 :::{step} Push and Create PR

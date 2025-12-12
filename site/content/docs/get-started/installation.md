@@ -62,7 +62,8 @@ This installs Bengal in an isolated environment while making the `bengal` comman
 ```bash
 git clone https://github.com/lbliii/bengal.git
 cd bengal
-pip install -e ".[dev]"
+make setup
+make install
 ```
 
 This installs Bengal in development mode.
