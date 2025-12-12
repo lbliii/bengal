@@ -1715,6 +1715,11 @@ class VirtualAutodocOrchestrator:
 
         for source_dir in source_dirs:
             source_path = Path(source_dir)
+            # Treat relative paths as relative to the site root, not the current working directory.
+            # This is critical for CI/public builds and for tests where the process CWD is not the
+            # site root but the config uses relative paths (e.g., "src", "bengal").
+            if not source_path.is_absolute():
+                source_path = self.site.root_path / source_path
             if not source_path.exists():
                 logger.warning(
                     "autodoc_source_dir_not_found",

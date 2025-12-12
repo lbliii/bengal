@@ -1,12 +1,10 @@
+[site]
 title = "Test Autodoc Layouts"
-base_url = "https://example.com"
+baseurl = "/"
 
 [build]
 theme = "default"
 
-[autodoc]
-sources = ["src"]
-output_dir = "content/api"
-
 [autodoc.python]
 enabled = true
+source_dirs = ["src"]
