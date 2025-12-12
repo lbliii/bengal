@@ -181,12 +181,39 @@ class DocElement:
 
         metadata_class = type_map[type_name]
 
+        # Helper to safely convert parameter data to ParameterInfo with clear error on mismatch
+        def _to_param_info(p: Any, context: str) -> ParameterInfo:
+            """Convert param data to ParameterInfo, failing loudly on format mismatch."""
+            if isinstance(p, dict):
+                return ParameterInfo(**p)
+            raise TypeError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}. "
+                f"Value: {p!r}. This usually means the cache was created with an older version. "
+                f"Clear the cache with: rm -rf .bengal/cache/"
+            )
+
+        def _to_raises_info(r: Any, context: str) -> RaisesInfo:
+            """Convert raises data to RaisesInfo, failing loudly on format mismatch."""
+            if isinstance(r, dict):
+                return RaisesInfo(**r)
+            raise TypeError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}. "
+                f"Value: {r!r}. This usually means the cache was created with an older version. "
+                f"Clear the cache with: rm -rf .bengal/cache/"
+            )
+
         # Handle nested dataclasses
         if type_name == "PythonClassMetadata" and type_data.get("parsed_doc"):
             pd = type_data["parsed_doc"]
             if pd:
-                params = tuple(ParameterInfo(**p) for p in pd.get("params", ()))
-                raises = tuple(RaisesInfo(**r) for r in pd.get("raises", ()))
+                params = tuple(
+                    _to_param_info(p, "PythonClassMetadata.parsed_doc.params")
+                    for p in pd.get("params", ())
+                )
+                raises = tuple(
+                    _to_raises_info(r, "PythonClassMetadata.parsed_doc.raises")
+                    for r in pd.get("raises", ())
+                )
                 type_data["parsed_doc"] = ParsedDocstring(
                     summary=pd.get("summary", ""),
                     description=pd.get("description", ""),
@@ -199,13 +226,22 @@ class DocElement:
         if type_name == "PythonFunctionMetadata":
             # Convert parameters list to tuple of ParameterInfo
             if type_data.get("parameters"):
-                type_data["parameters"] = tuple(ParameterInfo(**p) for p in type_data["parameters"])
+                type_data["parameters"] = tuple(
+                    _to_param_info(p, "PythonFunctionMetadata.parameters")
+                    for p in type_data["parameters"]
+                )
             # Handle parsed_doc
             if type_data.get("parsed_doc"):
                 pd = type_data["parsed_doc"]
                 if pd:
-                    params = tuple(ParameterInfo(**p) for p in pd.get("params", ()))
-                    raises = tuple(RaisesInfo(**r) for r in pd.get("raises", ()))
+                    params = tuple(
+                        _to_param_info(p, "PythonFunctionMetadata.parsed_doc.params")
+                        for p in pd.get("params", ())
+                    )
+                    raises = tuple(
+                        _to_raises_info(r, "PythonFunctionMetadata.parsed_doc.raises")
+                        for r in pd.get("raises", ())
+                    )
                     type_data["parsed_doc"] = ParsedDocstring(
                         summary=pd.get("summary", ""),
                         description=pd.get("description", ""),

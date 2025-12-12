@@ -264,7 +264,7 @@ class VirtualAutodocOrchestrator:
         autodoc_cfg = self.site.config.get("autodoc", {})
         cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
         return {
-            "version": 1,
+            "version": 2,  # Bumped: v2 uses dict format for ParameterInfo/RaisesInfo
             "autodoc_config_hash": cfg_hash,
             "elements": {
                 k: [e.to_dict() for e in v]

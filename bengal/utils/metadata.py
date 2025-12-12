@@ -116,6 +116,37 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     if exposure not in ("minimal", "standard", "extended"):
         exposure = "minimal"
 
+    # Optimization: cache computed metadata on the Site for the duration of a build.
+    # This function is called when creating Jinja environments; in parallel builds
+    # each worker thread constructs its own Environment, so caching avoids repeating
+    # imports/version detection work (mistune/markdown/pygments/theme package).
+    #
+    # Cache is disabled in dev server mode to reflect config/theme changes quickly.
+    if not config.get("dev_server", False):
+        try:
+            i18n_info = _get_i18n_info(config)
+            cache_key = (
+                exposure,
+                getattr(site, "theme", None),
+                getattr(site, "baseurl", None),
+                getattr(getattr(site, "build_time", None), "isoformat", lambda: None)(),
+                config.get("markdown_engine"),
+                (config.get("markdown", {}) or {}).get("parser"),
+                i18n_info.get("strategy"),
+                i18n_info.get("defaultLanguage"),
+                tuple(i18n_info.get("languages") or []),
+            )
+            cached = getattr(site, "_bengal_template_metadata_cache", None)
+            if (
+                isinstance(cached, dict)
+                and cached.get("key") == cache_key
+                and isinstance(cached.get("metadata"), dict)
+            ):
+                return cached["metadata"]
+        except Exception:
+            # Best-effort caching only; never fail metadata generation
+            pass
+
     engine = {"name": "Bengal SSG", "version": BENGAL_VERSION}
 
     # Always compute full set, then filter based on exposure
@@ -158,13 +189,21 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     }
 
     if exposure == "minimal":
-        return {"engine": engine}
+        result: dict[str, Any] = {"engine": engine}
     elif exposure == "standard":
-        return {
+        result = {
             "engine": engine,
             "theme": theme_info,
             "build": build,
             "i18n": i18n,
         }
     else:  # extended
-        return full
+        result = full
+
+    if not config.get("dev_server", False):
+        try:
+            site._bengal_template_metadata_cache = {"key": cache_key, "metadata": result}
+        except Exception:
+            pass
+
+    return result

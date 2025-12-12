@@ -200,8 +200,7 @@ See: plan/active/rfc-template-performance-optimization.md
     {% endif %}
 </head>
 
-<body
-    data-type="{{ _page.type if _has_page else '' }}"
+<body data-type="{{ _page.type if _has_page else '' }}"
     data-variant="{{ (_page.variant if (_has_page and _page.variant) else '') }}"
     class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
@@ -278,8 +277,8 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% set _params = site.config.get('params', {}) %}
                     {% if _params.get('repo_url') and not github_bundled %}
                     <li>
-                        <a href="{{ _params.repo_url }}" target="_blank" rel="noopener"
-                            title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
+                        <a href="{{ _params.repo_url }}" target="_blank" rel="noopener" title="GitHub Repository"
+                            data-external="true" aria-label="GitHub (opens in new tab)">
                             {{ icon('github-logo', size=16) }}
                             <span>GitHub</span>
                         </a>
@@ -446,14 +445,10 @@ See: plan/active/rfc-template-performance-optimization.md
                 </div>
                 <div class="footer-right">
                     {% if _build_badge_enabled %}
-                    <a class="bengal-build-time"
-                        data-bengal-build-badge
+                    <a class="bengal-build-time" data-bengal-build-badge
                         data-bengal-build-badge-dir="{{ _build_badge_dir_name }}"
-                        data-bengal-build-badge-label="{{ _build_badge_label }}"
-                        href="#"
-                        aria-label="{{ _build_badge_label }}"
-                        title="{{ _build_badge_label }}"
-                        hidden>
+                        data-bengal-build-badge-label="{{ _build_badge_label }}" href="#"
+                        aria-label="{{ _build_badge_label }}" title="{{ _build_badge_label }}" hidden>
                         <span class="bengal-build-time__label">{{ _build_badge_label }}</span>
                         <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
                     </a>

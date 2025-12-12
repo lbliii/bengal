@@ -21,7 +21,7 @@
         <div class="hero__container">
             <div class="hero__content">
                 <h1 class="hero__title">
-                    <span class="fluid-text">{{ page.title | default(site.config.title) }}</span>
+                    <span class="fluid-text-deep-tunnel">{{ page.title | default(site.config.title) }}</span>
                 </h1>
                 {% if page.metadata.get('description', '') %}
                 <p class="hero__subtitle">{{ page.metadata.get('description', '') }}</p>

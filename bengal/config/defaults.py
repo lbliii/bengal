@@ -290,6 +290,14 @@ DEFAULTS: dict[str, Any] = {
     "markdown": {
         "parser": "mistune",
         "toc_depth": "2-4",
+        "ast_cache": {
+            # Experimental: capture Mistune tokens from the same parse used to render HTML,
+            # and skip the redundant parse_to_ast() pass in the pipeline.
+            "single_pass_tokens": False,
+            # Persist tokens into the parsed-content cache. This can increase cache size and
+            # cold-build write time. Keep False until there is a stable downstream consumer.
+            "persist_tokens": False,
+        },
     },
 }
 

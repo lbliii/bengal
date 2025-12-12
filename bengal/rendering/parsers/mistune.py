@@ -110,7 +110,7 @@ class MistuneParser(BaseMarkdownParser):
 
         self._validator = DirectiveSyntaxValidator()
 
-        # Build plugins list
+        # Build plugins list (reused for consistent parser configuration)
         plugins = [
             "table",  # Built-in: GFM tables
             "strikethrough",  # Built-in: ~~text~~
@@ -151,6 +151,7 @@ class MistuneParser(BaseMarkdownParser):
             plugins=plugins,
             renderer=self._shared_renderer,  # Use shared renderer (with escape=False)
         )
+        self._base_plugins = list(plugins)
 
         # Cache for mistune library (import on first use)
         import mistune
@@ -556,6 +557,130 @@ class MistuneParser(BaseMarkdownParser):
             )
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
+    # =========================================================================
+    # Experimental: single-pass token capture (Option A spike)
+    # =========================================================================
+
+    def parse_with_context_and_tokens(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """
+        Parse Markdown with variable substitution support and also return tokens.
+
+        This mirrors parse_with_context() semantics, but it uses Mistune's
+        `Markdown.parse()` to capture `BlockState.tokens` from the SAME configured
+        Markdown instance that renders HTML (directives, term plugin, etc.).
+
+        This is intended for investigation only (RFC spike).
+        """
+        if not content:
+            return "", []
+
+        # Import on demand
+        if self._mistune is None:
+            import mistune
+
+            self._mistune = mistune
+
+        from bengal.rendering.plugins import (
+            TermPlugin,
+            VariableSubstitutionPlugin,
+            create_documentation_directives,
+        )
+
+        # Create parser once, reuse thereafter (same as parse_with_context)
+        if self._md_with_vars is None:
+            self._var_plugin = VariableSubstitutionPlugin(context)
+
+            var_plugins = [
+                "table",
+                "strikethrough",
+                "task_lists",
+                "url",
+                "footnotes",
+                "def_list",
+                "math",
+                self._var_plugin,
+                create_documentation_directives(),
+                TermPlugin(),
+            ]
+
+            if self.enable_highlighting:
+                var_plugins.append(self._create_syntax_highlighting_plugin())
+
+            self._md_with_vars = self._mistune.create_markdown(
+                plugins=var_plugins,
+                renderer=self._shared_renderer,
+            )
+        else:
+            self._var_plugin.update_context(context)
+
+        # Keep renderer state aligned (same as parse_with_context)
+        current_page = context.get("page") if "page" in context else None
+        self._shared_renderer._current_page = current_page  # type: ignore[attr-defined]
+        site = context.get("site")
+        self._shared_renderer._site = site  # type: ignore[attr-defined]
+
+        if current_page and hasattr(current_page, "source_path"):
+            page_source = current_page.source_path
+            source_str = str(page_source)
+            if source_str.endswith("/_index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-10]  # type: ignore[attr-defined]
+            elif source_str.endswith("/index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-9]  # type: ignore[attr-defined]
+            elif "/" in source_str:
+                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]  # type: ignore[attr-defined]
+            else:
+                self._shared_renderer._current_page_dir = ""  # type: ignore[attr-defined]
+        else:
+            self._shared_renderer._current_page_dir = None  # type: ignore[attr-defined]
+
+        try:
+            # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
+            content = self._var_plugin.preprocess(content)
+
+            html, state = self._md_with_vars.parse(content)
+            tokens = list(getattr(state, "tokens", []) or [])
+
+            # Post-process: Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }}
+            html = self._var_plugin.restore_placeholders(html)
+
+            # Post-process: Escape any raw Jinja2 block syntax
+            html = self._escape_jinja_blocks(html)
+
+            # Post-process for badges and inline icons
+            html = self._badge_plugin._substitute_badges(html)
+            html = self._inline_icon_plugin._substitute_icons(html)
+
+            # Post-process for cross-references if enabled
+            if self._xref_enabled and self._xref_plugin:
+                html = self._xref_plugin._substitute_xrefs(html)
+
+            return html, tokens
+        except Exception as e:
+            logger.warning(
+                "mistune_parsing_error_with_tokens", error=str(e), error_type=type(e).__name__
+            )
+            return (
+                f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>',
+                [],
+            )
+
+    def parse_with_toc_and_context_and_tokens(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> tuple[str, str, list[dict[str, Any]]]:
+        """
+        Parse Markdown with variable substitution, extract TOC, and return tokens.
+
+        Investigation API: equivalent to parse_with_toc_and_context(), but also
+        returns Mistune `BlockState.tokens` from the same parse used to produce HTML.
+        """
+        html, tokens = self.parse_with_context_and_tokens(content, metadata, context)
+
+        html = self._inject_heading_anchors(html)
+        toc = self._extract_toc(html)
+        return html, toc, tokens
+
     def _escape_jinja_blocks(self, html: str) -> str:
         """
         Escape raw Jinja2 block delimiters in HTML content.
@@ -724,9 +849,16 @@ class MistuneParser(BaseMarkdownParser):
         if not content:
             return []
 
-        # Create AST parser lazily (shares plugins with main parser)
+        # Create AST parser lazily.
+        #
+        # IMPORTANT: Use the same plugin set as the HTML parser so directive tokens
+        # are present in the returned token stream.
         if self._ast_parser is None:
-            self._ast_parser = self._mistune.create_markdown(renderer=None)
+            plugins = getattr(self, "_base_plugins", None)
+            self._ast_parser = self._mistune.create_markdown(
+                renderer=None,
+                plugins=list(plugins) if isinstance(plugins, list) else [],
+            )
 
         try:
             # Parse returns AST when renderer=None

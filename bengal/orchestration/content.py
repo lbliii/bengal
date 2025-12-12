@@ -265,7 +265,8 @@ class ContentOrchestrator:
                 cached_payload = cache.get_page_cache(cache_key)
                 if (
                     isinstance(cached_payload, dict)
-                    and cached_payload.get("version") == 1
+                    and cached_payload.get("version")
+                    == 2  # v2: dict format for ParameterInfo/RaisesInfo
                     and cached_payload.get("autodoc_config_hash") == current_cfg_hash
                 ):
                     changed = False

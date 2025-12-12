@@ -574,6 +574,293 @@
 }
 
 /* ============================================
+   FLUID TEXT TUNNEL/KEYHOLE EFFECT
+   Like peering through the letters into a deep space
+   ============================================ */
+
+.fluid-text-tunnel,
+.hero__title .fluid-text-tunnel,
+h1 .fluid-text-tunnel {
+  position: relative;
+  display: inline-block;
+
+  /*
+   * Multi-layer parallax background creates depth illusion
+   * Deeper/darker colors at edges, lighter "distant" center
+   */
+  background:
+    /* Layer 1: Distant light source (deepest, slowest) */
+    radial-gradient(
+      ellipse 80% 60% at 50% 45%,
+      rgba(255, 248, 220, 0.95) 0%,
+      rgba(255, 215, 140, 0.8) 15%,
+      rgba(205, 160, 80, 0.7) 30%,
+      rgba(139, 90, 43, 0.85) 50%,
+      rgba(80, 50, 20, 0.95) 70%,
+      rgba(30, 18, 8, 1) 100%
+    ),
+    /* Layer 2: Animated nebula/atmosphere */
+    radial-gradient(
+      circle at var(--tunnel-glow-x, 50%) var(--tunnel-glow-y, 45%),
+      rgba(255, 200, 100, 0.4) 0%,
+      transparent 50%
+    ),
+    /* Layer 3: Subtle star-like particles */
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 2%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.25) 0%, transparent 1.5%),
+    radial-gradient(circle at 45% 75%, rgba(255,255,255,0.2) 0%, transparent 1%),
+    radial-gradient(circle at 85% 25%, rgba(255,255,255,0.35) 0%, transparent 2.5%),
+    /* Base: Dark void */
+    linear-gradient(180deg, #1a0f05 0%, #0d0704 100%) !important;
+
+  background-size:
+    100% 100%,
+    200% 200%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100% !important;
+
+  /* Clip to text - must use all properties to ensure clipping works */
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+
+  /* Animate the glow layer for subtle depth movement */
+  animation: tunnel-glow-drift 8s ease-in-out infinite;
+
+  /* Inner shadow illusion via filter */
+  filter:
+    drop-shadow(0 0 20px rgba(255, 200, 100, 0.3))
+    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* Dark theme - cooler tunnel with blue/purple depth */
+[data-theme="dark"] .fluid-text-tunnel,
+[data-theme="dark"] .hero__title .fluid-text-tunnel,
+[data-theme="dark"] h1 .fluid-text-tunnel {
+  background:
+    /* Layer 1: Distant cool light source */
+    radial-gradient(
+      ellipse 80% 60% at 50% 45%,
+      rgba(200, 220, 255, 0.9) 0%,
+      rgba(140, 170, 230, 0.75) 15%,
+      rgba(80, 100, 180, 0.7) 30%,
+      rgba(40, 50, 120, 0.85) 50%,
+      rgba(20, 25, 60, 0.95) 70%,
+      rgba(5, 8, 20, 1) 100%
+    ),
+    /* Layer 2: Animated glow */
+    radial-gradient(
+      circle at var(--tunnel-glow-x, 50%) var(--tunnel-glow-y, 45%),
+      rgba(120, 160, 255, 0.4) 0%,
+      transparent 50%
+    ),
+    /* Layer 3: Stars */
+    radial-gradient(circle at 25% 35%, rgba(255,255,255,0.4) 0%, transparent 2%),
+    radial-gradient(circle at 75% 55%, rgba(180,200,255,0.3) 0%, transparent 1.5%),
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,0.25) 0%, transparent 1%),
+    radial-gradient(circle at 80% 20%, rgba(200,180,255,0.4) 0%, transparent 2.5%),
+    /* Base: Deep void */
+    linear-gradient(180deg, #0a0d15 0%, #03050a 100%) !important;
+
+  /* Must re-declare clip when overriding background */
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+
+  filter:
+    drop-shadow(0 0 25px rgba(120, 160, 255, 0.4))
+    drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+/* Subtle parallax drift animation */
+@keyframes tunnel-glow-drift {
+  0%, 100% {
+    --tunnel-glow-x: 48%;
+    --tunnel-glow-y: 43%;
+    background-position:
+      50% 50%,
+      0% 0%,
+      0% 0%,
+      0% 0%,
+      0% 0%,
+      0% 0%,
+      0% 0%;
+  }
+  25% {
+    --tunnel-glow-x: 52%;
+    --tunnel-glow-y: 47%;
+    background-position:
+      50% 50%,
+      25% 10%,
+      2% 1%,
+      -1% 2%,
+      1% -1%,
+      -2% 1%,
+      0% 0%;
+  }
+  50% {
+    --tunnel-glow-x: 50%;
+    --tunnel-glow-y: 42%;
+    background-position:
+      50% 50%,
+      50% 25%,
+      3% 2%,
+      -2% 3%,
+      2% -2%,
+      -3% 2%,
+      0% 0%;
+  }
+  75% {
+    --tunnel-glow-x: 47%;
+    --tunnel-glow-y: 48%;
+    background-position:
+      50% 50%,
+      75% 15%,
+      1% 3%,
+      -1% 1%,
+      3% -1%,
+      -1% 3%,
+      0% 0%;
+  }
+}
+
+/* ============================================
+   DEEP TUNNEL VARIANT
+   More dramatic depth with vignette
+   ============================================ */
+
+.fluid-text-deep-tunnel,
+.hero__title .fluid-text-deep-tunnel,
+h1 .fluid-text-deep-tunnel {
+  position: relative;
+  display: inline-block;
+
+  /* Even more dramatic depth - like looking down a well */
+  background:
+    /* Bright distant point of light */
+    radial-gradient(
+      ellipse 40% 30% at 50% 48%,
+      rgba(255, 252, 240, 1) 0%,
+      rgba(255, 230, 180, 0.9) 20%,
+      transparent 50%
+    ),
+    /* Mid-depth warm glow */
+    radial-gradient(
+      ellipse 70% 50% at 50% 50%,
+      rgba(180, 120, 60, 0.6) 0%,
+      rgba(100, 60, 30, 0.8) 40%,
+      transparent 70%
+    ),
+    /* Animated floating particles/dust */
+    radial-gradient(circle at 35% 40%, rgba(255,240,200,0.5) 0%, transparent 3%),
+    radial-gradient(circle at 65% 55%, rgba(255,230,180,0.4) 0%, transparent 2%),
+    radial-gradient(circle at 40% 65%, rgba(255,220,160,0.3) 0%, transparent 2.5%),
+    /* Dark vignette walls */
+    radial-gradient(
+      ellipse 100% 80% at 50% 50%,
+      transparent 30%,
+      rgba(20, 12, 5, 0.7) 60%,
+      rgba(10, 5, 2, 0.95) 80%,
+      rgb(5, 2, 1) 100%
+    ),
+    /* Base void */
+    #030201 !important;
+
+  background-size: 100% 100% !important;
+
+  /* Critical: Must clip background to text shape */
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+
+  animation: deep-tunnel-pulse 10s ease-in-out infinite;
+
+  filter:
+    drop-shadow(0 0 30px rgba(255, 200, 100, 0.4))
+    drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+}
+
+[data-theme="dark"] .fluid-text-deep-tunnel,
+[data-theme="dark"] .hero__title .fluid-text-deep-tunnel,
+[data-theme="dark"] h1 .fluid-text-deep-tunnel {
+  background:
+    /* Bright distant light - cosmic blue */
+    radial-gradient(
+      ellipse 40% 30% at 50% 48%,
+      rgba(220, 240, 255, 1) 0%,
+      rgba(150, 200, 255, 0.9) 20%,
+      transparent 50%
+    ),
+    /* Mid-depth cool glow */
+    radial-gradient(
+      ellipse 70% 50% at 50% 50%,
+      rgba(60, 100, 180, 0.6) 0%,
+      rgba(30, 50, 100, 0.8) 40%,
+      transparent 70%
+    ),
+    /* Floating particles/stars */
+    radial-gradient(circle at 30% 35%, rgba(200,220,255,0.6) 0%, transparent 3%),
+    radial-gradient(circle at 70% 60%, rgba(180,200,255,0.5) 0%, transparent 2%),
+    radial-gradient(circle at 45% 70%, rgba(220,230,255,0.4) 0%, transparent 2.5%),
+    /* Dark vignette */
+    radial-gradient(
+      ellipse 100% 80% at 50% 50%,
+      transparent 30%,
+      rgba(5, 10, 25, 0.7) 60%,
+      rgba(2, 5, 15, 0.95) 80%,
+      rgb(1, 2, 8) 100%
+    ),
+    /* Base void */
+    #010208 !important;
+
+  /* Must re-declare clip when overriding background */
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+
+  filter:
+    drop-shadow(0 0 35px rgba(100, 150, 255, 0.5))
+    drop-shadow(0 6px 15px rgba(0, 0, 0, 0.6));
+}
+
+@keyframes deep-tunnel-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 30px rgba(255, 200, 100, 0.4))
+      drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 40px rgba(255, 200, 100, 0.6))
+      drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+  }
+}
+
+[data-theme="dark"] .fluid-text-deep-tunnel {
+  animation: deep-tunnel-pulse-dark 10s ease-in-out infinite;
+}
+
+@keyframes deep-tunnel-pulse-dark {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 35px rgba(100, 150, 255, 0.5))
+      drop-shadow(0 6px 15px rgba(0, 0, 0, 0.6));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 50px rgba(100, 150, 255, 0.7))
+      drop-shadow(0 6px 15px rgba(0, 0, 0, 0.6));
+  }
+}
+
+/* ============================================
    REDUCED MOTION
    ============================================ */
 
