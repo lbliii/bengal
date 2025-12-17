@@ -50,7 +50,13 @@ def create_index_pages(
         # Page type controls CSS styling, template dir may differ
         section_type = section.metadata.get("type", "python-reference")
         template_dir = get_template_dir_for_type(section_type)
-        template_name = f"{template_dir}/section-index"
+
+        # api-hub sections use 'home' template for the premium landing page
+        # with banner and tiles; other sections use 'section-index'
+        if section_type == "api-hub":
+            template_name = f"{template_dir}/home"
+        else:
+            template_name = f"{template_dir}/section-index"
 
         # Create page with deferred rendering - HTML rendered in rendering phase
         # NOTE: We pass autodoc_element=None for section-index pages because:
@@ -98,7 +104,12 @@ def render_section_index(
     """Render section index page HTML."""
     section_type = section.metadata.get("type", "python-reference")
     template_dir = get_template_dir_for_type(section_type)
-    template_name = f"{template_dir}/section-index"
+
+    # api-hub sections use 'home' template for the premium landing page
+    if section_type == "api-hub":
+        template_name = f"{template_dir}/home"
+    else:
+        template_name = f"{template_dir}/section-index"
 
     # Create a page-like context for templates that expect a 'page' variable
     page_context = PageContext(

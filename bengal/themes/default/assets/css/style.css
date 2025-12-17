@@ -239,6 +239,10 @@
 }
 
 @layer components {
+  @import url('components/api-hub.css');
+}
+
+@layer components {
   @import url('components/tutorial.css');
 }
 
