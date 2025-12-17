@@ -66,6 +66,7 @@ def create_python_sections(
             "weight": 100,
             "icon": "book",
             "description": "Browse Python API documentation by package.",
+            "nav_root": True,  # Act as navigation root (don't show parent in sidebar)
         },
     )
     sections[prefix] = api_section
@@ -141,6 +142,7 @@ def create_cli_sections(
             "weight": 100,
             "icon": "terminal",
             "description": "Command-line interface documentation.",
+            "nav_root": True,  # Act as navigation root (don't show parent in sidebar)
         },
     )
     sections[prefix] = cli_section
@@ -213,6 +215,7 @@ def create_openapi_sections(
             "weight": 100,
             "icon": "book",
             "description": "REST API documentation.",
+            "nav_root": True,  # Act as navigation root (don't show parent in sidebar)
         },
     )
     sections[prefix] = api_section

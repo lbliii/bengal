@@ -281,14 +281,25 @@ class Section:
         """
         Get the root section of this section's hierarchy.
 
+        Traverses up the parent chain until reaching either:
+        - A section with no parent (topmost ancestor)
+        - A section with nav_root: true metadata (navigation boundary)
+
+        The nav_root metadata allows sections to act as their own navigation
+        root, useful for autodoc collections (e.g., /api/python/) that should
+        not show their parent aggregator (/api/) in the sidebar.
+
         Returns:
-            The topmost ancestor section
+            The navigation root section
 
         Example:
             {% set root_section = page._section.root %}
         """
         current = self
         while current.parent:
+            # Stop if current section declares itself as a nav root
+            if current.metadata.get("nav_root"):
+                return current
             current = current.parent
         return current
 
