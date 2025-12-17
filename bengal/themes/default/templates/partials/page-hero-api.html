@@ -34,17 +34,6 @@ Designed for: module.html, class pages, function pages
 {%- endmacro %}
 
 {% if page %}
-{# Compute stats from element if available - element may be None for section-index pages #}
-{% set element_children = element.children if (element and element.children is defined) else [] %}
-{% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
-{% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
-{% set methods = element_children | selectattr('element_type', 'eq', 'method') | list %}
-{# CLI-specific stats #}
-{% set commands = element_children | selectattr('element_type', 'eq', 'command') | list %}
-{% set command_groups = element_children | selectattr('element_type', 'eq', 'command-group') | list %}
-{% set options = element_children | selectattr('element_type', 'eq', 'option') | list %}
-{% set arguments = element_children | selectattr('element_type', 'eq', 'argument') | list %}
-
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
   <div class="page-hero__top">
@@ -62,83 +51,8 @@ Designed for: module.html, class pages, function pages
       {% endif %}
     </nav>
 
-    {# Actions: LLM Share Button #}
-    <div class="page-hero__actions">
-      {% set page_url = canonical_url(get_page_url(page)) %}
-      {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
-      {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
-
-      <div class="page-hero__share">
-        <button class="page-hero__share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
-          aria-controls="page-hero-share-dropdown" title="Share with AI assistants">
-          <span>ᗢ</span>
-          {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
-        </button>
-
-        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
-          <div class="page-hero__share-content">
-            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
-              {{ icon('link', size=16) }}
-              <span>Copy URL</span>
-            </button>
-
-            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item"
-              role="menuitem">
-              {{ icon('external', size=16) }}
-              <span>Open LLM text</span>
-            </a>
-
-            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
-              role="menuitem">
-              {{ icon('copy', size=16) }}
-              <span>Copy LLM text</span>
-            </button>
-
-            <hr class="page-hero__share-separator">
-
-            <div class="page-hero__share-section-header">Share with AI</div>
-
-            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="claude" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span>Ask Claude</span>
-            </a>
-
-            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
-              </svg>
-              <span>Ask ChatGPT</span>
-            </a>
-
-            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-              rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="gemini"
-              role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-              <span>Ask Gemini</span>
-            </a>
-
-            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
-              rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="copilot"
-              role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-              </svg>
-              <span>Ask Copilot</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+    {# Share dropdown (uses icon system) #}
+    {% include 'partials/page-hero/_share-dropdown.html' %}
   </div>
 
   {# Badge row - element type indicators (skip if element is None) #}
@@ -180,68 +94,9 @@ Designed for: module.html, class pages, function pages
     </a>
     {% endif %}
 
-    {# Stats for modules (element-based) #}
-    {% if classes | length > 0 or functions | length > 0 %}
-    <div class="page-hero__stats">
-      {% if classes | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ classes | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Class' if classes | length == 1 else 'Classes' }}</span>
-      </span>
-      {% endif %}
-      {% if functions | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ functions | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Function' if functions | length == 1 else 'Functions' }}</span>
-      </span>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {# Stats for classes (element-based) #}
-    {% if methods | length > 0 %}
-    <div class="page-hero__stats">
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ methods | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Method' if methods | length == 1 else 'Methods' }}</span>
-      </span>
-    </div>
-    {% endif %}
-
-    {# Stats for CLI command groups (element-based) #}
-    {% if commands | length > 0 or command_groups | length > 0 %}
-    <div class="page-hero__stats">
-      {% if command_groups | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ command_groups | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Group' if command_groups | length == 1 else 'Groups' }}</span>
-      </span>
-      {% endif %}
-      {% if commands | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ commands | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Command' if commands | length == 1 else 'Commands' }}</span>
-      </span>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {# Stats for CLI commands (element-based) #}
-    {% if options | length > 0 or arguments | length > 0 %}
-    <div class="page-hero__stats">
-      {% if options | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ options | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Option' if options | length == 1 else 'Options' }}</span>
-      </span>
-      {% endif %}
-      {% if arguments | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ arguments | length }}</span>
-        <span class="page-hero__stat-label">{{ 'Argument' if arguments | length == 1 else 'Arguments' }}</span>
-      </span>
-      {% endif %}
-    </div>
+    {# Element stats (uses get_element_stats filter) #}
+    {% if element %}
+    {% include 'partials/page-hero/_element-stats.html' %}
     {% endif %}
 
     {# Stats for section index pages (section-based) #}

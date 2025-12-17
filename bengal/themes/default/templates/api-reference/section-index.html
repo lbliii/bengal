@@ -27,8 +27,8 @@ This template receives:
     {# Page Hero: Breadcrumbs + Title + Description + Stats #}
     {% include 'partials/page-hero/section.html' %}
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       {# Build module list once for cards #}
       {% set module_pages = [] %}
       {% for page in section.sorted_pages %}
@@ -37,9 +37,8 @@ This template receives:
       {% endif %}
       {% endfor %}
 
-      <div class="docs-content">
-        {# API Explorer Section Index Content #}
-        <div class="autodoc-explorer autodoc-explorer--index">
+      {# API Explorer Section Index Content #}
+      <div class="autodoc-explorer autodoc-explorer--index">
           {# Subsections (Packages) - Card Grid #}
           {% if section.sorted_subsections %}
           <section class="api-section api-section--packages">
@@ -120,7 +119,6 @@ This template receives:
           </div>
           {% endif %}
         </div>
-      </div>
     </article>
 
     {# Page navigation (prev/next) at bottom #}

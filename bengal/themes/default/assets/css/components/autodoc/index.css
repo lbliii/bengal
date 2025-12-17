@@ -5,7 +5,10 @@
  * This file serves as the entry point for all autodoc styles.
  */
 
-/* 1. Design tokens - must come first */
+/* 0. Reset & Isolation - MUST come first for proper isolation */
+@import url('_reset.css');
+
+/* 1. Design tokens - variables and theming */
 @import url('_tokens.css');
 
 /* 2. Base styles - container and foundational components */

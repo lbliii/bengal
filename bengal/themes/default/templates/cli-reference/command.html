@@ -28,11 +28,10 @@ This template receives:
     {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
     {% include 'partials/page-hero/element.html' %}
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      <div class="docs-content">
-        {# CLI Command Content #}
-        <div class="autodoc-explorer">
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      {# CLI Command Content #}
+      <div class="autodoc-explorer">
           {# Usage #}
           {% if element.qualified_name %}
           <div class="api-usage">
@@ -126,7 +125,6 @@ This template receives:
           </section>
           {% endif %}
         </div>
-      </div>
 
       {# Tags #}
       {% if page.tags %}

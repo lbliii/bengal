@@ -1,0 +1,260 @@
+/**
+ * Autodoc Reset & Isolation Layer
+ *
+ * This file provides explicit resets and isolation for autodoc content,
+ * preventing style leakage from parent containers (like .prose or .docs-content).
+ *
+ * Goals:
+ * - Prevent inherited styles from affecting autodoc layout
+ * - Provide consistent baseline for all autodoc content
+ * - Enable flat, predictable selectors without high specificity chains
+ *
+ * Usage:
+ * - Import this file BEFORE other autodoc CSS modules
+ * - Use .autodoc-explorer as the isolation boundary
+ */
+
+/* ============================================
+   ISOLATION BOUNDARY
+   ============================================
+
+   The .autodoc-explorer container resets inherited styles to prevent
+   conflicts with .prose typography or other parent containers.
+*/
+
+.autodoc-explorer {
+  /* Reset box model */
+  box-sizing: border-box;
+
+  /* Reset typography that might be inherited from .prose */
+  text-align: start;
+  text-indent: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+  white-space: normal;
+  hyphens: manual;
+
+  /* Reset list styles */
+  list-style: none;
+
+  /* Establish new stacking context */
+  isolation: isolate;
+  position: relative;
+  z-index: 0;
+
+  /* Ensure proper containment */
+  contain: layout style;
+}
+
+/* Ensure all children inherit box-sizing */
+.autodoc-explorer *,
+.autodoc-explorer *::before,
+.autodoc-explorer *::after {
+  box-sizing: inherit;
+}
+
+/* ============================================
+   RESET ELEMENTS WITHIN AUTODOC
+   ============================================ */
+
+/* Reset headings - use autodoc's own heading styles */
+.autodoc-explorer h1,
+.autodoc-explorer h2,
+.autodoc-explorer h3,
+.autodoc-explorer h4,
+.autodoc-explorer h5,
+.autodoc-explorer h6 {
+  all: revert;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+}
+
+/* Reset paragraphs */
+.autodoc-explorer p {
+  all: revert;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Reset lists */
+.autodoc-explorer ul,
+.autodoc-explorer ol {
+  all: revert;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.autodoc-explorer li {
+  all: revert;
+  margin: 0;
+  padding: 0;
+}
+
+/* Reset tables - critical for CLI options tables */
+.autodoc-explorer table {
+  all: revert;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: auto;
+  margin: 0;
+}
+
+.autodoc-explorer th,
+.autodoc-explorer td {
+  all: revert;
+  text-align: start;
+  vertical-align: top;
+  padding: var(--space-3);
+  border: 0;
+}
+
+.autodoc-explorer thead,
+.autodoc-explorer tbody,
+.autodoc-explorer tfoot,
+.autodoc-explorer tr {
+  all: revert;
+}
+
+/* Reset code elements */
+.autodoc-explorer code {
+  all: revert;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-bg-code);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+}
+
+.autodoc-explorer pre {
+  all: revert;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.autodoc-explorer pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Reset links */
+.autodoc-explorer a {
+  all: revert;
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.autodoc-explorer a:hover {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+}
+
+/* ============================================
+   FLAT UTILITY CLASSES
+   ============================================
+
+   These utility classes provide simple, predictable styling
+   without requiring deep selector chains.
+*/
+
+/* Text utilities */
+.autodoc-text-mono {
+  font-family: var(--font-mono) !important;
+}
+
+.autodoc-text-sans {
+  font-family: var(--font-sans) !important;
+}
+
+.autodoc-text-primary {
+  color: var(--color-text-primary) !important;
+}
+
+.autodoc-text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+.autodoc-text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+/* Layout utilities */
+.autodoc-flex {
+  display: flex !important;
+}
+
+.autodoc-flex-col {
+  flex-direction: column !important;
+}
+
+.autodoc-items-center {
+  align-items: center !important;
+}
+
+.autodoc-gap-2 {
+  gap: var(--space-2) !important;
+}
+
+.autodoc-gap-3 {
+  gap: var(--space-3) !important;
+}
+
+.autodoc-gap-4 {
+  gap: var(--space-4) !important;
+}
+
+/* Spacing utilities */
+.autodoc-mt-2 { margin-top: var(--space-2) !important; }
+.autodoc-mt-4 { margin-top: var(--space-4) !important; }
+.autodoc-mt-6 { margin-top: var(--space-6) !important; }
+.autodoc-mb-2 { margin-bottom: var(--space-2) !important; }
+.autodoc-mb-4 { margin-bottom: var(--space-4) !important; }
+.autodoc-mb-6 { margin-bottom: var(--space-6) !important; }
+
+.autodoc-p-2 { padding: var(--space-2) !important; }
+.autodoc-p-3 { padding: var(--space-3) !important; }
+.autodoc-p-4 { padding: var(--space-4) !important; }
+
+/* ============================================
+   ENSURE .docs-content DOES NOT OVERRIDE AUTODOC
+   ============================================ */
+
+/* When autodoc-explorer is inside docs-content,
+   ensure autodoc styles take precedence */
+.docs-content .autodoc-explorer {
+  /* Re-establish isolation */
+  isolation: isolate;
+}
+
+/* Prevent .prose table styles from bleeding into autodoc tables */
+.prose .autodoc-explorer table,
+.docs-content .autodoc-explorer table {
+  width: 100%;
+  table-layout: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.prose .autodoc-explorer th,
+.prose .autodoc-explorer td,
+.docs-content .autodoc-explorer th,
+.docs-content .autodoc-explorer td {
+  padding: var(--space-3);
+}

@@ -10,10 +10,12 @@ Functions:
     - get_return_info(element): Get normalized return type info
     - param_count(element): Count of parameters (excluding self/cls)
     - return_type(element): Return type string or 'None'
+    - get_element_stats(element): Get display stats for element children
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.utils import get_function_parameters, get_function_return_info
@@ -33,6 +35,7 @@ def register(env: Environment, site: Site) -> None:
             "param_count": param_count,
             "return_type": return_type,
             "get_return_info": get_return_info,
+            "get_element_stats": get_element_stats,
         }
     )
 
@@ -42,6 +45,7 @@ def register(env: Environment, site: Site) -> None:
             "param_count": param_count,
             "return_type": return_type,
             "get_return_info": get_return_info,
+            "get_element_stats": get_element_stats,
         }
     )
 
@@ -128,3 +132,68 @@ def get_return_info(element: DocElement) -> dict[str, Any]:
         Dict with 'type' and 'description' keys
     """
     return get_function_return_info(element)
+
+
+def get_element_stats(element: DocElement) -> list[dict[str, Any]]:
+    """
+    Extract display stats from a DocElement based on its children types.
+
+    Counts children by element_type and returns a list of stats suitable
+    for rendering in templates.
+
+    Usage in templates:
+        {% set stats = element | get_element_stats %}
+        {% if stats %}
+        <div class="page-hero__stats">
+          {% for stat in stats %}
+          <span class="page-hero__stat">
+            <span class="page-hero__stat-value">{{ stat.value }}</span>
+            <span class="page-hero__stat-label">{{ stat.label }}</span>
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+    Args:
+        element: DocElement with children to count
+
+    Returns:
+        List of dicts with 'value' (count) and 'label' (singular/plural name)
+    """
+    if not element or not hasattr(element, "children") or not element.children:
+        return []
+
+    # Count children by element_type
+    type_counts = Counter(child.element_type for child in element.children)
+
+    # Map element types to display labels (singular, plural)
+    type_labels = {
+        "class": ("Class", "Classes"),
+        "function": ("Function", "Functions"),
+        "method": ("Method", "Methods"),
+        "property": ("Property", "Properties"),
+        "attribute": ("Attribute", "Attributes"),
+        "command": ("Command", "Commands"),
+        "command-group": ("Group", "Groups"),
+        "option": ("Option", "Options"),
+        "argument": ("Argument", "Arguments"),
+        "endpoint": ("Endpoint", "Endpoints"),
+        "schema": ("Schema", "Schemas"),
+        "module": ("Module", "Modules"),
+        "package": ("Package", "Packages"),
+    }
+
+    stats = []
+    # Preserve a consistent ordering
+    for etype in type_labels:
+        count = type_counts.get(etype, 0)
+        if count > 0:
+            singular, plural = type_labels[etype]
+            stats.append(
+                {
+                    "value": count,
+                    "label": singular if count == 1 else plural,
+                }
+            )
+
+    return stats

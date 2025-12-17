@@ -1,84 +1,24 @@
 {#
-Element Stats Component - renders stats for element children
+Element Stats Component
 
-Expects:
-  - children: List of DocElement children (from element.children)
+Renders stats (counts of children by type) for a DocElement.
+Uses the get_element_stats filter to extract and format stats.
 
-Renders stats for:
-  - API: Classes, Functions, Methods
-  - CLI: Commands, Command Groups, Options, Arguments
+Receives from parent context:
+- element: DocElement with children to count
+
+Example:
+{% include 'partials/page-hero/_element-stats.html' %}
 #}
 
-{# Pre-compute stats from children #}
-{% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
-{% set functions = children | selectattr('element_type', 'eq', 'function') | list %}
-{% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
-{# CLI-specific stats #}
-{% set commands = children | selectattr('element_type', 'eq', 'command') | list %}
-{% set command_groups = children | selectattr('element_type', 'eq', 'command-group') | list %}
-{% set options = children | selectattr('element_type', 'eq', 'option') | list %}
-{% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
-
-{# Stats for modules (classes, functions) #}
-{% if classes | length > 0 or functions | length > 0 %}
+{% set stats = element | get_element_stats %}
+{% if stats %}
 <div class="page-hero__stats">
-  {% if classes | length > 0 %}
+  {% for stat in stats %}
   <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ classes | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Class' if classes | length == 1 else 'Classes' }}</span>
+    <span class="page-hero__stat-value">{{ stat.value }}</span>
+    <span class="page-hero__stat-label">{{ stat.label }}</span>
   </span>
-  {% endif %}
-  {% if functions | length > 0 %}
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ functions | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Function' if functions | length == 1 else 'Functions' }}</span>
-  </span>
-  {% endif %}
-</div>
-{% endif %}
-
-{# Stats for classes (methods) #}
-{% if methods | length > 0 %}
-<div class="page-hero__stats">
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ methods | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Method' if methods | length == 1 else 'Methods' }}</span>
-  </span>
-</div>
-{% endif %}
-
-{# Stats for CLI command groups (groups, commands) #}
-{% if commands | length > 0 or command_groups | length > 0 %}
-<div class="page-hero__stats">
-  {% if command_groups | length > 0 %}
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ command_groups | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Group' if command_groups | length == 1 else 'Groups' }}</span>
-  </span>
-  {% endif %}
-  {% if commands | length > 0 %}
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ commands | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Command' if commands | length == 1 else 'Commands' }}</span>
-  </span>
-  {% endif %}
-</div>
-{% endif %}
-
-{# Stats for CLI commands (options, arguments) #}
-{% if options | length > 0 or arguments | length > 0 %}
-<div class="page-hero__stats">
-  {% if options | length > 0 %}
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ options | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Option' if options | length == 1 else 'Options' }}</span>
-  </span>
-  {% endif %}
-  {% if arguments | length > 0 %}
-  <span class="page-hero__stat">
-    <span class="page-hero__stat-value">{{ arguments | length }}</span>
-    <span class="page-hero__stat-label">{{ 'Argument' if arguments | length == 1 else 'Arguments' }}</span>
-  </span>
-  {% endif %}
+  {% endfor %}
 </div>
 {% endif %}

@@ -36,16 +36,13 @@ Features:
     {# Supports variants: classic (default) or magazine (set via hero_style) #}
     {% include 'partials/page-hero.html' %}
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
 
       {# Track Navigation (Top) #}
       {% include 'partials/track_nav.html' %}
 
-      {# Main content #}
-      <div class="docs-content">
-        {{ content | safe }}
-      </div>
+      {{ content | safe }}
 
       {# Tags #}
       {% if page.tags %}

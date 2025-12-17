@@ -28,13 +28,9 @@ Or set `type: cli-reference` to auto-select this template
     {# Page Hero: Breadcrumbs + Title + Description #}
     {% include 'partials/page-hero.html' %}
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-
-      {# Main content #}
-      <div class="docs-content">
-        {{ content | safe }}
-      </div>
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      {{ content | safe }}
 
       {# Tags #}
       {% if page.tags %}

@@ -39,13 +39,9 @@ Features:
     {% set _list_hero_default = 'overview' %}
     {% include 'partials/page-hero.html' %}
 
-    {# Article Content #}
-    <article class="prose {% if page and page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-
-      {# Main content #}
-      <div class="docs-content">
-        {{ content | safe }}
-      </div>
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page and page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+      {{ content | safe }}
 
       {# Content tiles with smart defaults - use discover: frontmatter to customize #}
       {% set discover = page.metadata.get('discover', {}) if page else {} %}

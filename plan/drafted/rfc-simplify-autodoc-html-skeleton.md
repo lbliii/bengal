@@ -1,6 +1,6 @@
-# RFC: Simplify Autodoc HTML Skeleton
+# RFC: Simplify Autodoc HTML/CSS Architecture
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-17  
 **Author**: AI Assistant  
 **Confidence**: 85% 🟢
@@ -9,336 +9,159 @@
 
 ## Executive Summary
 
-Simplify the autodoc HTML skeleton to reduce output verbosity by ~15-20% while retaining identical visual structure and functionality. Four targeted changes: externalize inline SVGs, consolidate repetitive template logic, merge content wrappers, and optionally flatten navigation structure.
+The autodoc system's HTML/CSS complexity has reached a point where **basic fixes are impossible**. Multiple attempts to fix CLI body content styling have failed due to:
 
-**Recommendation**: Implement Changes 2-4 immediately (low risk, high value). Defer Change 1 (navigation flattening) pending cost-benefit review due to significant JS/CSS refactoring requirements.
+- **2,629 lines** in `api-explorer.css` alone
+- **~1,200 CSS rules** targeting `.api-*`, `.autodoc-*`, `.prose`, `.docs-content`
+- **12 separate CSS files** in `autodoc/` directory
+- **3 nested wrapper divs** before reaching content (`<article>` → `.docs-content` → `.autodoc-explorer`)
+- **Cascading specificity wars** between component systems
+
+This RFC proposes a phased approach: quick template cleanups first, followed by a systematic CSS consolidation that makes the system maintainable again.
 
 ---
 
 ## Problem Statement
 
-The current autodoc HTML output is more verbose than necessary. Analysis of a typical CLI command group page (`/cli/bengal/`) reveals:
+### The Real Pain Point
 
-| Metric | Current | Issue |
-|--------|---------|-------|
-| Navigation wrapper divs | 2 per group | 1 is unnecessary |
-| Inline SVGs in share dropdown | 4 × ~8 lines each | Should be icon system |
-| Hero stats conditionals | 4 separate blocks | Repetitive template logic |
-| Content wrapper nesting | 3 levels | 1 can be merged |
+> "I cannot easily fix the CLI autodoc body content. It's impossible and we've tried several times."
 
-**Evidence**: `bengal/themes/default/templates/partials/docs-nav-section.html:48-71` shows the toggle wrapper pattern duplicated across all nav groups.
+The current architecture blocks bug fixes because:
 
-**Impact**:
-- Larger HTML file sizes (~5-10KB per page)
-- More complex DOM for browser parsing
-- Template maintenance burden (4 stats blocks to update)
-- Inconsistent icon handling (SVG inline vs `{{ icon() }}` system)
+1. **CSS Sprawl**: Autodoc styling is spread across 12+ files totaling ~6,000 lines
+2. **Specificity Conflicts**: `.prose .autodoc-explorer .api-section .api-table` vs `.docs-content .api-table` — which wins?
+3. **Duplicated Tokens**: CSS custom properties defined in multiple places with inconsistent values
+4. **Unclear Ownership**: Is table styling in `_table.css`, `api-explorer.css`, `api-docs.css`, or `reference-docs.css`?
+
+### Evidence
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `api-explorer.css` | 2,629 | Main autodoc styling |
+| `api-docs.css` | 913 | API documentation |
+| `reference-docs.css` | 838 | Reference pages |
+| `autodoc/_base.css` | 641 | Base autodoc styles |
+| `autodoc/_card.css` | ~200 | Card components |
+| `autodoc/_table.css` | ~150 | Table components |
+| **Total** | **~6,000** | For one feature area |
+
+### Symptom: CLI Body Content Unfixable
+
+**Actual rendered output** (`site/public/cli/bengal/build/index.html`):
+
+```html
+<article class="prose">                              <!-- Layer 1: Typography -->
+  <div class="docs-content">                         <!-- Layer 2: Layout context -->
+    <div class="autodoc-explorer">                   <!-- Layer 3: Autodoc tokens -->
+      <div class="api-usage">                        <!-- Layer 4: Usage block -->
+        <h3 class="api-label">Usage</h3>
+        <div class="code-block-wrapper">             <!-- Layer 5: Code wrapper -->
+          <div class="code-header-inline">           <!-- Layer 6: Code header -->
+            <span class="code-language">Bash</span>
+          </div>
+          <pre><code class="language-bash">bengal.build [OPTIONS]</code></pre>
+        </div>
+      </div>
+
+      <section class="api-section api-section--options">
+        <h2 class="api-section__title">Options</h2>
+        <table class="api-table api-table--compact">
+          <thead>...</thead>
+          <tbody>
+            <tr>
+              <td class="api-table__name"><code>--parallel</code></td>
+              <td class="api-table__type"><code>boolean</code></td>
+              <td class="api-table__default"><code>True</code></td>
+              <td class="api-table__desc">Enable parallel processing...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+</article>
+```
+
+**6 levels of nesting** before reaching the code block. **5 levels** before the table.
+
+**CSS specificity nightmare** — all of these could apply to the table:
+```css
+.prose table { }                                      /* 0,0,1,1 */
+.docs-content table { }                               /* 0,0,1,1 */
+.autodoc-explorer table { }                           /* 0,0,1,1 */
+.api-section table { }                                /* 0,0,1,1 */
+.api-table { }                                        /* 0,0,1,0 — LOSES to above! */
+.api-table--compact { }                               /* 0,0,1,0 */
+.prose .autodoc-explorer .api-table { }               /* 0,0,3,1 */
+.prose .docs-content .autodoc-explorer table { }      /* 0,0,4,1 */
+```
+
+**Result**: The BEM class `.api-table` has *lower* specificity than generic element selectors like `.prose table`. Any fix requires overriding 4+ parent contexts.
 
 ---
 
 ## Goals
 
-1. **Reduce HTML output size** by ~15-20% without visual/functional changes
-2. **Simplify template logic** by consolidating repetitive patterns
-3. **Improve consistency** by moving AI icons to the icon system
-4. **Maintain accessibility** - all ARIA attributes preserved
-5. **Minimize JS/CSS churn** - prefer changes with low coupling
+1. **Enable bug fixes** — make styling changes predictable and isolated
+2. **Reduce CSS surface area** — fewer files, clearer ownership
+3. **Simplify HTML structure** — fewer wrappers, clearer semantics
+4. **Maintain visual design** — no regressions, same look
 
 ## Non-Goals
 
-- Visual redesign of autodoc pages
-- Changing the information architecture
-- Removing accessibility attributes
-- Major refactoring of navigation JavaScript
+- Visual redesign
+- JavaScript refactoring (unless blocking)
+- Changing information architecture
 
 ---
 
 ## Proposed Changes
 
-### Change 1: Flatten Navigation Toggle Wrapper ⚠️ HIGH EFFORT
+### Phase 1: Template Cleanup (Low Risk) — ~2 hours
 
-> **Note**: This change has significant downstream impact. Consider implementing Changes 2-4 first, then re-evaluate ROI.
+Quick wins that reduce complexity without touching the CSS architecture.
 
-**Location**: `partials/docs-nav-section.html`
+#### Change 1.1: Externalize AI Icons
 
-**Before** (lines 48-71):
-```html
-<div class="docs-nav-group" data-depth="0">
-  <div class="docs-nav-group-toggle-wrapper">
-    <button class="docs-nav-group-toggle" aria-expanded="false" aria-controls="...">
-      {{ icon('caret-right', size=14) }}
-    </button>
-    <span class="docs-nav-icon">
-      {{ icon('folder', size=16) }}
-    </span>
-    <a href="..." class="docs-nav-group-link">Section Name</a>
-  </div>
-  <div class="docs-nav-group-items" id="...">
-    <!-- children -->
-  </div>
-</div>
-```
+**Location**: `partials/page-hero/_share-dropdown.html:54-92`
 
-**After**:
-```html
-<div class="docs-nav-group" data-depth="0">
-  <button class="docs-nav-toggle" aria-expanded="false" aria-controls="...">
-    {{ icon('caret-right', size=14) }}
-  </button>
-  <span class="docs-nav-icon">
-    {{ icon('folder', size=16) }}
-  </span>
-  <a href="..." class="docs-nav-link">Section Name</a>
-  <div class="docs-nav-items" id="...">
-    <!-- children -->
-  </div>
-</div>
-```
-
-#### JavaScript Changes Required
-
-**File**: `bengal/themes/default/assets/js/enhancements/interactive.js`
-
-The navigation JS relies on DOM structure for expand/collapse and active state propagation. Removing the wrapper requires rewriting the traversal logic.
-
-**Affected code** (lines 306-369):
-
-| Current | After | Lines |
-|---------|-------|-------|
-| `.docs-nav-group-toggle` | `.docs-nav-toggle` | 306, 343, 360 |
-| `.docs-nav-group-toggle-wrapper` | **REMOVED** | 342, 359 |
-| `.docs-nav-group-link` | `.docs-nav-link` | 335, 340 |
-| `.docs-nav-group-items` | `.docs-nav-items` | 345, 355 |
-
-**Before** (lines 340-365):
-```javascript
-// Current: relies on wrapper for sibling traversal
-if (activeLink.classList.contains('docs-nav-group-link')) {
-  const wrapper = activeLink.parentElement;
-  if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
-    const toggle = wrapper.querySelector('.docs-nav-group-toggle');
-    const items = wrapper.nextElementSibling;
-    if (toggle && items && items.classList.contains('docs-nav-group-items')) {
-      toggle.setAttribute('aria-expanded', 'true');
-      items.classList.add('expanded');
-    }
-  }
-}
-
-// Walk up DOM using previousElementSibling
-let parent = activeLink.parentElement;
-while (parent) {
-  if (parent.classList.contains('docs-nav-group-items')) {
-    const wrapper = parent.previousElementSibling;
-    if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
-      const toggle = wrapper.querySelector('.docs-nav-group-toggle');
-      // ...
-    }
-  }
-  parent = parent.parentElement;
-}
-```
-
-**After**:
-```javascript
-// Simplified: use closest() instead of sibling traversal
-if (activeLink.classList.contains('docs-nav-link')) {
-  const group = activeLink.closest('.docs-nav-group');
-  if (group) {
-    const toggle = group.querySelector(':scope > .docs-nav-toggle');
-    const items = group.querySelector(':scope > .docs-nav-items');
-    if (toggle && items) {
-      toggle.setAttribute('aria-expanded', 'true');
-      items.classList.add('expanded');
-    }
-  }
-}
-
-// Walk up using closest() - cleaner than sibling traversal
-let parent = activeLink.parentElement;
-while (parent) {
-  if (parent.classList.contains('docs-nav-items')) {
-    const group = parent.closest('.docs-nav-group');
-    if (group) {
-      const toggle = group.querySelector(':scope > .docs-nav-toggle');
-      if (toggle) {
-        toggle.setAttribute('aria-expanded', 'true');
-        parent.classList.add('expanded');
-      }
-    }
-  }
-  parent = parent.parentElement;
-}
-```
-
-#### CSS Changes Required
-
-**File**: `bengal/themes/default/assets/css/components/docs-nav.css` (770 lines)
-
-**Impact Assessment**: 60+ CSS rules reference affected classes
-
-| Class | Occurrences | Complexity |
-|-------|-------------|------------|
-| `.docs-nav-group-toggle-wrapper` | 28 | High (pseudo-elements, `:has()`) |
-| `.docs-nav-group-toggle` | 12 | Medium |
-| `.docs-nav-group-link` | 16 | Medium |
-| `.docs-nav-group-items` | 10 | Low |
-
-**Rules requiring updates**:
-- Neumorphic hover states (lines 88-114)
-- Pseudo-element positioning `::before`, `::after` (lines 56-86)
-- `:has()` selectors for active state propagation (lines 188-218, 443-468)
-- Dark mode overrides (lines 412-468)
-- Glow animations (lines 575-614)
-- Alignment calculations (lines 333-355)
-
-**CSS Migration**:
-```css
-/* Before: wrapper handled flex layout and hover states */
-.docs-nav-group-toggle-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  /* + 28 more rules for hover, active, ::before, ::after */
-}
-
-/* After: grid on parent, move styles to .docs-nav-group */
-.docs-nav-group {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 0.25rem;
-  /* Migrate all wrapper styles here */
-}
-
-.docs-nav-items {
-  grid-column: 1 / -1;
-}
-
-/* Update all :has() selectors */
-/* Before: .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) */
-/* After:  .docs-nav-group:has(> .docs-nav-link.active) */
-```
-
-**Savings**: ~20 bytes × ~50 nav groups = ~1KB per page
-
-**Effort**: ~4-6 hours (JS rewrite + CSS migration + testing)
-
----
-
-### Change 2: Externalize AI Assistant Icons ✅ LOW EFFORT
-
-**Location**: `partials/page-hero/_share-dropdown.html`
-
-**Before** (lines 54-92): Inline SVGs for Claude, ChatGPT, Gemini, Copilot
-
-**After**: Add icons to the icon system and use `{{ icon() }}`
-
-**New icons to add** (`bengal/themes/default/assets/icons/`):
-- `ai-claude.svg`
-- `ai-chatgpt.svg`
-- `ai-gemini.svg`
-- `ai-copilot.svg`
-
-**Template change**:
+Move inline SVGs to icon system:
 ```jinja
-{# Before #}
-<a href="..." class="page-hero__share-item page-hero__share-ai" data-ai="claude">
-  <svg viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48..." />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
+{# Before: inline SVG #}
+<a href="..." class="page-hero__share-ai" data-ai="claude">
+  <svg viewBox="0 0 24 24">...</svg>
   <span>Ask Claude</span>
 </a>
 
-{# After #}
-<a href="..." class="page-hero__share-item page-hero__share-ai" data-ai="claude">
+{# After: icon system #}
+<a href="..." class="page-hero__share-ai" data-ai="claude">
   {{ icon('ai-claude', size=16) }}
   <span>Ask Claude</span>
 </a>
 ```
 
-**Savings**: ~120 lines → ~20 lines in template
+**Files**:
+- Add `ai-claude.svg`, `ai-chatgpt.svg`, `ai-gemini.svg`, `ai-copilot.svg` to icons/
+- Update `_share-dropdown.html`
 
-**Effort**: ~30 minutes
+**Effort**: 30 min
 
----
+#### Change 1.2: Consolidate Hero Stats
 
-### Change 3: Consolidate Hero Stats with Filter ✅ LOW EFFORT
+**Location**: `partials/page-hero-api.html:184-278`
 
-**Location**: `partials/page-hero-api.html` (deprecated) and `partials/page-hero/element.html`
+Replace 4 conditional blocks with single filter-driven partial:
 
-**Before** (lines 184-278 in page-hero-api.html): Four separate conditional blocks:
-```jinja
-{# Stats for modules #}
-{% if classes | length > 0 or functions | length > 0 %}
-<div class="page-hero__stats">
-  {% if classes | length > 0 %}
-  <span class="page-hero__stat">...</span>
-  {% endif %}
-  ...
-</div>
-{% endif %}
-
-{# Stats for classes #}
-{% if methods | length > 0 %}
-<div class="page-hero__stats">...</div>
-{% endif %}
-
-{# Stats for CLI command groups #}
-{% if commands | length > 0 or command_groups | length > 0 %}
-<div class="page-hero__stats">...</div>
-{% endif %}
-
-{# Stats for CLI commands #}
-{% if options | length > 0 or arguments | length > 0 %}
-<div class="page-hero__stats">...</div>
-{% endif %}
-```
-
-**After**: Single unified partial with Python filter
-
-**New filter** (add to autodoc filters):
 ```python
+# New filter
 def get_element_stats(element: DocElement) -> list[dict]:
-    """Extract display stats from a DocElement based on its type."""
-    if not element or not element.children:
-        return []
-
-    children = element.children
-    stats = []
-
-    # Count by element type
-    type_counts = {}
-    for child in children:
-        etype = child.element_type
-        type_counts[etype] = type_counts.get(etype, 0) + 1
-
-    # Map to display labels (singular/plural)
-    type_labels = {
-        'class': ('Class', 'Classes'),
-        'function': ('Function', 'Functions'),
-        'method': ('Method', 'Methods'),
-        'command': ('Command', 'Commands'),
-        'command-group': ('Group', 'Groups'),
-        'option': ('Option', 'Options'),
-        'argument': ('Argument', 'Arguments'),
-    }
-
-    for etype, count in type_counts.items():
-        if count > 0 and etype in type_labels:
-            singular, plural = type_labels[etype]
-            stats.append({
-                'value': count,
-                'label': singular if count == 1 else plural
-            })
-
-    return stats
+    """Extract display stats based on element type."""
+    ...
 ```
 
-**New partial** (`partials/page-hero/_element-stats.html`):
 ```jinja
+{# New partial: _element-stats.html #}
 {% set stats = element | get_element_stats %}
 {% if stats %}
 <div class="page-hero__stats">
@@ -352,72 +175,159 @@ def get_element_stats(element: DocElement) -> list[dict]:
 {% endif %}
 ```
 
-**Savings**: ~100 lines → ~15 lines in templates, plus centralized logic
+**Effort**: 1 hour
 
-**Effort**: ~1 hour
+#### Change 1.3: Merge Content Wrapper
+
+**Location**: `cli-reference/*.html` templates
+
+```html
+{# Before #}
+<article class="prose">
+  <div class="docs-content">
+    <div class="autodoc-explorer">
+
+{# After #}
+<article class="prose autodoc-explorer">
+  <div class="api-content">
+```
+
+This removes one wrapper level and eliminates the `.docs-content` middleman.
+
+**Effort**: 30 min
 
 ---
 
-### Change 4: Merge Content Wrapper ✅ LOW EFFORT
+### Phase 2: CSS Consolidation (Medium Risk) — ~4 hours
 
-**Location**: `cli-reference/command-group.html` and similar templates
+The real fix. Consolidate autodoc CSS into a single, well-organized file.
 
-**Before**:
+#### Goal: Single Source of Truth
+
+Merge these files into one `autodoc.css`:
+- `api-explorer.css` (2,629 lines)
+- `autodoc/_*.css` (12 files, ~1,000 lines)
+- Relevant parts of `api-docs.css` and `reference-docs.css`
+
+#### Strategy: Namespace + Reset
+
+```css
+/* autodoc.css — Single file for all autodoc styling */
+
+/* ============================================
+   AUTODOC RESET - Override inherited styles
+   ============================================ */
+.autodoc-explorer {
+  /* Reset prose styles that interfere */
+  & table { all: revert; }
+  & code { all: revert; }
+
+  /* Set autodoc baseline */
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+/* ============================================
+   TOKENS - All autodoc custom properties
+   ============================================ */
+.autodoc-explorer {
+  --api-window-bg: var(--color-bg-elevated);
+  --api-window-border: var(--color-border-light);
+  --api-section-gap: var(--space-8);
+  /* ... consolidate all tokens here */
+}
+
+/* ============================================
+   COMPONENTS - Flat structure, no nesting
+   ============================================ */
+
+/* Sections */
+.api-section { ... }
+.api-section__title { ... }
+
+/* Tables */
+.api-table { ... }
+.api-table--compact { ... }
+
+/* Cards */
+.api-card { ... }
+.api-card--command { ... }
+
+/* ... etc ... */
+```
+
+#### Key Principles
+
+1. **Flat selectors**: `.api-table` not `.autodoc-explorer .api-section .api-table`
+2. **Single file**: All autodoc CSS in one place
+3. **Explicit resets**: Override inherited styles explicitly at container level
+4. **BEM naming**: `block__element--modifier` throughout
+
+#### Migration Path
+
+1. Create `autodoc.css` with consolidated styles
+2. Update import order (autodoc.css after prose.css)
+3. Delete redundant files one by one
+4. Test each deletion
+
+**Effort**: 4 hours
+
+---
+
+### Phase 3: Navigation Flattening (High Risk) — ~4-6 hours
+
+> **Decision Point**: Only proceed if Phases 1-2 don't resolve the maintainability issues.
+
+Remove the `.docs-nav-group-toggle-wrapper` div, flattening nav structure.
+
+**Current**:
 ```html
-<article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-  <div class="docs-content">
-    <div class="autodoc-explorer">
-      ...
-    </div>
+<div class="docs-nav-group">
+  <div class="docs-nav-group-toggle-wrapper">
+    <button class="docs-nav-group-toggle">...</button>
+    <a class="docs-nav-group-link">...</a>
   </div>
-</article>
+  <div class="docs-nav-group-items">...</div>
+</div>
 ```
 
 **After**:
 ```html
-<article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-  <div class="autodoc-explorer">
-    ...
-  </div>
-</article>
+<div class="docs-nav-group">
+  <button class="docs-nav-toggle">...</button>
+  <a class="docs-nav-link">...</a>
+  <div class="docs-nav-items">...</div>
+</div>
 ```
 
-**CSS Changes Required**:
-```css
-/* Merge .docs-content styles into .prose context */
-.prose.docs-content {
-  /* existing .docs-content styles */
-}
-```
+**Requires**:
+- JS rewrite (`interactive.js:306-369`)
+- CSS migration (60+ rules in `docs-nav.css`)
 
-**Savings**: Minor (~10 bytes × pages), but cleaner DOM
-
-**Effort**: ~30 minutes
+**See previous RFC version for detailed JS/CSS changes.**
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Quick Wins (Low Risk) — ~2 hours
-1. Add AI icons to icon system (`ai-claude.svg`, etc.)
-2. Update `_share-dropdown.html` to use `{{ icon() }}` calls
-3. Add `get_element_stats` filter to autodoc filters
-4. Create `_element-stats.html` partial
-5. Update `element.html` and `page-hero-api.html` to use new stats partial
+### Week 1: Template Cleanup
+- [ ] Change 1.1: AI icons (30 min)
+- [ ] Change 1.2: Stats filter (1 hour)
+- [ ] Change 1.3: Content wrapper (30 min)
+- [ ] Test all CLI autodoc pages
 
-### Phase 2: Content Wrapper (Low Risk) — ~1 hour
-1. Update all autodoc templates to merge `.docs-content` into `<article>`
-2. Consolidate CSS selectors (`.prose.docs-content`)
+### Week 2: CSS Consolidation
+- [ ] Create `autodoc.css` scaffold
+- [ ] Migrate tokens from `_tokens.css`
+- [ ] Migrate table styles from `_table.css` + `api-explorer.css`
+- [ ] Migrate card styles
+- [ ] Migrate section styles
+- [ ] Delete redundant files
+- [ ] Full regression test
 
-### Phase 3: Navigation Flattening (High Risk) — ~4-6 hours ⚠️ OPTIONAL
-> **Decision Point**: Evaluate ROI after Phases 1-2 are complete
-
-1. Update `docs-nav-section.html` to remove wrapper
-2. Rewrite `interactive.js` navigation logic (lines 306-369)
-3. Migrate `docs-nav.css` (60+ rules)
-4. Test all navigation states (expanded/collapsed/active)
-5. Test dark mode and animations
-6. Run visual regression tests
+### Week 3 (if needed): Navigation
+- [ ] Evaluate if nav changes are still needed
+- [ ] If yes, implement Phase 3
 
 ---
 
@@ -425,97 +335,64 @@ def get_element_stats(element: DocElement) -> list[dict]:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| **JS breakage from nav flattening** | High | High | Phase 3 last; comprehensive functional testing |
-| **CSS breakage from nav flattening** | High | High | Phase 3 last; visual regression testing |
-| Icon system doesn't support new icons | Low | Medium | Verify icon loading mechanism first |
-| Filter not registered in Jinja env | Low | Low | Add to autodoc filters dict |
-| Accessibility regression | Low | High | Automated a11y testing; preserve all ARIA |
-
----
-
-## Testing Strategy
-
-1. **Visual regression**: Screenshot comparison before/after (Percy or Playwright)
-2. **Accessibility audit**: axe-core on sample pages
-3. **File size comparison**: Measure HTML output size reduction
-4. **Navigation functionality**: Test expand/collapse all groups
-5. **Navigation active state**: Test active page highlighting and parent expansion
-6. **Share dropdown**: Verify all AI links work correctly
-7. **Dark mode**: Test all changes in both themes
-
-### Phase 3 Specific Tests
-- [ ] Click expand/collapse on all nav groups
-- [ ] Navigate to nested page, verify parent groups auto-expand
-- [ ] Test keyboard navigation (Tab, Enter, Space)
-- [ ] Test `:has()` CSS selectors in Safari (partial support)
-- [ ] Test reduced-motion preference
+| CSS consolidation breaks pages | Medium | High | Incremental migration, test each file deletion |
+| Specificity issues after merge | Medium | Medium | Explicit resets, flat selectors |
+| Missing styles after consolidation | Low | Medium | Diff before/after rendered output |
+| JS nav breakage (Phase 3 only) | High | High | Only if needed; comprehensive testing |
 
 ---
 
 ## Success Criteria
 
 ### Phase 1-2 (Required)
-- [ ] HTML output size reduced by ≥10%
-- [ ] All visual regression tests pass
-- [ ] All accessibility audits pass (0 new violations)
-- [ ] Share dropdown functions correctly
-- [ ] No new template warnings/errors
+- [ ] Can successfully modify CLI table styling without breaking other pages
+- [ ] Autodoc CSS reduced to <2,000 lines total
+- [ ] Single file contains all autodoc styling
+- [ ] No visual regressions
 
 ### Phase 3 (Optional)
-- [ ] Additional ~5% HTML reduction
-- [ ] Navigation expand/collapse works identically
-- [ ] Active state propagation works
-- [ ] All JS tests pass
+- [ ] Navigation wrapper removed
+- [ ] HTML output size reduced ~1KB/page
 
 ---
 
 ## Alternatives Considered
 
-### Alternative A: CSS-only Simplification
-Keep HTML structure, optimize CSS delivery instead.
+### Alternative A: Keep Current Structure, Add More Specificity
+Add `!important` or longer selectors to force overrides.
 
-**Rejected**: Doesn't address template maintenance burden or DOM complexity.
+**Rejected**: Makes problem worse over time. Technical debt accumulates.
 
-### Alternative B: Complete Template Rewrite
-Redesign autodoc templates from scratch with minimal HTML.
+### Alternative B: CSS-in-JS / Tailwind
+Rewrite with utility classes or scoped styles.
 
-**Rejected**: Too risky; high chance of regressions; not necessary for goal.
+**Rejected**: Major architectural change. Too disruptive for the benefit.
 
-### Alternative C: Move to Web Components
-Replace complex partials with custom elements.
+### Alternative C: Complete Template Rewrite
+Start from scratch with minimal HTML.
 
-**Rejected**: Adds JS dependency; overkill for static site generator.
+**Rejected**: High risk of regressions. Months of work.
 
-### Alternative D: Rename Classes Without Restructuring
-Keep the wrapper div but rename classes for consistency:
-- `.docs-nav-group-toggle-wrapper` → `.docs-nav-header`
-- `.docs-nav-group-toggle` → `.docs-nav-toggle`
-- `.docs-nav-group-link` → `.docs-nav-title`
-- `.docs-nav-group-items` → `.docs-nav-items`
+### Alternative D: CSS Modules / Scoping
+Use CSS modules or shadow DOM for isolation.
 
-**Considered**: Lower risk than flattening, improves naming consistency, but doesn't reduce HTML size. Could be a stepping stone before full flattening.
-
----
-
-## Cost-Benefit Summary
-
-| Change | Effort | HTML Savings | Risk | Recommendation |
-|--------|--------|--------------|------|----------------|
-| 2: AI Icons | 30 min | ~400 bytes | Low | ✅ Do first |
-| 3: Stats Filter | 1 hour | ~200 bytes | Low | ✅ Do first |
-| 4: Content Wrapper | 30 min | ~100 bytes | Low | ✅ Do first |
-| 1: Nav Flattening | 4-6 hours | ~1KB | High | ⚠️ Evaluate ROI |
-
-**Total (Phase 1-2)**: ~2 hours effort for ~700 bytes + cleaner templates
-**Total (All phases)**: ~8 hours effort for ~1.7KB + cleaner templates
+**Rejected**: Requires build tooling changes. Overkill for static site.
 
 ---
 
 ## References
 
-- Evidence: `bengal/themes/default/templates/partials/docs-nav-section.html:48-71`
-- Evidence: `bengal/themes/default/templates/partials/page-hero/_share-dropdown.html:54-92`
-- Evidence: `bengal/themes/default/templates/partials/page-hero-api.html:184-278`
-- Evidence: `bengal/themes/default/templates/cli-reference/command-group.html:32-34`
-- Evidence: `bengal/themes/default/assets/js/enhancements/interactive.js:306-369`
-- Evidence: `bengal/themes/default/assets/css/components/docs-nav.css:46-114,188-218,412-468`
+**CSS Files**:
+- `bengal/themes/default/assets/css/components/api-explorer.css` (2,629 lines)
+- `bengal/themes/default/assets/css/components/autodoc/` (12 files)
+- `bengal/themes/default/assets/css/components/api-docs.css` (913 lines)
+- `bengal/themes/default/assets/css/components/reference-docs.css` (838 lines)
+
+**Templates**:
+- `bengal/themes/default/templates/cli-reference/command.html`
+- `bengal/themes/default/templates/cli-reference/command-group.html`
+- `bengal/themes/default/templates/partials/page-hero/_share-dropdown.html`
+- `bengal/themes/default/templates/partials/page-hero-api.html`
+
+**JS**:
+- `bengal/themes/default/assets/js/enhancements/interactive.js:306-369`
