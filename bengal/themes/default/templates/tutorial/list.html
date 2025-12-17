@@ -17,6 +17,7 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {% block content %}
+<div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' with context %}
 
@@ -186,5 +187,6 @@ Context variables:
     </div>
     {% endif %}
 
+</div>
 </div>
 {% endblock %}

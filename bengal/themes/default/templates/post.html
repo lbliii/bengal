@@ -4,6 +4,7 @@
 {% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
+<div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
@@ -37,6 +38,7 @@
         </nav>
     </aside>
     {% endif %}
+</div>
 </div>
 
 {# Related Posts Section - Pre-computed during build #}

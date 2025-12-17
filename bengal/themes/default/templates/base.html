@@ -419,10 +419,11 @@ See: plan/active/rfc-template-performance-optimization.md
     </nav>
 
     {# Main Content #}
+    {# Note: No .container wrapper here - templates define their own containment strategy #}
+    {# - docs-layout templates: full-width grid (no container needed) #}
+    {# - single-column templates: add .container in the block content #}
     <main id="main-content" role="main">
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
+        {% block content %}{% endblock %}
     </main>
 
     {# Footer #}

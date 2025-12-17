@@ -17,6 +17,7 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
 {% block content %}
+<div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
@@ -149,6 +150,8 @@ Context variables:
         </nav>
     </aside>
     {% endif %}
+</div>
+
 </div>
 
 {# Prominent Prev/Next Navigation #}
