@@ -20,8 +20,9 @@ autodoc:
     docstring_style: auto  # Auto-detect docstring format
 
     # Output prefix for Python API docs
-    # This creates the section at /api/python/...
-    output_prefix: "api/python"
+    # Empty = auto-derive from source_dirs (e.g., "api/bengal" from source_dirs: [../bengal])
+    # Explicit value like "api/python" overrides auto-derivation
+    output_prefix: ""  # Auto-derive from package name
 
     # Exclude test, cache, build artifacts, and virtual environment files
     exclude:
