@@ -119,11 +119,13 @@ body[data-type="cli-reference"] .docs-main .prose {
   margin-inline: 0;
 }
 
-/* Constrain .docs-content for readability while allowing card grids to
-   have reasonable width. Uses wider max-width than prose (75ch) to
-   accommodate 2-column card layouts while still respecting page gutters. */
+/* Constrain .docs-content and .page-navigation for readability while allowing
+   card grids to have reasonable width. Uses wider max-width than prose (75ch)
+   to accommodate 2-column card layouts while still respecting page gutters. */
 body[data-type="openapi-reference"] .docs-main .docs-content,
-body[data-type="cli-reference"] .docs-main .docs-content {
+body[data-type="cli-reference"] .docs-main .docs-content,
+body[data-type="openapi-reference"] .docs-main .page-navigation,
+body[data-type="cli-reference"] .docs-main .page-navigation {
   max-width: var(--container-lg, 1024px);
 }
 

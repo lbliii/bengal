@@ -10,6 +10,7 @@ This is the new architecture that replaces markdown-based autodoc generation.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
@@ -245,6 +246,29 @@ class VirtualAutodocOrchestrator:
             self.template_env = create_template_environment(self.site)
         return self.template_env
 
+    def _derive_python_prefix(self) -> str:
+        """
+        Derive output prefix from Python source directory.
+
+        If source_dirs has exactly one entry, derives prefix from the package
+        name (e.g., source_dirs: ["bengal"] → "api/bengal").
+
+        Returns:
+            Derived prefix (e.g., "api/bengal") or "api/python" as fallback
+        """
+        source_dirs = self.python_config.get("source_dirs", [])
+
+        # If exactly one source directory, derive from its name
+        if len(source_dirs) == 1:
+            source_dir = source_dirs[0]
+            # Extract package name from path (last component)
+            package_name = Path(source_dir).name
+            if package_name and package_name != ".":
+                return f"api/{slugify(package_name)}"
+
+        # Fallback for multiple dirs or edge cases
+        return "api/python"
+
     def _derive_openapi_prefix(self) -> str:
         """
         Derive output prefix from OpenAPI spec title.
@@ -295,7 +319,7 @@ class VirtualAutodocOrchestrator:
         Resolve output prefix for a documentation type.
 
         Checks explicit config value first, then applies type-specific defaults:
-        - python: "api/python"
+        - python: auto-derived from source_dirs (e.g., "api/bengal"), or "api/python"
         - openapi: auto-derived from spec title, or "api/rest"
         - cli: "cli"
 
@@ -303,7 +327,7 @@ class VirtualAutodocOrchestrator:
             doc_type: Documentation type ("python", "openapi", "cli")
 
         Returns:
-            Resolved output prefix (e.g., "api/python", "api/commerce", "cli")
+            Resolved output prefix (e.g., "api/bengal", "api/commerce", "cli")
         """
         cached = self._output_prefix_cache.get(doc_type)
         if cached is not None:
@@ -311,7 +335,7 @@ class VirtualAutodocOrchestrator:
 
         if doc_type == "python":
             explicit = self.python_config.get("output_prefix")
-            resolved = explicit.strip("/") if explicit else "api/python"
+            resolved = explicit.strip("/") if explicit else self._derive_python_prefix()
 
         elif doc_type == "openapi":
             explicit = self.openapi_config.get("output_prefix")

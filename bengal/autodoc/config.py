@@ -31,7 +31,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "strict": False,  # Strict mode: raise on extraction/render failures
         "python": {
             "enabled": False,  # Disabled by default - enable in config
-            "output_prefix": "api/python",  # URL prefix for Python API docs
+            "output_prefix": "",  # Auto-derived from source_dirs (e.g., "api/bengal")
             "source_dirs": ["."],
             # output_dir removed - virtual pages always output to site.output_dir (public/)
             "exclude": [
