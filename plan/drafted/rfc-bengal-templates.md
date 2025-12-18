@@ -1,163 +1,250 @@
-# RFC: Bengal Templates — A Python 3.14-Native Templating System
+# RFC: templit — A Standalone Python 3.14-Native HTML Templating Library
 
-**Status**: Draft  
-**Created**: 2025-12-18  
-**Author**: AI Assistant  
-**Subsystems**: `bengal/rendering/`, `bengal/themes/`
+**Status**: Draft
+**Created**: 2025-12-18
+**Author**: AI Assistant
+**Subsystems**: Standalone package + `bengal/rendering/` integration
 
 ---
 
 ## Executive Summary
 
-This RFC proposes **Bengal Templates**, a modern templating system built on Python 3.14's [PEP 750 Template Strings (t-strings)](https://www.python.org/downloads/release/python-3140/). By leveraging native Python syntax, type safety, and context-aware escaping, Bengal Templates can provide a superior developer experience compared to Jinja2 while eliminating an external dependency and enabling deeper IDE integration.
+This RFC proposes **templit** (pronounced "temp-lit"), a standalone Python 3.14-native HTML templating library built on [PEP 750 Template Strings (t-strings)](https://www.python.org/downloads/release/python-3140/). Designed as a **general-purpose library** that anyone can use, templit will also serve as Bengal's next-generation templating system via an optional dependency.
+
+**Distribution Strategy**:
+```bash
+# Standalone usage (any Python project)
+pip install templit
+
+# Bengal with templit support
+pip install bengal[templates]
+```
 
 **Key benefits**:
-- **Single language**: No context-switching between Python and Jinja syntax
-- **Type-safe**: Full IDE autocompletion, refactoring, and error detection
-- **Context-aware escaping**: Automatic HTML/CSS/JS/URL escaping based on context
-- **Modern Python**: Async-first, pattern matching, deferred annotations
-- **Zero new syntax**: Just Python with a builder API
+- **Standalone package**: Use in any Python project, not just Bengal
+- **Zero dependencies**: Only Python 3.14+ stdlib required
+- **Type-safe**: Full IDE autocompletion, refactoring, and mypy support
+- **Context-aware escaping**: Automatic HTML/CSS/JS/URL escaping
+- **Modern Python**: Async-first, pattern matching, native syntax
 
 ---
 
-## Problem Statement
+## Why a Standalone Package?
 
-### Current State: Jinja2
+### Benefits of Independence
 
-Bengal currently uses Jinja2 for templating. While Jinja2 is mature and capable, it has fundamental limitations:
+1. **Broader Adoption**: Developers can use templit in Flask, FastAPI, Django, or any Python project
+2. **Faster Iteration**: templit can evolve independently of Bengal's release cycle
+3. **Community Contributions**: Lower barrier for external contributors
+4. **Ecosystem Growth**: Other static site generators could adopt templit
+5. **Focused Scope**: Clean separation between HTML generation and site building
 
-1. **Separate DSL**: Jinja2 is a distinct language with its own syntax, requiring developers to context-switch between Python and template code.
+### Relationship to Bengal
 
-2. **Limited Type Safety**: No IDE support for type checking template variables, filter arguments, or macro signatures.
-
-3. **String-Based**: Templates are strings parsed at runtime, making refactoring fragile and errors hard to catch early.
-
-4. **Manual Escaping**: Developers must remember to use `| escape` or `| safe` correctly, leading to XSS vulnerabilities or double-escaping bugs.
-
-5. **Limited Expressions**: Jinja2's expression language is a subset of Python, causing frustration when familiar Python constructs don't work.
-
-6. **External Dependency**: Jinja2 is a large dependency (~500KB) that Bengal must maintain compatibility with.
-
-### Python 3.14 Opportunity
-
-Python 3.14 (released October 2025) introduces [PEP 750: Template String Literals](https://www.python.org/downloads/release/python-3140/):
-
-```python
-# Traditional f-string: immediate evaluation, returns str
-name = "world"
-greeting = f"Hello, {name}!"  # → "Hello, world!"
-
-# T-string: lazy template, returns Template object
-template = t"Hello, {name}!"  # → Template(strings=["Hello, ", "!"],
-                              #           values=[Interpolation(value="world", ...)])
+```
+┌─────────────────────────────────────────────────────────┐
+│                     templit (PyPI)                      │
+│  A general-purpose Python 3.14 HTML templating library  │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            │ optional dependency
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                    bengal[templates]                    │
+│        Bengal SSG with templit integration layer        │
+└─────────────────────────────────────────────────────────┘
 ```
 
-T-strings enable:
-- **Inspection before rendering**: See the template structure, not just the result
-- **Custom processing**: Apply transformations, escaping, validation
-- **Type preservation**: Values retain their types until rendering
-- **Composition**: Build complex templates from smaller pieces
+---
 
-Combined with other 3.14 features:
-- **PEP 649**: Deferred annotation evaluation (better type hints)
-- **PEP 779**: Free-threaded Python (better async/parallel rendering)
-- **Experimental JIT**: Significant performance potential
+## Package Design
+
+### Package Name: `templit`
+
+**Why "templit"?**
+- **Template + lit**: References both templates and Python's t-string literals
+- **Short and memorable**: Easy to type, easy to remember
+- **Available**: Not taken on PyPI (as of writing)
+- **Neutral**: No tie to Bengal, frameworks, or specific use cases
+
+**Alternative names considered**:
+- `thtml` - Too cryptic
+- `pyhtml` - Already exists
+- `htpy` - Already exists
+- `taglib` - Java connotations
+- `markuply` - Bit awkward
+
+### Package Structure
+
+```
+templit/
+├── pyproject.toml
+├── README.md
+├── LICENSE (MIT)
+├── docs/
+│   ├── getting-started.md
+│   ├── api-reference.md
+│   ├── components.md
+│   ├── escaping.md
+│   └── examples/
+└── src/
+    └── templit/
+        ├── __init__.py        # Public API exports
+        ├── py.typed           # PEP 561 marker
+        ├── core.py            # HTML class, rendering engine
+        ├── elements.py        # Element factories (div, span, etc.)
+        ├── components.py      # @component decorator, children()
+        ├── contexts.py        # Context-aware escapers (html, css, js, url)
+        ├── escaping.py        # Escaping implementations
+        ├── types.py           # Type definitions, protocols
+        └── _compat.py         # Python version compatibility
+```
+
+### pyproject.toml
+
+```toml
+[project]
+name = "templit"
+version = "0.1.0"
+description = "A Python 3.14-native HTML templating library using t-strings"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.14"
+authors = [
+    { name = "Bengal Contributors", email = "..." }
+]
+keywords = [
+    "html",
+    "templates",
+    "t-strings",
+    "pep750",
+    "type-safe",
+    "components",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Text Processing :: Markup :: HTML",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/bengal-ssg/templit"
+Documentation = "https://templit.dev"
+Repository = "https://github.com/bengal-ssg/templit"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "mypy>=1.10",
+    "ruff>=0.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+```
 
 ---
 
-## Proposed Solution: Bengal Templates
+## Core API
 
-### Design Goals
-
-1. **Native Python**: Templates are Python functions returning `HTML` objects
-2. **Type-Safe**: Full type hints, IDE integration, and mypy support
-3. **Context-Aware**: Automatic escaping based on HTML/CSS/JS/URL context
-4. **Component-Based**: First-class components with slots and composition
-5. **Async-Native**: Built for async rendering from the ground up
-6. **Zero Learning Curve**: If you know Python, you know Bengal Templates
-
-### Core API
-
-#### Basic Usage
+### Basic Usage
 
 ```python
-from bengal.templates import html, t
+from templit import html, div, h1, p, a
+
+# Simple element
+greeting = h1["Hello, World!"]
+
+# Nested elements
+card = div(class_="card")[
+    h1["Welcome"],
+    p["This is a card component."],
+    a(href="/about")["Learn more"]
+]
+
+# Render to string
+print(str(card))
+# <div class="card"><h1>Welcome</h1><p>This is a card component.</p><a href="/about">Learn more</a></div>
+```
+
+### T-String Integration (Python 3.14+)
+
+```python
+from templit import html, t
 
 def greeting(name: str) -> HTML:
-    """Simple template with auto-escaping."""
+    """T-strings enable context-aware escaping."""
     return html[t"<h1>Hello, {name}!</h1>"]
     # name is automatically HTML-escaped
+
+# Malicious input is safely escaped
+greeting("<script>alert('xss')</script>")
+# → <h1>Hello, &lt;script&gt;alert('xss')&lt;/script&gt;!</h1>
 ```
 
-#### Element Builder
+### Element Builder
 
 ```python
-from bengal.templates import html, div, h1, p, a, span
+from templit import div, h1, p, span, ul, li, a
 
 def article(title: str, content: str, author: str) -> HTML:
     """Element builder with type-safe attributes."""
-    return html[
-        div(class_="article")[
-            h1(class_="article__title")[title],
-            div(class_="article__content")[content],
-            p(class_="article__meta")[
-                "By ",
-                span(class_="author")[author]
-            ]
+    return div(class_="article")[
+        h1(class_="article__title")[title],
+        div(class_="article__content")[content],
+        p(class_="article__meta")[
+            "By ",
+            span(class_="author")[author]
         ]
     ]
-```
 
-#### Control Flow (Native Python)
-
-```python
-from bengal.templates import html, ul, li, a
-
-def nav(items: list[NavItem], current_slug: str) -> HTML:
+def nav(items: list[NavItem], current: str) -> HTML:
     """Native Python control flow."""
-    return html[
-        ul(class_="nav")[
-            li(class_="nav__item" + (" nav__item--active" if item.slug == current_slug else ""))[
-                a(href=item.url)[item.title]
-            ]
-            for item in items
-            if item.visible
+    return ul(class_="nav")[
+        li(class_="nav__item" + (" active" if item.slug == current else ""))[
+            a(href=item.url)[item.title]
         ]
+        for item in items
+        if item.visible
     ]
 ```
 
-#### Components
+### Components
 
 ```python
-from bengal.templates import component, children, HTML
+from templit import component, children, HTML, div, h3
 
 @component
 def card(title: str, variant: str = "default") -> HTML:
     """Reusable component with slots."""
-    return html[
-        div(class_=f"card card--{variant}")[
-            div(class_="card__header")[
-                h3[title]
-            ],
-            div(class_="card__body")[
-                children()  # Slot for nested content
-            ]
+    return div(class_=f"card card--{variant}")[
+        div(class_="card__header")[
+            h3[title]
+        ],
+        div(class_="card__body")[
+            children()  # Slot for nested content
         ]
     ]
 
-# Usage
-def dashboard(posts: list[Post]) -> HTML:
-    return html[
-        card(title="Recent Posts", variant="highlighted")[
-            post_list(posts)
-        ]
-    ]
+# Usage with children
+card(title="Recent Posts", variant="highlighted")[
+    post_list(posts)
+]
+
+# Usage without children
+card(title="Empty Card")
 ```
 
-#### Context-Aware Escaping
+### Context-Aware Escaping
 
 ```python
-from bengal.templates import html, css, js, url
+from templit import html, css, js, url, head, style, script, body, a
 
 def page(title: str, theme_color: str, query: str, user_data: dict) -> HTML:
     """Each context has appropriate escaping."""
@@ -177,114 +264,256 @@ def page(title: str, theme_color: str, query: str, user_data: dict) -> HTML:
     ]
 ```
 
-#### Async Rendering
+### Async Support
 
 ```python
-from bengal.templates import html, await_
+from templit import component, HTML, div, img, span
+import asyncio
 
 @component
 async def user_card(user_id: int) -> HTML:
     """Native async support."""
     user = await fetch_user(user_id)
-    return html[
-        div(class_="user-card")[
-            img(src=user.avatar, alt=user.name),
-            span[user.name]
-        ]
+    return div(class_="user-card")[
+        img(src=user.avatar, alt=user.name),
+        span[user.name]
     ]
 
 # Parallel rendering
 async def user_grid(user_ids: list[int]) -> HTML:
     cards = await asyncio.gather(*[user_card(uid) for uid in user_ids])
-    return html[
-        div(class_="user-grid")[cards]
-    ]
+    return div(class_="user-grid")[cards]
 ```
 
-#### Pattern Matching
+### Raw Content
 
 ```python
-from bengal.templates import html, span
-from bengal.core import PageStatus
+from templit import html, raw, div
 
-def status_badge(status: PageStatus) -> HTML:
-    """Python 3.10+ pattern matching."""
-    match status:
-        case PageStatus.DRAFT:
-            return html[span(class_="badge badge--draft")["Draft"]]
-        case PageStatus.PUBLISHED:
-            return html[span(class_="badge badge--published")["Published"]]
-        case PageStatus.ARCHIVED:
-            return html[span(class_="badge badge--archived")["Archived"]]
-        case _:
-            return html[span(class_="badge")["Unknown"]]
-```
-
-#### Raw/Unsafe Content
-
-```python
-from bengal.templates import html, raw
-
-def content_block(page: Page) -> HTML:
+def content_block(html_content: str) -> HTML:
     """Explicit unsafe content marking."""
-    return html[
-        article[
-            h1[page.title],  # Escaped
-            div(class_="content")[
-                raw(page.content_html)  # Explicit: not escaped
-            ]
-        ]
+    return div(class_="content")[
+        raw(html_content)  # ⚠️ Not escaped - use only with trusted content
     ]
 ```
 
 ---
 
-## Implementation Architecture
+## Bengal Integration Layer
 
-### Module Structure
+### pyproject.toml (Bengal)
 
+```toml
+[project]
+name = "bengal"
+# ...
+
+[project.optional-dependencies]
+templates = ["templit>=0.1.0"]
+all = ["templit>=0.1.0", "...other extras..."]
 ```
-bengal/templates/
-├── __init__.py          # Public API exports
-├── core.py              # HTML class, rendering engine
-├── elements.py          # Element factories (div, span, etc.)
-├── components.py        # @component decorator, children()
-├── contexts.py          # Context-aware escapers (html, css, js, url)
-├── escaping.py          # Escaping implementations
-├── types.py             # Type definitions, protocols
-└── compat.py            # Jinja2 interop layer
+
+### Installation
+
+```bash
+# Standard Bengal (Jinja2 only)
+pip install bengal
+
+# Bengal with templit support
+pip install bengal[templates]
+
+# Or with uv
+uv add bengal[templates]
 ```
+
+### Integration Module
+
+```python
+# bengal/rendering/templit_integration.py
+"""Bengal integration layer for templit templates."""
+
+from __future__ import annotations
+
+try:
+    import templit
+    TEMPLIT_AVAILABLE = True
+except ImportError:
+    TEMPLIT_AVAILABLE = False
+
+if TEMPLIT_AVAILABLE:
+    from templit import (
+        HTML,
+        html,
+        component,
+        children,
+        raw,
+        css,
+        js,
+        url,
+        # Re-export all elements
+        div, span, a, p, h1, h2, h3, h4, h5, h6,
+        ul, ol, li, table, tr, th, td,
+        form, input, button, select, option, textarea,
+        header, footer, main, nav, aside, section, article,
+        img, video, audio, source,
+        # ... etc
+    )
+
+    # Bengal-specific extensions
+    from bengal.core import Page, Site, Section
+
+    @component
+    def page_meta(page: Page) -> HTML:
+        """Bengal-aware meta tags component."""
+        return html[
+            meta(charset="utf-8"),
+            meta(name="viewport", content="width=device-width, initial-scale=1"),
+            title[page.title],
+            page.description and meta(name="description", content=page.description),
+            page.canonical_url and link(rel="canonical", href=page.canonical_url),
+        ]
+
+    @component
+    def bengal_head(page: Page, site: Site) -> HTML:
+        """Standard Bengal head component."""
+        return head[
+            page_meta(page),
+            # Theme stylesheets
+            [link(rel="stylesheet", href=css_url) for css_url in site.stylesheets],
+        ]
+
+    def render_page(page: Page, site: Site, template_func) -> str:
+        """Render a page using a templit template function."""
+        return str(template_func(page, site))
+
+else:
+    # Graceful degradation when templit not installed
+    def _not_available(*args, **kwargs):
+        raise ImportError(
+            "templit is not installed. Install with: pip install bengal[templates]"
+        )
+
+    HTML = _not_available
+    html = _not_available
+    component = _not_available
+    # ... etc
+```
+
+### Usage in Bengal Themes
+
+```python
+# themes/default/templates/page.py
+"""Default theme page template using templit."""
+
+from bengal.rendering.templit_integration import (
+    HTML, html, component, children, raw,
+    div, main, article, h1, header, footer, nav, a, ul, li,
+    bengal_head,
+)
+from bengal.core import Page, Site
+
+@component
+def base_layout(site: Site) -> HTML:
+    """Base layout with header, main content, footer."""
+    return html[
+        doctype(),
+        html(lang=site.language)[
+            bengal_head(site.current_page, site),
+            body[
+                site_header(site),
+                main[children()],
+                site_footer(site),
+            ]
+        ]
+    ]
+
+@component
+def site_header(site: Site) -> HTML:
+    return header(class_="site-header")[
+        nav(class_="main-nav")[
+            a(href="/", class_="logo")[site.title],
+            ul(class_="nav-links")[
+                li[a(href=item.url)[item.title]]
+                for item in site.navigation
+            ]
+        ]
+    ]
+
+@component
+def site_footer(site: Site) -> HTML:
+    return footer(class_="site-footer")[
+        f"© {site.copyright_year} {site.author}"
+    ]
+
+def page_template(page: Page, site: Site) -> HTML:
+    """Main page template."""
+    return base_layout(site)[
+        article(class_="page-content")[
+            h1[page.title],
+            div(class_="content")[
+                raw(page.content_html)
+            ]
+        ]
+    ]
+```
+
+### Hybrid Jinja2 + templit
+
+```python
+# Support gradual migration
+from bengal.rendering.templit_integration import html, raw, header, footer
+from bengal.rendering import jinja_env
+
+def hybrid_page(page: Page, site: Site) -> HTML:
+    """Mix templit components with Jinja2 templates."""
+    return html[
+        # templit header
+        site_header(site),
+
+        # Existing Jinja2 content template
+        raw(jinja_env.get_template("content.html").render(page=page)),
+
+        # templit footer
+        site_footer(site),
+    ]
+```
+
+---
+
+## Implementation Details
 
 ### Core Types
 
 ```python
-# bengal/templates/types.py
+# src/templit/types.py
 from __future__ import annotations
-from typing import Protocol, runtime_checkable, Union, Sequence
-from string.templatelib import Template
+from typing import Protocol, runtime_checkable, Union, Sequence, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from string.templatelib import Template
 
 @runtime_checkable
 class Renderable(Protocol):
     """Any object that can render to HTML."""
     def __html__(self) -> str: ...
 
-# Content types
+# Content types that can be rendered
 HTMLContent = Union[
-    str,                    # Plain text (will be escaped)
-    Template,               # T-string (context-aware escaping)
-    Renderable,             # Objects with __html__
-    Sequence["HTMLContent"], # Lists/tuples of content
-    None,                   # Renders as empty string
+    str,                      # Plain text (will be escaped)
+    "Template",               # T-string (context-aware escaping)
+    Renderable,               # Objects with __html__
+    Sequence["HTMLContent"],  # Lists/tuples of content
+    None,                     # Renders as empty string
 ]
 ```
 
 ### HTML Class
 
 ```python
-# bengal/templates/core.py
+# src/templit/core.py
 from __future__ import annotations
 from string.templatelib import Template, Interpolation
-from .escaping import escape_html, escape_attr
+from .escaping import escape_html
 from .types import HTMLContent, Renderable
 
 class HTML:
@@ -305,6 +534,7 @@ class HTML:
         return self._value
 
     def __html__(self) -> str:
+        """Jinja2/Markupsafe compatibility."""
         return self._value
 
     def __repr__(self) -> str:
@@ -315,6 +545,14 @@ class HTML:
         if isinstance(other, HTML):
             return HTML(self._value + other._value)
         return NotImplemented
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, HTML):
+            return self._value == other._value
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(self._value)
 
     @classmethod
     def __class_getitem__(cls, content: HTMLContent) -> HTML:
@@ -343,21 +581,15 @@ class HTML:
 
     @classmethod
     def _render_template(cls, template: Template) -> HTML:
-        """
-        Render a t-string with context-aware escaping.
-
-        Literal strings pass through unchanged.
-        Interpolated values are HTML-escaped.
-        """
+        """Render a t-string with context-aware escaping."""
         parts: list[str] = []
 
         for item in template:
             match item:
                 case str() as literal:
-                    # Literal HTML passes through
                     parts.append(literal)
                 case Interpolation(value=value, conversion=conv, format_spec=spec):
-                    # Apply conversion if specified
+                    # Apply conversion
                     if conv == "r":
                         value = repr(value)
                     elif conv == "s":
@@ -365,7 +597,7 @@ class HTML:
                     elif conv == "a":
                         value = ascii(value)
 
-                    # Apply format spec if specified
+                    # Apply format spec
                     if spec:
                         value = format(value, spec)
 
@@ -383,9 +615,9 @@ html = HTML
 ### Element Factory
 
 ```python
-# bengal/templates/elements.py
+# src/templit/elements.py
 from __future__ import annotations
-from typing import Any, overload
+from typing import Any
 from types import GeneratorType
 from .core import HTML, html
 from .escaping import escape_attr
@@ -397,11 +629,11 @@ class Element:
     Usage:
         div(class_="container", id="main")["Content"]
         a(href="/about")["About Us"]
+        img(src="/logo.png", alt="Logo")  # void element
     """
 
     __slots__ = ("_tag", "_attrs", "_void")
 
-    # Void elements (self-closing, no children)
     VOID_ELEMENTS = frozenset({
         "area", "base", "br", "col", "embed", "hr", "img", "input",
         "link", "meta", "param", "source", "track", "wbr"
@@ -413,48 +645,23 @@ class Element:
         self._void = tag in self.VOID_ELEMENTS
 
     def __call__(self, **attrs: Any) -> Element:
-        """
-        Set attributes. Trailing underscores are stripped (for reserved words).
-        None values are omitted. True renders as boolean attribute.
-
-        Examples:
-            div(class_="foo")      → <div class="foo">
-            input(disabled=True)   → <input disabled>
-            div(hidden=None)       → <div>
-        """
+        """Set attributes. Trailing underscores stripped for reserved words."""
         clean_attrs = {}
         for key, value in attrs.items():
             if value is None:
                 continue
-            # Strip trailing underscore (class_, for_, type_, etc.)
             clean_key = key.rstrip("_")
             clean_attrs[clean_key] = value
 
         return Element(self._tag, {**self._attrs, **clean_attrs})
 
     def __getitem__(self, children) -> HTML:
-        """
-        Set children and render to HTML.
-
-        Examples:
-            div["Hello"]
-            ul[li["Item 1"], li["Item 2"]]
-            div[item for item in items]
-        """
+        """Set children and render to HTML."""
         if self._void:
             raise ValueError(f"<{self._tag}> is a void element and cannot have children")
 
-        # Build attribute string
-        attr_parts = []
-        for key, value in self._attrs.items():
-            if value is True:
-                attr_parts.append(key)  # Boolean attribute
-            else:
-                attr_parts.append(f'{key}="{escape_attr(str(value))}"')
+        attr_str = self._render_attrs()
 
-        attr_str = " " + " ".join(attr_parts) if attr_parts else ""
-
-        # Render children
         if isinstance(children, GeneratorType):
             children = list(children)
 
@@ -466,24 +673,26 @@ class Element:
         return HTML(f"<{self._tag}{attr_str}>{content}</{self._tag}>")
 
     def __html__(self) -> str:
-        """Render void element or element with no children."""
-        attr_parts = []
-        for key, value in self._attrs.items():
-            if value is True:
-                attr_parts.append(key)
-            else:
-                attr_parts.append(f'{key}="{escape_attr(str(value))}"')
-
-        attr_str = " " + " ".join(attr_parts) if attr_parts else ""
-
+        """Render element (void or empty)."""
+        attr_str = self._render_attrs()
         if self._void:
             return f"<{self._tag}{attr_str}>"
-        else:
-            return f"<{self._tag}{attr_str}></{self._tag}>"
+        return f"<{self._tag}{attr_str}></{self._tag}>"
+
+    def _render_attrs(self) -> str:
+        if not self._attrs:
+            return ""
+        parts = []
+        for key, value in self._attrs.items():
+            if value is True:
+                parts.append(key)
+            else:
+                parts.append(f'{key}="{escape_attr(str(value))}"')
+        return " " + " ".join(parts)
 
 
-# Generate standard HTML elements
-_STANDARD_ELEMENTS = [
+# Pre-defined elements
+_ELEMENTS = [
     # Document
     "html", "head", "body", "title", "meta", "link", "style", "script",
     # Sections
@@ -503,50 +712,126 @@ _STANDARD_ELEMENTS = [
     "colgroup", "col",
     # Forms
     "form", "fieldset", "legend", "label", "input", "button", "select",
-    "option", "optgroup", "textarea", "datalist", "output", "progress",
-    "meter",
+    "option", "optgroup", "textarea", "datalist", "output", "progress", "meter",
     # Interactive
     "details", "summary", "dialog",
 ]
 
-# Create element instances
-def _create_elements() -> dict[str, Element]:
-    return {name: Element(name) for name in _STANDARD_ELEMENTS}
+_element_cache = {name: Element(name) for name in _ELEMENTS}
 
-_elements = _create_elements()
-
-# Export as module attributes
-div = _elements["div"]
-span = _elements["span"]
-a = _elements["a"]
-p = _elements["p"]
-h1 = _elements["h1"]
-h2 = _elements["h2"]
-h3 = _elements["h3"]
-h4 = _elements["h4"]
-h5 = _elements["h5"]
-h6 = _elements["h6"]
-ul = _elements["ul"]
-ol = _elements["ol"]
-li = _elements["li"]
-img = _elements["img"]
-# ... etc.
+# Export common elements directly
+div = _element_cache["div"]
+span = _element_cache["span"]
+a = _element_cache["a"]
+p = _element_cache["p"]
+h1 = _element_cache["h1"]
+h2 = _element_cache["h2"]
+h3 = _element_cache["h3"]
+h4 = _element_cache["h4"]
+h5 = _element_cache["h5"]
+h6 = _element_cache["h6"]
+ul = _element_cache["ul"]
+ol = _element_cache["ol"]
+li = _element_cache["li"]
+img = _element_cache["img"]
+# ... all others exported in __init__.py
 
 def __getattr__(name: str) -> Element:
-    """Allow access to any element by name."""
-    if name in _elements:
-        return _elements[name]
+    """Dynamic element access for any tag name."""
+    if name in _element_cache:
+        return _element_cache[name]
     if name.startswith("_"):
         raise AttributeError(name)
-    # Create custom element on demand
-    return Element(name)
+    return Element(name)  # Custom elements
 ```
 
-### Escaping
+### Component System
 
 ```python
-# bengal/templates/escaping.py
-"""Context-aware escaping functions."""
+# src/templit/components.py
+from __future__ import annotations
+from typing import Callable, TypeVar, ParamSpec
+from contextvars import ContextVar
+from functools import wraps
+from .core import HTML, html
+from .types import HTMLContent
+
+P = ParamSpec("P")
+
+_children_stack: ContextVar[list[HTMLContent]] = ContextVar("children_stack", default=[])
+
+def children() -> HTML:
+    """
+    Render children passed to a component.
+
+    Usage:
+        @component
+        def wrapper():
+            return div(class_="wrapper")[children()]
+
+        wrapper()["Content here"]
+    """
+    stack = _children_stack.get()
+    if not stack:
+        return HTML("")
+    return html[stack[-1]]
+
+
+class Component:
+    """Wrapper enabling child content for component functions."""
+
+    __slots__ = ("_func", "_args", "_kwargs")
+
+    def __init__(self, func: Callable[..., HTML], args: tuple, kwargs: dict):
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+
+    def __getitem__(self, content: HTMLContent) -> HTML:
+        """Render with children."""
+        stack = _children_stack.get().copy()
+        stack.append(content)
+        token = _children_stack.set(stack)
+        try:
+            return self._func(*self._args, **self._kwargs)
+        finally:
+            _children_stack.reset(token)
+
+    def __html__(self) -> str:
+        """Render without children."""
+        return self._func(*self._args, **self._kwargs).__html__()
+
+    def __str__(self) -> str:
+        return self.__html__()
+
+
+def component(func: Callable[P, HTML]) -> Callable[P, Component]:
+    """
+    Decorator to create a reusable component with optional children.
+
+    Usage:
+        @component
+        def alert(variant: str = "info") -> HTML:
+            return div(class_=f"alert alert--{variant}")[children()]
+
+        # With children
+        alert(variant="warning")["Warning message!"]
+
+        # Without children (empty)
+        alert()
+    """
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component:
+        return Component(func, args, kwargs)
+
+    return wrapper
+```
+
+### Escaping Functions
+
+```python
+# src/templit/escaping.py
+"""Context-aware escaping for XSS prevention."""
 
 import html as html_module
 import urllib.parse
@@ -558,28 +843,18 @@ def escape_html(value: str) -> str:
     return html_module.escape(value, quote=False)
 
 def escape_attr(value: str) -> str:
-    """Escape for HTML attribute values (assumes double quotes)."""
+    """Escape for HTML attribute values."""
     return html_module.escape(value, quote=True)
 
 def escape_css(value: str) -> str:
-    """
-    Escape for CSS context.
-    Prevents CSS injection attacks.
-    """
-    # Remove potentially dangerous characters
-    # Allow alphanumeric, hyphens, underscores, spaces, and common CSS chars
-    if not re.match(r'^[\w\s\-#.,()%]+$', value):
-        # Escape non-safe characters
-        return re.sub(r'[^\w\s\-#.,()%]', lambda m: f'\\{ord(m.group()):x}', value)
-    return value
+    """Escape for CSS context."""
+    if re.match(r'^[\w\s\-#.,()%]+$', value):
+        return value
+    return re.sub(r'[^\w\s\-#.,()%]', lambda m: f'\\{ord(m.group()):x}', value)
 
 def escape_js(value: str) -> str:
-    """
-    Escape for JavaScript string context.
-    Prevents XSS via script injection.
-    """
-    # Use JSON encoding which handles all escaping
-    return json.dumps(value)[1:-1]  # Strip quotes
+    """Escape for JavaScript string context."""
+    return json.dumps(value)[1:-1]
 
 def escape_url(value: str) -> str:
     """Escape for URL query parameters."""
@@ -590,539 +865,305 @@ def escape_url_path(value: str) -> str:
     return urllib.parse.quote(value, safe='/')
 ```
 
-### Context Managers
+### Context Processors
 
 ```python
-# bengal/templates/contexts.py
-"""Context-specific template processors."""
+# src/templit/contexts.py
+"""Context-specific t-string processors."""
 
 from __future__ import annotations
 from string.templatelib import Template, Interpolation
 from .escaping import escape_css, escape_js, escape_url
-from .core import HTML
 
-class ContextProcessor:
-    """Base class for context-specific template processing."""
+class _ContextProcessor:
+    """Base for context-specific template processing."""
+
+    _escape_func: Callable[[str], str]
 
     def __class_getitem__(cls, content: str | Template) -> str:
         if isinstance(content, str):
             return content
-        return cls._process_template(content)
+        return cls._process(content)
 
     @classmethod
-    def _process_template(cls, template: Template) -> str:
-        raise NotImplementedError
-
-
-class CSSContext(ContextProcessor):
-    """CSS-safe template processing."""
-
-    @classmethod
-    def _process_template(cls, template: Template) -> str:
+    def _process(cls, template: Template) -> str:
         parts = []
         for item in template:
             match item:
                 case str() as literal:
                     parts.append(literal)
                 case Interpolation(value=value):
-                    parts.append(escape_css(str(value)))
+                    parts.append(cls._escape_func(str(value)))
         return "".join(parts)
 
 
-class JSContext(ContextProcessor):
-    """JavaScript-safe template processing."""
-
-    @classmethod
-    def _process_template(cls, template: Template) -> str:
-        parts = []
-        for item in template:
-            match item:
-                case str() as literal:
-                    parts.append(literal)
-                case Interpolation(value=value):
-                    parts.append(escape_js(str(value)))
-        return "".join(parts)
+class css(_ContextProcessor):
+    """CSS-safe t-string processing."""
+    _escape_func = staticmethod(escape_css)
 
 
-class URLContext(ContextProcessor):
-    """URL-safe template processing."""
-
-    @classmethod
-    def _process_template(cls, template: Template) -> str:
-        parts = []
-        for item in template:
-            match item:
-                case str() as literal:
-                    parts.append(literal)
-                case Interpolation(value=value):
-                    parts.append(escape_url(str(value)))
-        return "".join(parts)
+class js(_ContextProcessor):
+    """JavaScript-safe t-string processing."""
+    _escape_func = staticmethod(escape_js)
 
 
-# Public instances
-css = CSSContext
-js = JSContext
-url = URLContext
+class url(_ContextProcessor):
+    """URL-safe t-string processing."""
+    _escape_func = staticmethod(escape_url)
 ```
 
-### Components
+### Public API
 
 ```python
-# bengal/templates/components.py
-"""Component system for reusable templates."""
+# src/templit/__init__.py
+"""
+templit - A Python 3.14-native HTML templating library using t-strings.
 
-from __future__ import annotations
-from typing import Callable, TypeVar, ParamSpec, Any
-from contextvars import ContextVar
-from functools import wraps
-from .core import HTML, html
-from .types import HTMLContent
+Usage:
+    from templit import html, div, h1, p, a, component, children
 
-P = ParamSpec("P")
-T = TypeVar("T")
-
-# Context variable for tracking children during rendering
-_children_stack: ContextVar[list[HTMLContent]] = ContextVar("children_stack", default=[])
-
-def children() -> HTML:
-    """
-    Render the children passed to a component.
-
-    Usage:
-        @component
-        def card(title: str):
-            return html[
-                div(class_="card")[
-                    h3[title],
-                    div(class_="card__body")[
-                        children()
-                    ]
-                ]
-            ]
-    """
-    stack = _children_stack.get()
-    if not stack:
-        return HTML("")
-    return html[stack[-1]]
-
-
-class Component:
-    """
-    Wrapper for component functions that enables child content.
-
-    Created by @component decorator.
-    """
-
-    def __init__(self, func: Callable[P, HTML], args: tuple, kwargs: dict):
-        self._func = func
-        self._args = args
-        self._kwargs = kwargs
-
-    def __getitem__(self, content: HTMLContent) -> HTML:
-        """Render component with children."""
-        stack = _children_stack.get().copy()
-        stack.append(content)
-        token = _children_stack.set(stack)
-        try:
-            return self._func(*self._args, **self._kwargs)
-        finally:
-            _children_stack.reset(token)
-
-    def __html__(self) -> str:
-        """Render component without children."""
-        return self._func(*self._args, **self._kwargs).__html__()
-
-
-def component(func: Callable[P, HTML]) -> Callable[P, Component]:
-    """
-    Decorator to create a reusable component.
-
-    Components can accept children via the children() function.
-
-    Usage:
-        @component
-        def alert(variant: str = "info"):
-            return html[
-                div(class_=f"alert alert--{variant}")[
-                    children()
-                ]
-            ]
-
-        # Use with children
-        alert(variant="warning")["This is a warning!"]
-
-        # Use without children
-        alert(variant="success")
-    """
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component:
-        return Component(func, args, kwargs)
-
-    return wrapper
-```
-
-### Raw Content Helper
-
-```python
-# bengal/templates/raw.py
-"""Helper for including raw (unescaped) HTML content."""
-
-from .core import HTML
-
-def raw(content: str) -> HTML:
-    """
-    Mark content as raw HTML that should not be escaped.
-
-    ⚠️ SECURITY WARNING: Only use with trusted content!
-
-    Usage:
-        from bengal.templates import html, raw
-
-        def content_block(page: Page) -> HTML:
-            return html[
-                div(class_="content")[
-                    raw(page.content_html)  # Already-rendered HTML
-                ]
-            ]
-    """
-    return HTML(content)
-```
-
----
-
-## Migration Strategy
-
-### Phase 1: Parallel Systems (v0.x → v1.0)
-
-Both Jinja2 and Bengal Templates coexist. Templates can be written in either system.
-
-```python
-# Jinja2 (existing)
-def render_page_jinja(page: Page, site: Site) -> str:
-    return jinja_env.get_template("page.html").render(page=page, site=site)
-
-# Bengal Templates (new)
-def render_page_bengal(page: Page, site: Site) -> HTML:
-    return base_layout(site)[
-        article_component(page)
-    ]
-```
-
-### Phase 2: Interoperability (v1.0 → v1.x)
-
-Bengal Templates can include Jinja2 output and vice versa.
-
-```python
-from bengal.templates import html, raw
-from bengal.templates.compat import jinja_include
-
-def hybrid_page(page: Page, site: Site) -> HTML:
-    return html[
-        header_component(site),  # Bengal Template
-        raw(jinja_include("legacy/content.html", page=page)),  # Jinja2
-        footer_component(site),  # Bengal Template
-    ]
-```
-
-### Phase 3: Full Migration (v2.0+)
-
-Jinja2 becomes optional/deprecated. Default themes ship with Bengal Templates.
-
-```python
-# Bengal Templates as the standard
-def page_template(ctx: RenderContext) -> HTML:
-    return html[
-        doctype(),
-        html(lang=ctx.site.language)[
-            head_component(ctx),
-            body[
-                header_component(ctx),
-                main[
-                    ctx.page.render()  # Page content via Bengal Templates
-                ],
-                footer_component(ctx)
-            ]
-        ]
-    ]
-```
-
----
-
-## Comparison: Jinja2 vs Bengal Templates
-
-| Aspect | Jinja2 | Bengal Templates |
-|--------|--------|------------------|
-| **Syntax** | Custom DSL | Native Python |
-| **Learning curve** | New syntax to learn | Just Python |
-| **Type safety** | None | Full type hints |
-| **IDE support** | Requires plugins | Native |
-| **Autocompletion** | Limited | Full |
-| **Refactoring** | Fragile | Standard Python |
-| **Escaping** | Manual (`\| escape`, `\| safe`) | Context-aware automatic |
-| **Control flow** | `{% for %}`, `{% if %}` | `for`, `if`, `match` |
-| **Components** | Macros + includes | First-class `@component` |
-| **Async** | Limited (extension) | Native |
-| **Debugging** | Template errors | Python tracebacks |
-| **Performance** | Compiled templates | JIT potential (3.14) |
-| **Dependency** | ~500KB external | Zero (stdlib) |
-
-### Code Comparison
-
-**Navigation Component**
-
-Jinja2:
-```jinja2
-<nav class="main-nav">
-  <ul>
-    {% for item in nav_items %}
-      {% if item.visible %}
-        <li class="nav__item{% if item.slug == current %} nav__item--active{% endif %}">
-          <a href="{{ item.url | escape }}">{{ item.title | escape }}</a>
-        </li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-</nav>
-```
-
-Bengal Templates:
-```python
-def nav(items: list[NavItem], current: str) -> HTML:
-    return html[
-        nav(class_="main-nav")[
-            ul[
-                li(class_=f"nav__item{' nav__item--active' if item.slug == current else ''}")[
-                    a(href=item.url)[item.title]
-                ]
-                for item in items
-                if item.visible
-            ]
-        ]
-    ]
-```
-
-**Blog Post Card**
-
-Jinja2:
-```jinja2
-{% macro post_card(post, show_excerpt=true) %}
-<article class="post-card">
-  <h2 class="post-card__title">
-    <a href="{{ post.url | escape }}">{{ post.title | escape }}</a>
-  </h2>
-  {% if show_excerpt and post.excerpt %}
-    <p class="post-card__excerpt">{{ post.excerpt | escape }}</p>
-  {% endif %}
-  <footer class="post-card__meta">
-    <time datetime="{{ post.date.isoformat() }}">
-      {{ post.date.strftime('%B %d, %Y') }}
-    </time>
-  </footer>
-</article>
-{% endmacro %}
-```
-
-Bengal Templates:
-```python
-@component
-def post_card(post: Post, show_excerpt: bool = True) -> HTML:
-    return html[
-        article(class_="post-card")[
-            h2(class_="post-card__title")[
-                a(href=post.url)[post.title]
-            ],
-            p(class_="post-card__excerpt")[post.excerpt]
-                if show_excerpt and post.excerpt else None,
-            footer(class_="post-card__meta")[
-                time(datetime=post.date.isoformat())[
-                    post.date.strftime("%B %d, %Y")
-                ]
-            ]
-        ]
-    ]
-```
-
----
-
-## Performance Considerations
-
-### Advantages
-
-1. **No Template Parsing**: Templates are compiled Python, no runtime parsing
-2. **JIT Optimization**: Python 3.14's experimental JIT can optimize hot paths
-3. **Type Specialization**: Type hints enable better optimization
-4. **Reduced Allocations**: Builder pattern can minimize string allocations
-
-### Benchmarks (Projected)
-
-| Operation | Jinja2 | Bengal Templates | Improvement |
-|-----------|--------|------------------|-------------|
-| Simple render | 100μs | ~60μs | ~40% faster |
-| Complex page | 500μs | ~300μs | ~40% faster |
-| Memory per render | 50KB | ~30KB | ~40% less |
-
-*Note: Actual benchmarks needed once implemented.*
-
-### Optimization Strategies
-
-1. **String interning**: Reuse common attribute strings
-2. **Element caching**: Cache Element instances
-3. **Lazy rendering**: Defer rendering until needed
-4. **Streaming**: Support incremental output for large pages
-
----
-
-## Security Analysis
-
-### XSS Prevention
-
-Bengal Templates provide **defense in depth**:
-
-1. **Default escaping**: All interpolated values are escaped by default
-2. **Context-aware**: Escaping adapts to HTML/CSS/JS/URL context
-3. **Explicit unsafe**: `raw()` requires explicit opt-in
-4. **Type safety**: IDE catches many issues at write-time
-
-### Comparison to Jinja2
-
-| Risk | Jinja2 | Bengal Templates |
-|------|--------|------------------|
-| Forgetting to escape | Common (must use `\| escape`) | Impossible (default) |
-| Double escaping | Possible | Prevented by `HTML` type |
-| Wrong context escaping | Manual | Automatic |
-| Unsafe content | `\| safe` (easy to misuse) | `raw()` (explicit) |
-
----
-
-## Open Questions
-
-### Q1: Should we support JSX-like syntax?
-
-```python
-# Option A: Current proposal (element builder)
-div(class_="foo")[span["Hello"]]
-
-# Option B: JSX-inspired (hypothetical)
-<div class="foo"><span>Hello</span></div>  # Not valid Python
-
-# Option C: Tagged template alternative
-html`<div class="foo"><span>Hello</span></div>`
-```
-
-**Recommendation**: Option A (element builder) keeps everything as valid Python.
-
-### Q2: How to handle fragments (multiple root elements)?
-
-```python
-# Option A: List
-html[[div["One"], div["Two"]]]
-
-# Option B: Fragment helper
-html[fragment[div["One"], div["Two"]]]
-
-# Option C: Automatic flattening
-html[div["One"], div["Two"]]  # Multiple args
-```
-
-**Recommendation**: Option A (lists) is most Pythonic.
-
-### Q3: Should template functions return `HTML` or `str`?
-
-```python
-# Option A: Return HTML (proposed)
-def greeting(name: str) -> HTML:
-    return html[h1[f"Hello, {name}!"]]
-
-# Option B: Return str
-def greeting(name: str) -> str:
-    return str(html[h1[f"Hello, {name}!"]])
-```
-
-**Recommendation**: Option A maintains type safety and enables composition.
-
-### Q4: What about template inheritance?
-
-Jinja2 has `{% extends %}` and `{% block %}`. Bengal Templates can use:
-
-```python
-# Composition (recommended)
-def base_layout(site: Site):
     @component
-    def layout():
-        return html[
-            doctype(),
-            html(lang=site.language)[
-                head_component(site),
-                body[children()]
-            ]
+    def card(title: str) -> HTML:
+        return div(class_="card")[
+            h1[title],
+            div(class_="card__body")[children()]
         ]
-    return layout
 
-# Usage
-def page(ctx: RenderContext) -> HTML:
-    return base_layout(ctx.site)[
-        article[ctx.page.content]
-    ]
+    card(title="Hello")[p["World!"]]
+"""
+
+from .core import HTML, html
+from .components import component, children
+from .contexts import css, js, url
+from .raw import raw
+from .types import Renderable, HTMLContent
+
+# Elements - explicit exports for IDE support
+from .elements import (
+    # Document
+    html as html_elem, head, body, title, meta, link, style, script,
+    # Sections
+    header, footer, main, nav, aside, section, article,
+    # Headings
+    h1, h2, h3, h4, h5, h6,
+    # Grouping
+    div, p, pre, blockquote, ol, ul, li, dl, dt, dd,
+    figure, figcaption, hr,
+    # Text
+    a, span, em, strong, small, s, cite, q, code,
+    sub, sup, mark, time, abbr,
+    # Embedded
+    img, video, audio, source, iframe, embed, object,
+    # Tables
+    table, thead, tbody, tfoot, tr, th, td, caption, colgroup, col,
+    # Forms
+    form, fieldset, legend, label, input, button, select,
+    option, optgroup, textarea, datalist, output, progress, meter,
+    # Interactive
+    details, summary, dialog,
+)
+
+__version__ = "0.1.0"
+
+__all__ = [
+    # Core
+    "HTML", "html",
+    # Components
+    "component", "children",
+    # Contexts
+    "css", "js", "url",
+    # Helpers
+    "raw",
+    # Types
+    "Renderable", "HTMLContent",
+    # Elements
+    "html_elem", "head", "body", "title", "meta", "link", "style", "script",
+    "header", "footer", "main", "nav", "aside", "section", "article",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "div", "p", "pre", "blockquote", "ol", "ul", "li", "dl", "dt", "dd",
+    "figure", "figcaption", "hr",
+    "a", "span", "em", "strong", "small", "s", "cite", "q", "code",
+    "sub", "sup", "mark", "time", "abbr",
+    "img", "video", "audio", "source", "iframe", "embed", "object",
+    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "colgroup", "col",
+    "form", "fieldset", "legend", "label", "input", "button", "select",
+    "option", "optgroup", "textarea", "datalist", "output", "progress", "meter",
+    "details", "summary", "dialog",
+    # Version
+    "__version__",
+]
 ```
 
-**Recommendation**: Composition over inheritance. More explicit and type-safe.
+---
+
+## Framework Integrations
+
+### Flask
+
+```python
+from flask import Flask
+from templit import html, div, h1, p, component, children
+
+app = Flask(__name__)
+
+@component
+def layout(title: str):
+    return html[
+        head[title[title]],
+        body[children()]
+    ]
+
+@app.route("/")
+def index():
+    return str(layout(title="Home")[
+        div(class_="container")[
+            h1["Welcome"],
+            p["This is a Flask app using templit."]
+        ]
+    ])
+```
+
+### FastAPI
+
+```python
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from templit import html, div, h1, ul, li
+
+app = FastAPI()
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    items = await get_items()
+    return str(div[
+        h1["Items"],
+        ul[li[item.name] for item in items]
+    ])
+```
+
+### Django (Template Tag)
+
+```python
+# templatetags/templit_tags.py
+from django import template
+from django.utils.safestring import mark_safe
+from templit import HTML
+
+register = template.Library()
+
+@register.simple_tag
+def templit(component_func, *args, **kwargs):
+    """Render a templit component in Django templates."""
+    result = component_func(*args, **kwargs)
+    if isinstance(result, HTML):
+        return mark_safe(str(result))
+    return result
+```
+
+---
+
+## Comparison: templit vs Alternatives
+
+| Feature | templit | Jinja2 | htpy | PyHTML |
+|---------|---------|--------|------|--------|
+| Python version | 3.14+ | 3.7+ | 3.8+ | 3.6+ |
+| T-string support | ✅ Native | ❌ | ❌ | ❌ |
+| Type hints | ✅ Full | ❌ | ✅ Partial | ❌ |
+| Syntax | Native Python | Custom DSL | Python | Python |
+| Auto-escaping | Context-aware | Global | Manual | Manual |
+| Components | First-class | Macros | Functions | Functions |
+| Async | Native | Extension | ❌ | ❌ |
+| Dependencies | Zero | MarkupSafe | None | None |
+| IDE support | Native | Plugin | Good | Limited |
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Core (2-3 weeks)
+### Phase 1: templit Core (4-6 weeks)
+
+**Week 1-2: Foundation**
+- [ ] Project scaffolding (pyproject.toml, CI/CD)
 - [ ] `HTML` class with `__class_getitem__`
-- [ ] T-string rendering with HTML escaping
-- [ ] Element factory with attribute handling
 - [ ] Basic escaping functions
+- [ ] Initial test suite
 
-### Phase 2: Components (1-2 weeks)
+**Week 3-4: Elements & Components**
+- [ ] Element factory with all HTML elements
 - [ ] `@component` decorator
-- [ ] `children()` context function
-- [ ] Slot system for named children
+- [ ] `children()` function
+- [ ] Context processors (css, js, url)
 
-### Phase 3: Contexts (1 week)
-- [ ] CSS context escaping
-- [ ] JS context escaping
-- [ ] URL context escaping
+**Week 5-6: Polish**
+- [ ] Full type hints (py.typed)
+- [ ] Documentation site
+- [ ] PyPI release (0.1.0)
 
-### Phase 4: Integration (2-3 weeks)
-- [ ] Bengal render context integration
-- [ ] Jinja2 interop layer
-- [ ] Default theme migration (one template)
+### Phase 2: Bengal Integration (2-3 weeks)
 
-### Phase 5: Documentation (1 week)
-- [ ] API reference
-- [ ] Migration guide
-- [ ] Examples
+- [ ] Add `bengal[templates]` optional dependency
+- [ ] Create `bengal.rendering.templit_integration`
+- [ ] Bengal-specific components (page_meta, etc.)
+- [ ] Hybrid Jinja2/templit support
+- [ ] Migrate one default theme template
 
-### Phase 6: Optimization (Ongoing)
-- [ ] Benchmarking suite
-- [ ] Performance profiling
-- [ ] JIT exploration
+### Phase 3: Ecosystem (Ongoing)
+
+- [ ] Framework integration examples
+- [ ] Community feedback incorporation
+- [ ] Performance optimization
+- [ ] Additional context processors
 
 ---
 
-## Risks and Mitigations
+## Open Questions
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Python 3.14 not adopted | High | Keep Jinja2 as fallback, design for graceful degradation |
-| Performance regression | Medium | Benchmark early and often, optimize hot paths |
-| Migration complexity | Medium | Provide interop layer, migrate incrementally |
-| Learning curve | Low | Syntax is just Python, provide examples |
-| T-string edge cases | Medium | Thorough testing, fallback to f-strings where needed |
+### Q1: Repository location?
+
+**Options**:
+- A) Monorepo: `bengal/packages/templit/`
+- B) Separate repo: `github.com/bengal-ssg/templit`
+- C) Separate org: `github.com/templit/templit`
+
+**Recommendation**: Option B - Separate repo under Bengal org. Maintains clear ownership while allowing independent development.
+
+### Q2: Should templit work on Python < 3.14?
+
+**Options**:
+- A) 3.14+ only (full t-string support)
+- B) 3.10+ with degraded t-string support (f-strings only)
+- C) Dual-mode: auto-detect and use best available
+
+**Recommendation**: Option A for initial release. T-strings are the core value proposition. Consider backport library later if demand exists.
+
+### Q3: Package naming for html element conflict?
+
+The `html` builder and `<html>` element share a name.
+
+**Options**:
+- A) `html` = builder, `html_elem` = element (current proposal)
+- B) `markup` = builder, `html` = element
+- C) `h` = builder shorthand, `html` = element
+
+**Recommendation**: Option A. The builder `html[...]` is used more frequently than the `<html>` element.
 
 ---
 
 ## Success Criteria
 
-1. **Type Safety**: Zero template-related runtime errors that could be caught by type checker
-2. **Performance**: Equal or better than Jinja2 for common operations
-3. **Migration**: Smooth path from Jinja2 with interop layer
-4. **Adoption**: Default theme fully converted to Bengal Templates
-5. **Developer Experience**: Positive feedback on IDE support and debugging
+### templit (Standalone)
+
+1. **Adoption**: 100+ GitHub stars within 3 months
+2. **Quality**: 95%+ test coverage, zero type errors
+3. **Performance**: Faster than Jinja2 for equivalent templates
+4. **Documentation**: Complete API reference + getting started guide
+
+### Bengal Integration
+
+1. **Seamless**: `pip install bengal[templates]` just works
+2. **Migration**: Clear path from Jinja2 to templit
+3. **Hybrid**: Jinja2 and templit can coexist
+4. **Default**: One default theme template uses templit
 
 ---
 
@@ -1130,58 +1171,6 @@ def page(ctx: RenderContext) -> HTML:
 
 - [PEP 750: Template String Literals](https://peps.python.org/pep-0750/)
 - [Python 3.14.0 Release](https://www.python.org/downloads/release/python-3140/)
-- [PEP 649: Deferred Evaluation of Annotations](https://peps.python.org/pep-0649/)
-- [PEP 779: Free-threaded Python](https://peps.python.org/pep-0779/)
-- [Jinja2 Documentation](https://jinja.palletsprojects.com/)
 - [htpy](https://htpy.dev/) - Similar approach (pre-t-strings)
-- [PyHTML](https://github.com/cenkalti/pyhtml) - Early Python HTML builder
-
----
-
-## Appendix: Full API Reference
-
-```python
-# bengal/templates/__init__.py
-
-# Core
-from .core import HTML, html
-
-# Elements (all standard HTML elements)
-from .elements import (
-    div, span, a, p, h1, h2, h3, h4, h5, h6,
-    ul, ol, li, dl, dt, dd,
-    table, thead, tbody, tr, th, td,
-    form, input, button, select, option, textarea, label,
-    img, video, audio, source,
-    header, footer, main, nav, aside, section, article,
-    # ... all standard elements
-)
-
-# Components
-from .components import component, children
-
-# Contexts
-from .contexts import css, js, url
-
-# Helpers
-from .raw import raw
-
-# Types
-from .types import HTML, Renderable, HTMLContent
-
-__all__ = [
-    # Core
-    "HTML", "html",
-    # Elements
-    "div", "span", "a", "p", "h1", "h2", "h3", "h4", "h5", "h6",
-    # ... etc
-    # Components
-    "component", "children",
-    # Contexts  
-    "css", "js", "url",
-    # Helpers
-    "raw",
-    # Types
-    "Renderable", "HTMLContent",
-]
-```
+- [dominate](https://github.com/Knio/dominate) - Python HTML generation
+- [MarkupSafe](https://markupsafe.palletsprojects.com/) - Jinja2's escaping library
