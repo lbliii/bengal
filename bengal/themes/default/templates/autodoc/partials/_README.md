@@ -33,6 +33,7 @@ Or import macros:
 
 | Partial | Purpose | Variables Required |
 |---------|---------|-------------------|
+| `badges.html` | Element type badges (module, dataclass, async, etc.) | `element` |
 | `header.html` | Title, badges, description, stats | `element` |
 | `signature.html` | Code signature block | `element` |
 | `usage.html` | CLI/import usage block | `element` |
