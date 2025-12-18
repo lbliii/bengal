@@ -24,6 +24,8 @@ from typing import Any
 import pytest
 from jinja2 import Environment, FileSystemLoader
 
+from bengal.rendering.template_functions.autodoc import get_element_stats
+
 # ==============================================================================
 # Mock Objects for Testing
 # ==============================================================================
@@ -213,9 +215,13 @@ def template_env() -> Environment:
     env.filters["markdownify"] = mock_markdownify
     env.filters["urlencode"] = mock_urlencode
     env.filters["match"] = mock_match_filter
+    env.filters["get_element_stats"] = get_element_stats
 
     # Register tests (for `is match`)
     env.tests["match"] = mock_match_test
+
+    # Register globals needed by templates
+    env.globals["get_element_stats"] = get_element_stats
 
     return env
 
@@ -1061,9 +1067,7 @@ class TestNewSectionTemplate:
             name="api",
             title="API Reference",
             subsections=[MockSection(name="core", title="Core")],
-            pages=[
-                MockPage(title="utils", url="/api/utils/", source_path=Path("utils.md"))
-            ],
+            pages=[MockPage(title="utils", url="/api/utils/", source_path=Path("utils.md"))],
         )
         page = MockPage(title="API Reference", url="/api/")
 
@@ -1078,9 +1082,7 @@ class TestNewSectionTemplate:
             name="cli",
             title="CLI Reference",
             subsections=[MockSection(name="site", title="Site")],
-            pages=[
-                MockPage(title="build", url="/cli/build/", source_path=Path("build.md"))
-            ],
+            pages=[MockPage(title="build", url="/cli/build/", source_path=Path("build.md"))],
         )
         page = MockPage(title="CLI Reference", url="/cli/")
 

@@ -62,7 +62,9 @@ def is_autodoc_page(page: Page | Any) -> bool:
         # Check type-based indicators
         if (
             page_type.startswith("python-")  # python-module, python-class, etc.
-            or page_type in ("cli-reference", "python-reference", "openapi-reference")
+            or page_type.startswith("cli-")  # cli-command, cli-group, etc.
+            or page_type.startswith("openapi-")  # openapi-endpoint, etc.
+            or page_type in ("api-reference", "python-reference", "openapi-reference")
             or "source_file" in metadata  # Generated from source file
             or metadata.get("generator") == "bengal-autodoc"  # Explicit generator marker
             or metadata.get("_api_doc") is not None  # Internal API doc marker

@@ -152,6 +152,7 @@ def test_dev_menu_preserves_auto_nav():
     site = Site.for_testing(config=config)
 
     # Mock sections for auto-discovery
+    # Note: nav_title must be explicitly set to None so _get_nav_title falls through to name
     blog_section = MagicMock()
     blog_section.path = site.root_path / "content" / "blog"
     blog_section.name = "blog"
@@ -160,6 +161,7 @@ def test_dev_menu_preserves_auto_nav():
     blog_section.index_page = None
     blog_section.parent = None
     blog_section.subsections = []
+    blog_section.nav_title = None
     del blog_section.title
 
     about_section = MagicMock()
@@ -170,6 +172,7 @@ def test_dev_menu_preserves_auto_nav():
     about_section.index_page = None
     about_section.parent = None
     about_section.subsections = []
+    about_section.nav_title = None
     del about_section.title
 
     # Dev sections (should be bundled, not shown separately)
@@ -180,6 +183,7 @@ def test_dev_menu_preserves_auto_nav():
     api_section.index_page = None
     api_section.parent = None
     api_section.subsections = []
+    api_section.nav_title = None
 
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
@@ -188,6 +192,7 @@ def test_dev_menu_preserves_auto_nav():
     cli_section.index_page = None
     cli_section.parent = None
     cli_section.subsections = []
+    cli_section.nav_title = None
 
     site.sections = [blog_section, about_section, api_section, cli_section]
 
@@ -222,6 +227,7 @@ def test_auto_menu_includes_nested_sections():
     site = Site.for_testing(config=config)
 
     # Create parent section
+    # Note: nav_title must be explicitly set to None so _get_nav_title falls through to name
     docs_section = MagicMock()
     docs_section.path = site.root_path / "content" / "docs"
     docs_section.name = "docs"
@@ -231,6 +237,7 @@ def test_auto_menu_includes_nested_sections():
     docs_section.index_page = None
     docs_section.parent = None
     docs_section.subsections = []
+    docs_section.nav_title = None
     del docs_section.title
 
     # Create nested subsection
@@ -243,6 +250,7 @@ def test_auto_menu_includes_nested_sections():
     guides_section.index_page = None
     guides_section.parent = docs_section
     guides_section.subsections = []
+    guides_section.nav_title = None
     del guides_section.title
 
     # Link parent and child
@@ -258,6 +266,7 @@ def test_auto_menu_includes_nested_sections():
     blog_section.index_page = None
     blog_section.parent = None
     blog_section.subsections = []
+    blog_section.nav_title = None
     del blog_section.title
 
     site.sections = [docs_section, guides_section, blog_section]

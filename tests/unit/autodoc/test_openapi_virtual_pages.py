@@ -86,14 +86,23 @@ components:
     assert "api/demo/endpoints/get-users" in url_paths
 
     # Root section should be returned (only root sections are returned by generate())
+    # The orchestrator returns aggregating parent sections (e.g., "api") when
+    # OpenAPI prefix is "api/demo" - the "api" section aggregates "api/demo".
     section_names = [s.name for s in sections]
-    assert "demo" in section_names  # Root section with derived name from "Demo API"
+    assert "api" in section_names  # Aggregating parent section
 
-    # Verify subsections exist by checking the root section's subsections
-    root_section = sections[0]
-    subsection_names = [s.name for s in root_section.subsections]
-    assert "schemas" in subsection_names  # Schemas subsection
-    assert "users" in subsection_names  # Tag section for "users"
+    # The "demo" section (derived from "Demo API") should be a subsection of "api"
+    api_section = next((s for s in sections if s.name == "api"), None)
+    assert api_section is not None
+    api_subsection_names = [s.name for s in api_section.subsections]
+    assert "demo" in api_subsection_names  # Demo section under api
+
+    # Verify nested structure: api -> demo -> schemas/users
+    demo_section = next((s for s in api_section.subsections if s.name == "demo"), None)
+    assert demo_section is not None
+    demo_subsection_names = [s.name for s in demo_section.subsections]
+    assert "schemas" in demo_subsection_names  # Schemas subsection
+    assert "users" in demo_subsection_names  # Tag section for "users"
 
     # Result is returned (even if pages rendered later)
     assert result is not None

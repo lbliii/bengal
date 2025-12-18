@@ -7,111 +7,99 @@ type (Python, OpenAPI, CLI) to occupy distinct URL namespaces.
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
+from bengal.autodoc.orchestration.utils import slugify
 from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+
+# Note: VirtualAutodocOrchestrator creates template_env lazily during generate(),
+# so no mocking is needed for tests that don't call generate().
 
 
 class TestSlugify:
-    """Tests for the _slugify() method."""
+    """Tests for the slugify() utility function."""
 
-    @pytest.fixture
-    def orchestrator(self):
-        """Create an orchestrator with minimal mock site."""
-        mock_site = MagicMock()
-        mock_site.config = {"autodoc": {}}
-        mock_site.root_path = Path("/mock/site")
-        mock_site.theme = None
-
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
-        ):
-            return VirtualAutodocOrchestrator(mock_site)
-
-    def test_slugify_basic_text(self, orchestrator):
+    def test_slugify_basic_text(self):
         """Test basic text slugification."""
-        assert orchestrator._slugify("Commerce API") == "commerce"
+        assert slugify("Commerce API") == "commerce"
 
-    def test_slugify_strips_api_suffix(self, orchestrator):
+    def test_slugify_strips_api_suffix(self):
         """Test that 'API' suffix is stripped."""
-        assert orchestrator._slugify("Commerce API") == "commerce"
-        assert orchestrator._slugify("Payments API") == "payments"
+        assert slugify("Commerce API") == "commerce"
+        assert slugify("Payments API") == "payments"
 
-    def test_slugify_strips_reference_suffix(self, orchestrator):
+    def test_slugify_strips_reference_suffix(self):
         """Test that 'Reference' suffix is stripped."""
-        assert orchestrator._slugify("Commerce Reference") == "commerce"
+        assert slugify("Commerce Reference") == "commerce"
 
-    def test_slugify_strips_documentation_suffix(self, orchestrator):
+    def test_slugify_strips_documentation_suffix(self):
         """Test that 'Documentation' suffix is stripped."""
-        assert orchestrator._slugify("Commerce Documentation") == "commerce"
+        assert slugify("Commerce Documentation") == "commerce"
 
-    def test_slugify_strips_docs_suffix(self, orchestrator):
+    def test_slugify_strips_docs_suffix(self):
         """Test that 'Docs' suffix is stripped."""
-        assert orchestrator._slugify("Commerce Docs") == "commerce"
+        assert slugify("Commerce Docs") == "commerce"
 
-    def test_slugify_strips_service_suffix(self, orchestrator):
+    def test_slugify_strips_service_suffix(self):
         """Test that 'Service' suffix is stripped."""
-        assert orchestrator._slugify("Payment Service") == "payment"
+        assert slugify("Payment Service") == "payment"
 
-    def test_slugify_empty_string(self, orchestrator):
+    def test_slugify_empty_string(self):
         """Test that empty string returns 'rest' fallback."""
-        assert orchestrator._slugify("") == "rest"
+        assert slugify("") == "rest"
 
-    def test_slugify_whitespace_only(self, orchestrator):
+    def test_slugify_whitespace_only(self):
         """Test that whitespace-only returns 'rest' fallback."""
-        assert orchestrator._slugify("   ") == "rest"
-        assert orchestrator._slugify("\t\n") == "rest"
+        assert slugify("   ") == "rest"
+        assert slugify("\t\n") == "rest"
 
-    def test_slugify_only_suffix(self, orchestrator):
+    def test_slugify_only_suffix(self):
         """Test that suffix-only text returns 'rest' fallback."""
-        assert orchestrator._slugify("API") == "rest"
-        assert orchestrator._slugify("Reference") == "rest"
+        assert slugify("API") == "rest"
+        assert slugify("Reference") == "rest"
 
-    def test_slugify_special_characters(self, orchestrator):
+    def test_slugify_special_characters(self):
         """Test that special characters are replaced with hyphens."""
-        assert orchestrator._slugify("Commerce & Payments") == "commerce-payments"
-        assert orchestrator._slugify("E-Commerce API") == "e-commerce"
+        assert slugify("Commerce & Payments") == "commerce-payments"
+        assert slugify("E-Commerce API") == "e-commerce"
 
-    def test_slugify_multiple_spaces(self, orchestrator):
+    def test_slugify_multiple_spaces(self):
         """Test that multiple spaces collapse to single hyphen."""
-        assert orchestrator._slugify("Commerce   Payments") == "commerce-payments"
+        assert slugify("Commerce   Payments") == "commerce-payments"
 
-    def test_slugify_uppercase(self, orchestrator):
+    def test_slugify_uppercase(self):
         """Test that uppercase is converted to lowercase."""
-        assert orchestrator._slugify("COMMERCE API") == "commerce"
+        assert slugify("COMMERCE API") == "commerce"
 
-    def test_slugify_mixed_case(self, orchestrator):
+    def test_slugify_mixed_case(self):
         """Test mixed case handling."""
-        assert orchestrator._slugify("CommerceAPI") == "commerceapi"
+        assert slugify("CommerceAPI") == "commerceapi"
 
-    def test_slugify_long_title(self, orchestrator):
+    def test_slugify_long_title(self):
         """Test long title handling."""
         # "API Reference" at end is stripped, but "API" in middle is preserved
         long_title = "The Super Amazing Commerce Platform API Reference"
-        result = orchestrator._slugify(long_title)
+        result = slugify(long_title)
         assert result == "the-super-amazing-commerce-platform-api"
 
-    def test_slugify_numbers(self, orchestrator):
+    def test_slugify_numbers(self):
         """Test that numbers are preserved."""
         # "API" in middle is preserved (only end suffixes are stripped)
-        assert orchestrator._slugify("Commerce API v2") == "commerce-api-v2"
+        assert slugify("Commerce API v2") == "commerce-api-v2"
         # But "API" at end is stripped
-        assert orchestrator._slugify("Commerce v2 API") == "commerce-v2"
+        assert slugify("Commerce v2 API") == "commerce-v2"
 
-    def test_slugify_leading_trailing_hyphens(self, orchestrator):
+    def test_slugify_leading_trailing_hyphens(self):
         """Test that leading/trailing hyphens are stripped."""
-        assert orchestrator._slugify("-Commerce-") == "commerce"
+        assert slugify("-Commerce-") == "commerce"
         # Note: "--Commerce API--" -> "--commerce api--" (lowercase)
         # Suffix " api" not stripped because text ends with "--", not " api"
         # Result: "commerce-api" (hyphens stripped at ends, spaces replaced)
-        assert orchestrator._slugify("--Commerce API--") == "commerce-api"
+        assert slugify("--Commerce API--") == "commerce-api"
         # But "Commerce API" (no trailing chars) strips the suffix correctly
-        assert orchestrator._slugify("Commerce API") == "commerce"
+        assert slugify("Commerce API") == "commerce"
 
 
 class TestDeriveOpenapiPrefix:
@@ -124,13 +112,8 @@ class TestDeriveOpenapiPrefix:
         mock_site.config = {"autodoc": {"openapi": {"spec_file": "api/openapi.yaml"}}}
         mock_site.root_path = tmp_path
         mock_site.theme = None
-
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
-        ):
-            return VirtualAutodocOrchestrator(mock_site)
+        # Template env is created lazily during generate(), not needed for these tests
+        return VirtualAutodocOrchestrator(mock_site)
 
     def test_derive_prefix_from_title(self, orchestrator, tmp_path):
         """Test prefix derivation from spec title."""
@@ -204,13 +187,8 @@ info:
         mock_site.config = {"autodoc": {"openapi": {}}}
         mock_site.root_path = tmp_path
         mock_site.theme = None
-
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
-        ):
-            orchestrator = VirtualAutodocOrchestrator(mock_site)
+        # Template env is created lazily during generate(), not needed for these tests
+        orchestrator = VirtualAutodocOrchestrator(mock_site)
 
         result = orchestrator._derive_openapi_prefix()
         assert result == "api/rest"
@@ -228,13 +206,8 @@ class TestResolveOutputPrefix:
             mock_site.config = {"autodoc": config}
             mock_site.root_path = tmp_path
             mock_site.theme = None
-
-            with patch.object(
-                VirtualAutodocOrchestrator,
-                "_create_template_environment",
-                return_value=MagicMock(),
-            ):
-                return VirtualAutodocOrchestrator(mock_site)
+            # Template env is created lazily during generate(), not needed for these tests
+            return VirtualAutodocOrchestrator(mock_site)
 
         return create
 
@@ -326,13 +299,8 @@ class TestPrefixOverlapWarning:
             mock_site.config = {"autodoc": config}
             mock_site.root_path = tmp_path
             mock_site.theme = None
-
-            with patch.object(
-                VirtualAutodocOrchestrator,
-                "_create_template_environment",
-                return_value=MagicMock(),
-            ):
-                return VirtualAutodocOrchestrator(mock_site)
+            # Template env is created lazily during generate(), not needed for these tests
+            return VirtualAutodocOrchestrator(mock_site)
 
         return create
 
