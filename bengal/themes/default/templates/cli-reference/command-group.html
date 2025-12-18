@@ -39,21 +39,19 @@ This template receives:
       </div>
       {% endif %}
 
-      {# Commands and Sub-groups - use (or []) pattern for undefined safety #}
-      {% set element_children = (element.children or []) %}
-      {% if element_children %}
+      {# Commands and Sub-groups - element.children is guaranteed by Python preparation #}
+      {% if element.children %}
       <section class="autodoc-section" data-section="subcommands">
         <h2 class="autodoc-section-title">Commands</h2>
         <div class="autodoc-cards">
-          {% for child in element_children %}
+          {% for child in element.children %}
           {% set child_url = '/cli/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
           <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child.element_type }}">
             <code class="autodoc-card-name">{{ child.name }}</code>
             {% if child.description %}
             <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
             {% elif child.element_type == 'command-group' %}
-            {% set child_children = (child.children or []) %}
-            <span class="autodoc-card-desc">{{ child_children | length }} command{{ 's' if child_children | length != 1 else '' }}</span>
+            <span class="autodoc-card-desc">{{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}</span>
             {% else %}
             <span class="autodoc-card-desc">No description available</span>
             {% endif %}

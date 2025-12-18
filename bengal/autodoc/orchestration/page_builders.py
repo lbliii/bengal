@@ -6,7 +6,7 @@ Creates virtual Page objects and handles rendering for autodoc elements.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment
 
@@ -252,6 +252,54 @@ def get_element_metadata(
     return "api-reference/module", f"{prefix}/{element.name}", "python-reference"
 
 
+def prepare_element_for_template(element: DocElement) -> dict[str, Any]:
+    """
+    Prepare DocElement for Jinja2 template consumption.
+
+    Converts DocElement to a clean dict that Jinja2 can handle without
+    undefined attribute errors. This is the "middle ground" approach:
+    Python prepares clean data, templates just display it.
+
+    Args:
+        element: DocElement to prepare
+
+    Returns:
+        Dict with all fields guaranteed to exist (no undefined errors in templates)
+    """
+
+    def prepare_child(child: DocElement) -> dict[str, Any]:
+        """Recursively prepare child elements."""
+        return {
+            "name": child.name,
+            "qualified_name": child.qualified_name,
+            "description": child.description or "",
+            "element_type": child.element_type,
+            "source_file": str(child.source_file) if child.source_file else None,
+            "line_number": child.line_number,
+            "metadata": child.metadata or {},
+            "children": [prepare_child(c) for c in (child.children or [])],
+            "examples": child.examples or [],
+            "see_also": child.see_also or [],
+            "deprecated": child.deprecated,
+        }
+
+    return {
+        "name": element.name,
+        "qualified_name": element.qualified_name,
+        "description": element.description or "",
+        "element_type": element.element_type,
+        "source_file": str(element.source_file) if element.source_file else None,
+        "line_number": element.line_number,
+        "metadata": element.metadata or {},
+        "children": [prepare_child(c) for c in (element.children or [])],
+        "examples": element.examples or [],
+        "see_also": element.see_also or [],
+        "deprecated": element.deprecated,
+        # Expose display_source_file if available
+        "display_source_file": getattr(element, "display_source_file", None),
+    }
+
+
 def render_element(
     element: DocElement,
     template_name: str,
@@ -278,6 +326,9 @@ def render_element(
     Returns:
         Rendered HTML string
     """
+    # Prepare element as clean dict for Jinja2 - no undefined attribute errors
+    element_data = prepare_element_for_template(element)
+
     # Create a page-like context for templates that expect a 'page' variable.
     # Templates extend base.html and include partials (page-hero, docs-nav, etc.)
     # that require page.metadata, page.tags, page.title, etc.
@@ -314,7 +365,7 @@ def render_element(
     try:
         template = template_env.get_template(f"{template_name}.html")
         return template.render(
-            element=element,
+            element=element_data,  # Pass clean dict, not DocElement
             page=page_context,
             config=normalized_config,
             site=site,
@@ -325,7 +376,7 @@ def render_element(
             # Try without .html extension
             template = template_env.get_template(template_name)
             return template.render(
-                element=element,
+                element=element_data,  # Pass clean dict, not DocElement
                 page=page_context,
                 config=normalized_config,
                 site=site,

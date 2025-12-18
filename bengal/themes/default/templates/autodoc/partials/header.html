@@ -59,9 +59,9 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
   </div>
   {% endif %}
 
-  {# Stats row - use (or []) pattern to safely handle undefined children #}
+  {# Stats row - element.children is guaranteed by Python preparation #}
   {% if show_stats %}
-  {% set children = (element.children or []) %}
+  {% set children = element.children %}
   {% set options = children | selectattr('element_type', 'eq', 'option') | list %}
   {% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
   {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
@@ -75,7 +75,7 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
       {% set _ = subcommands.append(child) %}
     {% endif %}
   {% endfor %}
-  {% set parameters = (element.metadata.parameters or []) if element.metadata else [] %}
+  {% set parameters = element.metadata.parameters | default([]) %}
 
   {% set stats = [] %}
   {% if options %}{% set _ = stats.append({'value': options | length, 'label': 'Options'}) %}{% endif %}
