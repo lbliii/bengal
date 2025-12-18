@@ -3,9 +3,9 @@
 {#
 CLI Reference Command Template
 
-Renders a CLI command's documentation using the Autodoc Explorer layout.
+Renders a CLI command's documentation using the unified autodoc skeleton.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses semantic CSS tokens and patterns from autodoc-explorer.css.
+Uses autodoc.css for all styling.
 
 This template receives:
 - element: DocElement for the command
@@ -14,8 +14,13 @@ This template receives:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'autodoc/partials/cards.html' import element_card with context %}
 
 {% block content %}
+{# Pre-compute child elements #}
+{% set options = element.children | default([]) | selectattr('element_type', 'eq', 'option') | list %}
+{% set arguments = element.children | default([]) | selectattr('element_type', 'eq', 'argument') | list %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -28,103 +33,28 @@ This template receives:
     {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
     {% include 'partials/page-hero/element.html' %}
 
-    {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      {# CLI Command Content #}
-      <div class="autodoc-explorer">
-          {# Usage #}
-          {% if element.qualified_name %}
-          <div class="api-usage">
-            <h3 class="api-label">Usage</h3>
-            <div class="code-block-wrapper">
-              <div class="code-header-inline">
-                <span class="code-language">Bash</span>
-              </div>
-              <pre><code class="language-bash">{{ element.qualified_name }}{% if element.children %} [OPTIONS]{% endif %}</code></pre>
-            </div>
-          </div>
-          {% endif %}
+    {# Article Content - New autodoc skeleton #}
+    <article data-autodoc data-type="cli" data-element="command" class="autodoc docs-content">
 
-          {# Options #}
-          {% set options = element.children | default([]) | selectattr('element_type', 'eq', 'option') | list %}
-          {% if options %}
-          <section class="api-section api-section--options">
-            <h2 class="api-section__title">Options</h2>
-            <table class="api-table api-table--compact">
-              <thead>
-                <tr>
-                  <th>Option</th>
-                  <th>Type</th>
-                  <th>Default</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for opt in options %}
-                <tr>
-                  <td data-label="Option" class="api-table__name">
-                    <code>{{ opt.metadata.opts | join(', ') if opt.metadata.opts else opt.name }}</code>
-                  </td>
-                  <td data-label="Type" class="api-table__type"><code>{{ opt.metadata.type }}</code></td>
-                  <td data-label="Default" class="api-table__default">
-                    {%- if opt.metadata.default -%}
-                    <code>{{ opt.metadata.default }}</code>
-                    {%- else -%}
-                    <span class="table-empty">—</span>
-                    {%- endif -%}
-                  </td>
-                  <td data-label="Description" class="api-table__desc">{{ opt.description | default('—') }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </section>
-          {% endif %}
+      {# Usage #}
+      {% include 'autodoc/partials/usage.html' %}
 
-          {# Arguments #}
-          {% set arguments = element.children | default([]) | selectattr('element_type', 'eq', 'argument') | list %}
-          {% if arguments %}
-          <section class="api-section api-section--arguments">
-            <h2 class="api-section__title">Arguments</h2>
-            <table class="api-table api-table--compact">
-              <thead>
-                <tr>
-                  <th>Argument</th>
-                  <th>Type</th>
-                  <th>Required</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for arg in arguments %}
-                <tr>
-                  <td data-label="Argument" class="api-table__name"><code>{{ arg.name }}</code></td>
-                  <td data-label="Type" class="api-table__type"><code>{{ arg.metadata.type }}</code></td>
-                  <td data-label="Required" class="api-table__default">{% if arg.metadata.required %}Yes{% else %}No{%
-                    endif %}</td>
-                  <td data-label="Description" class="api-table__desc">{{ arg.description | default('—') }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </section>
-          {% endif %}
+      {# Options (as table) #}
+      {% if options %}
+      {% set params = options %}
+      {% set title = 'Options' %}
+      {% include 'autodoc/partials/params-table.html' %}
+      {% endif %}
 
-          {# Examples #}
-          {% if element.examples %}
-          <section class="api-section api-section--examples">
-            <h2 class="api-section__title">Examples</h2>
-            {% for example in element.examples %}
-            <div class="code-block-wrapper">
-              <div class="code-header-inline">
-                <span class="code-language">Bash</span>
-              </div>
-              <pre><code class="language-bash">{{ example }}</code></pre>
-            </div>
-            {% endfor %}
-          </section>
-          {% endif %}
-        </div>
+      {# Arguments (as table) #}
+      {% if arguments %}
+      {% set params = arguments %}
+      {% set title = 'Arguments' %}
+      {% include 'autodoc/partials/params-table.html' %}
+      {% endif %}
+
+      {# Examples #}
+      {% include 'autodoc/partials/examples.html' %}
 
       {# Tags #}
       {% if page.tags %}

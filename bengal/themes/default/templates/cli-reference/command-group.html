@@ -5,7 +5,7 @@ CLI Reference Command Group Template
 
 Renders a CLI command group's documentation showing nested commands and groups.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses semantic CSS tokens and patterns from autodoc-explorer.css.
+Uses autodoc.css for all styling.
 
 This template receives:
 - element: DocElement for the command group
@@ -28,68 +28,38 @@ This template receives:
     {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
     {% include 'partials/page-hero/element.html' %}
 
-    {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      {# CLI Command Group Content #}
-      <div class="autodoc-explorer">
-          {# Usage #}
-          {% if element.qualified_name %}
-          <div class="api-usage">
-            <h3 class="api-label">Usage</h3>
-            <div class="code-block-wrapper">
-              <div class="code-header-inline">
-                <span class="code-language">Bash</span>
-              </div>
-              <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
-            </div>
-          </div>
-          {% endif %}
+    {# Article Content - New autodoc skeleton #}
+    <article data-autodoc data-type="cli" data-element="command-group" class="autodoc docs-content">
 
-          {# Commands and Sub-groups #}
-          {% if element.children %}
-          <section class="api-section api-section--commands">
-            <h2 class="api-section__title">Commands</h2>
-            <div class="api-grid api-grid--modules">
-              {% for child in element.children %}
-              {% if child.element_type == "command" %}
-              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-card api-card--link api-card--command">
-                <div class="api-card__header">
-                  <span class="api-card__icon">{{ icon("terminal", size=16, css_class="icon-success") }}</span>
-                  <span class="api-card__title">{{ child.name }}</span>
-                </div>
-                <div class="api-card__body">
-                  {% if child.description %}
-                  <p class="api-card__description">{{ child.description | truncatewords(15) }}</p>
-                  {% else %}
-                  <p class="api-card__description">No description available</p>
-                  {% endif %}
-                </div>
-              </a>
-              {% elif child.element_type == "command-group" %}
-              <a href="/cli/{{ child.qualified_name | replace('.', '/') }}/" class="api-card api-card--link api-card--package">
-                <div class="api-card__header">
-                  <span class="api-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
-                  <span class="api-card__title">{{ child.name }}</span>
-                </div>
-                <div class="api-card__body">
-                  {% if child.description %}
-                  <p class="api-card__description">{{ child.description | truncatewords(15) }}</p>
-                  {% else %}
-                  <p class="api-card__description">{{ child.name }} commands</p>
-                  {% endif %}
-                </div>
-                <div class="api-card__footer">
-                  <span class="api-card__meta">
-                    {{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}
-                  </span>
-                </div>
-              </a>
-              {% endif %}
-              {% endfor %}
-            </div>
-          </section>
-          {% endif %}
+      {# Usage #}
+      {% if element.qualified_name %}
+      <div class="autodoc-usage">
+        <h2 class="autodoc-label">Usage</h2>
+        <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+      </div>
+      {% endif %}
+
+      {# Commands and Sub-groups #}
+      {% if element.children %}
+      <section class="autodoc-section" data-section="subcommands">
+        <h2 class="autodoc-section-title">Commands</h2>
+        <div class="autodoc-cards">
+          {% for child in element.children %}
+          {% set child_url = '/cli/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+          <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child.element_type }}">
+            <code class="autodoc-card-name">{{ child.name }}</code>
+            {% if child.description %}
+            <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
+            {% elif child.element_type == 'command-group' %}
+            <span class="autodoc-card-desc">{{ child.children | length }} command{{ 's' if child.children | length != 1 else '' }}</span>
+            {% else %}
+            <span class="autodoc-card-desc">No description available</span>
+            {% endif %}
+          </a>
+          {% endfor %}
         </div>
+      </section>
+      {% endif %}
 
       {# Tags #}
       {% if page.tags %}
