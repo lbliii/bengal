@@ -43,6 +43,7 @@ class TestSeparateSectionTrees:
 
     def test_python_and_openapi_create_distinct_sections(self, mock_site, tmp_path):
         """Test that Python and OpenAPI create separate root sections."""
+        from bengal.autodoc.base import DocElement
         from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 
         # Create minimal Python source
@@ -69,37 +70,39 @@ paths:
 """
         )
 
-        # Create orchestrator
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
+        python_element = DocElement(
+            name="src",
+            qualified_name="src",
+            element_type="module",
+            description="Test module",
+        )
+
+        openapi_element = DocElement(
+            name="List users",
+            qualified_name="get-users",
+            element_type="openapi_endpoint",
+            description="List all users",
+            metadata={"method": "get", "path": "/users", "tags": []},
+        )
+
+        # Patch the module-level extraction functions
+        with (
+            patch.object(
+                VirtualAutodocOrchestrator,
+                "_ensure_template_env",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_python",
+                return_value=[python_element],
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_openapi",
+                return_value=[openapi_element],
+            ),
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-
-            # Mock the extraction to return simple elements
-            from bengal.autodoc.base import DocElement
-
-            python_element = DocElement(
-                name="src",
-                qualified_name="src",
-                element_type="module",
-                description="Test module",
-            )
-
-            openapi_element = DocElement(
-                name="List users",
-                qualified_name="get-users",
-                element_type="openapi_endpoint",
-                description="List all users",
-                metadata={"method": "get", "path": "/users", "tags": []},
-            )
-
-            with (
-                patch.object(orchestrator, "_extract_python", return_value=[python_element]),
-                patch.object(orchestrator, "_extract_openapi", return_value=[openapi_element]),
-            ):
-                pages, sections, result = orchestrator.generate()
+            pages, sections, result = orchestrator.generate()
 
         # Root sections prefer an aggregating parent when multiple autodoc types share a prefix.
         # With /api/python/ and /api/rest/, we should return a single /api/ root section that
@@ -134,6 +137,7 @@ class TestBackwardsCompatibility:
 
     def test_python_only_with_api_prefix(self, mock_site, tmp_path):
         """Test Python-only config with 'api' prefix works unchanged."""
+        from bengal.autodoc.base import DocElement
         from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 
         mock_site.config = {
@@ -153,30 +157,33 @@ class TestBackwardsCompatibility:
         src_dir.mkdir()
         (src_dir / "__init__.py").write_text('"""Test package."""')
 
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
+        python_element = DocElement(
+            name="src",
+            qualified_name="src",
+            element_type="module",
+            description="Test module",
+        )
+
+        with (
+            patch.object(
+                VirtualAutodocOrchestrator,
+                "_ensure_template_env",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_python",
+                return_value=[python_element],
+            ),
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-
-            from bengal.autodoc.base import DocElement
-
-            python_element = DocElement(
-                name="src",
-                qualified_name="src",
-                element_type="module",
-                description="Test module",
-            )
-
-            with patch.object(orchestrator, "_extract_python", return_value=[python_element]):
-                pages, sections, result = orchestrator.generate()
+            pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
         assert any(s.relative_url == "/api/" for s in sections)
 
     def test_openapi_only_with_api_prefix(self, mock_site, tmp_path):
         """Test OpenAPI-only config with explicit 'api' prefix works unchanged."""
+        from bengal.autodoc.base import DocElement
         from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
 
         mock_site.config = {
@@ -204,24 +211,26 @@ paths: {}
 """
         )
 
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_create_template_environment",
-            return_value=MagicMock(),
+        openapi_element = DocElement(
+            name="Overview",
+            qualified_name="overview",
+            element_type="openapi_overview",
+            description="API Overview",
+        )
+
+        with (
+            patch.object(
+                VirtualAutodocOrchestrator,
+                "_ensure_template_env",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_openapi",
+                return_value=[openapi_element],
+            ),
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-
-            from bengal.autodoc.base import DocElement
-
-            openapi_element = DocElement(
-                name="Overview",
-                qualified_name="overview",
-                element_type="openapi_overview",
-                description="API Overview",
-            )
-
-            with patch.object(orchestrator, "_extract_openapi", return_value=[openapi_element]):
-                pages, sections, result = orchestrator.generate()
+            pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
         assert any(s.relative_url == "/api/" for s in sections)
@@ -234,7 +243,7 @@ paths: {}
             "autodoc": {
                 "python": {
                     "enabled": True,
-                    # No output_prefix - should default to "api/python"
+                    # No output_prefix - should derive from source_dirs
                     "source_dirs": [str(tmp_path / "src")],
                 },
                 "cli": {
@@ -252,11 +261,13 @@ paths: {}
 
         with patch.object(
             VirtualAutodocOrchestrator,
-            "_create_template_environment",
+            "_ensure_template_env",
             return_value=MagicMock(),
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
 
-            # Verify default prefixes
-            assert orchestrator._resolve_output_prefix("python") == "api/python"
+            # Verify default prefixes:
+            # - Python: derived from source_dirs[0] name => "api/src"
+            # - CLI: default is "cli"
+            assert orchestrator._resolve_output_prefix("python") == "api/src"
             assert orchestrator._resolve_output_prefix("cli") == "cli"

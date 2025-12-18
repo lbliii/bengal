@@ -604,6 +604,9 @@ class Asset:
             if not parent.exists():
                 return  # Directory doesn't exist yet, nothing to clean
 
+            # Track if we successfully cleaned up via manifest lookup
+            manifest_cleanup_done = False
+
             # Performance: if we have the previous manifest loaded, delete the exact
             # stale fingerprinted output path (if any) instead of scanning directories.
             if site is not None:
@@ -622,12 +625,16 @@ class Asset:
                                 )
                             ):
                                 old_full.unlink(missing_ok=True)
-                            return
+                                manifest_cleanup_done = True
                 except Exception:
                     # Best-effort only; fall back to directory scan.
                     pass
 
-            # Find all existing fingerprinted versions of this asset
+            # If manifest cleanup was successful, we're done
+            if manifest_cleanup_done:
+                return
+
+            # Find all existing fingerprinted versions of this asset (fallback/safety)
             pattern = f"{self.source_path.stem}.*{self.source_path.suffix}"
             for candidate in parent.glob(pattern):
                 # Skip if this is the file we're about to write (fingerprint already generated)

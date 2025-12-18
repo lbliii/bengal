@@ -8,3 +8,4 @@ theme = "default"
 [autodoc.python]
 enabled = true
 source_dirs = ["src"]
+output_prefix = "api/python"

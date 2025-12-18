@@ -309,6 +309,14 @@ def reset_bengal_state():
     except ImportError:
         pass
 
+    # 4. Clear created directories cache (ensures fresh directory tracking per test)
+    try:
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
+        get_created_dirs().clear()
+    except ImportError:
+        pass
+
 
 @pytest.fixture(scope="class")
 def shared_site_class(request, tmp_path_factory):
