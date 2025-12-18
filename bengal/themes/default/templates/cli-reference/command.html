@@ -14,7 +14,7 @@ This template receives:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'autodoc/partials/cards.html' import element_card with context %}
+{% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 
 {% block content %}
 {# Pre-compute child elements - use getattr for safe access with default #}
