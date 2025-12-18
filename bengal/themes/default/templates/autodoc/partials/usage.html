@@ -13,6 +13,6 @@ Optional: language (str, default 'bash' for CLI, 'python' for modules)
 {% if element.qualified_name %}
 <div class="autodoc-usage">
     <h2 class="autodoc-label">Usage</h2>
-    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if element.children %} [OPTIONS]{% endif %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% endif %}</code></pre>
+    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if element.children | default([]) %} [OPTIONS]{% endif %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% endif %}</code></pre>
 </div>
 {% endif %}
