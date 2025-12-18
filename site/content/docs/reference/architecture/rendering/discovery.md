@@ -1,5 +1,6 @@
 ---
 title: Discovery System
+nav_title: Discovery
 description: How Bengal finds and catalogs content, sections, and assets
 weight: 20
 category: rendering

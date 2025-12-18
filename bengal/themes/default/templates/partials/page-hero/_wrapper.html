@@ -1,0 +1,39 @@
+{#
+Page Hero Wrapper - shared structure for all API hero variants
+
+Opens the .page-hero div and renders breadcrumbs + share dropdown.
+Caller is responsible for closing the div after adding variant-specific content.
+
+Contract:
+- page: Page instance (REQUIRED)
+- site: Site instance (from global context)
+- config: Configuration dict (from global context)
+
+Usage:
+{% include 'partials/page-hero/_wrapper.html' %}
+<!-- Your badges, title, description, footer here -->
+</div> <!-- Close .page-hero -->
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+
+<div class="page-hero page-hero--api">
+    {# Top row: Breadcrumbs (left) + Actions (right) #}
+    <div class="page-hero__top">
+        {# Breadcrumbs as eyebrow #}
+        <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+            {% set breadcrumb_items = get_breadcrumbs(page) %}
+            {% if breadcrumb_items and breadcrumb_items | length > 1 %}
+            <ol class="page-hero__breadcrumbs">
+                {% for item in breadcrumb_items[:-1] %}
+                <li>
+                    <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+                </li>
+                {% endfor %}
+            </ol>
+            {% endif %}
+        </nav>
+
+        {# Share dropdown - extracted component #}
+        {% include 'partials/page-hero/_share-dropdown.html' %}
+    </div>

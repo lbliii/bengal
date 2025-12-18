@@ -34,8 +34,10 @@
   grid-template-areas:
     "sidebar content toc";
   grid-template-columns: 260px minmax(0, 1fr) 240px;
-  gap: 0; /* Columns handle their own internal padding */
-  max-width: none; /* Full-width app shell */
+  gap: 0;
+  /* Columns handle their own internal padding */
+  max-width: none;
+  /* Full-width app shell */
   padding-block: 0;
   align-items: start;
   width: 100%;
@@ -51,7 +53,8 @@
 .docs-sidebar {
   grid-area: sidebar;
   position: sticky;
-  top: 60px; /* Tighter to header */
+  top: 60px;
+  /* Tighter to header */
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -103,11 +106,51 @@
   margin-inline: auto;
 }
 
+/* OpenAPI/CLI reference pages use app-like card layouts (not long-form prose).
+   The .prose wrapper is full-width, but we constrain .docs-content and hero
+   to the same max-width (--container-lg) for visual cohesion. Card grids fit
+   nicely within this constraint while maintaining alignment with the hero.
+
+   Note: Python API docs (python-reference) keep prose constraints for readable
+   docstring content. */
+body[data-type="openapi-reference"] .docs-main .prose,
+body[data-type="cli-reference"] .docs-main .prose {
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+/* Constrain .docs-content and .page-navigation for readability while allowing
+   card grids to have reasonable width. Uses wider max-width than prose (75ch)
+   to accommodate 2-column card layouts while still respecting page gutters. */
+body[data-type="openapi-reference"] .docs-main .docs-content,
+body[data-type="cli-reference"] .docs-main .docs-content,
+body[data-type="openapi-reference"] .docs-main .page-navigation,
+body[data-type="cli-reference"] .docs-main .page-navigation {
+  max-width: var(--container-lg, 1024px);
+}
+
+/* Within CLI/OpenAPI content, constrain prose text elements (usage sections,
+   descriptions) to standard reading width for better readability. */
+body[data-type="openapi-reference"] .docs-main .api-usage,
+body[data-type="cli-reference"] .docs-main .api-usage,
+body[data-type="openapi-reference"] .docs-main .cli-usage,
+body[data-type="cli-reference"] .docs-main .cli-usage {
+  max-width: var(--prose-width, 75ch);
+}
+
+/* Hero should match .docs-content width for visual cohesion */
+body[data-type="openapi-reference"] .page-hero--api,
+body[data-type="cli-reference"] .page-hero--api {
+  max-width: var(--container-lg, 1024px);
+  margin-inline: 0;
+}
+
 /* Right Sidebar (TOC) - touches right edge */
 .docs-toc {
   grid-area: toc;
   position: sticky;
-  top: 60px; /* Match sidebar */
+  top: 60px;
+  /* Match sidebar */
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   overscroll-behavior: contain;

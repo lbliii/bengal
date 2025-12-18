@@ -1,5 +1,6 @@
 ---
 title: Content Snippets
+nav_title: Snippets
 description: Reusable content fragments with include directives
 weight: 10
 draft: false

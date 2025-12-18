@@ -1,0 +1,24 @@
+{#
+Element Stats Component
+
+Renders stats (counts of children by type) for a DocElement.
+Uses the get_element_stats filter to extract and format stats.
+
+Receives from parent context:
+- element: DocElement with children to count
+
+Example:
+{% include 'partials/page-hero/_element-stats.html' %}
+#}
+
+{% set stats = element | get_element_stats %}
+{% if stats %}
+<div class="page-hero__stats">
+  {% for stat in stats %}
+  <span class="page-hero__stat">
+    <span class="page-hero__stat-value">{{ stat.value }}</span>
+    <span class="page-hero__stat-label">{{ stat.label }}</span>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}

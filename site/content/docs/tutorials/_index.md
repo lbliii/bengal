@@ -33,13 +33,12 @@ The perfect first tutorial for writers and beginners. No prior Bengal knowledge 
 Copy and customize just the templates you need. Perfect for personalizing your site while staying compatible with theme updates.
 :::{/card}
 
-:::{card} Migrate from Hugo
+:::{card} Coming From Another Tool?
 :icon: arrow-right
-:link: ./migrate-from-hugo/
-:description: Step-by-step migration from existing static site generators
-:badge: 30 min
+:link: ./onboarding/
+:description: Quick-start guides for Hugo, Sphinx, and Docusaurus users
 :color: green
-Complete migration guide from Hugo, Jekyll, Gatsby, or other SSGs. Includes content, templates, and configuration mapping.
+Feature mapping and syntax translation for users migrating from other static site generators.
 :::{/card}
 
 :::{card} Automate with GitHub Actions

@@ -15,12 +15,10 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.core.section import Section
-
-logger = get_logger(__name__)
 
 
 class SectionRegistryMixin:
@@ -120,7 +118,9 @@ class SectionRegistryMixin:
         section = self._section_registry.get(normalized)
 
         if section is None:
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "section_not_found_in_registry",
                 path=str(path),
                 normalized=str(normalized),
@@ -155,7 +155,9 @@ class SectionRegistryMixin:
         section = self._section_url_registry.get(url)
 
         if section is None:
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "section_not_found_in_url_registry",
                 url=url,
                 registry_size=len(self._section_url_registry),
@@ -206,7 +208,9 @@ class SectionRegistryMixin:
         elapsed_ms = (time.time() - start) * 1000
         total_registered = len(self._section_registry) + len(self._section_url_registry)
 
-        logger.debug(
+        emit_diagnostic(
+            self,
+            "debug",
             "section_registry_built",
             path_sections=len(self._section_registry),
             url_sections=len(self._section_url_registry),

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
+logger = get_logger(__name__)
+
 
 class ContentOrchestrator:
     """
@@ -106,11 +108,18 @@ class ContentOrchestrator:
             use_cache=incremental and cache is not None,
         )
 
+        import time
+
         from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
+        breakdown_ms: dict[str, float] = {}
+        overall_start = time.perf_counter()
+
         # Load collection schemas from project root (if collections.py exists)
+        t0 = time.perf_counter()
         collections = load_collections(self.site.root_path)
+        breakdown_ms["collections"] = (time.perf_counter() - t0) * 1000
 
         # Check if strict validation is enabled
         build_config = (
@@ -118,6 +127,7 @@ class ContentOrchestrator:
         )
         strict_validation = build_config.get("strict_collections", False)
 
+        t0 = time.perf_counter()
         discovery = ContentDiscovery(
             content_dir,
             site=self.site,
@@ -125,10 +135,13 @@ class ContentOrchestrator:
             strict_validation=strict_validation,
             build_context=build_context,
         )
+        breakdown_ms["content_discovery_init"] = (time.perf_counter() - t0) * 1000
 
         # Use lazy loading if incremental build with cache
         use_cache = incremental and cache is not None
+        t0 = time.perf_counter()
         self.site.sections, self.site.pages = discovery.discover(use_cache=use_cache, cache=cache)
+        breakdown_ms["content_discovery"] = (time.perf_counter() - t0) * 1000
 
         # Note: Autodoc synthetic pages disabled - using traditional Markdown generation
 
@@ -151,7 +164,9 @@ class ContentOrchestrator:
         # deferred to the rendering phase (after menus are built) to ensure full
         # template context (including navigation) is available.
         # Pass build_cache (not page discovery cache) for autodoc dependency registration
+        t0 = time.perf_counter()
         autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=build_cache)
+        breakdown_ms["autodoc"] = (time.perf_counter() - t0) * 1000
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
             self.site.sections.extend(autodoc_sections)
@@ -163,27 +178,42 @@ class ContentOrchestrator:
 
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
         # This enables O(1) section lookups via page._section property
+        t0 = time.perf_counter()
         self.site.register_sections()
+        breakdown_ms["register_sections"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("section_registry_built")
 
         # Set up page references for navigation
+        t0 = time.perf_counter()
         self._setup_page_references()
+        breakdown_ms["setup_page_references"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("page_references_setup")
 
         # Apply cascading frontmatter from sections to pages
+        t0 = time.perf_counter()
         self._apply_cascades()
+        breakdown_ms["cascades"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("cascades_applied")
 
         # Set output paths for all pages immediately after discovery
         # This ensures page.url works correctly before rendering
+        t0 = time.perf_counter()
         self._set_output_paths()
+        breakdown_ms["output_paths"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("output_paths_set")
 
         # Build cross-reference index for O(1) lookups
+        t0 = time.perf_counter()
         self._build_xref_index()
+        breakdown_ms["xref_index"] = (time.perf_counter() - t0) * 1000
         self.logger.debug(
             "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
         )
+
+        breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
+        # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
+        # This is ephemeral, per-build-only state.
+        self.site._discovery_breakdown_ms = breakdown_ms  # type: ignore[attr-defined]
 
     def _discover_autodoc_content(self, cache: Any | None = None) -> tuple[list[Any], list[Any]]:
         """
@@ -197,14 +227,75 @@ class ContentOrchestrator:
             Tuple of (pages, sections) from virtual autodoc generation.
             Returns ([], []) if virtual autodoc is disabled.
         """
+        # Performance: autodoc should be opt-in. If there is no explicit autodoc
+        # configuration, avoid importing and initializing the autodoc subsystem.
+        autodoc_cfg = self.site.config.get("autodoc")
+        if not isinstance(autodoc_cfg, dict) or not autodoc_cfg:
+            return [], []
+
         try:
             from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+            from bengal.utils.hashing import hash_dict
 
             orchestrator = VirtualAutodocOrchestrator(self.site)
 
             if not orchestrator.is_enabled():
                 self.logger.debug("virtual_autodoc_not_enabled")
                 return [], []
+
+            cache_key = "__autodoc_elements_v1"
+            current_cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
+
+            def _is_external_autodoc_source(path: Path) -> bool:
+                # We intentionally ignore dependencies that live in virtualenv / site-packages.
+                # These paths can vary by interpreter/env and cause spurious incremental rebuilds.
+                parts = path.parts
+                return (
+                    "site-packages" in parts
+                    or "dist-packages" in parts
+                    or ".venv" in parts
+                    or ".tox" in parts
+                )
+
+            # Incremental fast path: if autodoc sources are unchanged and we have a cached
+            # extraction payload, rebuild virtual pages without re-extracting.
+            if (
+                cache is not None
+                and hasattr(cache, "get_page_cache")
+                and hasattr(cache, "is_changed")
+            ):
+                cached_payload = cache.get_page_cache(cache_key)
+                if (
+                    isinstance(cached_payload, dict)
+                    and cached_payload.get("version")
+                    == 2  # v2: dict format for ParameterInfo/RaisesInfo
+                    and cached_payload.get("autodoc_config_hash") == current_cfg_hash
+                ):
+                    changed = False
+                    if hasattr(cache, "get_autodoc_source_files"):
+                        try:
+                            for source in cache.get_autodoc_source_files():
+                                src_path = Path(source)
+                                if _is_external_autodoc_source(src_path):
+                                    continue
+                                if cache.is_changed(src_path):
+                                    changed = True
+                                    break
+                        except Exception:
+                            changed = True
+                    else:
+                        changed = True
+
+                    if not changed:
+                        pages, sections, _run = orchestrator.generate_from_cache_payload(
+                            cached_payload
+                        )
+                        self.logger.debug(
+                            "autodoc_cache_hit",
+                            pages=len(pages),
+                            sections=len(sections),
+                        )
+                        return pages, sections
 
             # Tolerate both 2-tuple (legacy) and 3-tuple (new) return values
             result = orchestrator.generate()
@@ -217,6 +308,9 @@ class ContentOrchestrator:
                 # Register autodoc dependencies with cache for selective rebuilds
                 if cache is not None and hasattr(cache, "add_autodoc_dependency"):
                     for source_file, page_paths in run_result.autodoc_dependencies.items():
+                        src_path = Path(source_file)
+                        if _is_external_autodoc_source(src_path):
+                            continue
                         for page_path in page_paths:
                             cache.add_autodoc_dependency(source_file, page_path)
 
@@ -227,6 +321,46 @@ class ContentOrchestrator:
                             total_mappings=sum(
                                 len(p) for p in run_result.autodoc_dependencies.values()
                             ),
+                        )
+
+                # Critical for incremental cache hits: fingerprint the autodoc source files now.
+                # The incremental cache saver only sees rendered pages, and autodoc "source_file"
+                # in metadata is display-oriented (may be repo-relative), so we update the cache
+                # using the dependency tracker keys (absolute paths) here.
+                if cache is not None and hasattr(cache, "update_file"):
+                    try:
+                        for source_file in run_result.autodoc_dependencies:
+                            src_path = Path(source_file)
+                            if _is_external_autodoc_source(src_path):
+                                continue
+                            if src_path.exists():
+                                cache.update_file(src_path)
+                    except Exception as e:
+                        self.logger.debug(
+                            "autodoc_source_fingerprints_update_failed",
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+
+                # Persist extraction payload for incremental cache hits.
+                if cache is not None and hasattr(cache, "set_page_cache"):
+                    try:
+                        payload = orchestrator.get_cache_payload()
+                        if (
+                            isinstance(payload, dict)
+                            and payload.get("version") == 1
+                            and payload.get("autodoc_config_hash") == current_cfg_hash
+                        ):
+                            cache.set_page_cache(cache_key, payload)
+                            self.logger.debug(
+                                "autodoc_cache_saved",
+                                types=list((payload.get("elements") or {}).keys()),
+                            )
+                    except Exception as e:
+                        self.logger.debug(
+                            "autodoc_cache_save_failed",
+                            error=str(e),
+                            error_type=type(e).__name__,
                         )
             else:
                 # Legacy 2-tuple return
@@ -535,6 +669,73 @@ class ContentOrchestrator:
                         anchor_key = anchor_id.lower()
                         if anchor_key not in self.site.xref_index["by_anchor"]:
                             self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
+
+            # Index target directives (:::{target} id)
+            # Extract target directives from content for cross-reference indexing
+            # NOTE: Target directives take precedence over heading anchors since they're explicit
+            if hasattr(page, "content") and page.content:
+                target_anchors = self._extract_target_directives(page.content)
+                for anchor_id in target_anchors:
+                    anchor_key = anchor_id.lower()
+                    if anchor_key not in self.site.xref_index["by_anchor"]:
+                        self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
+                    else:
+                        # Collision: target directive conflicts with existing anchor (likely heading)
+                        # Target directives take precedence since they're explicit
+                        existing_page, existing_anchor = self.site.xref_index["by_anchor"][
+                            anchor_key
+                        ]
+                        self.self.logger.warning(
+                            "anchor_collision",
+                            anchor_id=anchor_id,
+                            target_page=str(getattr(page, "source_path", "unknown")),
+                            existing_page=str(getattr(existing_page, "source_path", "unknown")),
+                            existing_anchor=existing_anchor,
+                            message=(
+                                f"Target directive '::{{target}} {anchor_id}' collides with "
+                                f"existing anchor '{existing_anchor}' in {existing_page}. "
+                                f"Use '[[!{anchor_id}]]' to explicitly reference the target directive, "
+                                f"or rename one anchor to avoid collisions."
+                            ),
+                        )
+                        # Overwrite with target directive (explicit takes precedence)
+                        self.site.xref_index["by_anchor"][anchor_key] = (page, anchor_id)
+
+    def _extract_target_directives(self, content: str) -> list[str]:
+        """
+        Extract target directive anchor IDs from markdown content.
+
+        Finds all :::{target} id directives and returns their anchor IDs.
+        This enables indexing target anchors for cross-reference resolution.
+
+        Args:
+            content: Markdown content to search
+
+        Returns:
+            List of anchor IDs found in target directives
+        """
+        import re
+
+        anchor_ids = []
+        # Pattern matches :::{target} id or :::{anchor} id
+        # Handles optional whitespace and closing ::: on same or next line
+        pattern = r"^(\s*):{3,}\{(?:target|anchor)\}([^\n]*)$"
+        lines = content.split("\n")
+        i = 0
+        while i < len(lines):
+            match = re.match(pattern, lines[i])
+            if match:
+                indent = len(match.group(1))
+                # Skip if indented 4+ spaces (code block)
+                if indent < 4:
+                    # Extract anchor ID from title (everything after directive name)
+                    title = match.group(2).strip()
+                    # Validate it looks like an anchor ID (starts with letter)
+                    if title and re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", title):
+                        anchor_ids.append(title)
+            i += 1
+
+        return anchor_ids
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

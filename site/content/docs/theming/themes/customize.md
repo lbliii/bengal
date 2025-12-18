@@ -118,6 +118,102 @@ Override specific partials:
 
 Bengal will use your partial instead of the theme's default.
 
+## Page Hero Templates
+
+The page hero templates display the header section of content pages including title, breadcrumbs, description, and stats.
+
+### Template Structure
+
+The `page-hero/` directory contains separated hero templates:
+
+```
+templates/partials/
+├── page-hero.html           # Dispatcher (routes by hero_style)
+├── page-hero-api.html       # Legacy API hero (deprecated)
+├── page-hero-editorial.html # Editorial-style hero
+├── page-hero-overview.html  # Section overview hero
+└── page-hero/               # Separated API hero templates
+    ├── _share-dropdown.html # AI share dropdown component
+    ├── _wrapper.html        # Shared wrapper (breadcrumbs + share)
+    ├── _element-stats.html  # Element children stats
+    ├── element.html         # DocElement pages (modules, classes, commands)
+    └── section.html         # Section-index pages (packages, CLI groups)
+```
+
+### Override Page Hero for API Pages
+
+To customize the hero for API documentation pages:
+
+**For element pages (modules, classes, functions, commands):**
+
+```html
+{# themes/my-theme/templates/partials/page-hero/element.html #}
+{% include 'partials/page-hero/_wrapper.html' %}
+
+  {# Your custom badges #}
+  <div class="page-hero__badges">
+    {% include 'api-reference/partials/badges.html' %}
+  </div>
+
+  {# Custom title with code formatting #}
+  <h1 class="page-hero__title page-hero__title--code">
+    <code>{{ element.qualified_name }}</code>
+  </h1>
+
+  {# Your custom content here #}
+
+</div>
+```
+
+**For section-index pages:**
+
+```html
+{# themes/my-theme/templates/partials/page-hero/section.html #}
+{% set is_cli = (hero_context.is_cli if (hero_context is defined and hero_context and hero_context.is_cli is defined) else false) %}
+
+{% include 'partials/page-hero/_wrapper.html' %}
+
+  <h1 class="page-hero__title">{{ section.title }}</h1>
+
+  {# Section description from metadata (dict access) #}
+  {% set desc = section.metadata.get('description', '') %}
+  {% if desc %}
+  <div class="page-hero__description">
+    {{ desc | markdownify | safe }}
+  </div>
+  {% endif %}
+
+</div>
+```
+
+### Using hero_context
+
+For CLI reference sections, pass explicit context to avoid URL sniffing:
+
+```html
+{# In cli-reference/section-index.html #}
+{% set hero_context = {'is_cli': true} %}
+{% include 'partials/page-hero/section.html' %}
+```
+
+The `hero_context.is_cli` flag controls whether stats display:
+- `true`: "X Groups, Y Commands"
+- `false`: "X Packages, Y Modules"
+
+### Template Data Access Patterns
+
+**Element templates** receive a `DocElement` dataclass—use attribute access:
+- `element.qualified_name`
+- `element.description`
+- `element.children`
+- `element.source_file`
+
+**Section templates** receive a `Section` object—use dict-style access for metadata:
+- `section.title` (attribute)
+- `section.metadata.get('description', '')` (dict access)
+- `section.sorted_pages` (attribute)
+- `section.sorted_subsections` (attribute)
+
 ## Customize CSS
 
 ### Method 1: Override Theme CSS

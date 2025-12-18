@@ -8,6 +8,7 @@ No imports required - fast and reliable.
 from __future__ import annotations
 
 import ast
+import fnmatch
 from pathlib import Path
 from typing import Any, override
 
@@ -203,7 +204,15 @@ class PythonExtractor(Extractor):
         - Build artifacts (__pycache__, build, dist)
         - Test files and directories
         """
-        path_str = str(path)
+        # NOTE: We intentionally do not require paths to exist here; callers may pass synthetic paths.
+        #
+        # IMPORTANT: We treat configured exclude patterns as *globs*, but with path-separator-aware
+        # semantics (i.e., "*" should not match "/"). Python's built-in fnmatch works on strings and
+        # allows "*" to span "/" which can cause surprising over-matches when applied to full paths.
+        # We therefore:
+        # - Apply filename patterns to the basename only (e.g., "*_test.py", "*/test_*.py")
+        # - Apply directory patterns to path segments (e.g., "*/tests/*", "*/__pycache__/*")
+        name = path.name
         path_parts = path.parts
 
         # Skip hidden directories (any part starting with .)
@@ -235,15 +244,40 @@ class PythonExtractor(Extractor):
 
         # Apply user-specified exclude patterns
         for pattern in self.exclude_patterns:
-            # Simple substring matching (for patterns like "*/tests/*")
-            core_pattern = pattern.replace("*/", "").replace("/*", "").replace("*", "")
-            if core_pattern and core_pattern in path_str:
+            if not pattern:
+                continue
+
+            # 1) Basename-only patterns (recommended): "*_test.py"
+            if "/" not in pattern and fnmatch.fnmatchcase(name, pattern):
                 return True
-            # Filename matching (for patterns like "test_*.py")
-            if pattern.startswith("*/") and "*" in pattern:
-                suffix = pattern[2:].replace("*", "")
-                if path.name.startswith(suffix) or path.name.endswith(suffix):
+
+            # 2) Common config style: "*/<basename_glob>"
+            # Example: "*/test_*.py" should NOT match any directory named "test_*".
+            if pattern.startswith("*/") and pattern.count("/") == 1:
+                if fnmatch.fnmatchcase(name, pattern[2:]):
                     return True
+                continue
+
+            # 3) Directory containment: "*/<dir_glob>/*"
+            # Example: "*/tests/*", "*/__pycache__/*", "*/.venv/*"
+            if pattern.startswith("*/") and pattern.endswith("/*") and pattern.count("/") == 2:
+                dir_glob = pattern.split("/")[1]
+                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
+                    return True
+                continue
+
+            # 4) Extension dir pattern: "*.egg-info/*" (already covered by egg-info check above,
+            # but keep this for config parity).
+            if pattern.endswith("/*") and pattern.count("/") == 1:
+                dir_glob = pattern[:-2]
+                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
+                    return True
+                continue
+
+            # 5) Fallback: treat as a plain string glob against the basename.
+            # This keeps behavior predictable without introducing "/"-spanning matches.
+            if fnmatch.fnmatchcase(name, pattern):
+                return True
 
         return False
 
@@ -849,11 +883,11 @@ class PythonExtractor(Extractor):
             Path relative to source root (e.g., "bengal/core/page.py")
         """
         if self._source_root:
-            try:
-                # Get path relative to source root's parent (to include package name)
-                return file_path.relative_to(self._source_root.parent)
-            except ValueError:
-                pass
+            for base in (self._source_root, self._source_root.parent):
+                try:
+                    return file_path.relative_to(base)
+                except ValueError:
+                    continue
         return file_path
 
     def _should_include_inherited(self, element_type: str = "class") -> bool:

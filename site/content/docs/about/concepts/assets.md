@@ -1,5 +1,6 @@
 ---
 title: Manage Assets
+nav_title: Assets
 description: Process CSS, JavaScript, images, and other static files
 weight: 20
 type: doc

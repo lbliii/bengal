@@ -1,5 +1,6 @@
 ---
 title: Site Templates Reference
+nav_title: Site Templates
 description: Complete reference for Bengal's site scaffolding and template system
 weight: 25
 type: doc

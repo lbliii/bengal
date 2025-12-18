@@ -29,10 +29,8 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Any
 
+from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
 from bengal.core.page import Page
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 @dataclass
@@ -97,6 +95,28 @@ class Section:
 
     # Reference to site (set during site building)
     _site: Any | None = field(default=None, repr=False)
+    # Optional diagnostics sink (for unit tests or if no site is available yet)
+    _diagnostics: DiagnosticsSink | None = field(default=None, repr=False)
+
+    def _emit_diagnostic(self, event: DiagnosticEvent) -> None:
+        """
+        Emit a diagnostic event if a sink is available.
+
+        Core models must not log; orchestrators decide how to surface diagnostics.
+        """
+        sink: Any | None = self._diagnostics
+        if sink is None:
+            site = getattr(self, "_site", None)
+            sink = getattr(site, "diagnostics", None) if site is not None else None
+
+        if sink is None:
+            return
+
+        try:
+            sink.emit(event)
+        except Exception:
+            # Diagnostics must never break core behavior.
+            return
 
     @property
     def is_virtual(self) -> bool:
@@ -180,6 +200,28 @@ class Section:
         """Get section title from metadata or generate from name."""
         return str(self.metadata.get("title", self.name.replace("-", " ").title()))
 
+    @property
+    def nav_title(self) -> str:
+        """
+        Get short navigation title (falls back to title).
+
+        Use this in menus and sidebars for compact display.
+
+        Example in _index.md:
+            ---
+            title: Content Authoring Guide
+            nav_title: Authoring
+            ---
+        """
+        if "nav_title" in self.metadata:
+            return str(self.metadata["nav_title"])
+        # Also check index page for nav_title
+        if self.index_page is not None:
+            index_nav = getattr(self.index_page, "nav_title", None)
+            if index_nav and index_nav != self.index_page.title:
+                return index_nav
+        return self.title
+
     @cached_property
     def icon(self) -> str | None:
         """
@@ -239,14 +281,25 @@ class Section:
         """
         Get the root section of this section's hierarchy.
 
+        Traverses up the parent chain until reaching either:
+        - A section with no parent (topmost ancestor)
+        - A section with nav_root: true metadata (navigation boundary)
+
+        The nav_root metadata allows sections to act as their own navigation
+        root, useful for autodoc collections (e.g., /api/python/) that should
+        not show their parent aggregator (/api/) in the sidebar.
+
         Returns:
-            The topmost ancestor section
+            The navigation root section
 
         Example:
             {% set root_section = page._section.root %}
         """
         current = self
         while current.parent:
+            # Stop if current section declares itself as a nav root
+            if current.metadata.get("nav_root"):
+                return current
             current = current.parent
         return current
 
@@ -442,9 +495,6 @@ class Section:
                     f"Virtual section '{self.name}' has no _relative_url_override set. "
                     f"Virtual sections must have explicit URLs set during creation."
                 )
-            logger.debug(
-                "section_url_from_override", section=self.name, url=self._relative_url_override
-            )
             return self._relative_url_override
 
         # If we have an index page with a proper output_path, use its relative_url
@@ -454,7 +504,6 @@ class Section:
             and self.index_page.output_path
         ):
             url = self.index_page.relative_url
-            logger.debug("section_url_from_index", section=self.name, url=url)
             # Normalize to ensure consistency
             return normalize_url(url, ensure_trailing_slash=True)
 
@@ -462,11 +511,6 @@ class Section:
         # This handles regular sections (not virtual) before pages have output_paths set
         parent_rel = self.parent.relative_url if self.parent else "/"
         url = join_url_paths(parent_rel, self.name)
-
-        logger.debug(
-            "section_url_constructed", section=self.name, url=url, has_parent=bool(self.parent)
-        )
-
         return url
 
     @cached_property
@@ -488,8 +532,7 @@ class Section:
             site = getattr(self, "_site", None)
             if site is not None and hasattr(site, "config") and site.config is not None:
                 baseurl = site.config.get("baseurl", "")
-        except Exception as e:
-            logger.debug("section_baseurl_lookup_failed", section=self.name, error=str(e))
+        except Exception:
             baseurl = ""
 
         if not baseurl:
@@ -518,14 +561,6 @@ class Section:
         """
         is_index = page.source_path.stem in ("index", "_index")
 
-        logger.debug(
-            "adding_page_to_section",
-            section=self.name,
-            page=str(page.source_path),
-            is_index=is_index,
-            total_pages=len(self.pages) + 1,
-        )
-
         self.pages.append(page)
 
         # Set as index page if it's named index.md or _index.md
@@ -534,15 +569,21 @@ class Section:
             if self.index_page is not None:
                 existing_name = self.index_page.source_path.stem
                 new_name = page.source_path.stem
-
-                logger.warning(
-                    "index_file_collision",
-                    section=self.name,
-                    section_path=str(self.path),
-                    existing_file=f"{existing_name}.md",
-                    new_file=f"{new_name}.md",
-                    action="preferring_underscore_version",
-                    suggestion="Remove one of the index files - only _index.md or index.md should exist",
+                self._emit_diagnostic(
+                    DiagnosticEvent(
+                        level="warning",
+                        code="index_file_collision",
+                        data={
+                            "section": self.name,
+                            "section_path": str(self.path),
+                            "existing_file": f"{existing_name}.md",
+                            "new_file": f"{new_name}.md",
+                            "action": "preferring_underscore_version",
+                            "suggestion": (
+                                "Remove one of the index files - only _index.md or index.md should exist"
+                            ),
+                        },
+                    )
                 )
 
                 # Prefer _index.md over index.md (section index convention)
@@ -556,12 +597,6 @@ class Section:
             # This allows sections to have weight, description, and other metadata
             self.metadata.update(page.metadata)
 
-            logger.debug(
-                "section_metadata_inherited",
-                section=self.name,
-                metadata_keys=list(page.metadata.keys()),
-            )
-
     def add_subsection(self, section: Section) -> None:
         """
         Add a subsection to this section.
@@ -569,14 +604,6 @@ class Section:
         Args:
             section: Child section to add
         """
-        logger.debug(
-            "adding_subsection",
-            parent_section=self.name,
-            child_section=section.name,
-            depth=self.depth + 1,
-            total_subsections=len(self.subsections) + 1,
-        )
-
         section.parent = self
         self.subsections.append(section)
 
@@ -599,13 +626,6 @@ class Section:
         # Unweighted subsections use float('inf') to sort last
         self.subsections.sort(
             key=lambda s: (s.metadata.get("weight", float("inf")), s.title.lower())
-        )
-
-        logger.debug(
-            "section_children_sorted",
-            section=self.name,
-            pages_count=len(self.pages),
-            subsections_count=len(self.subsections),
         )
 
     def needs_auto_index(self) -> bool:
@@ -666,14 +686,6 @@ class Section:
             "title": self.title,
             "hierarchy": self.hierarchy,
         }
-
-        logger.debug(
-            "section_content_aggregated",
-            section=self.name,
-            page_count=result["page_count"],
-            total_pages=result["total_page_count"],
-            unique_tags=len(all_tags),
-        )
 
         return result
 

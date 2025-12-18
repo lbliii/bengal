@@ -1,5 +1,6 @@
 ---
 title: Theme Variables
+nav_title: Variables
 description: Comprehensive reference of all variables and functions available in Jinja2
   templates.
 weight: 10

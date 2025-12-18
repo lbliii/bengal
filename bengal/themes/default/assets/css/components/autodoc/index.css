@@ -1,0 +1,42 @@
+/**
+ * Autodoc Explorer - Barrel File
+ *
+ * Imports all autodoc CSS modules in the correct order.
+ * This file serves as the entry point for all autodoc styles.
+ */
+
+/* 0. Reset & Isolation - MUST come first for proper isolation */
+@import url('_reset.css');
+
+/* 1. Design tokens - variables and theming */
+@import url('_tokens.css');
+
+/* 2. Base styles - container and foundational components */
+@import url('_base.css');
+
+/* 3. Card component - unified card system */
+@import url('_card.css');
+
+/* 4. Table component - structured data tables */
+@import url('_table.css');
+
+/* 5. Badge component - type indicators */
+@import url('_badges.css');
+
+/* 6. Signature component - code signatures */
+@import url('_signature.css');
+
+/* 7. Animations - stagger reveals and transitions */
+@import url('_animations.css');
+
+/* 8. Grid layouts - index pages and card grids */
+@import url('_grid.css');
+
+/* 9. Hub component - landing page aggregator */
+@import url('_hub.css');
+
+/* 10. REST API component - endpoint documentation */
+@import url('_rest.css');
+
+/* 11. Responsive styles - breakpoints and mobile */
+@import url('_responsive.css');

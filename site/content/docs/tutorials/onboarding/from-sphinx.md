@@ -1,5 +1,6 @@
 ---
 title: From Sphinx/RST
+nav_title: Sphinx
 description: Onboarding guide for Sphinx and reStructuredText users migrating to Bengal
 weight: 10
 tags:

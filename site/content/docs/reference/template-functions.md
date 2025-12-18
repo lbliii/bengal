@@ -1,5 +1,6 @@
 ---
 title: Template Functions Reference
+nav_title: Functions
 description: Complete reference for Bengal's template filters and functions
 weight: 50
 type: doc
@@ -425,6 +426,188 @@ Check if a page exists without loading it. More efficient than `get_page()` for 
 {% if page_exists('docs/getting-started.md') %}...{% endif %}
 {% if page_exists('docs/getting-started') %}...{% endif %}
 ```
+
+## Linking Functions
+
+These functions generate links to pages and headings. All use O(1) lookups from pre-built indexes.
+
+### ref
+
+Generate a cross-reference link to a page.
+
+```jinja2
+{{ ref('docs/getting-started') }}
+{{ ref('docs/getting-started', 'Get Started') }}
+{{ ref('id:install-guide') }}
+{{ ref('id:install-guide', 'Installation') }}
+```
+
+**Parameters**:
+- `path`: Page path (`docs/page`), slug (`page-name`), or custom ID (`id:xxx`)
+- `text`: Optional custom link text (defaults to page title)
+
+**Returns**: Safe HTML link (`<a href="...">...</a>`) or broken reference indicator
+
+**Use cases**:
+- Dynamic navigation menus
+- Related pages sections
+- Breadcrumbs
+- Conditional links
+
+**Examples**:
+
+```jinja2
+{# Link with auto-title #}
+{{ ref('docs/api') }}
+
+{# Link with custom text #}
+{{ ref('docs/api', 'API Reference') }}
+
+{# Link by custom ID #}
+{{ ref('id:install-guide') }}
+
+{# In loops #}
+{% for page in related_pages %}
+  <li>{{ ref(page.path) }}</li>
+{% endfor %}
+```
+
+### doc
+
+Get a page object for custom link generation or metadata access.
+
+```jinja2
+{% set page = doc('docs/getting-started') %}
+{% if page %}
+  <a href="{{ page.url }}">{{ page.title }}</a>
+  <p>{{ page.description }}</p>
+{% endif %}
+```
+
+**Parameters**:
+- `path`: Page path, slug, or custom ID
+
+**Returns**: `Page` object or `None`
+
+**Use cases**:
+- Custom link formatting
+- Accessing page metadata
+- Conditional rendering based on page properties
+- Building custom navigation structures
+
+**Examples**:
+
+```jinja2
+{# Custom link with metadata #}
+{% set api_page = doc('docs/api') %}
+{% if api_page %}
+  <div class="card">
+    <a href="{{ api_page.url }}">
+      <h3>{{ api_page.title }}</h3>
+    </a>
+    <p>{{ api_page.description }}</p>
+    <span class="date">{{ api_page.date | date('%Y-%m-%d') }}</span>
+  </div>
+{% endif %}
+
+{# Check if page exists before linking #}
+{% set guide = doc('docs/advanced-guide') %}
+{% if guide and not guide.draft %}
+  <a href="{{ guide.url }}">Advanced Guide</a>
+{% endif %}
+```
+
+### anchor
+
+Link to a heading (anchor) in a page.
+
+```jinja2
+{{ anchor('Installation') }}
+{{ anchor('Configuration', 'docs/getting-started') }}
+```
+
+**Parameters**:
+- `heading`: Heading text to find (case-insensitive)
+- `page_path`: Optional page path to restrict search (default: search all pages)
+
+**Returns**: Safe HTML link with anchor fragment (`<a href="page#anchor">...</a>`)
+
+**Use cases**:
+- Table of contents
+- "Jump to" links
+- Cross-page heading references
+- Section navigation
+
+**Examples**:
+
+```jinja2
+{# Link to any heading with this text #}
+{{ anchor('Installation') }}
+
+{# Link to heading in specific page #}
+{{ anchor('Configuration', 'docs/getting-started') }}
+
+{# Build table of contents #}
+<ul>
+  <li>{{ anchor('Introduction') }}</li>
+  <li>{{ anchor('Installation') }}</li>
+  <li>{{ anchor('Configuration') }}</li>
+</ul>
+```
+
+### relref
+
+Get relative URL for a page without generating a full link.
+
+```jinja2
+<a href="{{ relref('docs/api') }}" class="btn">API Docs</a>
+
+{% set api_url = relref('docs/api') %}
+{% if api_url %}
+  <link rel="preload" href="{{ api_url }}" as="document">
+{% endif %}
+```
+
+**Parameters**:
+- `path`: Page path, slug, or custom ID
+
+**Returns**: URL string or empty string if not found
+
+**Use cases**:
+- Custom link HTML
+- Meta tags (`<link rel="preload">`)
+- Prefetch links
+- OpenGraph URLs
+- Custom button styling
+
+**Examples**:
+
+```jinja2
+{# Custom styled link #}
+<a href="{{ relref('docs/api') }}" class="btn btn-primary">
+  View API Documentation
+</a>
+
+{# Preload for performance #}
+{% set api_url = relref('docs/api') %}
+{% if api_url %}
+  <link rel="preload" href="{{ api_url }}" as="document">
+{% endif %}
+
+{# OpenGraph meta tag #}
+<meta property="og:url" content="{{ site.baseurl }}{{ relref('docs/getting-started') }}">
+```
+
+### xref
+
+Alias for `ref()` for compatibility with other systems.
+
+```jinja2
+{{ xref('docs/api') }}
+{{ xref('docs/api', 'API Reference') }}
+```
+
+**Note**: `xref()` and `ref()` are identical — use whichever you prefer.
 
 ## String Filters
 

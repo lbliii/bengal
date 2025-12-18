@@ -17,9 +17,12 @@ from bengal.utils.hashing import hash_str
 @pytest.fixture
 def mock_site(tmp_path):
     """Create a mock site with pages and assets."""
+    from bengal.cache.paths import BengalPaths
+
     site = Mock()
     site.root_path = tmp_path
     site.output_dir = tmp_path / "public"
+    site.paths = BengalPaths(tmp_path)
 
     # Create a proper config mock with path attribute
     mock_config = Mock()
@@ -90,8 +93,7 @@ class TestIncrementalOrchestrator:
         cache, tracker = orchestrator.initialize(enabled=True)
 
         # Should load existing cache from .bengal/cache.json
-        cache_path = mock_site.root_path / ".bengal" / "cache.json"
-        mock_load.assert_called_once_with(cache_path)
+        mock_load.assert_called_once_with(mock_site.paths.build_cache)
         assert cache is mock_cache
 
     def test_check_config_changed_no_cache(self, orchestrator):

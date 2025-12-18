@@ -16,6 +16,31 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
+def _get_nav_title(obj: Any, fallback: str = "Untitled") -> str:
+    """
+    Get navigation title for a page or section, falling back to title.
+
+    Uses nav_title if available, otherwise falls back to title.
+    This allows pages to specify shorter titles for menus/navigation.
+
+    Args:
+        obj: Page, Section, or any object with title/nav_title attributes
+        fallback: Fallback if neither nav_title nor title is available
+
+    Returns:
+        Navigation title string
+    """
+    # First try nav_title (short title for navigation)
+    nav_title = getattr(obj, "nav_title", None)
+    if nav_title:
+        return str(nav_title)
+    # Fall back to title
+    title = getattr(obj, "title", None)
+    if title:
+        return str(title)
+    return fallback
+
+
 def register(env: Environment, site: Site) -> None:
     """Register navigation functions with Jinja2 environment."""
 
@@ -697,7 +722,7 @@ def get_nav_tree(
 
             items.append(
                 {
-                    "title": getattr(index_page, "title", "Untitled"),
+                    "title": _get_nav_title(index_page),
                     "url": index_url,
                     "is_current": index_url == page.url if hasattr(page, "url") else False,
                     "is_in_active_trail": index_url in active_trail,
@@ -723,7 +748,7 @@ def get_nav_tree(
 
                 items.append(
                     {
-                        "title": getattr(p, "title", "Untitled"),
+                        "title": _get_nav_title(p),
                         "url": p_url,
                         "is_current": p_url == page.url if hasattr(page, "url") else False,
                         "is_in_active_trail": p_url in active_trail,
@@ -744,7 +769,7 @@ def get_nav_tree(
 
                 # Add subsection as a navigation item
                 subsection_item = {
-                    "title": getattr(subsection, "title", "Untitled"),
+                    "title": _get_nav_title(subsection),
                     "url": subsection_url,
                     "is_current": subsection_url == page.url if hasattr(page, "url") else False,
                     "is_in_active_trail": subsection_url in active_trail,
@@ -781,7 +806,7 @@ def _build_section_menu_item(
 
     # Get section metadata from index page
     section_hidden = False
-    section_title = getattr(section, "title", None) or section.name.replace("-", " ").title()
+    section_title = _get_nav_title(section, section.name.replace("-", " ").title())
     section_weight = getattr(section, "weight", 999)
 
     # Check if section has index page with metadata
@@ -802,9 +827,9 @@ def _build_section_menu_item(
             if not visibility.get("menu", True):
                 section_hidden = True
 
-        # Get title from frontmatter if available
-        if hasattr(index_page, "title") and index_page.title:
-            section_title = index_page.title
+        # Get nav_title (short) or title from frontmatter if available
+        # Prefer nav_title for navigation display
+        section_title = _get_nav_title(index_page, section_title)
 
         # Get weight from frontmatter if available
         if "weight" in metadata:

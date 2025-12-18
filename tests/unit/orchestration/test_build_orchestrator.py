@@ -78,8 +78,8 @@ class TestBuildOrchestrator:
         # 1. Initialization
         mock_orchestrators["incremental"].return_value.initialize.assert_called_once()
 
-        # 2. Content Discovery
-        mock_orchestrators["content"].return_value.discover.assert_called_once_with(
+        # 2. Content Discovery (calls discover_content, not discover)
+        mock_orchestrators["content"].return_value.discover_content.assert_called_once_with(
             incremental=False, cache=None, build_context=ANY, build_cache=ANY
         )
 
@@ -126,8 +126,8 @@ class TestBuildOrchestrator:
         # Verify incremental-specific calls
         mock_inc.find_work_early.assert_called_once()
 
-        # Should use incremental discovery
-        mock_orchestrators["content"].return_value.discover.assert_called_with(
+        # Should use incremental discovery (calls discover_content, not discover)
+        mock_orchestrators["content"].return_value.discover_content.assert_called_with(
             incremental=True, cache=ANY, build_context=ANY, build_cache=ANY
         )
 

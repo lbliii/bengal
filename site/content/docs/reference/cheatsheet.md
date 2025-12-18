@@ -368,5 +368,6 @@ weight = 2
 :::{seealso}
 - [Full CLI Reference](/cli/) — All commands and options
 - [Template Functions](/docs/reference/template-functions/) — All template helpers
+- [Linking Guide](/docs/content/authoring/linking/) — Complete linking reference
 - [Configuration Reference](/docs/reference/architecture/tooling/config/) — All config options
 :::

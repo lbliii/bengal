@@ -1,5 +1,6 @@
 ---
 title: CLI Commands
+nav_title: Commands
 description: CLI workflow guides for Bengal
 weight: 20
 category: guide

@@ -1,5 +1,6 @@
 ---
 title: Template Errors
+nav_title: Templates
 description: Diagnosing and fixing template syntax errors, undefined variables, and missing templates
 weight: 10
 category: guide
@@ -220,4 +221,4 @@ If you're stuck:
 1. **Check the full error message** - Bengal provides detailed context
 2. **Review template search paths** - Ensure templates are in the right location
 3. **Enable debug mode** - Set `debug = true` for more verbose output
-4. **Check the template documentation** - See [Template Functions](../../reference/template-functions.md)
+4. **Check the template documentation** - See [Template Functions](/docs/reference/template-functions/)

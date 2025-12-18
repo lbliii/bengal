@@ -67,7 +67,16 @@ via theme templates without intermediate markdown files. This provides:
 ### Core Components
 
 - **Extractors** (`bengal/autodoc/extractors/`): Parse source and extract `DocElement` objects
-- **VirtualAutodocOrchestrator** (`bengal/autodoc/virtual_orchestrator.py`): Create virtual pages/sections
+- **Orchestration** (`bengal/autodoc/orchestration/`): Modular package for virtual page generation
+  - `orchestrator.py`: Main `VirtualAutodocOrchestrator` class
+  - `section_builders.py`: Section hierarchy creation
+  - `page_builders.py`: Page creation and rendering
+  - `template_env.py`: Jinja2 template environment setup
+  - `extractors.py`: Extraction facade functions
+  - `index_pages.py`: Section index page generation
+  - `result.py`: `AutodocRunResult` and `PageContext` classes
+  - `utils.py`: Shared utility functions
+- **VirtualAutodocOrchestrator** (`bengal/autodoc/virtual_orchestrator.py`): Backward-compatibility shim (re-exports from `orchestration/`)
 - **Config** (`bengal/autodoc/config.py`): Load and merge configuration
 - **Fallback Templates** (`bengal/autodoc/fallback/`): Minimal templates when theme doesn't provide them
 

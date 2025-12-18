@@ -30,14 +30,13 @@ This template receives:
 
     {# Main Content #}
     <div class="docs-main">
-        {# Unified API Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
-        {% include 'partials/page-hero-api.html' %}
+        {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+        {% include 'partials/page-hero/element.html' %}
 
-        {# Article Content #}
-        <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-            <div class="docs-content">
-                {# API Explorer Module Content #}
-                <div class="api-explorer">
+        {# Article Content - flattened structure #}
+        <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+            {# API Explorer Module Content #}
+            <div class="autodoc-explorer">
                     {# Classes Section #}
                     {% if classes %}
                     <section class="api-section api-section--classes">
@@ -64,7 +63,6 @@ This template receives:
                     </section>
                     {% endif %}
                 </div>
-            </div>
 
             {# Tags #}
             {% if page.tags %}

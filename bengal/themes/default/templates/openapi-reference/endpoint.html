@@ -3,8 +3,10 @@
 {#
 OpenAPI Reference Endpoint Template
 
-Renders an OpenAPI endpoint's documentation using the API Explorer layout.
-Extends base.html to inherit theme navigation, sidebars, and styling.
+Three-panel layout optimized for REST API documentation:
+- Left: Navigation tree
+- Center: Endpoint details (parameters, responses, etc.)
+- Right: Code examples panel
 
 This template receives:
 - element: DocElement for the endpoint
@@ -15,114 +17,92 @@ This template receives:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
 
 {% block content %}
-{# Three-column documentation layout #}
-<div class="docs-layout">
+{# Three-panel REST API layout #}
+<div class="docs-layout docs-layout--autodoc-explorer">
   {# Left Sidebar: Navigation #}
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
 
-  {# Main Content #}
-  <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {% include 'partials/page-hero.html' %}
+  {# Center: Endpoint Documentation #}
+  <div class="docs-main api-docs-main">
+    {# Endpoint Header #}
+    <header class="api-endpoint-header">
+      {{ breadcrumbs(page) }}
+      <div class="api-endpoint-header__method-path">
+        <span class="api-method-badge api-method-badge--{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
+        <code class="api-endpoint-path">{{ element.metadata.path }}</code>
+        {% if element.metadata.deprecated %}
+        <span class="api-badge api-badge--deprecated">Deprecated</span>
+        {% endif %}
+      </div>
+      {% if element.metadata.summary %}
+      <p class="api-endpoint-header__summary">{{ element.metadata.summary }}</p>
+      {% elif element.description %}
+      <p class="api-endpoint-header__summary">{{ element.description }}</p>
+      {% endif %}
+      {% if element.metadata.operation_id %}
+      <div class="api-endpoint-header__meta">
+        <span class="api-meta-label">Operation ID:</span>
+        <code class="api-meta-value">{{ element.metadata.operation_id }}</code>
+      </div>
+      {% endif %}
+    </header>
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      <div class="docs-content">
-        {# OpenAPI Endpoint Content #}
-        <div class="api-explorer">
-          <header class="api-module-header">
-            <div class="api-module-header__badges">
-              <span class="api-badge api-badge--{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
-              {% if element.metadata.deprecated %}
-              <span class="api-badge api-badge--deprecated">Deprecated</span>
-              {% endif %}
+    {# Endpoint Content #}
+    <article class="api-endpoint-content">
+      {# Parameters Section #}
+      {% if element.metadata.parameters %}
+      <section class="api-section" id="parameters">
+        <h2 class="api-section__heading">Parameters</h2>
+        {% include 'api-reference/partials/parameters-table.html' %}
+      </section>
+      {% endif %}
+
+      {# Request Body Section #}
+      {% if element.metadata.request_body %}
+      <section class="api-section" id="request-body">
+        <h2 class="api-section__heading">Request Body</h2>
+        <div class="api-request-body">
+          {% if element.metadata.request_body.get('description') %}
+          <p class="api-request-body__description">{{ element.metadata.request_body.get('description') }}</p>
+          {% endif %}
+          {% if element.metadata.request_body.get('content') %}
+          <div class="api-content-types">
+            {% for content_type, schema in element.metadata.request_body.get('content', {}).items() %}
+            <div class="api-content-type">
+              <span class="api-content-type__label">{{ content_type }}</span>
             </div>
-
-            <h1 class="api-module-header__title">
-              <code>{{ element.metadata.path }}</code>
-            </h1>
-
-            {% if element.metadata.summary %}
-            <p class="api-module-header__description">{{ element.metadata.summary }}</p>
-            {% elif element.description %}
-            <p class="api-module-header__description">{{ element.description }}</p>
-            {% endif %}
-          </header>
-
-          {# Operation ID #}
-          {% if element.metadata.operation_id %}
-          <div class="api-meta">
-            <span class="api-meta__label">Operation ID:</span>
-            <code>{{ element.metadata.operation_id }}</code>
+            {% endfor %}
           </div>
           {% endif %}
-
-          {# Parameters #}
-          {% if element.metadata.parameters %}
-          <section class="api-section api-section--parameters">
-            <h2 class="api-section__title">Parameters</h2>
-            <table class="api-table api-table--compact">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>In</th>
-                  <th>Type</th>
-                  <th>Required</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for param in element.metadata.parameters %}
-                <tr>
-                  <td><code>{{ param.name }}</code></td>
-                  <td><code>{{ param.in }}</code></td>
-                  <td><code>{{ param.schema.type if param.schema else 'string' }}</code></td>
-                  <td>{% if param.required %}Yes{% else %}No{% endif %}</td>
-                  <td>{{ param.description | default('—') }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </section>
-          {% endif %}
-
-          {# Request Body #}
-          {% if element.metadata.request_body %}
-          <section class="api-section api-section--request-body">
-            <h2 class="api-section__title">Request Body</h2>
-            <div class="api-request-body">
-              {{ element.metadata.request_body.description | default('') }}
-              {# TODO: Render schema #}
-            </div>
-          </section>
-          {% endif %}
-
-          {# Responses #}
-          {% if element.metadata.responses %}
-          <section class="api-section api-section--responses">
-            <h2 class="api-section__title">Responses</h2>
-            <table class="api-table api-table--compact">
-              <thead>
-                <tr>
-                  <th>Status Code</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for status_code, response in element.metadata.responses.items() %}
-                <tr>
-                  <td><code>{{ status_code }}</code></td>
-                  <td>{{ response.description | default('—') }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </section>
-          {% endif %}
         </div>
-      </div>
+      </section>
+      {% endif %}
+
+      {# Responses Section #}
+      {% if element.metadata.responses %}
+      <section class="api-section" id="responses">
+        <h2 class="api-section__heading">Responses</h2>
+        <div class="api-responses">
+          {% for status_code, response in element.metadata.responses.items() %}
+          <div class="api-response api-response--{{ status_code[:1] }}xx">
+            <div class="api-response__header">
+              <span class="api-response__status api-response__status--{{ status_code[:1] }}xx">{{ status_code }}</span>
+              <span class="api-response__description">{{ response.get('description', 'No description') }}</span>
+            </div>
+            {% if response.get('content') %}
+            <div class="api-response__content">
+              {% for content_type, schema in response.get('content', {}).items() %}
+              <span class="api-content-type__label">{{ content_type }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
 
       {# Tags #}
       {% if page.tags %}
@@ -138,8 +118,44 @@ This template receives:
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
-  {% include 'partials/docs-toc-sidebar.html' %}
+  {# Right Panel: Code Examples #}
+  <aside class="api-examples-panel" id="api-examples" role="complementary" aria-label="Code examples">
+    <div class="api-examples-panel__content">
+      <h3 class="api-examples-panel__title">{{ icon('code', size=16) }} Code Examples</h3>
+
+      {# Request Example #}
+      <div class="api-example-block">
+        <div class="api-example-block__header">
+          <span class="api-example-block__label">Request</span>
+        </div>
+        <div class="api-example-block__code">
+          <pre><code class="language-bash">curl -X {{ element.metadata.method | upper }} \
+  "https://api.example.com{{ element.metadata.path }}"{% if element.metadata.method | upper in ['POST', 'PUT', 'PATCH'] %} \
+  -H "Content-Type: application/json" \
+  -d '{}'{% endif %}</code></pre>
+        </div>
+      </div>
+
+      {# Response Examples #}
+      {% if element.metadata.responses %}
+      {% for status_code, response in element.metadata.responses.items() %}
+      {% if status_code[:1] == '2' %}
+      <div class="api-example-block api-example-block--response">
+        <div class="api-example-block__header">
+          <span class="api-example-block__label">Response</span>
+          <span class="api-example-block__status api-example-block__status--{{ status_code[:1] }}xx">{{ status_code }}</span>
+        </div>
+        <div class="api-example-block__code">
+          <pre><code class="language-json">{
+  "status": "success"
+}</code></pre>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    </div>
+  </aside>
 </div>
 
 {# Mobile sidebar toggle button #}

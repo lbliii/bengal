@@ -159,6 +159,24 @@ class RenderingPipeline:
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
 
+        # Cache per-pipeline helpers (one pipeline per worker thread).
+        # These are safe to reuse and avoid per-page import/initialization overhead.
+        self._api_doc_enhancer: Any | None = None
+        self._page_json_generator: Any | None = None
+        self._page_json_generator_opts: tuple[bool, bool] | None = None
+
+        # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
+        try:
+            if build_context and getattr(build_context, "api_doc_enhancer", None):
+                self._api_doc_enhancer = build_context.api_doc_enhancer
+            else:
+                from bengal.rendering.api_doc_enhancer import get_enhancer
+
+                self._api_doc_enhancer = get_enhancer()
+        except Exception as e:
+            logger.debug("api_doc_enhancer_init_failed", error=str(e))
+            self._api_doc_enhancer = None
+
     def process_page(self, page: Page) -> None:
         """
         Process a single page through the entire rendering pipeline.
@@ -214,6 +232,16 @@ class RenderingPipeline:
         # Full pipeline execution
         self._parse_content(page)
         self._enhance_api_docs(page)
+        # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
+        try:
+            page.extract_links()
+        except Exception as e:
+            logger.debug(
+                "link_extraction_failed",
+                page=str(page.source_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
         self._cache_parsed_content(page, template, parser_version)
         self._render_and_write(page, template)
 
@@ -274,12 +302,27 @@ class RenderingPipeline:
             self.build_stats.parsed_cache_hits += 1
 
         parsed_content = cached["html"]
-        parsed_content = transform_internal_links(parsed_content, self.site.config)
 
         # Pre-compute plain_text cache
         _ = page.plain_text
 
-        page.extract_links()
+        # Restore cached links if present; otherwise fall back to extraction.
+        cached_links = cached.get("links")
+        if isinstance(cached_links, list):
+            try:
+                page.links = [str(x) for x in cached_links]
+            except Exception:
+                page.links = []
+        else:
+            try:
+                page.extract_links()
+            except Exception as e:
+                logger.debug(
+                    "link_extraction_failed",
+                    page=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
         html_content = self.renderer.render_content(parsed_content)
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
@@ -334,6 +377,9 @@ class RenderingPipeline:
                 toc = ""
         else:
             context = self._build_variable_context(page)
+            md_cfg = self.site.config.get("markdown", {}) or {}
+            ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
+            persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
             # Type narrowing: check if parser supports context methods (MistuneParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
@@ -363,6 +409,7 @@ class RenderingPipeline:
                 hasattr(self.parser, "supports_ast")
                 and self.parser.supports_ast
                 and hasattr(self.parser, "parse_to_ast")
+                and persist_tokens
             ):
                 try:
                     ast_tokens = self.parser.parse_to_ast(page.content, page.metadata)
@@ -394,18 +441,7 @@ class RenderingPipeline:
 
     def _enhance_api_docs(self, page: Page) -> None:
         """Enhance API documentation with badges."""
-        try:
-            enhancer = None
-            if self.build_context and getattr(self.build_context, "api_doc_enhancer", None):
-                enhancer = self.build_context.api_doc_enhancer
-            if enhancer is None:
-                from bengal.rendering.api_doc_enhancer import get_enhancer
-
-                enhancer = get_enhancer()
-        except Exception as e:
-            logger.debug("api_doc_enhancer_init_failed", error=str(e))
-            enhancer = None
-
+        enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
             page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
@@ -420,13 +456,18 @@ class RenderingPipeline:
             return
 
         toc_items = extract_toc_structure(page.toc or "")
-        cached_ast = getattr(page, "_ast_cache", None)
+        md_cfg = self.site.config.get("markdown", {}) or {}
+        ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
+        persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
+        cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
+        cached_links = getattr(page, "links", None)
 
         cache.store_parsed_content(
             page.source_path,
             page.parsed_ast,
             page.toc,
             toc_items,
+            cached_links if isinstance(cached_links, list) else None,
             page.metadata,
             template,
             parser_version,
@@ -435,7 +476,6 @@ class RenderingPipeline:
 
     def _render_and_write(self, page: Page, template: str) -> None:
         """Render template and write output."""
-        page.extract_links()
         html_content = self.renderer.render_content(page.parsed_ast or "")
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
@@ -487,11 +527,17 @@ class RenderingPipeline:
 
             json_path = get_page_json_path(page)
             if json_path:
-                json_gen = PageJSONGenerator(self.site, graph_data=None)
                 options = output_formats_config.get("options", {})
                 include_html = options.get("include_html_content", False)
                 include_text = options.get("include_plain_text", True)
-                page_data = json_gen.page_to_json(
+
+                # Reuse per-pipeline generator instance for speed.
+                opts = (include_html, include_text)
+                if self._page_json_generator is None or self._page_json_generator_opts != opts:
+                    self._page_json_generator = PageJSONGenerator(self.site, graph_data=None)
+                    self._page_json_generator_opts = opts
+
+                page_data = self._page_json_generator.page_to_json(
                     page, include_html=include_html, include_text=include_text
                 )
                 self.build_context.accumulate_page_json(json_path, page_data)
@@ -519,7 +565,11 @@ class RenderingPipeline:
             page.output_path = self.site.output_dir / page.output_path
 
         # Check if this is a deferred autodoc page (render with full context)
-        if page.metadata.get("is_autodoc") and page.metadata.get("autodoc_element"):
+        # Note: Section-index pages have autodoc_element=None but still need autodoc rendering
+        if page.metadata.get("is_autodoc") and (
+            page.metadata.get("autodoc_element") is not None
+            or page.metadata.get("is_section_index")
+        ):
             self._render_autodoc_page(page)
             write_output(page, self.site, self.dependency_tracker)
             logger.debug(
@@ -596,7 +646,8 @@ class RenderingPipeline:
                 page.metadata["_autodoc_fallback_template"] = True
                 page.metadata["_autodoc_fallback_reason"] = str(e)
                 # Fall back to rendering as regular virtual page
-                page._prerendered_html = f"<h1>{page.title}</h1><p>{element.description}</p>"
+                fallback_desc = getattr(element, "description", "") if element else ""
+                page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
                 page.parsed_ast = page._prerendered_html
                 page.toc = ""
                 page.rendered_html = self.renderer.render_page(page, page._prerendered_html)

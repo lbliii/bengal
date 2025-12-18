@@ -196,6 +196,7 @@ class ContentDiscovery:
                 section = Section(
                     name=item_path.name,
                     path=item_path,
+                    _site=self.site,
                 )
                 self._walk_directory(item_path, section, current_lang=current_lang)
                 if section.pages or section.subsections:
@@ -490,6 +491,7 @@ class ContentDiscovery:
                 section = Section(
                     name=item.name,
                     path=item,
+                    _site=self.site,
                 )
 
                 # Recursively walk the subdirectory

@@ -26,6 +26,7 @@ Context variables:
 {% set base_url = base_url | default(section.url if section else '/blog/') %}
 
 {% block content %}
+<div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' with context %}
 
@@ -225,5 +226,6 @@ Context variables:
     </div>
     {% endif %}
 
+</div>
 </div>
 {% endblock %}

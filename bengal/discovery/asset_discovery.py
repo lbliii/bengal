@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bengal.core.asset import Asset
-from bengal.utils.logger import get_logger
+from bengal.utils.logger import LogLevel, get_logger
 
 logger = get_logger(__name__)
 
@@ -62,16 +62,17 @@ class AssetDiscovery:
 
                 self.assets.append(asset)
 
-        # Validate assets (debug-level only - small assets are normal)
-        for asset in self.assets:
-            try:
-                size = Path(asset.source_path).stat().st_size
-                if size < 1000:
-                    # Debug only: Small assets (favicons, icons, etc.) are perfectly normal
-                    logger.debug(
-                        "small_asset_discovered", path=str(asset.source_path), size_bytes=size
-                    )
-            except (AttributeError, FileNotFoundError):
-                # This indicates a bug in asset creation - log as warning
-                logger.warning("asset_missing_path", asset=str(asset))
+        # Validate assets (debug-level only). Avoid stat() calls when debug is not enabled.
+        if logger.level.value <= LogLevel.DEBUG.value:
+            for asset in self.assets:
+                try:
+                    size = Path(asset.source_path).stat().st_size
+                    if size < 1000:
+                        # Small assets (favicons, icons, etc.) are perfectly normal
+                        logger.debug(
+                            "small_asset_discovered", path=str(asset.source_path), size_bytes=size
+                        )
+                except (AttributeError, FileNotFoundError):
+                    # This indicates a bug in asset creation - log as warning
+                    logger.warning("asset_missing_path", asset=str(asset))
         return self.assets

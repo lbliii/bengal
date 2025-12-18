@@ -18,6 +18,17 @@ See: plan/active/rfc-template-performance-optimization.md
 {% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
 {% set _footer_menu = get_menu_lang('footer', _current_lang) %}
 {% set _site_title = site.config.title %}
+{% set _build_badge_cfg = site.config.get('build_badge') %}
+{% set _build_badge_enabled = false %}
+{% set _build_badge_dir_name = 'bengal' %}
+{% set _build_badge_label = 'built in' %}
+{% if _build_badge_cfg is boolean %}
+{% set _build_badge_enabled = _build_badge_cfg %}
+{% elif _build_badge_cfg is mapping %}
+{% set _build_badge_enabled = _build_badge_cfg.get('enabled', true) %}
+{% set _build_badge_dir_name = _build_badge_cfg.get('dir_name', 'bengal') %}
+{% set _build_badge_label = _build_badge_cfg.get('label', 'built in') %}
+{% endif %}
 
 <html lang="{{ _current_lang }}">
 
@@ -189,9 +200,8 @@ See: plan/active/rfc-template-performance-optimization.md
     {% endif %}
 </head>
 
-<body
-    data-type="{{ _page.type if _has_page else '' }}"
-    data-variant="{{ _page.variant if _has_page else '' }}"
+<body data-type="{{ _page.type if _has_page else '' }}"
+    data-variant="{{ (_page.variant if (_has_page and _page.variant) else '') }}"
     class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in site.theme_config.features %}
@@ -267,8 +277,8 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% set _params = site.config.get('params', {}) %}
                     {% if _params.get('repo_url') and not github_bundled %}
                     <li>
-                        <a href="{{ _params.repo_url }}" target="_blank" rel="noopener"
-                            title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
+                        <a href="{{ _params.repo_url }}" target="_blank" rel="noopener" title="GitHub Repository"
+                            data-external="true" aria-label="GitHub (opens in new tab)">
                             {{ icon('github-logo', size=16) }}
                             <span>GitHub</span>
                         </a>
@@ -409,10 +419,11 @@ See: plan/active/rfc-template-performance-optimization.md
     </nav>
 
     {# Main Content #}
+    {# Note: No .container wrapper here - templates define their own containment strategy #}
+    {# - docs-layout templates: full-width grid (no container needed) #}
+    {# - single-column templates: add .container in the block content #}
     <main id="main-content" role="main">
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
+        {% block content %}{% endblock %}
     </main>
 
     {# Footer #}
@@ -434,6 +445,15 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% endif %}
                 </div>
                 <div class="footer-right">
+                    {% if _build_badge_enabled %}
+                    <a class="bengal-build-time" data-bengal-build-badge
+                        data-bengal-build-badge-dir="{{ _build_badge_dir_name }}"
+                        data-bengal-build-badge-label="{{ _build_badge_label }}" href="#"
+                        aria-label="{{ _build_badge_label }}" title="{{ _build_badge_label }}" hidden>
+                        <span class="bengal-build-time__label">{{ _build_badge_label }}</span>
+                        <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
+                    </a>
+                    {% endif %}
                     <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge"
                         aria-label="Built with Bengal" data-tooltip="Built with Bengal" title="Built with Bengal">
                         <span class="cat cat-contemplative">
@@ -475,6 +495,7 @@ See: plan/active/rfc-template-performance-optimization.md
     <script defer src="{{ asset_url('js/core/search.js') }}"></script>
     <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
     <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>
     {# Main initialization #}
     <script defer src="{{ asset_url('js/main.js') }}"></script>
     {# Core enhancements - Always loaded (provide essential interactivity) #}

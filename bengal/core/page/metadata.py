@@ -8,14 +8,12 @@ from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.page.page_core import PageCore
-
-logger = get_logger(__name__)
 
 
 class PageMetadataMixin:
@@ -70,6 +68,34 @@ class PageMetadataMixin:
         return self.source_path.stem.replace("-", " ").title()
 
     @property
+    def nav_title(self) -> str:
+        """
+        Get navigation title (shorter title for menus/sidebar).
+
+        Falls back to regular title if nav_title not specified in frontmatter.
+        Use this in navigation/menu templates for compact display.
+
+        Example:
+            ```yaml
+            ---
+            title: Content Authoring Guide
+            nav_title: Authoring
+            ---
+            ```
+
+        In templates:
+            {{ page.nav_title }}  # "Authoring" (or title if not set)
+        """
+        # Check core first (cached)
+        if self.core is not None and self.core.nav_title:
+            return self.core.nav_title
+        # Check metadata (fallback)
+        if "nav_title" in self.metadata:
+            return str(self.metadata["nav_title"])
+        # Fall back to title
+        return self.title
+
+    @property
     def date(self) -> datetime | None:
         """
         Get page date from metadata.
@@ -121,7 +147,9 @@ class PageMetadataMixin:
             #
             # Only log at debug level since this is a known/expected edge case during
             # page construction (PageInitializer checks URL generation early).
-            logger.debug(
+            emit_diagnostic(
+                self,
+                "debug",
                 "page_output_path_fallback",
                 output_path=str(self.output_path),
                 output_dir=str(self._site.output_dir),
@@ -172,7 +200,7 @@ class PageMetadataMixin:
         try:
             baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
         except Exception as e:
-            logger.debug("page_baseurl_lookup_failed", error=str(e))
+            emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
         if not baseurl:

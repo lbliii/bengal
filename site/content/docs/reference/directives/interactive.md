@@ -1,5 +1,6 @@
 ---
 title: Interactive Directives
+nav_title: Interactive
 description: Reference for interactive directives (code-tabs, data-table)
 weight: 14
 tags:

@@ -26,7 +26,12 @@ from typing import IO, Any
 
 
 def atomic_write_text(
-    path: Path | str, content: str, encoding: str = "utf-8", mode: int | None = None
+    path: Path | str,
+    content: str,
+    encoding: str = "utf-8",
+    mode: int | None = None,
+    *,
+    ensure_parent: bool = True,
 ) -> None:
     """
     Write text to a file atomically.
@@ -52,8 +57,11 @@ def atomic_write_text(
     """
     path = Path(path)
 
-    # Ensure parent directory exists (defensive; callers should ensure this but we harden here)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    # Ensure parent directory exists (defensive; callers should ensure this but we harden here).
+    # Hot path optimization: some callers already create parent dirs with caching;
+    # allow them to skip the redundant mkdir syscalls.
+    if ensure_parent:
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create unique temp file in same directory (ensures same filesystem for atomic rename)
     # Use PID + thread ID + UUID to prevent race conditions in parallel builds
@@ -96,7 +104,7 @@ def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None
         >>> atomic_write_bytes('image.png', image_data)
     """
     path = Path(path)
-    # Ensure parent directory exists
+    # Ensure parent directory exists (defensive; callers may choose to skip this for hot paths)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create unique temp file to prevent race conditions

@@ -1,0 +1,84 @@
+{#
+Share Dropdown Component
+
+Extracted from page-hero-api.html - the LLM share dropdown with AI assistant links.
+
+Receives from parent context:
+- page: Page object with .url or .relative_url
+
+Example:
+{% include 'partials/page-hero/_share-dropdown.html' %}
+#}
+
+{# Macro: Get page URL with fallback chain #}
+{% macro get_page_url(page) -%}
+{{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
+{# Actions: LLM Share Button #}
+<div class="page-hero__actions">
+    {% set page_url = canonical_url(get_page_url(page)) %}
+    {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+    {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+
+    <div class="page-hero__share">
+        <button class="page-hero__share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
+            aria-controls="page-hero-share-dropdown" title="Share with AI assistants">
+            <span>ᗢ</span>
+            {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+        </button>
+
+        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
+            <div class="page-hero__share-content">
+                <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
+                    {{ icon('link', size=16) }}
+                    <span>Copy URL</span>
+                </button>
+
+                <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item"
+                    role="menuitem">
+                    {{ icon('external', size=16) }}
+                    <span>Open LLM text</span>
+                </a>
+
+                <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
+                    role="menuitem">
+                    {{ icon('copy', size=16) }}
+                    <span>Copy LLM text</span>
+                </button>
+
+                <hr class="page-hero__share-separator">
+
+                <div class="page-hero__share-section-header">Share with AI</div>
+
+                <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
+                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="claude"
+                    role="menuitem">
+                    {{ icon('ai-claude', size=16) }}
+                    <span>Ask Claude</span>
+                </a>
+
+                <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt"
+                    role="menuitem">
+                    {{ icon('ai-chatgpt', size=16) }}
+                    <span>Ask ChatGPT</span>
+                </a>
+
+                <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
+                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="gemini"
+                    role="menuitem">
+                    {{ icon('ai-gemini', size=16) }}
+                    <span>Ask Gemini</span>
+                </a>
+
+                <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="copilot"
+                    role="menuitem">
+                    {{ icon('ai-copilot', size=16) }}
+                    <span>Ask Copilot</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

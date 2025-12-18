@@ -594,6 +594,5 @@ bengal serve
 
 ## Next Steps
 
-- [Migrate from Hugo](/docs/tutorials/migrate-from-hugo/) - Detailed migration guide
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Configuration](/docs/about/concepts/configuration/) - Full config reference

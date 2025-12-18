@@ -1,5 +1,6 @@
 ---
 title: Reactive Dataflow Pipeline
+nav_title: Pipeline
 description: Declarative dataflow architecture for Bengal builds with automatic dependency
   tracking
 weight: 25

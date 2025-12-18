@@ -28,6 +28,7 @@ from bengal.rendering.plugins.directives.badge import BadgeDirective
 
 # Directive System v2 - Foundation Classes
 from bengal.rendering.plugins.directives.base import BengalDirective
+from bengal.rendering.plugins.directives.build import BuildDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
@@ -68,8 +69,8 @@ from bengal.rendering.plugins.directives.embed import (
 )
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.example_label import ExampleLabelDirective
-from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.fenced import FencedDirective
+from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
 from bengal.rendering.plugins.directives.glossary import GlossaryDirective
 from bengal.rendering.plugins.directives.icon import IconDirective
 from bengal.rendering.plugins.directives.include import IncludeDirective
@@ -90,18 +91,13 @@ from bengal.rendering.plugins.directives.options import (
 )
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
-from bengal.rendering.plugins.directives.target import TargetDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabSetDirective,
 )
+from bengal.rendering.plugins.directives.target import TargetDirective
 from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
 from bengal.rendering.plugins.directives.tokens import DirectiveToken
-from bengal.rendering.plugins.directives.video import (
-    SelfHostedVideoDirective,
-    VimeoDirective,
-    YouTubeDirective,
-)
 from bengal.rendering.plugins.directives.utils import (
     attr_str,
     bool_attr,
@@ -111,6 +107,11 @@ from bengal.rendering.plugins.directives.utils import (
     escape_html,
 )
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+from bengal.rendering.plugins.directives.video import (
+    SelfHostedVideoDirective,
+    VimeoDirective,
+    YouTubeDirective,
+)
 from bengal.utils.logger import get_logger
 
 # =============================================================================
@@ -133,6 +134,8 @@ DIRECTIVE_CLASSES: list[type] = [
     AdmonitionDirective,
     # Badges (badge, bdg)
     BadgeDirective,
+    # Build badge (build)
+    BuildDirective,
     # Buttons (button)
     ButtonDirective,
     # Cards (cards, card, child-cards, grid, grid-item-card)
@@ -353,6 +356,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
             directives_list = [
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
                 BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
+                BuildDirective(),  # Build badge: embeds /bengal/build.svg (optional link to build.json)
                 TabSetDirective(),  # MyST tab-set
                 TabItemDirective(),  # MyST tab-item
                 DropdownDirective(),

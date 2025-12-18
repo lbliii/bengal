@@ -15,22 +15,38 @@ autodoc:
   # Python API Documentation
   python:
     enabled: true
-    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     source_dirs:
       - ../bengal  # Document the main Bengal package
-    # output_dir: removed - virtual pages always output to site.output_dir (public/)
     docstring_style: auto  # Auto-detect docstring format
 
-    # Exclude test, cache, and virtual environment files
+    # Output prefix for Python API docs
+    # Empty = auto-derive from source_dirs (e.g., "api/bengal" from source_dirs: [../bengal])
+    # Explicit value like "api/python" overrides auto-derivation
+    output_prefix: ""  # Auto-derive from package name
+
+    # Exclude test, cache, build artifacts, and virtual environment files
     exclude:
+      # Tests
       - "*/tests/*"
       - "*/test_*.py"
+      - "*_test.py"
+      # Build artifacts and caches
       - "*/__pycache__/*"
       - "*/migrations/*"
       - "*/.pytest_cache/*"
+      - "*/build/*"
+      - "*/dist/*"
+      - "*.egg-info/*"
+      # Virtual environments
       - "*/.venv/*"
       - "*/venv/*"
       - "*/.env/*"
+      - "*/env/*"
+      # Non-API directories
+      - "*/scripts/*"
+      - "*/benchmarks/*"
+      # Hidden directories
+      - "*/.*"
 
     # Member visibility
     include_private: false  # Skip _private methods
@@ -39,7 +55,19 @@ autodoc:
   # CLI Documentation
   cli:
     enabled: true
-    # virtual_pages: true  # Default: true (virtual pages are now the only option)
     app_module: "bengal.cli:main"
     framework: click
-    # output_dir: removed - virtual pages always output to site.output_dir (public/)
+
+    # Output prefix for CLI docs
+    # This creates the section at /cli/...
+    output_prefix: "cli"
+
+  # OpenAPI Documentation
+  openapi:
+    enabled: false
+    spec_file: "api/openapi.yaml"  # Relative to site root
+
+    # Output prefix for OpenAPI docs
+    # Empty string = auto-derive from spec title "Bengal Demo Commerce API"
+    # This will create the section at /api/bengal-demo-commerce/...
+    output_prefix: ""  # Auto-derive from spec title

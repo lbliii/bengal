@@ -1,5 +1,6 @@
 ---
 title: Testing Strategy
+nav_title: Testing
 description: Testing patterns and coverage goals
 weight: 20
 category: meta

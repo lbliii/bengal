@@ -86,8 +86,11 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
         OSError: If file cannot be written
         TypeError: If data is not JSON-serializable
     """
-    # Serialize to compact JSON (no indentation)
-    json_bytes = json.dumps(data, separators=(",", ":")).encode("utf-8")
+    # Serialize to compact JSON (no indentation).
+    #
+    # Cache payloads must be resilient: prefer best-effort serialization to avoid
+    # disabling incremental builds if a value is not strictly JSON-native.
+    json_bytes = json.dumps(data, separators=(",", ":"), default=str).encode("utf-8")
     original_size = len(json_bytes)
 
     # Compress with Zstandard

@@ -14,15 +14,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.core.theme import Theme
-
-logger = get_logger(__name__)
 
 
 class SitePropertiesMixin:
@@ -43,6 +42,30 @@ class SitePropertiesMixin:
     _theme_obj: Theme | None
     _config_hash: str | None
     _query_registry: Any
+    _paths: BengalPaths | None
+
+    @property
+    def paths(self) -> BengalPaths:
+        """
+        Access to .bengal directory paths.
+
+        Provides centralized access to all paths within the Bengal state directory.
+        Use this instead of hardcoding ".bengal" strings throughout the codebase.
+
+        Returns:
+            BengalPaths instance with all state directory paths
+
+        Examples:
+            site.paths.build_cache      # .bengal/cache.json
+            site.paths.page_cache       # .bengal/page_metadata.json
+            site.paths.templates_dir    # .bengal/templates/
+            site.paths.ensure_dirs()    # Create all necessary directories
+        """
+        if self._paths is None:
+            from bengal.cache.paths import BengalPaths
+
+            self._paths = BengalPaths(self.root_path)
+        return self._paths
 
     @property
     def title(self) -> str | None:
@@ -123,7 +146,9 @@ class SitePropertiesMixin:
         from bengal.config.hash import compute_config_hash
 
         self._config_hash = compute_config_hash(self.config)
-        logger.debug(
+        emit_diagnostic(
+            self,
+            "debug",
             "config_hash_computed",
             hash=self._config_hash[:8] if self._config_hash else "none",
         )
@@ -145,7 +170,11 @@ class SitePropertiesMixin:
         if self._theme_obj is None:
             from bengal.core.theme import Theme
 
-            self._theme_obj = Theme.from_config(self.config, root_path=self.root_path)
+            self._theme_obj = Theme.from_config(
+                self.config,
+                root_path=self.root_path,
+                diagnostics_site=self,
+            )
         return self._theme_obj
 
     @property
@@ -174,6 +203,5 @@ class SitePropertiesMixin:
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            cache_dir = self.root_path / ".bengal" / "indexes"
-            self._query_registry = QueryIndexRegistry(self, cache_dir)
+            self._query_registry = QueryIndexRegistry(self, self.paths.indexes_dir)
         return self._query_registry

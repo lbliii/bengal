@@ -4,6 +4,7 @@
 {% from 'partials/content-components.html' import tag_list, random_posts with context %}
 
 {% block content %}
+<div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
@@ -76,4 +77,5 @@
 </aside>
 {% endif %}
 {# Graph scripts loaded in base.html #}
+</div>
 {% endblock %}

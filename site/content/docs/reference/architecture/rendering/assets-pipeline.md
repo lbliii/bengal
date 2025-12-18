@@ -1,5 +1,6 @@
 ---
 title: Asset Pipeline
+nav_title: Assets
 description: How Bengal processes and optimizes static assets (CSS, JS, images, fonts)
 weight: 30
 category: rendering

@@ -1,5 +1,6 @@
 ---
 title: Content Reuse Directives
+nav_title: Reuse
 description: Reference for content reuse directives (include, literalinclude)
 weight: 15
 tags:

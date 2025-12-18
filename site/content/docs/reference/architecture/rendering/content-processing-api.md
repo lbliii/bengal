@@ -1,5 +1,6 @@
 ---
 title: Content Processing API
+nav_title: Processing
 description: What Bengal computes vs what themes display - the content processing
   contract
 weight: 40

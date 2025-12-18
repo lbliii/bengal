@@ -248,16 +248,20 @@ class TestGetNavTree:
     def test_simple_section_with_pages(self):
         """Section with pages builds simple tree."""
         # Create mock pages
+        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
         page1 = Mock()
+        page1.nav_title = None
         page1.title = "Page 1"
         page1.url = "/docs/page1/"
 
         page2 = Mock()
+        page2.nav_title = None
         page2.title = "Page 2"
         page2.url = "/docs/page2/"
 
         # Create mock section
         section = Mock()
+        section.nav_title = None
         section.title = "Docs"
         section.url = "/docs/"
         section.index_page = None
@@ -266,6 +270,7 @@ class TestGetNavTree:
 
         # Create current page
         current_page = Mock()
+        current_page.nav_title = None
         current_page.url = "/docs/page1/"
         current_page._section = section
         current_page.ancestors = [section]
@@ -282,16 +287,20 @@ class TestGetNavTree:
     def test_nested_sections(self):
         """Nested sections create hierarchical tree."""
         # Create pages
+        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
         page1 = Mock()
+        page1.nav_title = None
         page1.title = "Getting Started"
         page1.url = "/docs/getting-started/"
 
         subpage = Mock()
+        subpage.nav_title = None
         subpage.title = "Advanced Topic"
         subpage.url = "/docs/advanced/topic/"
 
         # Create subsection
         subsection = Mock()
+        subsection.nav_title = None
         subsection.title = "Advanced"
         subsection.url = "/docs/advanced/"
         subsection.index_page = None
@@ -300,6 +309,7 @@ class TestGetNavTree:
 
         # Create root section
         section = Mock()
+        section.nav_title = None
         section.title = "Docs"
         section.url = "/docs/"
         section.index_page = None
@@ -307,6 +317,7 @@ class TestGetNavTree:
         section.sections = [subsection]
 
         current_page = Mock()
+        current_page.nav_title = None
         current_page.url = "/docs/advanced/topic/"
         current_page._section = subsection
         current_page.ancestors = [subsection, section]
@@ -328,15 +339,19 @@ class TestGetNavTree:
     def test_active_trail_marking(self):
         """Active trail is marked correctly."""
         # Create pages
+        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
         page1 = Mock()
+        page1.nav_title = None
         page1.title = "Page 1"
         page1.url = "/docs/page1/"
 
         page2 = Mock()
+        page2.nav_title = None
         page2.title = "Page 2"
         page2.url = "/docs/section/page2/"
 
         subsection = Mock()
+        subsection.nav_title = None
         subsection.title = "Section"
         subsection.url = "/docs/section/"
         subsection.index_page = None
@@ -344,6 +359,7 @@ class TestGetNavTree:
         subsection.sections = []
 
         section = Mock()
+        section.nav_title = None
         section.title = "Docs"
         section.url = "/docs/"
         section.index_page = None
@@ -351,6 +367,7 @@ class TestGetNavTree:
         section.sections = [subsection]
 
         current_page = Mock()
+        current_page.nav_title = None
         current_page.url = "/docs/section/page2/"
         current_page._section = subsection
         current_page.ancestors = [subsection, section]
@@ -369,15 +386,19 @@ class TestGetNavTree:
 
     def test_index_page_included(self):
         """Section index page is included in tree."""
+        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
         index_page = Mock()
+        index_page.nav_title = None
         index_page.title = "Introduction"
         index_page.url = "/docs/"
 
         page1 = Mock()
+        page1.nav_title = None
         page1.title = "Page 1"
         page1.url = "/docs/page1/"
 
         section = Mock()
+        section.nav_title = None
         section.title = "Docs"
         section.url = "/docs/"
         section.index_page = index_page
@@ -385,6 +406,7 @@ class TestGetNavTree:
         section.sections = []
 
         current_page = Mock()
+        current_page.nav_title = None
         current_page.url = "/docs/page1/"
         current_page._section = section
         current_page.ancestors = [section]
@@ -400,11 +422,14 @@ class TestGetNavTree:
     def test_depth_tracking(self):
         """Depth is tracked correctly for nested structures."""
         # Create 3-level nesting
+        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
         page_l3 = Mock()
+        page_l3.nav_title = None
         page_l3.title = "Deep Page"
         page_l3.url = "/docs/l1/l2/page/"
 
         section_l2 = Mock()
+        section_l2.nav_title = None
         section_l2.title = "Level 2"
         section_l2.url = "/docs/l1/l2/"
         section_l2.index_page = None
@@ -412,6 +437,7 @@ class TestGetNavTree:
         section_l2.sections = []
 
         section_l1 = Mock()
+        section_l1.nav_title = None
         section_l1.title = "Level 1"
         section_l1.url = "/docs/l1/"
         section_l1.index_page = None
@@ -419,6 +445,7 @@ class TestGetNavTree:
         section_l1.sections = [section_l2]
 
         section_root = Mock()
+        section_root.nav_title = None
         section_root.title = "Docs"
         section_root.url = "/docs/"
         section_root.index_page = None
@@ -426,6 +453,7 @@ class TestGetNavTree:
         section_root.sections = [section_l1]
 
         current_page = Mock()
+        current_page.nav_title = None
         current_page.url = "/docs/l1/l2/page/"
         current_page._section = section_l2
         current_page.ancestors = [section_l2, section_l1, section_root]

@@ -1,5 +1,6 @@
 ---
 title: Core Architecture
+nav_title: Core
 description: Data models, build coordination, and core principles
 weight: 10
 cascade:

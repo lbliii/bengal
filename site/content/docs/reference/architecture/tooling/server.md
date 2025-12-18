@@ -1,5 +1,6 @@
 ---
 title: Development Server
+nav_title: Server
 description: Built-in development server with file watching and live reload
 weight: 30
 category: tooling

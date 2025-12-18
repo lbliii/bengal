@@ -1,5 +1,6 @@
 ---
 title: Media Directives
+nav_title: Media
 description: Reference for media embed directives (YouTube, Vimeo, video, audio, figure, code playgrounds, terminal recordings)
 weight: 15
 tags:
@@ -579,4 +580,3 @@ Override the aspect ratio with the `:aspect:` option or custom CSS classes.
 - [Layout Directives](/docs/reference/directives/layout/) - Cards, tabs, grids
 - [Interactive Directives](/docs/reference/directives/interactive/) - Code tabs, data tables
 - [Hugo Migration](/docs/tutorials/onboarding/from-hugo/) - Migrating from Hugo shortcodes
-

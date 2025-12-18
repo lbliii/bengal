@@ -1,6 +1,7 @@
 ---
 title: Content Authoring
-description: Markdown, MyST directives, and shortcodes
+nav_title: Author
+description: Markdown, MyST directives, and rich content
 weight: 20
 category: guide
 icon: edit
@@ -9,6 +10,55 @@ card_color: blue
 # Writing Content
 
 Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/) extensions for rich documentation.
+
+## What Do You Need?
+
+:::{cards}
+:columns: 2
+
+:::{card} Links & Cross-References
+:icon: link
+:link: ./linking/
+
+Create internal links, cross-references, and anchor links.
+:::{/card}
+
+:::{card} Code Blocks
+:icon: code
+:link: ./code-blocks/
+
+Syntax highlighting, line numbers, and file includes.
+:::{/card}
+
+:::{card} Images & Media
+:icon: image
+:link: ./images-media/
+
+Add images, figures, videos, and embeds.
+:::{/card}
+
+:::{card} Tables
+:icon: layers
+:link: ./tables/
+
+Simple pipe tables and complex list-tables.
+:::{/card}
+
+:::{card} Callouts & Admonitions
+:icon: info
+:link: ./callouts/
+
+Notes, warnings, tips, and collapsible sections.
+:::{/card}
+
+:::{card} Interactive Elements
+:icon: layers
+:link: ./interactive/
+
+Tabs, dropdowns, steps, and cards.
+:::{/card}
+
+:::{/cards}
 
 ## Quick Reference
 
@@ -25,14 +75,8 @@ Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/)
 ```markdown
 [External](https://example.com)
 [Internal](/docs/get-started/)
-[Relative](../other-page/)
-```
-:::
-
-:::{tab-item} Images
-```markdown
-![Alt text](/images/hero.jpg)
-![With title](/images/hero.jpg "Title")
+[[Cross-reference]] docs/page
+[[#heading]] Anchor link
 ```
 :::
 
@@ -52,14 +96,8 @@ def hello():
 ```
 ````
 :::
-::::
 
-## MyST Directives
-
-Directives add rich components to your Markdown:
-
-:::{tab-set}
-:::{tab} Admonitions
+:::{tab-item} Callouts
 ```markdown
 :::{note}
 Informational callout.
@@ -73,57 +111,10 @@ Important warning!
 Helpful suggestion.
 :::
 ```
-:::{/tab}
-
-:::{tab} Tabs
-```markdown
-:::{tab-set}
-:::{tab} Python
-print("Hello")
-:::{/tab}
-:::{tab} JavaScript
-console.log("Hello")
-:::{/tab}
-:::{/tab-set}
-```
-:::{/tab}
-
-:::{tab} Cards
-```markdown
-:::{cards}
-:::{card} Title
-:link: ./path/
-Description here
-:::{/card}
-:::{/cards}
-```
-:::{/tab}
-
-:::{tab} Dropdowns
-```markdown
-:::{dropdown} Click to expand
-:icon: info
-
-Hidden content here.
 :::
-```
-:::{/tab}
+::::
 
-:::{tab} Media
-```markdown
-:::{youtube} dQw4w9WgXcQ
-:title: Video Title
-:::
-
-:::{figure} /images/diagram.png
-:alt: Architecture diagram
-:caption: System overview
-:::
-```
-:::{/tab}
-:::{/tab-set}
-
-## Syntax Overview
+## How Content Flows
 
 ```mermaid
 flowchart LR
@@ -134,10 +125,6 @@ flowchart LR
     D --> F[Final Page]
     E --> F
 ```
-
-:::{tip}
-**Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed. For visual elements, see the [Icon Reference](/docs/reference/icons/) for inline SVG icons.
-:::
 
 ## Variable Substitution
 
@@ -194,3 +181,8 @@ This endpoint uses API {{ api_version }}.
 :::{tip}
 **Common use cases**: Product names, version numbers, feature flags, environment-specific values, and cascaded metadata like API versions or status badges.
 :::
+
+::::{seealso}
+- [[docs/reference/directives|Directives Reference]] — Complete directive documentation
+- [[docs/reference/icons|Icon Reference]] — Available icons
+::::

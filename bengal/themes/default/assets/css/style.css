@@ -235,7 +235,11 @@
 }
 
 @layer components {
-  @import url('components/api-explorer.css');
+  @import url('components/autodoc-explorer.css');
+}
+
+@layer components {
+  @import url('components/api-hub.css');
 }
 
 @layer components {

@@ -117,8 +117,7 @@ def explain(
     # Load cache for cache status
     from bengal.cache import BuildCache
 
-    cache_dir = site.root_path / ".bengal"
-    cache_path = cache_dir / "cache.json"
+    cache_path = site.paths.build_cache
     cache = (
         BuildCache.load(cache_path)
         if cache_path.exists() or (cache_path.with_suffix(".json.zst")).exists()

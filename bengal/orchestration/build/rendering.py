@@ -212,10 +212,14 @@ def phase_render(
                 progress_manager=progress_manager,
                 reporter=reporter,
                 profile_templates=profile_templates,
+                incremental=bool(incremental),
             )
             # Transfer cached content from early context (build-integrated validation)
             if early_context and early_context.has_cached_content:
                 ctx._page_contents = early_context._page_contents
+            # Transfer incremental state (changed pages) for validators.
+            if early_context is not None:
+                ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
             streaming_render.process(
                 pages_to_build,
                 parallel=parallel,
@@ -239,10 +243,14 @@ def phase_render(
                 progress_manager=progress_manager,
                 reporter=reporter,
                 profile_templates=profile_templates,
+                incremental=bool(incremental),
             )
             # Transfer cached content from early context (build-integrated validation)
             if early_context and early_context.has_cached_content:
                 ctx._page_contents = early_context._page_contents
+            # Transfer incremental state (changed pages) for validators.
+            if early_context is not None:
+                ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
         orchestrator.render.process(
             pages_to_build,
             parallel=parallel,
@@ -354,9 +362,7 @@ def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any
             from bengal.cache.asset_dependency_map import AssetDependencyMap
             from bengal.rendering.asset_extractor import extract_assets_from_html
 
-            asset_map = AssetDependencyMap(
-                orchestrator.site.root_path / ".bengal" / "asset_deps.json"
-            )
+            asset_map = AssetDependencyMap(orchestrator.site.paths.asset_cache)
 
             # Extract assets from rendered pages
             for page in pages_to_build:

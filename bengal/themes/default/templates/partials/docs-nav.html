@@ -56,7 +56,7 @@ Usage:
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
-    {% set root_title = root_section.index_page.title if root_section.index_page.title and
+    {% set root_title = root_section.index_page.nav_title or root_section.index_page.title if root_section.index_page.title and
     root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if
     root_section.slug else 'API Reference') %}
     {% set root_icon = root_section.icon if root_section.icon else none %}
@@ -83,7 +83,7 @@ Usage:
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
       %}aria-current="page" {% endif %}>
-      {{ p.title }}
+      {{ p.nav_title or p.title }}
     </a>
     {% endif %}
     {% endfor %}
@@ -110,7 +110,7 @@ Usage:
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
       %}aria-current="page" {% endif %}>
-      {{ p.title }}
+      {{ p.nav_title or p.title }}
     </a>
     {% endfor %}
 

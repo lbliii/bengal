@@ -27,9 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
+from bengal.core.diagnostics import emit as emit_diagnostic
 
 
 @dataclass
@@ -251,8 +249,9 @@ class MenuBuilder:
         menu_items = builder.build_hierarchy()
     """
 
-    def __init__(self) -> None:
+    def __init__(self, diagnostics: Any | None = None) -> None:
         self.items: list[MenuItem] = []
+        self._diagnostics: Any | None = diagnostics
         # Track items to prevent duplicates across all add methods
         self._seen_identifiers: set[str] = set()
         self._seen_urls: set[str] = set()
@@ -333,7 +332,9 @@ class MenuBuilder:
             item_name = item_config.get("name", "").lower()
 
             if self._is_duplicate(item_id, item_url, item_name):
-                logger.debug(
+                emit_diagnostic(
+                    self,
+                    "debug",
                     "menu_duplicate_skipped",
                     item=item_config.get("name"),
                     reason="identifier"
@@ -388,7 +389,13 @@ class MenuBuilder:
 
         # Skip if duplicate
         if self._is_duplicate(item_id, item_url, item_name):
-            logger.debug("menu_duplicate_skipped", item=page.title, reason="page_frontmatter")
+            emit_diagnostic(
+                self,
+                "debug",
+                "menu_duplicate_skipped",
+                item=page.title,
+                reason="page_frontmatter",
+            )
             return
 
         item = MenuItem(
@@ -429,7 +436,9 @@ class MenuBuilder:
             root_items = builder.build_hierarchy()
             # Returns: [MenuItem(name="Home", children=[MenuItem(name="About")])]
         """
-        logger.debug(
+        emit_diagnostic(
+            self,
+            "debug",
             "building_menu_hierarchy",
             total_items=len(self.items),
             items_with_parents=sum(1 for i in self.items if i.parent),
@@ -445,8 +454,14 @@ class MenuBuilder:
                 orphaned_items.append((item.name, item.parent))
 
         if orphaned_items:
-            logger.warning(
-                f"{len(orphaned_items)} menu items reference missing parents and will be added to root level",
+            message = (
+                f"{len(orphaned_items)} menu items reference missing parents "
+                "and will be added to root level"
+            )
+            emit_diagnostic(
+                self,
+                "warning",
+                message,
                 count=len(orphaned_items),
                 items=[(name, parent) for name, parent in orphaned_items[:5]],
             )
@@ -468,15 +483,21 @@ class MenuBuilder:
         visited: set[str] = set()
         for root in roots:
             if self._has_cycle(root, visited, set()):
-                logger.error(
-                    "menu_cycle_detected", root_item=root.name, root_identifier=root.identifier
+                emit_diagnostic(
+                    self,
+                    "error",
+                    "menu_cycle_detected",
+                    root_item=root.name,
+                    root_identifier=root.identifier,
                 )
                 raise ValueError(f"Menu has circular reference involving '{root.name}'")
 
         # Sort roots by weight
         roots.sort(key=lambda x: x.weight)
 
-        logger.debug(
+        emit_diagnostic(
+            self,
+            "debug",
             "menu_hierarchy_built",
             root_items=len(roots),
             total_items=len(self.items),
@@ -576,8 +597,12 @@ class MenuBuilder:
             # Items with URL="/blog/post" are marked active
             # Items with URL="/blog" are marked active_trail (have active child)
         """
-        logger.debug(
-            "marking_active_menu_items", current_url=current_url, menu_item_count=len(menu_items)
+        emit_diagnostic(
+            self,
+            "debug",
+            "marking_active_menu_items",
+            current_url=current_url,
+            menu_item_count=len(menu_items),
         )
 
         # Reset all items first
@@ -590,4 +615,4 @@ class MenuBuilder:
             if item.mark_active(current_url):
                 active_count += 1
 
-        logger.debug("menu_active_items_marked", active_items=active_count)
+        emit_diagnostic(self, "debug", "menu_active_items_marked", active_items=active_count)

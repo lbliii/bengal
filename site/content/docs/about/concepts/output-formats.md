@@ -1,5 +1,6 @@
 ---
 title: Generate Output Formats
+nav_title: Formats
 description: Create JSON, LLM-ready text, and other output formats
 weight: 30
 type: doc

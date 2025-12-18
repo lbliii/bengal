@@ -18,6 +18,7 @@ Context variables:
 {% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
+<div class="container">
 {# Reading progress indicator is automatically added by interactive.js #}
 
 {# Action Bar: Breadcrumbs + Share #}
@@ -190,6 +191,8 @@ Context variables:
         {% endif %}
     </aside>
     {% endif %}
+</div>
+
 </div>
 
 {# Page Navigation (Prev/Next Posts) #}

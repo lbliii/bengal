@@ -12,6 +12,12 @@ import pytest
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.virtual_orchestrator import AutodocRunResult, VirtualAutodocOrchestrator
 
+# Note: The orchestrator calls module-level functions from these modules:
+# - bengal.autodoc.orchestration.extractors: extract_python, extract_cli, extract_openapi
+# - bengal.autodoc.orchestration.section_builders: create_python_sections, etc.
+# - bengal.autodoc.orchestration.page_builders: create_pages
+# Tests must mock these module-level functions, not methods on the orchestrator.
+
 
 @pytest.fixture
 def mock_site():
@@ -87,7 +93,7 @@ class TestExtractionFailureHandling:
         """Extraction failures should log warnings but not raise in non-strict mode."""
         orchestrator = VirtualAutodocOrchestrator(mock_site)
 
-        with patch.object(orchestrator, "_extract_python") as mock_extract:
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = Exception("Extraction failed")
 
             pages, sections, result = orchestrator.generate()
@@ -102,7 +108,7 @@ class TestExtractionFailureHandling:
         """Extraction failures should raise RuntimeError in strict mode."""
         orchestrator = VirtualAutodocOrchestrator(mock_site_strict)
 
-        with patch.object(orchestrator, "_extract_python") as mock_extract:
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = Exception("Extraction failed")
 
             with pytest.raises(RuntimeError, match="Python extraction failed in strict mode"):
@@ -130,8 +136,11 @@ class TestExtractionFailureHandling:
         ]
 
         with (
-            patch.object(orchestrator, "_extract_python", return_value=mock_python_elements),
-            patch.object(orchestrator, "_extract_cli") as mock_cli,
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_python",
+                return_value=mock_python_elements,
+            ),
+            patch("bengal.autodoc.orchestration.orchestrator.extract_cli") as mock_cli,
         ):
             mock_cli.side_effect = Exception("CLI extraction failed")
 
@@ -150,7 +159,7 @@ class TestStrictModeEnforcement:
         """Strict mode should raise after recording partial results."""
         orchestrator = VirtualAutodocOrchestrator(mock_site_strict)
 
-        with patch.object(orchestrator, "_extract_python") as mock_extract:
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = ValueError("Invalid source directory")
 
             with pytest.raises(RuntimeError) as exc_info:
@@ -163,7 +172,7 @@ class TestStrictModeEnforcement:
         """Strict mode should raise if no elements produced and failures occurred."""
         orchestrator = VirtualAutodocOrchestrator(mock_site_strict)
 
-        with patch.object(orchestrator, "_extract_python") as mock_extract:
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = Exception("Extraction failed")
 
             # Should raise RuntimeError about extraction failure (happens during extraction)
@@ -175,7 +184,7 @@ class TestStrictModeEnforcement:
         orchestrator = VirtualAutodocOrchestrator(mock_site_strict)
 
         # Mock successful extraction with empty result (no elements found)
-        with patch.object(orchestrator, "_extract_python", return_value=[]):
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python", return_value=[]):
             pages, sections, result = orchestrator.generate()
 
             # Should return empty but not raise
@@ -221,9 +230,18 @@ class TestSummaryTracking:
         ]
 
         with (
-            patch.object(orchestrator, "_extract_python", return_value=mock_elements),
-            patch.object(orchestrator, "_create_python_sections", return_value={}),
-            patch.object(orchestrator, "_create_pages", return_value=([], AutodocRunResult())),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_python",
+                return_value=mock_elements,
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_python_sections",
+                return_value={},
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_pages",
+                return_value=([], AutodocRunResult()),
+            ),
         ):
             pages, sections, result = orchestrator.generate()
 
@@ -252,9 +270,18 @@ class TestSummaryTracking:
         ]
 
         with (
-            patch.object(orchestrator, "_extract_cli", return_value=mock_elements),
-            patch.object(orchestrator, "_create_cli_sections", return_value={}),
-            patch.object(orchestrator, "_create_pages", return_value=([], AutodocRunResult())),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_cli",
+                return_value=mock_elements,
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_cli_sections",
+                return_value={},
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_pages",
+                return_value=([], AutodocRunResult()),
+            ),
         ):
             pages, sections, result = orchestrator.generate()
 
@@ -285,9 +312,18 @@ class TestSummaryTracking:
         ]
 
         with (
-            patch.object(orchestrator, "_extract_openapi", return_value=mock_elements),
-            patch.object(orchestrator, "_create_openapi_sections", return_value={}),
-            patch.object(orchestrator, "_create_pages", return_value=([], AutodocRunResult())),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_openapi",
+                return_value=mock_elements,
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_openapi_sections",
+                return_value={},
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.create_pages",
+                return_value=([], AutodocRunResult()),
+            ),
         ):
             pages, sections, result = orchestrator.generate()
 
@@ -340,7 +376,7 @@ class TestResultReturnValue:
         """generate() should return (pages, sections, result) tuple."""
         orchestrator = VirtualAutodocOrchestrator(mock_site)
 
-        with patch.object(orchestrator, "_extract_python", return_value=[]):
+        with patch("bengal.autodoc.orchestration.orchestrator.extract_python", return_value=[]):
             result = orchestrator.generate()
 
             assert isinstance(result, tuple)

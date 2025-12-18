@@ -1,5 +1,6 @@
 ---
 title: Content Reuse
+nav_title: Reuse
 description: Snippets, data files, and DRY patterns
 weight: 50
 category: guide
