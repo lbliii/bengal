@@ -1,6 +1,7 @@
 # RFC: Autodoc HTML/CSS Complete Reset
 
-**Status**: Draft  
+**Status**: Draft → Plan Ready  
+**Plan**: `plan/ready/plan-autodoc-html-reset.md`  
 **Created**: 2025-12-17  
 **Author**: AI Assistant  
 **Confidence**: 90% 🟢
