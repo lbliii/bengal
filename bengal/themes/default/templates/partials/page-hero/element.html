@@ -47,8 +47,8 @@ Usage:
     {% endif %}
     {% endif %}
 
-    {# Stats computed from element.children #}
-    {% set children = element.children | default([]) %}
+    {# Stats computed from element.children - use (or []) for undefined safety #}
+    {% set children = (element.children or []) %}
     {% include 'partials/page-hero/_element-stats.html' %}
   </div>
 </div>

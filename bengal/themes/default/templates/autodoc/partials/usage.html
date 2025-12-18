@@ -9,10 +9,13 @@ Optional: language (str, default 'bash' for CLI, 'python' for modules)
 
 {% set is_cli = element.element_type in ['command', 'command-group'] %}
 {% set language = language | default('bash' if is_cli else 'python') %}
+{# Use (or []) pattern to safely handle undefined children #}
+{% set element_children = (element.children or []) %}
+{% set has_options = element_children | selectattr('element_type', 'eq', 'option') | list | length > 0 %}
 
 {% if element.qualified_name %}
 <div class="autodoc-usage">
     <h2 class="autodoc-label">Usage</h2>
-    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if element.children | default([]) %} [OPTIONS]{% endif %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% endif %}</code></pre>
+    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if has_options %} [OPTIONS]{% endif %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% endif %}</code></pre>
 </div>
 {% endif %}

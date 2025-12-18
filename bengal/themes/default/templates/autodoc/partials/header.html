@@ -59,17 +59,23 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
   </div>
   {% endif %}
 
-  {# Stats row #}
+  {# Stats row - use (or []) pattern to safely handle undefined children #}
   {% if show_stats %}
-  {% set children = element.children | default([]) %}
+  {% set children = (element.children or []) %}
   {% set options = children | selectattr('element_type', 'eq', 'option') | list %}
   {% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
   {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
   {% set functions = children | selectattr('element_type', 'eq', 'function') | list %}
   {% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
   {% set attributes = children | selectattr('element_type', 'eq', 'attribute') | list %}
-  {% set subcommands = children | selectattr('element_type', 'in', ['command', 'command-group']) | list %}
-  {% set parameters = element.metadata.parameters | default([]) %}
+  {# Filter subcommands manually since 'in' test isn't available in selectattr #}
+  {% set subcommands = [] %}
+  {% for child in children %}
+    {% if child.element_type in ['command', 'command-group'] %}
+      {% set _ = subcommands.append(child) %}
+    {% endif %}
+  {% endfor %}
+  {% set parameters = (element.metadata.parameters or []) if element.metadata else [] %}
 
   {% set stats = [] %}
   {% if options %}{% set _ = stats.append({'value': options | length, 'label': 'Options'}) %}{% endif %}

@@ -3,8 +3,13 @@ Autodoc Parameters Table Partial
 
 Renders parameters/options/arguments as a table.
 
-Required: params (list of dicts or DocElements)
+Required: params (list of DocElements)
 Optional: title (str), param_type (str: 'option', 'argument', 'parameter')
+
+DocElements have:
+- name: parameter name
+- description: parameter description
+- metadata: dict with opts, type, default, required
 #}
 
 {% set title = title | default('Parameters') %}
@@ -25,11 +30,14 @@ Optional: title (str), param_type (str: 'option', 'argument', 'parameter')
     </thead>
     <tbody>
       {% for param in params %}
-      {% set is_required = param.metadata.required | default(param.required | default(false)) if param.metadata is defined else param.get('required', false) %}
-      {% set param_name = param.metadata.opts | join(', ') if (param.metadata is defined and param.metadata.opts) else (param.name if param.name is defined else param.get('name', '')) %}
-      {% set param_type_val = param.metadata.type if (param.metadata is defined and param.metadata.type) else (param.type if param.type is defined else param.get('type', '')) %}
-      {% set param_default = param.metadata.default if (param.metadata is defined and param.metadata.default) else (param.default if param.default is defined else param.get('default', '')) %}
-      {% set param_desc = param.description if param.description is defined else param.get('description', '—') %}
+      {# Access metadata safely - DocElements have .metadata dict #}
+      {% set meta = (param.metadata or {}) %}
+      {% set is_required = meta.required | default(false) %}
+      {# CLI options have opts array (like ['--verbose', '-v']), use that or fall back to name #}
+      {% set param_name = meta.opts | join(', ') if meta.opts else param.name %}
+      {% set param_type_val = meta.type | default('') %}
+      {% set param_default = meta.default | default('') %}
+      {% set param_desc = param.description | default('—') %}
       <tr data-required="{{ 'true' if is_required else 'false' }}">
         <td class="autodoc-cell-name" data-label="Name"><code>{{ param_name }}</code></td>
         <td class="autodoc-cell-type" data-label="Type"><code>{{ param_type_val or '—' }}</code></td>
@@ -40,7 +48,7 @@ Optional: title (str), param_type (str: 'option', 'argument', 'parameter')
           <span class="table-empty">—</span>
           {%- endif -%}
         </td>
-        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc | default('—') }}</td>
+        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc }}</td>
       </tr>
       {% endfor %}
     </tbody>
