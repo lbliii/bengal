@@ -381,7 +381,7 @@ def _create_python_sections(self, elements: list[DocElement]) -> dict[str, Secti
         relative_url=join_url_paths(prefix),
         title="Python API Reference",
         metadata={
-            "type": "api-reference",
+            "type": "autodoc/python",
             "weight": 100,
             "icon": "book",
             "description": "Browse Python API documentation by package.",
@@ -409,7 +409,7 @@ def _create_openapi_sections(
         relative_url=join_url_paths(prefix),
         title="REST API Reference",
         metadata={
-            "type": "api-reference",
+            "type": "autodoc/python",
             "weight": 110,  # After Python API
             "icon": "globe",
             "description": "REST API documentation.",
@@ -431,7 +431,7 @@ def _get_element_metadata(self, element: DocElement, doc_type: str) -> tuple[str
     if doc_type == "python":
         module_path = element.qualified_name.replace('.', '/')
         url_path = f"{prefix}/{module_path}"
-        return "api-reference/module", url_path, "api-reference"
+        return "autodoc/python/module", url_path, "autodoc/python"
 
     elif doc_type == "cli":
         cmd_path = element.qualified_name.replace('.', '/')
@@ -440,13 +440,13 @@ def _get_element_metadata(self, element: DocElement, doc_type: str) -> tuple[str
 
     elif doc_type == "openapi":
         if element.element_type == "openapi_overview":
-            return "openapi-reference/overview", f"{prefix}/overview", "api-reference"
+            return "openautodoc/python/overview", f"{prefix}/overview", "autodoc/python"
         elif element.element_type == "openapi_schema":
-            return "openapi-reference/schema", f"{prefix}/schemas/{element.name}", "api-reference"
+            return "openautodoc/python/schema", f"{prefix}/schemas/{element.name}", "autodoc/python"
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
             path = get_openapi_path(element).strip("/").replace("/", "-")
-            return "openapi-reference/endpoint", f"{prefix}/endpoints/{method}-{path}", "api-reference"
+            return "openautodoc/python/endpoint", f"{prefix}/endpoints/{method}-{path}", "autodoc/python"
 ```
 
 ---

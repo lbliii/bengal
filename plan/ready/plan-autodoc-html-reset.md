@@ -264,7 +264,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 5.1 Migrate CLI command template
 
-**File**: `bengal/themes/default/templates/cli-reference/command.html`
+**File**: `bengal/themes/default/templates/autodoc/cli/command.html`
 
 **Tasks**:
 - [ ] Replace `<article class="prose docs-content">` with `<article data-autodoc data-type="cli">`
@@ -278,7 +278,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 5.2 Migrate CLI command group template
 
-**File**: `bengal/themes/default/templates/cli-reference/command_group.html`
+**File**: `bengal/themes/default/templates/autodoc/cli/command_group.html`
 
 **Tasks**:
 - [ ] Update article root with data-autodoc attributes
@@ -290,7 +290,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 5.3 Migrate CLI module template
 
-**File**: `bengal/themes/default/templates/cli-reference/module.html` (if exists)
+**File**: `bengal/themes/default/templates/autodoc/cli/module.html` (if exists)
 
 **Tasks**:
 - [ ] Update article root
@@ -316,7 +316,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 6.1 Migrate Python module template
 
-**File**: `bengal/themes/default/templates/api-reference/module.html`
+**File**: `bengal/themes/default/templates/autodoc/python/module.html`
 
 **Tasks**:
 - [ ] Update article root with data-autodoc data-type="python"
@@ -328,7 +328,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 6.2 Migrate Python class template
 
-**File**: `bengal/themes/default/templates/api-reference/class.html`
+**File**: `bengal/themes/default/templates/autodoc/python/class.html`
 
 **Tasks**:
 - [ ] Update article root
@@ -341,7 +341,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 6.3 Migrate Python function template
 
-**File**: `bengal/themes/default/templates/api-reference/function.html`
+**File**: `bengal/themes/default/templates/autodoc/python/function.html`
 
 **Tasks**:
 - [ ] Update article root
@@ -369,7 +369,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 7.1 Migrate OpenAPI endpoint template
 
-**File**: `bengal/themes/default/templates/openapi-reference/endpoint.html`
+**File**: `bengal/themes/default/templates/openautodoc/python/endpoint.html`
 
 **Tasks**:
 - [ ] Update article root with data-autodoc data-type="openapi"
@@ -382,7 +382,7 @@ Strip 7,044 lines of autodoc CSS across 16 files. Replace with a single ~400-lin
 
 ### 7.2 Migrate OpenAPI schema template
 
-**File**: `bengal/themes/default/templates/openapi-reference/schema.html` (if exists)
+**File**: `bengal/themes/default/templates/openautodoc/python/schema.html` (if exists)
 
 **Tasks**:
 - [ ] Update article root
@@ -543,13 +543,13 @@ bengal/themes/default/templates/autodoc/partials/cards.html
 
 ### Modified Files (~8)
 ```
-bengal/themes/default/templates/cli-reference/command.html
-bengal/themes/default/templates/cli-reference/command_group.html
-bengal/themes/default/templates/api-reference/module.html
-bengal/themes/default/templates/api-reference/class.html
-bengal/themes/default/templates/api-reference/function.html
-bengal/themes/default/templates/openapi-reference/endpoint.html
-bengal/themes/default/templates/openapi-reference/schema.html
+bengal/themes/default/templates/autodoc/cli/command.html
+bengal/themes/default/templates/autodoc/cli/command_group.html
+bengal/themes/default/templates/autodoc/python/module.html
+bengal/themes/default/templates/autodoc/python/class.html
+bengal/themes/default/templates/autodoc/python/function.html
+bengal/themes/default/templates/openautodoc/python/endpoint.html
+bengal/themes/default/templates/openautodoc/python/schema.html
 bengal/themes/default/assets/css/main.css
 ```
 

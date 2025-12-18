@@ -1165,9 +1165,9 @@ Add `!important` or longer selectors to fix immediate issues.
 - `bengal/themes/default/assets/css/components/reference-docs.css` (838 lines)
 
 ### Templates
-- `bengal/themes/default/templates/cli-reference/`
-- `bengal/themes/default/templates/api-reference/`
-- `bengal/themes/default/templates/openapi-reference/`
+- `bengal/themes/default/templates/autodoc/cli/`
+- `bengal/themes/default/templates/autodoc/python/`
+- `bengal/themes/default/templates/openautodoc/python/`
 
 ### Rendered Output
 - `site/public/cli/bengal/assets/status/index.html`

@@ -79,7 +79,7 @@ Based on [ElevenLabs documentation](https://elevenlabs.io/docs/overview/intro):
 
 ### WebSocket API Details
 
-From [WebSocket API Reference](https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input):
+From [WebSocket API Reference](https://elevenlabs.io/docs/autodoc/python/text-to-speech/v-1-text-to-speech-voice-id-stream-input):
 
 ```yaml
 endpoint: wss://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream-input
@@ -611,7 +611,7 @@ Confidence = Evidence(40) + Consistency(30) + Recency(15) + Tests(15)
 
 ### External
 - [ElevenLabs Documentation](https://elevenlabs.io/docs/overview/intro)
-- [ElevenLabs WebSocket API](https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input)
+- [ElevenLabs WebSocket API](https://elevenlabs.io/docs/autodoc/python/text-to-speech/v-1-text-to-speech-voice-id-stream-input)
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [WCAG 2.1 Audio Accessibility](https://www.w3.org/WAI/media/av/)
 

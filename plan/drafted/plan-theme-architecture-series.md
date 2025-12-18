@@ -185,22 +185,22 @@ code.css:
 
 | Task | Description | Files | Commit |
 |------|-------------|-------|--------|
-| 3.1.1 | Create `api-reference/module.html` in theme | `bengal/themes/default/templates/api-reference/module.html` | `themes(api-reference): add module.html template for Python modules` |
-| 3.1.2 | Create `api-reference/section-index.html` | `bengal/themes/default/templates/api-reference/section-index.html` | `themes(api-reference): add section-index.html for package indexes` |
+| 3.1.1 | Create `autodoc/python/module.html` in theme | `bengal/themes/default/templates/autodoc/python/module.html` | `themes(api-reference): add module.html template for Python modules` |
+| 3.1.2 | Create `autodoc/python/section-index.html` | `bengal/themes/default/templates/autodoc/python/section-index.html` | `themes(api-reference): add section-index.html for package indexes` |
 
 ### 3.2 Partials Creation
 
 | Task | Description | Files | Commit |
 |------|-------------|-------|--------|
-| 3.2.1 | Create `class-card.html` partial | `bengal/themes/default/templates/api-reference/partials/class-card.html` | `themes(api-reference): add class-card.html partial` |
-| 3.2.2 | Create `function-card.html` partial | `bengal/themes/default/templates/api-reference/partials/function-card.html` | `themes(api-reference): add function-card.html partial` |
-| 3.2.3 | Create `method-item.html` partial | `bengal/themes/default/templates/api-reference/partials/method-item.html` | `themes(api-reference): add method-item.html partial` |
-| 3.2.4 | Create `parameters-table.html` partial | `bengal/themes/default/templates/api-reference/partials/parameters-table.html` | `themes(api-reference): add parameters-table.html partial` |
-| 3.2.5 | Create `attributes-table.html` partial | `bengal/themes/default/templates/api-reference/partials/attributes-table.html` | `themes(api-reference): add attributes-table.html partial` |
-| 3.2.6 | Create `signature.html` partial | `bengal/themes/default/templates/api-reference/partials/signature.html` | `themes(api-reference): add signature.html partial` |
-| 3.2.7 | Create `badges.html` partial | `bengal/themes/default/templates/api-reference/partials/badges.html` | `themes(api-reference): add badges.html partial for type/status badges` |
-| 3.2.8 | Create `returns-section.html` partial | `bengal/themes/default/templates/api-reference/partials/returns-section.html` | `themes(api-reference): add returns-section.html partial` |
-| 3.2.9 | Create `raises-list.html` partial | `bengal/themes/default/templates/api-reference/partials/raises-list.html` | `themes(api-reference): add raises-list.html partial` |
+| 3.2.1 | Create `class-card.html` partial | `bengal/themes/default/templates/autodoc/python/partials/class-card.html` | `themes(api-reference): add class-card.html partial` |
+| 3.2.2 | Create `function-card.html` partial | `bengal/themes/default/templates/autodoc/python/partials/function-card.html` | `themes(api-reference): add function-card.html partial` |
+| 3.2.3 | Create `method-item.html` partial | `bengal/themes/default/templates/autodoc/python/partials/method-item.html` | `themes(api-reference): add method-item.html partial` |
+| 3.2.4 | Create `parameters-table.html` partial | `bengal/themes/default/templates/autodoc/python/partials/parameters-table.html` | `themes(api-reference): add parameters-table.html partial` |
+| 3.2.5 | Create `attributes-table.html` partial | `bengal/themes/default/templates/autodoc/python/partials/attributes-table.html` | `themes(api-reference): add attributes-table.html partial` |
+| 3.2.6 | Create `signature.html` partial | `bengal/themes/default/templates/autodoc/python/partials/signature.html` | `themes(api-reference): add signature.html partial` |
+| 3.2.7 | Create `badges.html` partial | `bengal/themes/default/templates/autodoc/python/partials/badges.html` | `themes(api-reference): add badges.html partial for type/status badges` |
+| 3.2.8 | Create `returns-section.html` partial | `bengal/themes/default/templates/autodoc/python/partials/returns-section.html` | `themes(api-reference): add returns-section.html partial` |
+| 3.2.9 | Create `raises-list.html` partial | `bengal/themes/default/templates/autodoc/python/partials/raises-list.html` | `themes(api-reference): add raises-list.html partial` |
 
 ### 3.3 Orchestrator Updates
 

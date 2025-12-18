@@ -100,7 +100,7 @@ We use `pytest.mark.parametrize` for better visibility:
 @pytest.mark.parametrize(
     "section_name,expected_type",
     [
-        ("api", "api-reference"),
+        ("api", "autodoc/python"),
         ("blog", "blog"),
         ("docs", "doc"),
     ],
