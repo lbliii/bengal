@@ -430,43 +430,145 @@ tr[data-required="true"] .autodoc-cell-name::after {
 
 /* ============================================
    MEMBERS: Collapsible method/attribute cards
+   With status dots, counts, and diffused shadows
    ============================================ */
 
 .autodoc-member {
   border: 1px solid var(--autodoc-border);
   border-radius: var(--radius-lg);
   background: var(--autodoc-bg-card);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--neumorphic-enhanced-subtle);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.autodoc-member:hover {
+  box-shadow: var(--neumorphic-enhanced-hover);
 }
 
 .autodoc-member-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   cursor: pointer;
   list-style: none;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+}
+
+.autodoc-member-header:hover {
+  background: var(--autodoc-bg-hover);
 }
 
 .autodoc-member-header::-webkit-details-marker {
   display: none;
 }
 
-.autodoc-member-header::before {
-  content: "▶";
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
+/* Status dot indicator for members */
+.autodoc-member-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-muted);
+  box-shadow: var(--neumorphic-subtle);
+  margin-top: 0.375rem;
 }
 
-.autodoc-member[open] .autodoc-member-header::before {
-  transform: rotate(90deg);
+/* Dot colors by member type */
+.autodoc-member[data-member="class"] .autodoc-member-dot,
+.autodoc-member[data-member="dataclass"] .autodoc-member-dot {
+  background: var(--color-warning);
+}
+
+.autodoc-member[data-member="function"] .autodoc-member-dot {
+  background: var(--color-success);
+}
+
+.autodoc-member[data-member="method"] .autodoc-member-dot {
+  background: var(--color-text-muted);
+}
+
+/* Content wrapper */
+.autodoc-member-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Name row with count and return type */
+.autodoc-member-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .autodoc-member-name {
   font-family: var(--autodoc-font-mono);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: none;
+  padding: 0;
 }
 
+/* Count badge */
+.autodoc-member-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  box-shadow: var(--neumorphic-subtle);
+}
+
+/* Return type with arrow */
+.autodoc-member-return {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.autodoc-member-return::before {
+  content: "→";
+  color: var(--color-text-muted);
+}
+
+.autodoc-member-return code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  background: none;
+  padding: 0;
+}
+
+/* Toggle indicator */
+.autodoc-member-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+  margin-left: var(--space-1);
+}
+
+.autodoc-member[open] .autodoc-member-toggle {
+  transform: rotate(180deg);
+}
+
+/* Legacy signature display (fallback) */
 .autodoc-member-sig {
   color: var(--color-text-muted);
   font-family: var(--autodoc-font-mono);
@@ -475,6 +577,8 @@ tr[data-required="true"] .autodoc-cell-name::after {
 
 .autodoc-member-badges {
   margin-left: auto;
+  display: flex;
+  gap: var(--space-2);
 }
 
 .autodoc-member-body {
@@ -492,6 +596,61 @@ tr[data-required="true"] .autodoc-cell-name::after {
 
 .autodoc-member-desc > p:last-child {
   margin-bottom: 0;
+}
+
+/* Description preview in header */
+.autodoc-member-desc-preview {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Internal methods section */
+.autodoc-internal-methods {
+  margin-top: var(--space-4);
+  border: 1px dashed var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  box-shadow: var(--neumorphic-subtle);
+}
+
+.autodoc-internal-methods-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background var(--transition-fast);
+}
+
+.autodoc-internal-methods-header:hover {
+  background: var(--color-bg-hover);
+}
+
+.autodoc-internal-methods-header::-webkit-details-marker {
+  display: none;
+}
+
+.autodoc-internal-methods-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.autodoc-internal-methods-content {
+  padding: var(--space-4);
+  border-top: 1px dashed var(--autodoc-border);
+  background: var(--color-bg-primary);
+}
+
+.autodoc-internal-methods[open] .autodoc-member-toggle {
+  transform: rotate(180deg);
 }
 
 /* ============================================
