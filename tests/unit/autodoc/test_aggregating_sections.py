@@ -28,7 +28,7 @@ class TestAggregatingParentSections:
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openapi-reference"},
+            metadata={"type": "openautodoc/python"},
         )
 
         sections = {
@@ -58,7 +58,7 @@ class TestAggregatingParentSections:
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openapi-reference"},
+            metadata={"type": "openautodoc/python"},
         )
 
         sections = {
@@ -72,7 +72,7 @@ class TestAggregatingParentSections:
         # Should track child types
         child_types = api_section.metadata.get("child_types", [])
         assert "python-reference" in child_types
-        assert "openapi-reference" in child_types
+        assert "openautodoc/python" in child_types
 
     def test_aggregating_section_has_is_aggregating_flag(self) -> None:
         """Aggregating section should have is_aggregating_section flag."""
@@ -102,7 +102,7 @@ class TestAggregatingParentSections:
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openapi-reference"},
+            metadata={"type": "openautodoc/python"},
         )
 
         sections = {
@@ -171,16 +171,16 @@ class TestApiHubTemplateMapping:
         assert template_dir == "api-hub"
 
     def test_python_reference_maps_to_api_reference(self) -> None:
-        """python-reference type should still map to api-reference."""
+        """python-reference type should still map to autodoc/python."""
         template_dir = get_template_dir_for_type("python-reference")
-        assert template_dir == "api-reference"
+        assert template_dir == "autodoc/python"
 
     def test_openapi_reference_maps_to_itself(self) -> None:
-        """openapi-reference type should map to openapi-reference."""
-        template_dir = get_template_dir_for_type("openapi-reference")
-        assert template_dir == "openapi-reference"
+        """openautodoc/python type should map to openautodoc/python."""
+        template_dir = get_template_dir_for_type("openautodoc/python")
+        assert template_dir == "openautodoc/python"
 
     def test_cli_reference_maps_to_itself(self) -> None:
-        """cli-reference type should map to cli-reference."""
-        template_dir = get_template_dir_for_type("cli-reference")
-        assert template_dir == "cli-reference"
+        """autodoc/cli type should map to autodoc/cli."""
+        template_dir = get_template_dir_for_type("autodoc/cli")
+        assert template_dir == "autodoc/cli"

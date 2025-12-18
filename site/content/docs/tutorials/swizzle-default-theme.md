@@ -126,7 +126,7 @@ The default theme organizes templates into:
 
 - **Root templates**: `base.html`, `page.html`, `404.html` — Main page templates
 - **Partials**: `partials/*.html` — Reusable components (navigation, search, etc.)
-- **Content types**: `blog/`, `doc/`, `api-reference/` — Type-specific templates
+- **Content types**: `blog/`, `doc/`, `autodoc/python/` — Type-specific templates
 
 :::{dropdown} What should I swizzle?
 :icon: info

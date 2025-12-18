@@ -20,7 +20,7 @@ class TestTypeMappings:
     """Test that content types map to correct templates."""
 
     def test_python_module_maps_to_api_reference(self):
-        """Test that type: python-module uses api-reference templates."""
+        """Test that type: python-module uses autodoc/python templates."""
         # Setup
         site = Mock()
         renderer = Renderer(site)
@@ -32,9 +32,9 @@ class TestTypeMappings:
         page.is_home = False
         page.url = "/api/module/"
 
-        # Mock template_exists to return True for api-reference
+        # Mock template_exists to return True for autodoc/python
         def template_exists(name):
-            return name == "api-reference/single.html"
+            return name == "autodoc/python/single.html"
 
         renderer._template_exists = template_exists
 
@@ -42,10 +42,10 @@ class TestTypeMappings:
         template = renderer._get_template_name(page)
 
         # Verify
-        assert template == "api-reference/single.html"
+        assert template == "autodoc/python/single.html"
 
     def test_cli_command_maps_to_cli_reference(self):
-        """Test that type: cli-command uses cli-reference templates."""
+        """Test that type: cli-command uses autodoc/cli templates."""
         site = Mock()
         renderer = Renderer(site)
 
@@ -57,13 +57,13 @@ class TestTypeMappings:
         page.url = "/cli/build/"
 
         def template_exists(name):
-            return name == "cli-reference/single.html"
+            return name == "autodoc/cli/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == "cli-reference/single.html"
+        assert template == "autodoc/cli/single.html"
 
     def test_doc_type_maps_to_doc_templates(self):
         """Test that type: doc uses doc templates."""
@@ -278,7 +278,7 @@ class TestContentTypeCascade:
 
         section = Mock(spec=Section)
         section.name = "api"
-        section.metadata = {"content_type": "api-reference"}
+        section.metadata = {"content_type": "autodoc/python"}
 
         page = Mock(spec=Page)
         page.metadata = {}  # No type set on page
@@ -288,14 +288,14 @@ class TestContentTypeCascade:
         page.url = "/api/module/"
 
         def template_exists(name):
-            return name == "api-reference/single.html"
+            return name == "autodoc/python/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
         # Should use section's content_type
-        assert template == "api-reference/single.html"
+        assert template == "autodoc/python/single.html"
 
     def test_page_type_overrides_section_content_type(self):
         """Test that page's type overrides section's content_type."""

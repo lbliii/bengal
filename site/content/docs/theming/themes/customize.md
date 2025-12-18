@@ -152,7 +152,7 @@ To customize the hero for API documentation pages:
 
   {# Your custom badges #}
   <div class="page-hero__badges">
-    {% include 'api-reference/partials/badges.html' %}
+    {% include 'autodoc/python/partials/badges.html' %}
   </div>
 
   {# Custom title with code formatting #}
@@ -191,7 +191,7 @@ To customize the hero for API documentation pages:
 For CLI reference sections, pass explicit context to avoid URL sniffing:
 
 ```html
-{# In cli-reference/section-index.html #}
+{# In autodoc/cli/section-index.html #}
 {% set hero_context = {'is_cli': true} %}
 {% include 'partials/page-hero/section.html' %}
 ```

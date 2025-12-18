@@ -222,7 +222,7 @@ class TestTOCExtractionRealWorld:
         """Test with complex multi-level nesting."""
         toc_html = """<div class="toc">
 <ul>
-<li><a href="#api-reference">API Reference</a></li>
+<li><a href="#autodoc/python">API Reference</a></li>
   <li><a href="#core-functions">Core Functions</a></li>
     <li><a href="#build">build()</a></li>
       <li><a href="#build-options">Options</a></li>

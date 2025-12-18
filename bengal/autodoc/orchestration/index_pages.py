@@ -136,7 +136,7 @@ def render_section_index(
     except Exception as e:
         # Fall back to generic section-index or legacy path
         try:
-            template = template_env.get_template("api-reference/section-index.html")
+            template = template_env.get_template("autodoc/python/section-index.html")
             return template.render(
                 section=section,
                 page=page_context,

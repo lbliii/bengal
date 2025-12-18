@@ -126,7 +126,7 @@ Page Navigation Component
 Displays previous/next page links for sequential navigation through content.
 
 Intelligently chooses navigation scope based on content type:
-- doc, tutorial, api-reference, cli-reference: Section-scoped navigation (respects weight order)
+- doc, tutorial, autodoc/python, autodoc/cli: Section-scoped navigation (respects weight order)
 - blog, page, others: Global navigation (chronological order)
 
 Args:
@@ -141,7 +141,7 @@ Example:
 {% if show_nav %}
 {# Determine which navigation to use based on content type #}
 {% set content_type = page.metadata.get('type', 'page') %}
-{% set section_types = ['doc', 'tutorial', 'api-reference', 'cli-reference', 'changelog'] %}
+{% set section_types = ['doc', 'tutorial', 'autodoc/python', 'autodoc/cli', 'changelog'] %}
 {% set use_section_nav = content_type in section_types %}
 
 {% if use_section_nav %}

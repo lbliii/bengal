@@ -8,7 +8,7 @@ Architecture:
     - Operates at the rendering pipeline stage (after Markdown → HTML)
     - Uses marker syntax in templates (@async, @property, etc.)
     - Injects HTML badges via regex replacement
-    - Opt-in via page type (python-module, api-reference)
+    - Opt-in via page type (python-module, autodoc/python)
 
 Usage:
 
@@ -77,9 +77,9 @@ class APIDocEnhancer:
     # Page types that should be enhanced
     SUPPORTED_PAGE_TYPES = {
         "python-module",
-        "api-reference",
+        "autodoc/python",
         "cli-command",
-        "cli-reference",
+        "autodoc/cli",
     }
 
     def __init__(self) -> None:

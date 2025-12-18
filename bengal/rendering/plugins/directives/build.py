@@ -206,7 +206,9 @@ def _resolve_build_artifact_urls(site: Any, *, page: Any, dir_name: str) -> tupl
                 json_fs = Path(out_root) / dir_name / "build.json"
                 from_dir = Path(page_output).parent
                 svg_rel = svg_fs.relative_to(from_dir) if svg_fs.is_relative_to(from_dir) else None
-                json_rel = json_fs.relative_to(from_dir) if json_fs.is_relative_to(from_dir) else None
+                json_rel = (
+                    json_fs.relative_to(from_dir) if json_fs.is_relative_to(from_dir) else None
+                )
                 if svg_rel is None or json_rel is None:
                     svg_rel_str = Path(
                         Path(svg_fs).as_posix()
@@ -242,8 +244,8 @@ def _resolve_output_root_for_page(site: Any, page: Any) -> Path:
     For i18n prefix strategy, pages may render into `output_dir/<lang>/...`.
     In that case, build artifacts may also exist under `output_dir/<lang>/bengal/...`.
     """
-    output_dir = Path(getattr(site, "output_dir"))
-    page_output = Path(getattr(page, "output_path"))
+    output_dir = Path(site.output_dir)
+    page_output = Path(page.output_path)
 
     config = getattr(site, "config", {}) or {}
     i18n = config.get("i18n", {}) or {}
@@ -279,4 +281,3 @@ def _resolve_output_root_for_page(site: Any, page: Any) -> Path:
         return output_dir / maybe_lang
 
     return output_dir
-

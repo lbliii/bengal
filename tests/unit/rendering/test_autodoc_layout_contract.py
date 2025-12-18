@@ -26,10 +26,10 @@ def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
     css = css_path.read_text(encoding="utf-8")
 
     # OpenAPI and CLI reference pages should bypass prose constraints
-    assert 'body[data-type="openapi-reference"] .docs-main .prose' in css
-    assert 'body[data-type="cli-reference"] .docs-main .prose' in css
-    assert 'body[data-type="openapi-reference"] .page-hero--api' in css
-    assert 'body[data-type="cli-reference"] .page-hero--api' in css
+    assert 'body[data-type="openautodoc/python"] .docs-main .prose' in css
+    assert 'body[data-type="autodoc/cli"] .docs-main .prose' in css
+    assert 'body[data-type="openautodoc/python"] .page-hero--api' in css
+    assert 'body[data-type="autodoc/cli"] .page-hero--api' in css
 
 
 def test_base_template_does_not_render_none_variant_attribute() -> None:

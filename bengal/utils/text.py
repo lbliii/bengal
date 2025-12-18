@@ -463,7 +463,7 @@ def humanize_slug(slug: str) -> str:
         'Data Model V2'
         >>> humanize_slug("_index")
         'Index'
-        >>> humanize_slug("api-reference")
+        >>> humanize_slug("autodoc/python")
         'Api Reference'
         >>> humanize_slug("")
         ''

@@ -38,7 +38,7 @@ def create_template_environment(site: Site) -> Environment:
     template_dirs = []
 
     # User templates (highest priority) - check all reference types
-    for ref_type in ["api-reference", "cli-reference", "openapi-reference"]:
+    for ref_type in ["autodoc/python", "autodoc/cli", "openautodoc/python"]:
         user_templates = site.root_path / "templates" / ref_type
         if user_templates.exists():
             template_dirs.append(str(user_templates))

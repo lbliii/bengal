@@ -107,9 +107,7 @@ def report(
     configure_logging(level=LogLevel.WARNING)
 
     # Load site using helper
-    site = load_site_from_cli(
-        source=source, config=config, environment=None, profile=None, cli=cli
-    )
+    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
     try:
         if not brief:
@@ -129,7 +127,7 @@ def report(
         # Gather analysis data
         metrics = graph_obj.get_metrics()
         connectivity_report = graph_obj.get_connectivity_report()
-        
+
         # Get additional analysis data
         try:
             bridges = graph_obj.get_bridges()[:5]  # Top 5 bridges
@@ -143,10 +141,18 @@ def report(
             community_count = 0
 
         # Calculate connectivity stats
-        total_pages = getattr(metrics, "total_pages", 0) if hasattr(metrics, "total_pages") else metrics.get("nodes", len(site.pages))
-        total_links = getattr(metrics, "total_links", 0) if hasattr(metrics, "total_links") else metrics.get("edges", 0)
+        total_pages = (
+            getattr(metrics, "total_pages", 0)
+            if hasattr(metrics, "total_pages")
+            else metrics.get("nodes", len(site.pages))
+        )
+        total_links = (
+            getattr(metrics, "total_links", 0)
+            if hasattr(metrics, "total_links")
+            else metrics.get("edges", 0)
+        )
         avg_links = total_links / total_pages if total_pages > 0 else 0
-        
+
         # Use connectivity report for nuanced analysis
         dist = connectivity_report.get_distribution()
         pct = connectivity_report.get_percentages()
@@ -166,7 +172,9 @@ def report(
             "lightly_linked_count": dist["lightly_linked"],
             # Page lists
             "isolated_pages": [str(p.source_path) for p in connectivity_report.isolated[:20]],
-            "lightly_linked_pages": [str(p.source_path) for p in connectivity_report.lightly_linked[:10]],
+            "lightly_linked_pages": [
+                str(p.source_path) for p in connectivity_report.lightly_linked[:10]
+            ],
             # Other analysis
             "bridge_count": len(bridges),
             "community_count": community_count,
@@ -220,15 +228,19 @@ def _output_console(
     """Output report in console format."""
     dist = data.get("distribution", {})
     pct = data.get("percentages", {})
-    
+
     if brief:
         # Compact output for CI
         score_quality = "good" if data.get("avg_connectivity_score", 0) >= 1.0 else "needs work"
         isolated_status = "⚠️" if dist.get("isolated", 0) > threshold_isolated else "✅"
 
         cli.info(f"📊 Site Analysis: {data['total_pages']} pages")
-        cli.info(f"   Isolated: {dist.get('isolated', 0)} ({pct.get('isolated', 0):.1f}%) {isolated_status}")
-        cli.info(f"   Lightly linked: {dist.get('lightly_linked', 0)} ({pct.get('lightly_linked', 0):.1f}%)")
+        cli.info(
+            f"   Isolated: {dist.get('isolated', 0)} ({pct.get('isolated', 0):.1f}%) {isolated_status}"
+        )
+        cli.info(
+            f"   Lightly linked: {dist.get('lightly_linked', 0)} ({pct.get('lightly_linked', 0):.1f}%)"
+        )
         cli.info(f"   Avg score: {data.get('avg_connectivity_score', 0):.2f} ({score_quality})")
         if data.get("bridges"):
             cli.info(f"   Top bridges: {', '.join(data['bridges'][:3])}")
@@ -257,11 +269,19 @@ def _output_console(
 
         # Connectivity Distribution section
         cli.header("🔗 Connectivity Distribution")
-        cli.info(f"   🟢 Well-Connected:    {dist.get('well_connected', 0):>4} pages ({pct.get('well_connected', 0):.1f}%)")
-        cli.info(f"   🟡 Adequately:        {dist.get('adequately_linked', 0):>4} pages ({pct.get('adequately_linked', 0):.1f}%)")
-        cli.info(f"   🟠 Lightly Linked:    {dist.get('lightly_linked', 0):>4} pages ({pct.get('lightly_linked', 0):.1f}%)")
+        cli.info(
+            f"   🟢 Well-Connected:    {dist.get('well_connected', 0):>4} pages ({pct.get('well_connected', 0):.1f}%)"
+        )
+        cli.info(
+            f"   🟡 Adequately:        {dist.get('adequately_linked', 0):>4} pages ({pct.get('adequately_linked', 0):.1f}%)"
+        )
+        cli.info(
+            f"   🟠 Lightly Linked:    {dist.get('lightly_linked', 0):>4} pages ({pct.get('lightly_linked', 0):.1f}%)"
+        )
         isolated_status = "⚠️" if dist.get("isolated", 0) > threshold_isolated else "✅"
-        cli.info(f"   🔴 Isolated:          {dist.get('isolated', 0):>4} pages ({pct.get('isolated', 0):.1f}%) {isolated_status}")
+        cli.info(
+            f"   🔴 Isolated:          {dist.get('isolated', 0):>4} pages ({pct.get('isolated', 0):.1f}%) {isolated_status}"
+        )
         cli.blank()
 
         # Show isolated pages if any
@@ -314,16 +334,24 @@ def _output_markdown(cli: Any, data: dict[str, Any], brief: bool) -> None:
     """Output report in markdown format."""
     dist = data.get("distribution", {})
     pct = data.get("percentages", {})
-    
+
     cli.info("# Site Analysis Report\n")
-    cli.info(f"**Pages:** {data['total_pages']} | **Links:** {data['total_links']} | **Avg Score:** {data.get('avg_connectivity_score', 0):.2f}\n")
+    cli.info(
+        f"**Pages:** {data['total_pages']} | **Links:** {data['total_links']} | **Avg Score:** {data.get('avg_connectivity_score', 0):.2f}\n"
+    )
 
     cli.info("## Connectivity Distribution\n")
-    cli.info(f"| Level | Count | Percentage |")
-    cli.info(f"|-------|-------|------------|")
-    cli.info(f"| 🟢 Well-Connected | {dist.get('well_connected', 0)} | {pct.get('well_connected', 0):.1f}% |")
-    cli.info(f"| 🟡 Adequately | {dist.get('adequately_linked', 0)} | {pct.get('adequately_linked', 0):.1f}% |")
-    cli.info(f"| 🟠 Lightly Linked | {dist.get('lightly_linked', 0)} | {pct.get('lightly_linked', 0):.1f}% |")
+    cli.info("| Level | Count | Percentage |")
+    cli.info("|-------|-------|------------|")
+    cli.info(
+        f"| 🟢 Well-Connected | {dist.get('well_connected', 0)} | {pct.get('well_connected', 0):.1f}% |"
+    )
+    cli.info(
+        f"| 🟡 Adequately | {dist.get('adequately_linked', 0)} | {pct.get('adequately_linked', 0):.1f}% |"
+    )
+    cli.info(
+        f"| 🟠 Lightly Linked | {dist.get('lightly_linked', 0)} | {pct.get('lightly_linked', 0):.1f}% |"
+    )
     cli.info(f"| 🔴 Isolated | {dist.get('isolated', 0)} | {pct.get('isolated', 0):.1f}% |")
     cli.info("")
 
@@ -354,4 +382,3 @@ def _output_markdown(cli: Any, data: dict[str, Any], brief: bool) -> None:
 
 # Compatibility export
 report_command = report
-

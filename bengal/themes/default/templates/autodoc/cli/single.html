@@ -1,22 +1,15 @@
 {% extends "base.html" %}
 
 {#
-API Reference Template
+CLI Reference Template
 
-Three-column layout optimized for API documentation sites:
+Three-column layout optimized for CLI documentation sites:
 - Left sidebar: Navigation tree
 - Center: Content
-- Right sidebar: Contextual Graph + TOC + metadata
+- Right sidebar: TOC + metadata
 
-Usage: Set `template: api-reference/single.html` in frontmatter
-Or set `type: api-reference` to auto-select this template
-
-Features:
-- Page hero with breadcrumbs, title, description, and metadata
-- Contextual graph minimap (connections to current page)
-- Table of contents
-- Track navigation support (optional)
-- Tag list in footer
+Usage: Set `template: autodoc/cli/single.html` in frontmatter
+Or set `type: autodoc/cli` to auto-select this template
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
@@ -26,42 +19,37 @@ Features:
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {# Supports variants: classic (default) or magazine (set via hero_style) #}
+    {# Page Hero: Breadcrumbs + Title + Description #}
     {% include 'partials/page-hero.html' %}
 
     {# Article Content - flattened structure #}
     <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-
-      {# Track Navigation (Top) #}
-      {% include 'partials/track_nav.html' %}
-
       {{ content | safe }}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        <span class="docs-footer-label">Tagged</span>
         {{ tag_list(page.tags) }}
       </footer>
       {% endif %}
     </article>
 
-    {# Track Navigation (Bottom) #}
-    {% include 'partials/track_nav.html' %}
-
     {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
-  {% include 'partials/docs-toc-sidebar.html' %}
+  {# Right Sidebar: TOC + Metadata #}
+  {% if toc_items %}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
+  </aside>
+  {% endif %}
 </div>
 
 {# Mobile sidebar toggle button #}
@@ -75,4 +63,3 @@ Features:
 {% endblock %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}
-{# Graph scripts loaded in base.html #}

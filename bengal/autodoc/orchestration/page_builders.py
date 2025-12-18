@@ -221,35 +221,35 @@ def get_element_metadata(
     if doc_type == "python":
         url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
         # Python API docs use python-reference type for prose-constrained layout
-        return "api-reference/module", url_path, "python-reference"
+        return "autodoc/python/module", url_path, "python-reference"
     elif doc_type == "cli":
         if element.element_type == "command-group":
             url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            return "cli-reference/command-group", url_path, "cli-reference"
+            return "autodoc/cli/command-group", url_path, "autodoc/cli"
         else:
             url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            return "cli-reference/command", url_path, "cli-reference"
+            return "autodoc/cli/command", url_path, "autodoc/cli"
     elif doc_type == "openapi":
-        # OpenAPI docs use openapi-reference type for full-width 3-panel layout
+        # OpenAPI docs use openautodoc/python type for full-width 3-panel layout
         if element.element_type == "openapi_overview":
-            return "openapi-reference/overview", f"{prefix}/overview", "openapi-reference"
+            return "openautodoc/python/overview", f"{prefix}/overview", "openautodoc/python"
         elif element.element_type == "openapi_schema":
             schema_name = element.name
             return (
-                "openapi-reference/schema",
+                "openautodoc/python/schema",
                 f"{prefix}/schemas/{schema_name}",
-                "openapi-reference",
+                "openautodoc/python",
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
             path = get_openapi_path(element).strip("/").replace("/", "-")
             return (
-                "openapi-reference/endpoint",
+                "openautodoc/python/endpoint",
                 f"{prefix}/endpoints/{method}-{path}",
-                "openapi-reference",
+                "openautodoc/python",
             )
     # Fallback - use python-reference for prose-constrained layout
-    return "api-reference/module", f"{prefix}/{element.name}", "python-reference"
+    return "autodoc/python/module", f"{prefix}/{element.name}", "python-reference"
 
 
 def prepare_element_for_template(element: DocElement) -> dict[str, Any]:
@@ -315,9 +315,9 @@ def render_element(
 
     Args:
         element: DocElement to render
-        template_name: Template name (e.g., "api-reference/module")
+        template_name: Template name (e.g., "autodoc/python/module")
         url_path: URL path for this element (e.g., "cli/bengal/serve")
-        page_type: Page type (e.g., "cli-reference", "api-reference")
+        page_type: Page type (e.g., "autodoc/cli", "autodoc/python")
         site: Site instance
         template_env: Jinja2 template environment
         normalized_config: Normalized autodoc config

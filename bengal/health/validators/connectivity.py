@@ -206,13 +206,24 @@ class ConnectivityValidator(BaseValidator):
                     orphans = []
                 isolated_pages = orphans
                 lightly_linked_pages = []
-                dist = {"isolated": len(orphans), "lightly_linked": 0, "adequately_linked": 0, "well_connected": 0}
-                pct = {"isolated": 0.0, "lightly_linked": 0.0, "adequately_linked": 0.0, "well_connected": 0.0}
+                dist = {
+                    "lightly_linked": 0,
+                    "adequately_linked": 0,
+                    "well_connected": 0,
+                }
+                pct = {
+                    "isolated": 0.0,
+                    "lightly_linked": 0.0,
+                    "adequately_linked": 0.0,
+                    "well_connected": 0.0,
+                }
                 connectivity_report = None
 
             # Get config thresholds
             health_config = site.config.get("health_check", {})
-            isolated_threshold = health_config.get("isolated_threshold", health_config.get("orphan_threshold", 5))
+            isolated_threshold = health_config.get(
+                "isolated_threshold", health_config.get("orphan_threshold", 5)
+            )
             lightly_linked_threshold = health_config.get("lightly_linked_threshold", 20)
 
             # Check 1a: Isolated pages (score < 0.25)
@@ -239,7 +250,8 @@ class ConnectivityValidator(BaseValidator):
                             f"{len(isolated_pages)} isolated page(s) found",
                             recommendation="Consider adding navigation or cross-references to these pages",
                             details=[
-                                f"  🔴 {getattr(p.source_path, 'name', str(p))}" for p in isolated_pages[:5]
+                                f"  🔴 {getattr(p.source_path, 'name', str(p))}"
+                                for p in isolated_pages[:5]
                             ],
                         )
                     )
@@ -301,7 +313,7 @@ class ConnectivityValidator(BaseValidator):
             # Check 3: Overall connectivity (using weighted score if available)
             avg_connectivity = metrics.get("avg_connectivity", 0.0)
             avg_score = connectivity_report.avg_score if connectivity_report else 0.0
-            
+
             # Use weighted score for more nuanced assessment
             if avg_score > 0:
                 if avg_score < 1.0:
@@ -316,15 +328,11 @@ class ConnectivityValidator(BaseValidator):
                     )
                 elif avg_score >= 2.0:
                     results.append(
-                        CheckResult.success(
-                            f"Good connectivity score ({avg_score:.2f})"
-                        )
+                        CheckResult.success(f"Good connectivity score ({avg_score:.2f})")
                     )
                 else:
                     results.append(
-                        CheckResult.info(
-                            f"Moderate connectivity score ({avg_score:.2f})"
-                        )
+                        CheckResult.info(f"Moderate connectivity score ({avg_score:.2f})")
                     )
             else:
                 # Fallback to legacy metric

@@ -323,9 +323,9 @@ class Page(
             page = Page.create_virtual(
                 source_id="api/bengal/core/page.md",
                 title="Page Module",
-                metadata={"type": "api-reference"},
+                metadata={"type": "autodoc/python"},
                 rendered_html="<div class='api-card'>...</div>",
-                template_name="api-reference/module",
+                template_name="autodoc/python/module",
             )
         """
         page_metadata = metadata or {}

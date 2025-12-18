@@ -192,7 +192,7 @@ Auto-detected support for:
 
 ### Required Templates
 
-Your theme should provide these templates in `templates/api-reference/`:
+Your theme should provide these templates in `templates/autodoc/python/`:
 
 - `module.html` - Module documentation page
 - `section-index.html` - Section index page

@@ -134,7 +134,7 @@ keywords: [bengal, static site generator, tutorial]
 
 **Title**: If you omit `title`, Bengal automatically generates one from the filename:
 - `my-first-post.md` → `"My First Post"`
-- `api-reference.md` → `"Api Reference"`
+- `autodoc/python.md` → `"Api Reference"`
 - For `_index.md` files, uses the parent directory name instead of "Index"
 
 **Date**: Flexible date parsing supports multiple formats:

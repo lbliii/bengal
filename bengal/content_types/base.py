@@ -21,7 +21,7 @@ class ContentTypeStrategy:
     """
     Base strategy for content type behavior.
 
-    Each content type (blog, doc, api-reference, etc.) can have its own
+    Each content type (blog, doc, autodoc/python, etc.) can have its own
     strategy that defines:
     - How pages are sorted
     - What pages are shown in list views

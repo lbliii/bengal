@@ -131,18 +131,18 @@ templates/
 │       ├── signature.html
 │       └── cards.html           # Uses macro from _macros/
 │
-├── api-reference/               # Python API docs
+├── autodoc/python/               # Python API docs
 │   ├── module.html
 │   └── partials/
 │       ├── _macros/
 │       │   └── render-method.html
 │       └── method-item.html
 │
-├── cli-reference/               # CLI docs
+├── autodoc/cli/               # CLI docs
 │   ├── command.html
 │   └── command-group.html
 │
-└── openapi-reference/           # OpenAPI docs
+└── openautodoc/python/           # OpenAPI docs
     └── endpoint.html
 ```
 

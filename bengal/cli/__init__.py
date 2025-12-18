@@ -33,6 +33,7 @@ from bengal.cli.commands.config import config_cli
 from bengal.cli.commands.debug import debug_cli
 from bengal.cli.commands.explain import explain as explain_cli
 from bengal.cli.commands.fix import fix as fix_cli
+from bengal.cli.commands.graph import graph_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
 from bengal.cli.commands.project import project_cli
@@ -41,7 +42,6 @@ from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
-from bengal.cli.commands.graph import graph_cli
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
 

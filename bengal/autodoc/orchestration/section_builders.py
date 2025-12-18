@@ -138,7 +138,7 @@ def create_cli_sections(
         relative_url=join_url_paths(prefix),
         title="CLI Reference",
         metadata={
-            "type": "cli-reference",
+            "type": "autodoc/cli",
             "weight": 100,
             "icon": "terminal",
             "description": "Command-line interface documentation.",
@@ -178,7 +178,7 @@ def create_cli_sections(
             relative_url=join_url_paths(prefix, *group_parts),
             title=group_parts[-1].replace("_", " ").title(),
             metadata={
-                "type": "cli-reference",
+                "type": "autodoc/cli",
                 "qualified_name": group_name,
             },
         )
@@ -211,7 +211,7 @@ def create_openapi_sections(
         relative_url=join_url_paths(prefix),
         title="REST API Reference",
         metadata={
-            "type": "openapi-reference",
+            "type": "openautodoc/python",
             "weight": 100,
             "icon": "book",
             "description": "REST API documentation.",
@@ -246,7 +246,7 @@ def create_openapi_sections(
                     relative_url=join_url_paths(prefix, "schemas"),
                     title="Schemas",
                     metadata={
-                        "type": "openapi-reference",
+                        "type": "openautodoc/python",
                         "description": "API data schemas and models.",
                     },
                 )
@@ -260,7 +260,7 @@ def create_openapi_sections(
             relative_url=join_url_paths(prefix, "tags", tag),
             title=tag.replace("-", " ").title(),
             metadata={
-                "type": "openapi-reference",
+                "type": "openautodoc/python",
                 "tag": tag,
             },
         )

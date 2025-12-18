@@ -339,7 +339,7 @@ output_dir = "public"
         (site_dir / "content" / "cli" / "build.md").write_text(
             """---
 title: build
-type: cli-reference
+type: autodoc/cli
 tags: ["cli", "build"]
 ---
 # Build Command
@@ -352,7 +352,7 @@ tags: ["cli", "build"]
 
         # Create page object for CLI reference
         page = Page(source_path=Path("content/cli/build.md"))
-        page.metadata = {"title": "build", "type": "cli-reference", "tags": ["cli", "build"]}
+        page.metadata = {"title": "build", "type": "autodoc/cli", "tags": ["cli", "build"]}
         page.output_path = site_dir / "public" / "cli" / "build" / "index.html"
         page._site = site
 

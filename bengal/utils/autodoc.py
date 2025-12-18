@@ -26,7 +26,7 @@ def is_autodoc_page(page: Page | Any) -> bool:
 
     **Frontmatter Indicators**:
     - Type starting with "python-" (python-module, python-class, etc.)
-    - Type "cli-reference" or "api-reference"
+    - Type "autodoc/cli" or "autodoc/python"
     - Presence of "source_file" field
     - Generator metadata "bengal-autodoc"
     - Presence of "_api_doc" marker
@@ -64,7 +64,7 @@ def is_autodoc_page(page: Page | Any) -> bool:
             page_type.startswith("python-")  # python-module, python-class, etc.
             or page_type.startswith("cli-")  # cli-command, cli-group, etc.
             or page_type.startswith("openapi-")  # openapi-endpoint, etc.
-            or page_type in ("api-reference", "python-reference", "openapi-reference")
+            or page_type in ("autodoc/python", "python-reference", "openautodoc/python")
             or "source_file" in metadata  # Generated from source file
             or metadata.get("generator") == "bengal-autodoc"  # Explicit generator marker
             or metadata.get("_api_doc") is not None  # Internal API doc marker

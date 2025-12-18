@@ -194,8 +194,8 @@ class Renderer:
             and (
                 page_type
                 in (
-                    "api-reference",
-                    "cli-reference",
+                    "autodoc/python",
+                    "autodoc/cli",
                     "tutorial",
                     "doc",
                     "blog",
@@ -206,7 +206,7 @@ class Renderer:
             )
         ):
             # Add section context if:
-            # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
+            # 1. It's a reference documentation type (autodoc/python, autodoc/cli, tutorial)
             # 2. It's a doc type page (for doc/list.html templates)
             # 3. It's a blog or archive type page (for blog/list.html templates)
             # 4. It's an index page (_index.md or index.md)
@@ -327,8 +327,8 @@ class Renderer:
         archive_like_types = {
             "archive",
             "blog",
-            "api-reference",
-            "cli-reference",
+            "autodoc/python",
+            "autodoc/cli",
             "tutorial",
             "changelog",
         }
