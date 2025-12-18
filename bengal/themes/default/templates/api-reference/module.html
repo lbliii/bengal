@@ -16,9 +16,10 @@ This template receives:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
 
 {% block content %}
-{# Pre-compute element children #}
-{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
-{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
+{# Pre-compute element children - use getattr for safe access #}
+{% set element_children = getattr(element, 'children', []) %}
+{% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">

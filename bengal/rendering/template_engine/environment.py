@@ -317,6 +317,9 @@ def create_jinja_environment(
     env.globals["url_for"] = template_engine._url_for
     env.globals["get_menu"] = template_engine._get_menu
     env.globals["get_menu_lang"] = template_engine._get_menu_lang
+    # Add Python's getattr for safe attribute access in templates
+    # Usage: getattr(element, 'children', []) to safely get children with default
+    env.globals["getattr"] = getattr
 
     # Make asset_url context-aware for file:// protocol support
     from jinja2 import pass_context

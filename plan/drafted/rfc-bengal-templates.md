@@ -57,371 +57,356 @@ pip install bengal[templates]
 
 ---
 
-## SSG Requirements Analysis
+## SSG Requirements Analysis (Rethought)
 
-Based on analysis of Bengal's 80+ Jinja2 templates, templit must support these patterns:
+Based on Bengal's 80+ Jinja2 templates, here's a **radically simpler** approach that embraces Python rather than recreating Jinja2.
 
-### 1. Template Functions (Globals)
+### Design Philosophy: "It's Just Python"
 
-Bengal templates rely on ~30 global functions:
+The best templating solution isn't a new DSL—it's **leveraging Python's existing strengths**:
 
-```python
-# Current Jinja2 usage
+1. **Functions are templates** - No special "template function" concept needed
+2. **Imports are includes** - No `{% include %}`, just `from partials import nav`
+3. **Parameters are context** - No global context registry, just function arguments
+4. **Modules are namespaces** - No macro libraries, just Python modules
+
+### 1. Template Functions → Just Import Them
+
+**Jinja2 Problem**: Global function registry, magic availability
+
+```jinja2
 {{ icon('search', size=16) }}
-{{ get_breadcrumbs(page) }}
 {{ canonical_url(page.url) }}
-{{ asset_url('css/style.css') }}
-{{ tag_url('python') }}
 ```
 
-**templit solution**: Context-aware function registry
+**Better Solution**: Explicit imports, dependency injection
 
 ```python
-from templit import html, Context
+# bengal/theme/helpers.py
+def icon(name: str, size: int = 16) -> HTML:
+    return raw(f'<svg class="icon icon-{name}" width="{size}" height="{size}">...</svg>')
 
-# Create context with SSG functions
-ctx = Context()
-ctx.register_function('icon', render_icon)
-ctx.register_function('asset_url', lambda p: f"/assets/{p}")
-ctx.register_function('canonical_url', lambda u: f"{site.baseurl}{u}")
+def canonical_url(url: str, site: Site) -> str:
+    return f"{site.baseurl}{url.rstrip('/')}"
 
-# Functions available in templates
-def nav_link(item: NavItem) -> HTML:
-    return html[
-        a(href=ctx.call('canonical_url', item.url))[
-            ctx.call('icon', item.icon, size=16),
-            item.name
-        ]
+# In your template
+from bengal.theme.helpers import icon, canonical_url
+
+def nav_link(item: NavItem, site: Site) -> HTML:
+    return a(href=canonical_url(item.url, site))[
+        icon(item.icon, size=16),
+        item.name
     ]
-
-# Or via context manager for cleaner syntax
-with ctx:
-    def nav_link(item: NavItem) -> HTML:
-        return html[
-            a(href=canonical_url(item.url))[
-                icon(item.icon, size=16),
-                item.name
-            ]
-        ]
 ```
 
-### 2. Filters
+**Why better?**
+- IDE understands imports → full autocomplete, go-to-definition
+- Explicit dependencies → easier testing, no hidden state
+- Type-checked → errors caught before runtime
 
-Bengal uses ~25 filters for transformations:
+### 2. Filters → Just Functions (Composition)
+
+**Jinja2 Problem**: Special filter syntax, hard to compose
 
 ```jinja2
 {{ page.date | dateformat('%B %d, %Y') }}
 {{ page.content | strip_html | excerpt(150) }}
-{{ page.url | absolute_url }}
-{{ page.tags | meta_keywords(10) }}
 ```
 
-**templit solution**: Pipeable filter functions
+**Better Solution**: Regular function calls or `>>` composition operator
 
 ```python
-from templit import pipe, html
-
-# Register filters
-@filter
-def dateformat(dt: datetime, fmt: str) -> str:
-    return dt.strftime(fmt)
-
-@filter
-def excerpt(text: str, length: int = 150) -> str:
-    return text[:length] + "..." if len(text) > length else text
-
-# Usage with pipe operator
+# Option A: Regular function calls (most explicit)
 def article_meta(page: Page) -> HTML:
-    return html[
-        time(datetime=page.date.isoformat())[
-            pipe(page.date, dateformat, '%B %d, %Y')
-        ],
-        p(class_="excerpt")[
-            pipe(page.content, strip_html, excerpt, 150)
-        ]
+    return div(class_="meta")[
+        time[dateformat(page.date, '%B %d, %Y')],
+        p[excerpt(strip_html(page.content), 150)]
     ]
 
-# Or method chaining style
+# Option B: Composition operator for pipelines
+from templit import F  # Functional composition helper
+
+# F wraps a value for method-style chaining
 def article_meta(page: Page) -> HTML:
-    return html[
-        time(datetime=page.date.isoformat())[
-            page.date.dateformat('%B %d, %Y')
-        ],
-        p(class_="excerpt")[
-            page.content.strip_html().excerpt(150)
-        ]
+    return div(class_="meta")[
+        time[F(page.date).dateformat('%B %d, %Y').value],
+        p[F(page.content).strip_html().excerpt(150).value]
     ]
+
+# Option C: Pipeline operator (Python 3.14 style, if PEP accepted)
+# page.date |> dateformat('%B %d, %Y')  # Hypothetical
 ```
 
-### 3. Template Inheritance (Layouts)
+**Recommended**: Option A. It's the most Pythonic—just call functions. Filters are a solution to Jinja2's limited expression syntax, which we don't have.
 
-Bengal uses `{% extends %}` and `{% block %}`:
+### 3. Template Inheritance → Higher-Order Functions
+
+**Jinja2 Problem**: `{% extends %}` + `{% block %}` creates implicit coupling
 
 ```jinja2
 {% extends "base.html" %}
-{% block content %}
-  <article>{{ content | safe }}</article>
-{% endblock %}
+{% block content %}...{% endblock %}
+{% block scripts %}...{% endblock %}
 ```
 
-**templit solution**: Composition with layout functions
+**Better Solution**: Functions that accept content as parameters
 
 ```python
-from templit import component, children, slot, HTML
-
-@component
-def base_layout(site: Site):
-    """Base layout with named slots."""
+# layouts.py
+def base_layout(
+    site: Site,
+    *,  # Force keyword arguments for clarity
+    title: str = "",
+    head: HTML | None = None,
+    scripts: HTML | None = None,
+    content: HTML,
+) -> HTML:
     return html[
         doctype(),
         html_elem(lang=site.language)[
-            head[
-                slot('head'),  # Named slot
-                link(rel="stylesheet", href=asset_url('css/style.css'))
+            head_elem[
+                title_elem[title or site.title],
+                link(rel="stylesheet", href=site.asset_url('style.css')),
+                head,  # None renders as empty
             ],
             body[
                 site_header(site),
-                main[children()],  # Default slot
+                main[content],
                 site_footer(site),
-                slot('scripts')  # Named slot
+                scripts,
             ]
         ]
     ]
 
-# Usage with slots
+# Usage - crystal clear what's happening
 def blog_page(page: Page, site: Site) -> HTML:
-    return base_layout(site).slots(
-        head=html[title[page.title]],
-        scripts=html[script(src="/js/blog.js")]
-    )[
-        article(class_="blog-post")[
-            h1[page.title],
-            raw(page.content_html)
+    return base_layout(
+        site,
+        title=page.title,
+        head=html[meta(name="author", content=page.author)],
+        scripts=html[script(src="/js/comments.js")],
+        content=html[
+            article(class_="blog-post")[
+                h1[page.title],
+                raw(page.content_html)
+            ]
         ]
-    ]
+    )
 ```
 
-### 4. Partials / Includes
+**Why better?**
+- All dependencies explicit in function signature
+- IDE shows you exactly what a layout accepts
+- No inheritance hierarchy to trace
+- Easy to test in isolation
 
-Bengal includes reusable partials:
+### 4. Partials/Includes → Just Functions
+
+**Jinja2 Problem**: String-based includes, unclear dependencies
 
 ```jinja2
 {% include 'partials/page-hero.html' %}
-{% include 'partials/docs-nav.html' %}
 ```
 
-**templit solution**: Just functions
+**Better Solution**: Import and call functions
 
 ```python
-# Partials are just functions - no special syntax needed
-def page_hero(page: Page, variant: str = "editorial") -> HTML:
-    return header(class_=f"page-hero page-hero--{variant}")[
+# partials/hero.py
+def page_hero(page: Page, variant: str = "default") -> HTML:
+    return header(class_=f"hero hero--{variant}")[
         h1[page.title],
         page.description and p(class_="lead")[page.description]
     ]
 
-def docs_nav(page: Page, site: Site) -> HTML:
-    return nav(class_="docs-nav")[
-        ul[
-            li[a(href=section.url)[section.title]]
-            for section in site.sections
-        ]
-    ]
+# page.py
+from partials.hero import page_hero
 
-# Usage - just call the function
 def doc_page(page: Page, site: Site) -> HTML:
-    return div(class_="docs-layout")[
-        aside[docs_nav(page, site)],  # Include partial
-        main[
-            page_hero(page),           # Include partial
-            article[raw(page.content_html)]
-        ]
+    return div[
+        page_hero(page, variant="compact"),  # Just a function call
+        article[raw(page.content)]
     ]
 ```
 
-### 5. Macros (Reusable Components)
+**Literally nothing new to learn** - it's just Python imports.
 
-Bengal uses Jinja2 macros for reusable patterns:
+### 5. Macros → Just Functions (Already Solved)
 
-```jinja2
-{% macro article_card(article, show_excerpt=True) %}
-<article class="card">
-  <h2><a href="{{ article.url }}">{{ article.title }}</a></h2>
-  {% if show_excerpt %}
-    <p>{{ article.excerpt }}</p>
-  {% endif %}
-</article>
-{% endmacro %}
-
-{{ article_card(post, show_excerpt=False) }}
-```
-
-**templit solution**: `@component` decorator
+Macros in Jinja2 exist because you can't define functions in templates. In Python, you just... define functions.
 
 ```python
-@component
 def article_card(article: Page, show_excerpt: bool = True) -> HTML:
-    return article(class_="card")[
+    return article_elem(class_="card")[
         h2[a(href=article.url)[article.title]],
         show_excerpt and p[article.excerpt]
     ]
 
 # Usage
-article_card(post, show_excerpt=False)
+div(class_="grid")[
+    article_card(post) for post in posts
+]
 ```
 
-### 6. Conditional Rendering
+### 6. Conditionals → Python's `and`/`or` + `None` Handling
 
-Bengal templates use complex conditionals:
+**Jinja2 Problem**: Verbose `{% if %}` blocks
 
 ```jinja2
-{% if page.date %}
-  <time>{{ page.date | time_ago }}</time>
-{% endif %}
-
-{% if page.tags and 'featured' in page.tags %}
-  <span class="badge">Featured</span>
-{% endif %}
+{% if page.date %}<time>{{ page.date }}</time>{% endif %}
 ```
 
-**templit solution**: Python expressions + `and` short-circuit
+**Better Solution**: templit ignores `None` and `False` in children
 
 ```python
-def article_meta(page: Page) -> HTML:
+# None and False are filtered out automatically
+def meta(page: Page) -> HTML:
     return div(class_="meta")[
-        # Conditional with and (renders None if falsy, which is ignored)
-        page.date and time(datetime=page.date.isoformat())[
-            time_ago(page.date)
-        ],
+        page.date and time[format_date(page.date)],  # Renders nothing if no date
+        page.author and span[page.author],
+        page.featured and span(class_="badge")["Featured"],
+    ]
+```
 
-        # More complex conditional
-        has_tag(page, 'featured') and span(class_="badge")["Featured"],
+**For complex conditionals**, use helper:
 
-        # Or explicit if/else
-        span(class_="status")[
-            "Published" if page.published else "Draft"
+```python
+from templit import when
+
+def meta(page: Page) -> HTML:
+    return div[
+        when(page.date)[time[format_date(page.date)]],
+        when(page.draft, then=span["Draft"], else_=span["Published"]),
+    ]
+```
+
+### 7. Loops → Comprehensions (Already Perfect)
+
+Python comprehensions are already better than Jinja2 loops:
+
+```python
+ul(class_="nav")[
+    li(class_="active" if item.active else None)[
+        a(href=item.url)[item.name]
+    ]
+    for item in items
+    if item.visible  # Built-in filtering!
+]
+```
+
+### 8. Context/Globals → Dataclass or NamedTuple
+
+**Jinja2 Problem**: Implicit globals like `site`, `page`, `config`
+
+**Better Solution**: Explicit render context
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class RenderContext:
+    """Everything a template might need."""
+    site: Site
+    page: Page
+    config: Config
+
+    # Computed helpers
+    @property
+    def asset_url(self) -> Callable[[str], str]:
+        return lambda path: f"{self.site.baseurl}/assets/{path}"
+
+    @property
+    def canonical_url(self) -> Callable[[str], str]:
+        return lambda url: f"{self.site.baseurl}{url}"
+
+# Templates receive context explicitly
+def page_template(ctx: RenderContext) -> HTML:
+    return base_layout(ctx)[
+        article[
+            h1[ctx.page.title],
+            raw(ctx.page.content)
         ]
     ]
 ```
 
-### 7. Loops with Conditionals
-
-Bengal uses filtered loops extensively:
-
-```jinja2
-{% for item in items if item.visible %}
-  <li class="{{ 'active' if item.active else '' }}">
-    <a href="{{ item.url }}">{{ item.name }}</a>
-  </li>
-{% endfor %}
-```
-
-**templit solution**: Python comprehensions
+**Or even simpler** - just pass what you need:
 
 ```python
-def nav_menu(items: list[NavItem], current: str) -> HTML:
-    return ul(class_="nav")[
-        li(class_="active" if item.slug == current else None)[
-            a(href=item.url)[item.name]
-        ]
-        for item in items
-        if item.visible
+def page_template(page: Page, site: Site) -> HTML:
+    return base_layout(site)[
+        article[h1[page.title], raw(page.content)]
     ]
 ```
 
-### 8. Variable Caching (Performance)
-
-Bengal caches expensive lookups at template top:
-
-```jinja2
-{% set _page = page if page is defined else none %}
-{% set _main_menu = get_menu_lang('main', current_lang()) %}
-{% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
-```
-
-**templit solution**: Regular Python variables (natural!)
+### 9. Class Building → `cx()` Helper (Inspired by clsx/classnames)
 
 ```python
-def base_template(page: Page | None, site: Site) -> HTML:
-    # Cache expensive lookups - just Python!
-    main_menu = get_menu_lang('main', site.current_lang)
-    auto_nav = get_auto_nav() if not main_menu else []
-    footer_menu = get_menu_lang('footer', site.current_lang)
+from templit import cx
 
-    return html[
-        header[nav_bar(main_menu or auto_nav)],
-        main[children()],
-        footer[footer_nav(footer_menu)]
-    ]
-```
-
-### 9. Safe/Raw Content
-
-Bengal marks rendered HTML as safe:
-
-```jinja2
-{{ content | safe }}
-{{ page.toc | safe }}
-```
-
-**templit solution**: `raw()` function (explicit and clear)
-
-```python
-from templit import raw
-
-def article(page: Page) -> HTML:
-    return article(class_="content")[
-        raw(page.content_html),  # Explicit: this is already-rendered HTML
-        aside[raw(page.toc)]
-    ]
-```
-
-### 10. Complex Class Building
-
-Bengal builds dynamic classes:
-
-```jinja2
-<body
-  data-type="{{ page.type }}"
-  class="page-kind-{{ page.kind }}
-         {% if page.draft %}draft-page{% endif %}
-         {% if page | has_tag('featured') %}featured{% endif %}">
-```
-
-**templit solution**: Helper function + f-strings
-
-```python
-from templit import classes  # Helper for conditional classes
-
-def body_element(page: Page) -> HTML:
-    return body(
-        data_type=page.type,
-        class_=classes(
-            f"page-kind-{page.kind}",
-            page.draft and "draft-page",
-            has_tag(page, 'featured') and "featured"
+def card(page: Page) -> HTML:
+    return article(
+        class_=cx(
+            "card",                           # Always included
+            ("card--featured", page.featured),  # Tuple: (class, condition)
+            ("card--draft", page.draft),
+            {"card--large": page.is_large},   # Dict style also works
         )
-    )[children()]
+    )[...]
 
-# classes() helper filters out falsy values
-def classes(*args: str | None | bool) -> str:
-    return " ".join(c for c in args if c and c is not True)
+# cx() implementation
+def cx(*args) -> str:
+    """Conditional class builder (like clsx/classnames from JS)."""
+    classes = []
+    for arg in args:
+        if isinstance(arg, str):
+            classes.append(arg)
+        elif isinstance(arg, tuple) and len(arg) == 2:
+            cls, condition = arg
+            if condition:
+                classes.append(cls)
+        elif isinstance(arg, dict):
+            for cls, condition in arg.items():
+                if condition:
+                    classes.append(cls)
+    return " ".join(classes) or None
 ```
 
-### Summary: Required Features for SSG
+### 10. Fragments (Multiple Roots) → Lists
 
-| Feature | Jinja2 | templit |
-|---------|--------|---------|
-| Template functions | `{{ func() }}` | `ctx.call()` or context manager |
-| Filters | `\| filter` | `pipe()` or method chain |
-| Layouts | `{% extends %}` | `@component` + `children()` |
-| Slots/Blocks | `{% block %}` | `slot()` + `.slots()` |
-| Partials | `{% include %}` | Function calls |
-| Macros | `{% macro %}` | `@component` |
-| Conditionals | `{% if %}` | `and` short-circuit / ternary |
-| Loops | `{% for %}` | Comprehensions |
-| Raw content | `\| safe` | `raw()` |
-| Class building | String concat | `classes()` helper |
+```python
+# Just return a list - templit flattens automatically
+def meta_tags(page: Page) -> list[HTML]:
+    return [
+        meta(name="description", content=page.description),
+        meta(property="og:title", content=page.title),
+        meta(property="og:type", content="article"),
+    ]
+
+# Used inline
+head[
+    title[page.title],
+    *meta_tags(page),  # Spread into head children
+    link(rel="stylesheet", href="/style.css"),
+]
+```
+
+---
+
+## Revised Summary: Simplicity Wins
+
+| Jinja2 Concept | templit Approach | Why Better |
+|----------------|------------------|------------|
+| Template globals | **Python imports** | IDE support, explicit deps |
+| Filters | **Function calls** | No new syntax to learn |
+| `{% extends %}` | **Function parameters** | Clear contracts, testable |
+| `{% block %}` | **Named parameters** | Type-checked, discoverable |
+| `{% include %}` | **Function calls** | It's just Python |
+| `{% macro %}` | **Functions** | Already perfect |
+| `{% if %}` | **`and`/`or` + None filtering** | More concise |
+| `{% for %}` | **Comprehensions** | Already perfect |
+| Context | **Dataclass or params** | Explicit, type-safe |
+| Class building | **`cx()` helper** | Familiar from JS ecosystem |
+
+**The pattern**: Don't invent new concepts. Use Python's existing tools.
 
 ---
 
@@ -773,109 +758,117 @@ pip install bengal[templates]
 uv add bengal[templates]
 ```
 
-### Integration Module
+### Integration Module (Minimal)
+
+The integration layer is intentionally thin—it just provides Bengal-specific helpers
+while letting you use templit directly:
 
 ```python
-# bengal/rendering/templit_integration.py
-"""Bengal integration layer for templit templates."""
+# bengal/rendering/templates.py
+"""Bengal helpers for templit templates (optional)."""
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from templit import HTML
+    from bengal.core import Page, Site
+
+# Only import templit if available (optional dependency)
 try:
-    import templit
+    from templit import html, raw
+    from templit.elements import meta, link, title as title_elem
     TEMPLIT_AVAILABLE = True
 except ImportError:
     TEMPLIT_AVAILABLE = False
 
-if TEMPLIT_AVAILABLE:
-    from templit import (
-        HTML,
-        html,
-        component,
-        children,
-        raw,
-        css,
-        js,
-        url,
-        # Re-export all elements
-        div, span, a, p, h1, h2, h3, h4, h5, h6,
-        ul, ol, li, table, tr, th, td,
-        form, input, button, select, option, textarea,
-        header, footer, main, nav, aside, section, article,
-        img, video, audio, source,
-        # ... etc
-    )
 
-    # Bengal-specific extensions
-    from bengal.core import Page, Site, Section
-
-    @component
-    def page_meta(page: Page) -> HTML:
-        """Bengal-aware meta tags component."""
-        return html[
-            meta(charset="utf-8"),
-            meta(name="viewport", content="width=device-width, initial-scale=1"),
-            title[page.title],
-            page.description and meta(name="description", content=page.description),
-            page.canonical_url and link(rel="canonical", href=page.canonical_url),
-        ]
-
-    @component
-    def bengal_head(page: Page, site: Site) -> HTML:
-        """Standard Bengal head component."""
-        return head[
-            page_meta(page),
-            # Theme stylesheets
-            [link(rel="stylesheet", href=css_url) for css_url in site.stylesheets],
-        ]
-
-    def render_page(page: Page, site: Site, template_func) -> str:
-        """Render a page using a templit template function."""
-        return str(template_func(page, site))
-
-else:
-    # Graceful degradation when templit not installed
-    def _not_available(*args, **kwargs):
+def check_templit() -> None:
+    """Raise helpful error if templit not installed."""
+    if not TEMPLIT_AVAILABLE:
         raise ImportError(
             "templit is not installed. Install with: pip install bengal[templates]"
         )
 
-    HTML = _not_available
-    html = _not_available
-    component = _not_available
-    # ... etc
+
+# --- Bengal-specific helpers (not magic globals, just functions) ---
+
+def meta_tags(page: "Page") -> "HTML":
+    """Generate standard meta tags for a page."""
+    check_templit()
+    return html[
+        meta(charset="utf-8"),
+        meta(name="viewport", content="width=device-width, initial-scale=1"),
+        title_elem[page.title],
+        page.description and meta(name="description", content=page.description),
+        page.canonical_url and link(rel="canonical", href=page.canonical_url),
+    ]
+
+
+def stylesheets(site: "Site") -> "HTML":
+    """Generate stylesheet links for theme."""
+    check_templit()
+    return html[
+        link(rel="stylesheet", href=url)
+        for url in site.theme_stylesheets
+    ]
+
+
+def asset_url(path: str, site: "Site") -> str:
+    """Build full URL for a static asset."""
+    return f"{site.baseurl.rstrip('/')}/assets/{path.lstrip('/')}"
+
+
+def canonical_url(path: str, site: "Site") -> str:
+    """Build canonical URL for a page."""
+    return f"{site.baseurl.rstrip('/')}/{path.lstrip('/')}"
 ```
+
+**That's it.** No registries, no context managers, no magic. Just functions you import.
 
 ### Usage in Bengal Themes
 
 ```python
-# themes/default/templates/page.py
-"""Default theme page template using templit."""
+# themes/modern/templates/page.py
+"""Page template using templit."""
 
-from bengal.rendering.templit_integration import (
-    HTML, html, component, children, raw,
-    div, main, article, h1, header, footer, nav, a, ul, li,
-    bengal_head,
+# Standard templit imports
+from templit import html, raw
+from templit.elements import (
+    doctype, html as html_elem, head, body, main, article, h1,
+    header, footer, nav, a, ul, li, div
 )
+
+# Bengal helpers (optional, just convenience functions)
+from bengal.rendering.templates import meta_tags, stylesheets, asset_url
 from bengal.core import Page, Site
 
-@component
-def base_layout(site: Site) -> HTML:
-    """Base layout with header, main content, footer."""
+
+def base_layout(
+    site: Site,
+    *,
+    title: str = "",
+    content: "HTML",
+) -> "HTML":
+    """Base HTML structure. Just a function, not magic."""
     return html[
         doctype(),
-        html(lang=site.language)[
-            bengal_head(site.current_page, site),
+        html_elem(lang=site.language)[
+            head[
+                meta_tags(site.current_page),
+                stylesheets(site),
+            ],
             body[
                 site_header(site),
-                main[children()],
+                main[content],
                 site_footer(site),
             ]
         ]
     ]
 
-@component
-def site_header(site: Site) -> HTML:
+
+def site_header(site: Site) -> "HTML":
+    """Site header navigation."""
     return header(class_="site-header")[
         nav(class_="main-nav")[
             a(href="/", class_="logo")[site.title],
@@ -886,41 +879,51 @@ def site_header(site: Site) -> HTML:
         ]
     ]
 
-@component
-def site_footer(site: Site) -> HTML:
+
+def site_footer(site: Site) -> "HTML":
+    """Site footer."""
     return footer(class_="site-footer")[
         f"© {site.copyright_year} {site.author}"
     ]
 
-def page_template(page: Page, site: Site) -> HTML:
-    """Main page template."""
-    return base_layout(site)[
-        article(class_="page-content")[
-            h1[page.title],
-            div(class_="content")[
-                raw(page.content_html)
+
+def page_template(page: Page, site: Site) -> "HTML":
+    """Main page template. This is what Bengal calls."""
+    return base_layout(
+        site,
+        title=page.title,
+        content=html[
+            article(class_="page-content")[
+                h1[page.title],
+                div(class_="content")[raw(page.content_html)]
             ]
         ]
-    ]
+    )
+
+
+# That's it. No @component decorators required, no slots,
+# no children() magic. Just functions calling functions.
 ```
 
-### Hybrid Jinja2 + templit
+### Hybrid Jinja2 + templit (Migration Path)
 
 ```python
-# Support gradual migration
-from bengal.rendering.templit_integration import html, raw, header, footer
+# Gradual migration: use templit for new components, keep Jinja2 for existing
+
+from templit import html, raw
+from templit.elements import header, footer
 from bengal.rendering import jinja_env
 
 def hybrid_page(page: Page, site: Site) -> HTML:
-    """Mix templit components with Jinja2 templates."""
+    """Mix new templit components with existing Jinja2 templates."""
     return html[
-        # templit header
+        # New templit header
         site_header(site),
 
-        # Existing Jinja2 content template
+        # Existing Jinja2 content (just render and wrap with raw())
         raw(jinja_env.get_template("content.html").render(page=page)),
 
-        # templit footer
+        # New templit footer
         site_footer(site),
     ]
 ```

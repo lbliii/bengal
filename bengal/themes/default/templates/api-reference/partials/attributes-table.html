@@ -5,7 +5,7 @@ Renders a table of class attributes using semantic CSS tokens.
 Uses api-table classes with responsive mobile labels.
 #}
 
-{% set attributes = (element.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
+{% set attributes = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'attribute') | list %}
 {% if attributes %}
 <div class="api-attributes">
   <h4 class="api-label">Attributes</h4>

@@ -17,9 +17,9 @@ This template receives:
 {% from 'autodoc/partials/cards.html' import element_card with context %}
 
 {% block content %}
-{# Pre-compute child elements - element.children is guaranteed by Python preparation #}
-{% set options = element.children | selectattr('element_type', 'eq', 'option') | list %}
-{% set arguments = element.children | selectattr('element_type', 'eq', 'argument') | list %}
+{# Pre-compute child elements - use getattr for safe access with default #}
+{% set options = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'option') | list %}
+{% set arguments = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'argument') | list %}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">

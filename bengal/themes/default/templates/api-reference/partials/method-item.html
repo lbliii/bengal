@@ -7,7 +7,7 @@ Information-rich preview: icon, name, params, return type, description snippet.
 Receives: element (the class element)
 #}
 
-{% set all_methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{% set all_methods = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'method') | list %}
 {% set public_methods = all_methods | rejectattr('name', 'match', '^_') | list %}
 {% set private_methods = all_methods | selectattr('name', 'match', '^_') | list %}
 
