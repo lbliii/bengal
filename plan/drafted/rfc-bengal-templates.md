@@ -446,10 +446,10 @@ templit/
         ├── py.typed           # PEP 561 marker
         ├── core.py            # HTML class, rendering engine
         ├── elements.py        # Element factories (div, span, etc.)
-        ├── components.py      # @component decorator, children()
-        ├── contexts.py        # Context-aware escapers (html, css, js, url)
+        ├── contexts.py        # Context-aware escapers (css_safe, js_safe, url_safe)
         ├── escaping.py        # Escaping implementations
         ├── types.py           # Type definitions, protocols
+        ├── utils.py           # Helpers (cx, raw)
         └── _compat.py         # Python version compatibility
 ```
 
@@ -568,165 +568,222 @@ def nav(items: list[NavItem], current: str) -> HTML:
     ]
 ```
 
-### Components
+### Components (Just Functions!)
+
+The simplest pattern: components are just functions that return HTML.
 
 ```python
-from templit import component, children, HTML, div, h3
+from templit import html, HTML
+from templit.elements import div, h3
 
-@component
-def card(title: str, variant: str = "default") -> HTML:
-    """Reusable component with slots."""
+def card(title: str, body_content: HTML, variant: str = "default") -> HTML:
+    """A card component. Just a function."""
     return div(class_=f"card card--{variant}")[
-        div(class_="card__header")[
-            h3[title]
-        ],
-        div(class_="card__body")[
-            children()  # Slot for nested content
+        div(class_="card__header")[h3[title]],
+        div(class_="card__body")[body_content]
+    ]
+
+# Usage - pass content as a parameter
+card(
+    title="Recent Posts",
+    body_content=html[post_list(posts)],
+    variant="highlighted"
+)
+
+# Or use ** for optional content
+def card_v2(title: str, content: HTML | None = None, variant: str = "default") -> HTML:
+    return div(class_=f"card card--{variant}")[
+        div(class_="card__header")[h3[title]],
+        content and div(class_="card__body")[content]  # Only render body if content
+    ]
+```
+
+**Why this is better than `@component` + `children()`:**
+- Explicit parameters → IDE shows exactly what's accepted
+- No magic → easier to understand and debug
+- Type-checked → `HTML | None` catches mistakes
+
+### Layouts (Functions with Content Parameters)
+
+No special inheritance syntax needed:
+
+```python
+def base_layout(
+    *,  # Force keyword args for clarity
+    title: str = "",
+    head_extra: HTML | None = None,
+    scripts: HTML | None = None,
+    content: HTML,
+) -> HTML:
+    """Base HTML structure."""
+    return html[
+        doctype(),
+        html_elem(lang="en")[
+            head[
+                title_elem[title],
+                link(rel="stylesheet", href="/style.css"),
+                head_extra,
+            ],
+            body[
+                main[content],
+                scripts,
+            ]
         ]
     ]
 
-# Usage with children
-card(title="Recent Posts", variant="highlighted")[
-    post_list(posts)
-]
-
-# Usage without children
-card(title="Empty Card")
+# Usage
+def blog_page(page: Page) -> HTML:
+    return base_layout(
+        title=page.title,
+        head_extra=html[meta(name="author", content=page.author)],
+        scripts=html[script(src="/js/blog.js")],
+        content=html[article[raw(page.content_html)]]
+    )
 ```
 
 ### Context-Aware Escaping
 
-```python
-from templit import html, css, js, url, head, style, script, body, a
+Different contexts require different escaping rules:
 
-def page(title: str, theme_color: str, query: str, user_data: dict) -> HTML:
+```python
+from templit import html, raw
+from templit.contexts import css_safe, js_safe, url_safe
+from templit.elements import head, body, style, script, a, title as title_elem
+import json
+
+def page(page_title: str, theme_color: str, query: str, user_data: dict) -> HTML:
     """Each context has appropriate escaping."""
     return html[
         head[
-            title[title],  # HTML-escaped
-            style[
-                css[t"body {{ background: {theme_color}; }}"]  # CSS-escaped
-            ],
-            script[
-                js[t"const userData = {json.dumps(user_data)};"]  # JS-escaped
-            ]
+            title_elem[page_title],  # HTML-escaped automatically
+            style[css_safe(f"body {{ background: {theme_color}; }}")],  # CSS-safe
+            script[js_safe(f"const userData = {json.dumps(user_data)};")],  # JS-safe
         ],
         body[
-            a(href=url[t"/search?q={query}"])["Search"]  # URL-escaped
+            a(href=url_safe(f"/search?q={query}"))["Search"]  # URL-encoded
         ]
     ]
 ```
 
-### Async Support
+### Async Support (Optional)
+
+For fetching data during render:
 
 ```python
-from templit import component, HTML, div, img, span
+from templit import HTML
+from templit.elements import div, img, span
 import asyncio
 
-@component
 async def user_card(user_id: int) -> HTML:
-    """Native async support."""
+    """Async function that fetches then renders."""
     user = await fetch_user(user_id)
     return div(class_="user-card")[
         img(src=user.avatar, alt=user.name),
         span[user.name]
     ]
 
-# Parallel rendering
 async def user_grid(user_ids: list[int]) -> HTML:
+    """Parallel data fetching."""
     cards = await asyncio.gather(*[user_card(uid) for uid in user_ids])
     return div(class_="user-grid")[cards]
 ```
 
 ### Raw Content
 
+For already-rendered HTML (from Markdown, rich text editors, etc.):
+
 ```python
-from templit import html, raw, div
+from templit import html, raw
+from templit.elements import div
 
 def content_block(html_content: str) -> HTML:
-    """Explicit unsafe content marking."""
+    """Wrap pre-rendered HTML content."""
     return div(class_="content")[
         raw(html_content)  # ⚠️ Not escaped - use only with trusted content
     ]
 ```
 
-### Slots (Named Children)
+### Filters? No. Just Functions.
+
+Jinja2 filters exist because you can't call functions inside `{{ }}`. We don't have that limitation.
 
 ```python
-from templit import component, children, slot, HTML
+# utils/formatters.py
+from datetime import datetime
 
-@component
-def base_layout(title: str = ""):
-    """Layout with named slots for head and scripts."""
-    return html[
-        head[
-            title[title] if title else None,
-            slot('head'),  # Named slot for custom head content
-        ],
-        body[
-            main[children()],  # Default slot for main content
-            slot('scripts'),   # Named slot for custom scripts
-        ]
-    ]
+def dateformat(dt: datetime, fmt: str = '%B %d, %Y') -> str:
+    return dt.strftime(fmt)
 
-# Usage with .slots()
-def blog_page(page: Page) -> HTML:
-    return base_layout(title=page.title).slots(
-        head=html[meta(name="author", content=page.author)],
-        scripts=html[script(src="/js/blog.js")]
-    )[
-        article[raw(page.content_html)]
-    ]
-```
+def time_ago(dt: datetime) -> str:
+    delta = datetime.now() - dt
+    if delta.days > 365:
+        return f"{delta.days // 365} years ago"
+    if delta.days > 30:
+        return f"{delta.days // 30} months ago"
+    if delta.days > 0:
+        return f"{delta.days} days ago"
+    return "today"
 
-### Filters (Pipeable Transformations)
+def excerpt(text: str, length: int = 150) -> str:
+    text = strip_html(text)
+    return text[:length] + "..." if len(text) > length else text
 
-```python
-from templit import pipe, filter
-
-# Built-in filters
-from templit.filters import dateformat, time_ago, excerpt, strip_html
-
-def article_meta(page: Page) -> HTML:
-    return div(class_="meta")[
-        time[pipe(page.date, dateformat, '%B %d, %Y')],
-        span[f"{pipe(page.content, strip_html, excerpt, 150)}"],
-        span[pipe(page.date, time_ago)]
-    ]
-
-# Custom filters
-@filter
 def reading_time(content: str, wpm: int = 200) -> str:
     words = len(content.split())
     minutes = max(1, round(words / wpm))
     return f"{minutes} min read"
-
-# Use in templates
-span[pipe(page.content, reading_time)]
 ```
+
+```python
+# In your template - just call functions!
+from utils.formatters import dateformat, time_ago, excerpt, reading_time
+
+def article_meta(page: Page) -> HTML:
+    return div(class_="meta")[
+        time[dateformat(page.date, '%B %d, %Y')],           # Just call it
+        span[excerpt(page.content, 150)],                   # Nested calls
+        span[time_ago(page.date)],                          # Simple and clear
+        span(class_="reading-time")[reading_time(page.content)]
+    ]
+```
+
+**No `pipe()`, no `@filter`, no special syntax.** Python already has function calls.
 
 ### Utility Helpers
 
 ```python
-from templit import classes, attrs
+from templit.utils import cx  # Conditional class builder (like clsx)
 
 def card(page: Page) -> HTML:
     return article(
-        # Build conditional class string
-        class_=classes(
+        class_=cx(
             "card",
-            page.featured and "card--featured",
-            page.draft and "card--draft",
+            ("card--featured", page.featured),  # Tuple: (class, condition)
+            ("card--draft", page.draft),
         ),
-        # Build conditional attributes
-        **attrs(
-            data_id=page.id,
-            data_category=page.category if page.category else None,
-        )
+        data_id=page.id,
+        # None attributes are omitted automatically
+        data_category=page.category if page.category else None,
     )[
         h2[page.title],
         p[page.excerpt]
     ]
+
+# cx() implementation (included in templit.utils)
+def cx(*args: str | tuple[str, bool] | dict[str, bool] | None) -> str | None:
+    """Build class string from conditional values. Like clsx/classnames from JS."""
+    classes = []
+    for arg in args:
+        match arg:
+            case str():
+                classes.append(arg)
+            case (cls, True):
+                classes.append(cls)
+            case (_, False) | None:
+                pass
+            case dict() as d:
+                classes.extend(k for k, v in d.items() if v)
+    return " ".join(classes) or None
 ```
 
 ---
@@ -1208,18 +1265,36 @@ from .types import HTMLContent
 
 P = ParamSpec("P")
 
+# NOTE: @component and children() are OPTIONAL advanced features.
+# The recommended pattern is simpler: just use function parameters.
+#
+# PREFERRED (simple, explicit):
+#     def card(title: str, body: HTML) -> HTML:
+#         return div(class_="card")[h1[title], div[body]]
+#     card("Hello", html[p["World"]])
+#
+# ALTERNATIVE (for React-like syntax fans):
+#     @component
+#     def card(title: str) -> HTML:
+#         return div(class_="card")[h1[title], div[children()]]
+#     card("Hello")[p["World"]]
+
 _children_stack: ContextVar[list[HTMLContent]] = ContextVar("children_stack", default=[])
 
 def children() -> HTML:
     """
-    Render children passed to a component.
+    [ADVANCED] Render children passed to a @component.
 
-    Usage:
+    Consider using explicit parameters instead for better type safety:
+
+        # Explicit (recommended)
+        def wrapper(content: HTML) -> HTML:
+            return div(class_="wrapper")[content]
+
+        # @component style (advanced)
         @component
-        def wrapper():
+        def wrapper() -> HTML:
             return div(class_="wrapper")[children()]
-
-        wrapper()["Content here"]
     """
     stack = _children_stack.get()
     if not stack:
@@ -1228,7 +1303,7 @@ def children() -> HTML:
 
 
 class Component:
-    """Wrapper enabling child content for component functions."""
+    """[ADVANCED] Wrapper enabling child content for @component functions."""
 
     __slots__ = ("_func", "_args", "_kwargs")
 
@@ -1257,18 +1332,20 @@ class Component:
 
 def component(func: Callable[P, HTML]) -> Callable[P, Component]:
     """
-    Decorator to create a reusable component with optional children.
+    [ADVANCED] Decorator for React-like child syntax.
 
-    Usage:
+    Consider using explicit parameters instead - it's simpler and more Pythonic:
+
+        # Explicit (recommended)
+        def alert(message: HTML, variant: str = "info") -> HTML:
+            return div(class_=f"alert alert--{variant}")[message]
+        alert(html["Warning!"], variant="warning")
+
+        # @component style (advanced)
         @component
         def alert(variant: str = "info") -> HTML:
             return div(class_=f"alert alert--{variant}")[children()]
-
-        # With children
-        alert(variant="warning")["Warning message!"]
-
-        # Without children (empty)
-        alert()
+        alert(variant="warning")["Warning!"]
     """
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component:
@@ -1370,22 +1447,21 @@ class url(_ContextProcessor):
 templit - A Python 3.14-native HTML templating library using t-strings.
 
 Usage:
-    from templit import html, div, h1, p, a, component, children
+    from templit import html, HTML
+    from templit.elements import div, h1, p
 
-    @component
-    def card(title: str) -> HTML:
+    def card(title: str, body: HTML) -> HTML:
         return div(class_="card")[
             h1[title],
-            div(class_="card__body")[children()]
+            div(class_="card__body")[body]
         ]
 
-    card(title="Hello")[p["World!"]]
+    card("Hello", html[p["World!"]])
 """
 
 from .core import HTML, html
-from .components import component, children
-from .contexts import css, js, url
-from .raw import raw
+from .contexts import css_safe, js_safe, url_safe
+from .utils import raw, cx
 from .types import Renderable, HTMLContent
 
 # Elements - explicit exports for IDE support
@@ -1418,30 +1494,26 @@ __version__ = "0.1.0"
 __all__ = [
     # Core
     "HTML", "html",
-    # Components
-    "component", "children",
-    # Contexts
-    "css", "js", "url",
+    # Contexts (context-aware escaping)
+    "css_safe", "js_safe", "url_safe",
     # Helpers
-    "raw",
+    "raw", "cx",
     # Types
     "Renderable", "HTMLContent",
-    # Elements
-    "html_elem", "head", "body", "title", "meta", "link", "style", "script",
-    "header", "footer", "main", "nav", "aside", "section", "article",
-    "h1", "h2", "h3", "h4", "h5", "h6",
-    "div", "p", "pre", "blockquote", "ol", "ul", "li", "dl", "dt", "dd",
-    "figure", "figcaption", "hr",
-    "a", "span", "em", "strong", "small", "s", "cite", "q", "code",
-    "sub", "sup", "mark", "time", "abbr",
-    "img", "video", "audio", "source", "iframe", "embed", "object",
-    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "colgroup", "col",
-    "form", "fieldset", "legend", "label", "input", "button", "select",
-    "option", "optgroup", "textarea", "datalist", "output", "progress", "meter",
-    "details", "summary", "dialog",
     # Version
     "__version__",
 ]
+
+# Advanced API (imported separately if needed)
+# from templit.advanced import component, children
+```
+
+Note: Elements are imported from `templit.elements`, not the main package.
+This keeps the top-level import clean and makes dependencies explicit:
+
+```python
+from templit import html, HTML, raw, cx
+from templit.elements import div, h1, p, a, ul, li  # What you actually use
 ```
 
 ---
@@ -1452,25 +1524,36 @@ __all__ = [
 
 ```python
 from flask import Flask
-from templit import html, div, h1, p, component, children
+from templit import html, HTML
+from templit.elements import (
+    doctype, html as html_elem, head, body, title as title_elem,
+    div, h1, p, link
+)
 
 app = Flask(__name__)
 
-@component
-def layout(title: str):
+def layout(page_title: str, content: HTML) -> HTML:
+    """Layout is just a function."""
     return html[
-        head[title[title]],
-        body[children()]
+        doctype(),
+        html_elem[
+            head[
+                title_elem[page_title],
+                link(rel="stylesheet", href="/static/style.css")
+            ],
+            body[content]
+        ]
     ]
 
 @app.route("/")
 def index():
-    return str(layout(title="Home")[
+    content = html[
         div(class_="container")[
             h1["Welcome"],
             p["This is a Flask app using templit."]
         ]
-    ])
+    ]
+    return str(layout("Home", content))
 ```
 
 ### FastAPI
@@ -1521,41 +1604,46 @@ def templit(component_func, *args, **kwargs):
 | Type hints | ✅ Full | ❌ | ✅ Partial | ❌ |
 | Syntax | Native Python | Custom DSL | Python | Python |
 | Auto-escaping | Context-aware | Global | Manual | Manual |
-| Components | First-class | Macros | Functions | Functions |
+| Components | Just functions | Macros | Functions | Functions |
+| Layouts | Function params | `{% extends %}` | Composition | Composition |
 | Async | Native | Extension | ❌ | ❌ |
 | Dependencies | Zero | MarkupSafe | None | None |
-| IDE support | Native | Plugin | Good | Limited |
+| IDE support | Full native | Plugin | Good | Limited |
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: templit Core (4-6 weeks)
+### Phase 1: templit Core (3-4 weeks)
 
 **Week 1-2: Foundation**
-- [ ] Project scaffolding (pyproject.toml, CI/CD)
+- [ ] Project scaffolding (pyproject.toml, CI/CD, `uv`)
 - [ ] `HTML` class with `__class_getitem__`
-- [ ] Basic escaping functions
+- [ ] `Element` class with attribute handling
+- [ ] All HTML element factories (`div`, `span`, `a`, etc.)
+- [ ] Escaping functions (html, attr, css, js, url)
+- [ ] `raw()` for trusted content
+- [ ] `cx()` for conditional classes
 - [ ] Initial test suite
 
-**Week 3-4: Elements & Components**
-- [ ] Element factory with all HTML elements
-- [ ] `@component` decorator
-- [ ] `children()` function
-- [ ] Context processors (css, js, url)
-
-**Week 5-6: Polish**
-- [ ] Full type hints (py.typed)
-- [ ] Documentation site
+**Week 3-4: Polish**
+- [ ] Context-aware escaping (`css_safe`, `js_safe`, `url_safe`)
+- [ ] Full type hints (py.typed, generic elements)
+- [ ] Documentation with examples
 - [ ] PyPI release (0.1.0)
 
-### Phase 2: Bengal Integration (2-3 weeks)
+**Optional: Advanced API**
+- [ ] `@component` decorator (for React-style syntax)
+- [ ] `children()` function (for React-style syntax)
+- Place in `templit.advanced` submodule, not main API
+
+### Phase 2: Bengal Integration (2 weeks)
 
 - [ ] Add `bengal[templates]` optional dependency
-- [ ] Create `bengal.rendering.templit_integration`
-- [ ] Bengal-specific components (page_meta, etc.)
+- [ ] Create `bengal.rendering.templates` helper module
+- [ ] Bengal-specific helpers (meta_tags, asset_url, etc.)
 - [ ] Hybrid Jinja2/templit support
-- [ ] Migrate one default theme template
+- [ ] Migrate one default theme template as proof of concept
 
 ### Phase 3: Ecosystem (Ongoing)
 
@@ -1614,6 +1702,30 @@ The `html` builder and `<html>` element share a name.
 2. **Migration**: Clear path from Jinja2 to templit
 3. **Hybrid**: Jinja2 and templit can coexist
 4. **Default**: One default theme template uses templit
+
+---
+
+## Key Design Decisions Summary
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Components | **Functions, not decorators** | Simpler, type-safe, IDE-friendly |
+| Layouts | **Parameters, not inheritance** | Explicit dependencies, testable |
+| Includes | **Imports, not `{% include %}`** | It's just Python |
+| Filters | **Function calls, not pipes** | No new syntax to learn |
+| Context | **Parameters, not globals** | Explicit, no hidden state |
+| Classes | **`cx()` helper** | Familiar from JS ecosystem |
+| Advanced | **Optional `@component`** | Available but not recommended |
+
+### The Core Insight
+
+Jinja2's special features (filters, extends, include, block, macro) exist to work around limitations of a custom DSL. **Python doesn't have these limitations**. The simplest solution is almost always to just use Python's built-in constructs:
+
+- **Filter?** → Function call
+- **Include?** → Import
+- **Macro?** → Function
+- **Block/Extends?** → Function parameter
+- **Context?** → Dataclass or function argument
 
 ---
 

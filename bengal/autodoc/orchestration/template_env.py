@@ -156,6 +156,11 @@ def create_template_environment(site: Site) -> Environment:
 
     env.globals["url_for"] = url_for
 
+    # Add Python's getattr for safe attribute access in templates
+    # Usage: getattr(element, 'children', []) to safely get children with default
+    # Required because templates may use StrictUndefined mode
+    env.globals["getattr"] = getattr
+
     # Note: Custom tests (match) and filters (first_sentence) are now
     # registered via register_all() from bengal.rendering.template_functions
 
