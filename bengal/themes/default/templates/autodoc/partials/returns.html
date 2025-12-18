@@ -1,0 +1,22 @@
+{#
+Autodoc Returns Partial
+
+Renders the return type and description.
+
+Required: element (DocElement)
+#}
+
+{% set return_type = element.metadata.return_type | default(element.metadata.returns | default('')) %}
+{% set return_desc = element.metadata.return_description | default('') %}
+
+{% if return_type %}
+<section class="autodoc-section" data-section="returns">
+  <h2 class="autodoc-section-title">Returns</h2>
+  <div class="autodoc-returns">
+    <code class="autodoc-returns-type">{{ return_type }}</code>
+    {% if return_desc %}
+    <span class="autodoc-returns-desc">{{ return_desc }}</span>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

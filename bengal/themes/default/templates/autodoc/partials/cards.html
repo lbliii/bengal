@@ -1,0 +1,44 @@
+{#
+Autodoc Cards Partial
+
+Renders a card grid for child elements (subcommands, classes, functions, endpoints).
+
+Required: children (list of DocElements)
+Optional: title (str), card_type (str)
+
+Also provides element_card macro for individual cards.
+#}
+
+{% macro element_card(child, card_type=none) %}
+{% set child_type = card_type or child.element_type %}
+{% set child_url = child.url | default(child.metadata.url | default('#')) %}
+<a href="{{ child_url }}" class="autodoc-card" data-card="{{ child_type }}">
+  {% if child_type == 'endpoint' and child.metadata.method %}
+  <span class="autodoc-method" data-method="{{ child.metadata.method | lower }}">{{ child.metadata.method | upper }}</span>
+  {% endif %}
+  <code class="autodoc-card-name">{{ child.name }}</code>
+  {% if child.description %}
+  <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
+  {% endif %}
+</a>
+{% endmacro %}
+
+{% set title = title | default('') %}
+{% set card_type = card_type | default(none) %}
+
+{% if children %}
+{% if title %}
+<section class="autodoc-section" data-section="children">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+{% endif %}
+
+  <div class="autodoc-cards">
+    {% for child in children %}
+    {{ element_card(child, card_type) }}
+    {% endfor %}
+  </div>
+
+{% if title %}
+</section>
+{% endif %}
+{% endif %}

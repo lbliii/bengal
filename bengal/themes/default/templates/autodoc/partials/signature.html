@@ -1,0 +1,16 @@
+{#
+Autodoc Signature Partial
+
+Renders a code signature block for classes, functions, methods.
+
+Required: element (DocElement)
+Optional: language (str, default 'python')
+#}
+
+{% set language = language | default('python') %}
+
+{% if element.metadata.signature or element.signature %}
+<div class="autodoc-signature">
+  <pre><code class="language-{{ language }}">{{ element.metadata.signature or element.signature }}</code></pre>
+</div>
+{% endif %}

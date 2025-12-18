@@ -1,0 +1,31 @@
+{#
+Autodoc Examples Partial
+
+Renders code examples.
+
+Required: element (DocElement) or examples (list)
+Optional: language (str, default based on element type)
+#}
+
+{% set examples_list = examples | default(element.examples | default([])) %}
+{% set is_cli = element.element_type in ['command', 'command-group'] if element is defined else false %}
+{% set language = language | default('bash' if is_cli else 'python') %}
+
+{% if examples_list %}
+<section class="autodoc-section" data-section="examples">
+  <h2 class="autodoc-section-title">Examples</h2>
+
+  {% for example in examples_list %}
+  <div class="autodoc-example">
+    {% if example is mapping and example.title %}
+    <h3 class="autodoc-example-title">{{ example.title }}</h3>
+    <pre><code class="language-{{ example.language | default(language) }}">{{ example.code }}</code></pre>
+    {% elif example is mapping and example.code %}
+    <pre><code class="language-{{ example.language | default(language) }}">{{ example.code }}</code></pre>
+    {% else %}
+    <pre><code class="language-{{ language }}">{{ example }}</code></pre>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}

@@ -1,0 +1,49 @@
+{#
+Autodoc Parameters Table Partial
+
+Renders parameters/options/arguments as a table.
+
+Required: params (list of dicts or DocElements)
+Optional: title (str), param_type (str: 'option', 'argument', 'parameter')
+#}
+
+{% set title = title | default('Parameters') %}
+{% set param_type = param_type | default('parameter') %}
+
+{% if params %}
+<section class="autodoc-section" data-section="parameters">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+
+  <table class="autodoc-table" data-table="parameters">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for param in params %}
+      {% set is_required = param.metadata.required | default(param.required | default(false)) if param.metadata is defined else param.get('required', false) %}
+      {% set param_name = param.metadata.opts | join(', ') if (param.metadata is defined and param.metadata.opts) else (param.name if param.name is defined else param.get('name', '')) %}
+      {% set param_type_val = param.metadata.type if (param.metadata is defined and param.metadata.type) else (param.type if param.type is defined else param.get('type', '')) %}
+      {% set param_default = param.metadata.default if (param.metadata is defined and param.metadata.default) else (param.default if param.default is defined else param.get('default', '')) %}
+      {% set param_desc = param.description if param.description is defined else param.get('description', '—') %}
+      <tr data-required="{{ 'true' if is_required else 'false' }}">
+        <td class="autodoc-cell-name" data-label="Name"><code>{{ param_name }}</code></td>
+        <td class="autodoc-cell-type" data-label="Type"><code>{{ param_type_val or '—' }}</code></td>
+        <td class="autodoc-cell-default" data-label="Default">
+          {%- if param_default -%}
+          <code>{{ param_default }}</code>
+          {%- else -%}
+          <span class="table-empty">—</span>
+          {%- endif -%}
+        </td>
+        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc | default('—') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
