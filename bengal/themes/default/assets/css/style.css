@@ -239,6 +239,10 @@
 }
 
 @layer components {
+  @import url('components/autodoc.css');
+}
+
+@layer components {
   @import url('components/api-hub.css');
 }
 
