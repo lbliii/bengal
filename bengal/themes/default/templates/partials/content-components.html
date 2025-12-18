@@ -466,8 +466,8 @@ Args:
 
 Usage:
 {% from 'partials/content-components.html' import render_section_if_any with context %}
-{% call (items) render_section_if_any(my_list, 'Functions', 'api-section') %}
-<div class="api-items-list">
+{% call (items) render_section_if_any(my_list, 'Functions', 'autodoc-section') %}
+<div class="autodoc-items-list">
   <!-- render items here -->
 </div>
 {% endcall %}
@@ -475,7 +475,7 @@ Usage:
 {% macro render_section_if_any(items, title, section_class='') %}
 {% if items and (items | length) > 0 %}
 <section class="{{ section_class }}">
-  <h2 class="api-section-title">{{ title }}</h2>
+  <h2 class="autodoc-section-title">{{ title }}</h2>
   {{ caller(items) }}
 </section>
 {% endif %}
