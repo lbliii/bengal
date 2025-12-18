@@ -1,4 +1,4 @@
-# RFC: templit — A Standalone Python 3.14-Native HTML Templating Library
+# RFC: Patitas — A Standalone Python 3.14-Native HTML Templating Library 🐾
 
 **Status**: Draft
 **Created**: 2025-12-18
@@ -9,14 +9,14 @@
 
 ## Executive Summary
 
-This RFC proposes **templit** (pronounced "temp-lit"), a standalone Python 3.14-native HTML templating library built on [PEP 750 Template Strings (t-strings)](https://www.python.org/downloads/release/python-3140/). Designed as a **general-purpose library** that anyone can use, templit will also serve as Bengal's next-generation templating system via an optional dependency.
+This RFC proposes **patitas** (pronounced "temp-lit"), a standalone Python 3.14-native HTML templating library built on [PEP 750 Template Strings (t-strings)](https://www.python.org/downloads/release/python-3140/). Designed as a **general-purpose library** that anyone can use, patitas will also serve as Bengal's next-generation templating system via an optional dependency.
 
 **Distribution Strategy**:
 ```bash
 # Standalone usage (any Python project)
-pip install templit
+pip install patitas
 
-# Bengal with templit support
+# Bengal with patitas support
 pip install bengal[templates]
 ```
 
@@ -33,17 +33,17 @@ pip install bengal[templates]
 
 ### Benefits of Independence
 
-1. **Broader Adoption**: Developers can use templit in Flask, FastAPI, Django, or any Python project
-2. **Faster Iteration**: templit can evolve independently of Bengal's release cycle
+1. **Broader Adoption**: Developers can use patitas in Flask, FastAPI, Django, or any Python project
+2. **Faster Iteration**: patitas can evolve independently of Bengal's release cycle
 3. **Community Contributions**: Lower barrier for external contributors
-4. **Ecosystem Growth**: Other static site generators could adopt templit
+4. **Ecosystem Growth**: Other static site generators could adopt patitas
 5. **Focused Scope**: Clean separation between HTML generation and site building
 
 ### Relationship to Bengal
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     templit (PyPI)                      │
+│                     patitas (PyPI)                      │
 │  A general-purpose Python 3.14 HTML templating library  │
 └─────────────────────────────────────────────────────────┘
                             │
@@ -51,7 +51,7 @@ pip install bengal[templates]
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │                    bengal[templates]                    │
-│        Bengal SSG with templit integration layer        │
+│        Bengal SSG with patitas integration layer        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -124,7 +124,7 @@ def article_meta(page: Page) -> HTML:
     ]
 
 # Option B: Composition operator for pipelines
-from templit import F  # Functional composition helper
+from patitas import F  # Functional composition helper
 
 # F wraps a value for method-style chaining
 def article_meta(page: Page) -> HTML:
@@ -255,7 +255,7 @@ div(class_="grid")[
 {% if page.date %}<time>{{ page.date }}</time>{% endif %}
 ```
 
-**Better Solution**: templit ignores `None` and `False` in children
+**Better Solution**: patitas ignores `None` and `False` in children
 
 ```python
 # None and False are filtered out automatically
@@ -270,7 +270,7 @@ def meta(page: Page) -> HTML:
 **For complex conditionals**, use helper:
 
 ```python
-from templit import when
+from patitas import when
 
 def meta(page: Page) -> HTML:
     return div[
@@ -340,7 +340,7 @@ def page_template(page: Page, site: Site) -> HTML:
 ### 9. Class Building → `cx()` Helper (Inspired by clsx/classnames)
 
 ```python
-from templit import cx
+from patitas import cx
 
 def card(page: Page) -> HTML:
     return article(
@@ -373,7 +373,7 @@ def cx(*args) -> str:
 ### 10. Fragments (Multiple Roots) → Lists
 
 ```python
-# Just return a list - templit flattens automatically
+# Just return a list - patitas flattens automatically
 def meta_tags(page: Page) -> list[HTML]:
     return [
         meta(name="description", content=page.description),
@@ -393,7 +393,7 @@ head[
 
 ## Revised Summary: Simplicity Wins
 
-| Jinja2 Concept | templit Approach | Why Better |
+| Jinja2 Concept | patitas Approach | Why Better |
 |----------------|------------------|------------|
 | Template globals | **Python imports** | IDE support, explicit deps |
 | Filters | **Function calls** | No new syntax to learn |
@@ -412,9 +412,9 @@ head[
 
 ## Package Design
 
-### Package Name: `templit`
+### Package Name: `patitas`
 
-**Why "templit"?**
+**Why "patitas"?**
 - **Template + lit**: References both templates and Python's t-string literals
 - **Short and memorable**: Easy to type, easy to remember
 - **Available**: Not taken on PyPI (as of writing)
@@ -430,7 +430,7 @@ head[
 ### Package Structure
 
 ```
-templit/
+patitas/
 ├── pyproject.toml
 ├── README.md
 ├── LICENSE (MIT)
@@ -441,7 +441,7 @@ templit/
 │   ├── escaping.md
 │   └── examples/
 └── src/
-    └── templit/
+    └── patitas/
         ├── __init__.py        # Public API exports
         ├── py.typed           # PEP 561 marker
         ├── core.py            # HTML class, rendering engine
@@ -457,7 +457,7 @@ templit/
 
 ```toml
 [project]
-name = "templit"
+name = "patitas"
 version = "0.1.0"
 description = "A Python 3.14-native HTML templating library using t-strings"
 readme = "README.md"
@@ -485,9 +485,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/bengal-ssg/templit"
-Documentation = "https://templit.dev"
-Repository = "https://github.com/bengal-ssg/templit"
+Homepage = "https://github.com/bengal-ssg/patitas"
+Documentation = "https://patitas.dev"
+Repository = "https://github.com/bengal-ssg/patitas"
 
 [project.optional-dependencies]
 dev = [
@@ -509,7 +509,7 @@ build-backend = "hatchling.build"
 ### Basic Usage
 
 ```python
-from templit import html, div, h1, p, a
+from patitas import html, div, h1, p, a
 
 # Simple element
 greeting = h1["Hello, World!"]
@@ -529,7 +529,7 @@ print(str(card))
 ### T-String Integration (Python 3.14+)
 
 ```python
-from templit import html, t
+from patitas import html, t
 
 def greeting(name: str) -> HTML:
     """T-strings enable context-aware escaping."""
@@ -544,7 +544,7 @@ greeting("<script>alert('xss')</script>")
 ### Element Builder
 
 ```python
-from templit import div, h1, p, span, ul, li, a
+from patitas import div, h1, p, span, ul, li, a
 
 def article(title: str, content: str, author: str) -> HTML:
     """Element builder with type-safe attributes."""
@@ -573,8 +573,8 @@ def nav(items: list[NavItem], current: str) -> HTML:
 The simplest pattern: components are just functions that return HTML.
 
 ```python
-from templit import html, HTML
-from templit.elements import div, h3
+from patitas import html, HTML
+from patitas.elements import div, h3
 
 def card(title: str, body_content: HTML, variant: str = "default") -> HTML:
     """A card component. Just a function."""
@@ -646,9 +646,9 @@ def blog_page(page: Page) -> HTML:
 Different contexts require different escaping rules:
 
 ```python
-from templit import html, raw
-from templit.contexts import css_safe, js_safe, url_safe
-from templit.elements import head, body, style, script, a, title as title_elem
+from patitas import html, raw
+from patitas.contexts import css_safe, js_safe, url_safe
+from patitas.elements import head, body, style, script, a, title as title_elem
 import json
 
 def page(page_title: str, theme_color: str, query: str, user_data: dict) -> HTML:
@@ -670,8 +670,8 @@ def page(page_title: str, theme_color: str, query: str, user_data: dict) -> HTML
 For fetching data during render:
 
 ```python
-from templit import HTML
-from templit.elements import div, img, span
+from patitas import HTML
+from patitas.elements import div, img, span
 import asyncio
 
 async def user_card(user_id: int) -> HTML:
@@ -693,8 +693,8 @@ async def user_grid(user_ids: list[int]) -> HTML:
 For already-rendered HTML (from Markdown, rich text editors, etc.):
 
 ```python
-from templit import html, raw
-from templit.elements import div
+from patitas import html, raw
+from patitas.elements import div
 
 def content_block(html_content: str) -> HTML:
     """Wrap pre-rendered HTML content."""
@@ -752,7 +752,7 @@ def article_meta(page: Page) -> HTML:
 ### Utility Helpers
 
 ```python
-from templit.utils import cx  # Conditional class builder (like clsx)
+from patitas.utils import cx  # Conditional class builder (like clsx)
 
 def card(page: Page) -> HTML:
     return article(
@@ -769,7 +769,7 @@ def card(page: Page) -> HTML:
         p[page.excerpt]
     ]
 
-# cx() implementation (included in templit.utils)
+# cx() implementation (included in patitas.utils)
 def cx(*args: str | tuple[str, bool] | dict[str, bool] | None) -> str | None:
     """Build class string from conditional values. Like clsx/classnames from JS."""
     classes = []
@@ -798,8 +798,8 @@ name = "bengal"
 # ...
 
 [project.optional-dependencies]
-templates = ["templit>=0.1.0"]
-all = ["templit>=0.1.0", "...other extras..."]
+templates = ["patitas>=0.1.0"]
+all = ["patitas>=0.1.0", "...other extras..."]
 ```
 
 ### Installation
@@ -808,7 +808,7 @@ all = ["templit>=0.1.0", "...other extras..."]
 # Standard Bengal (Jinja2 only)
 pip install bengal
 
-# Bengal with templit support
+# Bengal with patitas support
 pip install bengal[templates]
 
 # Or with uv
@@ -818,33 +818,33 @@ uv add bengal[templates]
 ### Integration Module (Minimal)
 
 The integration layer is intentionally thin—it just provides Bengal-specific helpers
-while letting you use templit directly:
+while letting you use patitas directly:
 
 ```python
 # bengal/rendering/templates.py
-"""Bengal helpers for templit templates (optional)."""
+"""Bengal helpers for patitas templates (optional)."""
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from templit import HTML
+    from patitas import HTML
     from bengal.core import Page, Site
 
-# Only import templit if available (optional dependency)
+# Only import patitas if available (optional dependency)
 try:
-    from templit import html, raw
-    from templit.elements import meta, link, title as title_elem
-    TEMPLIT_AVAILABLE = True
+    from patitas import html, raw
+    from patitas.elements import meta, link, title as title_elem
+    PATITAS_AVAILABLE = True
 except ImportError:
-    TEMPLIT_AVAILABLE = False
+    PATITAS_AVAILABLE = False
 
 
-def check_templit() -> None:
-    """Raise helpful error if templit not installed."""
-    if not TEMPLIT_AVAILABLE:
+def check_patitas() -> None:
+    """Raise helpful error if patitas not installed."""
+    if not PATITAS_AVAILABLE:
         raise ImportError(
-            "templit is not installed. Install with: pip install bengal[templates]"
+            "patitas is not installed. Install with: pip install bengal[templates]"
         )
 
 
@@ -852,7 +852,7 @@ def check_templit() -> None:
 
 def meta_tags(page: "Page") -> "HTML":
     """Generate standard meta tags for a page."""
-    check_templit()
+    check_patitas()
     return html[
         meta(charset="utf-8"),
         meta(name="viewport", content="width=device-width, initial-scale=1"),
@@ -864,7 +864,7 @@ def meta_tags(page: "Page") -> "HTML":
 
 def stylesheets(site: "Site") -> "HTML":
     """Generate stylesheet links for theme."""
-    check_templit()
+    check_patitas()
     return html[
         link(rel="stylesheet", href=url)
         for url in site.theme_stylesheets
@@ -887,11 +887,11 @@ def canonical_url(path: str, site: "Site") -> str:
 
 ```python
 # themes/modern/templates/page.py
-"""Page template using templit."""
+"""Page template using patitas."""
 
-# Standard templit imports
-from templit import html, raw
-from templit.elements import (
+# Standard patitas imports
+from patitas import html, raw
+from patitas.elements import (
     doctype, html as html_elem, head, body, main, article, h1,
     header, footer, nav, a, ul, li, div
 )
@@ -962,25 +962,25 @@ def page_template(page: Page, site: Site) -> "HTML":
 # no children() magic. Just functions calling functions.
 ```
 
-### Hybrid Jinja2 + templit (Migration Path)
+### Hybrid Jinja2 + patitas (Migration Path)
 
 ```python
-# Gradual migration: use templit for new components, keep Jinja2 for existing
+# Gradual migration: use patitas for new components, keep Jinja2 for existing
 
-from templit import html, raw
-from templit.elements import header, footer
+from patitas import html, raw
+from patitas.elements import header, footer
 from bengal.rendering import jinja_env
 
 def hybrid_page(page: Page, site: Site) -> HTML:
-    """Mix new templit components with existing Jinja2 templates."""
+    """Mix new patitas components with existing Jinja2 templates."""
     return html[
-        # New templit header
+        # New patitas header
         site_header(site),
 
         # Existing Jinja2 content (just render and wrap with raw())
         raw(jinja_env.get_template("content.html").render(page=page)),
 
-        # New templit footer
+        # New patitas footer
         site_footer(site),
     ]
 ```
@@ -992,7 +992,7 @@ def hybrid_page(page: Page, site: Site) -> HTML:
 ### Core Types
 
 ```python
-# src/templit/types.py
+# src/patitas/types.py
 from __future__ import annotations
 from typing import Protocol, runtime_checkable, Union, Sequence, TYPE_CHECKING
 
@@ -1017,7 +1017,7 @@ HTMLContent = Union[
 ### HTML Class
 
 ```python
-# src/templit/core.py
+# src/patitas/core.py
 from __future__ import annotations
 from string.templatelib import Template, Interpolation
 from .escaping import escape_html
@@ -1122,7 +1122,7 @@ html = HTML
 ### Element Factory
 
 ```python
-# src/templit/elements.py
+# src/patitas/elements.py
 from __future__ import annotations
 from typing import Any
 from types import GeneratorType
@@ -1255,7 +1255,7 @@ def __getattr__(name: str) -> Element:
 ### Component System
 
 ```python
-# src/templit/components.py
+# src/patitas/components.py
 from __future__ import annotations
 from typing import Callable, TypeVar, ParamSpec
 from contextvars import ContextVar
@@ -1357,7 +1357,7 @@ def component(func: Callable[P, HTML]) -> Callable[P, Component]:
 ### Escaping Functions
 
 ```python
-# src/templit/escaping.py
+# src/patitas/escaping.py
 """Context-aware escaping for XSS prevention."""
 
 import html as html_module
@@ -1395,7 +1395,7 @@ def escape_url_path(value: str) -> str:
 ### Context Processors
 
 ```python
-# src/templit/contexts.py
+# src/patitas/contexts.py
 """Context-specific t-string processors."""
 
 from __future__ import annotations
@@ -1442,13 +1442,13 @@ class url(_ContextProcessor):
 ### Public API
 
 ```python
-# src/templit/__init__.py
+# src/patitas/__init__.py
 """
-templit - A Python 3.14-native HTML templating library using t-strings.
+patitas - A Python 3.14-native HTML templating library using t-strings.
 
 Usage:
-    from templit import html, HTML
-    from templit.elements import div, h1, p
+    from patitas import html, HTML
+    from patitas.elements import div, h1, p
 
     def card(title: str, body: HTML) -> HTML:
         return div(class_="card")[
@@ -1505,15 +1505,15 @@ __all__ = [
 ]
 
 # Advanced API (imported separately if needed)
-# from templit.advanced import component, children
+# from patitas.advanced import component, children
 ```
 
-Note: Elements are imported from `templit.elements`, not the main package.
+Note: Elements are imported from `patitas.elements`, not the main package.
 This keeps the top-level import clean and makes dependencies explicit:
 
 ```python
-from templit import html, HTML, raw, cx
-from templit.elements import div, h1, p, a, ul, li  # What you actually use
+from patitas import html, HTML, raw, cx
+from patitas.elements import div, h1, p, a, ul, li  # What you actually use
 ```
 
 ---
@@ -1524,8 +1524,8 @@ from templit.elements import div, h1, p, a, ul, li  # What you actually use
 
 ```python
 from flask import Flask
-from templit import html, HTML
-from templit.elements import (
+from patitas import html, HTML
+from patitas.elements import (
     doctype, html as html_elem, head, body, title as title_elem,
     div, h1, p, link
 )
@@ -1550,7 +1550,7 @@ def index():
     content = html[
         div(class_="container")[
             h1["Welcome"],
-            p["This is a Flask app using templit."]
+            p["This is a Flask app using patitas."]
         ]
     ]
     return str(layout("Home", content))
@@ -1561,7 +1561,7 @@ def index():
 ```python
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from templit import html, div, h1, ul, li
+from patitas import html, div, h1, ul, li
 
 app = FastAPI()
 
@@ -1577,16 +1577,16 @@ async def index():
 ### Django (Template Tag)
 
 ```python
-# templatetags/templit_tags.py
+# templatetags/patitas_tags.py
 from django import template
 from django.utils.safestring import mark_safe
-from templit import HTML
+from patitas import HTML
 
 register = template.Library()
 
 @register.simple_tag
-def templit(component_func, *args, **kwargs):
-    """Render a templit component in Django templates."""
+def patitas(component_func, *args, **kwargs):
+    """Render a patitas component in Django templates."""
     result = component_func(*args, **kwargs)
     if isinstance(result, HTML):
         return mark_safe(str(result))
@@ -1595,9 +1595,9 @@ def templit(component_func, *args, **kwargs):
 
 ---
 
-## Comparison: templit vs Alternatives
+## Comparison: patitas vs Alternatives
 
-| Feature | templit | Jinja2 | htpy | PyHTML |
+| Feature | patitas | Jinja2 | htpy | PyHTML |
 |---------|---------|--------|------|--------|
 | Python version | 3.14+ | 3.7+ | 3.8+ | 3.6+ |
 | T-string support | ✅ Native | ❌ | ❌ | ❌ |
@@ -1614,7 +1614,7 @@ def templit(component_func, *args, **kwargs):
 
 ## Implementation Plan
 
-### Phase 1: templit Core (3-4 weeks)
+### Phase 1: patitas Core (3-4 weeks)
 
 **Week 1-2: Foundation**
 - [ ] Project scaffolding (pyproject.toml, CI/CD, `uv`)
@@ -1635,14 +1635,14 @@ def templit(component_func, *args, **kwargs):
 **Optional: Advanced API**
 - [ ] `@component` decorator (for React-style syntax)
 - [ ] `children()` function (for React-style syntax)
-- Place in `templit.advanced` submodule, not main API
+- Place in `patitas.advanced` submodule, not main API
 
 ### Phase 2: Bengal Integration (2 weeks)
 
 - [ ] Add `bengal[templates]` optional dependency
 - [ ] Create `bengal.rendering.templates` helper module
 - [ ] Bengal-specific helpers (meta_tags, asset_url, etc.)
-- [ ] Hybrid Jinja2/templit support
+- [ ] Hybrid Jinja2/patitas support
 - [ ] Migrate one default theme template as proof of concept
 
 ### Phase 3: Ecosystem (Ongoing)
@@ -1659,13 +1659,13 @@ def templit(component_func, *args, **kwargs):
 ### Q1: Repository location?
 
 **Options**:
-- A) Monorepo: `bengal/packages/templit/`
-- B) Separate repo: `github.com/bengal-ssg/templit`
-- C) Separate org: `github.com/templit/templit`
+- A) Monorepo: `bengal/packages/patitas/`
+- B) Separate repo: `github.com/bengal-ssg/patitas`
+- C) Separate org: `github.com/patitas/patitas`
 
 **Recommendation**: Option B - Separate repo under Bengal org. Maintains clear ownership while allowing independent development.
 
-### Q2: Should templit work on Python < 3.14?
+### Q2: Should patitas work on Python < 3.14?
 
 **Options**:
 - A) 3.14+ only (full t-string support)
@@ -1689,7 +1689,7 @@ The `html` builder and `<html>` element share a name.
 
 ## Success Criteria
 
-### templit (Standalone)
+### patitas (Standalone)
 
 1. **Adoption**: 100+ GitHub stars within 3 months
 2. **Quality**: 95%+ test coverage, zero type errors
@@ -1699,9 +1699,9 @@ The `html` builder and `<html>` element share a name.
 ### Bengal Integration
 
 1. **Seamless**: `pip install bengal[templates]` just works
-2. **Migration**: Clear path from Jinja2 to templit
-3. **Hybrid**: Jinja2 and templit can coexist
-4. **Default**: One default theme template uses templit
+2. **Migration**: Clear path from Jinja2 to patitas
+3. **Hybrid**: Jinja2 and patitas can coexist
+4. **Default**: One default theme template uses patitas
 
 ---
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-templit prototype - Pythonic HTML templating
+patitas prototype - Pythonic HTML templating
 
 A minimal implementation to validate the "just Python" design philosophy.
 Requires Python 3.10+ (3.14 for full t-string support).
 
 Usage:
-    python prototypes/templit_prototype.py
+    python prototypes/patitas_prototype.py
 """
 
 from __future__ import annotations
@@ -331,10 +331,10 @@ def cx(*args: str | tuple[str, bool] | dict[str, bool] | None) -> str | None:
 
 
 def demo():
-    """Demonstrate templit features."""
+    """Demonstrate patitas features."""
 
     print("=" * 60)
-    print("templit prototype demo")
+    print("patitas prototype demo")
     print("=" * 60)
 
     # 1. Basic elements
