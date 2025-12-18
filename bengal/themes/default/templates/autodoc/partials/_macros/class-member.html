@@ -15,7 +15,7 @@ Args:
 
 {% macro class_member(cls, is_first=false) %}
 {% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
-{% set cls_attrs = cls.metadata.attributes | default([]) %}
+{% set cls_attrs = cls.metadata.attributes or [] %}
 {% set total_members = (cls_methods | length) + (cls_attrs | length) %}
 {% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
 {% set is_abstract = cls.metadata.is_abstract | default(false) %}

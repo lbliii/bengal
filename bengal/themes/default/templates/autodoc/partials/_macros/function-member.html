@@ -14,8 +14,8 @@ Args:
 #}
 
 {% macro function_member(func, is_first=false) %}
-{% set func_params = func.metadata.parameters | default([]) %}
-{% set func_return = func.metadata.return_type | default(func.metadata.returns | default('')) %}
+{% set func_params = func.metadata.parameters or [] %}
+{% set func_return = func.metadata.return_type or func.metadata.returns or '' %}
 {% set is_async = func.metadata.is_async | default(false) %}
 
 <details class="autodoc-member" data-member="function" {% if is_first %}open{% endif %}>
