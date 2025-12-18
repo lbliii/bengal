@@ -15,9 +15,19 @@ Include partials in your autodoc templates:
 Or import macros:
 
 ```jinja
-{% from 'autodoc/partials/cards.html' import element_card with context %}
-{{ element_card(child) }}
+{% from 'autodoc/partials/_macros/class-member.html' import class_member %}
+{% from 'autodoc/partials/_macros/function-member.html' import function_member %}
+{{ class_member(cls, is_first=loop.first) }}
+{{ function_member(func, is_first=loop.first) }}
 ```
+
+## Available Macros (_macros/)
+
+| Macro | Purpose | Args |
+|-------|---------|------|
+| `class-member.html` | Collapsible class card with dots, counts | `cls`, `is_first` |
+| `function-member.html` | Collapsible function card with dots, return type | `func`, `is_first` |
+| `element-card.html` | Link card for navigation | `child`, `card_type`, `url_prefix` |
 
 ## Available Partials
 
@@ -31,7 +41,7 @@ Or import macros:
 | `returns.html` | Return type/value | `element` |
 | `raises.html` | Exception list | `element` |
 | `examples.html` | Code examples | `element` or `examples` |
-| `members.html` | Collapsible methods/attributes | `members` (list) |
+| `members.html` | Collapsible methods/attributes (with internal separation) | `members` (list) |
 | `cards.html` | Card grid for children | `children` (list) |
 
 ## CSS Classes

@@ -1,0 +1,111 @@
+{#
+Function Member Macro
+
+Renders a function as a collapsible card with status dot, param count, and return type.
+Uses the unified autodoc design system.
+
+Usage:
+  {% from 'autodoc/partials/_macros/function-member.html' import function_member %}
+  {{ function_member(func, is_first=loop.first) }}
+
+Args:
+  func: Function DocElement to render (required)
+  is_first: Whether this is the first item (to auto-open)
+#}
+
+{% macro function_member(func, is_first=false) %}
+{% set func_params = func.metadata.parameters | default([]) %}
+{% set func_return = func.metadata.return_type | default(func.metadata.returns | default('')) %}
+{% set is_async = func.metadata.is_async | default(false) %}
+
+<details class="autodoc-member" data-member="function" {% if is_first %}open{% endif %}>
+  <summary class="autodoc-member-header">
+    {# Status dot (green for functions) #}
+    <span class="autodoc-member-dot"></span>
+
+    {# Content wrapper #}
+    <div class="autodoc-member-content">
+      <div class="autodoc-member-name-row">
+        <code class="autodoc-member-name">{{ func.name }}</code>
+        {# Parameter count badge #}
+        <span class="autodoc-member-count" title="{{ func_params | length }} parameter{% if func_params | length != 1 %}s{% endif %}">{{ func_params | length }}</span>
+        {# Return type with arrow #}
+        {% if func_return %}
+        <span class="autodoc-member-return" title="Returns {{ func_return }}">
+          <code>{{ func_return | truncate(25, True, '…') }}</code>
+        </span>
+        {% endif %}
+        {# Toggle indicator #}
+        <span class="autodoc-member-toggle">▼</span>
+      </div>
+      {# Description preview #}
+      {% if func.description %}
+      <span class="autodoc-member-desc-preview">{{ func.description | truncate(100, True, '…') }}</span>
+      {% endif %}
+    </div>
+
+    {# Badges #}
+    {% if is_async %}
+    <span class="autodoc-member-badges">
+      <span class="autodoc-badge" data-badge="async">async</span>
+    </span>
+    {% endif %}
+  </summary>
+
+  <div class="autodoc-member-body">
+    {% if func.description %}
+    <div class="autodoc-member-desc">
+      <p>{{ func.description }}</p>
+    </div>
+    {% endif %}
+
+    {# Function parameters #}
+    {% if func_params %}
+    <dl class="autodoc-params">
+      {% for param in func_params %}
+      {% set param_name = param.name if param.name is defined else param.get('name', '') %}
+      {% set param_type = param.type if param.type is defined else param.get('type', '') %}
+      {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
+      {% set param_default = param.default if param.default is defined else param.get('default', none) %}
+      <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
+        <dt class="autodoc-param-name">
+          <code>{{ param_name }}</code>
+          {% if param_type %}
+          <span class="autodoc-param-type">{{ param_type }}</span>
+          {% endif %}
+        </dt>
+        <dd class="autodoc-param-desc">
+          {{ param_desc }}
+          {% if param_default is not none %}
+          <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+          {% endif %}
+        </dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+
+    {# Return type (detailed) #}
+    {% if func_return %}
+    <div class="autodoc-returns">
+      <code class="autodoc-returns-type">{{ func_return }}</code>
+      {% if func.metadata.return_description %}
+      <span class="autodoc-returns-desc">{{ func.metadata.return_description }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Raises #}
+    {% if func.metadata.raises %}
+    <dl class="autodoc-raises">
+      {% for exc in func.metadata.raises %}
+      <div class="autodoc-raise">
+        <dt><code>{{ exc.type | default(exc.get('type', '')) }}</code></dt>
+        <dd>{{ exc.description | default(exc.get('description', '')) }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

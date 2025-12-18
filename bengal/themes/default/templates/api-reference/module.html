@@ -5,7 +5,7 @@ API Reference Module Template
 
 Renders a Python module's API documentation using the unified autodoc skeleton.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses autodoc.css for all styling.
+Uses autodoc.css for all styling and autodoc/partials for components.
 
 This template receives:
 - element: DocElement for the module
@@ -14,6 +14,8 @@ This template receives:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'autodoc/partials/_macros/class-member.html' import class_member %}
+{% from 'autodoc/partials/_macros/function-member.html' import function_member %}
 
 {% block content %}
 {# Pre-compute element children - use getattr for safe access #}
@@ -33,192 +35,25 @@ This template receives:
     {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
     {% include 'partials/page-hero/element.html' %}
 
-    {# Article Content - New autodoc skeleton #}
+    {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">
 
-      {# Classes Section - Expandable rows with status dots #}
+      {# Classes Section #}
       {% if classes %}
       <section class="autodoc-section" data-section="classes">
         <h2 class="autodoc-section-title">Classes</h2>
         {% for cls in classes %}
-        {% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
-        {% set cls_attrs = cls.metadata.attributes | default([]) %}
-        {% set total_members = (cls_methods | length) + (cls_attrs | length) %}
-        <details class="autodoc-member" data-member="class" {% if loop.first %}open{% endif %}>
-          <summary class="autodoc-member-header">
-            {# Status dot (yellow/amber for classes) #}
-            <span class="autodoc-member-dot"></span>
-
-            {# Content wrapper #}
-            <div class="autodoc-member-content">
-              <div class="autodoc-member-name-row">
-                <code class="autodoc-member-name">{{ cls.name }}</code>
-                {# Count badge #}
-                <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% endif %}{% if cls_attrs %}, {{ cls_attrs | length }} attribute{% if cls_attrs | length != 1 %}s{% endif %}{% endif %}">{{ total_members }}</span>
-                {# Toggle indicator #}
-                <span class="autodoc-member-toggle">▼</span>
-              </div>
-              {# Description preview #}
-              {% if cls.description %}
-              <span class="autodoc-member-desc-preview">{{ cls.description | truncate(100, True, '…') }}</span>
-              {% endif %}
-            </div>
-
-            {# Badges #}
-            <span class="autodoc-member-badges">
-              {% if cls.metadata.is_dataclass %}
-              <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-              {% endif %}
-              {% if cls.metadata.is_abstract %}
-              <span class="autodoc-badge" data-badge="abstract">abstract</span>
-              {% endif %}
-            </span>
-          </summary>
-          <div class="autodoc-member-body">
-            {% if cls.description %}
-            <div class="autodoc-member-desc">
-              <p>{{ cls.description }}</p>
-            </div>
-            {% endif %}
-
-            {# Class attributes #}
-            {% if cls_attrs %}
-            <div class="autodoc-section" data-section="attributes">
-              <h4 class="autodoc-label">Attributes</h4>
-              <table class="autodoc-table" data-table="attributes">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for attr in cls_attrs %}
-                  <tr>
-                    <td class="autodoc-cell-name"><code>{{ attr.name | default(attr.get('name', '')) }}</code></td>
-                    <td class="autodoc-cell-type"><code>{{ attr.type | default(attr.get('type', '')) }}</code></td>
-                    <td class="autodoc-cell-desc">{{ attr.description | default(attr.get('description', '')) }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% endif %}
-
-            {# Class methods as nested expandable items #}
-            {% if cls_methods %}
-            <div class="autodoc-section" data-section="methods">
-              <h4 class="autodoc-label">Methods</h4>
-              {% set members = cls_methods %}
-              {% set title = '' %}
-              {% set member_type = 'method' %}
-              {% set first_open = false %}
-              {% include 'autodoc/partials/members.html' %}
-            </div>
-            {% endif %}
-          </div>
-        </details>
+        {{ class_member(cls, is_first=loop.first) }}
         {% endfor %}
       </section>
       {% endif %}
 
-      {# Functions Section - Expandable rows with status dots #}
+      {# Functions Section #}
       {% if functions %}
       <section class="autodoc-section" data-section="functions">
         <h2 class="autodoc-section-title">Functions</h2>
         {% for func in functions %}
-        {% set func_params = func.metadata.parameters | default([]) %}
-        {% set func_return = func.metadata.return_type | default(func.metadata.returns | default('')) %}
-        <details class="autodoc-member" data-member="function" {% if loop.first %}open{% endif %}>
-          <summary class="autodoc-member-header">
-            {# Status dot (green for functions) #}
-            <span class="autodoc-member-dot"></span>
-
-            {# Content wrapper #}
-            <div class="autodoc-member-content">
-              <div class="autodoc-member-name-row">
-                <code class="autodoc-member-name">{{ func.name }}</code>
-                {# Parameter count badge #}
-                <span class="autodoc-member-count" title="{{ func_params | length }} parameter{% if func_params | length != 1 %}s{% endif %}">{{ func_params | length }}</span>
-                {# Return type with arrow #}
-                {% if func_return %}
-                <span class="autodoc-member-return" title="Returns {{ func_return }}">
-                  <code>{{ func_return | truncate(25, True, '…') }}</code>
-                </span>
-                {% endif %}
-                {# Toggle indicator #}
-                <span class="autodoc-member-toggle">▼</span>
-              </div>
-              {# Description preview #}
-              {% if func.description %}
-              <span class="autodoc-member-desc-preview">{{ func.description | truncate(100, True, '…') }}</span>
-              {% endif %}
-            </div>
-
-            {# Badges #}
-            {% if func.metadata.is_async %}
-            <span class="autodoc-member-badges">
-              <span class="autodoc-badge" data-badge="async">async</span>
-            </span>
-            {% endif %}
-          </summary>
-          <div class="autodoc-member-body">
-            {% if func.description %}
-            <div class="autodoc-member-desc">
-              <p>{{ func.description }}</p>
-            </div>
-            {% endif %}
-
-            {# Function parameters #}
-            {% if func_params %}
-            <dl class="autodoc-params">
-              {% for param in func_params %}
-              {% set param_name = param.name if param.name is defined else param.get('name', '') %}
-              {% set param_type = param.type if param.type is defined else param.get('type', '') %}
-              {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
-              {% set param_default = param.default if param.default is defined else param.get('default', none) %}
-              <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
-                <dt class="autodoc-param-name">
-                  <code>{{ param_name }}</code>
-                  {% if param_type %}
-                  <span class="autodoc-param-type">{{ param_type }}</span>
-                  {% endif %}
-                </dt>
-                <dd class="autodoc-param-desc">
-                  {{ param_desc }}
-                  {% if param_default is not none %}
-                  <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-                  {% endif %}
-                </dd>
-              </div>
-              {% endfor %}
-            </dl>
-            {% endif %}
-
-            {# Return type #}
-            {% if func_return %}
-            <div class="autodoc-returns">
-              <code class="autodoc-returns-type">{{ func_return }}</code>
-              {% if func.metadata.return_description %}
-              <span class="autodoc-returns-desc">{{ func.metadata.return_description }}</span>
-              {% endif %}
-            </div>
-            {% endif %}
-
-            {# Raises #}
-            {% if func.metadata.raises %}
-            <dl class="autodoc-raises">
-              {% for exc in func.metadata.raises %}
-              <div class="autodoc-raise">
-                <dt><code>{{ exc.type | default(exc.get('type', '')) }}</code></dt>
-                <dd>{{ exc.description | default(exc.get('description', '')) }}</dd>
-              </div>
-              {% endfor %}
-            </dl>
-            {% endif %}
-          </div>
-        </details>
+        {{ function_member(func, is_first=loop.first) }}
         {% endfor %}
       </section>
       {% endif %}
