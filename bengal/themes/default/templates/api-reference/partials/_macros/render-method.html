@@ -25,28 +25,25 @@ Args:
 
   <details class="api-card api-card--collapsible api-card--method{% if is_property %} api-card--property{% endif %}{% if is_async %} api-card--async{% endif %}{% if is_private %} api-card--private{% endif %}">
     <summary class="api-card__header">
-      {# Icon based on type #}
-      <span class="api-card__icon">
-        {% if is_property %}
-        {{ icon('tag', size=16) }}
-        {% elif is_async %}
-        {{ icon('lightning', size=16) }}
-        {% elif is_classmethod or is_staticmethod %}
-        {{ icon('cube', size=16) }}
-        {% else %}
-        {{ icon('function', size=16) }}
-        {% endif %}
-      </span>
+      {# Status dot indicator #}
+      <span class="api-card__dot"></span>
 
-      {# Name + signature preview #}
+      {# Name + return type #}
       <div class="api-card__info">
         <div class="api-card__name-row">
           <code class="api-card__name">{{ method.name }}</code>
-          {# Inline badges #}
-          {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
-          {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
-          {% if is_classmethod %}<span class="api-badge--inline api-badge--classmethod">classmethod</span>{% endif %}
-          {% if is_staticmethod %}<span class="api-badge--inline api-badge--staticmethod">staticmethod</span>{% endif %}
+          {# Parameter count badge (skip for properties) #}
+          {% if not is_property %}
+          <span class="api-card__count-badge" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">{{ method_param_count }}</span>
+          {% endif %}
+          {# Return type with arrow #}
+          <span class="api-card__return-arrow" title="Returns {{ method_return_type }}">
+            <code>{{ method_return_type | truncate(20, True, '…') }}</code>
+          </span>
+          {# Toggle indicator #}
+          <span class="api-card__toggle">
+            {{ icon('caret-down', size=14) }}
+          </span>
         </div>
         {# Description preview #}
         {% if first_sentence %}
@@ -54,24 +51,13 @@ Args:
         {% endif %}
       </div>
 
-      {# Meta info: params + return #}
+      {# Inline badges #}
       <div class="api-card__meta">
-        {% if not is_property %}
-        <span class="api-card__params" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">
-          {{ icon('brackets-curly', size=12) }}
-          <span>{{ method_param_count }}</span>
-        </span>
-        {% endif %}
-        <span class="api-card__return" title="Returns {{ method_return_type }}">
-          {{ icon('arrow-right', size=12) }}
-          <code>{{ method_return_type | truncate(20, True, '…') }}</code>
-        </span>
+        {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
+        {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
+        {% if is_classmethod %}<span class="api-badge--inline api-badge--classmethod">classmethod</span>{% endif %}
+        {% if is_staticmethod %}<span class="api-badge--inline api-badge--staticmethod">staticmethod</span>{% endif %}
       </div>
-
-      {# Expand indicator #}
-      <span class="api-card__toggle">
-        {{ icon('caret-right', size=14) }}
-      </span>
     </summary>
 
     <div class="api-card__body">

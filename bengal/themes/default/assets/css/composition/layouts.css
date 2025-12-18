@@ -115,23 +115,19 @@ body[data-type="python-reference"] .docs-main > * {
 }
 
 /* OpenAPI/CLI reference pages use app-like card layouts (not long-form prose).
-   The .prose wrapper is full-width, but we constrain .docs-content and hero
-   to the same max-width (--container-lg) for visual cohesion. Card grids fit
-   nicely within this constraint while maintaining alignment with the hero. */
+   Constrain at parent level for DRY - hero, article, and navigation all inherit
+   the same max-width (--container-lg) for visual cohesion. */
+body[data-type="openapi-reference"] .docs-main > *,
+body[data-type="cli-reference"] .docs-main > * {
+  max-width: var(--container-lg, 1024px);
+}
+
+/* Reset .prose wrapper to full-width within the constrained container.
+   This allows card grids to use the full container width. */
 body[data-type="openapi-reference"] .docs-main .prose,
 body[data-type="cli-reference"] .docs-main .prose {
   max-width: 100%;
   margin-inline: 0;
-}
-
-/* Constrain .docs-content and .page-navigation for readability while allowing
-   card grids to have reasonable width. Uses wider max-width than prose (75ch)
-   to accommodate 2-column card layouts while still respecting page gutters. */
-body[data-type="openapi-reference"] .docs-main .docs-content,
-body[data-type="cli-reference"] .docs-main .docs-content,
-body[data-type="openapi-reference"] .docs-main .page-navigation,
-body[data-type="cli-reference"] .docs-main .page-navigation {
-  max-width: var(--container-lg, 1024px);
 }
 
 /* Within CLI/OpenAPI content, constrain prose text elements (usage sections,
@@ -141,13 +137,6 @@ body[data-type="cli-reference"] .docs-main .api-usage,
 body[data-type="openapi-reference"] .docs-main .cli-usage,
 body[data-type="cli-reference"] .docs-main .cli-usage {
   max-width: var(--prose-width, 75ch);
-}
-
-/* Hero should match .docs-content width for visual cohesion */
-body[data-type="openapi-reference"] .page-hero--api,
-body[data-type="cli-reference"] .page-hero--api {
-  max-width: var(--container-lg, 1024px);
-  margin-inline: 0;
 }
 
 /* Right Sidebar (TOC) - touches right edge */

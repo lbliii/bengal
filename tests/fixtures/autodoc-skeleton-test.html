@@ -507,6 +507,178 @@
         </article>
     </div>
 
+    <!-- ============================================
+       TEST 7: API Cards with Dots (New Design)
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">7. API Cards with Status Dots (Preferred Design)</div>
+
+        <div class="autodoc-explorer">
+            <!-- Class Card with dataclass badge -->
+            <details class="api-card api-card--collapsible api-card--class api-card--dataclass" open>
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">ParsedDocstring</code>
+                            <span class="api-card__count-badge">2</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Container for parsed docstring data.</span>
+                    </div>
+                    <div class="api-card__meta">
+                        <span class="api-badge--inline api-badge--dataclass">dataclass</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <div class="api-card__description">
+                        <p>Container for parsed docstring data.</p>
+                    </div>
+                    <div class="api-methods">
+                        <div class="api-methods__section">
+                            <h4 class="api-label">Methods <span class="api-label__count">1</span></h4>
+                            <details class="api-card api-card--collapsible api-card--method">
+                                <summary class="api-card__header">
+                                    <span class="api-card__dot"></span>
+                                    <div class="api-card__info">
+                                        <div class="api-card__name-row">
+                                            <code class="api-card__name">to_dict</code>
+                                            <span class="api-card__count-badge">0</span>
+                                            <span class="api-card__return-arrow"><code>dict[str, Any]</code></span>
+                                            <span class="api-card__toggle">▼</span>
+                                        </div>
+                                    </div>
+                                </summary>
+                                <div class="api-card__body">
+                                    <p>Convert to dictionary representation.</p>
+                                </div>
+                            </details>
+                        </div>
+                        <details class="api-methods__internal">
+                            <summary class="api-methods__internal-header">
+                                <span class="api-methods__internal-label">
+                                    <span>Internal Methods</span>
+                                    <span class="api-label__count">1</span>
+                                </span>
+                                <span class="api-card__toggle">▼</span>
+                            </summary>
+                            <div class="api-methods__internal-content">
+                                <details class="api-card api-card--collapsible api-card--method api-card--private">
+                                    <summary class="api-card__header">
+                                        <span class="api-card__dot"></span>
+                                        <div class="api-card__info">
+                                            <div class="api-card__name-row">
+                                                <code class="api-card__name">__init__</code>
+                                                <span class="api-card__count-badge">0</span>
+                                                <span class="api-card__return-arrow"><code>None</code></span>
+                                                <span class="api-card__toggle">▼</span>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="api-card__body">
+                                        <p>Initialize the parsed docstring.</p>
+                                    </div>
+                                </details>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </details>
+
+            <!-- More class cards (collapsed) -->
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">GoogleDocstringParser</code>
+                            <span class="api-card__count-badge">7</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse Google-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse Google-style docstrings.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">NumpyDocstringParser</code>
+                            <span class="api-card__count-badge">7</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse NumPy-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse NumPy-style docstrings.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">SphinxDocstringParser</code>
+                            <span class="api-card__count-badge">1</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse Sphinx-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse Sphinx-style docstrings.</p>
+                </div>
+            </details>
+
+            <!-- Functions section header -->
+            <h3 style="margin: 2rem 0 1rem; font-size: 1.25rem; font-weight: 600;">Functions</h3>
+
+            <!-- Function cards (green dots) -->
+            <details class="api-card api-card--collapsible api-card--function">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">parse_docstring</code>
+                            <span class="api-card__count-badge">2</span>
+                            <span class="api-card__return-arrow"><code>ParsedDocstring</code></span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse docstring and extract structured information.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse docstring and extract structured information.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--function">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">detect_docstring_style</code>
+                            <span class="api-card__count-badge">1</span>
+                            <span class="api-card__return-arrow"><code>str</code></span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Auto-detect docstring style.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Auto-detect docstring style.</p>
+                </div>
+            </details>
+        </div>
+    </div>
+
     <script>
         function toggleTheme() {
             const html = document.documentElement;

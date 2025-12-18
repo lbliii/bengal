@@ -18,51 +18,39 @@ is_first: Whether this is the first item (to auto-open)
 {% set method_count = methods | length %}
 {% set attrs = cls.metadata.attributes or [] %}
 {% set attr_count = attrs | length %}
+{% set total_items = method_count + attr_count %}
 {% set first_sentence = ((cls.description or '') | truncate(100, True, '…')) %}
 {% set bases = cls.metadata.bases or [] %}
 
 <details
-  class="api-card api-card--collapsible api-card--class{% if is_dataclass %} api-card--dataclass{% endif %}{% if is_abstract %} api-card--abstract{% endif %}">
+  class="api-card api-card--collapsible api-card--class{% if is_dataclass %} api-card--dataclass{% endif %}{% if is_abstract %} api-card--abstract{% endif %}"
+  {% if is_first %}open{% endif %}>
   <summary class="api-card__header">
-    {# Icon #}
-    <span class="api-card__icon">
-      {% if is_dataclass %}
-      {{ icon('database', size=18) }}
-      {% else %}
-      {{ icon('cube', size=18) }}
-      {% endif %}
-    </span>
+    {# Status dot indicator #}
+    <span class="api-card__dot"></span>
 
-    {# Name + description preview #}
+    {# Name + inline badges #}
     <div class="api-card__info">
       <div class="api-card__name-row">
         <code class="api-card__name">{{ cls.name }}</code>
-        {% if is_dataclass %}<span class="api-badge--inline api-badge--dataclass">dataclass</span>{% endif %}
-        {% if is_abstract %}<span class="api-badge--inline api-badge--abstract">abstract</span>{% endif %}
+        {# Count badge #}
+        <span class="api-card__count-badge" title="{{ method_count }} method{% if method_count != 1 %}s{% endif %}{% if attr_count > 0 %}, {{ attr_count }} attribute{% if attr_count != 1 %}s{% endif %}{% endif %}">{{ total_items }}</span>
+        {# Toggle indicator #}
+        <span class="api-card__toggle">
+          {{ icon('caret-down', size=14) }}
+        </span>
       </div>
+      {# Description preview on second line #}
       {% if first_sentence %}
       <span class="api-card__desc-preview">{{ first_sentence }}</span>
       {% endif %}
     </div>
 
-    {# Meta: attributes + methods #}
+    {# Inline type badges - dataclass, abstract #}
     <div class="api-card__meta">
-      {% if attr_count > 0 %}
-      <span class="api-card__count" title="{{ attr_count }} attribute{% if attr_count != 1 %}s{% endif %}">
-        {{ icon('list-bullets', size=12) }}
-        <span>{{ attr_count }} attr</span>
-      </span>
-      {% endif %}
-      <span class="api-card__count" title="{{ method_count }} method{% if method_count != 1 %}s{% endif %}">
-        {{ icon('function', size=12) }}
-        <span>{{ method_count }}</span>
-      </span>
+      {% if is_dataclass %}<span class="api-badge--inline api-badge--dataclass">dataclass</span>{% endif %}
+      {% if is_abstract %}<span class="api-badge--inline api-badge--abstract">abstract</span>{% endif %}
     </div>
-
-    {# Toggle #}
-    <span class="api-card__toggle">
-      {{ icon('caret-right', size=14) }}
-    </span>
   </summary>
 
   <div class="api-card__body">

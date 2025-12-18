@@ -26,23 +26,24 @@ For individual methods, import the macro:
 <div class="api-methods">
   {# Public Methods - shown first, prominently #}
   {% if public_methods %}
-  <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
-  {% for method in public_methods %}
-  {{ render_method(method) }}
-  {% endfor %}
+  <div class="api-methods__section">
+    <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
+    {% for method in public_methods %}
+    {{ render_method(method) }}
+    {% endfor %}
+  </div>
   {% endif %}
 
-  {# Private/Internal Methods - collapsed by default #}
+  {# Private/Internal Methods - collapsed by default with clear separation #}
   {% if private_methods %}
   <details class="api-methods__internal">
     <summary class="api-methods__internal-header">
       <span class="api-methods__internal-label">
-        {{ icon('lock', size=14) }}
         <span>Internal Methods</span>
         <span class="api-label__count">{{ private_methods | length }}</span>
       </span>
       <span class="api-card__toggle">
-        {{ icon('caret-right', size=14) }}
+        {{ icon('caret-down', size=14) }}
       </span>
     </summary>
     <div class="api-methods__internal-content">
