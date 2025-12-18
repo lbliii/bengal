@@ -57,6 +57,374 @@ pip install bengal[templates]
 
 ---
 
+## SSG Requirements Analysis
+
+Based on analysis of Bengal's 80+ Jinja2 templates, templit must support these patterns:
+
+### 1. Template Functions (Globals)
+
+Bengal templates rely on ~30 global functions:
+
+```python
+# Current Jinja2 usage
+{{ icon('search', size=16) }}
+{{ get_breadcrumbs(page) }}
+{{ canonical_url(page.url) }}
+{{ asset_url('css/style.css') }}
+{{ tag_url('python') }}
+```
+
+**templit solution**: Context-aware function registry
+
+```python
+from templit import html, Context
+
+# Create context with SSG functions
+ctx = Context()
+ctx.register_function('icon', render_icon)
+ctx.register_function('asset_url', lambda p: f"/assets/{p}")
+ctx.register_function('canonical_url', lambda u: f"{site.baseurl}{u}")
+
+# Functions available in templates
+def nav_link(item: NavItem) -> HTML:
+    return html[
+        a(href=ctx.call('canonical_url', item.url))[
+            ctx.call('icon', item.icon, size=16),
+            item.name
+        ]
+    ]
+
+# Or via context manager for cleaner syntax
+with ctx:
+    def nav_link(item: NavItem) -> HTML:
+        return html[
+            a(href=canonical_url(item.url))[
+                icon(item.icon, size=16),
+                item.name
+            ]
+        ]
+```
+
+### 2. Filters
+
+Bengal uses ~25 filters for transformations:
+
+```jinja2
+{{ page.date | dateformat('%B %d, %Y') }}
+{{ page.content | strip_html | excerpt(150) }}
+{{ page.url | absolute_url }}
+{{ page.tags | meta_keywords(10) }}
+```
+
+**templit solution**: Pipeable filter functions
+
+```python
+from templit import pipe, html
+
+# Register filters
+@filter
+def dateformat(dt: datetime, fmt: str) -> str:
+    return dt.strftime(fmt)
+
+@filter
+def excerpt(text: str, length: int = 150) -> str:
+    return text[:length] + "..." if len(text) > length else text
+
+# Usage with pipe operator
+def article_meta(page: Page) -> HTML:
+    return html[
+        time(datetime=page.date.isoformat())[
+            pipe(page.date, dateformat, '%B %d, %Y')
+        ],
+        p(class_="excerpt")[
+            pipe(page.content, strip_html, excerpt, 150)
+        ]
+    ]
+
+# Or method chaining style
+def article_meta(page: Page) -> HTML:
+    return html[
+        time(datetime=page.date.isoformat())[
+            page.date.dateformat('%B %d, %Y')
+        ],
+        p(class_="excerpt")[
+            page.content.strip_html().excerpt(150)
+        ]
+    ]
+```
+
+### 3. Template Inheritance (Layouts)
+
+Bengal uses `{% extends %}` and `{% block %}`:
+
+```jinja2
+{% extends "base.html" %}
+{% block content %}
+  <article>{{ content | safe }}</article>
+{% endblock %}
+```
+
+**templit solution**: Composition with layout functions
+
+```python
+from templit import component, children, slot, HTML
+
+@component
+def base_layout(site: Site):
+    """Base layout with named slots."""
+    return html[
+        doctype(),
+        html_elem(lang=site.language)[
+            head[
+                slot('head'),  # Named slot
+                link(rel="stylesheet", href=asset_url('css/style.css'))
+            ],
+            body[
+                site_header(site),
+                main[children()],  # Default slot
+                site_footer(site),
+                slot('scripts')  # Named slot
+            ]
+        ]
+    ]
+
+# Usage with slots
+def blog_page(page: Page, site: Site) -> HTML:
+    return base_layout(site).slots(
+        head=html[title[page.title]],
+        scripts=html[script(src="/js/blog.js")]
+    )[
+        article(class_="blog-post")[
+            h1[page.title],
+            raw(page.content_html)
+        ]
+    ]
+```
+
+### 4. Partials / Includes
+
+Bengal includes reusable partials:
+
+```jinja2
+{% include 'partials/page-hero.html' %}
+{% include 'partials/docs-nav.html' %}
+```
+
+**templit solution**: Just functions
+
+```python
+# Partials are just functions - no special syntax needed
+def page_hero(page: Page, variant: str = "editorial") -> HTML:
+    return header(class_=f"page-hero page-hero--{variant}")[
+        h1[page.title],
+        page.description and p(class_="lead")[page.description]
+    ]
+
+def docs_nav(page: Page, site: Site) -> HTML:
+    return nav(class_="docs-nav")[
+        ul[
+            li[a(href=section.url)[section.title]]
+            for section in site.sections
+        ]
+    ]
+
+# Usage - just call the function
+def doc_page(page: Page, site: Site) -> HTML:
+    return div(class_="docs-layout")[
+        aside[docs_nav(page, site)],  # Include partial
+        main[
+            page_hero(page),           # Include partial
+            article[raw(page.content_html)]
+        ]
+    ]
+```
+
+### 5. Macros (Reusable Components)
+
+Bengal uses Jinja2 macros for reusable patterns:
+
+```jinja2
+{% macro article_card(article, show_excerpt=True) %}
+<article class="card">
+  <h2><a href="{{ article.url }}">{{ article.title }}</a></h2>
+  {% if show_excerpt %}
+    <p>{{ article.excerpt }}</p>
+  {% endif %}
+</article>
+{% endmacro %}
+
+{{ article_card(post, show_excerpt=False) }}
+```
+
+**templit solution**: `@component` decorator
+
+```python
+@component
+def article_card(article: Page, show_excerpt: bool = True) -> HTML:
+    return article(class_="card")[
+        h2[a(href=article.url)[article.title]],
+        show_excerpt and p[article.excerpt]
+    ]
+
+# Usage
+article_card(post, show_excerpt=False)
+```
+
+### 6. Conditional Rendering
+
+Bengal templates use complex conditionals:
+
+```jinja2
+{% if page.date %}
+  <time>{{ page.date | time_ago }}</time>
+{% endif %}
+
+{% if page.tags and 'featured' in page.tags %}
+  <span class="badge">Featured</span>
+{% endif %}
+```
+
+**templit solution**: Python expressions + `and` short-circuit
+
+```python
+def article_meta(page: Page) -> HTML:
+    return div(class_="meta")[
+        # Conditional with and (renders None if falsy, which is ignored)
+        page.date and time(datetime=page.date.isoformat())[
+            time_ago(page.date)
+        ],
+
+        # More complex conditional
+        has_tag(page, 'featured') and span(class_="badge")["Featured"],
+
+        # Or explicit if/else
+        span(class_="status")[
+            "Published" if page.published else "Draft"
+        ]
+    ]
+```
+
+### 7. Loops with Conditionals
+
+Bengal uses filtered loops extensively:
+
+```jinja2
+{% for item in items if item.visible %}
+  <li class="{{ 'active' if item.active else '' }}">
+    <a href="{{ item.url }}">{{ item.name }}</a>
+  </li>
+{% endfor %}
+```
+
+**templit solution**: Python comprehensions
+
+```python
+def nav_menu(items: list[NavItem], current: str) -> HTML:
+    return ul(class_="nav")[
+        li(class_="active" if item.slug == current else None)[
+            a(href=item.url)[item.name]
+        ]
+        for item in items
+        if item.visible
+    ]
+```
+
+### 8. Variable Caching (Performance)
+
+Bengal caches expensive lookups at template top:
+
+```jinja2
+{% set _page = page if page is defined else none %}
+{% set _main_menu = get_menu_lang('main', current_lang()) %}
+{% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+```
+
+**templit solution**: Regular Python variables (natural!)
+
+```python
+def base_template(page: Page | None, site: Site) -> HTML:
+    # Cache expensive lookups - just Python!
+    main_menu = get_menu_lang('main', site.current_lang)
+    auto_nav = get_auto_nav() if not main_menu else []
+    footer_menu = get_menu_lang('footer', site.current_lang)
+
+    return html[
+        header[nav_bar(main_menu or auto_nav)],
+        main[children()],
+        footer[footer_nav(footer_menu)]
+    ]
+```
+
+### 9. Safe/Raw Content
+
+Bengal marks rendered HTML as safe:
+
+```jinja2
+{{ content | safe }}
+{{ page.toc | safe }}
+```
+
+**templit solution**: `raw()` function (explicit and clear)
+
+```python
+from templit import raw
+
+def article(page: Page) -> HTML:
+    return article(class_="content")[
+        raw(page.content_html),  # Explicit: this is already-rendered HTML
+        aside[raw(page.toc)]
+    ]
+```
+
+### 10. Complex Class Building
+
+Bengal builds dynamic classes:
+
+```jinja2
+<body
+  data-type="{{ page.type }}"
+  class="page-kind-{{ page.kind }}
+         {% if page.draft %}draft-page{% endif %}
+         {% if page | has_tag('featured') %}featured{% endif %}">
+```
+
+**templit solution**: Helper function + f-strings
+
+```python
+from templit import classes  # Helper for conditional classes
+
+def body_element(page: Page) -> HTML:
+    return body(
+        data_type=page.type,
+        class_=classes(
+            f"page-kind-{page.kind}",
+            page.draft and "draft-page",
+            has_tag(page, 'featured') and "featured"
+        )
+    )[children()]
+
+# classes() helper filters out falsy values
+def classes(*args: str | None | bool) -> str:
+    return " ".join(c for c in args if c and c is not True)
+```
+
+### Summary: Required Features for SSG
+
+| Feature | Jinja2 | templit |
+|---------|--------|---------|
+| Template functions | `{{ func() }}` | `ctx.call()` or context manager |
+| Filters | `\| filter` | `pipe()` or method chain |
+| Layouts | `{% extends %}` | `@component` + `children()` |
+| Slots/Blocks | `{% block %}` | `slot()` + `.slots()` |
+| Partials | `{% include %}` | Function calls |
+| Macros | `{% macro %}` | `@component` |
+| Conditionals | `{% if %}` | `and` short-circuit / ternary |
+| Loops | `{% for %}` | Comprehensions |
+| Raw content | `\| safe` | `raw()` |
+| Class building | String concat | `classes()` helper |
+
+---
+
 ## Package Design
 
 ### Package Name: `templit`
@@ -294,6 +662,85 @@ def content_block(html_content: str) -> HTML:
     """Explicit unsafe content marking."""
     return div(class_="content")[
         raw(html_content)  # ⚠️ Not escaped - use only with trusted content
+    ]
+```
+
+### Slots (Named Children)
+
+```python
+from templit import component, children, slot, HTML
+
+@component
+def base_layout(title: str = ""):
+    """Layout with named slots for head and scripts."""
+    return html[
+        head[
+            title[title] if title else None,
+            slot('head'),  # Named slot for custom head content
+        ],
+        body[
+            main[children()],  # Default slot for main content
+            slot('scripts'),   # Named slot for custom scripts
+        ]
+    ]
+
+# Usage with .slots()
+def blog_page(page: Page) -> HTML:
+    return base_layout(title=page.title).slots(
+        head=html[meta(name="author", content=page.author)],
+        scripts=html[script(src="/js/blog.js")]
+    )[
+        article[raw(page.content_html)]
+    ]
+```
+
+### Filters (Pipeable Transformations)
+
+```python
+from templit import pipe, filter
+
+# Built-in filters
+from templit.filters import dateformat, time_ago, excerpt, strip_html
+
+def article_meta(page: Page) -> HTML:
+    return div(class_="meta")[
+        time[pipe(page.date, dateformat, '%B %d, %Y')],
+        span[f"{pipe(page.content, strip_html, excerpt, 150)}"],
+        span[pipe(page.date, time_ago)]
+    ]
+
+# Custom filters
+@filter
+def reading_time(content: str, wpm: int = 200) -> str:
+    words = len(content.split())
+    minutes = max(1, round(words / wpm))
+    return f"{minutes} min read"
+
+# Use in templates
+span[pipe(page.content, reading_time)]
+```
+
+### Utility Helpers
+
+```python
+from templit import classes, attrs
+
+def card(page: Page) -> HTML:
+    return article(
+        # Build conditional class string
+        class_=classes(
+            "card",
+            page.featured and "card--featured",
+            page.draft and "card--draft",
+        ),
+        # Build conditional attributes
+        **attrs(
+            data_id=page.id,
+            data_category=page.category if page.category else None,
+        )
+    )[
+        h2[page.title],
+        p[page.excerpt]
     ]
 ```
 

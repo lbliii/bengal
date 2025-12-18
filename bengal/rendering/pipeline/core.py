@@ -806,6 +806,10 @@ class RenderingPipeline:
             return _MetadataView({})
 
         def _coerce(obj: Any) -> None:
+            # Ensure children attribute exists (templates rely on it)
+            if not hasattr(obj, "children") or obj.children is None:
+                obj.children = []
+
             if hasattr(obj, "metadata"):
                 meta_wrapped = _wrap_metadata(obj.metadata)
                 obj.metadata = meta_wrapped
