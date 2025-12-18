@@ -43,8 +43,8 @@ _template_default else _theme_hero_style)) %}
 {% elif section is defined and section %}
 {% include 'partials/page-hero/section.html' %}
 {% else %}
-{# Fallback to legacy for backwards compatibility #}
-{% include 'partials/page-hero-api.html' %}
+{# Fallback to editorial when api style is set but no element/section context #}
+{% include 'partials/page-hero-editorial.html' %}
 {% endif %}
 {% else %}
 {# Default to editorial #}
