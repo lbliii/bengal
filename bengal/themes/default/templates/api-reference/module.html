@@ -36,48 +36,158 @@ This template receives:
     {# Article Content - New autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">
 
-      {# Classes Section #}
+      {# Classes Section - Expandable rows #}
       {% if classes %}
       <section class="autodoc-section" data-section="classes">
         <h2 class="autodoc-section-title">Classes</h2>
-        <div class="autodoc-cards">
-          {% for cls in classes %}
-          {% set cls_url = cls.url | default('/api/' ~ (cls.qualified_name | replace('.', '/')) ~ '/') %}
-          <a href="{{ cls_url }}" class="autodoc-card" data-card="class">
-            <code class="autodoc-card-name">{{ cls.name }}</code>
+        {% for cls in classes %}
+        {% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+        {% set cls_attrs = cls.metadata.attributes | default([]) %}
+        <details class="autodoc-member" data-member="class" {% if loop.first %}open{% endif %}>
+          <summary class="autodoc-member-header">
+            <code class="autodoc-member-name">{{ cls.name }}</code>
+            {% if cls.metadata.signature %}
+            <span class="autodoc-member-sig">{{ cls.metadata.signature }}</span>
+            {% endif %}
+            <span class="autodoc-member-badges">
+              {% if cls.metadata.is_dataclass %}
+              <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+              {% endif %}
+              {% if cls.metadata.is_abstract %}
+              <span class="autodoc-badge" data-badge="abstract">abstract</span>
+              {% endif %}
+              {% if cls_methods %}<span class="autodoc-badge">{{ cls_methods | length }} method{{ 's' if cls_methods | length != 1 }}</span>{% endif %}
+              {% if cls_attrs %}<span class="autodoc-badge">{{ cls_attrs | length }} attr{{ 's' if cls_attrs | length != 1 }}</span>{% endif %}
+            </span>
+          </summary>
+          <div class="autodoc-member-body">
             {% if cls.description %}
-            <span class="autodoc-card-desc">{{ cls.description | truncate(100) }}</span>
+            <div class="autodoc-member-desc">
+              <p>{{ cls.description }}</p>
+            </div>
             {% endif %}
-            {% if cls.metadata.is_dataclass %}
-            <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+
+            {# Class attributes #}
+            {% if cls_attrs %}
+            <div class="autodoc-section" data-section="attributes">
+              <h4 class="autodoc-label">Attributes</h4>
+              <table class="autodoc-table" data-table="attributes">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for attr in cls_attrs %}
+                  <tr>
+                    <td class="autodoc-cell-name"><code>{{ attr.name | default(attr.get('name', '')) }}</code></td>
+                    <td class="autodoc-cell-type"><code>{{ attr.type | default(attr.get('type', '')) }}</code></td>
+                    <td class="autodoc-cell-desc">{{ attr.description | default(attr.get('description', '')) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
             {% endif %}
-            {% if cls.metadata.is_abstract %}
-            <span class="autodoc-badge" data-badge="abstract">abstract</span>
+
+            {# Class methods as nested expandable items #}
+            {% if cls_methods %}
+            <div class="autodoc-section" data-section="methods">
+              <h4 class="autodoc-label">Methods</h4>
+              {% set members = cls_methods %}
+              {% set title = '' %}
+              {% set member_type = 'method' %}
+              {% set first_open = false %}
+              {% include 'autodoc/partials/members.html' %}
+            </div>
             {% endif %}
-          </a>
-          {% endfor %}
-        </div>
+          </div>
+        </details>
+        {% endfor %}
       </section>
       {% endif %}
 
-      {# Functions Section #}
+      {# Functions Section - Expandable rows #}
       {% if functions %}
       <section class="autodoc-section" data-section="functions">
         <h2 class="autodoc-section-title">Functions</h2>
-        <div class="autodoc-cards">
-          {% for func in functions %}
-          {% set func_url = func.url | default('/api/' ~ (func.qualified_name | replace('.', '/')) ~ '/') %}
-          <a href="{{ func_url }}" class="autodoc-card" data-card="function">
-            <code class="autodoc-card-name">{{ func.name }}</code>
+        {% for func in functions %}
+        {% set func_params = func.metadata.parameters | default([]) %}
+        {% set func_return = func.metadata.return_type | default(func.metadata.returns | default('')) %}
+        <details class="autodoc-member" data-member="function" {% if loop.first %}open{% endif %}>
+          <summary class="autodoc-member-header">
+            <code class="autodoc-member-name">{{ func.name }}</code>
+            {% if func.metadata.signature %}
+            <span class="autodoc-member-sig">{{ func.metadata.signature }}</span>
+            {% elif func_return %}
+            <span class="autodoc-member-sig">() → {{ func_return }}</span>
+            {% endif %}
+            <span class="autodoc-member-badges">
+              {% if func.metadata.is_async %}
+              <span class="autodoc-badge" data-badge="async">async</span>
+              {% endif %}
+              {% if func_params %}<span class="autodoc-badge">{{ func_params | length }} param{{ 's' if func_params | length != 1 }}</span>{% endif %}
+            </span>
+          </summary>
+          <div class="autodoc-member-body">
             {% if func.description %}
-            <span class="autodoc-card-desc">{{ func.description | truncate(100) }}</span>
+            <div class="autodoc-member-desc">
+              <p>{{ func.description }}</p>
+            </div>
             {% endif %}
-            {% if func.metadata.is_async %}
-            <span class="autodoc-badge" data-badge="async">async</span>
+
+            {# Function parameters #}
+            {% if func_params %}
+            <dl class="autodoc-params">
+              {% for param in func_params %}
+              {% set param_name = param.name if param.name is defined else param.get('name', '') %}
+              {% set param_type = param.type if param.type is defined else param.get('type', '') %}
+              {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
+              {% set param_default = param.default if param.default is defined else param.get('default', none) %}
+              <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
+                <dt class="autodoc-param-name">
+                  <code>{{ param_name }}</code>
+                  {% if param_type %}
+                  <span class="autodoc-param-type">{{ param_type }}</span>
+                  {% endif %}
+                </dt>
+                <dd class="autodoc-param-desc">
+                  {{ param_desc }}
+                  {% if param_default is not none %}
+                  <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                  {% endif %}
+                </dd>
+              </div>
+              {% endfor %}
+            </dl>
             {% endif %}
-          </a>
-          {% endfor %}
-        </div>
+
+            {# Return type #}
+            {% if func_return %}
+            <div class="autodoc-returns">
+              <code class="autodoc-returns-type">{{ func_return }}</code>
+              {% if func.metadata.return_description %}
+              <span class="autodoc-returns-desc">{{ func.metadata.return_description }}</span>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            {# Raises #}
+            {% if func.metadata.raises %}
+            <dl class="autodoc-raises">
+              {% for exc in func.metadata.raises %}
+              <div class="autodoc-raise">
+                <dt><code>{{ exc.type | default(exc.get('type', '')) }}</code></dt>
+                <dd>{{ exc.description | default(exc.get('description', '')) }}</dd>
+              </div>
+              {% endfor %}
+            </dl>
+            {% endif %}
+          </div>
+        </details>
+        {% endfor %}
       </section>
       {% endif %}
 
