@@ -42,8 +42,8 @@ cache_templates = true
         site = Site.from_config(temp_dir)
         site.build(parallel=False, incremental=False)
 
-        # Check cache directory exists
-        cache_dir = site.output_dir / ".bengal-cache" / "templates"
+        # Check cache directory exists (new location: .bengal/templates/)
+        cache_dir = temp_dir / ".bengal" / "templates"
         assert cache_dir.exists(), "Template cache directory should be created"
 
         # Check cache files exist

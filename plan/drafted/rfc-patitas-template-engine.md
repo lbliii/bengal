@@ -1,39 +1,47 @@
-# RFC: Pluggable Template Engine Architecture for Bengal
+# RFC: Pluggable Template Engine Architecture
 
-**Status**: Draft → Evaluated
-**Created**: 2025-12-18
-**Author**: AI Assistant
-**Subsystems**: `bengal/rendering/`, `bengal/config/`
-**Depends On**: [RFC: Patitas](rfc-bengal-templates.md)
-**Confidence**: 85% 🟢
+**Status**: Evaluated  
+**Created**: 2025-12-18  
+**Revised**: 2025-12-18 (Mako + standardization focus)  
+**Subsystems**: `bengal/rendering/engines/`  
+**Confidence**: 92% 🟢
 
 ---
 
-> **Note**: This RFC has been evaluated and revised based on codebase research.
-> See [Evaluation Notes](#evaluation-notes) at the end for details.
+> **Core Insight**: The value is in the **pluggable architecture**, not any specific engine.  
+> Users can escape Jinja2 hell by swapping to Mako, Patitas, or any future engine.
 
 ---
 
 ## Executive Summary
 
-This RFC proposes a **pluggable template engine architecture** for Bengal that enables users to choose between Jinja2 (default) and [Patitas](rfc-bengal-templates.md) — a new Python-native templating library.
+This RFC proposes a **pluggable template engine architecture** that lets users escape Jinja2 by swapping to alternative engines.
 
-**Key Changes**:
-1. Introduce `TemplateEngineProtocol` — abstract interface for template engines
-2. Refactor current `TemplateEngine` → `JinjaEngine` (backward compatible)
-3. Add `PatitasEngine` — adapter for the Patitas library
-4. Configuration option to select engine per-site
+**The Problem**: Jinja2 is painful. Cryptic errors, weird syntax, limited Python, awful macros.
+
+**The Solution**: Make template engines swappable via a standardized protocol.
 
 ```yaml
-# bengal.yaml
+# bengal.yaml - pick your poison
 site:
-  template_engine: patitas  # or "jinja2" (default)
+  template_engine: jinja2  # Default (existing behavior)
+  template_engine: mako    # HTML-first, real Python, better errors
+  template_engine: patitas # Python-native (no HTML files)
 ```
 
-**Why Pluggable?**
-- Users can choose the best tool for their needs
-- Enables gradual migration from Jinja2 to Patitas
-- Opens the door for other engines in the future
+**Key Changes**:
+1. Define `TemplateEngine` protocol — standardized interface
+2. Wrap existing code as `JinjaTemplateEngine`
+3. Add `MakoTemplateEngine` — HTML + real Python (first alternative)
+4. Add `PatitasTemplateEngine` — pure Python (power users)
+5. Single factory: `create_engine(site)` — only way to get an engine
+
+**Why Mako First?**
+- Battle-tested (Reddit, Pyramid, Pylons)
+- HTML-first (designers can still read it)
+- Real Python logic (not a crippled DSL)
+- Better error messages than Jinja2
+- Actual ecosystem (unlike Patitas)
 
 ---
 
@@ -89,11 +97,11 @@ site:
 
 ## Design Goals
 
-1. **Standardized Interface**: Single protocol all engines must implement
-2. **Clean Break**: No backward compatibility aliases or deprecation dance
-3. **Protocol-Based**: Structural typing via `typing.Protocol` (PEP 544)
-4. **Factory Pattern**: All instantiation through `create_template_engine()`
-5. **SvelteKit Philosophy**: Patitas embraces "just Python" — no DSL
+1. **Escape Hatch from Jinja2**: Users can switch engines without rewriting the SSG
+2. **Standardized Protocol**: One interface, multiple implementations
+3. **HTML-First Option**: Mako keeps HTML visible (unlike Patitas)
+4. **Clean Break**: No backward compatibility cruft
+5. **Future-Proof**: Easy to add more engines later
 
 ---
 
@@ -348,6 +356,16 @@ def create_engine(site: "Site", *, profile: bool = False) -> TemplateEngine:
         from bengal.rendering.engines.jinja import JinjaTemplateEngine
         return JinjaTemplateEngine(site, profile=profile)
 
+    if engine_name == "mako":
+        try:
+            from bengal.rendering.engines.mako import MakoTemplateEngine
+        except ImportError as e:
+            raise ValueError(
+                "Mako engine requires mako package.\n"
+                "Install with: pip install bengal[mako]"
+            ) from e
+        return MakoTemplateEngine(site)
+
     if engine_name == "patitas":
         try:
             from bengal.rendering.engines.patitas import PatitasTemplateEngine
@@ -361,7 +379,7 @@ def create_engine(site: "Site", *, profile: bool = False) -> TemplateEngine:
     if engine_name in _ENGINES:
         return _ENGINES[engine_name](site)
 
-    available = ["jinja2", "patitas", *_ENGINES.keys()]
+    available = ["jinja2", "mako", "patitas", *_ENGINES.keys()]
     raise ValueError(
         f"Unknown template engine: '{engine_name}'\n"
         f"Available: {', '.join(sorted(available))}"
@@ -647,7 +665,144 @@ class TemplateRenderError(Exception):
         super().__init__(f"Error rendering '{name}': {cause}")
 ```
 
-### 5. Patitas Engine
+### 5. Mako Engine (Recommended Alternative)
+
+```python
+# bengal/rendering/engines/mako.py
+"""
+Mako implementation of the standardized TemplateEngine protocol.
+
+Philosophy: HTML-first with real Python
+    - Templates are .html files (designers can read them)
+    - Python blocks use % or ${...} syntax
+    - Real Python logic, not a crippled DSL
+    - Great error messages with line numbers
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from mako.lookup import TemplateLookup
+from mako.exceptions import MakoException
+from mako.template import Template as MakoTemplate
+
+from bengal.core.utils.theme_resolution import resolve_theme_chain
+from bengal.utils.logging import get_logger
+from .errors import TemplateNotFoundError, TemplateRenderError
+
+if TYPE_CHECKING:
+    from bengal.core import Site
+
+logger = get_logger(__name__)
+
+
+class MakoTemplateEngine:
+    """
+    Mako implementation of the TemplateEngine protocol.
+
+    Provides HTML-first templating with real Python logic.
+    Battle-tested: Reddit, Pyramid, Pylons.
+    """
+
+    def __init__(self, site: "Site") -> None:
+        self.site = site
+        self.template_dirs: list[Path] = []
+
+        # Verify mako is installed
+        try:
+            import mako  # noqa: F401
+        except ImportError as e:
+            raise ImportError(
+                "Mako engine requires mako package.\n"
+                "Install with: pip install bengal[mako]"
+            ) from e
+
+        # Build template_dirs from theme chain
+        self._discover_template_dirs()
+
+        # Create Mako lookup with our directories
+        self._lookup = TemplateLookup(
+            directories=[str(d) for d in self.template_dirs],
+            module_directory="/tmp/mako_modules",
+            input_encoding="utf-8",
+            output_encoding="utf-8",
+            strict_undefined=True,  # Fail on undefined vars (like Jinja2)
+        )
+
+    def _discover_template_dirs(self) -> None:
+        """Build template search path from theme chain."""
+        # Site templates first
+        site_templates = self.site.root_path / "templates"
+        if site_templates.exists():
+            self.template_dirs.append(site_templates)
+
+        # Theme chain
+        for theme in resolve_theme_chain(self.site.theme, self.site):
+            for base in [self.site.root_path / "themes", Path(__file__).parent.parent.parent / "themes"]:
+                theme_templates = base / theme / "templates"
+                if theme_templates.exists() and theme_templates not in self.template_dirs:
+                    self.template_dirs.append(theme_templates)
+
+    def render_template(self, name: str, context: dict[str, Any]) -> str:
+        """Render a Mako template."""
+        try:
+            template = self._lookup.get_template(name)
+            return template.render(**context)
+        except MakoException as e:
+            raise TemplateRenderError(name, e) from e
+
+    def render_string(self, template_string: str, context: dict[str, Any]) -> str:
+        """Render a template string directly."""
+        try:
+            template = MakoTemplate(template_string, lookup=self._lookup)
+            return template.render(**context)
+        except MakoException as e:
+            raise TemplateRenderError("<string>", e) from e
+
+    def validate(self) -> list[str]:
+        """Validate all templates for syntax errors."""
+        errors = []
+        for template_dir in self.template_dirs:
+            for path in template_dir.rglob("*.html"):
+                try:
+                    rel_path = path.relative_to(template_dir)
+                    self._lookup.get_template(str(rel_path))
+                except MakoException as e:
+                    errors.append(f"{path}: {e}")
+        return errors
+
+    def get_template_path(self, name: str) -> Path | None:
+        """Get the file path for a template."""
+        for template_dir in self.template_dirs:
+            path = template_dir / name
+            if path.exists():
+                return path
+        return None
+
+    def template_exists(self, name: str) -> bool:
+        """Check if a template exists."""
+        return self.get_template_path(name) is not None
+
+    def list_templates(self, pattern: str = "*.html") -> list[str]:
+        """List available templates."""
+        templates = []
+        for template_dir in self.template_dirs:
+            for path in template_dir.rglob(pattern):
+                rel_path = str(path.relative_to(template_dir))
+                if rel_path not in templates:
+                    templates.append(rel_path)
+        return sorted(templates)
+
+    def render_page(self, page: Any) -> str:
+        """Render a page using its template."""
+        template_name = page.template
+        context = {"page": page, "site": self.site}
+        return self.render_template(template_name, context)
+```
+
+### 6. Patitas Engine (Power Users)
 
 ```python
 # bengal/rendering/engines/patitas.py
@@ -863,7 +1018,7 @@ class PatitasTemplateEngine:
         return errors
 ```
 
-### 5. Example Patitas Template
+### 7. Example Patitas Template
 
 ```python
 # themes/patitas-default/templates/blog/single.py
@@ -1100,13 +1255,21 @@ html = engine.render_template("page.html", context)
 
 **Files to update**: 12 production files + 19 test files
 
-### Phase 3: Add Patitas Engine
+### Phase 3: Add Mako Engine (Recommended Alternative)
+
+1. Add `mako.py` with `MakoTemplateEngine`
+2. Add `bengal[mako]` optional dependency
+3. Create Mako test fixtures
+4. Documentation: "Escaping Jinja2: Switching to Mako"
+
+### Phase 4: Add Patitas Engine (Power Users)
 
 1. Add `patitas.py` with `PatitasTemplateEngine`
 2. Add `bengal[patitas]` optional dependency
 3. Create example Patitas theme
+4. Documentation: "Power User Templates with Patitas"
 
-### Phase 4: Delete Legacy Code
+### Phase 5: Delete Legacy Code
 
 1. Delete `bengal/rendering/template_engine/core.py`
 2. Update `__init__.py` to only re-export from engines
@@ -1114,132 +1277,184 @@ html = engine.render_template("page.html", context)
 
 ---
 
-## Callsite Updates
+## Callsite Migration
 
-All 15 callsites need updating:
+### The Change
+
+All imports and method calls change:
 
 ```python
-# Before
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# BEFORE (legacy, to be deleted)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 from bengal.rendering.template_engine import TemplateEngine
+
 engine = TemplateEngine(site)
+html = engine.render("page.html", context)
+valid = engine.validate_templates()
+path = engine._find_template_path("page.html")
 
-# After
-from bengal.rendering.engines import create_template_engine
-engine = create_template_engine(site)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# AFTER (standardized)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+from bengal.rendering.engines import create_engine
+
+engine = create_engine(site)
+html = engine.render_template("page.html", context)
+errors = engine.validate()
+path = engine.get_template_path("page.html")
 ```
 
-### Affected Files (12 Files, 15 Instantiation Sites)
+### Method Renames
 
-**Production Code** (11 files, 13 instantiation sites):
+| Legacy | Standardized | Notes |
+|--------|--------------|-------|
+| `render()` | `render_template()` | Clearer intent |
+| `render_string()` | `render_string()` | Unchanged |
+| `validate_templates()` | `validate()` | Simpler |
+| `_find_template_path()` | `get_template_path()` | Public API |
+| `list_templates()` | `list_templates()` | Unchanged |
+| `template_exists()` | `template_exists()` | Unchanged |
 
-| File | Locations | Usage |
-|------|-----------|-------|
-| `bengal/rendering/pipeline/core.py` | 1 | RenderingPipeline (main usage) |
-| `bengal/orchestration/build/initialization.py` | 1 | Template validation during build |
-| `bengal/postprocess/special_pages.py` | 2 | 404 page, special page generation |
-| `bengal/services/validation.py` | 1 | Template validation service |
-| `bengal/cli/commands/explain.py` | 1 | CLI explain command |
-| `bengal/cli/commands/theme.py` | 2 | Theme list and info commands |
-| `bengal/server/component_preview.py` | 2 | Component preview in dev server |
-| `bengal/health/validators/rendering.py` | 1 | Health check validator |
-| `bengal/utils/swizzle.py` | 1 | Template swizzle utility |
-| `bengal/debug/explainer.py` | 1 | Debug explainer (import only) |
+### Files to Update (31 total)
 
-**Test Files** (19 files using TemplateEngine):
-- `tests/unit/rendering/test_template_*.py` (12 files)
-- `tests/unit/rendering/test_*_baseurl.py` (5 files)
-- `tests/unit/rendering/test_metadata_exposure.py`
-- `tests/unit/rendering/test_pipeline_*.py` (2 files)
+**Production (12 files)**:
 
-**See**: [Test Migration Plan](#test-migration-plan) for test update strategy.
+| File | Callsites | Difficulty |
+|------|-----------|------------|
+| `bengal/rendering/pipeline/core.py` | 1 | Easy |
+| `bengal/orchestration/build/initialization.py` | 1 | Easy |
+| `bengal/postprocess/special_pages.py` | 2 | Easy |
+| `bengal/services/validation.py` | 1 | Easy |
+| `bengal/cli/commands/explain.py` | 1 | Easy |
+| `bengal/cli/commands/theme.py` | 2 | Easy |
+| `bengal/server/component_preview.py` | 2 | Medium |
+| `bengal/health/validators/rendering.py` | 1 | Easy |
+| `bengal/utils/swizzle.py` | 1 | Easy |
+| `bengal/debug/explainer.py` | 1 | Easy |
 
-### Backward Compatibility
+**Tests (19 files)**: Run `grep -r "TemplateEngine" tests/` to identify all usages.
 
-```python
-# bengal/rendering/template_engine/__init__.py
-from bengal.rendering.engines.jinja import JinjaEngine
+### No Backward Compatibility
 
-# Backward compatibility - deprecated alias
-TemplateEngine = JinjaEngine
-
-__all__ = ["TemplateEngine", "JinjaEngine"]
-```
+The legacy `bengal/rendering/template_engine/` package will be deleted after migration.
+No aliases. No deprecation warnings. Clean break.
 
 ---
 
-## Comparison: Jinja2 vs Patitas
+## Comparison: Jinja2 vs Mako vs Patitas
 
-| Aspect | Jinja2 | Patitas |
-|--------|--------|---------|
-| File extension | `.html` | `.py` |
-| Syntax | `{{ var }}`, `{% for %}` | Pure Python |
-| Learning curve | New DSL | None (just Python) |
-| IDE support | Plugin required | Full native |
-| Type checking | None | Full mypy support |
-| Auto-completion | Limited | Full |
-| Refactoring | Manual | IDE-assisted |
-| Components | Macros, includes | Functions, imports |
-| Inheritance | `{% extends %}` | Function parameters |
-| Testing | Complex | Standard pytest |
+| Aspect | Jinja2 | Mako | Patitas |
+|--------|--------|------|---------|
+| **File type** | `.html` | `.html` | `.py` |
+| **HTML visible** | ✅ Yes | ✅ Yes | ❌ No |
+| **Python logic** | ❌ Crippled DSL | ✅ Real Python | ✅ Real Python |
+| **Error messages** | ❌ Cryptic | ✅ Clear | ✅ Clear |
+| **IDE support** | ⚠️ Plugin needed | ⚠️ Plugin needed | ✅ Native |
+| **Type checking** | ❌ None | ❌ None | ✅ Full mypy |
+| **Ecosystem** | ✅ Huge | ✅ Good | ❌ None |
+| **Designer-friendly** | ✅ Yes | ✅ Yes | ❌ No |
+
+### Side-by-Side Syntax
+
+**Jinja2** (the nightmare):
+```jinja2
+{% for post in posts | sort(attribute='date') | reverse %}
+  {% if post.published and not post.draft %}
+    <article>
+      <h2>{{ post.title | truncate(50) }}</h2>
+      <p>{{ post.date | date('%B %d, %Y') }}</p>
+    </article>
+  {% endif %}
+{% endfor %}
+```
+
+**Mako** (HTML + real Python):
+```mako
+% for post in sorted(posts, key=lambda p: p.date, reverse=True):
+  % if post.published and not post.draft:
+    <article>
+      <h2>${post.title[:50]}</h2>
+      <p>${post.date.strftime('%B %d, %Y')}</p>
+    </article>
+  % endif
+% endfor
+```
+
+**Patitas** (pure Python):
+```python
+for post in sorted(posts, key=lambda p: p.date, reverse=True):
+    if post.published and not post.draft:
+        yield article[
+            h2[post.title[:50]],
+            p[post.date.strftime('%B %d, %Y')],
+        ]
+```
 
 ### When to Use Each
 
-**Use Jinja2 (default) when:**
-- Existing theme uses Jinja2
-- Designers need to edit templates
-- Maximum compatibility needed
-- Simple variable substitution
+**Jinja2** (default):
+- Existing themes work
+- Maximum ecosystem support
+- Team includes non-Python designers
 
-**Use Patitas when:**
-- Type safety is important
-- Complex component logic
-- IDE support is valued
-- Testing templates is needed
-- "It's just Python" resonates
+**Mako** (recommended alternative):
+- You hate Jinja2 syntax
+- Want real Python logic
+- Still want HTML files
+- Need better error messages
+
+**Patitas** (power users):
+- Want full type checking
+- Building complex component systems
+- Only developers edit templates
+- Don't need existing themes
 
 ---
 
 ## Implementation Plan
 
-### Week 1: Abstraction Layer (No Breaking Changes)
+### Week 1: Create Engine Package + Migrate All Code
 
-- [ ] Create `bengal/rendering/engines/` package
-- [ ] Define `TemplateEngineProtocol` in `protocol.py`
-- [ ] Create `JinjaEngine` in `jinja.py` (refactored from `TemplateEngine`)
-  - [ ] Inherit all three mixins
-  - [ ] Preserve all caching attributes
-  - [ ] Preserve all private methods (`_find_template_path`, `_track_referenced_templates`)
-- [ ] Implement `create_template_engine()` factory in `__init__.py`
-- [ ] Add backward compatibility alias in `template_engine/__init__.py`:
-  ```python
-  from bengal.rendering.engines.jinja import JinjaEngine
-  TemplateEngine = JinjaEngine  # Backward compatibility
-  ```
-- [ ] Run existing tests (should all pass unchanged)
+**Single PR with breaking changes**:
 
-### Week 2: Callsite Migration
+- [ ] Create `bengal/rendering/engines/` package:
+  - [ ] `protocol.py` - `TemplateEngine` protocol
+  - [ ] `errors.py` - Standardized error types
+  - [ ] `jinja.py` - `JinjaTemplateEngine`
+  - [ ] `__init__.py` - `create_engine()` factory
+- [ ] Update all 12 production files to use new API
+- [ ] Update all 19 test files to use new API
+- [ ] Delete legacy `bengal/rendering/template_engine/core.py`
+- [ ] Run full test suite
 
-- [ ] Update all 15 callsites to use `create_template_engine()`
-- [ ] Add deprecation warnings for direct `TemplateEngine` import
-- [ ] Update internal documentation
-- [ ] Add integration tests for factory function
-- [ ] Add protocol compliance test for `JinjaEngine`
+**Files modified**: ~35 files  
+**Estimated time**: 4-6 hours (mechanical find/replace)
 
-### Week 3: Patitas Engine
+### Week 2: Add Mako Engine (First Alternative)
 
-- [ ] Implement `PatitasEngine` in `patitas.py`
-- [ ] Add `template_engine` configuration option
-- [ ] Create `bengal[patitas]` optional dependency in `pyproject.toml`
-- [ ] Error handling and logging
-- [ ] Add `PatitasEngine` tests
+- [ ] Add `mako.py` - `MakoTemplateEngine`
+- [ ] Add `bengal[mako]` optional dependency (`mako>=1.3.0`)
+- [ ] Add protocol compliance tests
+- [ ] Add `test-mako` test root with Mako templates
+- [ ] Convert a few default theme templates to Mako as examples
 
-### Week 4: Polish
+### Week 3: Add Patitas Engine (Power Users)
 
-- [ ] Create example Patitas theme (subset of default)
-- [ ] Add CLI command: `bengal theme --engine-info`
-- [ ] Documentation: migration guide and examples
-- [ ] Performance benchmarks (Jinja2 vs Patitas)
-- [ ] Run full test suite on both engines
+- [ ] Add `patitas.py` - `PatitasTemplateEngine`
+- [ ] Add `bengal[patitas]` optional dependency
+- [ ] Add protocol compliance tests
+- [ ] Add `test-patitas` test root
+
+### Week 4: Polish + Documentation
+
+- [ ] Add CLI: `bengal engine list` (show available engines)
+- [ ] Add CLI: `bengal engine info` (current engine details)
+- [ ] Performance benchmarks (Jinja2 vs Mako vs Patitas)
+- [ ] Documentation:
+  - [ ] "Escaping Jinja2: Switching to Mako"
+  - [ ] "Power User Templates with Patitas"
+  - [ ] Update getting started guide
 
 ---
 
@@ -1277,97 +1492,105 @@ The architecture already supports engine-specific profiling implementations.
 
 ---
 
-## Risk Mitigation
+## Risk Assessment
 
-### Risk 1: Breaking Existing Themes
+### This is a Breaking Change
 
-**Impact**: HIGH  
-**Mitigation**:
-- Jinja2 remains the default engine (`template_engine: jinja2`)
-- `TemplateEngine = JinjaEngine` alias maintains backward compatibility
-- No changes required for existing Jinja2 themes
-- All 15+ callsites continue to work with existing import paths
+We're intentionally breaking backward compatibility to achieve standardization.
 
-### Risk 2: Test Suite Breakage
+**What Breaks**:
+- `from bengal.rendering.template_engine import TemplateEngine` → import error
+- `engine.render()` → method not found (use `render_template()`)
+- `engine.validate_templates()` → method not found (use `validate()`)
+- `engine._find_template_path()` → method not found (use `get_template_path()`)
 
-**Impact**: MEDIUM  
-**Mitigation**:
-- Phase 1 changes are purely additive (new `engines/` package)
-- Phase 2 maintains existing exports from `template_engine/__init__.py`
-- Test files can continue importing `TemplateEngine` unchanged
-- Add integration test for both engines
+**Impact**: All Bengal users must update their code if they directly use `TemplateEngine`.
 
-### Risk 3: Performance Regression
-
-**Impact**: MEDIUM  
-**Mitigation**:
-- JinjaEngine reuses all existing caching infrastructure:
-  - `_template_path_cache` for path lookups
-  - `_referenced_template_cache` for dependency tracking
-  - `_asset_manifest_cache` for asset URLs
-  - `_menu_dict_cache` for menu generation
-- Run benchmarks before/after migration
-- Add performance regression test
-
-### Risk 4: Mixin Method Breakage
-
-**Impact**: HIGH  
-**Mitigation**:
-- JinjaEngine inherits all three mixins (verified in design):
-  - `MenuHelpersMixin` → `_get_menu()`, `_get_menu_lang()`, `invalidate_menu_cache()`
-  - `ManifestHelpersMixin` → `_get_manifest_entry()`, `_load_asset_manifest()`
-  - `AssetURLMixin` → `_asset_url()`, `_find_fingerprinted_asset()`
-- All mixin attributes initialized in `__init__`
-- Template functions that use these methods continue to work
+**Justification**: Clean standardization is worth the migration cost.
 
 ---
 
-## Test Migration Plan
+## Test Strategy
 
-### Phase 1: No Test Changes Required
+### All Tests Updated in One PR
 
-During abstraction layer creation:
-- Tests continue importing `from bengal.rendering.template_engine import TemplateEngine`
-- `TemplateEngine` is aliased to `JinjaEngine`
-- All tests pass without modification
+No phased approach. Update all 19 test files in the same PR as the engine migration.
 
-### Phase 2: Add Engine-Specific Tests
+```bash
+# Find all files to update
+grep -rl "TemplateEngine" tests/ | wc -l  # 19 files
 
-New test files:
+# Search and replace pattern
+# OLD: from bengal.rendering.template_engine import TemplateEngine
+# NEW: from bengal.rendering.engines import create_engine
+
+# OLD: engine = TemplateEngine(site)
+# NEW: engine = create_engine(site)
+
+# OLD: engine.render(name, ctx)
+# NEW: engine.render_template(name, ctx)
 ```
-tests/unit/rendering/
-├── engines/
-│   ├── test_protocol.py       # Protocol compliance tests
-│   ├── test_jinja_engine.py   # JinjaEngine-specific tests
-│   └── test_patitas_engine.py # PatitasEngine-specific tests (Phase 3)
-```
 
-### Phase 3: Parametrized Tests (Optional)
+### Protocol Compliance Tests
 
-For shared behavior, parametrize tests:
+New test file to verify both engines implement protocol correctly:
+
 ```python
-@pytest.mark.parametrize("engine_name", ["jinja2", "patitas"])
-def test_engine_renders_page(engine_name, site_factory):
-    """Test that both engines can render a basic page."""
-    site = site_factory("test-basic", confoverrides={"template_engine": engine_name})
-    engine = create_template_engine(site)
-    html = engine.render("page.html", {"page": mock_page})
-    assert "<html" in html
+# tests/unit/rendering/engines/test_protocol.py
+import pytest
+from bengal.rendering.engines import create_engine, TemplateEngine
+
+
+@pytest.mark.parametrize("engine_type", ["jinja2", "patitas"])
+def test_engine_implements_protocol(site_factory, engine_type):
+    """All engines must implement the full protocol."""
+    site = site_factory("test-basic", confoverrides={"template_engine": engine_type})
+    engine = create_engine(site)
+
+    # Verify it implements protocol
+    assert isinstance(engine, TemplateEngine)
+
+    # Verify required attributes
+    assert hasattr(engine, "site")
+    assert hasattr(engine, "template_dirs")
+
+    # Verify required methods exist
+    assert callable(engine.render_template)
+    assert callable(engine.render_string)
+    assert callable(engine.template_exists)
+    assert callable(engine.get_template_path)
+    assert callable(engine.list_templates)
+    assert callable(engine.validate)
+
+
+@pytest.mark.parametrize("engine_type", ["jinja2", "patitas"])
+def test_engine_renders_basic_template(site_factory, engine_type):
+    """All engines must render templates."""
+    site = site_factory("test-basic", confoverrides={"template_engine": engine_type})
+    engine = create_engine(site)
+
+    # Should not raise
+    templates = engine.list_templates()
+    assert len(templates) > 0
+
+    # Should return HTML
+    html = engine.render_template(templates[0], {"page": mock_page})
+    assert isinstance(html, str)
+    assert len(html) > 0
 ```
 
 ---
 
 ## Success Criteria
 
-1. **Zero Breaking Changes**: All existing sites work unchanged
-2. **Clean Abstraction**: Protocol-based, not inheritance
-3. **Simple Config**: One line to switch engines
-4. **Full Feature Parity**: Patitas can do everything Jinja2 can
-5. **Documentation**: Clear migration guide and examples
-6. **Performance**: Patitas should be ≥ Jinja2 speed
-7. **Mixin Preservation**: All existing mixin functionality preserved
-8. **API Compatibility**: `render()`, `render_string()` signatures unchanged
-9. **Test Stability**: All 19 existing test files pass unchanged
+1. **Standardized Protocol**: Single `TemplateEngine` protocol all engines implement
+2. **Clean Factory**: All instantiation through `create_engine()`
+3. **Consistent Methods**: Same method names across all engines
+4. **Clear Errors**: Standardized `TemplateError`, `TemplateNotFoundError`, `TemplateRenderError`
+5. **Full Test Coverage**: Protocol compliance tests for all engines
+6. **Simple Config**: One line to switch engines (`template_engine: patitas`)
+7. **No Legacy Code**: Delete `template_engine/core.py` after migration
+8. **Documentation**: Migration guide for updating callsites
 
 ---
 
@@ -1380,33 +1603,59 @@ def test_engine_renders_page(engine_name, site_factory):
 
 ---
 
-## Appendix: Full File Structure
+## Appendix: File Structure
+
+### After Migration
 
 ```
 bengal/rendering/
-├── engines/
-│   ├── __init__.py          # Factory and exports
-│   ├── protocol.py          # TemplateEngineProtocol
-│   ├── jinja.py             # JinjaEngine (refactored)
-│   └── patitas.py           # PatitasEngine (new)
-├── template_engine/         # Legacy (preserved for compatibility)
-│   ├── __init__.py          # Re-exports JinjaEngine as TemplateEngine
-│   ├── environment.py       # Jinja2 environment setup (used by JinjaEngine)
-│   └── ...                  # Other existing modules
+├── engines/                      # NEW: Standardized engine package
+│   ├── __init__.py               #   create_engine(), exports
+│   ├── protocol.py               #   TemplateEngine protocol
+│   ├── errors.py                 #   TemplateError, TemplateNotFoundError
+│   ├── jinja.py                  #   JinjaTemplateEngine
+│   ├── mako.py                   #   MakoTemplateEngine (recommended alternative)
+│   └── patitas.py                #   PatitasTemplateEngine (power users)
+│
+├── template_engine/              # LEGACY: Kept for mixins only
+│   ├── __init__.py               #   Re-exports from engines/
+│   ├── asset_url.py              #   AssetURLMixin (used by JinjaEngine)
+│   ├── environment.py            #   create_jinja_environment()
+│   ├── manifest.py               #   ManifestHelpersMixin
+│   ├── menu.py                   #   MenuHelpersMixin
+│   ├── url_helpers.py            #   url_for(), with_baseurl()
+│   └── core.py                   #   DELETED
+│
 └── ...
 
 themes/
-├── default/                 # Jinja2 theme (unchanged)
-│   └── templates/
-│       ├── base.html
-│       └── ...
-└── patitas-default/         # Patitas theme (new, optional)
+├── default/                      # Jinja2 theme (unchanged)
+│   └── templates/*.html
+│
+└── patitas-minimal/              # NEW: Example Patitas theme
     └── templates/
         ├── base.py
-        ├── blog/
-        │   ├── single.py
-        │   └── list.py
-        └── ...
+        ├── page.py
+        └── blog/
+            ├── single.py
+            └── list.py
+```
+
+### Deleted Files
+
+```
+bengal/rendering/template_engine/core.py  # 507 lines → DELETED
+```
+
+### New Files
+
+```
+bengal/rendering/engines/__init__.py      # ~80 lines
+bengal/rendering/engines/protocol.py      # ~100 lines
+bengal/rendering/engines/errors.py        # ~50 lines
+bengal/rendering/engines/jinja.py         # ~200 lines
+bengal/rendering/engines/mako.py          # ~130 lines
+bengal/rendering/engines/patitas.py       # ~150 lines
 ```
 
 ---
@@ -1414,38 +1663,46 @@ themes/
 ## Evaluation Notes
 
 **Evaluation Date**: 2025-12-18  
-**Confidence**: 85% 🟢 (up from 78% after revisions)
+**Revised**: 2025-12-18 (standardization focus)  
+**Confidence**: 90% 🟢
 
-### Issues Identified and Resolved
+### Design Philosophy
 
-| Issue | Severity | Resolution |
-|-------|----------|------------|
-| Protocol method names didn't match existing API | HIGH | Changed `render_template()` → `render()` |
-| Missing `render_string()` in protocol | HIGH | Added to protocol |
-| JinjaEngine missing mixin inheritance | HIGH | Added all three mixins |
-| Missing callsite: `bengal/debug/explainer.py` | LOW | Added to affected files |
-| Open Question Q3 already solved | LOW | Marked as resolved |
-| No risk mitigation section | MEDIUM | Added comprehensive risk section |
-| No test migration plan | MEDIUM | Added test migration plan |
+**Standardization over backward compatibility**:
+- Clean break with legacy API
+- Consistent method names (`render_template`, not `render`)
+- Mandatory protocol methods (no optional methods)
+- Single factory function (`create_engine`)
+
+### Key Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| `render_template()` not `render()` | Explicit > implicit. "template" clarifies what's being rendered |
+| All methods required | Ensures consistent behavior, easier testing |
+| No backward compat aliases | Clean break prevents tech debt accumulation |
+| Single PR migration | Atomic change, easier to review/revert |
+| `TemplateEngine` as protocol name | Matches the concept, not the implementation |
 
 ### Evidence Sources
 
-All claims verified against codebase:
+- **Callsite count**: 15 instantiation sites in 12 production files
+- **Test files**: 19 files need updating
+- **Legacy code to delete**: `bengal/rendering/template_engine/core.py` (507 lines)
+- **Prototype**: `prototypes/templit_prototype.py` validates patitas design
+- **Dependency RFC**: `plan/drafted/rfc-bengal-templates.md` defines patitas library
 
-- **Callsite count**: Found 15 instantiation sites in 11 production files
-- **Existing API**: `bengal/rendering/template_engine/core.py:170` - `render()` method
-- **Mixin architecture**: `core.py:53` - `class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)`
-- **Caching attributes**: `core.py:126-168` - 8 different caches preserved
-- **Test files**: 19 files in `tests/unit/rendering/` use TemplateEngine
+### Migration Complexity
 
-### Remaining Considerations
-
-1. **Prototype exists**: `prototypes/templit_prototype.py` validates patitas design
-2. **Dependency RFC exists**: `plan/drafted/rfc-bengal-templates.md` defines patitas library
-3. **No existing `engines/` package**: Clean namespace available for new code
+| Category | Files | Difficulty |
+|----------|-------|------------|
+| Production | 12 | Easy (mechanical) |
+| Tests | 19 | Easy (find/replace) |
+| Documentation | ~5 | Medium |
+| **Total** | **~35** | **4-6 hours** |
 
 ### Next Steps
 
 1. Move to `plan/ready/` when approved
-2. Begin Phase 1 implementation (abstraction layer)
-3. Add deprecation warning for direct `TemplateEngine` imports
+2. Create single PR with all changes
+3. Delete legacy code in same PR

@@ -93,7 +93,10 @@ See: plan/active/rfc-template-performance-optimization.md
     <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
     <meta name="bengal:baseurl" content="{{ site.config.baseurl or '' }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
+    {# Pre-built Lunr index URL - only emit if lunr package is installed (pip install bengal[search]) #}
+    {% if bengal.capabilities.prebuilt_search %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
+    {% endif %}
 
     {# Canonical URL #}
     {% if site.config.baseurl %}
