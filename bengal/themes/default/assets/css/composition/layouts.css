@@ -106,13 +106,18 @@
   margin-inline: auto;
 }
 
+/* Python API docs (python-reference) use prose-width constraints for readable
+   docstring content. Constrain at parent level for DRY - both hero and article
+   inherit the same max-width. */
+body[data-type="python-reference"] .docs-main > * {
+  max-width: var(--prose-width, 75ch);
+  margin-inline: auto;
+}
+
 /* OpenAPI/CLI reference pages use app-like card layouts (not long-form prose).
    The .prose wrapper is full-width, but we constrain .docs-content and hero
    to the same max-width (--container-lg) for visual cohesion. Card grids fit
-   nicely within this constraint while maintaining alignment with the hero.
-
-   Note: Python API docs (python-reference) keep prose constraints for readable
-   docstring content. */
+   nicely within this constraint while maintaining alignment with the hero. */
 body[data-type="openapi-reference"] .docs-main .prose,
 body[data-type="cli-reference"] .docs-main .prose {
   max-width: 100%;

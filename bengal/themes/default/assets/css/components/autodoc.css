@@ -41,17 +41,6 @@
 }
 
 /* ============================================
-   CONTAINER CONSTRAINTS
-   Match hero width for visual cohesion
-   ============================================ */
-
-/* Autodoc article matches page-hero--api width */
-article[data-autodoc] {
-  max-width: var(--prose-width);
-  margin-inline: auto;
-}
-
-/* ============================================
    PROSE OVERRIDES
    Surgical resets to prevent .prose interference
    ============================================ */
