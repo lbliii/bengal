@@ -34,10 +34,12 @@ Also provides element_card macro for individual cards.
 </a>
 {% endmacro %}
 
+{# Main template body - only executes when included directly (not when importing macros) #}
+{# Guard with 'is defined' check since this runs even during {% from ... import ... %} #}
+{% if children is defined and children %}
 {% set title = title | default('') %}
 {% set card_type = card_type | default(none) %}
 
-{% if children %}
 {% if title %}
 <section class="autodoc-section" data-section="children">
   <h2 class="autodoc-section-title">{{ title }}</h2>
