@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from bengal.cache import clear_build_cache, clear_output_directory
+from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
@@ -276,6 +276,10 @@ class DevServer:
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
+
+        # Clear template bytecode cache to ensure fresh template compilation
+        # This prevents stale bytecode from previous builds causing "stuck" templates
+        clear_template_cache(self.site.root_path, logger)
 
         # Clear baseurl for local development
         # This prevents 404s since dev server serves from '/' not '/baseurl'

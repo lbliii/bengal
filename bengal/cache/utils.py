@@ -44,6 +44,44 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
         return False
 
 
+def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:
+    """
+    Clear Jinja2 bytecode template cache.
+
+    Useful when:
+    - Template files change but bytecode cache is stale
+    - Starting dev server (ensures fresh template compilation)
+    - Switching themes
+
+    Args:
+        site_root_path: Path to site root directory
+        logger: Optional logger for debug output
+
+    Returns:
+        True if cache was cleared, False if no cache existed or error occurred
+    """
+    import shutil
+
+    from bengal.cache.paths import BengalPaths
+
+    paths = BengalPaths(Path(site_root_path))
+    cache_dir = paths.templates_dir
+
+    if not cache_dir.exists():
+        return False
+
+    try:
+        # Remove all bytecode cache files
+        shutil.rmtree(cache_dir)
+        if logger:
+            logger.debug("template_cache_cleared", cache_dir=str(cache_dir))
+        return True
+    except Exception as e:
+        if logger:
+            logger.warning("template_cache_clear_failed", error=str(e), cache_dir=str(cache_dir))
+        return False
+
+
 def clear_output_directory(output_dir_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear the output directory (public/) to force complete regeneration.

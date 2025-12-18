@@ -254,8 +254,11 @@ def create_jinja_environment(
     )
 
     # Setup bytecode cache for faster template compilation
+    # DISABLED in dev mode: bytecode cache can cause stale templates when editing
+    # bundled theme files, where mtime checks may be unreliable. The speed gain
+    # is minimal in dev mode (templates are recompiled on each rebuild anyway).
     bytecode_cache = None
-    cache_templates = site.config.get("cache_templates", True)
+    cache_templates = site.config.get("cache_templates", True) and not auto_reload
 
     if cache_templates:
         # Migrate template cache from legacy location if exists
@@ -273,6 +276,8 @@ def create_jinja_environment(
             directory=str(cache_dir), pattern="__bengal_template_%s.cache"
         )
         logger.debug("template_bytecode_cache_enabled", cache_dir=str(cache_dir))
+    elif auto_reload:
+        logger.debug("template_bytecode_cache_disabled", reason="dev_server_auto_reload")
 
     # Create environment
     env_kwargs = {
