@@ -5,6 +5,7 @@ CLI Reference Section Index Template
 
 Renders a CLI section index page showing command groups and commands
 using a card-based layout. Extends base.html to inherit theme navigation.
+Uses autodoc.css for all styling.
 
 This template receives:
 - section: Section object for the CLI section
@@ -28,94 +29,93 @@ This template receives:
     {% set hero_context = {'is_cli': true} %}
     {% include 'partials/page-hero/section.html' %}
 
-    {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-      {# CLI Explorer Section Index Content #}
-      <div class="autodoc-explorer autodoc-explorer--index">
-          {# Subsections (Command Groups) - Card Grid #}
-          {% if section.sorted_subsections %}
-          <section class="api-section api-section--packages">
-            <h2 class="api-section__title">Command Groups</h2>
+    {# Article Content - autodoc skeleton #}
+    <article data-autodoc data-type="cli" data-element="section-index" class="autodoc docs-content">
 
-            <div class="api-grid api-grid--packages">
-              {% for subsection in section.sorted_subsections %}
-              {% if subsection.name %}
-              {% set desc = subsection.metadata.description | default('') | first_sentence %}
-              {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-              <a href="{{ subsection.url }}" class="api-card api-card--link api-card--package">
-                <div class="api-card__header">
-                  <span class="api-card__icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
-                  <span class="api-card__title">{{ subsection.name }}</span>
-                </div>
-                <div class="api-card__body">
-                  {% if desc %}
-                  <p class="api-card__description">{{ desc }}</p>
-                  {% else %}
-                  <p class="api-card__description">{{ subsection.name }} commands</p>
-                  {% endif %}
-                </div>
-                <div class="api-card__footer">
-                  <span class="api-card__meta">
-                    {{ child_count }} command{{ 's' if child_count != 1 else '' }}
-                  </span>
-                </div>
-              </a>
+      {# Subsections (Command Groups) - Card Grid #}
+      {% if section.sorted_subsections %}
+      <section class="autodoc-section" data-section="groups">
+        <h2 class="autodoc-section-title">Command Groups</h2>
+
+        <div class="autodoc-cards">
+          {% for subsection in section.sorted_subsections %}
+          {% if subsection.name %}
+          {% set desc = subsection.metadata.description | default('') | first_sentence %}
+          {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+          <a href="{{ subsection.url }}" class="autodoc-card" data-card="group">
+            <div class="autodoc-card-header">
+              <span class="autodoc-card-icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
+              <span class="autodoc-card-name">{{ subsection.name }}</span>
+            </div>
+            <div class="autodoc-card-body">
+              {% if desc %}
+              <p class="autodoc-card-desc">{{ desc }}</p>
+              {% else %}
+              <p class="autodoc-card-desc">{{ subsection.name }} commands</p>
               {% endif %}
-              {% endfor %}
             </div>
-          </section>
+            <div class="autodoc-card-footer">
+              <span class="autodoc-card-meta">
+                {{ child_count }} command{{ 's' if child_count != 1 else '' }}
+              </span>
+            </div>
+          </a>
           {% endif %}
-
-          {# Command Pages - Card Grid #}
-          {% set command_pages = [] %}
-          {% for page in section.sorted_pages %}
-            {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-              {% set _ = command_pages.append(page) %}
-            {% endif %}
           {% endfor %}
-
-          {% if command_pages %}
-          <section class="api-section api-section--modules">
-            <h2 class="api-section__title">Commands</h2>
-
-            <div class="api-grid api-grid--modules">
-              {% for page in command_pages %}
-              {% set desc = page.metadata.description | default('') | first_sentence %}
-              <a href="{{ page.url }}" class="api-card api-card--link api-card--command">
-                <div class="api-card__header">
-                  <span class="api-card__icon">
-                    {%- if page.metadata.element_type == 'group' -%}
-                    {{ icon("folder", size=16, css_class="icon-info") }}
-                    {%- else -%}
-                    {{ icon("terminal", size=16, css_class="icon-success") }}
-                    {%- endif -%}
-                  </span>
-                  <span class="api-card__title">{{ page.title }}</span>
-                  {% if page.metadata.element_type %}
-                  <span class="api-badge--mini api-badge--{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
-                  {% endif %}
-                </div>
-                <div class="api-card__body">
-                  {% if desc %}
-                  <p class="api-card__description">{{ desc }}</p>
-                  {% else %}
-                  <p class="api-card__description">No description available</p>
-                  {% endif %}
-                </div>
-              </a>
-              {% endfor %}
-            </div>
-          </section>
-          {% endif %}
-
-          {# Empty State #}
-          {% if not section.subsections and not command_pages %}
-          <div class="api-empty-state">
-            <div class="api-empty-state__icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
-            <p class="api-empty-state__text">No CLI documentation available in this section yet.</p>
-          </div>
-          {% endif %}
         </div>
+      </section>
+      {% endif %}
+
+      {# Command Pages - Card Grid #}
+      {% set command_pages = [] %}
+      {% for page in section.sorted_pages %}
+        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
+          {% set _ = command_pages.append(page) %}
+        {% endif %}
+      {% endfor %}
+
+      {% if command_pages %}
+      <section class="autodoc-section" data-section="commands">
+        <h2 class="autodoc-section-title">Commands</h2>
+
+        <div class="autodoc-cards">
+          {% for page in command_pages %}
+          {% set desc = page.metadata.description | default('') | first_sentence %}
+          <a href="{{ page.url }}" class="autodoc-card" data-card="{{ page.metadata.element_type | default('command') }}">
+            <div class="autodoc-card-header">
+              <span class="autodoc-card-icon">
+                {%- if page.metadata.element_type == 'group' -%}
+                {{ icon("folder", size=16, css_class="icon-info") }}
+                {%- else -%}
+                {{ icon("terminal", size=16, css_class="icon-success") }}
+                {%- endif -%}
+              </span>
+              <span class="autodoc-card-name">{{ page.title }}</span>
+              {% if page.metadata.element_type %}
+              <span class="autodoc-badge" data-badge="{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
+              {% endif %}
+            </div>
+            <div class="autodoc-card-body">
+              {% if desc %}
+              <p class="autodoc-card-desc">{{ desc }}</p>
+              {% else %}
+              <p class="autodoc-card-desc">No description available</p>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {# Empty State #}
+      {% if not section.subsections and not command_pages %}
+      <div class="autodoc-empty-state">
+        <div class="autodoc-empty-state-icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
+        <p class="autodoc-empty-state-text">No CLI documentation available in this section yet.</p>
+      </div>
+      {% endif %}
+
     </article>
 
     {# Page navigation (prev/next) at bottom #}

@@ -16,7 +16,7 @@ This template receives:
 
 {% block content %}
 {# Three-panel REST API layout #}
-<div class="docs-layout docs-layout--autodoc-explorer">
+<div class="docs-layout docs-layout--three-panel">
   {# Left Sidebar: Navigation #}
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
     {% include 'partials/docs-nav.html' %}
@@ -133,9 +133,9 @@ This template receives:
   </div>
 
   {# Right Panel: Code Examples #}
-  <aside class="api-examples-panel" id="api-examples" role="complementary" aria-label="Code examples">
-    <div class="api-examples-panel__content">
-      <h3 class="api-examples-panel__title">{{ icon('code', size=16) }} Code Examples</h3>
+  <aside class="autodoc-examples-panel" id="autodoc-examples" role="complementary" aria-label="Code examples">
+    <div class="autodoc-examples-panel-content">
+      <h3 class="autodoc-examples-panel-title">{{ icon('code', size=16) }} Code Examples</h3>
 
       {# Request Example #}
       <div class="autodoc-example">
