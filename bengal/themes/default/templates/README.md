@@ -1,988 +1,269 @@
-# Bengal Default Theme - Templates
+# Bengal Templates Guide
 
-**Template Engine:** Jinja2  
-**Version:** 2.0  
-**Documentation:** https://jinja.palletsprojects.com/
+This directory contains Jinja2 templates for the Bengal default theme. This guide covers critical patterns for working with Bengal's templating system.
 
----
+## Key Concepts
 
-## Overview
-
-Bengal templates use Jinja2, a powerful and flexible template engine for Python. Templates combine HTML structure with template logic to generate dynamic pages.
-
-## Template Hierarchy
-
-### Resolution Order
-
-Bengal searches for templates in this order:
-
-1. **Project templates** (`your-project/templates/`)
-2. **Theme templates** (`bengal/themes/default/templates/`)
-
-This allows you to override any theme template by creating a file with the same name in your project.
-
-### Inheritance Chain
-
-```
-base.html                 # Base layout
-  ├── home.html          # Homepage (extends base)
-  ├── page.html          # Generic page (extends base)
-  ├── doc/single.html    # Documentation page (extends base)
-  ├── blog/list.html     # Blog index (extends base)
-  └── ...
-```
+Bengal uses Jinja2 with **StrictUndefined** mode in development (`bengal serve`). This means accessing undefined variables or attributes raises errors rather than silently returning empty strings. This catches bugs early but requires careful template design.
 
 ---
 
-## File Structure
+## The Macro/Include Separation Pattern
 
-```
-templates/
-├── base.html                    # Base layout (header, footer, scripts)
-│
-├── Core Pages
-├── home.html                    # Homepage
-├── page.html                    # Generic page
-├── index.html                   # Site index
-├── 404.html                     # Error page
-│
-├── Content Types
-├── doc/
-│   ├── list.html               # Documentation section list
-│   └── single.html             # Documentation page
-├── blog/
-│   ├── list.html               # Blog index
-│   └── single.html             # Blog post
-├── post.html                   # Simple blog post
-│
-├── Reference Documentation
-├── api-reference/
-│   ├── list.html               # API reference index
-│   └── single.html             # API documentation page
-├── api/
-│   └── single.html             # API page (legacy)
-├── cli-reference/
-│   ├── list.html               # CLI reference index
-│   └── single.html             # CLI command page
-├── cli/
-│   └── single.html             # CLI page (legacy)
-├── tutorial/
-│   ├── list.html               # Tutorial list
-│   └── single.html             # Tutorial page
-│
-├── Special Pages
-├── archive.html                 # Archive pages
-├── search.html                  # Search results page
-├── tag.html                     # Single tag page
-├── tags.html                    # All tags index
-│
-└── partials/
-    ├── breadcrumbs.html         # Breadcrumb navigation
-    ├── pagination.html          # Page number navigation
-    ├── page-navigation.html     # Prev/Next links
-    ├── toc-sidebar.html         # Table of contents
-    ├── docs-nav.html            # Documentation sidebar
-    ├── docs-nav-section.html    # Docs nav section (recursive)
-    ├── docs-meta.html           # Documentation metadata
-    ├── article-card.html        # Article preview card
-    ├── child-page-tiles.html    # Child pages/subsections tiles
-    ├── tag-list.html            # Tag cloud
-    ├── popular-tags.html        # Popular tags widget
-    ├── random-posts.html        # Random posts widget
-    ├── section-navigation.html  # Section navigation
-    └── search.html              # Search input
-```
+### The Problem
 
----
+When you use `{% from 'file.html' import macro_name %}`, Jinja2 executes **all top-level code** in that file, not just the macro definition. In StrictUndefined mode, this causes errors if the body code references variables that don't exist in the importing context.
 
-## Core Templates
-
-### `base.html`
-
-**Purpose:** Base layout with header, footer, and scripts
-
-**Blocks:**
 ```jinja
-{% block title %}              # Page title
-{% block meta %}               # Meta tags
-{% block styles %}             # Extra CSS
-{% block header %}             # Header content
-{% block main %}               # Main content area (required)
-{% block footer %}             # Footer content
-{% block scripts %}            # Extra JavaScript
-```
-
-**Usage:**
-```jinja
-{% extends "base.html" %}
-
-{% block title %}My Page{% endblock %}
-
-{% block main %}
-  <article class="prose">
-    {{ content }}
-  </article>
-{% endblock %}
-```
-
----
-
-### `home.html`
-
-**Purpose:** Homepage with hero section
-
-**Features:**
-- Hero section with title, subtitle, CTAs
-- Featured posts/docs
-- Recent posts
-- Custom sections
-
-**Variables:**
-```jinja
-{{ site.title }}           # Site title
-{{ site.description }}     # Site description
-{{ site.hero }}           # Hero configuration
-{{ recent_posts }}        # Recent posts (custom)
-```
-
-**Example:**
-```jinja
-{% extends "base.html" %}
-
-{% block main %}
-  <section class="hero">
-    <h1>{{ site.title }}</h1>
-    <p>{{ site.description }}</p>
-    <a href="/docs/" class="button-primary">Get Started</a>
-  </section>
-
-  <!-- Featured posts -->
-  <section class="featured">
-    {% for post in featured_posts %}
-      {% include "partials/article-card.html" %}
-    {% endfor %}
-  </section>
-{% endblock %}
-```
-
----
-
-### `page.html`
-
-**Purpose:** Generic content page
-
-**Features:**
-- Simple prose content
-- Optional TOC
-- Page metadata
-- Breadcrumbs
-
-**Layout:**
-```html
-<div class="page-layout">
-  <article class="prose">
-    <!-- Breadcrumbs -->
-    <!-- Page title -->
-    <!-- Content -->
-    <!-- Page navigation -->
-  </article>
-
-  <!-- Optional sidebar with TOC -->
-</div>
-```
-
----
-
-## Content Type Templates
-
-### Documentation (`doc/`)
-
-#### `doc/single.html`
-
-**Purpose:** Documentation page with full features
-
-**Features:**
-- Docs navigation sidebar
-- Table of contents sidebar
-- Breadcrumbs
-- Edit on GitHub link
-- Last updated info
-- Prev/Next navigation
-
-**Layout:**
-```html
-<div class="docs-layout">
-  <aside class="docs-sidebar">
-    <!-- Docs navigation -->
-  </aside>
-
-  <main class="docs-main">
-    <article class="prose">
-      <!-- Content -->
-    </article>
-  </main>
-
-  <aside class="docs-toc">
-    <!-- Table of contents -->
-  </aside>
-</div>
-```
-
-#### `doc/list.html`
-
-**Purpose:** Documentation section index page
-
-**Features:**
-- Docs navigation sidebar
-- Section description and content
-- **Child page tiles** (subsections + pages as cards)
-- Can be disabled with `show_children: false` in frontmatter
-- Table of contents sidebar (if content has headings)
-
-**Layout:**
-```html
-<div class="docs-layout">
-  <aside class="docs-sidebar">
-    <!-- Docs navigation -->
-  </aside>
-
-  <main class="docs-main">
-    <article class="prose">
-      <!-- Content -->
-      <!-- Child page tiles (auto-displayed) -->
-    </article>
-  </main>
-
-  <aside class="docs-toc">
-    <!-- Table of contents (if available) -->
-  </aside>
-</div>
-```
-
-**Example Frontmatter:**
-```yaml
----
-title: API Documentation
-description: Complete API reference
-type: doc
-template: doc/list.html
-# show_children: false  # Optionally hide child tiles
----
-```
-
----
-
-### Blog (`blog/`)
-
-#### `blog/single.html`
-
-**Purpose:** Blog post with rich features
-
-**Features:**
-- Hero image
-- Author info with avatar
-- Reading time
-- Tags
-- Social sharing buttons
-- Author bio box
-- Related posts
-- Comments section placeholder
-
-**Variables:**
-```jinja
-{{ page.title }}          # Post title
-{{ page.author }}         # Author name
-{{ page.date }}           # Publication date
-{{ page.updated }}        # Last updated
-{{ page.tags }}           # Post tags
-{{ page.hero_image }}     # Hero image URL
-{{ page.reading_time }}   # Estimated reading time
-```
-
-#### `blog/list.html`
-
-**Purpose:** Blog index with post grid
-
-**Features:**
-- Featured posts section
-- Post cards with images
-- Pagination
-- Tag cloud
-- Search
-
----
-
-### API Reference (`api-reference/`)
-
-#### `api-reference/single.html`
-
-**Purpose:** API documentation page
-
-**Features:**
-- API-specific styling (`.prose.api-content`)
-- Syntax highlighting
-- Parameter tables
-- Examples sections
-- Source code links
-
-**Special Classes:**
-```html
-<article class="prose api-content">
-  <!-- Enhanced API documentation styling -->
-</article>
-```
-
-#### `api-reference/list.html`
-
-**Purpose:** API reference index
-
-**Features:**
-- Module/class cards
-- Statistics (modules, classes, functions)
-- Search filter
-- Grouped by type
-
----
-
-### CLI Reference (`cli-reference/`)
-
-#### `cli-reference/single.html`
-
-**Purpose:** CLI command documentation
-
-**Features:**
-- Command syntax highlighting
-- Arguments/options tables
-- Usage examples
-- Related commands
-
-#### `cli-reference/list.html`
-
-**Purpose:** CLI commands index
-
-**Features:**
-- Command cards
-- Usage patterns
-- Quick reference
-
----
-
-### Tutorials (`tutorial/`)
-
-#### `tutorial/single.html`
-
-**Purpose:** Step-by-step tutorial page
-
-**Features:**
-- Prerequisites section
-- Numbered steps
-- Code examples
-- Next steps section
-
-#### `tutorial/list.html`
-
-**Purpose:** Tutorial listing
-
-**Features:**
-- Difficulty badges (beginner/intermediate/advanced)
-- Duration estimates
-- Prerequisites
-- Tutorial categories
-
----
-
-## Partials
-
-### `partials/breadcrumbs.html`
-
-**Purpose:** Breadcrumb navigation
-
-**Usage:**
-```jinja
-{% include "partials/breadcrumbs.html" %}
-```
-
-**Output:**
-```html
-<nav class="breadcrumbs" aria-label="Breadcrumb">
-  <ol>
-    <li><a href="/">Home</a></li>
-    <li><a href="/docs/">Docs</a></li>
-    <li aria-current="page">Current Page</li>
-  </ol>
-</nav>
-```
-
----
-
-### `partials/pagination.html`
-
-**Purpose:** Page number navigation
-
-**Usage:**
-```jinja
-{% include "partials/pagination.html" with context %}
-```
-
-**Variables Required:**
-```python
-pagination = {
-    'current_page': 2,
-    'total_pages': 10,
-    'per_page': 10,
-    'total_items': 95,
-    'has_prev': True,
-    'has_next': True,
-    'prev_url': '/blog/page/1/',
-    'next_url': '/blog/page/3/'
-}
-```
-
----
-
-### `partials/page-navigation.html`
-
-**Purpose:** Previous/Next page links
-
-**Usage:**
-```jinja
-{% include "partials/page-navigation.html" %}
-```
-
-**Variables:**
-```jinja
-{{ page.prev }}   # Previous page object
-{{ page.next }}   # Next page object
-```
-
----
-
-### `partials/toc-sidebar.html`
-
-**Purpose:** Table of contents sidebar
-
-**Usage:**
-```jinja
-{% if page.toc %}
-  {% include "partials/toc-sidebar.html" %}
+{# BAD: cards.html - mixes macro with body code #}
+{% macro element_card(child) %}
+  <div>{{ child.name }}</div>
+{% endmacro %}
+
+{# This body code runs during import! #}
+{% if children %}  {# ERROR: 'children' is undefined #}
+  {% for child in children %}
+    {{ element_card(child) }}
+  {% endfor %}
 {% endif %}
 ```
 
-**Features:**
-- Nested heading hierarchy (h2, h3, h4)
-- Active section highlighting
-- Reading progress bar
-- Collapse/expand groups
-- Smooth scroll
+When another template does `{% from 'cards.html' import element_card %}`, the `{% if children %}` line executes and fails because `children` doesn't exist in that context.
 
----
+### The Solution: Separate Macros from Body Code
 
-### `partials/docs-nav.html`
+Split templates that need both macros AND body code into two files:
 
-**Purpose:** Documentation sidebar navigation
-
-**Usage:**
-```jinja
-{% include "partials/docs-nav.html" %}
+```
+partials/
+├── _macros/
+│   └── element-card.html    # Pure macro file (safe to import)
+└── cards.html               # Include-only file (uses the macro)
 ```
 
-**Features:**
-- Hierarchical section tree
-- Active page highlighting
-- Expand/collapse sections
-- Recursive rendering
-
----
-
-### `partials/article-card.html`
-
-**Purpose:** Article preview card
-
-**Usage:**
+**Pure macro file** (`_macros/element-card.html`):
 ```jinja
-{% for post in posts %}
-  {% include "partials/article-card.html" with post=post %}
-{% endfor %}
-```
-
-**Variables:**
-```jinja
-{{ post.title }}
-{{ post.excerpt }}
-{{ post.date }}
-{{ post.author }}
-{{ post.url }}
-{{ post.hero_image }}
-{{ post.tags }}
-```
-
----
-
-### `partials/child-page-tiles.html`
-
-**Purpose:** Display child pages and subsections as card tiles
-
-**Usage:**
-```jinja
-{% include "partials/child-page-tiles.html" %}
-```
-
-**Variables:**
-```jinja
-{{ posts }}              # List of child pages
-{{ subsections }}        # List of child sections
-{{ show_subsections }}   # Boolean (default: true)
-{{ show_pages }}         # Boolean (default: true)
-{{ show_excerpt }}       # Boolean (default: true)
-```
-
-**Features:**
-- Automatically displays subsection cards with descriptions
-- Shows child pages using `article-card.html`
-- Can be disabled via frontmatter: `show_children: false`
-- Flexible control over what to display
-
-**Example: Hide children in index page**
-```yaml
----
-title: My Section
-show_children: false
----
-
-Custom content here without child page tiles.
-```
-
-**Example: Customize display**
-```jinja
-{% include "partials/child-page-tiles.html" with {'show_excerpt': false} %}
-```
-
----
-
-## Template Variables
-
-### Global Variables
-
-Available in all templates:
-
-```jinja
-{{ site }}         # Site configuration
-{{ config }}       # Full configuration
-{{ page }}         # Current page object
-{{ pages }}        # All pages list
-{{ sections }}     # All sections list
-{{ menu }}         # Navigation menu
-{{ request }}      # Request context (dev server)
-```
-
-### Site Object
-
-```jinja
-{{ site.title }}              # Site title
-{{ site.description }}        # Site description
-{{ site.baseurl }}            # Base URL
-{{ site.author }}            # Default author
-{{ site.language }}          # Site language (e.g., 'en')
-{{ site.theme }}             # Theme name
-{{ site.build_time }}        # Last build timestamp
-```
-
-### Page Object
-
-```jinja
-{{ page.title }}             # Page title
-{{ page.url }}               # Page URL
-{{ page.content }}           # Rendered content (HTML)
-{{ page.excerpt }}           # Excerpt/summary
-{{ page.date }}              # Publication date
-{{ page.updated }}           # Last updated date
-{{ page.author }}            # Author name
-{{ page.tags }}              # List of tags
-{{ page.section }}           # Section path
-{{ page.draft }}             # Draft status
-{{ page.weight }}            # Sort weight
-{{ page.toc }}               # Table of contents
-{{ page.prev }}              # Previous page
-{{ page.next }}              # Next page
-{{ page.word_count }}        # Word count
-{{ page.reading_time }}      # Estimated reading time
-{{ page.hero_image }}        # Hero image URL
-{{ page.kind }}              # Page kind (page, doc, blog, etc.)
-```
-
-### Section Object
-
-```jinja
-{{ section.title }}          # Section title
-{{ section.path }}           # Section path
-{{ section.pages }}          # Pages in section
-{{ section.subsections }}    # Child sections
-{{ section.parent }}         # Parent section
-```
-
----
-
-## Filters
-
-### Built-in Jinja2 Filters
-
-```jinja
-{{ text|upper }}             # UPPERCASE
-{{ text|lower }}             # lowercase
-{{ text|title }}             # Title Case
-{{ text|capitalize }}        # Capitalize first letter
-{{ text|trim }}              # Remove whitespace
-{{ text|truncate(100) }}     # Truncate to 100 chars
-{{ text|wordcount }}         # Count words
-{{ list|length }}            # List/string length
-{{ list|first }}             # First item
-{{ list|last }}              # Last item
-{{ list|sort }}              # Sort list
-{{ list|reverse }}           # Reverse list
-{{ list|join(', ') }}        # Join with separator
-{{ date|default('N/A') }}    # Default value
-```
-
-### Custom Bengal Filters
-
-```jinja
-{{ date|date_format('%Y-%m-%d') }}     # Format date
-{{ text|markdown }}                     # Render markdown
-{{ url|url_for }}                       # Generate URL
-{{ text|slugify }}                      # Create slug
-{{ pages|by_date }}                     # Sort by date
-{{ pages|by_weight }}                   # Sort by weight
-{{ pages|limit(10) }}                   # Limit items
-```
-
----
-
-## Functions
-
-### `url_for()`
-
-Generate URLs for assets and pages:
-
-```jinja
-<link rel="stylesheet" href="{{ url_for('assets/css/style.css') }}">
-<script src="{{ url_for('assets/js/main.js') }}"></script>
-<a href="{{ url_for(page.url) }}">{{ page.title }}</a>
-```
-
-### `get_page()`
-
-Get page by URL:
-
-```jinja
-{% set about_page = get_page('/about/') %}
-<a href="{{ about_page.url }}">{{ about_page.title }}</a>
-```
-
-### `get_section()`
-
-Get section by path:
-
-```jinja
-{% set docs = get_section('docs') %}
-<h2>{{ docs.title }}</h2>
-```
-
----
-
-## Control Structures
-
-### Conditionals
-
-```jinja
-{% if page.draft %}
-  <div class="alert-warning">This is a draft</div>
-{% endif %}
-
-{% if page.hero_image %}
-  <img src="{{ page.hero_image }}" alt="{{ page.title }}">
-{% else %}
-  <!-- No image -->
-{% endif %}
-```
-
-### Loops
-
-```jinja
-{% for post in posts %}
-  <article>
-    <h2>{{ post.title }}</h2>
-    <p>{{ post.excerpt }}</p>
-  </article>
-{% endfor %}
-
-{% for tag in page.tags %}
-  <a href="{{ tag_url(tag) }}">{{ tag }}</a>
-  {% if not loop.last %}, {% endif %}
-{% endfor %}
-```
-
-### Loop Variables
-
-```jinja
-{% for item in items %}
-  {{ loop.index }}       # 1, 2, 3, ...
-  {{ loop.index0 }}      # 0, 1, 2, ...
-  {{ loop.first }}       # True on first iteration
-  {{ loop.last }}        # True on last iteration
-  {{ loop.length }}      # Total iterations
-{% endfor %}
-```
-
----
-
-## Macros
-
-### Creating Macros
-
-```jinja
-{% macro card(title, content, url) %}
-  <div class="card">
-    <h3><a href="{{ url }}">{{ title }}</a></h3>
-    <p>{{ content }}</p>
-  </div>
+{# Only macro definitions - no body code #}
+{% macro element_card(child) %}
+  <div>{{ child.name }}</div>
 {% endmacro %}
 ```
 
-### Using Macros
-
+**Include-only file** (`cards.html`):
 ```jinja
-{% from "macros/cards.html" import card %}
+{% from 'partials/_macros/element-card.html' import element_card %}
 
-{{ card(page.title, page.excerpt, page.url) }}
-```
-
----
-
-## Best Practices
-
-### ✅ Do
-
-**1. Use semantic HTML**
-```jinja
-<article>
-  <header>
-    <h1>{{ page.title }}</h1>
-  </header>
-  <main>
-    {{ content }}
-  </main>
-</article>
-```
-
-**2. Provide fallbacks**
-```jinja
-{{ page.title|default('Untitled') }}
-{{ page.author|default(site.author) }}
-```
-
-**3. Check before using**
-```jinja
-{% if page.toc %}
-  {% include "partials/toc-sidebar.html" %}
-{% endif %}
-```
-
-**4. Use descriptive variable names**
-```jinja
-{% set featured_posts = posts|filter(featured=True)|limit(3) %}
-```
-
-**5. Comment complex logic**
-```jinja
-{# Sort posts by date, newest first, limit to 10 #}
-{% set recent_posts = posts|by_date|reverse|limit(10) %}
-```
-
----
-
-### ❌ Don't
-
-**1. Don't use bare CSS classes**
-```jinja
-<!-- ❌ Bad -->
-<div class="box">{{ content }}</div>
-
-<!-- ✅ Good -->
-<div class="prose">{{ content }}</div>
-```
-
-**2. Don't assume variables exist**
-```jinja
-<!-- ❌ Bad -->
-<img src="{{ page.image }}">
-
-<!-- ✅ Good -->
-{% if page.image %}
-  <img src="{{ page.image }}" alt="{{ page.title }}">
-{% endif %}
-```
-
-**3. Don't repeat code**
-```jinja
-<!-- ❌ Bad -->
-{% for post in posts %}
-  <div class="card">
-    <h3>{{ post.title }}</h3>
-    <!-- 20 lines of card HTML -->
-  </div>
-{% endfor %}
-
-<!-- ✅ Good -->
-{% for post in posts %}
-  {% include "partials/article-card.html" with post=post %}
-{% endfor %}
-```
-
-**4. Don't use inline styles**
-```jinja
-<!-- ❌ Bad -->
-<div style="color: red;">{{ content }}</div>
-
-<!-- ✅ Good -->
-<div class="alert-error">{{ content }}</div>
-```
-
----
-
-## Customization
-
-### Overriding Templates
-
-Create a template with the same path in your project:
-
-```
-your-project/
-└── templates/
-    └── doc/
-        └── single.html     # Overrides theme template
-```
-
-### Extending Templates
-
-```jinja
-{% extends "bengal://doc/single.html" %}
-
-{% block main %}
-  <div class="custom-header">Custom content</div>
-  {{ super() }}
-{% endblock %}
-```
-
-### Adding New Blocks
-
-```jinja
-{# In base.html #}
-{% block custom_sidebar %}
-{% endblock %}
-
-{# In your template #}
-{% extends "base.html" %}
-
-{% block custom_sidebar %}
-  <aside>Custom sidebar</aside>
-{% endblock %}
-```
-
----
-
-## Debugging
-
-### Template Debugging
-
-```jinja
-{# Print variable #}
-{{ page|pprint }}
-
-{# Check if variable exists #}
-{% if page is defined %}
-  Page exists
-{% endif %}
-
-{# Show all available variables #}
-{{ vars()|pprint }}
-
-{# Raise error for debugging #}
-{% if not page.title %}
-  {{ raise('Page title is required') }}
-{% endif %}
-```
-
-### Error Messages
-
-```jinja
-{# Custom error messages #}
-{% if not page %}
-  {# This will show in build output #}
-  {{ log('Warning: Page not found') }}
-{% endif %}
-```
-
----
-
-## Performance
-
-### Optimization Tips
-
-**1. Cache expensive operations**
-```jinja
-{% set sorted_posts = posts|by_date %}
-{% for post in sorted_posts %}
-  <!-- Use sorted_posts multiple times -->
-{% endfor %}
-```
-
-**2. Limit loops**
-```jinja
-{% for post in posts|limit(10) %}
-  <!-- Only process first 10 -->
-{% endfor %}
-```
-
-**3. Use includes sparingly**
-```jinja
-<!-- ❌ Bad: Include in loop -->
-{% for item in items %}
-  {% include "partial.html" %}
-{% endfor %}
-
-<!-- ✅ Good: Loop inside partial -->
-{% include "partial-list.html" with items=items %}
-```
-
-**4. Avoid nested loops**
-```jinja
-<!-- ❌ Bad: O(n²) complexity -->
-{% for post in posts %}
-  {% for tag in all_tags %}
-    {% if tag in post.tags %}...{% endif %}
+{# Body code is safe here - this file is included, not imported #}
+{% if children %}
+  {% for child in children %}
+    {{ element_card(child) }}
   {% endfor %}
-{% endfor %}
+{% endif %}
+```
 
-<!-- ✅ Good: Pre-filter -->
-{% set post_tags = post.tags %}
+### When to Use Each Pattern
+
+| Pattern | When to Use | How to Reference |
+|---------|-------------|------------------|
+| **Pure macro file** | Macro needs to be imported by multiple templates | `{% from '...' import macro %}` |
+| **Include-only file** | Template renders content directly | `{% include '...' %}` |
+| **Self-contained template** | Macro is only used within same file | Define macro inline |
+
+---
+
+## Safe Attribute Access with `getattr()`
+
+### The Problem
+
+DocElement objects from autodoc may have optional attributes. In StrictUndefined mode, accessing a missing attribute fails:
+
+```jinja
+{# BAD: Fails if element.children doesn't exist #}
+{% for child in element.children %}
+```
+
+The common workaround `element.children or []` also fails because it still accesses the attribute first.
+
+### The Solution: Use `getattr()`
+
+Bengal exposes Python's `getattr()` as a Jinja2 global:
+
+```jinja
+{# GOOD: Safe access with default value #}
+{% for child in getattr(element, 'children', []) %}
+
+{# Also works for nested access #}
+{% set params = getattr(element.metadata, 'parameters', []) %}
+```
+
+### When to Use `getattr()`
+
+- Accessing attributes on DocElement objects (`element`, `child`, `method`, etc.)
+- Any attribute that might not exist on all element types
+- When iterating over optional collections
+
+### When NOT Needed
+
+- Accessing template variables you control (e.g., `{% set foo = 'bar' %}`)
+- Using Jinja2's `default` filter on simple values: `{{ value | default('fallback') }}`
+- Accessing dictionary keys with `.get()`: `{{ dict.get('key', 'default') }}`
+
+---
+
+## Template Organization
+
+```
+templates/
+├── base.html                    # Base layout (extends nothing)
+├── README.md                    # This file
+│
+├── partials/                    # Shared components
+│   ├── _macros/                 # Pure macro files (safe to import)
+│   ├── navigation-components.html  # Pure macros
+│   ├── content-components.html     # Pure macros
+│   └── page-hero-*.html            # Include-only (have body code)
+│
+├── autodoc/                     # Autodoc-specific templates
+│   └── partials/
+│       ├── _macros/             # Pure macro files
+│       │   └── element-card.html
+│       ├── header.html          # Include-only partials
+│       ├── signature.html
+│       └── cards.html           # Uses macro from _macros/
+│
+├── api-reference/               # Python API docs
+│   ├── module.html
+│   └── partials/
+│       ├── _macros/
+│       │   └── render-method.html
+│       └── method-item.html
+│
+├── cli-reference/               # CLI docs
+│   ├── command.html
+│   └── command-group.html
+│
+└── openapi-reference/           # OpenAPI docs
+    └── endpoint.html
+```
+
+### Naming Conventions
+
+- `_macros/` directories contain pure macro files (the underscore signals "internal")
+- Files in `_macros/` should only define macros, never render content
+- Files outside `_macros/` can be either include-only or pure macros
+
+---
+
+## Common Patterns
+
+### Pattern 1: Iterating Over Optional Children
+
+```jinja
+{# Safe iteration over children #}
+{% set element_children = getattr(element, 'children', []) %}
+{% set methods = element_children | selectattr('element_type', 'eq', 'method') | list %}
+
+{% for method in methods %}
+  {{ render_method(method) }}
+{% endfor %}
+```
+
+### Pattern 2: Conditional Sections Based on Children
+
+```jinja
+{% set options = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'option') | list %}
+
+{% if options %}
+<section class="autodoc-section">
+  <h2>Options</h2>
+  {# ... render options ... #}
+</section>
+{% endif %}
+```
+
+### Pattern 3: Importing Macros for Use in Another Template
+
+```jinja
+{# Import from _macros/ directory - safe, no body code will execute #}
+{% from 'autodoc/partials/_macros/element-card.html' import element_card %}
+
+{# Now use the macro #}
+{% for child in children %}
+  {{ element_card(child) }}
+{% endfor %}
+```
+
+### Pattern 4: Include-Only Template with Context
+
+```jinja
+{# In the parent template #}
+{% set element = some_element %}
+{% include 'autodoc/partials/header.html' %}
+
+{# header.html expects 'element' to be defined in context #}
 ```
 
 ---
 
-## Resources
+## Debugging Template Errors
 
-### Documentation
-- [Jinja2 Documentation](https://jinja.palletsprojects.com/)
-- [Bengal Template Guide](https://bengal-ssg.org/docs/templates/)
-- [HTML Best Practices](https://github.com/hail2u/html-best-practices)
+### Error: `'X' is undefined`
 
-### Tools
-- [Jinja2 Live Parser](https://cryptic-cliffs-32040.herokuapp.com/)
-- [HTML Validator](https://validator.w3.org/)
-- [Accessibility Checker](https://wave.webaim.org/)
+1. **Check if you're importing a file with body code**
+   - Look for `{% from 'file.html' import ... %}`
+   - Check if `file.html` has code outside macros
+   - Solution: Move macro to `_macros/` subdirectory
+
+2. **Check if you're accessing an optional attribute**
+   - Use `getattr(obj, 'attr', default)` instead of `obj.attr`
+
+3. **Check if variable exists in context**
+   - For include-only files, ensure parent sets needed variables
+   - Use `{% if var is defined %}` guards if variable is truly optional
+
+### Error: `'dict object' has no attribute 'X'`
+
+- You're using dot notation on a dict that needs bracket notation
+- Use `dict.get('key', default)` or `dict['key']`
+
+### Error: `'DocElement object' has no attribute 'get'`
+
+- You're using dict methods on a DocElement object
+- Use direct attribute access: `element.name` not `element.get('name')`
 
 ---
 
-## License
+## Testing Templates
 
-MIT License - See [LICENSE](../../../../../LICENSE) for details
+Run `bengal serve` (not `bengal build`) to test templates with StrictUndefined mode enabled. This catches errors that would silently pass in production builds.
+
+```bash
+cd site
+bengal s
+```
+
+Watch for warnings like:
+```
+● autodoc_template_render_failed  template=... error='X' is undefined
+```
+
+---
+
+## Quick Reference
+
+| Task | Pattern |
+|------|---------|
+| Import a macro | `{% from 'path/_macros/macro.html' import macro_name %}` |
+| Include a partial | `{% include 'path/partial.html' %}` |
+| Safe attribute access | `getattr(element, 'children', [])` |
+| Filter with default | `element.description \| default('No description')` |
+| Check if defined | `{% if var is defined and var %}` |
+| Dict key with default | `dict.get('key', 'default')` |
+
+---
+
+## Further Reading
+
+- [Jinja2 Template Designer Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/)
+- Bengal's `bengal/rendering/template_engine/environment.py` - Jinja2 environment setup
+- Bengal's `bengal/autodoc/orchestration/template_env.py` - Autodoc-specific environment
