@@ -44,8 +44,8 @@ This template receives:
         </h1>
 
         {% if element.metadata.summary or element.description %}
-        <div class="autodoc-description">
-          <p>{{ element.metadata.summary or element.description }}</p>
+        <div class="autodoc-description prose">
+          {{ (element.metadata.summary or element.description) | markdownify | safe }}
         </div>
         {% endif %}
 

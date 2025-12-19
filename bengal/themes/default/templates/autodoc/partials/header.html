@@ -54,8 +54,8 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
 
   {# Description #}
   {% if element.description %}
-  <div class="autodoc-description">
-    <p>{{ element.description }}</p>
+  <div class="autodoc-description prose">
+    {{ element.description | markdownify | safe }}
   </div>
   {% endif %}
 

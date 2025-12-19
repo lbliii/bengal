@@ -43,7 +43,7 @@ This template receives:
         <h1 class="autodoc-title">{{ element.name }}</h1>
 
         {% if element.description %}
-        <div class="autodoc-description">{{ element.description | safe }}</div>
+        <div class="autodoc-description prose">{{ element.description | markdownify | safe }}</div>
         {% endif %}
       </header>
 

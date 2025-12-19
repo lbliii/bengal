@@ -75,7 +75,7 @@ Optional: title (str), member_type (str), first_open (bool, default true)
       <div class="autodoc-member-body">
         {% if member.description %}
         <div class="autodoc-member-desc prose">
-          {{ member.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
+          {{ member.description | markdownify | safe }}
         </div>
         {% endif %}
 
@@ -194,7 +194,7 @@ Optional: title (str), member_type (str), first_open (bool, default true)
         <div class="autodoc-member-body">
           {% if member.description %}
           <div class="autodoc-member-desc prose">
-            {{ member.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
+            {{ member.description | markdownify | safe }}
           </div>
           {% endif %}
 
