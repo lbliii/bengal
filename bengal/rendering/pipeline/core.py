@@ -621,6 +621,10 @@ class RenderingPipeline:
         """
         Render an autodoc page using the site's template engine.
 
+        NOTE: This is the ONLY rendering path for autodoc pages. The deferred
+        rendering architecture ensures full template context (menus, active states,
+        versioning) is available. See bengal/autodoc/README.md for details.
+
         This is called during the rendering phase (after menus are built),
         ensuring full template context is available for proper header/nav rendering.
 

@@ -1,8 +1,10 @@
 # RFC: Code Smell Remediation - Monolithic Modules and God Functions
 
-**Status**: Draft
+**Status**: Evaluated
 **Author**: AI Assistant
 **Created**: 2025-12-19
+**Evaluated**: 2025-12-19
+**Confidence**: 91% 🟢
 **Category**: Architecture / Refactoring
 
 ---
@@ -41,7 +43,7 @@ However, several modules have grown beyond the **400-line threshold** specified 
 
 | Location | Function | Lines |
 |----------|----------|-------|
-| `cli/commands/build.py:156` | `build()` | 421 |
+| `cli/commands/build.py:156` | `build()` | 419 |
 | `analysis/graph_visualizer.py:290` | `generate_html()` | 409 |
 | `health/validators/connectivity.py:152` | `_safe_get_metrics()` | 280 |
 | `orchestration/build/__init__.py:97` | `BuildOrchestrator.build()` | 274 |
@@ -135,22 +137,27 @@ def _normalize_autodoc_element(self, element: Any) -> Any:
 
 **Impact**: This logic belongs on the autodoc element class, not the rendering pipeline.
 
-### 5. Middle Man Pattern
+### 5. Middle Man Pattern (Low Priority)
 
 `KnowledgeGraph` delegates nearly all methods to `GraphAnalyzer`:
 
 ```python
 # bengal/analysis/knowledge_graph.py
 def get_hubs(self, threshold: int | None = None) -> list[Page]:
+    if not self._built or self._analyzer is None:
+        raise RuntimeError("KnowledgeGraph is not built. Call .build() first")
     return self._analyzer.get_hubs(threshold)
 
 def get_leaves(self, threshold: int | None = None) -> list[Page]:
+    if not self._built or self._analyzer is None:
+        raise RuntimeError("KnowledgeGraph is not built. Call .build() first")
     return self._analyzer.get_leaves(threshold)
-
-def get_orphans(self) -> list[Page]:
-    return self._analyzer.get_orphans()
-# ...10+ more delegation methods
+# ...10+ more delegation methods with build-state validation
 ```
+
+**Nuance**: This is **defensive programming**, not pure middle-man anti-pattern. Each delegated method validates build state before forwarding, preventing cryptic errors if the graph hasn't been built. This adds value.
+
+**Revised Assessment**: Lower priority than other items. Consider whether the ~20 lines of boilerplate justify refactoring, given the safety benefit.
 
 ---
 
@@ -270,6 +277,14 @@ class BreadcrumbItem:
     url: str
     is_current: bool = False
 
+    def __getitem__(self, key: str) -> Any:
+        """Dict-style access for template compatibility."""
+        return getattr(self, key)
+
+    def keys(self) -> list[str]:
+        """Support dict(item) conversion."""
+        return ["title", "url", "is_current"]
+
 @dataclass  
 class PaginationItem:
     """Single page in pagination."""
@@ -277,6 +292,9 @@ class PaginationItem:
     url: str | None
     is_current: bool = False
     is_ellipsis: bool = False
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
 
 @dataclass
 class NavTreeItem:
@@ -289,7 +307,17 @@ class NavTreeItem:
     depth: int = 0
     children: list[NavTreeItem] = field(default_factory=list)
     has_children: bool = False
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
 ```
+
+**Dict Compatibility Strategy**: Dataclasses implement `__getitem__` for backward compatibility with templates using `item["key"]` syntax. This allows gradual migration without breaking existing templates.
+
+**Template Migration Path**:
+1. Deploy dataclasses with `__getitem__` support (zero template changes)
+2. Update templates to use dot notation (`item.title` instead of `item["title"]`)
+3. Optionally remove `__getitem__` in future major version
 
 ---
 
@@ -308,24 +336,32 @@ class DocElement:
         pass
 ```
 
-#### 3.2 Simplify `KnowledgeGraph` Delegation
+#### 3.2 Simplify `KnowledgeGraph` Delegation (Optional)
 
-Option A: Expose analyzer directly
+**Reassessment**: Current delegation includes build-state validation, which is valuable defensive programming. Refactoring may not be worth the risk.
+
+**If proceeding, Option A is recommended** (preserves safety):
 ```python
 @property
 def analyzer(self) -> GraphAnalyzer:
-    if not self._built:
-        raise RuntimeError("Call build() first")
+    """Access analyzer after build() has been called."""
+    if not self._built or self._analyzer is None:
+        raise RuntimeError("KnowledgeGraph is not built. Call .build() first")
     return self._analyzer
+
+# Usage: graph.analyzer.get_hubs() instead of graph.get_hubs()
 ```
 
-Option B: Use `__getattr__` delegation
+**Option B (Not Recommended)** - Loses explicit build-state validation:
 ```python
 def __getattr__(self, name: str) -> Any:
+    # CAUTION: This silently fails if _analyzer is None
     if self._analyzer and hasattr(self._analyzer, name):
         return getattr(self._analyzer, name)
     raise AttributeError(name)
 ```
+
+**Recommendation**: Defer this refactoring. The ~50 lines of delegation boilerplate provide meaningful safety guarantees. Focus effort on higher-impact items.
 
 #### 3.3 Extract CLI Build Command Executor
 
@@ -375,6 +411,22 @@ class BuildCommandExecutor:
 
 **Exit Criteria**: `IncrementalOrchestrator` < 400 lines, all incremental build tests pass
 
+**Risk Mitigation for `find_work` Merge** (HIGH risk item):
+
+1. **Pre-requisite**: Audit existing test coverage for `find_work_early()` and `find_work()`
+   - Location: `tests/unit/test_incremental.py`
+   - Required: Tests covering both pre-taxonomy and post-taxonomy phases
+
+2. **Feature flag**: Introduce `use_unified_change_detector: bool = False` config option
+   - Old code path remains default until validated
+   - New code path opt-in for testing
+
+3. **Parallel execution period**: Run both old and new code paths, compare results
+   - Log any discrepancies
+   - 1-week validation before switching default
+
+4. **Rollback plan**: Git revert to last known-good if issues arise
+
 ### Sprint 3: Navigation Package (Week 3)
 
 | Task | Effort | Risk |
@@ -404,10 +456,11 @@ class BuildCommandExecutor:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Breaking incremental builds during refactor | Medium | High | Feature flag for new ChangeDetector |
-| Template breakage from navigation changes | Low | Medium | Keep dict compatibility during transition |
-| Performance regression | Low | Medium | Benchmark before/after |
-| Increased import complexity | Medium | Low | Clear public API in `__init__.py` |
+| Breaking incremental builds during refactor | Medium | High | Feature flag (`use_unified_change_detector`), parallel execution validation period, rollback plan |
+| Template breakage from navigation changes | Low | Medium | Dataclasses implement `__getitem__` for dict compatibility; gradual migration path |
+| Performance regression | Low | Medium | Benchmark before/after each sprint |
+| Increased import complexity | Medium | Low | Clear public API in `__init__.py`, re-export key classes |
+| Test coverage gaps during merge | Medium | Medium | Audit existing incremental tests before Sprint 2; require 100% coverage for ChangeDetector |
 
 ---
 
@@ -440,6 +493,44 @@ class BuildCommandExecutor:
 - Harder to test individual components
 
 **Verdict**: Rejected. Bengal already has the package pattern established (`core/page/`, `core/site/`, `orchestration/build/`); we should extend it consistently.
+
+---
+
+## Evaluation Notes
+
+**Evaluated**: 2025-12-19 | **Confidence**: 91% 🟢
+
+### Claims Verified (17/18)
+
+| Claim Category | Verified | Notes |
+|----------------|----------|-------|
+| File sizes (8 files) | 8/8 ✅ | All line counts exact match |
+| God function locations | ✅ | Line numbers verified |
+| BuildOrchestrator signature | ✅ | 11 params at `build/__init__.py:97-111` |
+| find_work duplication | ✅ | Lines 482 and 727 confirmed |
+| Existing package patterns | ✅ | `core/page/`, `core/site/`, `build/` verified |
+| Architecture threshold | ✅ | 400-line rule in `architecture-patterns.mdc:223` |
+
+### Corrections Made
+
+1. **CLI build function**: 421 → 419 lines (file is 575 lines, function spans 156-575)
+2. **Middle Man assessment**: Added nuance - delegation includes defensive build-state checks
+
+### Improvements Added
+
+1. **Dict compatibility strategy** for navigation dataclasses (Sprint 3)
+2. **Risk mitigation detail** for `find_work` merge (Sprint 2)
+3. **KnowledgeGraph recommendation**: Defer refactoring, value outweighs boilerplate cost
+
+### Confidence Breakdown
+
+| Component | Score | Notes |
+|-----------|-------|-------|
+| Evidence Strength | 38/40 | 17/18 claims verified exactly |
+| Consistency | 28/30 | Proposals match existing patterns |
+| Recency | 15/15 | Current codebase verified |
+| Test Coverage | 10/15 | Proposed dataclasses need tests |
+| **Total** | **91/100** | 🟢 Ready for implementation |
 
 ---
 

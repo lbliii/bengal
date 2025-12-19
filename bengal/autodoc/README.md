@@ -102,6 +102,10 @@ Autodoc follows the same pattern as regular pages - data during discovery, HTML 
 
 This architecture ensures autodoc pages have the same navigation (header, sidebar) as regular pages.
 
+**Single Rendering Path**: All autodoc rendering occurs via `RenderingPipeline._render_autodoc_page()`.
+This is the only rendering path — the deferred rendering architecture ensures full template context
+(menus, active states, versioning) is available when pages are rendered.
+
 ### DocElement Structure
 
 ```python
