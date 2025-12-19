@@ -36,7 +36,7 @@ class ResourceManager:
     Usage:
         with ResourceManager() as rm:
             server = rm.register_server(httpd)
-            observer = rm.register_observer(watcher)
+            watcher = rm.register_watcher(watcher_runner)
             # Resources automatically cleaned up on exit
 
     Features:
@@ -98,28 +98,24 @@ class ResourceManager:
 
         return self.register("HTTP Server", server, cleanup)
 
-    def register_observer(self, observer: Any) -> Any:
+    def register_watcher(self, watcher: Any) -> Any:
         """
-        Register file system observer for cleanup.
+        Register file watcher for cleanup.
 
         Args:
-            observer: watchdog.observers.Observer instance
+            watcher: WatcherRunner instance
 
         Returns:
-            The observer
+            The watcher
         """
 
-        def cleanup(o: Any) -> None:
+        def cleanup(w: Any) -> None:
             try:
-                o.stop()
-                # Don't hang forever waiting for observer (reduced from 5s to 2s)
-                o.join(timeout=2.0)
-                if o.is_alive():
-                    print("  ⚠️  File observer did not stop cleanly (still running)")
+                w.stop()
             except Exception as e:
-                print(f"  ⚠️  Error stopping observer: {e}")
+                print(f"  ⚠️  Error stopping watcher: {e}")
 
-        return self.register("File Observer", observer, cleanup)
+        return self.register("File Watcher", watcher, cleanup)
 
     def register_pidfile(self, pidfile_path: Path) -> Path:
         """
@@ -148,6 +144,52 @@ class ResourceManager:
 
         self.register("PID File", pidfile_path, cleanup)
         return pidfile_path
+
+    def register_watcher_runner(self, runner: Any) -> Any:
+        """
+        Register WatcherRunner for cleanup.
+
+        Args:
+            runner: WatcherRunner instance
+
+        Returns:
+            The runner
+        """
+
+        def cleanup(r: Any) -> None:
+            try:
+                r.stop()
+            except Exception as e:
+                logger.debug(
+                    "watcher_runner_cleanup_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        return self.register("Watcher Runner", runner, cleanup)
+
+    def register_build_trigger(self, trigger: Any) -> Any:
+        """
+        Register BuildTrigger for cleanup.
+
+        Args:
+            trigger: BuildTrigger instance
+
+        Returns:
+            The trigger
+        """
+
+        def cleanup(t: Any) -> None:
+            try:
+                t.shutdown()
+            except Exception as e:
+                logger.debug(
+                    "build_trigger_cleanup_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        return self.register("Build Trigger", trigger, cleanup)
 
     def cleanup(self, signum: int | None = None) -> None:
         """

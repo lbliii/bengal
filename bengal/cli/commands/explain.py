@@ -127,9 +127,9 @@ def explain(
     # Create template engine for template resolution
     template_engine = None
     try:
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
-        template_engine = TemplateEngine(site)
+        template_engine = create_engine(site)
     except Exception as e:
         cli.warning(f"Could not initialize template engine: {e}")
 

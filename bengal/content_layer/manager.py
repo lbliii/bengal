@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.async_compat import run_async
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -390,7 +391,7 @@ class ContentLayerManager:
         Returns:
             List of all content entries
         """
-        return asyncio.run(self.fetch_all(use_cache))
+        return run_async(self.fetch_all(use_cache))
 
     def __repr__(self) -> str:
         return f"ContentLayerManager(sources={list(self.sources.keys())})"

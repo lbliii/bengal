@@ -305,9 +305,9 @@ def discover(source: str) -> None:
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.rendering.engines import create_engine
 
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
     # Walk all template directories in priority order
     seen: set[str] = set()
     for base in engine.template_dirs:
@@ -350,10 +350,10 @@ def debug(source: str, template: str | None) -> None:
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.rendering.engines import create_engine
     from bengal.utils.theme_resolution import resolve_theme_chain
 
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
 
     # Show active theme
     cli.header("Active Theme")

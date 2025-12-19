@@ -211,9 +211,9 @@ class CacheStore:
             # Create parent directory if missing
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write uncompressed JSON
-            with open(self.cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=indent)
+            # Write uncompressed JSON (using orjson if available)
+            json_str = json.dumps(data, indent=indent)
+            self.cache_path.write_text(json_str, encoding="utf-8")
 
             logger.debug(f"Saved {len(entries)} entries to {self.cache_path} (version {version})")
 
@@ -324,9 +324,9 @@ class CacheStore:
         # Fall back to uncompressed JSON (for migration from old caches)
         if self.cache_path.exists():
             try:
-                with open(self.cache_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    return data
+                content = self.cache_path.read_text(encoding="utf-8")
+                data = json.loads(content)
+                return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load cache {self.cache_path}: {e}")
                 return None

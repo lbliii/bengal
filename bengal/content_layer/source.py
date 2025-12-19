@@ -144,12 +144,12 @@ class ContentSource(ABC):
         Yields:
             ContentEntry for each piece of content
         """
-        import asyncio
+        from bengal.utils.async_compat import run_async
 
         async def collect() -> list[ContentEntry]:
             return [entry async for entry in self.fetch_all()]
 
-        entries = asyncio.run(collect())
+        entries = run_async(collect())
         yield from entries
 
     def fetch_one_sync(self, id: str) -> ContentEntry | None:
@@ -162,9 +162,9 @@ class ContentSource(ABC):
         Returns:
             ContentEntry if found, None otherwise
         """
-        import asyncio
+        from bengal.utils.async_compat import run_async
 
-        return asyncio.run(self.fetch_one(id))
+        return run_async(self.fetch_one(id))
 
     # =========================================================================
     # Utility methods

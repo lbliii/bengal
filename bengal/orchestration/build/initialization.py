@@ -113,10 +113,10 @@ def phase_template_validation(
         validation_start = time.time()
 
         try:
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
             # Create template engine for validation
-            engine = TemplateEngine(orchestrator.site)
+            engine = create_engine(orchestrator.site)
 
             # Validate all templates
             errors = engine.validate_templates()

@@ -213,7 +213,7 @@ class ContentOrchestrator:
         breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
         # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
         # This is ephemeral, per-build-only state.
-        self.site._discovery_breakdown_ms = breakdown_ms  # type: ignore[attr-defined]
+        self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(self, cache: Any | None = None) -> tuple[list[Any], list[Any]]:
         """

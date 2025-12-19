@@ -1,27 +1,27 @@
 """
-Template engine package for Jinja2 page rendering.
+Template engine package - backward compatibility re-exports.
 
-Provides template rendering, template function registration, and optional
-template profiling for performance analysis. Integrates with theme system
-for template discovery and asset manifest for cache-busting.
+DEPRECATED: Use bengal.rendering.engines instead.
 
-Key Concepts:
-    - Template inheritance: Child themes inherit parent templates
-    - Bytecode caching: Compiled templates cached for faster subsequent renders
-    - Template profiling: Optional timing data collection via --profile-templates
-    - Strict mode: StrictUndefined enabled for better error detection
+    # NEW (recommended)
+    from bengal.rendering.engines import create_engine
+    engine = create_engine(site)
 
-Public API:
-    - TemplateEngine: Main template engine class
-
-Related Modules:
-    - bengal.rendering.template_profiler: Profiling implementation
-    - bengal.rendering.template_functions: Template function registry
-    - bengal.utils.theme_registry: Theme resolution and discovery
+    # OLD (deprecated)
+    from bengal.rendering.template_engine import TemplateEngine
+    engine = TemplateEngine(site)
 """
 
 from __future__ import annotations
 
-from bengal.rendering.template_engine.core import TemplateEngine
+
+def __getattr__(name: str):
+    """Lazy import to avoid circular import issues."""
+    if name == "TemplateEngine":
+        from bengal.rendering.engines.jinja import JinjaTemplateEngine
+
+        return JinjaTemplateEngine
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = ["TemplateEngine"]

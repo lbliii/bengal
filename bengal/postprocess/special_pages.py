@@ -102,14 +102,14 @@ class SpecialPagesGenerator:
             is not critical for site functionality
         """
         try:
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
             # Get template engine (reuse site's if available)
             if hasattr(self.site, "template_engine"):
                 template_engine = self.site.template_engine
             else:
                 # Create new template engine for rendering
-                template_engine = TemplateEngine(self.site)
+                template_engine = create_engine(self.site)
 
             # Check if 404.html template exists
             try:
@@ -216,13 +216,13 @@ class SpecialPagesGenerator:
                 if user_search_md.exists():
                     return False
 
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
             # Get template engine (reuse site's if available)
             if hasattr(self.site, "template_engine"):
                 template_engine = self.site.template_engine
             else:
-                template_engine = TemplateEngine(self.site)
+                template_engine = create_engine(self.site)
 
             try:
                 template_engine.env.get_template(template_name)

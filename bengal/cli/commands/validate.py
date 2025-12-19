@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import signal
 import threading
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -212,32 +211,35 @@ def _run_watch_mode(
         incremental: Whether to use incremental validation
         cli: CLI output instance
     """
-    from watchdog.events import FileSystemEvent, FileSystemEventHandler
-    from watchdog.observers import Observer
+    import watchfiles
+
+    from bengal.utils.async_compat import run_async
 
     cli.blank()
     cli.info("👀 Watch mode: Validating on file changes...")
     cli.info("   Press Ctrl+C to stop")
     cli.blank()
 
-    # Track changed files for incremental validation
-    changed_files: set[Path] = set()
-    changed_files_lock = threading.Lock()
-    debounce_timer: threading.Timer | None = None
-    timer_lock = threading.Lock()
+    # Track files for validation
     DEBOUNCE_DELAY = 0.5  # 500ms debounce
+    stop_event = threading.Event()
 
-    def _trigger_validation() -> None:
-        """Trigger validation with current changed files."""
-        nonlocal changed_files
+    def _should_validate(file_path: Path) -> bool:
+        """Check if file should trigger validation."""
+        # Only validate markdown/content files, config, templates
+        valid_extensions = {".md", ".toml", ".yaml", ".yml", ".html", ".jinja2", ".jinja"}
+        if file_path.suffix.lower() not in valid_extensions:
+            return False
 
-        with changed_files_lock:
-            files_to_validate = list(changed_files)
-            changed_files.clear()
+        # Ignore output directory
+        if "public" in str(file_path) or STATE_DIR_NAME in str(file_path):
+            return False
 
-        if not files_to_validate:
-            return
+        # Ignore temp files
+        return not (file_path.name.startswith(".") or file_path.name.endswith("~"))
 
+    def _run_validation(files_to_validate: list[Path]) -> None:
+        """Run validation on changed files."""
         # Show what changed
         cli.blank()
         cli.info(f"📝 Files changed: {len(files_to_validate)}")
@@ -282,83 +284,43 @@ def _run_watch_mode(
         cli.blank()
         cli.info("👀 Watching for changes...")
 
-    class ValidationHandler(FileSystemEventHandler):
-        """File system event handler for validation watch mode."""
+    def watch_filter(change: watchfiles.Change, path: str) -> bool:
+        """Filter for watchfiles - returns True to INCLUDE."""
+        return _should_validate(Path(path))
 
-        def _should_validate(self, file_path: Path) -> bool:
-            """Check if file should trigger validation."""
-            # Only validate markdown/content files, config, templates
-            valid_extensions = {".md", ".toml", ".yaml", ".yml", ".html", ".jinja2", ".jinja"}
-            if file_path.suffix.lower() not in valid_extensions:
-                return False
+    async def _watch_loop() -> None:
+        """Async watch loop using watchfiles."""
+        # Watch content, config, templates directories
+        watch_dirs = [
+            site.root_path / "content",
+            site.root_path / "templates",
+            site.root_path,
+        ]
+        watch_paths = [d for d in watch_dirs if d.exists()]
 
-            # Ignore output directory
-            if "public" in str(file_path) or STATE_DIR_NAME in str(file_path):
-                return False
+        async for changes in watchfiles.awatch(
+            *watch_paths,
+            watch_filter=watch_filter,
+            debounce=int(DEBOUNCE_DELAY * 1000),
+            stop_event=stop_event,
+        ):
+            if stop_event.is_set():
+                break
 
-            # Ignore temp files
-            return not (file_path.name.startswith(".") or file_path.name.endswith("~"))
-
-        def on_modified(self, event: FileSystemEvent) -> None:
-            """Handle file modification."""
-            if event.is_directory:
-                return
-
-            file_path = Path(event.src_path)
-            if not self._should_validate(file_path):
-                return
-
-            with changed_files_lock:
-                changed_files.add(file_path)
-
-            # Debounce validation
-            with timer_lock:
-                nonlocal debounce_timer
-                if debounce_timer:
-                    debounce_timer.cancel()
-
-                debounce_timer = threading.Timer(DEBOUNCE_DELAY, _trigger_validation)
-                debounce_timer.daemon = True
-                debounce_timer.start()
-
-        def on_created(self, event: FileSystemEvent) -> None:
-            """Handle file creation."""
-            self.on_modified(event)
-
-        def on_deleted(self, event: FileSystemEvent) -> None:
-            """Handle file deletion."""
-            self.on_modified(event)
-
-    # Create observer and start watching
-    observer = Observer()
-    handler = ValidationHandler()
-
-    # Watch content, config, templates directories
-    watch_dirs = [
-        site.root_path / "content",
-        site.root_path / "templates",
-        site.root_path,
-    ]
-
-    for watch_dir in watch_dirs:
-        if watch_dir.exists():
-            observer.schedule(handler, str(watch_dir), recursive=True)
-
-    observer.start()
+            files_to_validate = [Path(path) for (_, path) in changes]
+            if files_to_validate:
+                _run_validation(files_to_validate)
 
     # Handle Ctrl+C gracefully
     def signal_handler(sig: int, frame: Any) -> None:
         cli.blank()
         cli.info("Stopping watch mode...")
-        observer.stop()
-        observer.join()
+        stop_event.set()
         cli.success("Watch mode stopped")
 
     signal.signal(signal.SIGINT, signal_handler)
 
     try:
-        # Keep running until interrupted
-        while observer.is_alive():
-            time.sleep(0.1)
+        run_async(_watch_loop())
     except KeyboardInterrupt:
-        signal_handler(None, None)
+        signal_handler(signal.SIGINT, None)

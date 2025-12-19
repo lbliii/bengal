@@ -22,6 +22,7 @@ See Also:
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -154,7 +155,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     # imports/version detection work (mistune/markdown/pygments/theme package).
     #
     # Cache is disabled in dev server mode to reflect config/theme changes quickly.
-    if not config.get("dev_server", False):
+    if not getattr(site, "dev_mode", False):
         try:
             i18n_info = _get_i18n_info(config)
             cache_key = (
@@ -168,7 +169,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
                 i18n_info.get("defaultLanguage"),
                 tuple(i18n_info.get("languages") or []),
             )
-            cached = getattr(site, "_bengal_template_metadata_cache", None)
+            cached = site._bengal_template_metadata_cache
             if (
                 isinstance(cached, dict)
                 and cached.get("key") == cache_key
@@ -236,10 +237,8 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     else:  # extended
         result = full
 
-    if not config.get("dev_server", False):
-        try:
+    if not getattr(site, "dev_mode", False):
+        with suppress(Exception):
             site._bengal_template_metadata_cache = {"key": cache_key, "metadata": result}
-        except Exception:
-            pass
 
     return result

@@ -367,6 +367,7 @@ class TestSiteIndexJsonGeneration:
         site = Mock()
         site.site_dir = site_dir
         site.output_dir = output_dir
+        site.dev_mode = False  # Ensure build_time is included in index.json
         site.config = {
             "title": "Test Site",
             "baseurl": baseurl,

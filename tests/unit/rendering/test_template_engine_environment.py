@@ -7,9 +7,7 @@ Tests Jinja2 environment configuration including bytecode caching behavior.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from bengal.rendering.template_engine.environment import create_jinja_environment
 
@@ -30,6 +28,10 @@ class TestBytecodeCache:
             "dev_server": True,  # Dev mode enabled
             "cache_templates": True,  # Cache would be enabled normally
         }
+        # Required Site attributes for template engine
+        mock_site.dev_mode = True
+        mock_site._bengal_template_dirs_cache = None
+        mock_site._bengal_theme_chain_cache = None
 
         # Create mock template engine
         mock_engine = MagicMock()
@@ -62,6 +64,10 @@ class TestBytecodeCache:
             "dev_server": False,  # Production mode
             "cache_templates": True,  # Cache enabled
         }
+        # Required Site attributes for template engine
+        mock_site.dev_mode = False
+        mock_site._bengal_template_dirs_cache = None
+        mock_site._bengal_theme_chain_cache = None
 
         # Create paths object for cache directory
         from bengal.cache.paths import BengalPaths
@@ -87,9 +93,7 @@ class TestBytecodeCache:
         # Verify auto_reload is disabled
         assert env.auto_reload is False, "auto_reload should be False in production mode"
 
-    def test_bytecode_cache_disabled_when_cache_templates_false(
-        self, tmp_path: Path
-    ) -> None:
+    def test_bytecode_cache_disabled_when_cache_templates_false(self, tmp_path: Path) -> None:
         """Test that bytecode cache is disabled when cache_templates=False."""
         # Create mock site with cache_templates=False
         mock_site = MagicMock()
@@ -117,4 +121,3 @@ class TestBytecodeCache:
         assert env.bytecode_cache is None, (
             "Bytecode cache should be None when cache_templates=False"
         )
-

@@ -241,10 +241,10 @@ class SwizzleManager:
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
-            engine = TemplateEngine(self.site)
-            return engine._find_template_path(template_rel_path)
+            engine = create_engine(self.site)
+            return engine.get_template_path(template_rel_path)
         except Exception as e:
             logger.warning("swizzle_resolve_failed", template=template_rel_path, error=str(e))
             return None

@@ -125,6 +125,9 @@ class Site(
     # Global data from data/ directory (YAML, JSON, TOML files).
     # NOTE: Loaded from site root data/ directory. Accessible in templates as site.data.
     data: Any = field(default_factory=dict)
+    # Runtime flag: True when running in dev server mode (not persisted to config).
+    # NOTE: Set by DevServer and BuildExecutor. Used to disable caching, timestamps, etc.
+    dev_mode: bool = False
 
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
@@ -163,6 +166,36 @@ class Site(
     # Template parser cache (set by get_page template function)
     _template_parser: Any = field(default=None, repr=False, init=False)
 
+    # =========================================================================
+    # RUNTIME CACHES (Phase B: Formalized from dynamic injection)
+    # =========================================================================
+
+    # --- Asset Manifest State ---
+    # Previous manifest for incremental asset comparison (set by AssetOrchestrator)
+    _asset_manifest_previous: Any = field(default=None, repr=False, init=False)
+
+    # Thread-safe set of fallback warnings to avoid duplicate warnings
+    _asset_manifest_fallbacks_global: set[str] = field(default_factory=set, repr=False, init=False)
+
+    # Lock for thread-safe fallback set access (initialized in __post_init__)
+    _asset_manifest_fallbacks_lock: Any = field(default=None, repr=False, init=False)
+
+    # --- Template Environment Caches ---
+    # Theme chain cache for template resolution
+    _bengal_theme_chain_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
+
+    # Template directories cache
+    _bengal_template_dirs_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
+
+    # Template metadata cache
+    _bengal_template_metadata_cache: dict[str, Any] | None = field(
+        default=None, repr=False, init=False
+    )
+
+    # --- Discovery State ---
+    # Discovery timing breakdown (set by ContentOrchestrator)
+    _discovery_breakdown_ms: dict[str, float] | None = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         if isinstance(self.root_path, str):
@@ -194,6 +227,10 @@ class Site(
 
         self.data = self._load_data_directory()
         self._compute_config_hash()
+
+        # Initialize thread-safe lock for asset manifest fallback tracking
+        if self._asset_manifest_fallbacks_lock is None:
+            self._asset_manifest_fallbacks_lock = Lock()
 
     def build(
         self,
@@ -363,6 +400,15 @@ class Site(
         # Section registries (rebuilt from sections)
         self._section_registry = {}
         self._section_url_registry = {}
+
+        # Runtime caches (Phase B fields)
+        self._bengal_theme_chain_cache = None
+        self._bengal_template_dirs_cache = None
+        self._bengal_template_metadata_cache = None
+        self._discovery_breakdown_ms = None
+        self._asset_manifest_fallbacks_global.clear()
+        # Note: Don't reset _asset_manifest_previous (needed for incremental asset comparison)
+        # Note: Don't reset _asset_manifest_fallbacks_lock (thread lock should persist)
 
     def __repr__(self) -> str:
         pages = len(self.pages)

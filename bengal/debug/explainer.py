@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.rendering.engines.protocol import TemplateEngineProtocol
 
 logger = get_logger(__name__)
 
@@ -70,7 +70,7 @@ class PageExplainer:
     Attributes:
         site: Site instance with pages and configuration
         cache: Optional BuildCache for cache status
-        template_engine: Optional TemplateEngine for template resolution
+        template_engine: Optional TemplateEngineProtocol for template resolution
 
     Thread Safety:
         Thread-safe. Read-only operations only.
@@ -85,7 +85,7 @@ class PageExplainer:
         self,
         site: Site,
         cache: BuildCache | None = None,
-        template_engine: TemplateEngine | None = None,
+        template_engine: TemplateEngineProtocol | None = None,
     ) -> None:
         """
         Initialize the page explainer.
@@ -93,7 +93,7 @@ class PageExplainer:
         Args:
             site: Site instance with pages and configuration
             cache: Optional BuildCache for cache status introspection
-            template_engine: Optional TemplateEngine for template resolution
+            template_engine: Optional TemplateEngineProtocol for template resolution
         """
         self.site = site
         self.cache = cache

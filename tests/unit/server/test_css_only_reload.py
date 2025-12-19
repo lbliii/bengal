@@ -3,50 +3,130 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.server.build_handler import BuildHandler
-from bengal.server.live_reload import set_reload_action
+from bengal.server.build_trigger import BuildTrigger
 
 
-class DummySite:
-    def __init__(self, root: Path) -> None:
-        self.root_path = root
-        self.output_dir = root / "public"
-
-    def build(self, **kwargs):  # noqa: ANN001, ANN401 - match signature loosely
-        class Stats:
-            total_pages = 1
-            incremental = True
-            parallel = True
-
-        # Ensure output dir exists
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        return Stats()
-
-    def invalidate_regular_pages_cache(self) -> None:
-        pass
+@pytest.fixture
+def mock_executor() -> MagicMock:
+    """Create a mock executor for testing."""
+    executor = MagicMock()
+    result = MagicMock()
+    result.success = True
+    result.pages_built = 1
+    result.build_time_ms = 100.0
+    result.error_message = None
+    result.changed_outputs = ()
+    executor.submit.return_value = result
+    return executor
 
 
+@pytest.fixture
+def mock_site(tmp_path: Path) -> MagicMock:
+    """Create a mock site for testing."""
+    site = MagicMock()
+    site.root_path = tmp_path
+    site.output_dir = tmp_path / "public"
+    site.output_dir.mkdir(parents=True, exist_ok=True)
+    site.config = {}
+    site.theme = None
+    return site
+
+
+@patch("bengal.server.build_trigger.run_pre_build_hooks")
+@patch("bengal.server.build_trigger.run_post_build_hooks")
+@patch("bengal.server.build_trigger.show_building_indicator")
+@patch("bengal.server.build_trigger.CLIOutput")
+@patch("bengal.server.build_trigger.display_build_stats")
+@patch("bengal.server.build_trigger.controller")
+@patch("bengal.server.live_reload.send_reload_payload")
 def test_css_only_change_triggers_reload_css(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    mock_send_reload: MagicMock,
+    mock_controller: MagicMock,
+    mock_display: MagicMock,
+    mock_cli: MagicMock,
+    mock_building: MagicMock,
+    mock_post_hooks: MagicMock,
+    mock_pre_hooks: MagicMock,
+    mock_site: MagicMock,
+    mock_executor: MagicMock,
+    tmp_path: Path,
 ) -> None:
-    # Prepare a dummy site
-    site = DummySite(tmp_path)
-    handler = BuildHandler(site, host="localhost", port=5173)
+    """Test that CSS-only changes trigger reload-css action."""
+    mock_pre_hooks.return_value = True
+    mock_post_hooks.return_value = True
 
-    # Simulate pending CSS change
+    # Create trigger
+    trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+    # Simulate CSS-only change
     css_file = tmp_path / "assets" / "styles.css"
     css_file.parent.mkdir(parents=True, exist_ok=True)
     css_file.write_text("body{color:black}")
 
-    handler.pending_changes = {str(css_file)}
+    # Trigger build with CSS-only change
+    trigger.trigger_build(
+        changed_paths={css_file},
+        event_types={"modified"},
+    )
 
-    # Reset action and trigger build
-    set_reload_action("reload")
-    handler._trigger_build()
+    # Verify reload was called with reload-css action
+    mock_send_reload.assert_called_once()
+    call_args = mock_send_reload.call_args[0]
+    assert call_args[0] == "reload-css"  # action
+    assert call_args[1] == "css-only"  # reason
 
-    # If only CSS changed, the handler sets action to reload-css before notify
-    # There's no direct getter; absence of exception and successful path is sufficient.
-    # A stricter assertion would patch set_reload_action to capture the value.
+    trigger.shutdown()
+
+
+@patch("bengal.server.build_trigger.run_pre_build_hooks")
+@patch("bengal.server.build_trigger.run_post_build_hooks")
+@patch("bengal.server.build_trigger.show_building_indicator")
+@patch("bengal.server.build_trigger.CLIOutput")
+@patch("bengal.server.build_trigger.display_build_stats")
+@patch("bengal.server.build_trigger.controller")
+@patch("bengal.server.live_reload.send_reload_payload")
+def test_mixed_change_triggers_full_reload(
+    mock_send_reload: MagicMock,
+    mock_controller: MagicMock,
+    mock_display: MagicMock,
+    mock_cli: MagicMock,
+    mock_building: MagicMock,
+    mock_post_hooks: MagicMock,
+    mock_pre_hooks: MagicMock,
+    mock_site: MagicMock,
+    mock_executor: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Test that mixed changes (CSS + other) trigger full reload."""
+    mock_pre_hooks.return_value = True
+    mock_post_hooks.return_value = True
+
+    # Create trigger
+    trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+    # Simulate mixed changes (CSS + markdown)
+    css_file = tmp_path / "assets" / "styles.css"
+    css_file.parent.mkdir(parents=True, exist_ok=True)
+    css_file.write_text("body{color:black}")
+
+    md_file = tmp_path / "content" / "post.md"
+    md_file.parent.mkdir(parents=True, exist_ok=True)
+    md_file.write_text("# Hello")
+
+    # Trigger build with mixed changes
+    trigger.trigger_build(
+        changed_paths={css_file, md_file},
+        event_types={"modified"},
+    )
+
+    # Verify reload was called with full reload action
+    mock_send_reload.assert_called_once()
+    call_args = mock_send_reload.call_args[0]
+    assert call_args[0] == "reload"  # action (not reload-css)
+    assert call_args[1] == "source-change"  # reason
+
+    trigger.shutdown()

@@ -8,7 +8,6 @@ to ensure template changes are immediately reflected.
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,6 +26,10 @@ class TestBytecodeaCacheDevMode:
         site.config = {"dev_server": False, "cache_templates": True}
         site.theme = None
         site.theme_config = {}
+        # Required Site attributes for template engine
+        site.dev_mode = False
+        site._bengal_template_dirs_cache = None
+        site._bengal_theme_chain_cache = None
 
         # Create paths mock
         paths = MagicMock()
@@ -46,6 +49,10 @@ class TestBytecodeaCacheDevMode:
         site.config = {"dev_server": True, "cache_templates": True}
         site.theme = None
         site.theme_config = {}
+        # Required Site attributes for template engine
+        site.dev_mode = True
+        site._bengal_template_dirs_cache = None
+        site._bengal_theme_chain_cache = None
 
         # Create paths mock
         paths = MagicMock()
@@ -58,7 +65,7 @@ class TestBytecodeaCacheDevMode:
     def test_bytecode_cache_disabled_in_dev_mode(self, mock_site_dev):
         """
         Bytecode cache should be None when dev_server=True.
-        
+
         This ensures template changes are immediately reflected without
         needing to restart the server.
         """
@@ -67,9 +74,7 @@ class TestBytecodeaCacheDevMode:
         # Create a mock template_engine
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
             )
@@ -80,16 +85,14 @@ class TestBytecodeaCacheDevMode:
     def test_bytecode_cache_enabled_in_prod_mode(self, mock_site_prod):
         """
         Bytecode cache should be enabled when dev_server=False.
-        
+
         In production builds, caching improves performance.
         """
         from bengal.rendering.template_engine.environment import create_jinja_environment
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
             )
@@ -100,16 +103,14 @@ class TestBytecodeaCacheDevMode:
     def test_auto_reload_enabled_in_dev_mode(self, mock_site_dev):
         """
         auto_reload should be True when dev_server=True.
-        
+
         This ensures Jinja2 checks template file mtimes for changes.
         """
         from bengal.rendering.template_engine.environment import create_jinja_environment
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
             )
@@ -120,16 +121,14 @@ class TestBytecodeaCacheDevMode:
     def test_auto_reload_disabled_in_prod_mode(self, mock_site_prod):
         """
         auto_reload should be False when dev_server=False.
-        
+
         In production, we don't need to check mtimes every render.
         """
         from bengal.rendering.template_engine.environment import create_jinja_environment
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
             )
@@ -150,6 +149,10 @@ class TestTemplateDirsCacheDevMode:
         site.output_dir.mkdir(parents=True)
         site.theme = None
         site.theme_config = {}
+        # Required Site attributes for template engine
+        site.dev_mode = False
+        site._bengal_template_dirs_cache = None
+        site._bengal_theme_chain_cache = None
         site.paths = MagicMock()
         site.paths.templates_dir = tmp_path / ".bengal-cache" / "templates"
         site.paths.templates_dir.mkdir(parents=True, exist_ok=True)
@@ -158,11 +161,12 @@ class TestTemplateDirsCacheDevMode:
     def test_template_dirs_not_cached_in_dev_mode(self, mock_site):
         """
         Template directory list should not be cached in dev mode.
-        
+
         This allows new template directories (e.g., from theme changes)
         to be picked up without restart.
         """
         mock_site.config = {"dev_server": True}
+        mock_site.dev_mode = True  # Dev mode must be set for cache bypass
         mock_site._bengal_template_dirs_cache = {
             "key": (mock_site.theme, str(mock_site.root_path)),
             "template_dirs": ["/old/cached/dir"],
@@ -172,9 +176,7 @@ class TestTemplateDirsCacheDevMode:
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
             )
@@ -186,7 +188,7 @@ class TestTemplateDirsCacheDevMode:
     def test_template_dirs_cached_in_prod_mode(self, mock_site, tmp_path):
         """
         Template directory list should be cached in production mode.
-        
+
         This avoids repeated filesystem scanning during parallel rendering.
         """
         mock_site.config = {"dev_server": False, "cache_templates": True}
@@ -204,9 +206,7 @@ class TestTemplateDirsCacheDevMode:
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
+        with patch("bengal.rendering.template_engine.environment.register_all"):
             env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
             )
@@ -230,6 +230,8 @@ class TestConfigChangeTriggersCacheInvalidation:
         site1.theme = "theme-a"
         site1.theme_config = {}
         site1.config = {"dev_server": False, "cache_templates": True}
+        site1.dev_mode = False
+        site1._bengal_theme_chain_cache = None
         site1.paths = MagicMock()
         site1.paths.templates_dir = tmp_path / ".cache" / "templates"
         site1.paths.templates_dir.mkdir(parents=True, exist_ok=True)
@@ -246,12 +248,8 @@ class TestConfigChangeTriggersCacheInvalidation:
 
         mock_engine = MagicMock()
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
-            env1, dirs1 = create_jinja_environment(
-                site1, mock_engine, profile_templates=False
-            )
+        with patch("bengal.rendering.template_engine.environment.register_all"):
+            env1, dirs1 = create_jinja_environment(site1, mock_engine, profile_templates=False)
 
         # Should use cached theme-a dirs
         assert cached_dir_a in [str(d) for d in dirs1]
@@ -263,6 +261,8 @@ class TestConfigChangeTriggersCacheInvalidation:
         site2.theme = "theme-b"
         site2.theme_config = {}
         site2.config = {"dev_server": False, "cache_templates": True}
+        site2.dev_mode = False
+        site2._bengal_theme_chain_cache = None
         site2.paths = MagicMock()
         site2.paths.templates_dir = tmp_path / ".cache" / "templates"
 
@@ -272,12 +272,8 @@ class TestConfigChangeTriggersCacheInvalidation:
             "template_dirs": [cached_dir_a],
         }
 
-        with patch(
-            "bengal.rendering.template_engine.environment.register_all"
-        ):
-            env2, dirs2 = create_jinja_environment(
-                site2, mock_engine, profile_templates=False
-            )
+        with patch("bengal.rendering.template_engine.environment.register_all"):
+            env2, dirs2 = create_jinja_environment(site2, mock_engine, profile_templates=False)
 
         # Cache key doesn't match (theme-a vs theme-b), should NOT use cached dir
         # (The actual template dirs will be computed fresh)

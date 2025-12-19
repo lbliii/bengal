@@ -2,11 +2,47 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Protocol
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def is_process_isolation_enabled(config: dict[str, Any] | None = None) -> bool:
+    """
+    Check if process-isolated builds are enabled.
+
+    Process isolation runs builds in a subprocess for resilience - a crashed
+    build won't take down the dev server.
+
+    Configuration precedence:
+    1. BENGAL_DEV_SERVER_V2 env var: "1" enables, "0" disables
+    2. Config: dev_server.process_isolation = true/false
+    3. Default: False (conservative, process isolation is opt-in)
+
+    Args:
+        config: Site configuration dict (optional)
+
+    Returns:
+        True if process-isolated builds should be used
+    """
+    # Environment variable takes precedence
+    env_val = os.environ.get("BENGAL_DEV_SERVER_V2", "").lower()
+    if env_val == "1":
+        return True
+    if env_val == "0":
+        return False
+
+    # Check config
+    if config:
+        dev_server = config.get("dev_server", {})
+        if isinstance(dev_server, dict):
+            return bool(dev_server.get("process_isolation", False))
+
+    # Default: disabled (conservative)
+    return False
 
 
 class HeaderSender(Protocol):

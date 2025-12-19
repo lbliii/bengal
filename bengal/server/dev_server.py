@@ -13,10 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
+from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
+from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
+from bengal.server.watcher_runner import WatcherRunner
 from bengal.utils.build_stats import display_build_stats, show_building_indicator
 from bengal.utils.logger import get_logger
 
@@ -233,9 +236,10 @@ class DevServer:
 
             # 6. Start file watcher if enabled (needs actual_port for rebuild messages)
             if self.watch:
-                observer = self._create_observer(actual_port)
-                rm.register_observer(observer)
-                observer.start()
+                watcher_runner, build_trigger = self._create_watcher(actual_port)
+                rm.register_watcher_runner(watcher_runner)
+                rm.register_build_trigger(build_trigger)
+                watcher_runner.start()
                 logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
             # 7. Open browser if requested
@@ -281,7 +285,7 @@ class DevServer:
         cfg = self.site.config
 
         # Development defaults for faster iteration
-        cfg["dev_server"] = True
+        # NOTE: site.dev_mode is already set in __init__
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches
@@ -392,87 +396,57 @@ class DevServer:
         # Filter to only existing directories
         return [str(d) for d in watch_dirs if d.exists()]
 
-    def _create_observer(self, actual_port: int) -> Any:
+    def _create_watcher(self, actual_port: int) -> tuple[WatcherRunner, BuildTrigger]:
         """
-        Create file system observer (does not start it).
+        Create file watcher and build trigger.
+
+        Uses the modern FileWatcher abstraction (watchfiles)
+        and always executes builds via BuildExecutor in a subprocess.
 
         Args:
             actual_port: Port number to display in rebuild messages
 
         Returns:
-            Configured Observer instance (not yet started)
-
+            Tuple of (WatcherRunner, BuildTrigger)
         """
-        # Import watchdog lazily and allow selecting a backend to avoid loading
-        # platform-specific C extensions under free-threaded Python by default.
-        # Users can force a backend via BENGAL_WATCHDOG_BACKEND=polling|auto.
-        import os as _os
-
-        from bengal.server.utils import get_dev_config
-
-        backend = (_os.environ.get("BENGAL_WATCHDOG_BACKEND", "") or "").lower()
-        if not backend:
-            backend = str(
-                get_dev_config(self.site.config, "watch", "backend", default="auto")
-            ).lower()
-        if backend not in ("auto", "polling"):
-            backend = "auto"
-
-        # If running on a free-threaded build with GIL disabled, prefer polling to
-        # avoid loading native extensions that may re-enable the GIL and warn.
-        if backend == "auto":
-            try:
-                import sys as _sys
-
-                if hasattr(_sys, "_is_gil_enabled") and not _sys._is_gil_enabled():
-                    backend = "polling"
-            except Exception as e:
-                # Fall through to auto native backend when detection fails
-                logger.debug("gil_detection_failed", error=str(e))
-                pass
-
-        # Import BuildHandler only after GIL check (avoids loading native watchdog at import time)
-        from bengal.server.build_handler import BuildHandler
-
-        event_handler = BuildHandler(self.site, self.host, actual_port)
-
-        ObserverClass: Any = None
-        if backend == "polling":
-            try:
-                from watchdog.observers.polling import PollingObserver
-
-                ObserverClass = PollingObserver
-            except Exception as e:
-                logger.debug("polling_observer_import_failed", error=str(e))
-                from watchdog.observers import Observer
-
-                ObserverClass = Observer
-        else:
-            # auto/default: use native Observer; users can switch with env var
-            from watchdog.observers import Observer
-
-            ObserverClass = Observer
-
-        observer = ObserverClass()
-
-        # Get all watch directories
-        watch_dirs = self._get_watched_directories()
-
-        for watch_dir in watch_dirs:
-            observer.schedule(event_handler, watch_dir, recursive=True)
-            logger.debug("watching_directory", path=watch_dir, recursive=True)
-
-        # Watch bengal.toml for config changes
-        # Use non-recursive watching for the root directory to only catch bengal.toml
-        observer.schedule(event_handler, str(self.site.root_path), recursive=False)
-        logger.debug(
-            "watching_directory",
-            path=str(self.site.root_path),
-            recursive=False,
-            reason="config_file_changes",
+        # Create build trigger (handles all build execution)
+        build_trigger = BuildTrigger(
+            site=self.site,
+            host=self.host,
+            port=actual_port,
         )
 
-        return observer
+        # Create ignore filter from config
+        config = getattr(self.site, "config", {}) or {}
+        dev_server = config.get("dev_server", {})
+
+        ignore_filter = IgnoreFilter(
+            glob_patterns=dev_server.get("exclude_patterns", []),
+            regex_patterns=dev_server.get("exclude_regex", []),
+            directories=[self.site.output_dir],
+            include_defaults=True,
+        )
+
+        # Get watch directories
+        watch_dirs = [Path(d) for d in self._get_watched_directories()]
+
+        # Also watch root for bengal.toml
+        watch_dirs.append(self.site.root_path)
+
+        # Create watcher runner
+        watcher_runner = WatcherRunner(
+            paths=watch_dirs,
+            ignore_filter=ignore_filter,
+            on_changes=build_trigger.trigger_build,
+            debounce_ms=300,
+        )
+
+        logger.debug(
+            "watcher_created",
+            watch_dirs=[str(p) for p in watch_dirs],
+        )
+
+        return watcher_runner, build_trigger
 
     def _is_port_available(self, port: int) -> bool:
         """

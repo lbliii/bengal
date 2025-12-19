@@ -50,7 +50,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             markdown_config = site.config.get("markdown", {})
             markdown_engine = markdown_config.get("parser", "mistune")
 
-        site._template_parser = create_markdown_parser(markdown_engine)  # type: ignore[attr-defined]
+        site._template_parser = create_markdown_parser(markdown_engine)
 
         # Enable cross-references if available
         if hasattr(site, "xref_index") and hasattr(
@@ -59,7 +59,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         ):
             site._template_parser.enable_cross_references(site.xref_index)  # type: ignore[attr-defined]
 
-    parser = site._template_parser  # type: ignore[attr-defined]
+    parser = site._template_parser
 
     # Determine if TOC is needed
     need_toc = True
@@ -184,7 +184,7 @@ def _build_lookup_maps(site: Site) -> None:
             # Path not relative to content root (maybe outside?), skip
             pass
 
-    site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}  # type: ignore[attr-defined]
+    site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
 
 
 def page_exists(path: str, site: Site) -> bool:
@@ -211,7 +211,7 @@ def page_exists(path: str, site: Site) -> bool:
 
     _build_lookup_maps(site)
 
-    maps = site._page_lookup_maps  # type: ignore[attr-defined]
+    maps = site._page_lookup_maps
     normalized = path.replace("\\", "/")
 
     if normalized in maps["relative"]:
@@ -270,7 +270,7 @@ def register(env: Environment, site: Site) -> None:
         # Build lookup maps if not already built (shared helper)
         _build_lookup_maps(site)
 
-        maps = site._page_lookup_maps  # type: ignore[attr-defined]
+        maps = site._page_lookup_maps
 
         # Strategy 1: Direct lookup in relative map (exact match)
         page = None

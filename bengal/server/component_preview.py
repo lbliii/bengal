@@ -165,9 +165,9 @@ class ComponentPreviewServer:
         )
 
         try:
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
-            engine = TemplateEngine(self.site)
+            engine = create_engine(self.site)
             ctx_in: dict[str, Any] = dict(context or {})
 
             # Common alias: if sample uses 'page' but template expects 'article'
@@ -176,8 +176,8 @@ class ComponentPreviewServer:
                 logger.debug("component_context_alias", aliased="page → article")
 
             # Render template as a standalone fragment
-            # Provide site and config via engine.render context
-            html = engine.render(template_rel, {"site": self.site, **ctx_in})
+            # Provide site and config via engine.render_template context
+            html = engine.render_template(template_rel, {"site": self.site, **ctx_in})
 
             # Get fingerprinted CSS URL (e.g., style.14d56f49.css)
             css_url = engine._asset_url("css/style.css")
@@ -268,9 +268,9 @@ class ComponentPreviewServer:
         # Child first then parents (reuse template engine ordering by reading theme.toml)
         dirs: list[Path] = []
         try:
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.engines import create_engine
 
-            engine = TemplateEngine(self.site)
+            engine = create_engine(self.site)
             chain = engine._resolve_theme_chain(self.site.theme)
             logger.debug("component_theme_chain_resolved", chain=chain)
         except Exception as e:
