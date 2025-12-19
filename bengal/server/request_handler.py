@@ -77,11 +77,11 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
             filter: drop-shadow(0 0 12px rgba(%ACCENT_RGB%, 0.3));
         }
         @keyframes pulse {
-            0%, 100% { 
+            0%, 100% {
                 transform: scale(1);
                 opacity: 1;
             }
-            50% { 
+            50% {
                 transform: scale(1.08);
                 opacity: 0.85;
             }
@@ -645,34 +645,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
             return io.BytesIO(html)
 
-        # Not building - check if this directory should have an index.html
-        # If so, show rebuilding page as the file might be coming soon
-        dir_path = Path(path)
-        index_path = dir_path / "index.html"
-
-        # For API/autodoc paths, if index.html is missing, likely a build artifact
-        # that hasn't been written yet - show rebuilding page
-        request_path = getattr(self, "path", "/")
-        is_api_path = request_path.startswith("/api/")
-
-        if is_api_path and not index_path.exists():
-            html = get_rebuilding_page_html(request_path, BengalRequestHandler._active_palette)
-
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(html)))
-            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-            self.end_headers()
-
-            logger.debug(
-                "rebuilding_page_served",
-                path=request_path,
-                reason="api_index_missing",
-            )
-
-            return io.BytesIO(html)
-
-        # Fall back to default directory listing for other cases
+        # Fall back to default directory listing
+        # Note: We intentionally DON'T show rebuilding page for missing index.html
+        # when build is not in progress. This was causing infinite refresh loops
+        # where the page would refresh forever waiting for a file that may never come.
         return super().list_directory(path)
 
     @classmethod
