@@ -118,15 +118,17 @@ class URLStrategy:
         Returns:
             Transformed path with version prefix if applicable
         """
-        # Get version config
-        version_config = getattr(site, "version_config", None)
-        if not version_config or not version_config.enabled:
+        # Fast path: skip if versioning is disabled (most sites)
+        if not getattr(site, "versioning_enabled", False):
             return rel_path
 
         # Get page's version
         page_version = getattr(page, "version", None)
         if not page_version:
             return rel_path
+
+        # Get version config (we know it's enabled now)
+        version_config = site.version_config
 
         # Check if this is the latest version (no prefix needed)
         version_obj = version_config.get_version(page_version)
