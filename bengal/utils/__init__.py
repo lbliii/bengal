@@ -14,9 +14,8 @@ from bengal.utils import (
     text,
     thread_local,
 )
-from bengal.utils.async_compat import UVLOOP_AVAILABLE, run_async
+from bengal.utils.async_compat import run_async
 from bengal.utils.hashing import hash_bytes, hash_dict, hash_file, hash_file_with_stat, hash_str
-from bengal.utils.json_compat import ORJSON_AVAILABLE
 from bengal.utils.pagination import Paginator
 from bengal.utils.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths import BengalPaths
@@ -27,12 +26,10 @@ from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 
 __all__ = [
     "BengalPaths",
-    "ORJSON_AVAILABLE",
     "Paginator",
     "PathResolver",
     "ThreadLocalCache",
     "ThreadSafeSet",
-    "UVLOOP_AVAILABLE",
     "async_compat",
     "async_retry_with_backoff",
     "calculate_backoff",
