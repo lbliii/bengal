@@ -154,7 +154,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     # imports/version detection work (mistune/markdown/pygments/theme package).
     #
     # Cache is disabled in dev server mode to reflect config/theme changes quickly.
-    if not config.get("dev_server", False):
+    if not config.get("_dev_server_active", False):
         try:
             i18n_info = _get_i18n_info(config)
             cache_key = (
@@ -236,7 +236,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     else:  # extended
         result = full
 
-    if not config.get("dev_server", False):
+    if not config.get("_dev_server_active", False):
         try:
             site._bengal_template_metadata_cache = {"key": cache_key, "metadata": result}
         except Exception:

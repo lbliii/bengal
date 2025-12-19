@@ -285,7 +285,7 @@ class DevServer:
         cfg = self.site.config
 
         # Development defaults for faster iteration
-        cfg["dev_server"] = True
+        cfg["_dev_server_active"] = True  # Internal flag, preserves dev_server config dict
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches

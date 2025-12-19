@@ -82,7 +82,7 @@ class SiteIndexGenerator:
         }
 
         # Only include build_time in production builds
-        if not self.site.config.get("dev_server", False):
+        if not self.site.config.get("_dev_server_active", False):
             site_metadata["build_time"] = datetime.now().isoformat()
 
         site_data: dict[str, Any] = {

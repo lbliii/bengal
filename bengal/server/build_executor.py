@@ -112,7 +112,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
 
         # Set dev-specific config flags
         cfg = site.config
-        cfg["dev_server"] = True
+        cfg["_dev_server_active"] = True  # Internal flag, preserves dev_server config dict
         cfg["fingerprint_assets"] = False
         cfg.setdefault("minify_assets", False)
 
