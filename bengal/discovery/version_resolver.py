@@ -271,9 +271,9 @@ class VersionResolver:
             if hasattr(page.core, "__dict__"):
                 # Mutable - can set directly
                 object.__setattr__(page.core, "version", version.id)
-            elif hasattr(page, "_metadata"):
+            elif hasattr(page, "metadata"):
                 # Fallback to metadata
-                page._metadata["version"] = version.id
+                page.metadata["version"] = version.id
 
     def get_version_url_prefix(self, version: Version | None) -> str:
         """

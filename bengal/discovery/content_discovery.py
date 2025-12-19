@@ -741,9 +741,9 @@ class ContentDiscovery:
                 version = self.site.version_config.get_version_for_path(file_path)
                 if version:
                     # Store version ID in page metadata for URL generation
-                    if page._metadata is None:
-                        page._metadata = {}
-                    page._metadata["_version"] = version.id
+                    if page.metadata is None:
+                        page.metadata = {}
+                    page.metadata["_version"] = version.id
 
             self.logger.debug(
                 "page_created",
