@@ -9,8 +9,8 @@
 - **templates(page-hero)**: add `section.html` - section-index pages with explicit `is_cli` support (~70 lines)
 - **templates(page-hero)**: add `hero_context.is_cli` flag for explicit CLI detection (replaces URL sniffing)
 - **templates(dispatcher)**: update `page-hero.html` to route `api` style to new separated templates
-- **templates(api-reference)**: migrate `module.html` and `section-index.html` to use new templates
-- **templates(cli-reference)**: migrate `command.html`, `command-group.html`, and `section-index.html` to use new templates
+- **templates(autodoc/python)**: migrate `module.html` and `section-index.html` to use new templates
+- **templates(autodoc/cli)**: migrate `command.html`, `command-group.html`, and `section-index.html` to use new templates
 - **templates(legacy)**: add deprecation warning to `page-hero-api.html` with migration guide
 - **tests**: add 31 unit tests for page hero template rendering
 - **docs**: document new template structure and `hero_context` usage in theming guide

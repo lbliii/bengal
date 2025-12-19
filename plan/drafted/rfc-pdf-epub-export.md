@@ -264,7 +264,7 @@ export:
       - docs
       - tutorials
     exclude_patterns:
-      - "**/api-reference/**"  # Too dense for e-readers
+      - "**/autodoc/python/**"  # Too dense for e-readers
 
     # Styling
     stylesheet: epub/styles.css  # in theme

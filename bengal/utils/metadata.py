@@ -102,6 +102,38 @@ def _get_i18n_info(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _get_capabilities() -> dict[str, bool]:
+    """
+    Detect runtime capabilities based on installed optional dependencies.
+
+    These are checked once at build time and cached. Templates can use these
+    to conditionally enable features (e.g., only emit search-index.json meta
+    tag when lunr is installed and will generate the pre-built index).
+
+    Returns:
+        Dictionary of capability name → availability boolean
+    """
+    capabilities: dict[str, bool] = {}
+
+    # Pre-built Lunr search index (requires `pip install bengal[search]`)
+    try:
+        from lunr import lunr  # type: ignore[import-untyped]  # noqa: F401
+
+        capabilities["prebuilt_search"] = True
+    except ImportError:
+        capabilities["prebuilt_search"] = False
+
+    # Remote content sources (requires `pip install bengal[github]` etc.)
+    try:
+        import aiohttp  # type: ignore[import-untyped]  # noqa: F401
+
+        capabilities["remote_content"] = True
+    except ImportError:
+        capabilities["remote_content"] = False
+
+    return capabilities
+
+
 def build_template_metadata(site: Site) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
@@ -178,6 +210,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     }
 
     i18n = _get_i18n_info(config)
+    capabilities = _get_capabilities()
 
     full = {
         "engine": engine,
@@ -186,16 +219,19 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
         "rendering": rendering,
         "i18n": i18n,
         "site": {"baseurl": getattr(site, "baseurl", None)},
+        "capabilities": capabilities,
     }
 
     if exposure == "minimal":
-        result: dict[str, Any] = {"engine": engine}
+        # Capabilities always included (needed for conditional template features)
+        result: dict[str, Any] = {"engine": engine, "capabilities": capabilities}
     elif exposure == "standard":
         result = {
             "engine": engine,
             "theme": theme_info,
             "build": build,
             "i18n": i18n,
+            "capabilities": capabilities,
         }
     else:  # extended
         result = full

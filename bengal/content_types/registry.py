@@ -30,8 +30,8 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "archive": ArchiveStrategy(),
     "changelog": ChangelogStrategy(),
     "doc": DocsStrategy(),
-    "api-reference": ApiReferenceStrategy(),
-    "cli-reference": CliReferenceStrategy(),
+    "autodoc/python": ApiReferenceStrategy(),
+    "autodoc/cli": CliReferenceStrategy(),
     "tutorial": TutorialStrategy(),
     "page": PageStrategy(),
     "list": PageStrategy(),  # Alias for generic lists
@@ -43,8 +43,8 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
     Normalize a page type to a content type.
 
     Handles special cases where page types (from frontmatter) map to content types:
-    - python-module -> api-reference
-    - cli-command -> cli-reference
+    - python-module -> autodoc/python
+    - cli-command -> autodoc/cli
     - Other types pass through if registered
 
     Args:
@@ -55,7 +55,7 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
 
     Example:
         >>> normalize_page_type_to_content_type("python-module")
-        'api-reference'
+        'autodoc/python'
         >>> normalize_page_type_to_content_type("blog")
         'blog'
         >>> normalize_page_type_to_content_type("unknown")
@@ -63,8 +63,8 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
     """
     # Special mappings for autodoc-generated types
     special_mappings = {
-        "python-module": "api-reference",
-        "cli-command": "cli-reference",
+        "python-module": "autodoc/python",
+        "cli-command": "autodoc/cli",
     }
 
     if page_type in special_mappings:
@@ -83,7 +83,7 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
     Get the strategy for a content type.
 
     Args:
-        content_type: Type name (e.g., "blog", "doc", "api-reference")
+        content_type: Type name (e.g., "blog", "doc", "autodoc/python")
 
     Returns:
         ContentTypeStrategy instance
@@ -142,8 +142,8 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
     # 3. Auto-detect using strategy heuristics
     # Try strategies in priority order
     detection_order = [
-        ("api-reference", ApiReferenceStrategy()),
-        ("cli-reference", CliReferenceStrategy()),
+        ("autodoc/python", ApiReferenceStrategy()),
+        ("autodoc/cli", CliReferenceStrategy()),
         ("blog", BlogStrategy()),
         ("tutorial", TutorialStrategy()),
         ("doc", DocsStrategy()),

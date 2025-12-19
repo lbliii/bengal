@@ -1,121 +1,49 @@
 {#
-Method Item Partial
+Method List Partial
 
-Renders methods within a class card using Bengal's design system.
+Renders all methods for a class element, grouped by visibility.
 Groups public methods first, then private (internal) methods in collapsible section.
-Information-rich preview: icon, name, params, return type, description snippet.
-Receives: element (the class element)
+
+Usage as INCLUDE:
+  {% set element = cls %}
+  {% include 'api-reference/partials/method-item.html' %}
+
+Required context:
+  element: The class DocElement with children containing methods
+
+For individual methods, import the macro:
+  {% from 'api-reference/partials/_macros/render-method.html' import render_method %}
+  {{ render_method(method) }}
 #}
 
-{% set all_methods = (element.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{% from 'api-reference/partials/_macros/render-method.html' import render_method %}
+
+{% set all_methods = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'method') | list %}
 {% set public_methods = all_methods | rejectattr('name', 'match', '^_') | list %}
 {% set private_methods = all_methods | selectattr('name', 'match', '^_') | list %}
-
-{# Macro to render a single method #}
-{% macro render_method(method) %}
-  {# Use normalized param_count and return_type filters #}
-  {% set method_param_count = method | param_count %}
-  {% set method_return_type = method | return_type %}
-  {% set is_async = method.metadata.is_async | default(false) %}
-  {% set is_property = method.metadata.is_property | default(false) %}
-  {% set is_classmethod = method.metadata.is_classmethod | default(false) %}
-  {% set is_staticmethod = method.metadata.is_staticmethod | default(false) %}
-  {% set is_private = method.name.startswith('_') %}
-  {% set first_sentence = ((method.description or '') | truncate(80, True, '…')) %}
-
-  <details class="api-card api-card--collapsible api-card--method{% if is_property %} api-card--property{% endif %}{% if is_async %} api-card--async{% endif %}{% if is_private %} api-card--private{% endif %}">
-    <summary class="api-card__header">
-      {# Icon based on type #}
-      <span class="api-card__icon">
-        {% if is_property %}
-        {{ icon('tag', size=16) }}
-        {% elif is_async %}
-        {{ icon('lightning', size=16) }}
-        {% elif is_classmethod or is_staticmethod %}
-        {{ icon('cube', size=16) }}
-        {% else %}
-        {{ icon('function', size=16) }}
-        {% endif %}
-      </span>
-
-      {# Name + signature preview #}
-      <div class="api-card__info">
-        <div class="api-card__name-row">
-          <code class="api-card__name">{{ method.name }}</code>
-          {# Inline badges #}
-          {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
-          {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
-          {% if is_classmethod %}<span class="api-badge--inline api-badge--classmethod">classmethod</span>{% endif %}
-          {% if is_staticmethod %}<span class="api-badge--inline api-badge--staticmethod">staticmethod</span>{% endif %}
-        </div>
-        {# Description preview #}
-        {% if first_sentence %}
-        <span class="api-card__desc-preview">{{ first_sentence }}</span>
-        {% endif %}
-      </div>
-
-      {# Meta info: params + return #}
-      <div class="api-card__meta">
-        {% if not is_property %}
-        <span class="api-card__params" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">
-          {{ icon('brackets-curly', size=12) }}
-          <span>{{ method_param_count }}</span>
-        </span>
-        {% endif %}
-        <span class="api-card__return" title="Returns {{ method_return_type }}">
-          {{ icon('arrow-right', size=12) }}
-          <code>{{ method_return_type | truncate(20, True, '…') }}</code>
-        </span>
-      </div>
-
-      {# Expand indicator #}
-      <span class="api-card__toggle">
-        {{ icon('caret-right', size=14) }}
-      </span>
-    </summary>
-
-    <div class="api-card__body">
-      {# Full signature #}
-      {% set element = method %}
-      {% include 'api-reference/partials/signature.html' %}
-
-      {# Full description (markdown rendered) #}
-      {% if method.description %}
-      <div class="api-card__description">{{ method.description | markdownify | safe }}</div>
-      {% endif %}
-
-      {# Parameters, Returns, Raises #}
-      {% set element = method %}
-      {% include 'api-reference/partials/parameters-table.html' %}
-      {% set element = method %}
-      {% include 'api-reference/partials/returns-section.html' %}
-      {% set element = method %}
-      {% include 'api-reference/partials/raises-list.html' %}
-    </div>
-  </details>
-{% endmacro %}
 
 {% if all_methods %}
 <div class="api-methods">
   {# Public Methods - shown first, prominently #}
   {% if public_methods %}
-  <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
-  {% for method in public_methods %}
-  {{ render_method(method) }}
-  {% endfor %}
+  <div class="api-methods__section">
+    <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
+    {% for method in public_methods %}
+    {{ render_method(method) }}
+    {% endfor %}
+  </div>
   {% endif %}
 
-  {# Private/Internal Methods - collapsed by default #}
+  {# Private/Internal Methods - collapsed by default with clear separation #}
   {% if private_methods %}
   <details class="api-methods__internal">
     <summary class="api-methods__internal-header">
       <span class="api-methods__internal-label">
-        {{ icon('lock', size=14) }}
         <span>Internal Methods</span>
         <span class="api-label__count">{{ private_methods | length }}</span>
       </span>
       <span class="api-card__toggle">
-        {{ icon('caret-right', size=14) }}
+        {{ icon('caret-down', size=14) }}
       </span>
     </summary>
     <div class="api-methods__internal-content">

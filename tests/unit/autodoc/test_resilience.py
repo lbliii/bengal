@@ -362,7 +362,7 @@ class TestFallbackTagging:
             title="Test",
             metadata={"is_autodoc": True},
             rendered_html="<h1>Test</h1>",
-            template_name="api-reference/module",
+            template_name="autodoc/python/module",
             output_path=Path("/test/index.html"),
         )
 

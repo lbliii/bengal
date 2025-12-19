@@ -202,7 +202,16 @@
 }
 
 @layer components {
+  /* Shared hub landing page styles (tracks, api-hub, etc.) */
+  @import url('components/hub-cards.css');
+}
+
+@layer components {
   @import url('components/tracks.css');
+}
+
+@layer components {
+  @import url('components/api-hub.css');
 }
 
 @layer components {
@@ -231,15 +240,8 @@
 }
 
 @layer components {
-  @import url('components/api-docs.css');
-}
-
-@layer components {
-  @import url('components/autodoc-explorer.css');
-}
-
-@layer components {
-  @import url('components/api-hub.css');
+  /* New unified autodoc styling - replaces legacy api-docs, autodoc-explorer, api-hub */
+  @import url('components/autodoc.css');
 }
 
 @layer components {

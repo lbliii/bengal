@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{#
+CLI Reference Command Template
+
+Renders a CLI command's documentation using the unified autodoc skeleton.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses autodoc.css for all styling.
+
+This template receives:
+- element: DocElement for the command
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'autodoc/partials/_macros/element-card.html' import element_card %}
+
+{% block content %}
+{# Pre-compute child elements - cache children to avoid duplicate getattr calls #}
+{% set children = getattr(element, 'children', []) %}
+{% set options = children | selectattr('element_type', 'eq', 'option') | list %}
+{% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
+
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+    {% include 'partials/page-hero/element.html' %}
+
+    {# Article Content - New autodoc skeleton #}
+    <article data-autodoc data-type="cli" data-element="command" class="autodoc docs-content">
+
+      {# Usage #}
+      {% include 'autodoc/partials/usage.html' %}
+
+      {# Options (as table) #}
+      {% if options %}
+      {% set params = options %}
+      {% set title = 'Options' %}
+      {% include 'autodoc/partials/params-table.html' %}
+      {% endif %}
+
+      {# Arguments (as table) #}
+      {% if arguments %}
+      {% set params = arguments %}
+      {% set title = 'Arguments' %}
+      {% include 'autodoc/partials/params-table.html' %}
+      {% endif %}
+
+      {# Examples #}
+      {% include 'autodoc/partials/examples.html' %}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

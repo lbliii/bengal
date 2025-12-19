@@ -1,0 +1,25 @@
+{#
+Autodoc Returns Partial
+
+Renders the return type and description.
+Only displays if there's a description OR a non-trivial return type.
+Trivial types (None) are already visible in header badge + signature.
+
+Required: element (DocElement)
+#}
+
+{% set return_type = element.metadata.return_type | default(element.metadata.returns | default('')) %}
+{% set return_desc = element.metadata.return_description | default('') %}
+{% set is_nontrivial_return = return_type and return_type not in ('None', 'none', 'void', '') %}
+
+{% if return_desc or is_nontrivial_return %}
+<section class="autodoc-section" data-section="returns">
+  <h2 class="autodoc-section-title">Returns</h2>
+  <div class="autodoc-returns">
+    <code class="autodoc-returns-type">{{ return_type }}</code>
+    {% if return_desc %}
+    <span class="autodoc-returns-desc">{{ return_desc }}</span>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

@@ -42,15 +42,15 @@ class TestContentTypeDetection:
         "section_name,expected_type",
         [
             # API Reference detection
-            ("api", "api-reference"),
-            ("reference", "api-reference"),
-            ("api-reference", "api-reference"),
-            ("api-docs", "api-reference"),
+            ("api", "autodoc/python"),
+            ("reference", "autodoc/python"),
+            ("autodoc/python", "autodoc/python"),
+            ("api-docs", "autodoc/python"),
             # CLI Reference detection
-            ("cli", "cli-reference"),
-            ("commands", "cli-reference"),
-            ("cli-reference", "cli-reference"),
-            ("command-line", "cli-reference"),
+            ("cli", "autodoc/cli"),
+            ("commands", "autodoc/cli"),
+            ("autodoc/cli", "autodoc/cli"),
+            ("command-line", "autodoc/cli"),
             # Tutorial detection
             ("tutorials", "tutorial"),
             ("guides", "tutorial"),
@@ -64,11 +64,11 @@ class TestContentTypeDetection:
         ids=[
             "api",
             "reference",
-            "api-reference",
+            "autodoc/python",
             "api-docs",
             "cli",
             "commands",
-            "cli-reference",
+            "autodoc/cli",
             "command-line",
             "tutorials",
             "guides",
@@ -113,7 +113,7 @@ class TestContentTypeDetection:
             section.add_page(page)
 
         content_type = orchestrator._detect_content_type(section)
-        assert content_type == "api-reference"
+        assert content_type == "autodoc/python"
 
     def test_cli_reference_by_page_metadata(self, orchestrator):
         """Test CLI reference detection by page metadata."""
@@ -129,7 +129,7 @@ class TestContentTypeDetection:
             section.add_page(page)
 
         content_type = orchestrator._detect_content_type(section)
-        assert content_type == "cli-reference"
+        assert content_type == "autodoc/cli"
 
     def test_archive_by_date_heuristic(self, orchestrator):
         """Test blog detection when pages have dates."""
@@ -211,14 +211,14 @@ class TestTemplateSelection:
         return SectionOrchestrator(site)
 
     def test_api_reference_template(self, orchestrator):
-        """Test API reference uses api-reference/list.html."""
-        template = orchestrator._get_template_for_content_type("api-reference")
-        assert template == "api-reference/list.html"
+        """Test API reference uses autodoc/python/list.html."""
+        template = orchestrator._get_template_for_content_type("autodoc/python")
+        assert template == "autodoc/python/list.html"
 
     def test_cli_reference_template(self, orchestrator):
-        """Test CLI reference uses cli-reference/list.html."""
-        template = orchestrator._get_template_for_content_type("cli-reference")
-        assert template == "cli-reference/list.html"
+        """Test CLI reference uses autodoc/cli/list.html."""
+        template = orchestrator._get_template_for_content_type("autodoc/cli")
+        assert template == "autodoc/cli/list.html"
 
     def test_tutorial_template(self, orchestrator):
         """Test tutorial uses tutorial/list.html."""
@@ -270,9 +270,9 @@ class TestPaginationDecision:
             section.add_page(page)
 
         # API reference should not paginate
-        assert not orchestrator._should_paginate(section, "api-reference")
+        assert not orchestrator._should_paginate(section, "autodoc/python")
         # CLI reference should not paginate
-        assert not orchestrator._should_paginate(section, "cli-reference")
+        assert not orchestrator._should_paginate(section, "autodoc/cli")
         # Tutorial should not paginate
         assert not orchestrator._should_paginate(section, "tutorial")
 

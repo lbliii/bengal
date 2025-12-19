@@ -1,0 +1,1026 @@
+/**
+ * Bengal SSG - Autodoc Component Styles
+ * Complete reset and rebuild of autodoc HTML/CSS system
+ *
+ * Current: ~950 lines (down from 7,044 - 86% reduction)
+ * Structure: Single HTML skeleton for Python API, CLI, and OpenAPI
+ *
+ * @see plan/drafted/rfc-autodoc-html-reset.md
+ */
+
+/* ============================================
+   AUTODOC TOKENS
+   All custom properties in one place
+   ============================================ */
+
+[data-autodoc] {
+  /* Spacing */
+  --autodoc-gap: var(--space-6);
+  --autodoc-section-gap: var(--space-8);
+  --autodoc-item-gap: var(--space-4);
+
+  /* Colors */
+  --autodoc-border: var(--color-border-light);
+  --autodoc-bg-code: var(--color-bg-code);
+  --autodoc-bg-card: var(--color-bg-elevated);
+  --autodoc-bg-hover: var(--color-bg-hover);
+
+  /* Typography */
+  --autodoc-font-mono: var(--font-mono);
+  --autodoc-code-size: var(--text-sm);
+
+  /* Badges */
+  --autodoc-badge-bg: var(--color-bg-tertiary);
+  --autodoc-badge-text: var(--color-text-muted);
+}
+
+/* Dark mode token overrides */
+[data-theme="dark"] [data-autodoc] {
+  --autodoc-border: var(--color-border);
+  --autodoc-bg-card: var(--color-bg-secondary);
+}
+
+/* ============================================
+   PROSE OVERRIDES
+   Surgical resets to prevent .prose interference
+   ============================================ */
+
+/* Exclude autodoc from .prose lead paragraph styling */
+article[data-autodoc] > p:first-of-type,
+[data-autodoc] .autodoc-description > p:first-of-type {
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Override .prose table styles */
+[data-autodoc] table {
+  margin: 0;
+  font-size: var(--autodoc-code-size);
+}
+
+/* Override .prose heading margins */
+[data-autodoc] h1,
+[data-autodoc] h2,
+[data-autodoc] h3,
+[data-autodoc] h4 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Override .prose list styles */
+[data-autodoc] dl {
+  margin: 0;
+}
+
+/* ============================================
+   BASE CONTAINER
+   ============================================ */
+
+[data-autodoc] {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-primary);
+}
+
+.autodoc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--autodoc-gap);
+}
+
+/* ============================================
+   HEADER
+   Title, badges, description, stats
+   ============================================ */
+
+.autodoc-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.autodoc-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.autodoc-title code {
+  font-family: var(--autodoc-font-mono);
+  background: none;
+  padding: 0;
+}
+
+.autodoc-description {
+  color: var(--color-text-secondary);
+}
+
+.autodoc-description > p:first-child {
+  margin-top: 0;
+}
+
+.autodoc-description > p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   SECTIONS
+   Generic section container
+   ============================================ */
+
+.autodoc-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--autodoc-item-gap);
+}
+
+.autodoc-section-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.autodoc-label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   CODE: Signatures, inline code, blocks
+   ============================================ */
+
+.autodoc-signature {
+  background: var(--autodoc-bg-code);
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+
+.autodoc-signature pre {
+  margin: 0;
+}
+
+.autodoc-signature code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--autodoc-code-size);
+  background: none;
+  padding: 0;
+}
+
+.autodoc-usage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.autodoc-usage pre {
+  margin: 0;
+  background: var(--autodoc-bg-code);
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+
+.autodoc-usage code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--autodoc-code-size);
+  background: none;
+  padding: 0;
+}
+
+/* Inline code */
+[data-autodoc] code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--autodoc-code-size);
+  background: var(--autodoc-bg-code);
+  padding: 0.125em 0.375em;
+  border-radius: var(--radius-sm);
+}
+
+/* Reset code inside pre blocks */
+[data-autodoc] pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   BADGES: Status indicators
+   ============================================ */
+
+.autodoc-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.autodoc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125em 0.5em;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  background: var(--autodoc-badge-bg);
+  color: var(--autodoc-badge-text);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.autodoc-badge[data-badge="deprecated"] {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.autodoc-badge[data-badge="async"] {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.autodoc-badge[data-badge="abstract"] {
+  background: var(--color-example-bg);
+  color: var(--color-example-text);
+}
+
+.autodoc-badge[data-badge="mixin"] {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.autodoc-badge[data-badge="dataclass"] {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.autodoc-badge[data-badge="required"] {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+/* ============================================
+   TABLES: Parameters, attributes
+   ============================================ */
+
+.autodoc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.autodoc-table th,
+.autodoc-table td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--autodoc-border);
+}
+
+.autodoc-table th {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+}
+
+.autodoc-table tbody tr:hover {
+  background: var(--autodoc-bg-hover);
+}
+
+/* Compact table variant for nested contexts */
+.autodoc-table--compact {
+  font-size: var(--text-xs);
+}
+
+.autodoc-table--compact th,
+.autodoc-table--compact td {
+  padding: var(--space-2);
+}
+
+.autodoc-table--compact th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.autodoc-cell-name {
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-medium);
+}
+
+.autodoc-cell-type {
+  color: var(--color-text-muted);
+  font-family: var(--autodoc-font-mono);
+}
+
+.autodoc-cell-default {
+  color: var(--color-text-muted);
+  font-family: var(--autodoc-font-mono);
+}
+
+/* Required indicator */
+tr[data-required="true"] .autodoc-cell-name::after {
+  content: "*";
+  color: var(--color-danger);
+  margin-left: 0.25em;
+}
+
+/* ============================================
+   DEFINITION LISTS: Alternative param display
+   ============================================ */
+
+.autodoc-params {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+
+.autodoc-param {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.autodoc-param-name {
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-medium);
+}
+
+.autodoc-param-type {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-family: var(--autodoc-font-mono);
+}
+
+.autodoc-param-desc {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.autodoc-param-default {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Required indicator for param list */
+.autodoc-param[data-required="true"] .autodoc-param-name::after {
+  content: "*";
+  color: var(--color-danger);
+  margin-left: 0.25em;
+}
+
+/* ============================================
+   RETURNS / RAISES
+   ============================================ */
+
+.autodoc-returns {
+  margin-bottom: var(--space-4);
+}
+
+.autodoc-returns-type {
+  display: inline-block;
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-code);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+.autodoc-returns-desc {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.autodoc-raises {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.autodoc-raise {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+}
+
+.autodoc-raise dt {
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-medium);
+}
+
+.autodoc-raise dd {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   EXAMPLES
+   ============================================ */
+
+.autodoc-example {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.autodoc-example-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.autodoc-example pre {
+  margin: 0;
+  background: var(--autodoc-bg-code);
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+
+/* ============================================
+   MEMBERS: Collapsible method/attribute cards
+   With status dots, counts, and diffused shadows
+   ============================================ */
+
+.autodoc-member {
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  background: var(--autodoc-bg-card);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--neumorphic-enhanced-subtle);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.autodoc-member:hover {
+  box-shadow: var(--neumorphic-enhanced-hover);
+}
+
+.autodoc-member-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+}
+
+.autodoc-member-header:hover {
+  background: var(--autodoc-bg-hover);
+}
+
+.autodoc-member-header::-webkit-details-marker {
+  display: none;
+}
+
+/* Status dot indicator for members */
+.autodoc-member-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-muted);
+  box-shadow: var(--neumorphic-subtle);
+  margin-top: 0.375rem;
+}
+
+/* Dot colors by member type */
+.autodoc-member[data-member="class"] .autodoc-member-dot,
+.autodoc-member[data-member="dataclass"] .autodoc-member-dot {
+  background: var(--color-warning);
+}
+
+.autodoc-member[data-member="function"] .autodoc-member-dot {
+  background: var(--color-success);
+}
+
+.autodoc-member[data-member="method"] .autodoc-member-dot {
+  background: var(--color-text-muted);
+}
+
+/* Content wrapper */
+.autodoc-member-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Name row with count and return type */
+.autodoc-member-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.autodoc-member-name {
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: none;
+  padding: 0;
+}
+
+/* Count badge */
+.autodoc-member-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  box-shadow: var(--neumorphic-subtle);
+}
+
+/* Return type with arrow */
+.autodoc-member-return {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.autodoc-member-return::before {
+  content: "→";
+  color: var(--color-text-muted);
+}
+
+.autodoc-member-return code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  background: none;
+  padding: 0;
+}
+
+/* Toggle indicator */
+.autodoc-member-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+  margin-left: var(--space-1);
+}
+
+/* Only rotate the toggle that belongs to THIS details, not nested ones */
+.autodoc-member[open] > .autodoc-member-header .autodoc-member-toggle {
+  transform: rotate(180deg);
+}
+
+/* Signature in header */
+.autodoc-member-sig {
+  display: block;
+  color: var(--color-text-muted);
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Full signature block in body */
+.autodoc-signature {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--autodoc-border);
+  overflow-x: auto;
+}
+
+.autodoc-signature code {
+  font-family: var(--autodoc-font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: none;
+  padding: 0;
+}
+
+/* Signature section (in body) */
+.autodoc-signature-section {
+  margin-bottom: var(--space-4);
+}
+
+/* Parameters section */
+.autodoc-params-section {
+  margin-bottom: var(--space-4);
+}
+
+.autodoc-params-title,
+.autodoc-returns-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.autodoc-member-badges {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.autodoc-member-body {
+  padding: var(--space-4);
+  border-top: 1px solid var(--autodoc-border);
+}
+
+.autodoc-member-desc {
+  margin-bottom: var(--space-4);
+}
+
+.autodoc-member-desc > p:first-child {
+  margin-top: 0;
+}
+
+.autodoc-member-desc > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Description preview in header */
+.autodoc-member-desc-preview {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Internal methods section */
+.autodoc-internal-methods {
+  margin-top: var(--space-4);
+  border: 1px dashed var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  box-shadow: var(--neumorphic-subtle);
+}
+
+.autodoc-internal-methods-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background var(--transition-fast);
+}
+
+.autodoc-internal-methods-header:hover {
+  background: var(--color-bg-hover);
+}
+
+.autodoc-internal-methods-header::-webkit-details-marker {
+  display: none;
+}
+
+.autodoc-internal-methods-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.autodoc-internal-methods-content {
+  padding: var(--space-4);
+  border-top: 1px dashed var(--autodoc-border);
+  background: var(--color-bg-primary);
+}
+
+.autodoc-internal-methods[open] > .autodoc-internal-methods-header .autodoc-member-toggle {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   CARDS: Subcommands, endpoints, classes
+   ============================================ */
+
+.autodoc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.autodoc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--autodoc-bg-card);
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+/* Ensure link cards don't show underlines anywhere */
+a.autodoc-card,
+a.autodoc-card:hover,
+a.autodoc-card:visited,
+a.autodoc-card:active,
+a.autodoc-card:focus {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.autodoc-card code,
+a.autodoc-card span {
+  text-decoration: none;
+}
+
+.autodoc-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--elevation-card-hover);
+  background: var(--autodoc-bg-hover);
+}
+
+.autodoc-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.autodoc-card-name {
+  font-family: var(--autodoc-font-mono);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+}
+
+.autodoc-card:hover .autodoc-card-name {
+  color: var(--color-primary);
+}
+
+.autodoc-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.autodoc-card-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.autodoc-card-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.autodoc-card-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.autodoc-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--autodoc-border);
+}
+
+.autodoc-card-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Hub variant cards (larger icons) */
+.autodoc-cards--hub {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.autodoc-card--hub {
+  padding: var(--space-5);
+}
+
+.autodoc-card--hub .autodoc-card-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+/* Empty state */
+.autodoc-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.autodoc-empty-state-icon {
+  opacity: 0.5;
+}
+
+.autodoc-empty-state-text {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.autodoc-empty-state-hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Badge positioning inside cards */
+.autodoc-card .autodoc-badge {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+}
+
+/* HTTP method badges for OpenAPI */
+.autodoc-method {
+  display: inline-flex;
+  padding: 0.125em 0.5em;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+}
+
+.autodoc-method[data-method="get"] {
+  background: #61affe;
+  color: white;
+}
+
+.autodoc-method[data-method="post"] {
+  background: #49cc90;
+  color: white;
+}
+
+.autodoc-method[data-method="put"] {
+  background: #fca130;
+  color: white;
+}
+
+.autodoc-method[data-method="delete"] {
+  background: #f93e3e;
+  color: white;
+}
+
+.autodoc-method[data-method="patch"] {
+  background: #50e3c2;
+  color: white;
+}
+
+.autodoc-method[data-method="options"] {
+  background: #0d5aa7;
+  color: white;
+}
+
+.autodoc-method[data-method="head"] {
+  background: #9012fe;
+  color: white;
+}
+
+/* ============================================
+   STATS: Counters in header
+   ============================================ */
+
+.autodoc-stats {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.autodoc-stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.autodoc-stat-value {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.autodoc-stat-label {
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   SOURCE LINK
+   ============================================ */
+
+.autodoc-source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+
+.autodoc-source:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   RESPONSIVE: Mobile adaptations
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Stack tables on mobile */
+  .autodoc-table thead {
+    display: none;
+  }
+
+  .autodoc-table tbody tr {
+    display: block;
+    padding: var(--space-3);
+    border: 1px solid var(--autodoc-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  .autodoc-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: none;
+  }
+
+  .autodoc-table td::before {
+    content: attr(data-label);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+  }
+
+  /* Single column cards on mobile */
+  .autodoc-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* Smaller title on mobile */
+  .autodoc-title {
+    font-size: var(--text-xl);
+  }
+
+  /* Stack param grid on mobile */
+  .autodoc-param {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Even smaller gaps on small mobile */
+  [data-autodoc] {
+    --autodoc-gap: var(--space-4);
+    --autodoc-section-gap: var(--space-6);
+  }
+
+  /* Reduce padding */
+  .autodoc-signature,
+  .autodoc-usage pre,
+  .autodoc-example pre {
+    padding: var(--space-3);
+  }
+}

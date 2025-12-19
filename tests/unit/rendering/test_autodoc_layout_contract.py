@@ -19,17 +19,27 @@ from pathlib import Path
 def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
     """Ensure OpenAPI/CLI reference pages opt out of prose centering constraints.
 
-    Note: Python API docs (python-reference) intentionally KEEP prose constraints
-    for readable docstring content. Only REST/OpenAPI and CLI docs need full-width.
+    The new CSS system uses data-type selectors on body with semantic type names:
+    - openapi-reference: REST/OpenAPI documentation
+    - cli-reference: CLI command documentation
+    - python-reference: Python API documentation (keeps prose constraints)
+
+    OpenAPI and CLI pages get larger container width, while Python API docs
+    keep prose constraints for readable docstring content.
     """
     css_path = Path("bengal/themes/default/assets/css/composition/layouts.css")
     css = css_path.read_text(encoding="utf-8")
 
-    # OpenAPI and CLI reference pages should bypass prose constraints
+    # OpenAPI and CLI reference pages should have container-lg constraints
+    assert 'body[data-type="openapi-reference"]' in css
+    assert 'body[data-type="cli-reference"]' in css
+
+    # These pages should reset .prose max-width to 100%
     assert 'body[data-type="openapi-reference"] .docs-main .prose' in css
     assert 'body[data-type="cli-reference"] .docs-main .prose' in css
-    assert 'body[data-type="openapi-reference"] .page-hero--api' in css
-    assert 'body[data-type="cli-reference"] .page-hero--api' in css
+
+    # Python API docs use prose-width constraints
+    assert 'body[data-type="python-reference"]' in css
 
 
 def test_base_template_does_not_render_none_variant_attribute() -> None:

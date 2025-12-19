@@ -1,0 +1,43 @@
+{#
+Autodoc Card Grid Partial
+
+Renders a grid of element cards for child elements (subcommands, classes, functions, endpoints).
+
+Usage as INCLUDE (renders card grid):
+  {% set children = element.children %}
+  {% set title = 'Commands' %}
+  {% include 'autodoc/partials/cards.html' %}
+
+Required context:
+  children: list of DocElements to render as cards
+
+Optional context:
+  title: Section title (string)
+  card_type: Override element type for all cards (string)
+
+For individual cards, import the macro:
+  {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
+  {{ element_card(child) }}
+#}
+
+{% from 'autodoc/partials/_macros/element-card.html' import element_card %}
+
+{% set title = title | default('') %}
+{% set card_type = card_type | default(none) %}
+
+{% if children %}
+{% if title %}
+<section class="autodoc-section" data-section="children">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+{% endif %}
+
+  <div class="autodoc-cards">
+    {% for child in children %}
+    {{ element_card(child, card_type) }}
+    {% endfor %}
+  </div>
+
+{% if title %}
+</section>
+{% endif %}
+{% endif %}

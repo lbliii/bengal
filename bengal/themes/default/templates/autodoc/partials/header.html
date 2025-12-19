@@ -1,0 +1,108 @@
+{#
+Autodoc Header Partial
+
+Renders the header section: badges, title, description, stats, source link.
+Works for all autodoc types (Python, CLI, OpenAPI).
+
+Required: element (DocElement)
+Optional: show_stats (bool, default true), show_source (bool, default true)
+#}
+
+{% set show_stats = show_stats | default(true) %}
+{% set show_source = show_source | default(true) %}
+
+<header class="autodoc-header">
+  {# Badges #}
+  {% set badges = [] %}
+  {% if element.metadata.is_deprecated %}
+    {% set _ = badges.append('deprecated') %}
+  {% endif %}
+  {% if element.metadata.is_async %}
+    {% set _ = badges.append('async') %}
+  {% endif %}
+  {% if element.metadata.is_abstract %}
+    {% set _ = badges.append('abstract') %}
+  {% endif %}
+  {% if element.metadata.is_dataclass %}
+    {% set _ = badges.append('dataclass') %}
+  {% endif %}
+  {% if element.metadata.is_classmethod %}
+    {% set _ = badges.append('classmethod') %}
+  {% endif %}
+  {% if element.metadata.is_staticmethod %}
+    {% set _ = badges.append('staticmethod') %}
+  {% endif %}
+  {% if element.metadata.is_property %}
+    {% set _ = badges.append('property') %}
+  {% endif %}
+
+  {% if badges %}
+  <div class="autodoc-badges">
+    {% for badge in badges %}
+    <span class="autodoc-badge" data-badge="{{ badge }}">{{ badge | title }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Title #}
+  <h1 class="autodoc-title">
+    {% if element.element_type == 'endpoint' and element.metadata.method %}
+    <span class="autodoc-method" data-method="{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
+    {% endif %}
+    <code>{{ element.qualified_name or element.name }}</code>
+  </h1>
+
+  {# Description #}
+  {% if element.description %}
+  <div class="autodoc-description prose">
+    {{ element.description | markdownify | safe }}
+  </div>
+  {% endif %}
+
+  {# Stats row - use getattr for safe access to children #}
+  {% if show_stats %}
+  {% set children = getattr(element, 'children', []) %}
+  {% set options = children | selectattr('element_type', 'eq', 'option') | list %}
+  {% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
+  {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
+  {% set functions = children | selectattr('element_type', 'eq', 'function') | list %}
+  {% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
+  {% set attributes = children | selectattr('element_type', 'eq', 'attribute') | list %}
+  {# Filter subcommands manually since 'in' test isn't available in selectattr #}
+  {% set subcommands = [] %}
+  {% for child in children %}
+    {% if child.element_type in ['command', 'command-group'] %}
+      {% set _ = subcommands.append(child) %}
+    {% endif %}
+  {% endfor %}
+  {% set parameters = element.metadata.args or element.metadata.parameters or [] %}
+
+  {% set stats = [] %}
+  {% if options %}{% set _ = stats.append({'value': options | length, 'label': 'Options'}) %}{% endif %}
+  {% if arguments %}{% set _ = stats.append({'value': arguments | length, 'label': 'Arguments'}) %}{% endif %}
+  {% if parameters %}{% set _ = stats.append({'value': parameters | length, 'label': 'Parameters'}) %}{% endif %}
+  {% if methods %}{% set _ = stats.append({'value': methods | length, 'label': 'Methods'}) %}{% endif %}
+  {% if functions %}{% set _ = stats.append({'value': functions | length, 'label': 'Functions'}) %}{% endif %}
+  {% if classes %}{% set _ = stats.append({'value': classes | length, 'label': 'Classes'}) %}{% endif %}
+  {% if attributes %}{% set _ = stats.append({'value': attributes | length, 'label': 'Attributes'}) %}{% endif %}
+  {% if subcommands %}{% set _ = stats.append({'value': subcommands | length, 'label': 'Subcommands'}) %}{% endif %}
+
+  {% if stats %}
+  <div class="autodoc-stats">
+    {% for stat in stats %}
+    <span class="autodoc-stat">
+      <span class="autodoc-stat-value">{{ stat.value }}</span>
+      <span class="autodoc-stat-label">{{ stat.label }}</span>
+    </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {# Source link #}
+  {% if show_source and element.metadata.source_file %}
+  <a href="{{ element.metadata.source_url or '#' }}" class="autodoc-source" target="_blank" rel="noopener">
+    View source
+  </a>
+  {% endif %}
+</header>

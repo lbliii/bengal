@@ -1,0 +1,42 @@
+{#
+Autodoc Parameters List Partial
+
+Renders parameters as a definition list (alternative to table).
+
+Required: params (list of dicts or DocElements)
+Optional: title (str)
+#}
+
+{% set title = title | default('Parameters') %}
+
+{% if params %}
+<section class="autodoc-section" data-section="parameters">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+
+  <dl class="autodoc-params">
+    {% for param in params %}
+    {# Handle both dict and object access patterns #}
+    {% set is_required = param.metadata.required | default(param.required | default(false)) if param.metadata is defined else (param.get('required', false) if param.get else false) %}
+    {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
+    {% set param_type_val = param.metadata.type if (param.metadata is defined and param.metadata.type) else (param.type if param.type is defined else (param.get('type', '') if param.get else '')) %}
+    {% set param_default = param.metadata.default if (param.metadata is defined and param.metadata.default) else (param.default if param.default is defined else (param.get('default', '') if param.get else '')) %}
+    {# Check both docstring (from extractor) and description keys #}
+    {% set param_desc = param.description if param.description is defined else (param.get('docstring', '') or param.get('description', '') if param.get else '') %}
+    <div class="autodoc-param" data-required="{{ 'true' if is_required else 'false' }}">
+      <dt class="autodoc-param-name">
+        <code>{{ param_name }}</code>
+        {% if param_type_val %}
+        <span class="autodoc-param-type">{{ param_type_val }}</span>
+        {% endif %}
+      </dt>
+      <dd class="autodoc-param-desc">
+        {{ param_desc }}
+        {% if param_default %}
+        <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+        {% endif %}
+      </dd>
+    </div>
+    {% endfor %}
+  </dl>
+</section>
+{% endif %}

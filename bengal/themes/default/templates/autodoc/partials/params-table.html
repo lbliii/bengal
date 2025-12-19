@@ -1,0 +1,71 @@
+{#
+Autodoc Parameters Table Partial
+
+Renders parameters/options/arguments as a table.
+Works with CLI DocElements, OpenAPI raw dicts, and Python args.
+
+Required: params (list of DocElements or dicts)
+Optional: title (str), param_type (str: 'option', 'argument', 'parameter')
+
+Supports:
+- CLI DocElements: param.metadata.type, param.description
+- OpenAPI dicts: param.schema.type, param.description
+- Python args: param.type, param.docstring
+#}
+
+{% set title = title | default('Parameters') %}
+{% set param_type = param_type | default('parameter') %}
+
+{% if params %}
+<section class="autodoc-section" data-section="parameters">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+
+  <table class="autodoc-table" data-table="parameters">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for param in params %}
+      {# Handle DocElements (with .metadata) and raw dicts #}
+      {% set meta = (param.metadata or {}) if param.metadata is defined else {} %}
+      {% set is_dict = param.get is defined %}
+
+      {# Required: check multiple locations #}
+      {% set is_required = meta.required | default(param.get('required', false) if is_dict else (param.required if param.required is defined else false)) %}
+
+      {# Name: CLI opts array, or direct name #}
+      {% set param_name = meta.opts | join(', ') if meta.opts else (param.get('name', '') if is_dict else param.name) %}
+
+      {# Type: CLI meta.type, OpenAPI schema.type, or Python type #}
+      {% set schema = param.get('schema', {}) if is_dict else {} %}
+      {% set param_type_val = meta.type | default(schema.get('type', '') if schema else (param.get('type', '') if is_dict else '')) %}
+
+      {# Default: CLI meta.default, OpenAPI schema.default, or Python default #}
+      {% set param_default = meta.default | default(schema.get('default', '') if schema else (param.get('default', '') if is_dict else '')) %}
+
+      {# Description: DocElement.description, dict.description, or dict.docstring #}
+      {% set param_desc = param.description if param.description is defined and param.description else (param.get('description', '') or param.get('docstring', '') if is_dict else (meta.docstring if meta.docstring else '')) %}
+      {% set param_desc = param_desc or '—' %}
+
+      <tr data-required="{{ 'true' if is_required else 'false' }}">
+        <td class="autodoc-cell-name" data-label="Name"><code>{{ param_name }}</code></td>
+        <td class="autodoc-cell-type" data-label="Type"><code>{{ param_type_val or '—' }}</code></td>
+        <td class="autodoc-cell-default" data-label="Default">
+          {%- if param_default -%}
+          <code>{{ param_default }}</code>
+          {%- else -%}
+          <span class="table-empty">—</span>
+          {%- endif -%}
+        </td>
+        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc | markdownify | safe }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}

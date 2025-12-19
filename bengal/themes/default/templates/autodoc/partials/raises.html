@@ -1,0 +1,23 @@
+{#
+Autodoc Raises Partial
+
+Renders the list of exceptions that can be raised.
+
+Required: element (DocElement)
+#}
+
+{% set raises = element.metadata.raises | default(element.raises | default([])) %}
+
+{% if raises %}
+<section class="autodoc-section" data-section="raises">
+  <h2 class="autodoc-section-title">Raises</h2>
+  <dl class="autodoc-raises">
+    {% for exc in raises %}
+    <div class="autodoc-raise">
+      <dt><code>{{ exc.type if exc.type is defined else exc.get('type', exc) }}</code></dt>
+      <dd>{{ exc.description if exc.description is defined else exc.get('description', '') }}</dd>
+    </div>
+    {% endfor %}
+  </dl>
+</section>
+{% endif %}

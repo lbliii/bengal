@@ -1,0 +1,49 @@
+{#
+Badges Partial
+
+Renders badges for modules, classes, CLI commands, and other elements.
+Uses semantic badge classes from autodoc.css:
+- autodoc-badge: Base badge styling
+- data-badge="*": Badge variant via data attribute
+
+Note: This partial expects 'element' to be a DocElement, not None.
+The caller (page-hero/element.html) should guard inclusion with {% if element %}.
+#}
+
+{% if element and element.element_type == 'module' %}
+<span class="autodoc-badge" data-badge="module">Module</span>
+{% if element.metadata.is_dataclass %}
+<span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+{% endif %}
+{% elif element.element_type == 'class' %}
+{% if element.metadata.is_mixin %}
+<span class="autodoc-badge" data-badge="mixin">Mixin</span>
+{% endif %}
+{% if element.metadata.is_dataclass %}
+<span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+{% endif %}
+{% if element.metadata.is_abstract %}
+<span class="autodoc-badge" data-badge="abstract">abstract</span>
+{% endif %}
+{% elif element.element_type == 'function' %}
+{% if element.metadata.is_async %}
+<span class="autodoc-badge" data-badge="async">async</span>
+{% endif %}
+{% elif element.element_type == 'method' %}
+{% if element.metadata.is_async %}
+<span class="autodoc-badge" data-badge="async">async</span>
+{% endif %}
+{% if element.metadata.is_classmethod %}
+<span class="autodoc-badge" data-badge="classmethod">classmethod</span>
+{% endif %}
+{% if element.metadata.is_staticmethod %}
+<span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
+{% endif %}
+{% if element.metadata.is_property %}
+<span class="autodoc-badge" data-badge="property">property</span>
+{% endif %}
+{% elif element.element_type == 'command' %}
+<span class="autodoc-badge" data-badge="command">Command</span>
+{% elif element.element_type == 'command-group' %}
+<span class="autodoc-badge" data-badge="command-group">Command Group</span>
+{% endif %}

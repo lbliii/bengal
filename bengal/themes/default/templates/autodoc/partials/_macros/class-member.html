@@ -1,0 +1,106 @@
+{#
+Class Member Macro
+
+Renders a class as a collapsible card with status dot, count badge, and description.
+Uses the unified autodoc design system.
+
+Usage:
+  {% from 'autodoc/partials/_macros/class-member.html' import class_member %}
+  {{ class_member(cls, is_first=loop.first) }}
+
+Args:
+  cls: Class DocElement to render (required)
+  is_first: Whether this is the first item (to auto-open)
+#}
+
+{% macro class_member(cls, is_first=false) %}
+{% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{# Attributes are stored as children with element_type='attribute', or sometimes properties #}
+{% set cls_attrs = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
+{% set cls_props = (cls.children or []) | selectattr('element_type', 'eq', 'property') | list %}
+{% set all_attrs = cls_attrs + cls_props %}
+{% set total_members = (cls_methods | length) + (all_attrs | length) %}
+{% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
+{% set is_abstract = cls.metadata.is_abstract | default(false) %}
+
+<details class="autodoc-member" data-member="class" {% if is_first %}open{% endif %}>
+  <summary class="autodoc-member-header">
+    {# Status dot (yellow/amber for classes) #}
+    <span class="autodoc-member-dot"></span>
+
+    {# Content wrapper #}
+    <div class="autodoc-member-content">
+      <div class="autodoc-member-name-row">
+        <code class="autodoc-member-name">{{ cls.name }}</code>
+        {# Count badge #}
+        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% endif %}{% if all_attrs %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% endif %}{% endif %}">{{ total_members }}</span>
+        {# Toggle indicator #}
+        <span class="autodoc-member-toggle">▼</span>
+      </div>
+      {# Description preview #}
+      {% if cls.description %}
+      <span class="autodoc-member-desc-preview">{{ cls.description | truncate(100, True, '…') }}</span>
+      {% endif %}
+    </div>
+
+    {# Badges #}
+    {% if is_dataclass or is_abstract %}
+    <span class="autodoc-member-badges">
+      {% if is_dataclass %}
+      <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+      {% endif %}
+      {% if is_abstract %}
+      <span class="autodoc-badge" data-badge="abstract">abstract</span>
+      {% endif %}
+    </span>
+    {% endif %}
+  </summary>
+
+  <div class="autodoc-member-body">
+    {% if cls.description %}
+    <div class="autodoc-member-desc prose">
+      {{ cls.description | markdownify | safe }}
+    </div>
+    {% endif %}
+
+    {# Class attributes (from children with element_type='attribute' or 'property') #}
+    {% if all_attrs %}
+    <div class="autodoc-section" data-section="attributes">
+      <h4 class="autodoc-label">Attributes</h4>
+      <table class="autodoc-table" data-table="attributes">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attr in all_attrs %}
+          {# Attributes are DocElements with name, description, and metadata.annotation #}
+          {% set attr_type = attr.metadata.annotation if attr.metadata else '' %}
+          <tr>
+            <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
+            <td class="autodoc-cell-type"><code>{{ attr_type }}</code></td>
+            <td class="autodoc-cell-desc">{{ attr.description | markdownify | safe }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# Class methods - use unified members partial #}
+    {% if cls_methods %}
+    <div class="autodoc-section" data-section="methods">
+      <h4 class="autodoc-label">Methods</h4>
+      {% set members = cls_methods %}
+      {% set title = '' %}
+      {% set member_type = 'method' %}
+      {% set first_open = false %}
+      {% include 'autodoc/partials/members.html' %}
+    </div>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

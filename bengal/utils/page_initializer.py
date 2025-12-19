@@ -105,9 +105,10 @@ class PageInitializer:
                     f"Warning: output_path {page.output_path} is not under output directory {self.site.output_dir}; "
                     f"falling back to slug-based URL"
                 )
-            url = page.url
-            if not url.startswith("/"):
-                raise ValueError(f"Generated URL doesn't start with '/': {url}")
+            # Use relative_url for validation since page.url includes baseurl
+            rel_url = page.relative_url
+            if not rel_url.startswith("/"):
+                raise ValueError(f"Generated URL doesn't start with '/': {rel_url}")
         except Exception as e:
             raise ValueError(
                 f"Page '{page.title}' URL generation failed: {e}\n"

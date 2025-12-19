@@ -6,7 +6,7 @@ Creates virtual Page objects and handles rendering for autodoc elements.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment
 
@@ -221,35 +221,83 @@ def get_element_metadata(
     if doc_type == "python":
         url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
         # Python API docs use python-reference type for prose-constrained layout
-        return "api-reference/module", url_path, "python-reference"
+        return "autodoc/python/module", url_path, "python-reference"
     elif doc_type == "cli":
         if element.element_type == "command-group":
             url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            return "cli-reference/command-group", url_path, "cli-reference"
+            return "autodoc/cli/command-group", url_path, "autodoc/cli"
         else:
             url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            return "cli-reference/command", url_path, "cli-reference"
+            return "autodoc/cli/command", url_path, "autodoc/cli"
     elif doc_type == "openapi":
-        # OpenAPI docs use openapi-reference type for full-width 3-panel layout
+        # OpenAPI docs use openautodoc/python type for full-width 3-panel layout
         if element.element_type == "openapi_overview":
-            return "openapi-reference/overview", f"{prefix}/overview", "openapi-reference"
+            return "openautodoc/python/overview", f"{prefix}/overview", "openautodoc/python"
         elif element.element_type == "openapi_schema":
             schema_name = element.name
             return (
-                "openapi-reference/schema",
+                "openautodoc/python/schema",
                 f"{prefix}/schemas/{schema_name}",
-                "openapi-reference",
+                "openautodoc/python",
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
             path = get_openapi_path(element).strip("/").replace("/", "-")
             return (
-                "openapi-reference/endpoint",
+                "openautodoc/python/endpoint",
                 f"{prefix}/endpoints/{method}-{path}",
-                "openapi-reference",
+                "openautodoc/python",
             )
     # Fallback - use python-reference for prose-constrained layout
-    return "api-reference/module", f"{prefix}/{element.name}", "python-reference"
+    return "autodoc/python/module", f"{prefix}/{element.name}", "python-reference"
+
+
+def prepare_element_for_template(element: DocElement) -> dict[str, Any]:
+    """
+    Prepare DocElement for Jinja2 template consumption.
+
+    Converts DocElement to a clean dict that Jinja2 can handle without
+    undefined attribute errors. This is the "middle ground" approach:
+    Python prepares clean data, templates just display it.
+
+    Args:
+        element: DocElement to prepare
+
+    Returns:
+        Dict with all fields guaranteed to exist (no undefined errors in templates)
+    """
+
+    def prepare_child(child: DocElement) -> dict[str, Any]:
+        """Recursively prepare child elements."""
+        return {
+            "name": child.name,
+            "qualified_name": child.qualified_name,
+            "description": child.description or "",
+            "element_type": child.element_type,
+            "source_file": str(child.source_file) if child.source_file else None,
+            "line_number": child.line_number,
+            "metadata": child.metadata or {},
+            "children": [prepare_child(c) for c in (child.children or [])],
+            "examples": child.examples or [],
+            "see_also": child.see_also or [],
+            "deprecated": child.deprecated,
+        }
+
+    return {
+        "name": element.name,
+        "qualified_name": element.qualified_name,
+        "description": element.description or "",
+        "element_type": element.element_type,
+        "source_file": str(element.source_file) if element.source_file else None,
+        "line_number": element.line_number,
+        "metadata": element.metadata or {},
+        "children": [prepare_child(c) for c in (element.children or [])],
+        "examples": element.examples or [],
+        "see_also": element.see_also or [],
+        "deprecated": element.deprecated,
+        # Expose display_source_file if available
+        "display_source_file": getattr(element, "display_source_file", None),
+    }
 
 
 def render_element(
@@ -267,9 +315,9 @@ def render_element(
 
     Args:
         element: DocElement to render
-        template_name: Template name (e.g., "api-reference/module")
+        template_name: Template name (e.g., "autodoc/python/module")
         url_path: URL path for this element (e.g., "cli/bengal/serve")
-        page_type: Page type (e.g., "cli-reference", "api-reference")
+        page_type: Page type (e.g., "autodoc/cli", "autodoc/python")
         site: Site instance
         template_env: Jinja2 template environment
         normalized_config: Normalized autodoc config
@@ -278,6 +326,9 @@ def render_element(
     Returns:
         Rendered HTML string
     """
+    # Prepare element as clean dict for Jinja2 - no undefined attribute errors
+    element_data = prepare_element_for_template(element)
+
     # Create a page-like context for templates that expect a 'page' variable.
     # Templates extend base.html and include partials (page-hero, docs-nav, etc.)
     # that require page.metadata, page.tags, page.title, etc.
@@ -314,7 +365,7 @@ def render_element(
     try:
         template = template_env.get_template(f"{template_name}.html")
         return template.render(
-            element=element,
+            element=element_data,  # Pass clean dict, not DocElement
             page=page_context,
             config=normalized_config,
             site=site,
@@ -325,7 +376,7 @@ def render_element(
             # Try without .html extension
             template = template_env.get_template(template_name)
             return template.render(
-                element=element,
+                element=element_data,  # Pass clean dict, not DocElement
                 page=page_context,
                 config=normalized_config,
                 site=site,

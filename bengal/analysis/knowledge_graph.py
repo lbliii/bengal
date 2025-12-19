@@ -14,12 +14,12 @@ from typing import TYPE_CHECKING
 from bengal.analysis.graph_analysis import GraphAnalyzer
 from bengal.analysis.graph_reporting import GraphReporter
 from bengal.analysis.link_types import (
+    DEFAULT_THRESHOLDS,
+    DEFAULT_WEIGHTS,
     ConnectivityLevel,
     ConnectivityReport,
     LinkMetrics,
     LinkType,
-    DEFAULT_THRESHOLDS,
-    DEFAULT_WEIGHTS,
 )
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
@@ -412,10 +412,7 @@ class KnowledgeGraph:
 
         for page in analysis_pages:
             # Only process index pages (detect by filename stem)
-            is_index = (
-                hasattr(page, "source_path")
-                and page.source_path.stem in ("_index", "index")
-            )
+            is_index = hasattr(page, "source_path") and page.source_path.stem in ("_index", "index")
             if not is_index:
                 continue
 
@@ -485,7 +482,7 @@ class KnowledgeGraph:
             metrics = LinkMetrics()
 
             # Count links by type from link_types tracking
-            for (source, target), link_type in self.link_types.items():
+            for (_source, target), link_type in self.link_types.items():
                 if target == page:
                     if link_type == LinkType.EXPLICIT:
                         metrics.explicit += 1
@@ -702,7 +699,12 @@ class KnowledgeGraph:
         report.avg_score = total_score / len(analysis_pages) if analysis_pages else 0.0
 
         # Sort each list by path for consistent output
-        for page_list in [report.isolated, report.lightly_linked, report.adequately_linked, report.well_connected]:
+        for page_list in [
+            report.isolated,
+            report.lightly_linked,
+            report.adequately_linked,
+            report.well_connected,
+        ]:
             page_list.sort(key=lambda p: str(p.source_path))
 
         return report

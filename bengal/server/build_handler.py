@@ -170,6 +170,68 @@ class BuildHandler(FileSystemEventHandler):
 
         return False
 
+    def _is_template_change(self, changed_paths: set[str]) -> bool:
+        """
+        Check if any changed file is a template (.html) in templates/themes directories.
+
+        Template files affect all rendered pages, but their dependencies aren't fully
+        tracked (especially for autodoc virtual pages). When templates change, we need
+        to trigger a full rebuild to ensure all pages render with the updated templates.
+
+        Args:
+            changed_paths: Set of changed file paths
+
+        Returns:
+            True if any changed file is a template file that affects page rendering
+        """
+        import bengal
+
+        bengal_dir = Path(bengal.__file__).parent
+
+        # Get root_path safely (handles mock sites in tests)
+        root_path = getattr(self.site, "root_path", None)
+        if not root_path:
+            return False
+
+        # Directories where template changes should trigger full rebuild
+        template_dirs = [
+            # Site-level custom templates
+            root_path / "templates",
+            # Project theme directory
+            root_path / "themes",
+        ]
+
+        # Add bundled theme templates if using a bundled theme
+        theme = getattr(self.site, "theme", None)
+        if theme:
+            bundled_theme_dir = bengal_dir / "themes" / theme / "templates"
+            if bundled_theme_dir.exists():
+                template_dirs.append(bundled_theme_dir)
+
+        for changed_path in changed_paths:
+            path = Path(changed_path)
+
+            # Only check .html files (templates)
+            if path.suffix.lower() != ".html":
+                continue
+
+            # Check if the file is within any template directory
+            for template_dir in template_dirs:
+                if not template_dir.exists():
+                    continue
+                try:
+                    path.relative_to(template_dir)
+                    logger.debug(
+                        "template_change_detected",
+                        file=str(path),
+                        template_dir=str(template_dir),
+                    )
+                    return True
+                except ValueError:
+                    continue
+
+        return False
+
     def _should_ignore_file(self, file_path: str) -> bool:
         """
         Check if file should be ignored (temp files, swap files, etc).
@@ -261,6 +323,15 @@ class BuildHandler(FileSystemEventHandler):
 
             self.building = True
 
+            # Signal to request handler that build is in progress
+            # This causes directory listings to show "rebuilding" page instead
+            try:
+                from bengal.server.request_handler import BengalRequestHandler
+
+                BengalRequestHandler.set_build_in_progress(True)
+            except Exception as e:
+                logger.debug("build_state_signal_failed", error=str(e))
+
             # Get first changed file for display
             file_name = "multiple files"
             changed_files = list(self.pending_changes)
@@ -280,6 +351,17 @@ class BuildHandler(FileSystemEventHandler):
             # 4. Autodoc source changes (.py, OpenAPI specs) - need to regenerate autodoc pages
             # Use incremental only for asset-only modifications (CSS, JS, images)
             needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
+            # Check if template files changed (.html in templates/themes directories)
+            # Template dependencies aren't fully tracked (especially for autodoc virtual pages),
+            # so force full rebuild when any template changes to ensure all pages render correctly.
+            template_changed = self._is_template_change(set(changed_files))
+            if template_changed and not needs_full_rebuild:
+                needs_full_rebuild = True
+                logger.debug(
+                    "full_rebuild_triggered_by_template",
+                    reason="template_file_changed",
+                )
 
             # Check if autodoc regeneration is needed (Python source or OpenAPI spec changed)
             autodoc_changed = self._should_regenerate_autodoc(set(changed_files))
@@ -546,6 +628,14 @@ class BuildHandler(FileSystemEventHandler):
                 )
             finally:
                 self.building = False
+
+                # Clear build-in-progress state for request handler
+                try:
+                    from bengal.server.request_handler import BengalRequestHandler
+
+                    BengalRequestHandler.set_build_in_progress(False)
+                except Exception as e:
+                    logger.debug("build_state_clear_failed", error=str(e))
 
     def _handle_file_event(self, event: FileSystemEvent, event_type: str) -> None:
         """

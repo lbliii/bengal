@@ -1,7 +1,7 @@
 """
 Tests for URL generation across different content types.
 
-Regression tests ensuring all content types (blog, tutorial, api-reference, etc.)
+Regression tests ensuring all content types (blog, tutorial, autodoc/python, etc.)
 generate correct URLs for child pages, similar to the doc type bug fix.
 
 Each content type might have different URL patterns, and we need to ensure
@@ -168,7 +168,7 @@ class TestAPIReferenceURLs:
 
         # API index
         (content_dir / "api" / "_index.md").write_text(
-            "---\ntitle: API Reference\ntype: api-reference\ncascade:\n  type: api-reference\n---"
+            "---\ntitle: API Reference\ntype: autodoc/python\ncascade:\n  type: autodoc/python\n---"
         )
 
         # Core module index

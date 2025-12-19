@@ -59,13 +59,13 @@ Virtual pages already specify theme template names:
 
 ```python
 # bengal/autodoc/virtual_orchestrator.py:405
-template_name="api-reference/module",
+template_name="autodoc/python/module",
 ```
 
-The theme already has an `api-reference/` section:
+The theme already has an `autodoc/python/` section:
 
 ```
-themes/default/templates/api-reference/
+themes/default/templates/autodoc/python/
 ├── home.html    # Extends base.html
 ├── list.html    # Extends base.html
 └── single.html  # Extends base.html - uses {{ content | safe }}
@@ -95,7 +95,7 @@ Autodoc extracts documentation from source code, creates DocElement models, and 
 
 ```
 themes/default/templates/
-├── api-reference/                  # API documentation pages
+├── autodoc/python/                  # API documentation pages
 │   ├── home.html                   # API root index (existing)
 │   ├── list.html                   # Section listing (existing)
 │   ├── single.html                 # Single page wrapper (existing)
@@ -110,7 +110,7 @@ themes/default/templates/
 │       ├── parameters-table.html   # Parameters table
 │       ├── signature.html          # Code signature block
 │       └── badges.html             # Type/status badges
-├── cli-reference/                  # CLI documentation pages
+├── autodoc/cli/                  # CLI documentation pages
 │   ├── home.html                   # CLI root index (existing)
 │   ├── command.html                # Command page ← NEW
 │   ├── command-group.html          # Command group ← NEW
@@ -128,19 +128,19 @@ themes/default/templates/
 All autodoc templates follow the same pattern as regular content:
 
 ```jinja2
-{# themes/default/templates/api-reference/module.html #}
-{% extends "api-reference/single.html" %}
+{# themes/default/templates/autodoc/python/module.html #}
+{% extends "autodoc/python/single.html" %}
 
 {% block content %}
 <div class="api-explorer">
-  {% include 'api-reference/partials/module-header.html' %}
+  {% include 'autodoc/python/partials/module-header.html' %}
 
   {% for cls in classes %}
-    {% include 'api-reference/partials/class-card.html' %}
+    {% include 'autodoc/python/partials/class-card.html' %}
   {% endfor %}
 
   {% for func in functions %}
-    {% include 'api-reference/partials/function-card.html' %}
+    {% include 'autodoc/python/partials/function-card.html' %}
   {% endfor %}
 </div>
 {% endblock %}
@@ -149,7 +149,7 @@ All autodoc templates follow the same pattern as regular content:
 Which extends:
 
 ```jinja2
-{# themes/default/templates/api-reference/single.html #}
+{# themes/default/templates/autodoc/python/single.html #}
 {% extends "base.html" %}
 
 {% block content %}
@@ -177,7 +177,7 @@ def _render_module(self, element: DocElement) -> str:
     """Render module using theme template."""
     # Try theme template first
     try:
-        template = self.template_env.get_template("api-reference/module.html")
+        template = self.template_env.get_template("autodoc/python/module.html")
         return template.render(
             element=element,
             classes=element.get_classes(),
@@ -199,7 +199,7 @@ my-site/
 ├── themes/
 │   └── my-theme/
 │       └── templates/
-│           └── api-reference/
+│           └── autodoc/python/
 │               └── module.html    # Custom API module template
 └── bengal.toml
 ```
@@ -209,7 +209,7 @@ Or add to the default theme via site-level templates:
 ```
 my-site/
 ├── templates/
-│   └── api-reference/
+│   └── autodoc/python/
 │       └── partials/
 │           └── class-card.html    # Override just the class card
 ```
@@ -261,7 +261,7 @@ These are intentionally minimal (no styling, basic structure).
 
 ### Phase 1: Create Theme Templates (Non-breaking)
 
-1. Add new templates to `themes/default/templates/api-reference/`
+1. Add new templates to `themes/default/templates/autodoc/python/`
 2. Add partials for reusable components
 3. Update orchestrator to prefer theme templates
 4. Keep existing `html_templates/` as fallback
@@ -306,7 +306,7 @@ bengal/autodoc/
 
 ```
 themes/default/templates/
-├── api-reference/
+├── autodoc/python/
 │   ├── home.html              # Existing
 │   ├── list.html              # Existing  
 │   ├── single.html            # Existing (wrapper)
@@ -323,7 +323,7 @@ themes/default/templates/
 │       ├── signature.html
 │       ├── badges.html
 │       └── examples.html
-├── cli-reference/
+├── autodoc/cli/
 │   ├── home.html              # Existing
 │   ├── list.html              # Existing
 │   ├── single.html            # Existing
@@ -341,7 +341,7 @@ themes/default/templates/
 
 ## Open Questions
 
-1. **Should `api-reference/` become `api-explorer/`?**  
+1. **Should `autodoc/python/` become `api-explorer/`?**  
    Current naming is fine, but "explorer" emphasizes interactivity.
 
 2. **How do we handle OpenAPI templates?**  
@@ -364,7 +364,7 @@ themes/default/templates/
 ## Next Steps
 
 1. [ ] Review and approve RFC
-2. [ ] Create `api-reference/module.html` in theme
+2. [ ] Create `autodoc/python/module.html` in theme
 3. [ ] Create partials for class, function, method rendering
 4. [ ] Update `virtual_orchestrator.py` template loading
 5. [ ] Test with Bengal's own API documentation

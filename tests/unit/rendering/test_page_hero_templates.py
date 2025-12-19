@@ -1,17 +1,14 @@
-"""Tests for page-hero API templates.
+"""Tests for page-hero templates.
 
-Regression tests for page-hero-api.html to ensure correct rendering for:
+Tests for the separated page-hero templates to ensure correct rendering for:
 - API module pages (DocElement with classes/functions children)
 - API section-index pages (Section with subsections/pages)
 - CLI command pages (DocElement with options/arguments children)
 - CLI section-index pages (Section with CLI-specific labels)
 
-These tests establish a baseline before refactoring page-hero-api.html
-into separate element.html and section.html templates.
-
-Related:
-    - plan/drafted/rfc-page-hero-template-separation.md
-    - plan/drafted/plan-page-hero-template-separation.md
+Uses the new separated templates:
+- partials/page-hero/element.html for element pages
+- partials/page-hero/section.html for section-index pages
 """
 
 from __future__ import annotations
@@ -37,7 +34,7 @@ class MockDocElement:
     Mock DocElement for template testing.
 
     Simulates the bengal.autodoc.base.DocElement dataclass with the attributes
-    accessed by page-hero-api.html.
+    accessed by page-hero/element.html template.
 
     Attributes:
         name: Element name
@@ -142,7 +139,7 @@ class MockSection:
     Mock section object for template testing.
 
     Simulates bengal.core.section.Section with attributes accessed
-    by page-hero-api.html for section-index pages.
+    by page-hero/section.html template for section-index pages.
     """
 
     name: str = "test_section"
@@ -204,11 +201,12 @@ def template_env() -> Environment:
         lstrip_blocks=True,
     )
 
-    # Register essential template functions used by page-hero-api.html
+    # Register essential template functions used by page-hero templates
     env.globals["icon"] = mock_icon
     env.globals["get_breadcrumbs"] = mock_get_breadcrumbs
     env.globals["canonical_url"] = mock_canonical_url
     env.globals["ensure_trailing_slash"] = mock_ensure_trailing_slash
+    env.globals["getattr"] = getattr  # Required for safe attribute access in templates
 
     # Register filters
     env.filters["absolute_url"] = mock_absolute_url
@@ -293,7 +291,11 @@ def render_page_hero(
     site: MockSite | None = None,
 ) -> str:
     """
-    Render page-hero-api.html template with given context.
+    Render page-hero element or section template with given context.
+
+    Uses the new separated templates:
+    - partials/page-hero/element.html for element pages
+    - partials/page-hero/section.html for section-index pages
 
     Args:
         env: Jinja2 environment with templates loaded
@@ -313,7 +315,11 @@ def render_page_hero(
     if site is None:
         site = MockSite()
 
-    template = env.get_template("partials/page-hero-api.html")
+    # Use new separated templates based on whether we have an element
+    if element is not None:
+        template = env.get_template("partials/page-hero/element.html")
+    else:
+        template = env.get_template("partials/page-hero/section.html")
 
     return template.render(
         element=element,
@@ -331,15 +337,12 @@ def _render_section_hero(
     page: MockPage | None = None,
     config: MockConfig | None = None,
     site: MockSite | None = None,
+    hero_context: dict[str, Any] | None = None,
 ) -> str:
     """
-    Render page-hero-api.html for section-index pages (no element).
+    Render section hero template for section-index pages.
 
-    IMPORTANT: This function does NOT pass element to the template at all,
-    which is how the actual rendering pipeline works for section-index pages.
-
-    In Jinja2, `element is defined` returns True even when element=None,
-    so we must omit element entirely to trigger the section-index code path.
+    Uses the new partials/page-hero/section.html template.
 
     Args:
         env: Jinja2 environment with templates loaded
@@ -347,6 +350,7 @@ def _render_section_hero(
         page: Page object
         config: Autodoc config
         site: Site object
+        hero_context: Optional dict with explicit flags (e.g., is_cli)
 
     Returns:
         Rendered HTML string
@@ -358,15 +362,14 @@ def _render_section_hero(
     if site is None:
         site = MockSite()
 
-    template = env.get_template("partials/page-hero-api.html")
+    template = env.get_template("partials/page-hero/section.html")
 
-    # NOTE: We intentionally omit 'element' from context
-    # This matches the actual rendering pipeline behavior for section-index pages
     return template.render(
         section=section,
         page=page,
         config=config,
         site=site,
+        hero_context=hero_context,
     )
 
 
@@ -403,7 +406,7 @@ def assert_not_contains(html: str, *substrings: str) -> None:
 
 
 class TestAPIModulePageHero:
-    """Test page-hero-api.html for API module pages with DocElement."""
+    """Test page-hero/element.html for API module pages with DocElement."""
 
     def test_renders_qualified_name_in_title(self, template_env: Environment) -> None:
         """Verify element.qualified_name appears in title."""
@@ -528,11 +531,9 @@ class TestAPIModulePageHero:
 
 class TestAPISectionIndexPageHero:
     """
-    Test page-hero-api.html for API section-index pages.
+    Test page-hero/section.html for API section-index pages.
 
-    JINJA2 QUIRK: `element is defined` returns True even when element=None.
-    The template uses `not element is defined` which passes when element=None
-    because we're passing element=None (which IS defined as None).
+    Uses the dedicated section.html template for section-index pages.
 
     This is the exact behavior documented in the RFC as "Jinja Gotchas".
     For section-index pages in production, element is NOT passed at all,
@@ -629,7 +630,7 @@ class TestAPISectionIndexPageHero:
 
 
 class TestCLICommandPageHero:
-    """Test page-hero-api.html for CLI command pages."""
+    """Test page-hero/element.html for CLI command pages."""
 
     def test_renders_command_qualified_name(self, template_env: Environment) -> None:
         """Verify command qualified_name in title."""
@@ -697,10 +698,9 @@ class TestCLICommandPageHero:
 
 class TestCLISectionIndexPageHero:
     """
-    Test page-hero-api.html for CLI section-index pages with CLI labels.
+    Test page-hero/section.html for CLI section-index pages with CLI labels.
 
-    Uses the _render_section_hero helper to correctly trigger section-index
-    code path (omitting element from context).
+    Uses the _render_section_hero helper to render section-index pages.
     """
 
     def test_renders_groups_not_packages_label(self, template_env: Environment) -> None:
@@ -812,7 +812,7 @@ class TestCLISectionIndexPageHero:
 
 
 class TestPageHeroEdgeCases:
-    """Test edge cases and error handling in page-hero-api.html."""
+    """Test edge cases and error handling in page-hero templates."""
 
     def test_handles_no_element_for_section_index(self, template_env: Environment) -> None:
         """Verify template handles section-index pages (no element in context)."""

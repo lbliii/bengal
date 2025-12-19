@@ -123,7 +123,7 @@ We currently support **Click** applications via configuration.
 [autodoc.cli]
 enabled = true
 app = "myapp.cli:main"
-output_dir = "content/cli-reference"
+output_dir = "content/autodoc/cli"
 ```
 
 This generates command references including arguments, options, and hierarchy.

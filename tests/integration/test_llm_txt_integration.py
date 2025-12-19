@@ -88,7 +88,9 @@ Runs the main function.
 
 **Returns:** `None`
 """
-    (site_dir / "content" / "api-reference.md").write_text(page2)
+    autodoc_dir = site_dir / "content" / "autodoc"
+    autodoc_dir.mkdir(parents=True, exist_ok=True)
+    (autodoc_dir / "python.md").write_text(page2)
 
     return site_dir
 
@@ -105,7 +107,7 @@ class TestLLMTextFullBuild:
 
         # Check per-page LLM.txt files exist
         assert (output_dir / "getting-started" / "index.txt").exists()
-        assert (output_dir / "api-reference" / "index.txt").exists()
+        assert (output_dir / "autodoc/python" / "index.txt").exists()
 
     def test_site_wide_llm_full_generated(self, test_site):
         """Test that llm-full.txt is generated at site root."""
@@ -165,9 +167,9 @@ class TestLLMTextFullBuild:
         txt1 = (site.output_dir / "getting-started" / "index.txt").read_text()
         assert "URL: /getting-started/" in txt1
 
-        # Check api-reference
-        txt2 = (site.output_dir / "api-reference" / "index.txt").read_text()
-        assert "URL: /api-reference/" in txt2
+        # Check autodoc/python
+        txt2 = (site.output_dir / "autodoc/python" / "index.txt").read_text()
+        assert "URL: /autodoc/python/" in txt2
 
 
 class TestLLMTextIncrementalBuild:
@@ -220,13 +222,13 @@ This content has been updated with new information.
         site.build()
 
         # Verify files exist
-        txt_path = site.output_dir / "api-reference" / "index.txt"
-        html_path = site.output_dir / "api-reference" / "index.html"
+        txt_path = site.output_dir / "autodoc/python" / "index.txt"
+        html_path = site.output_dir / "autodoc/python" / "index.html"
         assert txt_path.exists()
         assert html_path.exists()
 
         # Delete the page
-        (test_site / "content" / "api-reference.md").unlink()
+        (test_site / "content" / "autodoc/python.md").unlink()
 
         # Rebuild
         site = Site.from_config(test_site)

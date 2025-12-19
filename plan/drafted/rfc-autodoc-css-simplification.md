@@ -305,4 +305,4 @@ Update templates to use new unified classes:
 
 - Current file: `bengal/themes/default/assets/css/components/autodoc-explorer.css`
 - CSS architecture docs: `bengal/themes/default/assets/css/CSS_ARCHITECTURE_EVALUATION.md`
-- Related templates: `bengal/themes/default/templates/api-reference/`
+- Related templates: `bengal/themes/default/templates/autodoc/python/`

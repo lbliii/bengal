@@ -6,6 +6,7 @@ API Hub Section Index Template
 Renders an aggregating section that shows all API documentation types (Python, REST, CLI)
 using a card-based layout. This template is used for sections with type="api-hub"
 which aggregate multiple autodoc outputs under a shared prefix (e.g., /api/).
+Uses autodoc.css for all styling.
 
 This template receives:
 - section: Section object for the aggregating section
@@ -63,91 +64,89 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% endif %}
     </div>
 
-    {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    {# Article Content - autodoc skeleton #}
+    <article data-autodoc data-type="hub" data-element="section-index" class="autodoc docs-content">
+
       {# Check if there's custom content from _index.md #}
       {% if content is defined and content and content.strip() %}
-      <div class="docs-content api-hub-custom-content">
+      <div class="autodoc-custom-content">
         {{ content | safe }}
       </div>
       {% endif %}
 
-      <div class="docs-content">
-        {# API Hub Card Grid #}
-        <div class="autodoc-explorer autodoc-explorer--hub">
-          {% if section.sorted_subsections %}
-          <div class="api-hub-grid">
-            {% for subsection in section.sorted_subsections %}
-            {% set sub_type = subsection.metadata.get('type', 'python-reference') %}
-            {% set desc = subsection.metadata.get('description', '') | first_sentence %}
-            {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+      {# API Hub Card Grid #}
+      {% if section.sorted_subsections %}
+      <div class="autodoc-cards autodoc-cards--hub">
+        {% for subsection in section.sorted_subsections %}
+        {% set sub_type = subsection.metadata.get('type', 'python-reference') %}
+        {% set desc = subsection.metadata.get('description', '') | first_sentence %}
+        {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
 
-            <a href="{{ subsection.url }}" class="api-card api-card--hub api-card--link api-hub-card--{{ sub_type }}">
-              <div class="api-card__header">
-                <span class="api-card__icon">
-                  {# Icon based on autodoc type #}
-                  {%- if 'python' in sub_type -%}
-                  {{ icon("code", size=32, css_class="icon-python") }}
-                  {%- elif 'openapi' in sub_type -%}
-                  {{ icon("globe", size=32, css_class="icon-openapi") }}
-                  {%- elif 'cli' in sub_type -%}
-                  {{ icon("terminal", size=32, css_class="icon-cli") }}
-                  {%- else -%}
-                  {{ icon("book", size=32, css_class="icon-default") }}
-                  {%- endif -%}
-                </span>
-              </div>
-
-              <div class="api-card__body">
-                <h3 class="api-card__title">{{ subsection.title }}</h3>
-                <p class="api-card__description">
-                  {% if desc %}
-                  {{ desc }}
-                  {% else %}
-                  {# Default descriptions based on type #}
-                  {%- if 'python' in sub_type -%}
-                  Browse Python packages, modules, and classes.
-                  {%- elif 'openapi' in sub_type -%}
-                  Explore REST API endpoints and schemas.
-                  {%- elif 'cli' in sub_type -%}
-                  Command-line tools and options.
-                  {%- else -%}
-                  API documentation.
-                  {%- endif -%}
-                  {% endif %}
-                </p>
-              </div>
-
-              <div class="api-card__footer">
-                <span class="api-card__meta">
-                  {%- if 'python' in sub_type -%}
-                  {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
-                  {%- elif 'openapi' in sub_type -%}
-                  {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
-                  {%- elif 'cli' in sub_type -%}
-                  {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
-                  {%- else -%}
-                  {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-                  {%- endif -%}</span>
-                <span class="api-badge--inline api-badge--{{ sub_type }}">
-                  {%- if 'python' in sub_type -%}Python
-                  {%- elif 'openapi' in sub_type -%}REST
-                  {%- elif 'cli' in sub_type -%}CLI
-                  {%- else -%}API{%- endif -%}</span>
-              </div>
-            </a>
-            {% endfor %}
+        <a href="{{ subsection.url }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
+          <div class="autodoc-card-header">
+            <span class="autodoc-card-icon">
+              {# Icon based on autodoc type #}
+              {%- if 'python' in sub_type -%}
+              {{ icon("code", size=32, css_class="icon-python") }}
+              {%- elif 'openapi' in sub_type -%}
+              {{ icon("globe", size=32, css_class="icon-openapi") }}
+              {%- elif 'cli' in sub_type -%}
+              {{ icon("terminal", size=32, css_class="icon-cli") }}
+              {%- else -%}
+              {{ icon("book", size=32, css_class="icon-default") }}
+              {%- endif -%}
+            </span>
           </div>
-          {% else %}
-          {# Empty State #}
-          <div class="api-empty-state">
-            <div class="api-empty-state__icon">{{ icon("book-open", size=48, css_class="icon-muted") }}</div>
-            <p class="api-empty-state__text">No API documentation available yet.</p>
-            <p class="api-empty-state__hint">Enable Python, OpenAPI, or CLI autodoc in your configuration.</p>
+
+          <div class="autodoc-card-body">
+            <h3 class="autodoc-card-name">{{ subsection.title }}</h3>
+            <p class="autodoc-card-desc">
+              {% if desc %}
+              {{ desc }}
+              {% else %}
+              {# Default descriptions based on type #}
+              {%- if 'python' in sub_type -%}
+              Browse Python packages, modules, and classes.
+              {%- elif 'openapi' in sub_type -%}
+              Explore REST API endpoints and schemas.
+              {%- elif 'cli' in sub_type -%}
+              Command-line tools and options.
+              {%- else -%}
+              API documentation.
+              {%- endif -%}
+              {% endif %}
+            </p>
           </div>
-          {% endif %}
-        </div>
+
+          <div class="autodoc-card-footer">
+            <span class="autodoc-card-meta">
+              {%- if 'python' in sub_type -%}
+              {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
+              {%- elif 'openapi' in sub_type -%}
+              {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
+              {%- elif 'cli' in sub_type -%}
+              {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
+              {%- else -%}
+              {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
+              {%- endif -%}</span>
+            <span class="autodoc-badge" data-badge="{{ sub_type }}">
+              {%- if 'python' in sub_type -%}Python
+              {%- elif 'openapi' in sub_type -%}REST
+              {%- elif 'cli' in sub_type -%}CLI
+              {%- else -%}API{%- endif -%}</span>
+          </div>
+        </a>
+        {% endfor %}
       </div>
+      {% else %}
+      {# Empty State #}
+      <div class="autodoc-empty-state">
+        <div class="autodoc-empty-state-icon">{{ icon("book-open", size=48, css_class="icon-muted") }}</div>
+        <p class="autodoc-empty-state-text">No API documentation available yet.</p>
+        <p class="autodoc-empty-state-hint">Enable Python, OpenAPI, or CLI autodoc in your configuration.</p>
+      </div>
+      {% endif %}
+
     </article>
 
     {# Page navigation (prev/next) at bottom #}

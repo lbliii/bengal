@@ -297,7 +297,7 @@ description: "{% block description %}{{ element.description | safe_description }
 {# cli/command_group.md.jinja2 #}
 {% extends "base/base.md.jinja2" %}
 
-{% block doc_type %}cli-reference{% endblock %}
+{% block doc_type %}autodoc/cli{% endblock %}
 
 {% block badges %}
 ```{badge} Command Group

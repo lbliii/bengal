@@ -16,18 +16,18 @@ def get_template_dir_for_type(page_type: str) -> str:
     Map page types to template directories.
 
     Page types like 'python-reference' control CSS styling via data-type attribute,
-    but should use 'api-reference/' templates for rendering. This function maps
+    but should use 'autodoc/python/' templates for rendering. This function maps
     the page type to the appropriate template directory.
 
     Args:
-        page_type: The page type (e.g., 'python-reference', 'openapi-reference', 'api-hub')
+        page_type: The page type (e.g., 'python-reference', 'openautodoc/python', 'api-hub')
 
     Returns:
-        Template directory name (e.g., 'api-reference', 'openapi-reference', 'api-hub')
+        Template directory name (e.g., 'autodoc/python', 'openautodoc/python', 'api-hub')
     """
-    # Python API docs use api-reference templates but have python-reference type for CSS
+    # Python API docs use autodoc/python templates but have python-reference type for CSS
     if page_type == "python-reference":
-        return "api-reference"
+        return "autodoc/python"
     # api-hub type uses dedicated hub templates for aggregating sections
     if page_type == "api-hub":
         return "api-hub"

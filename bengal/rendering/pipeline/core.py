@@ -622,7 +622,7 @@ class RenderingPipeline:
             page: Virtual page with autodoc_element in metadata
         """
         element = self._normalize_autodoc_element(page.metadata.get("autodoc_element"))
-        template_name = page.metadata.get("_autodoc_template", "api-reference/module")
+        template_name = page.metadata.get("_autodoc_template", "autodoc/python/module")
 
         # Mark active menu items for this page
         if hasattr(self.site, "mark_active_menu_items"):
@@ -796,6 +796,8 @@ class RenderingPipeline:
         """
         Ensure autodoc element metadata supports both dotted and mapping access.
         """
+        import contextlib
+
         if element is None:
             return None
 
@@ -806,6 +808,17 @@ class RenderingPipeline:
             return _MetadataView({})
 
         def _coerce(obj: Any) -> None:
+            # Ensure children attribute exists and is a list (templates rely on it)
+            # Use try/except to handle objects that don't support attribute assignment
+            try:
+                children = getattr(obj, "children", None)
+                if children is None or not isinstance(children, list):
+                    obj.children = []
+            except (AttributeError, TypeError):
+                # Object doesn't support attribute assignment - set in __dict__ if possible
+                with contextlib.suppress(AttributeError, TypeError):
+                    obj.__dict__["children"] = []
+
             if hasattr(obj, "metadata"):
                 meta_wrapped = _wrap_metadata(obj.metadata)
                 obj.metadata = meta_wrapped
@@ -836,8 +849,10 @@ class RenderingPipeline:
                             else:
                                 normalized_props[k] = _MetadataView({})
                         meta["properties"] = normalized_props
-            if hasattr(obj, "children"):
-                for child in obj.children or []:
+            # Recursively coerce children if they exist and are iterable
+            children = getattr(obj, "children", None)
+            if children and isinstance(children, (list, tuple)):
+                for child in children:
                     _coerce(child)
 
         _coerce(element)

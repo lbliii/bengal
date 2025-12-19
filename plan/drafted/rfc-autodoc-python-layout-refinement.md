@@ -47,7 +47,7 @@ base/base.md.jinja2           → Core document structure
 
 ### 1.2 HTML Layout
 
-Uses `api-reference/single.html` with three-column layout:
+Uses `autodoc/python/single.html` with three-column layout:
 - **Left sidebar**: Navigation tree
 - **Center**: Content (page hero + article)
 - **Right sidebar**: Contextual graph + TOC + metadata

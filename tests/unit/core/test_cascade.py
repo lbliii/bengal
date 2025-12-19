@@ -393,7 +393,7 @@ class TestRootLevelCascade:
         # Section with its own cascade that overrides
         section = Section(name="api", path=Path("/content/api"))
         section.metadata["cascade"] = {
-            "type": "api-reference",  # Override
+            "type": "autodoc/python",  # Override
             "theme": "dark",  # Override
         }
 
@@ -407,7 +407,7 @@ class TestRootLevelCascade:
         site._apply_cascades()
 
         # Section cascade should override root cascade
-        assert page.metadata["type"] == "api-reference"
+        assert page.metadata["type"] == "autodoc/python"
         assert page.metadata["theme"] == "dark"
 
     def test_root_cascade_to_nested_sections(self):

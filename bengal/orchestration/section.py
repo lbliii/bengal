@@ -223,7 +223,7 @@ class SectionOrchestrator:
             section: Section to analyze
 
         Returns:
-            Content type name (e.g., 'blog', 'doc', 'api-reference')
+            Content type name (e.g., 'blog', 'doc', 'autodoc/python')
         """
         return detect_content_type(section, self.site.config)
 
@@ -292,8 +292,8 @@ class SectionOrchestrator:
         Create an auto-generated index page for a section.
 
         Detects content type and uses appropriate template:
-        - API reference docs: api-reference/list.html (no pagination)
-        - CLI reference docs: cli-reference/list.html (no pagination)
+        - API reference docs: autodoc/python/list.html (no pagination)
+        - CLI reference docs: autodoc/cli/list.html (no pagination)
         - Tutorial sections: tutorial/list.html (no pagination)
         - Blog/chronological: archive.html (with pagination)
         - Generic sections: index.html (fallback)
@@ -382,8 +382,8 @@ class SectionOrchestrator:
         if page_type in (
             "blog",
             "archive",
-            "api-reference",
-            "cli-reference",
+            "autodoc/python",
+            "autodoc/cli",
             "tutorial",
             "changelog",
         ):

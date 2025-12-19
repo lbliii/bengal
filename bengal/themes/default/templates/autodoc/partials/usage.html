@@ -1,0 +1,22 @@
+{#
+Autodoc Usage Partial
+
+Renders a usage block for CLI commands or import statements.
+
+Required: element (dict prepared by Python)
+Optional: language (str, default 'bash' for CLI, 'python' for modules)
+#}
+
+{% set is_cli = element.element_type in ['command', 'command-group'] %}
+{% set language = language | default('bash' if is_cli else 'python') %}
+{# Use getattr for safe access to children with default #}
+{% set children = getattr(element, 'children', []) %}
+{% set option_children = children | selectattr('element_type', 'eq', 'option') | list %}
+{% set has_options = option_children | length > 0 %}
+
+{% if element.qualified_name %}
+<div class="autodoc-usage">
+    <h2 class="autodoc-label">Usage</h2>
+    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if has_options %} [OPTIONS]{% endif %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% endif %}</code></pre>
+</div>
+{% endif %}

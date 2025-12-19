@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{#
+API Reference Template
+
+Three-column layout optimized for API documentation sites:
+- Left sidebar: Navigation tree
+- Center: Content
+- Right sidebar: Contextual Graph + TOC + metadata
+
+Usage: Set `template: autodoc/python/single.html` in frontmatter
+Or set `type: autodoc/python` to auto-select this template
+
+Features:
+- Page hero with breadcrumbs, title, description, and metadata
+- Contextual graph minimap (connections to current page)
+- Table of contents
+- Track navigation support (optional)
+- Tag list in footer
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {# Supports variants: classic (default) or magazine (set via hero_style) #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content - flattened structure #}
+    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+
+      {# Track Navigation (Top) #}
+      {% include 'partials/track_nav.html' %}
+
+      {{ content | safe }}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Track Navigation (Bottom) #}
+    {% include 'partials/track_nav.html' %}
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}
+
+{# Sidebar toggle functionality is handled by interactive.js #}
+{# Graph scripts loaded in base.html #}

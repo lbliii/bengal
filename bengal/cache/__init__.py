@@ -20,7 +20,7 @@ from bengal.cache.dependency_tracker import DependencyTracker
 from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
 from bengal.cache.query_index import IndexEntry, QueryIndex
 from bengal.cache.query_index_registry import QueryIndexRegistry
-from bengal.cache.utils import clear_build_cache, clear_output_directory
+from bengal.cache.utils import clear_build_cache, clear_output_directory, clear_template_cache
 
 __all__ = [
     "BengalPaths",
@@ -35,6 +35,7 @@ __all__ = [
     "STATE_DIR_NAME",
     "clear_build_cache",
     "clear_output_directory",
+    "clear_template_cache",
     "load_compressed",
     "save_compressed",
 ]

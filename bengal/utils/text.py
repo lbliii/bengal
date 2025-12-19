@@ -462,11 +462,14 @@ def humanize_slug(slug: str) -> str:
         >>> humanize_slug("data_model_v2")
         'Data Model V2'
         >>> humanize_slug("_index")
-        'Index'
-        >>> humanize_slug("api-reference")
-        'Api Reference'
+        ' Index'
         >>> humanize_slug("")
         ''
+
+    Note:
+        This is a mechanical transformation (replace separators, title-case).
+        Slashes and other characters are preserved. For semantic mappings
+        (e.g., "autodoc/python" → "API Reference"), use domain-specific logic.
     """
     if not slug:
         return ""

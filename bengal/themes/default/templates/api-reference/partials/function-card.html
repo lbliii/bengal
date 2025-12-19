@@ -15,42 +15,36 @@ Uses unified api-card classes from autodoc CSS modules.
 
 <details class="api-card api-card--collapsible api-card--function{% if is_async %} api-card--async{% endif %}{% if func.name.startswith('_') %} api-card--private{% endif %}">
   <summary class="api-card__header">
-    {# Icon #}
-    <span class="api-card__icon">
-      {% if is_async %}
-      {{ icon('lightning', size=18) }}
-      {% else %}
-      {{ icon('function', size=18) }}
-      {% endif %}
-    </span>
+    {# Status dot indicator (green for functions) #}
+    <span class="api-card__dot"></span>
 
-    {# Name + description preview #}
+    {# Name + count + return type #}
     <div class="api-card__info">
       <div class="api-card__name-row">
         <code class="api-card__name">{{ func.name }}</code>
-        {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
+        {# Parameter count badge #}
+        <span class="api-card__count-badge" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">{{ func_param_count }}</span>
+        {# Return type with arrow #}
+        <span class="api-card__return-arrow" title="Returns {{ func_return_type }}">
+          <code>{{ func_return_type | truncate(25, True, '…') }}</code>
+        </span>
+        {# Toggle indicator #}
+        <span class="api-card__toggle">
+          {{ icon('caret-down', size=14) }}
+        </span>
       </div>
+      {# Description preview on second line #}
       {% if first_sentence %}
       <span class="api-card__desc-preview">{{ first_sentence }}</span>
       {% endif %}
     </div>
 
-    {# Meta: params + return #}
+    {# Async badge if applicable #}
+    {% if is_async %}
     <div class="api-card__meta">
-      <span class="api-card__params" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">
-        {{ icon('brackets-curly', size=12) }}
-        <span>{{ func_param_count }}</span>
-      </span>
-      <span class="api-card__return" title="Returns {{ func_return_type }}">
-        {{ icon('arrow-right', size=12) }}
-        <code>{{ func_return_type | truncate(20, True, '…') }}</code>
-      </span>
+      <span class="api-badge--inline api-badge--async">async</span>
     </div>
-
-    {# Toggle #}
-    <span class="api-card__toggle">
-      {{ icon('caret-right', size=14) }}
-    </span>
+    {% endif %}
   </summary>
 
   <div class="api-card__body">

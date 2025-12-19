@@ -357,7 +357,8 @@ class TestHumanizeSlug:
         """Test basic slug humanization."""
         assert humanize_slug("my-page-name") == "My Page Name"
         assert humanize_slug("hello-world") == "Hello World"
-        assert humanize_slug("api-reference") == "Api Reference"
+        # Note: slashes are preserved; this is a mechanical transformation
+        assert humanize_slug("autodoc/python") == "Autodoc/Python"
 
     def test_underscore_handling(self):
         """Test underscore handling."""

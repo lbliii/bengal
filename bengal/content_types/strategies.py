@@ -147,7 +147,7 @@ class DocsStrategy(ContentTypeStrategy):
 class ApiReferenceStrategy(ContentTypeStrategy):
     """Strategy for API reference documentation."""
 
-    default_template = "api-reference/list.html"
+    default_template = "autodoc/python/list.html"
     allows_pagination = False
 
     def sort_pages(self, pages: list[Page]) -> list[Page]:
@@ -158,7 +158,7 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         """Detect API sections by name or content."""
         name = section.name.lower()
 
-        if name in ("api", "reference", "api-reference", "api-docs"):
+        if name in ("api", "reference", "autodoc/python", "api-docs"):
             return True
 
         # Check page metadata
@@ -167,8 +167,8 @@ class ApiReferenceStrategy(ContentTypeStrategy):
                 page_type = page.metadata.get("type", "")
                 if "python-module" in page_type or page_type in (
                     "python-reference",
-                    "openapi-reference",
-                    "api-reference",
+                    "openautodoc/python",
+                    "autodoc/python",
                 ):
                     return True
 
@@ -200,21 +200,21 @@ class ApiReferenceStrategy(ContentTypeStrategy):
                 return False
 
         if is_home:
-            # Try api-reference/home.html first
-            if template_exists("api-reference/home.html"):
-                return "api-reference/home.html"
+            # Try autodoc/python/home.html first
+            if template_exists("autodoc/python/home.html"):
+                return "autodoc/python/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)
         elif is_section_index:
-            return "api-reference/list.html"
+            return "autodoc/python/list.html"
         else:
-            return "api-reference/single.html"
+            return "autodoc/python/single.html"
 
 
 class CliReferenceStrategy(ContentTypeStrategy):
     """Strategy for CLI reference documentation."""
 
-    default_template = "cli-reference/list.html"
+    default_template = "autodoc/cli/list.html"
     allows_pagination = False
 
     def sort_pages(self, pages: list[Page]) -> list[Page]:
@@ -225,7 +225,7 @@ class CliReferenceStrategy(ContentTypeStrategy):
         """Detect CLI sections by name or content."""
         name = section.name.lower()
 
-        if name in ("cli", "commands", "cli-reference", "command-line"):
+        if name in ("cli", "commands", "autodoc/cli", "command-line"):
             return True
 
         # Check page metadata
@@ -263,15 +263,15 @@ class CliReferenceStrategy(ContentTypeStrategy):
                 return False
 
         if is_home:
-            # Try cli-reference/home.html first
-            if template_exists("cli-reference/home.html"):
-                return "cli-reference/home.html"
+            # Try autodoc/cli/home.html first
+            if template_exists("autodoc/cli/home.html"):
+                return "autodoc/cli/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)
         elif is_section_index:
-            return "cli-reference/list.html"
+            return "autodoc/cli/list.html"
         else:
-            return "cli-reference/single.html"
+            return "autodoc/cli/single.html"
 
 
 class TutorialStrategy(ContentTypeStrategy):

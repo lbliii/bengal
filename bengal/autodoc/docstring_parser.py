@@ -10,6 +10,7 @@ Supports:
 from __future__ import annotations
 
 import re
+import textwrap
 from typing import Any
 
 
@@ -148,8 +149,15 @@ class GoogleDocstringParser:
         # Split into sections
         sections = self._split_sections(docstring)
 
-        # Parse each section
-        result.description = sections.get("description", result.summary)
+        # Known structured sections (we parse these specially)
+        known_sections = {
+            "Args", "Arguments", "Parameters", "Returns", "Return",
+            "Raises", "Raise", "Example", "Examples", "See Also",
+            "Note", "Notes", "Warning", "Warnings", "Deprecated",
+            "Attributes", "Yields", "Yield", "description",
+        }
+
+        # Parse structured sections
         result.args = self._parse_args_section(sections.get("Args", ""))
         if not result.args:
             result.args = self._parse_args_section(sections.get("Arguments", ""))
@@ -169,6 +177,21 @@ class GoogleDocstringParser:
         result.deprecated = sections.get("Deprecated")
         result.attributes = self._parse_args_section(sections.get("Attributes", ""))
 
+        # Build description: base description + custom sections (documentation prose)
+        base_desc = sections.get("description", result.summary)
+        # Dedent to prevent markdown treating indented content as code blocks
+        description_parts = [textwrap.dedent(base_desc) if base_desc else ""]
+
+        # Append custom sections to description (they're documentation, not structured data)
+        for section_name, section_content in sections.items():
+            if section_name not in known_sections and section_content:
+                # Dedent the content to prevent markdown treating it as code block
+                dedented = textwrap.dedent(section_content)
+                # Format as markdown section
+                description_parts.append(f"\n\n**{section_name}:**\n{dedented}")
+
+        result.description = "\n".join(description_parts).strip()
+
         return result
 
     def _split_sections(self, docstring: str) -> dict[str, str]:
@@ -176,8 +199,8 @@ class GoogleDocstringParser:
         sections = {}
         lines = docstring.split("\n")
 
-        # Section markers
-        section_markers = [
+        # Known section markers (we care about extracting these)
+        known_markers = [
             "Args",
             "Arguments",
             "Parameters",
@@ -206,7 +229,9 @@ class GoogleDocstringParser:
 
             # Check if this line is a section header
             is_section = False
-            for marker in section_markers:
+
+            # First check known markers
+            for marker in known_markers:
                 if stripped == f"{marker}:":
                     # Save previous section
                     if section_buffer:
@@ -215,6 +240,20 @@ class GoogleDocstringParser:
                     current_section = marker
                     is_section = True
                     break
+
+            # Also detect custom section headers: unindented lines ending with ":"
+            # but NOT argument patterns like "name (type): description"
+            # Pattern: starts at column 0, is a title-like phrase ending with ":"
+            if not is_section and not line.startswith(" ") and not line.startswith("\t"):
+                # Custom section: "Cache File Format:", "Version Management:", etc.
+                # Must be title-case words (not arg pattern which has lowercase or parens)
+                if re.match(r"^[A-Z][A-Za-z\s]+:$", stripped):
+                    # Save previous section
+                    if section_buffer:
+                        sections[current_section] = "\n".join(section_buffer).strip()
+                        section_buffer = []
+                    current_section = stripped.rstrip(":")
+                    is_section = True
 
             if not is_section:
                 section_buffer.append(line)

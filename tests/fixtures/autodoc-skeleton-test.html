@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autodoc CSS Skeleton Test</title>
+    <!--
+    Test fixture for autodoc.css isolation testing.
+    Open this file in a browser to verify all autodoc components render correctly.
+
+    To test:
+    1. Open in browser
+    2. Check light mode rendering
+    3. Toggle data-theme="dark" on <html> to test dark mode
+    4. Resize browser to test responsive layouts
+  -->
+
+    <!-- Load only the necessary token files and autodoc.css -->
+    <link rel="stylesheet" href="../../bengal/themes/default/assets/css/tokens/foundation.css">
+    <link rel="stylesheet" href="../../bengal/themes/default/assets/css/tokens/typography.css">
+    <link rel="stylesheet" href="../../bengal/themes/default/assets/css/tokens/semantic.css">
+    <link rel="stylesheet" href="../../bengal/themes/default/assets/css/components/autodoc.css">
+
+    <style>
+        /* Minimal page styles for testing */
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            transition: background var(--transition-base), color var(--transition-base);
+        }
+
+        .test-controls {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 100;
+        }
+
+        .test-controls button {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            cursor: pointer;
+        }
+
+        .test-controls button:hover {
+            background: var(--color-bg-hover);
+        }
+
+        .test-section {
+            margin-bottom: 4rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .test-section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        [data-theme="dark"] body {
+            background: var(--color-bg-primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="test-controls">
+        <button onclick="toggleTheme()">Toggle Dark/Light</button>
+        <button onclick="toggleType()">Toggle CLI/Python</button>
+    </div>
+
+    <h1 style="margin-bottom: 2rem;">Autodoc CSS Skeleton Test</h1>
+
+    <!-- ============================================
+       TEST 1: Full CLI Command Page
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">1. CLI Command (Full Example)</div>
+
+        <article data-autodoc data-type="cli" data-element="command" class="autodoc">
+
+            <header class="autodoc-header">
+                <div class="autodoc-badges">
+                    <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+                    <span class="autodoc-badge" data-badge="async">Async</span>
+                </div>
+
+                <h1 class="autodoc-title">
+                    <code>bengal build</code>
+                </h1>
+
+                <div class="autodoc-description">
+                    <p>Build the static site from source content. This command processes all markdown files, applies
+                        templates, and generates the final HTML output.</p>
+                </div>
+
+                <div class="autodoc-stats">
+                    <span class="autodoc-stat" data-stat="options">
+                        <span class="autodoc-stat-value">12</span>
+                        <span class="autodoc-stat-label">Options</span>
+                    </span>
+                    <span class="autodoc-stat" data-stat="arguments">
+                        <span class="autodoc-stat-value">2</span>
+                        <span class="autodoc-stat-label">Arguments</span>
+                    </span>
+                </div>
+
+                <a href="#" class="autodoc-source">View source</a>
+            </header>
+
+            <div class="autodoc-usage">
+                <h2 class="autodoc-label">Usage</h2>
+                <pre><code class="language-bash">bengal build [OPTIONS] [SOURCE]</code></pre>
+            </div>
+
+            <section class="autodoc-section" data-section="parameters">
+                <h2 class="autodoc-section-title">Options</h2>
+
+                <table class="autodoc-table" data-table="parameters">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-required="true">
+                            <td class="autodoc-cell-name" data-label="Name"><code>--source</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>Path</code></td>
+                            <td class="autodoc-cell-default" data-label="Default"><code>./content</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Source directory containing content
+                                files.</td>
+                        </tr>
+                        <tr data-required="false">
+                            <td class="autodoc-cell-name" data-label="Name"><code>--output</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>Path</code></td>
+                            <td class="autodoc-cell-default" data-label="Default"><code>./public</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Output directory for generated site.
+                            </td>
+                        </tr>
+                        <tr data-required="false">
+                            <td class="autodoc-cell-name" data-label="Name"><code>--parallel</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>bool</code></td>
+                            <td class="autodoc-cell-default" data-label="Default"><code>True</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Enable parallel processing for faster
+                                builds.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="autodoc-section" data-section="examples">
+                <h2 class="autodoc-section-title">Examples</h2>
+
+                <div class="autodoc-example">
+                    <h3 class="autodoc-example-title">Basic usage</h3>
+                    <pre><code class="language-bash">bengal build</code></pre>
+                </div>
+
+                <div class="autodoc-example">
+                    <h3 class="autodoc-example-title">With custom output directory</h3>
+                    <pre><code class="language-bash">bengal build --output ./dist</code></pre>
+                </div>
+            </section>
+
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 2: Python Class
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">2. Python Class</div>
+
+        <article data-autodoc data-type="python" data-element="class" class="autodoc">
+
+            <header class="autodoc-header">
+                <div class="autodoc-badges">
+                    <span class="autodoc-badge" data-badge="dataclass">Dataclass</span>
+                </div>
+
+                <h1 class="autodoc-title">
+                    <code>bengal.core.Site</code>
+                </h1>
+
+                <div class="autodoc-description">
+                    <p>Central site container that holds all pages, sections, and configuration.</p>
+                </div>
+            </header>
+
+            <div class="autodoc-signature">
+                <pre><code class="language-python">class Site:
+    pages: list[Page]
+    sections: dict[str, Section]
+    config: SiteConfig</code></pre>
+            </div>
+
+            <section class="autodoc-section" data-section="parameters">
+                <h2 class="autodoc-section-title">Parameters</h2>
+
+                <dl class="autodoc-params">
+                    <div class="autodoc-param" data-required="true">
+                        <dt class="autodoc-param-name">
+                            <code>root</code>
+                            <span class="autodoc-param-type">Path</span>
+                        </dt>
+                        <dd class="autodoc-param-desc">
+                            Root directory of the site content.
+                            <span class="autodoc-param-default">Default: <code>Path(".")</code></span>
+                        </dd>
+                    </div>
+
+                    <div class="autodoc-param" data-required="false">
+                        <dt class="autodoc-param-name">
+                            <code>config</code>
+                            <span class="autodoc-param-type">SiteConfig | None</span>
+                        </dt>
+                        <dd class="autodoc-param-desc">
+                            Site configuration. If not provided, will be loaded from bengal.toml.
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="autodoc-section" data-section="attributes">
+                <h2 class="autodoc-section-title">Attributes</h2>
+                <table class="autodoc-table" data-table="attributes">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="autodoc-cell-name" data-label="Name"><code>pages</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>list[Page]</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">All pages in the site.</td>
+                        </tr>
+                        <tr>
+                            <td class="autodoc-cell-name" data-label="Name"><code>sections</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>dict[str, Section]</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Section lookup by path.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="autodoc-section" data-section="methods">
+                <h2 class="autodoc-section-title">Methods</h2>
+
+                <details class="autodoc-member" data-member="method" open>
+                    <summary class="autodoc-member-header">
+                        <code class="autodoc-member-name">render</code>
+                        <span class="autodoc-member-sig">(page: Page) → str</span>
+                        <span class="autodoc-member-badges">
+                            <span class="autodoc-badge" data-badge="async">async</span>
+                        </span>
+                    </summary>
+                    <div class="autodoc-member-body">
+                        <div class="autodoc-member-desc">
+                            <p>Render a page to HTML string.</p>
+                        </div>
+                        <dl class="autodoc-params">
+                            <div class="autodoc-param">
+                                <dt class="autodoc-param-name">
+                                    <code>page</code>
+                                    <span class="autodoc-param-type">Page</span>
+                                </dt>
+                                <dd class="autodoc-param-desc">The page to render.</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </details>
+
+                <details class="autodoc-member" data-member="method">
+                    <summary class="autodoc-member-header">
+                        <code class="autodoc-member-name">validate</code>
+                        <span class="autodoc-member-sig">() → ValidationResult</span>
+                    </summary>
+                    <div class="autodoc-member-body">
+                        <div class="autodoc-member-desc">
+                            <p>Validate site configuration and content.</p>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 3: Python Function with Returns/Raises
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">3. Python Function</div>
+
+        <article data-autodoc data-type="python" data-element="function" class="autodoc">
+
+            <header class="autodoc-header">
+                <h1 class="autodoc-title">
+                    <code>bengal.build</code>
+                </h1>
+
+                <div class="autodoc-description">
+                    <p>Build the site from source content to output directory.</p>
+                </div>
+            </header>
+
+            <div class="autodoc-signature">
+                <pre><code class="language-python">def build(
+    source: Path,
+    output: Path,
+    parallel: bool = True,
+    incremental: bool = False
+) -> Site</code></pre>
+            </div>
+
+            <section class="autodoc-section" data-section="returns">
+                <h2 class="autodoc-section-title">Returns</h2>
+                <div class="autodoc-returns">
+                    <code class="autodoc-returns-type">Site</code>
+                    <span class="autodoc-returns-desc">The built site instance with all rendered pages.</span>
+                </div>
+            </section>
+
+            <section class="autodoc-section" data-section="raises">
+                <h2 class="autodoc-section-title">Raises</h2>
+                <dl class="autodoc-raises">
+                    <div class="autodoc-raise">
+                        <dt><code>ConfigurationError</code></dt>
+                        <dd>When configuration file is invalid or missing.</dd>
+                    </div>
+                    <div class="autodoc-raise">
+                        <dt><code>BuildError</code></dt>
+                        <dd>When build process fails due to template or content errors.</dd>
+                    </div>
+                </dl>
+            </section>
+
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 4: CLI Command Group with Subcommands
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">4. CLI Command Group (Cards)</div>
+
+        <article data-autodoc data-type="cli" data-element="group" class="autodoc">
+
+            <header class="autodoc-header">
+                <h1 class="autodoc-title">
+                    <code>bengal</code>
+                </h1>
+
+                <div class="autodoc-description">
+                    <p>Bengal Static Site Generator - A powerful and flexible SSG.</p>
+                </div>
+            </header>
+
+            <section class="autodoc-section" data-section="subcommands">
+                <h2 class="autodoc-section-title">Subcommands</h2>
+                <div class="autodoc-cards">
+                    <a href="#" class="autodoc-card" data-card="command">
+                        <code class="autodoc-card-name">build</code>
+                        <span class="autodoc-card-desc">Build the static site from source content.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="command">
+                        <code class="autodoc-card-name">serve</code>
+                        <span class="autodoc-card-desc">Start development server with live reload.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="command">
+                        <code class="autodoc-card-name">watch</code>
+                        <span class="autodoc-card-desc">Watch for changes and rebuild automatically.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="command">
+                        <code class="autodoc-card-name">new</code>
+                        <span class="autodoc-card-desc">Create a new site or content file.</span>
+                    </a>
+                </div>
+            </section>
+
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 5: OpenAPI Endpoint
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">5. OpenAPI Endpoint</div>
+
+        <article data-autodoc data-type="openapi" data-element="endpoint" class="autodoc">
+
+            <header class="autodoc-header">
+                <h1 class="autodoc-title">
+                    <span class="autodoc-method" data-method="get">GET</span>
+                    <code>/api/v1/users</code>
+                </h1>
+
+                <div class="autodoc-description">
+                    <p>List all users with optional filtering and pagination.</p>
+                </div>
+            </header>
+
+            <section class="autodoc-section" data-section="parameters">
+                <h2 class="autodoc-section-title">Query Parameters</h2>
+
+                <table class="autodoc-table" data-table="parameters">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-required="false">
+                            <td class="autodoc-cell-name" data-label="Name"><code>page</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>integer</code></td>
+                            <td class="autodoc-cell-default" data-label="Default"><code>1</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Page number for pagination.</td>
+                        </tr>
+                        <tr data-required="false">
+                            <td class="autodoc-cell-name" data-label="Name"><code>limit</code></td>
+                            <td class="autodoc-cell-type" data-label="Type"><code>integer</code></td>
+                            <td class="autodoc-cell-default" data-label="Default"><code>20</code></td>
+                            <td class="autodoc-cell-desc" data-label="Description">Maximum number of users to return.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="autodoc-section" data-section="endpoints">
+                <h2 class="autodoc-section-title">Related Endpoints</h2>
+                <div class="autodoc-cards">
+                    <a href="#" class="autodoc-card" data-card="endpoint">
+                        <span class="autodoc-method" data-method="post">POST</span>
+                        <code class="autodoc-card-name">/api/v1/users</code>
+                        <span class="autodoc-card-desc">Create a new user.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="endpoint">
+                        <span class="autodoc-method" data-method="get">GET</span>
+                        <code class="autodoc-card-name">/api/v1/users/{id}</code>
+                        <span class="autodoc-card-desc">Get user by ID.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="endpoint">
+                        <span class="autodoc-method" data-method="put">PUT</span>
+                        <code class="autodoc-card-name">/api/v1/users/{id}</code>
+                        <span class="autodoc-card-desc">Update user by ID.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="endpoint">
+                        <span class="autodoc-method" data-method="delete">DELETE</span>
+                        <code class="autodoc-card-name">/api/v1/users/{id}</code>
+                        <span class="autodoc-card-desc">Delete user by ID.</span>
+                    </a>
+                    <a href="#" class="autodoc-card" data-card="endpoint">
+                        <span class="autodoc-method" data-method="patch">PATCH</span>
+                        <code class="autodoc-card-name">/api/v1/users/{id}</code>
+                        <span class="autodoc-card-desc">Partially update user.</span>
+                    </a>
+                </div>
+            </section>
+
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 6: All Badge Types
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">6. All Badge Types</div>
+
+        <article data-autodoc data-type="python" data-element="class" class="autodoc">
+            <header class="autodoc-header">
+                <div class="autodoc-badges">
+                    <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+                    <span class="autodoc-badge" data-badge="async">Async</span>
+                    <span class="autodoc-badge" data-badge="abstract">Abstract</span>
+                    <span class="autodoc-badge" data-badge="dataclass">Dataclass</span>
+                    <span class="autodoc-badge" data-badge="required">Required</span>
+                    <span class="autodoc-badge">Default</span>
+                </div>
+
+                <h1 class="autodoc-title">
+                    <code>Badge Showcase</code>
+                </h1>
+            </header>
+        </article>
+    </div>
+
+    <!-- ============================================
+       TEST 7: API Cards with Dots (New Design)
+       ============================================ -->
+    <div class="test-section">
+        <div class="test-section-title">7. API Cards with Status Dots (Preferred Design)</div>
+
+        <div class="autodoc-explorer">
+            <!-- Class Card with dataclass badge -->
+            <details class="api-card api-card--collapsible api-card--class api-card--dataclass" open>
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">ParsedDocstring</code>
+                            <span class="api-card__count-badge">2</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Container for parsed docstring data.</span>
+                    </div>
+                    <div class="api-card__meta">
+                        <span class="api-badge--inline api-badge--dataclass">dataclass</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <div class="api-card__description">
+                        <p>Container for parsed docstring data.</p>
+                    </div>
+                    <div class="api-methods">
+                        <div class="api-methods__section">
+                            <h4 class="api-label">Methods <span class="api-label__count">1</span></h4>
+                            <details class="api-card api-card--collapsible api-card--method">
+                                <summary class="api-card__header">
+                                    <span class="api-card__dot"></span>
+                                    <div class="api-card__info">
+                                        <div class="api-card__name-row">
+                                            <code class="api-card__name">to_dict</code>
+                                            <span class="api-card__count-badge">0</span>
+                                            <span class="api-card__return-arrow"><code>dict[str, Any]</code></span>
+                                            <span class="api-card__toggle">▼</span>
+                                        </div>
+                                    </div>
+                                </summary>
+                                <div class="api-card__body">
+                                    <p>Convert to dictionary representation.</p>
+                                </div>
+                            </details>
+                        </div>
+                        <details class="api-methods__internal">
+                            <summary class="api-methods__internal-header">
+                                <span class="api-methods__internal-label">
+                                    <span>Internal Methods</span>
+                                    <span class="api-label__count">1</span>
+                                </span>
+                                <span class="api-card__toggle">▼</span>
+                            </summary>
+                            <div class="api-methods__internal-content">
+                                <details class="api-card api-card--collapsible api-card--method api-card--private">
+                                    <summary class="api-card__header">
+                                        <span class="api-card__dot"></span>
+                                        <div class="api-card__info">
+                                            <div class="api-card__name-row">
+                                                <code class="api-card__name">__init__</code>
+                                                <span class="api-card__count-badge">0</span>
+                                                <span class="api-card__return-arrow"><code>None</code></span>
+                                                <span class="api-card__toggle">▼</span>
+                                            </div>
+                                        </div>
+                                    </summary>
+                                    <div class="api-card__body">
+                                        <p>Initialize the parsed docstring.</p>
+                                    </div>
+                                </details>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </details>
+
+            <!-- More class cards (collapsed) -->
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">GoogleDocstringParser</code>
+                            <span class="api-card__count-badge">7</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse Google-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse Google-style docstrings.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">NumpyDocstringParser</code>
+                            <span class="api-card__count-badge">7</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse NumPy-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse NumPy-style docstrings.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--class">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">SphinxDocstringParser</code>
+                            <span class="api-card__count-badge">1</span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse Sphinx-style docstrings.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse Sphinx-style docstrings.</p>
+                </div>
+            </details>
+
+            <!-- Functions section header -->
+            <h3 style="margin: 2rem 0 1rem; font-size: 1.25rem; font-weight: 600;">Functions</h3>
+
+            <!-- Function cards (green dots) -->
+            <details class="api-card api-card--collapsible api-card--function">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">parse_docstring</code>
+                            <span class="api-card__count-badge">2</span>
+                            <span class="api-card__return-arrow"><code>ParsedDocstring</code></span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Parse docstring and extract structured information.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Parse docstring and extract structured information.</p>
+                </div>
+            </details>
+
+            <details class="api-card api-card--collapsible api-card--function">
+                <summary class="api-card__header">
+                    <span class="api-card__dot"></span>
+                    <div class="api-card__info">
+                        <div class="api-card__name-row">
+                            <code class="api-card__name">detect_docstring_style</code>
+                            <span class="api-card__count-badge">1</span>
+                            <span class="api-card__return-arrow"><code>str</code></span>
+                            <span class="api-card__toggle">▼</span>
+                        </div>
+                        <span class="api-card__desc-preview">Auto-detect docstring style.</span>
+                    </div>
+                </summary>
+                <div class="api-card__body">
+                    <p>Auto-detect docstring style.</p>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        }
+
+        function toggleType() {
+            const articles = document.querySelectorAll('[data-autodoc]');
+            articles.forEach(article => {
+                const current = article.getAttribute('data-type');
+                const next = current === 'cli' ? 'python' : current === 'python' ? 'openapi' : 'cli';
+                article.setAttribute('data-type', next);
+            });
+        }
+    </script>
+
+</body>
+
+</html>

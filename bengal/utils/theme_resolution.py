@@ -23,11 +23,10 @@ See Also:
 
 from __future__ import annotations
 
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 from typing import cast
-
-import tomllib
 
 from bengal.utils.logger import get_logger
 from bengal.utils.theme_registry import get_theme_package

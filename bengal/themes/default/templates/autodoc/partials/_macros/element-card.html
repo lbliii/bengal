@@ -1,0 +1,41 @@
+{#
+Element Card Macro
+
+Renders a single autodoc element as a card (command, class, function, endpoint, etc.).
+
+Usage:
+{% from 'autodoc/partials/_macros/element-card.html' import element_card %}
+{{ element_card(child) }}
+{{ element_card(child, card_type='command', url_prefix='/cli/') }}
+
+Args:
+child: DocElement to render (required)
+card_type: Override element type for styling (optional)
+url_prefix: Custom URL prefix (optional)
+#}
+
+{% macro element_card(child, card_type=none, url_prefix=none) %}
+{% set child_type = card_type or child.element_type %}
+{# Build URL based on element type - match project patterns #}
+{% if child.url %}
+{% set child_url = child.url %}
+{% elif child_type in ['command', 'command-group'] %}
+{% set child_url = '/cli/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{% elif child_type in ['class', 'function', 'module'] %}
+{% set child_url = '/api/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{% elif url_prefix %}
+{% set child_url = url_prefix ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{% else %}
+{% set child_url = '#' %}
+{% endif %}
+<a href="{{ child_url }}" class="autodoc-card" data-card="{{ child_type }}">
+    {% if child_type == 'endpoint' and child.metadata.method %}
+    <span class="autodoc-method" data-method="{{ child.metadata.method | lower }}">{{ child.metadata.method | upper
+        }}</span>
+    {% endif %}
+    <code class="autodoc-card-name">{{ child.name }}</code>
+    {% if child.description %}
+    <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
+    {% endif %}
+</a>
+{% endmacro %}

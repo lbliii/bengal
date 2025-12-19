@@ -61,7 +61,7 @@ def mock_doc_element() -> DocElement:
         source_file=Path("/test/bengal/test_module.py"),
         line_number=1,
         metadata={
-            "type": "api-reference",
+            "type": "autodoc/python",
             "is_package": False,
         },
         children=[],
@@ -84,12 +84,12 @@ def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Page:
             "description": "A test module",
             "is_autodoc": True,
             "autodoc_element": mock_doc_element,
-            "_autodoc_template": "api-reference/module",
+            "_autodoc_template": "autodoc/python/module",
             "_autodoc_url_path": "api/test_module",
             "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
-        template_name="api-reference/module",
+        template_name="autodoc/python/module",
         output_path=mock_site.output_dir / "api/test_module/index.html",
     )
     page._site = mock_site
@@ -106,12 +106,12 @@ def section_index_page(mock_site: MagicMock) -> Page:
             "type": "python-reference",
             "is_section_index": True,
             "is_autodoc": True,
-            "_autodoc_template": "api-reference/section-index",
+            "_autodoc_template": "autodoc/python/section-index",
             "_autodoc_url_path": "api/core",
             "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
-        template_name="api-reference/section-index",
+        template_name="autodoc/python/section-index",
         output_path=mock_site.output_dir / "api/core/index.html",
     )
     page._site = mock_site
@@ -128,12 +128,12 @@ def root_index_page(mock_site: MagicMock) -> Page:
             "type": "python-reference",
             "is_section_index": True,
             "is_autodoc": True,
-            "_autodoc_template": "api-reference/section-index",
+            "_autodoc_template": "autodoc/python/section-index",
             "_autodoc_url_path": "api",
             "_autodoc_page_type": "python-reference",
         },
         rendered_html=None,
-        template_name="api-reference/section-index",
+        template_name="autodoc/python/section-index",
         output_path=mock_site.output_dir / "api/index.html",
     )
     page._site = mock_site
@@ -155,7 +155,7 @@ class TestVirtualPageDetection:
 
     def test_autodoc_page_has_template_info(self, autodoc_page: Page) -> None:
         """Autodoc pages have rendering metadata."""
-        assert autodoc_page.metadata.get("_autodoc_template") == "api-reference/module"
+        assert autodoc_page.metadata.get("_autodoc_template") == "autodoc/python/module"
         assert autodoc_page.metadata.get("_autodoc_url_path") == "api/test_module"
         assert autodoc_page.metadata.get("_autodoc_page_type") == "python-reference"
 
@@ -241,7 +241,7 @@ class TestRenderingPipelineIntegration:
             name="cli",
             relative_url="/cli/",
             title="CLI Reference",
-            metadata={"type": "cli-reference"},
+            metadata={"type": "autodoc/cli"},
         )
         autodoc_page._section = section
         mock_site.get_section_by_url.return_value = section
@@ -279,9 +279,9 @@ class TestPageTypes:
     @pytest.mark.parametrize(
         "page_type,template",
         [
-            ("module", "api-reference/module"),
-            ("class", "api-reference/class"),
-            ("function", "api-reference/function"),
+            ("module", "autodoc/python/module"),
+            ("class", "autodoc/python/class"),
+            ("function", "autodoc/python/function"),
         ],
     )
     def test_python_page_types(
@@ -317,7 +317,7 @@ class TestPageTypes:
             element_type="command",
             source_file=None,
             line_number=1,
-            metadata={"type": "cli-reference"},
+            metadata={"type": "autodoc/cli"},
             children=[],
             examples=[],
             see_also=[],
@@ -327,20 +327,20 @@ class TestPageTypes:
             source_id="cli/cli/build.md",
             title="build",
             metadata={
-                "type": "cli-reference",
+                "type": "autodoc/cli",
                 "element_type": "command",
                 "is_autodoc": True,
                 "autodoc_element": element,
-                "_autodoc_template": "cli-reference/command",
+                "_autodoc_template": "autodoc/cli/command",
             },
             rendered_html=None,
-            template_name="cli-reference/command",
+            template_name="autodoc/cli/command",
             output_path=mock_site.output_dir / "cli/build/index.html",
         )
         page._site = mock_site
 
         assert page.metadata.get("element_type") == "command"
-        assert page.metadata.get("_autodoc_template") == "cli-reference/command"
+        assert page.metadata.get("_autodoc_template") == "autodoc/cli/command"
 
     def test_openapi_endpoint_page(self, mock_site: MagicMock) -> None:
         """Test OpenAPI endpoint page type."""
@@ -351,7 +351,7 @@ class TestPageTypes:
             element_type="openapi_endpoint",
             source_file=None,
             line_number=1,
-            metadata={"type": "openapi-reference", "method": "GET", "path": "/users"},
+            metadata={"type": "openautodoc/python", "method": "GET", "path": "/users"},
             children=[],
             examples=[],
             see_also=[],
@@ -361,14 +361,14 @@ class TestPageTypes:
             source_id="openapi/endpoints/users/list.md",
             title="GET /users",
             metadata={
-                "type": "openapi-reference",
+                "type": "openautodoc/python",
                 "element_type": "openapi_endpoint",
                 "is_autodoc": True,
                 "autodoc_element": element,
-                "_autodoc_template": "openapi-reference/endpoint",
+                "_autodoc_template": "openautodoc/python/endpoint",
             },
             rendered_html=None,
-            template_name="openapi-reference/endpoint",
+            template_name="openautodoc/python/endpoint",
             output_path=mock_site.output_dir / "openapi/users/list/index.html",
         )
         page._site = mock_site
@@ -388,7 +388,7 @@ class TestVirtualSectionIntegration:
             name="api",
             relative_url="/api/",
             title="API Reference",
-            metadata={"type": "api-reference"},
+            metadata={"type": "autodoc/python"},
         )
 
         # Mock the site's section registry to return this section
@@ -408,7 +408,7 @@ class TestVirtualSectionIntegration:
             name="core",
             relative_url="/api/core/",
             title="Core",
-            metadata={"type": "api-reference"},
+            metadata={"type": "autodoc/python"},
         )
 
         # Mock the site's section registry
@@ -524,7 +524,7 @@ class TestEdgeCases:
                 "_autodoc_url_path": "api/core/page/mixins/deep_module",
             },
             rendered_html=None,
-            template_name="api-reference/module",
+            template_name="autodoc/python/module",
             output_path=mock_site.output_dir / "api/core/page/mixins/deep_module/index.html",
         )
         page._site = mock_site

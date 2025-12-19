@@ -169,19 +169,23 @@
     /**
      * Try loading pre-built Lunr index (search-index.json)
      * Returns true if successful, false to fall back to runtime building
+     *
+     * Note: The meta tag is only emitted when the lunr Python package is installed
+     * (pip install bengal[search]). If the tag is missing, we skip the fetch entirely
+     * to avoid unnecessary 404s and fall back to runtime index building.
      */
     async function tryLoadPrebuiltIndex(baseurl) {
         try {
-            // Prefer explicit meta tag URL (handles i18n, custom paths)
-            let prebuiltUrl = '';
-            try {
-                const m = document.querySelector('meta[name="bengal:search_index_url"]');
-                prebuiltUrl = (m && m.getAttribute('content')) || '';
-            } catch (e) { /* no-op */ }
+            // Only attempt pre-built index if meta tag exists (indicates lunr is installed)
+            const metaTag = document.querySelector('meta[name="bengal:search_index_url"]');
+            if (!metaTag) {
+                log('Pre-built index not available (lunr not installed)');
+                return false;
+            }
 
-            // Fall back to constructing URL from baseurl
+            const prebuiltUrl = metaTag.getAttribute('content') || '';
             if (!prebuiltUrl) {
-                prebuiltUrl = buildIndexUrl('search-index.json', baseurl);
+                return false;
             }
 
             const response = await fetch(prebuiltUrl);

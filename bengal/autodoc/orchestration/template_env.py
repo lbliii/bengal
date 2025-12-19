@@ -38,7 +38,7 @@ def create_template_environment(site: Site) -> Environment:
     template_dirs = []
 
     # User templates (highest priority) - check all reference types
-    for ref_type in ["api-reference", "cli-reference", "openapi-reference"]:
+    for ref_type in ["autodoc/python", "autodoc/cli", "openautodoc/python"]:
         user_templates = site.root_path / "templates" / ref_type
         if user_templates.exists():
             template_dirs.append(str(user_templates))
@@ -155,6 +155,11 @@ def create_template_environment(site: Site) -> Environment:
         return with_baseurl(path, site)
 
     env.globals["url_for"] = url_for
+
+    # Add Python's getattr for safe attribute access in templates
+    # Usage: getattr(element, 'children', []) to safely get children with default
+    # Required because templates may use StrictUndefined mode
+    env.globals["getattr"] = getattr
 
     # Note: Custom tests (match) and filters (first_sentence) are now
     # registered via register_all() from bengal.rendering.template_functions

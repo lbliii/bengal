@@ -1,0 +1,136 @@
+{#
+Function Member Macro
+
+Renders a function as a collapsible card with status dot, param count, and return type.
+Uses the unified autodoc design system.
+
+Usage:
+  {% from 'autodoc/partials/_macros/function-member.html' import function_member %}
+  {{ function_member(func, is_first=loop.first) }}
+
+Args:
+  func: Function DocElement to render (required)
+  is_first: Whether this is the first item (to auto-open)
+#}
+
+{% macro function_member(func, is_first=false) %}
+{# Parameters can be in metadata.args (from extractor) or metadata.parameters #}
+{% set func_params = func.metadata.args or func.metadata.parameters or [] %}
+{% set func_return = func.metadata.return_type or func.metadata.returns or '' %}
+{% set func_signature = func.metadata.signature or '' %}
+{% set is_async = func.metadata.is_async | default(false) %}
+
+<details class="autodoc-member" data-member="function" {% if is_first %}open{% endif %}>
+  <summary class="autodoc-member-header">
+    {# Status dot (green for functions) #}
+    <span class="autodoc-member-dot"></span>
+
+    {# Content wrapper #}
+    <div class="autodoc-member-content">
+      <div class="autodoc-member-name-row">
+        <code class="autodoc-member-name">{{ func.name }}</code>
+        {# Parameter count badge #}
+        <span class="autodoc-member-count" title="{{ func_params | length }} parameter{% if func_params | length != 1 %}s{% endif %}">{{ func_params | length }}</span>
+        {# Return type with arrow #}
+        {% if func_return %}
+        <span class="autodoc-member-return" title="Returns {{ func_return }}">
+          <code>{{ func_return | truncate(25, True, '…') }}</code>
+        </span>
+        {% endif %}
+        {# Toggle indicator #}
+        <span class="autodoc-member-toggle">▼</span>
+      </div>
+      {# Description preview (for scanning) #}
+      {% if func.description %}
+      <span class="autodoc-member-desc-preview">{{ func.description | striptags | truncate(80, True, '…') }}</span>
+      {% endif %}
+    </div>
+
+    {# Badges #}
+    {% if is_async %}
+    <span class="autodoc-member-badges">
+      <span class="autodoc-badge" data-badge="async">async</span>
+    </span>
+    {% endif %}
+  </summary>
+
+  <div class="autodoc-member-body">
+    {# Signature (copy-paste ready) #}
+    {% if func_signature %}
+    <div class="autodoc-signature-section">
+      <code class="autodoc-member-sig">{{ func_signature }}</code>
+    </div>
+    {% endif %}
+
+    {# Full description - only show if truncated in header #}
+    {% set desc_stripped = func.description | striptags | trim if func.description else '' %}
+    {% if func.description and desc_stripped | length > 77 %}
+    <div class="autodoc-member-desc prose">
+      {{ func.description | markdownify | safe }}
+    </div>
+    {% endif %}
+
+    {# Function parameters - args is a list of dicts with name, type, docstring, default #}
+    {% if func_params %}
+    <div class="autodoc-params-section">
+      <h5 class="autodoc-params-title">Parameters</h5>
+      <table class="autodoc-table autodoc-table--compact" data-table="parameters">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for param in func_params %}
+          {# Handle both dict and object access patterns #}
+          {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+          {% set param_type = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+          {# docstring is the description from parsed docstring #}
+          {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+          {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+          <tr>
+            <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
+            <td class="autodoc-cell-type"><code>{{ param_type or '—' }}</code></td>
+            <td class="autodoc-cell-desc">
+              {{ param_desc | markdownify | safe }}
+              {% if param_default is not none and param_default != '' %}
+              <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# Return type (detailed) - only show if has description OR non-trivial type #}
+    {# Trivial types (None) are already visible in header badge + signature #}
+    {% set has_return_desc = func.metadata.return_description %}
+    {% set is_nontrivial_return = func_return and func_return not in ('None', 'none', 'void', '') %}
+    {% if has_return_desc or is_nontrivial_return %}
+    <div class="autodoc-returns">
+      <h5 class="autodoc-returns-title">Returns</h5>
+      <code class="autodoc-returns-type">{{ func_return }}</code>
+      {% if has_return_desc %}
+      <span class="autodoc-returns-desc">{{ has_return_desc }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Raises #}
+    {% if func.metadata.raises %}
+    <dl class="autodoc-raises">
+      {% for exc in func.metadata.raises %}
+      <div class="autodoc-raise">
+        <dt><code>{{ exc.type | default(exc.get('type', '')) }}</code></dt>
+        <dd>{{ exc.description | default(exc.get('description', '')) }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

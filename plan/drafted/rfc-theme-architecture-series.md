@@ -105,7 +105,7 @@ components/           →  components/
 ### Phase 3: Autodoc Integration (Week 5-6)
 
 **RFC-003: Autodoc Theme Integration**
-- Move autodoc HTML templates to `themes/default/templates/api-reference/`
+- Move autodoc HTML templates to `themes/default/templates/autodoc/python/`
 - Create partials for class, function, method rendering
 - Update `virtual_orchestrator.py` to prefer theme templates
 
@@ -148,7 +148,7 @@ themes/my-theme/
 │   ├── base.html           # Keep current naming
 │   ├── page.html           # Keep current naming
 │   ├── partials/           # Keep current structure
-│   ├── api-reference/      # RFC-003: Autodoc templates here
+│   ├── autodoc/python/      # RFC-003: Autodoc templates here
 │   │   ├── module.html
 │   │   ├── partials/
 │   │   └── ...

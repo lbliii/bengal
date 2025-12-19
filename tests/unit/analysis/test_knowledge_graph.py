@@ -353,7 +353,7 @@ class TestAutodocFiltering:
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
             content="# API",
-            metadata={"title": "API", "type": "api-reference"},
+            metadata={"title": "API", "type": "autodoc/python"},
         )
 
         site.pages = [regular, autodoc]
@@ -379,7 +379,7 @@ class TestAutodocFiltering:
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
             content="# API",
-            metadata={"title": "API", "type": "api-reference"},
+            metadata={"title": "API", "type": "autodoc/python"},
         )
 
         site.pages = [regular, autodoc]
@@ -400,7 +400,7 @@ class TestAutodocFiltering:
         api_ref = Page(
             source_path=tmp_path / "api.md",
             content="",
-            metadata={"type": "api-reference"},
+            metadata={"type": "autodoc/python"},
         )
 
         python_module = Page(

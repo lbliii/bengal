@@ -74,6 +74,35 @@ if TYPE_CHECKING:
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()
 
+# Build generation counter - incremented each render pass to invalidate stale pipelines
+# Each thread's pipeline stores the generation it was created for; if it doesn't match
+# the current generation, the pipeline is recreated with a fresh TemplateEngine.
+_build_generation: int = 0
+_generation_lock = threading.Lock()
+
+
+def clear_thread_local_pipelines() -> None:
+    """
+    Invalidate thread-local pipeline caches across all threads.
+
+    IMPORTANT: Call this at the start of each build to prevent stale
+    TemplateEngine/Jinja2 environments from persisting across rebuilds.
+    Without this, template changes may not be reflected because the old
+    Jinja2 environment with its internal cache would be reused.
+
+    This works by incrementing a global generation counter. Worker threads
+    check this counter and recreate their pipelines when it changes.
+    """
+    global _build_generation
+    with _generation_lock:
+        _build_generation += 1
+
+
+def _get_current_generation() -> int:
+    """Get the current build generation (thread-safe)."""
+    with _generation_lock:
+        return _build_generation
+
 
 class RenderOrchestrator:
     """
@@ -147,6 +176,10 @@ class RenderOrchestrator:
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
         """
+        # Clear stale thread-local pipelines from previous builds.
+        # CRITICAL: Without this, template changes may not be reflected because
+        # the old Jinja2 environment with its internal cache would be reused.
+        clear_thread_local_pipelines()
 
         # Resolve progress manager from context if not provided
         if (
@@ -357,9 +390,19 @@ class RenderOrchestrator:
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
+        # Capture current generation for staleness check
+        current_gen = _get_current_generation()
+
         def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            if not hasattr(_thread_local, "pipeline"):
+            # Check if pipeline exists AND is from current build generation.
+            # If generation has changed (new build), recreate the pipeline
+            # to get a fresh TemplateEngine with updated templates.
+            needs_new_pipeline = (
+                not hasattr(_thread_local, "pipeline")
+                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            )
+            if needs_new_pipeline:
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     tracker,
@@ -368,6 +411,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                 )
+                _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -469,11 +513,19 @@ class RenderOrchestrator:
         update_interval = 0.1  # Update every 100ms (10 Hz max)
         batch_size = 10  # Or every 10 pages, whichever comes first
 
+        # Capture current generation for staleness check
+        current_gen = _get_current_generation()
+
         def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
-            if not hasattr(_thread_local, "pipeline"):
+            # Check if pipeline exists AND is from current build generation.
+            needs_new_pipeline = (
+                not hasattr(_thread_local, "pipeline")
+                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            )
+            if needs_new_pipeline:
                 # When using progress manager, suppress individual page output
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
@@ -482,6 +534,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     changed_sources=changed_sources,
                 )
+                _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
             # Pre-compute current_item outside lock (PERFORMANCE OPTIMIZATION)
@@ -565,9 +618,17 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
+        # Capture current generation for staleness check
+        current_gen = _get_current_generation()
+
         def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            if not hasattr(_thread_local, "pipeline"):
+            # Check if pipeline exists AND is from current build generation.
+            needs_new_pipeline = (
+                not hasattr(_thread_local, "pipeline")
+                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            )
+            if needs_new_pipeline:
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     tracker,
@@ -576,6 +637,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                 )
+                _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
         with Progress(

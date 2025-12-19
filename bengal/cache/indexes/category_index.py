@@ -17,12 +17,12 @@ class CategoryIndex(QueryIndex):
 
     Unlike tags (multi-valued), categories are typically single-valued:
         category: tutorial
-        category: api-reference
+        category: autodoc/python
         category: guide
 
     Provides O(1) lookup:
         site.indexes.category.get('tutorial')      # All tutorials
-        site.indexes.category.get('api-reference') # All API docs
+        site.indexes.category.get('autodoc/python') # All API docs
 
     Common patterns:
         - Documentation: 'tutorial', 'guide', 'reference', 'howto'

@@ -1,6 +1,7 @@
 # RFC: Autodoc HTML/CSS Complete Reset
 
-**Status**: Draft  
+**Status**: Draft → Plan Ready  
+**Plan**: `plan/ready/plan-autodoc-html-reset.md`  
 **Created**: 2025-12-17  
 **Author**: AI Assistant  
 **Confidence**: 90% 🟢
@@ -1164,9 +1165,9 @@ Add `!important` or longer selectors to fix immediate issues.
 - `bengal/themes/default/assets/css/components/reference-docs.css` (838 lines)
 
 ### Templates
-- `bengal/themes/default/templates/cli-reference/`
-- `bengal/themes/default/templates/api-reference/`
-- `bengal/themes/default/templates/openapi-reference/`
+- `bengal/themes/default/templates/autodoc/cli/`
+- `bengal/themes/default/templates/autodoc/python/`
+- `bengal/themes/default/templates/openautodoc/python/`
 
 ### Rendered Output
 - `site/public/cli/bengal/assets/status/index.html`

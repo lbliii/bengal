@@ -147,8 +147,8 @@ default/
 │   ├── page.html             # Generic page template
 │   ├── doc/                  # Documentation templates
 │   ├── blog/                 # Blog templates
-│   ├── api-reference/        # API reference templates
-│   ├── cli-reference/        # CLI reference templates
+│   ├── autodoc/python/        # API reference templates
+│   ├── autodoc/cli/        # CLI reference templates
 │   ├── tutorial/             # Tutorial templates
 │   └── partials/             # Reusable template fragments (14 components)
 │
@@ -340,10 +340,10 @@ Bengal uses a template resolution order:
 - `post.html` - Simple blog post
 
 #### Reference Templates
-- `api-reference/list.html` - API reference index
-- `api-reference/single.html` - API documentation page
-- `cli-reference/list.html` - CLI reference index
-- `cli-reference/single.html` - CLI command page
+- `autodoc/python/list.html` - API reference index
+- `autodoc/python/single.html` - API documentation page
+- `autodoc/cli/list.html` - CLI reference index
+- `autodoc/cli/single.html` - CLI command page
 - `tutorial/list.html` - Tutorial list
 - `tutorial/single.html` - Tutorial page
 

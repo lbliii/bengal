@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from bengal.cache import clear_build_cache, clear_output_directory
+from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
@@ -154,6 +154,16 @@ class DevServer:
                 logger.debug("html_cache_clear_failed", error=str(e))
                 pass  # Cache might not be initialized yet, ignore
 
+            # Set active palette for rebuilding page styling
+            # Uses the site's default_palette config or falls back to built-in default
+            try:
+                default_palette = self.site.config.get("default_palette")
+                if default_palette:
+                    BengalRequestHandler._active_palette = default_palette
+                    logger.debug("rebuilding_page_palette_set", palette=default_palette)
+            except Exception:
+                pass  # Use default palette if config access fails
+
             # Initialize reload controller baseline after initial build
             # This prevents the first file change from being treated as "baseline" (which skips reload)
             try:
@@ -276,6 +286,10 @@ class DevServer:
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
+
+        # Clear template bytecode cache to ensure fresh template compilation
+        # This prevents stale bytecode from previous builds causing "stuck" templates
+        clear_template_cache(self.site.root_path, logger)
 
         # Clear baseurl for local development
         # This prevents 404s since dev server serves from '/' not '/baseurl'

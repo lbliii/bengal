@@ -339,7 +339,7 @@ Pass to JS via meta tag or inline config.
 
 def test_autodoc_flag_added_for_api_pages():
     """Autodoc pages should have isAutodoc: true in index."""
-    page = create_page(metadata={"type": "api-reference"})
+    page = create_page(metadata={"type": "autodoc/python"})
     summary = generator.page_to_summary(page)
     assert summary.get("isAutodoc") is True
 

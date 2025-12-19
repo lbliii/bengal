@@ -1,0 +1,262 @@
+{#
+Autodoc Members Partial
+
+Renders collapsible member cards for methods, attributes, etc.
+With status dots, counts, return types, and internal method separation.
+
+Required: members (list of DocElements)
+Optional: title (str), member_type (str), first_open (bool, default true)
+#}
+
+{% set title = title | default('Members') %}
+{% set member_type = member_type | default('method') %}
+{% set first_open = first_open | default(true) %}
+
+{# Separate public and internal members #}
+{% set public_members = members | rejectattr('name', 'match', '^_') | list if members else [] %}
+{% set internal_members = members | selectattr('name', 'match', '^_') | list if members else [] %}
+
+{% if members %}
+<section class="autodoc-section" data-section="{{ member_type }}s">
+  <h2 class="autodoc-section-title">{{ title }}</h2>
+
+  {# Public members #}
+  {% if public_members %}
+  <div class="autodoc-members-list">
+    {% for member in public_members %}
+    {% set member_return = member.metadata.return_type or member.metadata.returns or '' %}
+    {% set member_params = member.metadata.args or member.metadata.parameters or (member.children or []) | selectattr('element_type', 'eq', 'parameter') | list %}
+    {% set member_signature = member.metadata.signature or '' %}
+    {% set param_count = member_params | length %}
+
+    <details class="autodoc-member" data-member="{{ member_type }}" {% if first_open and loop.first %}open{% endif %}>
+      <summary class="autodoc-member-header">
+        {# Status dot #}
+        <span class="autodoc-member-dot"></span>
+
+        {# Content wrapper #}
+        <div class="autodoc-member-content">
+          <div class="autodoc-member-name-row">
+            <code class="autodoc-member-name">{{ member.name }}</code>
+            {# Parameter count badge #}
+            <span class="autodoc-member-count" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">{{ param_count }}</span>
+            {# Return type with arrow #}
+            {% if member_return %}
+            <span class="autodoc-member-return" title="Returns {{ member_return }}">
+              <code>{{ member_return | truncate(25, True, '…') }}</code>
+            </span>
+            {% endif %}
+            {# Toggle indicator #}
+            <span class="autodoc-member-toggle">▼</span>
+          </div>
+          {# Description preview (for scanning) #}
+          {% if member.description %}
+          <span class="autodoc-member-desc-preview">{{ member.description | striptags | truncate(80, True, '…') }}</span>
+          {% endif %}
+        </div>
+
+        {# Badges #}
+        {% set member_badges = [] %}
+        {% if member.metadata.is_async %}{% set _ = member_badges.append('async') %}{% endif %}
+        {% if member.metadata.is_classmethod %}{% set _ = member_badges.append('classmethod') %}{% endif %}
+        {% if member.metadata.is_staticmethod %}{% set _ = member_badges.append('staticmethod') %}{% endif %}
+        {% if member.metadata.is_property %}{% set _ = member_badges.append('property') %}{% endif %}
+        {% if member.metadata.is_abstract %}{% set _ = member_badges.append('abstract') %}{% endif %}
+        {% if member.metadata.is_deprecated %}{% set _ = member_badges.append('deprecated') %}{% endif %}
+        {% if member_badges %}
+        <span class="autodoc-member-badges">
+          {% for badge in member_badges %}
+          <span class="autodoc-badge" data-badge="{{ badge }}">{{ badge }}</span>
+          {% endfor %}
+        </span>
+        {% endif %}
+      </summary>
+
+      <div class="autodoc-member-body">
+        {# Signature (copy-paste ready) #}
+        {% if member_signature %}
+        <div class="autodoc-signature-section">
+          <code class="autodoc-member-sig">{{ member_signature }}</code>
+        </div>
+        {% endif %}
+
+        {# Full description - only show if truncated in header #}
+        {% set desc_stripped = member.description | striptags | trim if member.description else '' %}
+        {% if member.description and desc_stripped | length > 77 %}
+        <div class="autodoc-member-desc prose">
+          {{ member.description | markdownify | safe }}
+        </div>
+        {% endif %}
+
+        {# Member parameters - args is a list of dicts with name, type, docstring, default #}
+        {% if member_params %}
+        <div class="autodoc-params-section">
+          <h5 class="autodoc-params-title">Parameters</h5>
+          <table class="autodoc-table autodoc-table--compact" data-table="parameters">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for param in member_params %}
+              {# Handle both dict and object access patterns #}
+              {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+              {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+              {# docstring is the description from parsed docstring #}
+              {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+              {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+              <tr>
+                <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
+                <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
+                <td class="autodoc-cell-desc">
+                  {{ param_desc | markdownify | safe }}
+                  {% if param_default is not none and param_default != '' %}
+                  <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        {# Member return type (detailed) - only show if has description OR non-trivial type #}
+        {# Trivial types (None) are already visible in header badge + signature #}
+        {% set has_return_desc = member.metadata.return_description %}
+        {% set is_nontrivial_return = member_return and member_return not in ('None', 'none', 'void', '') %}
+        {% if has_return_desc or is_nontrivial_return %}
+        <div class="autodoc-returns">
+          <h5 class="autodoc-returns-title">Returns</h5>
+          <code class="autodoc-returns-type">{{ member_return }}</code>
+          {% if has_return_desc %}
+          <span class="autodoc-returns-desc">{{ has_return_desc }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Internal members (collapsed by default) #}
+  {% if internal_members %}
+  <details class="autodoc-internal-methods">
+    <summary class="autodoc-internal-methods-header">
+      <span class="autodoc-internal-methods-label">
+        <span>Internal Methods</span>
+        <span class="autodoc-member-count">{{ internal_members | length }}</span>
+      </span>
+      <span class="autodoc-member-toggle">▼</span>
+    </summary>
+    <div class="autodoc-internal-methods-content">
+      {% for member in internal_members %}
+      {% set member_return = member.metadata.return_type or member.metadata.returns or '' %}
+      {% set member_params = member.metadata.args or member.metadata.parameters or [] %}
+      {% set member_signature = member.metadata.signature or '' %}
+      {% set param_count = member_params | length %}
+
+      <details class="autodoc-member" data-member="{{ member_type }}">
+        <summary class="autodoc-member-header">
+          {# Status dot #}
+          <span class="autodoc-member-dot"></span>
+
+          {# Content wrapper #}
+          <div class="autodoc-member-content">
+            <div class="autodoc-member-name-row">
+              <code class="autodoc-member-name">{{ member.name }}</code>
+              {# Parameter count badge #}
+              <span class="autodoc-member-count" title="{{ param_count }} parameter{% if param_count != 1 %}s{% endif %}">{{ param_count }}</span>
+              {# Return type with arrow #}
+              {% if member_return %}
+              <span class="autodoc-member-return" title="Returns {{ member_return }}">
+                <code>{{ member_return | truncate(25, True, '…') }}</code>
+              </span>
+              {% endif %}
+              {# Toggle indicator #}
+              <span class="autodoc-member-toggle">▼</span>
+            </div>
+            {# Description preview (for scanning) #}
+            {% if member.description %}
+            <span class="autodoc-member-desc-preview">{{ member.description | striptags | truncate(80, True, '…') }}</span>
+            {% endif %}
+          </div>
+
+          {# Badges #}
+          {% set member_badges = [] %}
+          {% if member.metadata.is_async %}{% set _ = member_badges.append('async') %}{% endif %}
+          {% if member.metadata.is_classmethod %}{% set _ = member_badges.append('classmethod') %}{% endif %}
+          {% if member.metadata.is_staticmethod %}{% set _ = member_badges.append('staticmethod') %}{% endif %}
+          {% if member.metadata.is_property %}{% set _ = member_badges.append('property') %}{% endif %}
+          {% if member.metadata.is_abstract %}{% set _ = member_badges.append('abstract') %}{% endif %}
+          {% if member.metadata.is_deprecated %}{% set _ = member_badges.append('deprecated') %}{% endif %}
+          {% if member_badges %}
+          <span class="autodoc-member-badges">
+            {% for badge in member_badges %}
+            <span class="autodoc-badge" data-badge="{{ badge }}">{{ badge }}</span>
+            {% endfor %}
+          </span>
+          {% endif %}
+        </summary>
+
+        <div class="autodoc-member-body">
+          {# Signature (copy-paste ready) #}
+          {% if member_signature %}
+          <div class="autodoc-signature-section">
+            <code class="autodoc-member-sig">{{ member_signature }}</code>
+          </div>
+          {% endif %}
+
+          {# Full description - only show if truncated in header #}
+          {% set desc_stripped = member.description | striptags | trim if member.description else '' %}
+          {% if member.description and desc_stripped | length > 77 %}
+          <div class="autodoc-member-desc prose">
+            {{ member.description | markdownify | safe }}
+          </div>
+          {% endif %}
+
+          {# Member parameters #}
+          {% if member_params %}
+          <div class="autodoc-params-section">
+            <h5 class="autodoc-params-title">Parameters</h5>
+            <table class="autodoc-table autodoc-table--compact" data-table="parameters">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for param in member_params %}
+                {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+                {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+                {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+                {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+                <tr>
+                  <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
+                  <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
+                  <td class="autodoc-cell-desc">
+                    {{ param_desc }}
+                    {% if param_default is not none and param_default != '' %}
+                    <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</section>
+{% endif %}

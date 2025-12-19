@@ -19,7 +19,7 @@ Usage:
 
   {# Badges - element type indicators #}
   <div class="page-hero__badges">
-    {% include 'api-reference/partials/badges.html' %}
+    {% include 'autodoc/partials/badges.html' %}
   </div>
 
   {# Title - qualified name for elements #}
@@ -47,8 +47,11 @@ Usage:
     {% endif %}
     {% endif %}
 
-    {# Stats computed from element.children #}
-    {% set children = element.children | default([]) %}
+    {# Stats computed from element.children - use getattr for safe attribute access with default.
+       Note: This pattern (getattr(obj, 'attr', default)) is used across autodoc templates
+       for defensive coding. If this pattern proliferates, consider extracting to a macro
+       or custom filter for consistency. #}
+    {% set children = getattr(element, 'children', []) %}
     {% include 'partials/page-hero/_element-stats.html' %}
   </div>
 </div>

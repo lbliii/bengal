@@ -34,7 +34,7 @@ class RequestLogger:
         path = args[0] if args else ""
         status_code = args[1] if len(args) > 1 else ""
 
-        # Skip these noisy requests
+        # Skip these noisy requests entirely
         skip_patterns = [
             "/.well-known/",
             "/favicon.ico",
@@ -44,6 +44,12 @@ class RequestLogger:
         for pattern in skip_patterns:
             if pattern in path:
                 return
+
+        # Optional resources that are expected to 404 when not installed/configured
+        # These are silently skipped to avoid log noise from expected behavior
+        optional_resources = [
+            "/search-index.json",  # Pre-built Lunr index (requires `pip install bengal[search]`)
+        ]
 
         # Get request method and path
         parts = path.split()
@@ -61,6 +67,12 @@ class RequestLogger:
 
         # Skip 304s entirely - they're just cache hits
         if is_cached:
+            return
+
+        # Skip 404s for optional resources - these are expected when dependencies not installed
+        is_404 = status_code == "404"
+        is_optional_resource = any(request_path == pattern for pattern in optional_resources)
+        if is_404 and is_optional_resource:
             return
 
         # Structured logging for machine-readable analysis

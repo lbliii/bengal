@@ -19,11 +19,6 @@ icon: arrow-clockwise
 ---
 # Get Started
 
-## Build status
-
-:::{build}
-:json: true
-:::
 
 ## Install
 

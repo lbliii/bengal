@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{#
+CLI Reference Command Group Template
+
+Renders a CLI command group's documentation showing nested commands and groups.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses autodoc.css for all styling.
+
+This template receives:
+- element: DocElement for the command group
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+    {% include 'partials/page-hero/element.html' %}
+
+    {# Article Content - New autodoc skeleton #}
+    <article data-autodoc data-type="cli" data-element="command-group" class="autodoc docs-content">
+
+      {# Usage #}
+      {% if element.qualified_name %}
+      <div class="autodoc-usage">
+        <h2 class="autodoc-label">Usage</h2>
+        <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+      </div>
+      {% endif %}
+
+      {# Commands and Sub-groups - use getattr for safe access to children #}
+      {% set element_children = getattr(element, 'children', []) %}
+      {% if element_children %}
+      <section class="autodoc-section" data-section="subcommands">
+        <h2 class="autodoc-section-title">Commands</h2>
+        <div class="autodoc-cards">
+          {% for child in element_children %}
+          {% set child_url = '/cli/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+          <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child.element_type }}">
+            <code class="autodoc-card-name">{{ child.name }}</code>
+            {% if child.description %}
+            <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
+            {% elif child.element_type == 'command-group' %}
+            {% set child_children = getattr(child, 'children', []) %}
+            <span class="autodoc-card-desc">{{ child_children | length }} {{ child_children | length | pluralize('command') }}</span>
+            {% else %}
+            <span class="autodoc-card-desc">No description available</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}
