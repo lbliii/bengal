@@ -55,28 +55,25 @@ Args:
   </summary>
 
   <div class="autodoc-member-body">
-    {# Full signature display #}
-    {% if func_signature %}
-    <pre class="autodoc-signature"><code>{{ func_signature }}</code></pre>
-    {% endif %}
-
     {% if func.description %}
     <div class="autodoc-member-desc prose">
       {{ func.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
     </div>
     {% endif %}
 
-    {# Function parameters - check both metadata.args and parsed docstring #}
+    {# Function parameters - args is a list of dicts with name, type, docstring, default #}
     {% if func_params %}
     <div class="autodoc-params-section">
       <h5 class="autodoc-params-title">Parameters</h5>
       <dl class="autodoc-params">
         {% for param in func_params %}
-        {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
-        {% set param_type = param.type if param.type is defined else (param.get('type', '') if param.get else '') %}
-        {% set param_desc = param.description if param.description is defined else (param.get('description', '') if param.get else '') %}
-        {% set param_default = param.default if param.default is defined else (param.get('default', none) if param.get else none) %}
-        <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
+        {# Handle both dict and object access patterns #}
+        {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+        {% set param_type = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+        {# docstring is the description from parsed docstring #}
+        {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+        {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+        <div class="autodoc-param">
           <dt class="autodoc-param-name">
             <code>{{ param_name }}</code>
             {% if param_type %}

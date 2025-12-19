@@ -73,27 +73,24 @@ Optional: title (str), member_type (str), first_open (bool, default true)
       </summary>
 
       <div class="autodoc-member-body">
-        {# Full signature #}
-        {% if member_signature %}
-        <pre class="autodoc-signature"><code>{{ member_signature }}</code></pre>
-        {% endif %}
-
         {% if member.description %}
         <div class="autodoc-member-desc prose">
           {{ member.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
         </div>
         {% endif %}
 
-        {# Member parameters #}
+        {# Member parameters - args is a list of dicts with name, type, docstring, default #}
         {% if member_params %}
         <div class="autodoc-params-section">
           <h5 class="autodoc-params-title">Parameters</h5>
           <dl class="autodoc-params">
             {% for param in member_params %}
-            {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
-            {% set param_type_val = param.type if param.type is defined else (param.get('type', '') if param.get else '') %}
-            {% set param_desc = param.description if param.description is defined else (param.get('description', '') if param.get else '') %}
-            {% set param_default = param.default if param.default is defined else (param.get('default', none) if param.get else none) %}
+            {# Handle both dict and object access patterns #}
+            {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+            {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+            {# docstring is the description from parsed docstring #}
+            {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+            {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
             <div class="autodoc-param">
               <dt class="autodoc-param-name">
                 <code>{{ param_name }}</code>

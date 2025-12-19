@@ -323,6 +323,15 @@ class BuildHandler(FileSystemEventHandler):
 
             self.building = True
 
+            # Signal to request handler that build is in progress
+            # This causes directory listings to show "rebuilding" page instead
+            try:
+                from bengal.server.request_handler import BengalRequestHandler
+
+                BengalRequestHandler.set_build_in_progress(True)
+            except Exception as e:
+                logger.debug("build_state_signal_failed", error=str(e))
+
             # Get first changed file for display
             file_name = "multiple files"
             changed_files = list(self.pending_changes)
@@ -619,6 +628,14 @@ class BuildHandler(FileSystemEventHandler):
                 )
             finally:
                 self.building = False
+
+                # Clear build-in-progress state for request handler
+                try:
+                    from bengal.server.request_handler import BengalRequestHandler
+
+                    BengalRequestHandler.set_build_in_progress(False)
+                except Exception as e:
+                    logger.debug("build_state_clear_failed", error=str(e))
 
     def _handle_file_event(self, event: FileSystemEvent, event_type: str) -> None:
         """

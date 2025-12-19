@@ -7,6 +7,7 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 from __future__ import annotations
 
 import http.server
+import io
 import threading
 from http.client import HTTPMessage
 from pathlib import Path
@@ -20,6 +21,84 @@ from bengal.utils.logger import get_logger, truncate_str
 logger = get_logger(__name__)
 
 
+# HTML template for "rebuilding" page shown during builds
+# Uses CSS animation and auto-retry via meta refresh + live reload script
+REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="2">
+    <title>Rebuilding...</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #4f46e5;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #f1f5f9;
+        }
+        p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .path {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 0.375rem;
+            font-family: ui-monospace, monospace;
+            font-size: 0.8rem;
+            color: #818cf8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h1>Rebuilding site...</h1>
+        <p>This page will refresh automatically when ready.</p>
+        <div class="path">%PATH%</div>
+    </div>
+    <script>
+        // Also connect to live reload for faster refresh
+        const es = new EventSource('/__bengal_reload__');
+        es.onmessage = (e) => {
+            if (e.data === 'reload' || e.data.includes('"action":"reload"')) {
+                window.location.reload();
+            }
+        };
+    </script>
+</body>
+</html>
+"""
+
+
 class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
     """
     Custom HTTP request handler with beautiful logging, custom 404 page, and live reload support.
@@ -28,6 +107,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     - RequestLogger: Beautiful, minimal HTTP request logging
     - LiveReloadMixin: Server-Sent Events for hot reload
     - SimpleHTTPRequestHandler: Standard HTTP file serving
+
+    Build resilience:
+    - Shows "rebuilding" page instead of directory listing during builds
+    - Auto-refreshes when build completes via live reload
     """
 
     # Suppress default server version header
@@ -45,6 +128,11 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _html_cache: dict[tuple[str, float], bytes] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
+
+    # Build state tracking - set by BuildHandler during rebuilds
+    # When True, directory listings show "rebuilding" page instead
+    _build_in_progress: bool = False
+    _build_lock = threading.Lock()
 
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
@@ -337,3 +425,92 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
         # Fall back to default error handling for non-404 or if custom 404 failed
         super().send_error(code, message, explain)
+
+    @override
+    def list_directory(self, path: str) -> io.BytesIO | None:
+        """
+        Override list_directory to show a "rebuilding" page during builds.
+
+        When a build is in progress and the user navigates to a page whose
+        index.html doesn't exist yet (e.g., autodoc pages being regenerated),
+        show a friendly "rebuilding" page instead of an ugly directory listing.
+
+        The rebuilding page:
+        - Has a loading spinner
+        - Auto-refreshes every 2 seconds via meta refresh
+        - Also connects to live reload for faster refresh
+        - Shows the requested path for context
+
+        Args:
+            path: Filesystem path to the directory
+
+        Returns:
+            BytesIO with HTML content, or None if not handled
+        """
+        # Check if build is in progress
+        with BengalRequestHandler._build_lock:
+            building = BengalRequestHandler._build_in_progress
+
+        if building:
+            # Show rebuilding page instead of directory listing
+            request_path = getattr(self, "path", "/")
+            html = REBUILDING_PAGE_HTML.replace(b"%PATH%", request_path.encode("utf-8"))
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(html)))
+            # Prevent caching of rebuilding page
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.end_headers()
+
+            logger.debug(
+                "rebuilding_page_served",
+                path=request_path,
+                reason="build_in_progress",
+            )
+
+            return io.BytesIO(html)
+
+        # Not building - check if this directory should have an index.html
+        # If so, show rebuilding page as the file might be coming soon
+        dir_path = Path(path)
+        index_path = dir_path / "index.html"
+
+        # For API/autodoc paths, if index.html is missing, likely a build artifact
+        # that hasn't been written yet - show rebuilding page
+        request_path = getattr(self, "path", "/")
+        is_api_path = request_path.startswith("/api/")
+
+        if is_api_path and not index_path.exists():
+            html = REBUILDING_PAGE_HTML.replace(b"%PATH%", request_path.encode("utf-8"))
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(html)))
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.end_headers()
+
+            logger.debug(
+                "rebuilding_page_served",
+                path=request_path,
+                reason="api_index_missing",
+            )
+
+            return io.BytesIO(html)
+
+        # Fall back to default directory listing for other cases
+        return super().list_directory(path)
+
+    @classmethod
+    def set_build_in_progress(cls, in_progress: bool) -> None:
+        """
+        Set the build-in-progress state.
+
+        Called by BuildHandler at the start and end of rebuilds.
+
+        Args:
+            in_progress: True when build starts, False when build ends
+        """
+        with cls._build_lock:
+            cls._build_in_progress = in_progress
+        logger.debug("build_state_changed", in_progress=in_progress)
