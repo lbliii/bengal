@@ -735,6 +735,16 @@ class ContentDiscovery:
                     error=str(e),
                 )
 
+            # Versioning: assign version to page if versioning is enabled
+            # Fast path: skip if versioning is disabled (most sites)
+            if self.site is not None and getattr(self.site, "versioning_enabled", False):
+                version = self.site.version_config.get_version_for_path(file_path)
+                if version:
+                    # Store version ID in page metadata for URL generation
+                    if page.metadata is None:
+                        page.metadata = {}
+                    page.metadata["_version"] = version.id
+
             self.logger.debug(
                 "page_created",
                 page_path=str(file_path),

@@ -11,6 +11,7 @@ from bengal.utils.cli_output import CLIOutput
 
 if TYPE_CHECKING:
     from bengal.health.report import HealthReport
+    from bengal.utils.stats_protocol import DisplayableStats
 
 
 @dataclass
@@ -332,7 +333,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
 
 
 def display_build_stats(
-    stats: BuildStats, show_art: bool = True, output_dir: str | None = None
+    stats: DisplayableStats, show_art: bool = True, output_dir: str | None = None
 ) -> None:
     """
     Display build statistics in a colorful table.

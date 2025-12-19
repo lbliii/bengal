@@ -132,3 +132,72 @@ def get_baseurl(config: dict[str, Any]) -> str:
     """
     baseurl = config.get("baseurl", "") or ""
     return baseurl.rstrip("/")
+
+
+def normalize_md_links(html: str) -> str:
+    """
+    Transform .md links to clean URLs.
+
+    Converts markdown-style file links to clean URLs:
+    - ./folder-mode.md  ->  ./folder-mode/
+    - ../other.md       ->  ../other/
+    - sibling.md        ->  sibling/
+    - ./_index.md       ->  ./
+    - path/page.md      ->  path/page/
+
+    This allows users to write natural markdown links that will work both
+    in GitHub/editors (where .md files exist) and in the rendered site.
+
+    Args:
+        html: Rendered HTML content
+
+    Returns:
+        HTML with .md links transformed to clean URLs
+
+    Examples:
+        >>> normalize_md_links('<a href="./guide.md">Guide</a>')
+        '<a href="./guide/">Guide</a>'
+
+        >>> normalize_md_links('<a href="./_index.md">Index</a>')
+        '<a href="./">Index</a>'
+    """
+    if not html:
+        return html
+
+    def replace_md_link(match: re.Match[str]) -> str:
+        """Replace .md link with clean URL."""
+        attr = match.group(1)  # href
+        quote = match.group(2)  # ' or "
+        path = match.group(3)  # the path ending in .md
+
+        # Handle _index.md -> parent directory
+        if path.endswith("/_index.md"):
+            clean_path = path[:-10] + "/"  # Strip /_index.md, add /
+            if clean_path == "/":
+                clean_path = "./"
+        elif path.endswith("_index.md"):
+            # Just "_index.md" with no path prefix
+            clean_path = "./"
+        elif path.endswith("/index.md"):
+            clean_path = path[:-9] + "/"  # Strip /index.md, add /
+        elif path.endswith("index.md"):
+            # Just "index.md" with no path prefix
+            clean_path = "./"
+        else:
+            # Regular .md file -> strip extension, add trailing slash
+            clean_path = path[:-3] + "/"
+
+        logger.debug(
+            "normalized_md_link",
+            original=path,
+            normalized=clean_path,
+        )
+
+        return f"{attr}={quote}{clean_path}{quote}"
+
+    # Match href="...md" or href='...md' (links ending in .md)
+    # Excludes external URLs (http/https) and Python file references (.py.md edge case)
+    # Captures: (href)(quote)(path.md)
+    pattern = r'(href)=(["\'])([^"\']*?\.md)\2'
+
+    return re.sub(pattern, replace_md_link, html)

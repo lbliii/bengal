@@ -319,29 +319,29 @@ The [LTS documentation]([[lts:overview]]) is also available.
 ## Version-Aware Directives
 
 ```markdown
-:::{since}
-3.0
+:::{since} 3.0
 :::
 
-:::{deprecated}
-2.0
+:::{deprecated} 2.0
 Use `new_api()` instead.
 :::
 
-:::{version-changed}
-version: 2.5
+:::{changed} 2.5
 The default timeout changed from 30s to 60s.
-:::
-
-:::{version-note}
-This feature behaves differently in v1. See [[v1:quirks]].
 :::
 ```
 
-**Rendering:**
-- `:::{since}` → Badge: "New in 3.0"
-- `:::{deprecated}` → Warning box with deprecation notice
-- `:::{version-changed}` → Info box with change description
+**Rendering** (aligned with Bengal's theme aesthetic):
+
+- **Inline badges** (no content): Neumorphic badges with SVG icons
+  - `:::{since}` → ✨ Sparkles icon, success/green theme
+  - `:::{deprecated}` → ⚠️ Alert triangle icon, warning/orange theme  
+  - `:::{changed}` → 🔄 Refresh icon, info/blue theme
+
+- **Full directives** (with content): Luminescent left-edge glow animation
+  - Palette-aware blob backgrounds
+  - Rounded containers with badge headers
+  - Matches admonition aesthetic from Bengal's default theme
 
 ---
 
@@ -377,35 +377,44 @@ Bengal ships a default version selector partial. Themes can override.
 
 ## Implementation Phases
 
-### Phase 1: Foundation (MVP)
-- [ ] Version config schema with validation
-- [ ] Discovery: find versioned content from folders
-- [ ] URL generation with version prefixes
-- [ ] Basic version selector data for templates
-- [ ] Default `version-selector.html` partial
+### Phase 1: Foundation (MVP) ✅ COMPLETE
+- [x] Version config schema with validation
+- [x] Discovery: find versioned content from folders
+- [x] URL generation with version prefixes
+- [x] Basic version selector data for templates
+- [x] Default `version-selector.html` partial
+- [x] Version banner partial for older versions
+- [x] PageCore.version field for caching
+- [x] Unit tests for versioning models
 
-### Phase 2: Core Features
-- [ ] CLI: `bengal version create v4` (snapshot current docs)
-- [ ] CLI: `bengal version list`
-- [ ] "Latest" alias and redirects
-- [ ] Multiple alias support (`latest`, `stable`, `lts`)
-- [ ] Version banners (frontmatter + auto)
-- [ ] Shared content across versions (`_shared/`)
-- [ ] Per-version menus
+### Phase 2: Core Features ✅ COMPLETE
+- [x] CLI: `bengal version create v4` (snapshot current docs)
+- [x] CLI: `bengal version list`
+- [x] CLI: `bengal version info`
+- [x] "Latest" alias and redirects
+- [x] Multiple alias support (`latest`, `stable`, `lts`)
+- [x] Version banners (frontmatter + auto)
+- [x] Shared content across versions (`_shared/`)
+- [x] VersionResolver for path resolution
+- [ ] Per-version menus (deferred - can use existing menu system)
 
-### Phase 3: Cross-Version & SEO
-- [ ] Cross-version linking syntax `[[v2:path]]`
-- [ ] Version-aware directives (`:::{since}`, `:::{deprecated}`)
-- [ ] Canonical URL generation
-- [ ] Sitemap with version awareness
-- [ ] Per-version redirect maps (for renamed pages)
-- [ ] Search integration (per-version or unified)
+### Phase 3: Cross-Version & SEO ✅ COMPLETE
+- [x] Cross-version linking syntax `[[v2:path]]`
+- [x] Version-aware directives (`:::{since}`, `:::{deprecated}`, `:::{changed}`)
+- [x] Canonical URL generation (older versions point to latest)
+- [x] Sitemap with version awareness (priority: 0.8 latest, 0.3 older)
+- [ ] Per-version redirect maps (deferred - use existing redirect system)
+- [ ] Search integration (deferred - per-version or unified)
 
-### Phase 4: Git Integration & Advanced
-- [ ] Git branch mode (optional): build from multiple branches
-- [ ] Version diffing ("What changed in v3?")
-- [ ] Auto-migration guide generation
-- [ ] API version detection from OpenAPI specs
+### Phase 4: Git Integration & Advanced ✅ COMPLETE
+- [x] Git branch mode: build from multiple branches (`mode: git`)
+- [x] Pattern-based branch/tag discovery (e.g., `release/*`)
+- [x] Git worktree adapter for parallel version builds
+- [x] CLI: `bengal build --all-versions`, `bengal build --version 0.1.6`
+- [x] Version diffing: `bengal version diff v1 v2` + `--git` mode
+- [x] Markdown changelog generation from diffs
+- [ ] Auto-migration guide generation (deferred)
+- [ ] API version detection from OpenAPI specs (deferred)
 
 ---
 

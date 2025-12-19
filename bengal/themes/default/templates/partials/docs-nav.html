@@ -9,6 +9,9 @@ Variables:
 - page._section.root: Root section to display from
 - site: Site object (fallback when no section)
 - show_nav_icons: Whether to show section icons (default: true)
+- versioning_enabled: bool - Whether versioning is enabled (from render context)
+- versions: list[dict] - All versions (from render context)
+- current_version: dict|None - Current page's version (from render context)
 
 Features:
 - Hierarchical tree structure
@@ -18,6 +21,7 @@ Features:
 - Recursive subsection rendering
 - Keyboard accessible
 - Section icons from frontmatter (directories only, not pages)
+- Version selector dropdown (when versioning enabled)
 
 Note:
 Includes 'partials/docs-nav-section.html' for recursive rendering.
@@ -32,6 +36,9 @@ Usage:
 {% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
 
 <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
+  {# Version Selector - shows when versioning is enabled with multiple versions #}
+  {% include 'partials/version-selector.html' %}
+
   {# Navigation Tree #}
   <div class="docs-nav-tree">
     {# Determine the root section to display #}

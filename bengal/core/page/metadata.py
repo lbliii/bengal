@@ -108,6 +108,26 @@ class PageMetadataMixin:
         return parse_date(date_value)
 
     @property
+    def version(self) -> str | None:
+        """
+        Get version ID for this page.
+
+        Returns the version this page belongs to (e.g., 'v3', 'v2').
+        Set during discovery based on content path or frontmatter override.
+
+        Returns:
+            Version ID string or None if not versioned
+        """
+        # Core has authoritative version (for cached pages)
+        if self.core is not None and self.core.version:
+            return self.core.version
+        # Check internal version set during discovery
+        if "_version" in self.metadata:
+            return self.metadata.get("_version")
+        # Check frontmatter override
+        return self.metadata.get("version")
+
+    @property
     def slug(self) -> str:
         """Get URL slug for the page."""
         # Check metadata first

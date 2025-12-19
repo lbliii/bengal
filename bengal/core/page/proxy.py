@@ -216,6 +216,11 @@ class PageProxy:
         return str(self.source_path)
 
     @property
+    def version(self) -> str | None:
+        """Get version ID from cached metadata."""
+        return self.core.version
+
+    @property
     def aliases(self) -> list[str]:
         """Get redirect aliases from cached metadata."""
         return self.core.aliases or []
@@ -320,11 +325,8 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.links if self._full_page else []
 
-    @property
-    def version(self) -> str | None:
-        """Get version (lazy-loaded)."""
-        self._ensure_loaded()
-        return self._full_page.version if self._full_page else None
+    # Note: version property is defined above (line ~219) as it's a cached field from PageCore
+    # No lazy-loading needed for version - it's available from core.version
 
     @property
     def toc(self) -> str | None:

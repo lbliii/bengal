@@ -28,12 +28,13 @@ from typing import Any
 
 import yaml
 
-from bengal.server.build_executor import BuildExecutor, BuildRequest
+from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
+from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
 
@@ -235,6 +236,8 @@ class BuildTrigger:
         - Template changes (.html in templates/themes)
         - Autodoc source changes (.py, OpenAPI specs)
         - SVG icon changes (inlined in HTML)
+        - Shared content changes (_shared/ directory) [versioned sites]
+        - Version config changes (versioning.yaml)
         """
         # Structural changes always need full rebuild
         if {"created", "deleted", "moved"} & event_types:
@@ -259,6 +262,119 @@ class BuildTrigger:
                 and "/assets/icons/" in path_str
             ):
                 logger.debug("full_rebuild_triggered_by_svg", file=str(path))
+                return True
+
+        # RFC: rfc-versioned-docs-pipeline-integration
+        # Check for shared content changes (forces full rebuild for versioned sites)
+        if self._is_shared_content_change(changed_paths):
+            logger.debug("full_rebuild_triggered_by_shared_content")
+            return True
+
+        # Check for version config changes (forces full rebuild)
+        if self._is_version_config_change(changed_paths):
+            logger.debug("full_rebuild_triggered_by_version_config")
+            return True
+
+        return False
+
+    def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
+        """
+        Check if any changed path is in _shared/ directory.
+
+        Shared content is included in all versions, so changes require
+        a full rebuild to cascade to all versioned pages.
+
+        Args:
+            changed_paths: Set of changed file paths
+
+        Returns:
+            True if any changed file is in _shared/
+        """
+        if not getattr(self.site, "versioning_enabled", False):
+            return False
+
+        for path in changed_paths:
+            path_str = str(path).replace("\\", "/")
+            # Check for _shared/ anywhere in path
+            if "/_shared/" in path_str or path_str.startswith("_shared/"):
+                return True
+            # Also check content/_shared/ pattern
+            if "/content/_shared/" in path_str:
+                return True
+
+        return False
+
+    def _get_affected_versions(self, changed_paths: set[Path]) -> set[str]:
+        """
+        Determine which versions are affected by changes.
+
+        Maps changed file paths to version IDs:
+        - _versions/<id>/* → version id
+        - Regular content (docs/, etc.) → latest version
+        - _shared/* → all versions (handled separately)
+
+        Args:
+            changed_paths: Set of changed file paths
+
+        Returns:
+            Set of affected version IDs
+        """
+        if not getattr(self.site, "versioning_enabled", False):
+            return set()
+
+        version_config = getattr(self.site, "version_config", None)
+        if not version_config or not version_config.enabled:
+            return set()
+
+        affected: set[str] = set()
+
+        for path in changed_paths:
+            path_str = str(path).replace("\\", "/")
+
+            # Check if in _versions/<id>/
+            if "/_versions/" in path_str or path_str.startswith("_versions/"):
+                # Extract version ID from path
+                if "/_versions/" in path_str:
+                    parts = path_str.split("/_versions/")[1].split("/")
+                else:
+                    parts = path_str.split("_versions/")[1].split("/")
+
+                if parts:
+                    version_id = parts[0]
+                    affected.add(version_id)
+
+            # Check if in versioned section (implies latest version)
+            elif not path_str.startswith("_"):
+                # Check if path is in a versioned section
+                for section in version_config.sections:
+                    if f"/{section}/" in path_str or path_str.startswith(f"{section}/"):
+                        if version_config.latest_version:
+                            affected.add(version_config.latest_version.id)
+                        break
+
+        return affected
+
+    def _is_version_config_change(self, changed_paths: set[Path]) -> bool:
+        """
+        Check if versioning config changed (requires full rebuild).
+
+        Detects changes to versioning.yaml or version-related config files.
+
+        Args:
+            changed_paths: Set of changed file paths
+
+        Returns:
+            True if version config changed
+        """
+        for path in changed_paths:
+            # Check for versioning.yaml
+            if path.name == "versioning.yaml":
+                return True
+
+            path_str = str(path).replace("\\", "/")
+
+            # Check for version config in config directories
+            if "/config/" in path_str and "version" in path.name.lower():
                 return True
 
         return False
@@ -368,25 +484,9 @@ class BuildTrigger:
 
         return False
 
-    def _display_stats(self, result: Any, incremental: bool) -> None:
-        """Display build statistics."""
-
-        class _Stats:
-            def __init__(self, res: Any, inc: bool) -> None:
-                self.total_pages = res.pages_built
-                self.regular_pages = getattr(res, "regular_pages", res.pages_built)
-                self.generated_pages = getattr(res, "generated_pages", 0)
-                self.total_assets = getattr(res, "total_assets", 0)
-                self.total_sections = getattr(res, "total_sections", 0)
-                self.taxonomies_count = getattr(res, "taxonomies_count", 0)
-                self.total_directives = getattr(res, "total_directives", 0)
-                self.build_time_ms = res.build_time_ms
-                self.incremental = inc
-                self.parallel = True
-                self.skipped = False
-                self.warnings: list[Any] = []
-
-        stats = _Stats(result, incremental)
+    def _display_stats(self, result: BuildResult, incremental: bool) -> None:
+        """Display build statistics using MinimalStats adapter."""
+        stats = MinimalStats.from_build_result(result, incremental=incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
     def _handle_reload(

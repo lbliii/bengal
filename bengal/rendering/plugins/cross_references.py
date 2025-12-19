@@ -3,15 +3,22 @@ Cross-reference plugin for Mistune.
 
 Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
+
+Extended to support cross-version linking:
+    [[v2:path]]     -> Link to path in version v2
+    [[latest:path]] -> Link to path in latest version
 """
 
 from __future__ import annotations
 
 import re
 from re import Match
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.version import VersionConfig
 
 logger = get_logger(__name__)
 
@@ -28,7 +35,10 @@ class CrossReferencePlugin:
         [[#heading-name]]               -> Link to heading anchor
         [[!target-id]]                  -> Link to target directive anchor
         [[id:my-page]]                  -> Link by custom ID
-        [[id:my-page|Custom]]          -> Link by ID with custom text
+        [[id:my-page|Custom]]           -> Link by ID with custom text
+        [[v2:docs/guide]]               -> Link to docs/guide in version v2
+        [[v2:docs/guide|Guide v2]]      -> Link to v2 with custom text
+        [[latest:docs/guide]]           -> Link to docs/guide in latest version
 
     Performance: O(1) per reference (dictionary lookup from xref_index)
     Thread-safe: Read-only access to xref_index built during discovery
@@ -44,14 +54,20 @@ class CrossReferencePlugin:
     trying to hook into the inline parser which has a complex API.
     """
 
-    def __init__(self, xref_index: dict[str, Any]):
+    def __init__(
+        self,
+        xref_index: dict[str, Any],
+        version_config: VersionConfig | None = None,
+    ):
         """
         Initialize cross-reference plugin.
 
         Args:
             xref_index: Pre-built cross-reference index from site discovery
+            version_config: Optional versioning configuration for cross-version links
         """
         self.xref_index = xref_index
+        self.version_config = version_config
         # Compile regex once (reused for all pages)
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
@@ -115,21 +131,24 @@ class CrossReferencePlugin:
 
         def replace_xref(match: Match[str]) -> str:
             ref = match.group(1).strip()
-            text = match.group(2).strip() if match.group(2) else None
+            link_text = match.group(2).strip() if match.group(2) else None
 
             # Resolve reference to HTML link
             if ref.startswith("!"):
                 # Target directive reference: [[!target-id]]
-                return self._resolve_target(ref[1:], text)
+                return self._resolve_target(ref[1:], link_text)
             elif ref.startswith("#"):
                 # Heading anchor reference: [[#heading-name]]
-                return self._resolve_heading(ref, text)
+                return self._resolve_heading(ref, link_text)
             elif ref.startswith("id:"):
                 # Custom ID reference: [[id:my-page]]
-                return self._resolve_id(ref[3:], text)
+                return self._resolve_id(ref[3:], link_text)
+            elif ":" in ref and not ref.startswith(("http:", "https:", "mailto:")):
+                # Cross-version reference: [[v2:docs/page]] or [[latest:docs/page]]
+                return self._resolve_version_link(ref, link_text)
             else:
                 # Path reference: [[docs/page]]
-                return self._resolve_path(ref, text)
+                return self._resolve_path(ref, link_text)
 
         return self.pattern.sub(replace_xref, text)
 
@@ -311,3 +330,103 @@ class CrossReferencePlugin:
         link_text = text or anchor.lstrip("#").replace("-", " ").title()
         url = page.url if hasattr(page, "url") else f"/{page.slug}/"
         return f'<a href="{url}#{anchor_id}">{link_text}</a>'
+
+    def _resolve_version_link(self, ref: str, text: str | None = None) -> str:
+        """
+        Resolve cross-version link reference.
+
+        Handles [[v2:path]] and [[latest:path]] syntax.
+
+        Args:
+            ref: Reference string in format "version:path"
+            text: Optional custom link text
+
+        Returns:
+            HTML link or broken reference indicator
+        """
+        # Parse version:path format
+        version_id, path = ref.split(":", 1)
+
+        # Check if versioning is enabled
+        if not self.version_config or not self.version_config.enabled:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=ref,
+                type="version",
+                reason="versioning_disabled",
+            )
+            return (
+                f'<span class="broken-ref" data-ref="{ref}" '
+                f'title="Versioning not enabled">[{text or path}]</span>'
+            )
+
+        # Resolve version (supports aliases like "latest", "stable")
+        target_version = self.version_config.get_version_or_alias(version_id)
+
+        if not target_version:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=ref,
+                type="version",
+                version_id=version_id,
+                reason="version_not_found",
+            )
+            return (
+                f'<span class="broken-ref" data-ref="{ref}" '
+                f'title="Version not found: {version_id}">[{text or path}]</span>'
+            )
+
+        # Extract anchor fragment if present
+        anchor_fragment = ""
+        if "#" in path:
+            path, anchor_fragment = path.split("#", 1)
+            anchor_fragment = f"#{anchor_fragment}"
+
+        # Try to find the page in xref_index to get title for link text
+        clean_path = path.replace(".md", "").strip("/")
+        page = self.xref_index.get("by_path", {}).get(clean_path)
+
+        # Build URL with version prefix
+        if target_version.latest:
+            # Latest version has no prefix in URL
+            url = f"/{clean_path}/"
+        else:
+            # Find the versioned section to construct proper URL
+            # Default to first versioned section if path doesn't start with one
+            versioned_section = None
+            for section in self.version_config.sections:
+                if clean_path.startswith(section):
+                    versioned_section = section
+                    break
+
+            if versioned_section:
+                # Path already includes section: docs/guide -> docs/v2/guide
+                section_rest = clean_path[len(versioned_section) :].lstrip("/")
+                url = f"/{versioned_section}/{target_version.id}/{section_rest}/"
+            else:
+                # No section match, assume first versioned section
+                if self.version_config.sections:
+                    section = self.version_config.sections[0]
+                    url = f"/{section}/{target_version.id}/{clean_path}/"
+                else:
+                    url = f"/{target_version.id}/{clean_path}/"
+
+        full_url = f"{url}{anchor_fragment}"
+
+        # Determine link text
+        if text:
+            link_text = text
+        elif page and hasattr(page, "title"):
+            link_text = f"{page.title} ({target_version.label})"
+        else:
+            link_text = f"{clean_path} ({target_version.label})"
+
+        logger.debug(
+            "xref_resolved",
+            ref=ref,
+            type="version",
+            version_id=target_version.id,
+            url=full_url,
+        )
+
+        return f'<a href="{full_url}">{link_text}</a>'

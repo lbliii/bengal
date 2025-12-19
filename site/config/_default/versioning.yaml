@@ -1,0 +1,29 @@
+# Versioning configuration
+# See: docs/content/versioning/ for full documentation
+
+versioning:
+  enabled: true
+
+  # Sections to version (only these sections get version prefixes)
+  sections:
+    - docs
+
+  # Version definitions
+  versions:
+    - id: v2
+      label: "2.0"
+      latest: true
+      # Latest version uses main content/docs/ (no source override needed)
+
+    - id: v1
+      label: "1.0 (Legacy)"
+      deprecated: true
+      banner:
+        type: warning
+        message: "You're viewing docs for Bengal v1.0, which is no longer maintained."
+      # Older versions live in _versions/<id>/
+
+  # Aliases for friendly URLs
+  aliases:
+    latest: v2
+    stable: v2

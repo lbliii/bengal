@@ -44,6 +44,7 @@ from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
+from bengal.cli.commands.version import version_cli
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
 
@@ -125,6 +126,9 @@ main.add_command(utils_cli)
 
 # Graph analysis (promoted from utils for discoverability)
 main.add_command(graph_cli)
+
+# Version management for documentation
+main.add_command(version_cli)
 
 # =============================================================================
 # TOP-LEVEL ALIASES (most common operations - no nesting required!)

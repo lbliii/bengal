@@ -427,6 +427,112 @@ class IncrementalOrchestrator:
 
         return nav_section_affected
 
+    def _check_shared_content_changes(self, forced_changed: set[Path]) -> bool:
+        """
+        Check if any _shared/ content has changed.
+
+        Shared content (under version_config.shared directories) is included in
+        all versioned sections. When shared content changes, all versioned pages
+        need to be rebuilt.
+
+        Args:
+            forced_changed: Set of paths known to have changed (from watcher)
+
+        Returns:
+            True if any shared content has changed
+        """
+        if not self.cache:
+            return False
+
+        # Check if versioning is enabled (must be explicitly True, not a Mock)
+        versioning_enabled = getattr(self.site, "versioning_enabled", False)
+        if versioning_enabled is not True:
+            return False
+
+        version_config = getattr(self.site, "version_config", None)
+        if not version_config:
+            return False
+
+        # Check version_config.enabled and shared are properly set
+        if getattr(version_config, "enabled", False) is not True:
+            return False
+
+        shared_paths = getattr(version_config, "shared", None)
+        if not shared_paths or not isinstance(shared_paths, (list, tuple, set)):
+            return False
+
+        # Check each shared directory
+        content_dir = self.site.root_path / "content"
+        for shared_path in shared_paths:
+            shared_dir = content_dir / shared_path
+            if not shared_dir.exists():
+                continue
+
+            # Check all markdown files in shared directory
+            for file_path in shared_dir.rglob("*.md"):
+                # Check if in forced_changed or if hash changed
+                if file_path in forced_changed or self.cache.is_changed(file_path):
+                    logger.info(
+                        "shared_content_changed",
+                        file=str(file_path.relative_to(content_dir)),
+                        action="cascade_to_all_versions",
+                    )
+                    return True
+
+        return False
+
+    def _apply_shared_content_cascade(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        forced_changed: set[Path],
+        verbose: bool,
+        change_summary: ChangeSummary,
+    ) -> int:
+        """
+        Expand `pages_to_rebuild` when shared content changes.
+
+        When content in _shared/ directories changes, all versioned pages
+        must be rebuilt because they may include or reference shared content.
+
+        Returns:
+            Count of pages added due to shared content cascade.
+        """
+        if not self._check_shared_content_changes(forced_changed):
+            return 0
+
+        # Find all versioned pages
+        versioned_pages: set[Path] = set()
+        for page in self.site.pages:
+            # Skip generated pages
+            if page.metadata.get("_generated"):
+                continue
+
+            # Check if page has a version assigned
+            version = getattr(page, "version", None) or page.metadata.get("version")
+            if version is not None:
+                versioned_pages.add(page.source_path)
+
+        # Count new pages to rebuild
+        before_count = len(pages_to_rebuild)
+        pages_to_rebuild.update(versioned_pages)
+        after_count = len(pages_to_rebuild)
+        cascade_affected = after_count - before_count
+
+        if cascade_affected > 0:
+            logger.info(
+                "shared_content_cascade",
+                pages_affected=cascade_affected,
+                reason="shared_content_changed",
+            )
+            if verbose:
+                change_summary.extra_changes.setdefault("Shared content cascade", [])
+                change_summary.extra_changes["Shared content cascade"].append(
+                    f"Shared content changed, {cascade_affected} versioned pages affected"
+                )
+
+        return cascade_affected
+
     def _apply_adjacent_navigation_rebuilds(
         self,
         *,
@@ -576,6 +682,15 @@ class IncrementalOrchestrator:
                 additional_pages=cascade_affected_count,
                 reason="section_cascade_metadata_changed",
             )
+
+        # Check for shared content changes (RFC: rfc-versioned-docs-pipeline-integration)
+        # When _shared/ content changes, all versioned pages need rebuild
+        self._apply_shared_content_cascade(
+            pages_to_rebuild=pages_to_rebuild,
+            forced_changed=forced_changed,
+            verbose=verbose,
+            change_summary=change_summary,
+        )
 
         # Check ALL section index files for nav-affecting frontmatter changes
         # (RFC: rfc-incremental-hot-reload-invariants Phase 3)

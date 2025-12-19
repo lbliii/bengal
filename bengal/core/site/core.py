@@ -42,6 +42,7 @@ from bengal.core.site.properties import SitePropertiesMixin
 from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
+from bengal.core.version import Version, VersionConfig
 from bengal.utils.build_stats import BuildStats
 
 if TYPE_CHECKING:
@@ -128,6 +129,15 @@ class Site(
     # Runtime flag: True when running in dev server mode (not persisted to config).
     # NOTE: Set by DevServer and BuildExecutor. Used to disable caching, timestamps, etc.
     dev_mode: bool = False
+
+    # Versioning configuration (loaded from config during __post_init__)
+    # NOTE: When versioning is enabled, pages are organized by version and templates
+    # have access to version selector data via site.versions and site.current_version.
+    # See: plan/drafted/rfc-versioned-documentation.md
+    version_config: VersionConfig = field(default_factory=VersionConfig)
+    # Current version context for rendering (set per page during rendering)
+    # NOTE: Used by template functions to return version-specific content.
+    current_version: Version | None = None
 
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
@@ -227,6 +237,19 @@ class Site(
 
         self.data = self._load_data_directory()
         self._compute_config_hash()
+
+        # Initialize versioning configuration
+        self.version_config = VersionConfig.from_config(self.config)
+        if self.version_config.enabled:
+            emit_diagnostic(
+                self,
+                "debug",
+                "versioning_enabled",
+                versions=[v.id for v in self.version_config.versions],
+                latest=self.version_config.latest_version.id
+                if self.version_config.latest_version
+                else None,
+            )
 
         # Initialize thread-safe lock for asset manifest fallback tracking
         if self._asset_manifest_fallbacks_lock is None:

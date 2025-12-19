@@ -15,6 +15,8 @@ class DummySite:
         self.theme = "default"
         # Required Site attributes for template engine
         self.dev_mode = False
+        self.versioning_enabled = False
+        self.versions: list[str] = []
         self._bengal_template_dirs_cache = None
         self._bengal_theme_chain_cache = None
         self._bengal_template_metadata_cache = None

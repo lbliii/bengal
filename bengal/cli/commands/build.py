@@ -141,6 +141,17 @@ from bengal.utils.traceback_config import TracebackStyle
     type=click.Path(),
     help="Write detailed logs to file (default: .bengal/logs/build.log)",
 )
+@click.option(
+    "--version",
+    "build_version",
+    type=str,
+    help="Build only a specific version (git mode only, e.g., 0.1.6)",
+)
+@click.option(
+    "--all-versions",
+    is_flag=True,
+    help="Build all versions in parallel (git mode only)",
+)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
     parallel: bool,
@@ -164,6 +175,8 @@ def build(
     fast: bool,
     full_output: bool,
     log_file: str,
+    build_version: str | None,
+    all_versions: bool,
     source: str,
 ) -> None:
     """
@@ -288,6 +301,125 @@ def build(
 
         # Autodoc virtual pages are now generated during content discovery
         # No separate pre-build step needed
+
+        # Handle git version mode
+        if build_version or all_versions:
+            # Check if versioning is enabled in git mode
+            if not getattr(site, "versioning_enabled", False):
+                cli.error("❌ Versioning is not enabled. Add versioning config to bengal.yaml")
+                raise click.Abort()
+
+            version_config = getattr(site, "version_config", None)
+            if not version_config or not version_config.is_git_mode:
+                cli.error("❌ --version and --all-versions require git mode versioning")
+                cli.info("Set mode: git in your versioning config")
+                raise click.Abort()
+
+            # Import git adapter
+            from bengal.discovery.git_version_adapter import GitVersionAdapter
+
+            git_adapter = GitVersionAdapter(
+                Path(source).resolve(),
+                version_config.git_config,
+            )
+
+            if all_versions:
+                # Discover and build all versions
+                cli.info("🔍 Discovering versions from git...")
+                discovered_versions = git_adapter.discover_versions()
+
+                if not discovered_versions:
+                    cli.warning("No versions found matching git patterns")
+                    raise click.Abort()
+
+                cli.info(f"Found {len(discovered_versions)} versions to build")
+                for v in discovered_versions:
+                    cli.info(f"  • {v.id}")
+
+                # Build each version (sequential for now, parallel in future)
+                for version in discovered_versions:
+                    cli.blank()
+                    cli.info(f"📦 Building version {version.id}...")
+
+                    # Extract ref from source (e.g., "git:release/0.1.6" → "release/0.1.6")
+                    ref = (
+                        version.source.replace("git:", "")
+                        if version.source.startswith("git:")
+                        else version.id
+                    )
+
+                    worktree = git_adapter.get_or_create_worktree(version.id, ref)
+
+                    # Load site from worktree
+                    worktree_site = load_site_from_cli(
+                        source=str(worktree.path),
+                        config=config,
+                        environment=environment,
+                        profile=profile,
+                    )
+
+                    # Set version-specific output directory
+                    if version.latest:
+                        # Latest version goes to main output
+                        pass
+                    else:
+                        # Older versions go to versioned subdirectory
+                        worktree_site.config["output_dir"] = str(Path(site.output_dir) / version.id)
+
+                    # Build this version
+                    worktree_site.build(
+                        parallel=parallel,
+                        incremental=incremental,
+                        verbose=profile_config["verbose_build_stats"],
+                        quiet=quiet,
+                        profile=build_profile,
+                        memory_optimized=memory_optimized,
+                        strict=strict,
+                        full_output=full_output,
+                    )
+
+                # Cleanup worktrees
+                git_adapter.cleanup_worktrees(keep_cached=True)
+
+                cli.blank()
+                cli.success(f"✅ Built {len(discovered_versions)} versions")
+                return
+
+            elif build_version:
+                # Build specific version
+                cli.info(f"🔍 Looking for version {build_version}...")
+
+                # Check if it matches any pattern
+                discovered = git_adapter.discover_versions()
+                matching = [v for v in discovered if v.id == build_version]
+
+                if not matching:
+                    cli.error(f"❌ Version {build_version} not found")
+                    cli.info("Available versions:")
+                    for v in discovered[:10]:
+                        cli.info(f"  • {v.id}")
+                    raise click.Abort()
+
+                version = matching[0]
+                ref = (
+                    version.source.replace("git:", "")
+                    if version.source.startswith("git:")
+                    else version.id
+                )
+
+                worktree = git_adapter.get_or_create_worktree(version.id, ref)
+
+                cli.info(f"📦 Building version {version.id} from {ref}")
+
+                # Load site from worktree
+                site = load_site_from_cli(
+                    source=str(worktree.path),
+                    config=config,
+                    environment=environment,
+                    profile=profile,
+                )
+
+                # Continue with normal build below
 
         # Validate templates if requested (via service)
         if validate:

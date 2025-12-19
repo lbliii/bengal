@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.core.theme import Theme
+    from bengal.core.version import Version, VersionConfig
 
 
 class SitePropertiesMixin:
@@ -205,3 +206,71 @@ class SitePropertiesMixin:
 
             self._query_registry = QueryIndexRegistry(self, self.paths.indexes_dir)
         return self._query_registry
+
+    # =========================================================================
+    # VERSIONING PROPERTIES
+    # =========================================================================
+
+    @property
+    def versioning_enabled(self) -> bool:
+        """
+        Check if versioned documentation is enabled.
+
+        Returns:
+            True if versioning is configured and enabled
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        return version_config is not None and version_config.enabled
+
+    @property
+    def versions(self) -> list[dict[str, Any]]:
+        """
+        Get list of all versions for templates.
+
+        Available in templates as `site.versions` for version selector rendering.
+        Each version dict contains: id, label, latest, deprecated, url_prefix.
+
+        Returns:
+            List of version dictionaries for template use
+
+        Example:
+            {% for v in site.versions %}
+                <option value="{{ v.url_prefix }}"
+                        {% if v.id == site.current_version.id %}selected{% endif %}>
+                    {{ v.label }}{% if v.latest %} (Latest){% endif %}
+                </option>
+            {% endfor %}
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            return []
+        return [v.to_dict() for v in version_config.versions]
+
+    @property
+    def latest_version(self) -> dict[str, Any] | None:
+        """
+        Get the latest version info for templates.
+
+        Returns:
+            Latest version dictionary or None if versioning disabled
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            return None
+        latest = version_config.latest_version
+        return latest.to_dict() if latest else None
+
+    def get_version(self, version_id: str) -> Version | None:
+        """
+        Get a version by ID or alias.
+
+        Args:
+            version_id: Version ID (e.g., 'v2') or alias (e.g., 'latest')
+
+        Returns:
+            Version object or None if not found
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            return None
+        return version_config.get_version_or_alias(version_id)

@@ -2,12 +2,16 @@
 SEO helper functions for templates.
 
 Provides 4 functions for generating SEO-friendly meta tags and content.
+
+Extended for versioned documentation:
+- canonical_url: Returns canonical URL (always points to latest version for versioned pages)
+- Version-aware SEO for proper search engine indexing
 """
 
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -19,8 +23,8 @@ def register(env: Environment, site: Site) -> None:
     """Register SEO helper functions with Jinja2 environment."""
 
     # Create closures that have access to site
-    def canonical_url_with_site(path: str) -> str:
-        return canonical_url(path, site.config.get("baseurl", ""))
+    def canonical_url_with_site(path: str, page: Any | None = None) -> str:
+        return canonical_url(path, site.config.get("baseurl", ""), site, page)
 
     def og_image_with_site(image_path: str) -> str:
         return og_image(image_path, site.config.get("baseurl", ""))
@@ -112,19 +116,29 @@ def meta_keywords(tags: list[str], max_count: int = 10) -> str:
     return ", ".join(keywords)
 
 
-def canonical_url(path: str, base_url: str) -> str:
+def canonical_url(
+    path: str,
+    base_url: str,
+    site: Any | None = None,
+    page: Any | None = None,
+) -> str:
     """
     Generate canonical URL for SEO.
+
+    For versioned documentation, canonical URLs always point to the latest version.
+    This prevents duplicate content issues and consolidates SEO value.
 
     Args:
         path: Page path (relative or absolute)
         base_url: Site base URL
+        site: Optional site for versioning context
+        page: Optional page for version detection
 
     Returns:
-        Full canonical URL
+        Full canonical URL (pointing to latest version for versioned pages)
 
     Example:
-        <link rel="canonical" href="{{ canonical_url(page.url) }}">
+        <link rel="canonical" href="{{ canonical_url(page.url, page=page) }}">
     """
     if not path:
         return base_url or ""
@@ -135,10 +149,30 @@ def canonical_url(path: str, base_url: str) -> str:
 
     # Ensure base URL
     if not base_url:
-        return path
+        base_url = ""
 
     base_url = base_url.rstrip("/")
     path = "/" + path.lstrip("/")
+
+    # Handle versioned pages - canonical should point to latest version
+    if site and page and getattr(site, "versioning_enabled", False):
+        version_config = getattr(site, "version_config", None)
+        page_version = getattr(page, "version", None)
+
+        if version_config and page_version:
+            # Get the version object
+            version = version_config.get_version(page_version)
+            if version and not version.latest:
+                # This is an older version - canonical should point to latest
+                # Remove version prefix from path to get canonical
+                for section in version_config.sections:
+                    # Path pattern: /section/version_id/rest -> /section/rest
+                    version_pattern = f"/{section}/{version.id}/"
+                    if path.startswith(version_pattern):
+                        # Remove version prefix for canonical
+                        rest = path[len(version_pattern) - 1 :]  # Keep trailing /
+                        path = f"/{section}{rest}"
+                        break
 
     return base_url + path
 

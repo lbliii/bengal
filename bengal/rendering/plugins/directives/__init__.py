@@ -107,6 +107,11 @@ from bengal.rendering.plugins.directives.utils import (
     escape_html,
 )
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+from bengal.rendering.plugins.directives.versioning import (
+    ChangedDirective,
+    DeprecatedDirective,
+    SinceDirective,
+)
 from bengal.rendering.plugins.directives.video import (
     SelfHostedVideoDirective,
     VimeoDirective,
@@ -198,6 +203,13 @@ DIRECTIVE_CLASSES: list[type] = [
     # Figure and audio embeds (figure, audio)
     FigureDirective,
     AudioDirective,
+    # ==========================================================================
+    # Version-Aware Directives
+    # ==========================================================================
+    # since/versionadded, deprecated/versionremoved, changed/versionchanged
+    SinceDirective,
+    DeprecatedDirective,
+    ChangedDirective,
 ]
 
 
@@ -310,6 +322,10 @@ __all__ = [
     "AudioDirective",
     # Explicit Anchor Target Directive
     "TargetDirective",
+    # Version-Aware Directives
+    "SinceDirective",
+    "DeprecatedDirective",
+    "ChangedDirective",
 ]
 
 
@@ -402,6 +418,10 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 # Figure and audio
                 FigureDirective(),  # Semantic images with captions
                 AudioDirective(),  # Self-hosted audio files
+                # Version-aware directives
+                SinceDirective(),  # Mark features added in a version
+                DeprecatedDirective(),  # Mark deprecated features
+                ChangedDirective(),  # Mark behavior changes
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)

@@ -10,6 +10,7 @@ Data Models:
     - Site: Top-level site container
     - Asset: Static assets (CSS, JS, images)
     - Menu: Navigation menus
+    - Version: Documentation versioning support
 
 Organization Pattern:
     - Simple models (< 400 lines): Single file (e.g., section.py)
@@ -42,5 +43,20 @@ from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from bengal.core.version import (
+    GitBranchPattern,
+    GitVersionConfig,
+    Version,
+    VersionConfig,
+)
 
-__all__ = ["Asset", "MenuBuilder", "MenuItem", "Page", "Section", "Site"]
+__all__ = [
+    "Asset",
+    "MenuBuilder",
+    "MenuItem",
+    "Page",
+    "Section",
+    "Site",
+    "Version",
+    "VersionConfig",
+]

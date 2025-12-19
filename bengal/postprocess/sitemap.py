@@ -183,8 +183,10 @@ class SitemapGenerator:
                 ET.SubElement(url_elem, "lastmod").text = lastmod
 
             # Add default priority and changefreq
+            # Version-aware: older versions get lower priority
+            priority = self._get_version_priority(page)
             ET.SubElement(url_elem, "changefreq").text = "weekly"
-            ET.SubElement(url_elem, "priority").text = "0.5"
+            ET.SubElement(url_elem, "priority").text = priority
 
         # Write sitemap to file atomically (crash-safe)
         from bengal.utils.atomic_write import AtomicFile
@@ -218,6 +220,46 @@ class SitemapGenerator:
                 error_type=type(e).__name__,
             )
             raise
+
+    def _get_version_priority(self, page: Any) -> str:
+        """
+        Get sitemap priority for a page based on version.
+
+        Latest version pages get priority 0.8.
+        Older version pages get priority 0.3 (lower but still indexed).
+        Non-versioned pages get default priority 0.5.
+
+        Args:
+            page: Page object
+
+        Returns:
+            Priority string (0.0-1.0)
+        """
+        # Check if versioning is enabled
+        if not getattr(self.site, "versioning_enabled", False):
+            return "0.5"
+
+        version_config = getattr(self.site, "version_config", None)
+        if not version_config:
+            return "0.5"
+
+        # Get page version
+        page_version = getattr(page, "version", None)
+        if not page_version:
+            # Non-versioned page
+            return "0.5"
+
+        # Get version object
+        version = version_config.get_version(page_version)
+        if not version:
+            return "0.5"
+
+        # Latest version gets higher priority
+        if version.latest:
+            return "0.8"
+        else:
+            # Older versions get lower priority but still indexed
+            return "0.3"
 
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """

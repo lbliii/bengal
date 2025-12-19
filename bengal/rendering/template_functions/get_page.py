@@ -57,7 +57,9 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             site._template_parser,
             "enable_cross_references",  # type: ignore[attr-defined]
         ):
-            site._template_parser.enable_cross_references(site.xref_index)  # type: ignore[attr-defined]
+            # Pass version_config for cross-version linking support [[v2:path]]
+            version_config = getattr(site, "version_config", None)
+            site._template_parser.enable_cross_references(site.xref_index, version_config)  # type: ignore[attr-defined]
 
     parser = site._template_parser
 

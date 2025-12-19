@@ -40,6 +40,7 @@ from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION, extract_toc_st
 from bengal.rendering.pipeline.transforms import (
     escape_jinja_blocks,
     escape_template_syntax_in_html,
+    normalize_markdown_links,
     transform_internal_links,
 )
 from bengal.rendering.renderer import Renderer
@@ -137,7 +138,9 @@ class RenderingPipeline:
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
-            self.parser.enable_cross_references(site.xref_index)
+            # Pass version_config for cross-version linking support [[v2:path]]
+            version_config = getattr(site, "version_config", None)
+            self.parser.enable_cross_references(site.xref_index, version_config)
 
         self.dependency_tracker = dependency_tracker
         self.quiet = quiet
@@ -346,7 +349,10 @@ class RenderingPipeline:
         # Additional hardening: escape Jinja2 blocks
         page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")
 
-        # Transform internal links
+        # Normalize .md links to clean URLs (./page.md -> ./page/)
+        page.parsed_ast = normalize_markdown_links(page.parsed_ast)
+
+        # Transform internal links (add baseurl prefix)
         page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)
 
         # Pre-compute plain_text cache
@@ -615,6 +621,10 @@ class RenderingPipeline:
         """
         Render an autodoc page using the site's template engine.
 
+        NOTE: This is the ONLY rendering path for autodoc pages. The deferred
+        rendering architecture ensures full template context (menus, active states,
+        versioning) is available. See bengal/autodoc/README.md for details.
+
         This is called during the rendering phase (after menus are built),
         ensuring full template context is available for proper header/nav rendering.
 
@@ -667,6 +677,9 @@ class RenderingPipeline:
                 config=self._normalize_config(self.site.config),
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",
+                # Versioning context - autodoc pages are not versioned
+                current_version=None,
+                is_latest_version=True,
             )
         except Exception as e:  # Capture template errors with context
             logger.error(
