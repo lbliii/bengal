@@ -99,6 +99,25 @@ class ContentDiscoveryMixin:
         self._setup_page_references()
         self._validate_page_section_references()
         self._apply_cascades()
+        # Set output paths for all pages immediately after discovery
+        self._set_output_paths()
+
+    def _set_output_paths(self) -> None:
+        """
+        Set output paths for all discovered pages.
+
+        This must be called after discovery and cascade application but before
+        any code tries to access page.url (which depends on output_path).
+        """
+        from bengal.utils.url_strategy import URLStrategy
+
+        for page in self.pages:
+            # Skip if already set (e.g., generated pages)
+            if page.output_path:
+                continue
+
+            # Compute output path using centralized strategy for regular pages
+            page.output_path = URLStrategy.compute_regular_page_output_path(page, self)
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """

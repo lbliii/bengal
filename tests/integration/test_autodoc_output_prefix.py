@@ -119,6 +119,72 @@ paths:
         assert "/api/python/" in child_urls
         assert "/api/rest/" in child_urls
 
+    def test_cli_output_prefix_drops_root_name(self, mock_site, tmp_path):
+        """Test that CLI output prefix drops the root command name ('bengal')."""
+        from bengal.autodoc.base import DocElement
+        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+
+        # Configure CLI
+        mock_site.config["autodoc"] = {
+            "cli": {
+                "enabled": True,
+                "output_prefix": "cli",
+                "app_module": "bengal.cli:main",
+            }
+        }
+
+        # Mock CLI elements
+        cli_elements = [
+            DocElement(
+                name="bengal",
+                qualified_name="bengal",
+                element_type="command-group",
+                description="Root command",
+            ),
+            DocElement(
+                name="build",
+                qualified_name="bengal.build",
+                element_type="command",
+                description="Build command",
+            ),
+            DocElement(
+                name="swizzle",
+                qualified_name="bengal.theme.swizzle",
+                element_type="command",
+                description="Swizzle command",
+            ),
+        ]
+
+        with (
+            patch.object(
+                VirtualAutodocOrchestrator,
+                "_ensure_template_env",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "bengal.autodoc.orchestration.orchestrator.extract_cli",
+                return_value=cli_elements,
+            ),
+        ):
+            orchestrator = VirtualAutodocOrchestrator(mock_site)
+            pages, sections, result = orchestrator.generate()
+
+        # Check page URLs
+        page_urls = {p.url for p in pages}
+
+        # Root command group should be at /cli/ (the prefix)
+        assert "/cli/" in page_urls
+
+        # Subcommands should drop 'bengal'
+        # bengal.build -> /cli/build/
+        # bengal.theme.swizzle -> /cli/theme/swizzle/
+        assert "/cli/build/" in page_urls
+        assert "/cli/theme/swizzle/" in page_urls
+
+        # qualified names should NOT appear in URLs if they include root
+        assert "/cli/bengal/build/" not in page_urls
+        assert "/cli/bengal/theme/swizzle/" not in page_urls
+
 
 class TestBackwardsCompatibility:
     """Tests for backwards compatibility with existing configs."""

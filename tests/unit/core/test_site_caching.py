@@ -184,6 +184,8 @@ class TestSiteRuntimeCaches:
 
     def test_reset_ephemeral_clears_runtime_caches(self, tmp_path):
         """Verify reset_ephemeral_state clears Phase B fields."""
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
         site = Site(root_path=tmp_path)
 
         # Set some caches
@@ -192,6 +194,9 @@ class TestSiteRuntimeCaches:
         site._bengal_template_metadata_cache = {"key": "test", "metadata": {"engine": "test"}}
         site._discovery_breakdown_ms = {"pages": 100.0, "total": 150.0}
         site._asset_manifest_fallbacks_global.add("test.css")
+
+        # Set created dirs cache
+        get_created_dirs().add_if_new("/some/dir")
 
         # Reset
         site.reset_ephemeral_state()
@@ -202,6 +207,9 @@ class TestSiteRuntimeCaches:
         assert site._bengal_template_metadata_cache is None
         assert site._discovery_breakdown_ms is None
         assert len(site._asset_manifest_fallbacks_global) == 0
+
+        # Verify created dirs cleared
+        assert "/some/dir" not in get_created_dirs()
 
     def test_reset_ephemeral_preserves_asset_manifest_previous(self, tmp_path):
         """Verify reset_ephemeral_state preserves _asset_manifest_previous for incremental builds."""

@@ -4,7 +4,34 @@ Tests for autodoc utility functions.
 
 from textwrap import dedent
 
-from bengal.autodoc.utils import sanitize_text, truncate_text
+from bengal.autodoc.utils import resolve_cli_url_path, sanitize_text, truncate_text
+
+
+class TestResolveCliUrlPath:
+    """Tests for CLI URL path resolution."""
+
+    def test_resolve_empty(self):
+        """Test resolving empty string."""
+        assert resolve_cli_url_path("") == ""
+        assert resolve_cli_url_path(None) == ""
+
+    def test_resolve_root_command(self):
+        """Test resolving root command name (should be empty)."""
+        assert resolve_cli_url_path("bengal") == ""
+
+    def test_resolve_single_level_subcommand(self):
+        """Test resolving a single level subcommand (should drop root)."""
+        assert resolve_cli_url_path("bengal.build") == "build"
+        assert resolve_cli_url_path("bengal.serve") == "serve"
+
+    def test_resolve_nested_subcommand(self):
+        """Test resolving nested subcommands (should drop root)."""
+        assert resolve_cli_url_path("bengal.site.new") == "site/new"
+        assert resolve_cli_url_path("bengal.assets.list") == "assets/list"
+
+    def test_resolve_deeply_nested(self):
+        """Test resolving deeply nested subcommands."""
+        assert resolve_cli_url_path("bengal.a.b.c.d") == "a/b/c/d"
 
 
 class TestSanitizeText:

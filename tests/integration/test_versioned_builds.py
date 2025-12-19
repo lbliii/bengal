@@ -417,3 +417,38 @@ class TestVersionedBuildIntegration:
 
         # Check sections
         assert "docs" in config.sections
+
+    def test_versioned_site_discovers_older_versions(self, site):
+        """Test that pages in _versions/ are actually discovered."""
+        page_paths = [str(p.source_path) for p in site.pages]
+
+        # Verify v2 and v1 pages are discovered
+        assert any("_versions/v2/docs/guide.md" in p for p in page_paths)
+        assert any("_versions/v1/docs/guide.md" in p for p in page_paths)
+
+    def test_versioned_site_output_paths(self, site):
+        """Test that versioned pages have correct output paths."""
+        # Find v2 page
+        v2_page = next(p for p in site.pages if "_versions/v2/docs/guide.md" in str(p.source_path))
+
+        # Should have version set to 'v2'
+        assert v2_page.version == "v2"
+
+        # Should build to public/docs/v2/guide/index.html
+        assert "docs/v2/guide/index.html" in str(v2_page.output_path)
+
+        # Find v1 page
+        v1_page = next(p for p in site.pages if "_versions/v1/docs/guide.md" in str(p.source_path))
+
+        # Should have version set to 'v1'
+        assert v1_page.version == "v1"
+
+        # Should build to public/docs/v1/guide/index.html
+        assert "docs/v1/guide/index.html" in str(v1_page.output_path)
+
+    def test_versioned_site_discovers_shared_content(self, site):
+        """Test that pages in _shared/ are actually discovered."""
+        page_paths = [str(p.source_path) for p in site.pages]
+
+        # Verify shared page is discovered
+        assert any("_shared/changelog.md" in p for p in page_paths)

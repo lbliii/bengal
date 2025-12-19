@@ -198,7 +198,7 @@ class ContentOrchestrator:
         # Set output paths for all pages immediately after discovery
         # This ensures page.url works correctly before rendering
         t0 = time.perf_counter()
-        self._set_output_paths()
+        self.site._set_output_paths()
         breakdown_ms["output_paths"] = (time.perf_counter() - t0) * 1000
         self.logger.debug("output_paths_set")
 
@@ -528,46 +528,6 @@ class ContentOrchestrator:
                 pages_affected=0,
                 reason="no_cascades_defined",
             )
-
-    def _set_output_paths(self) -> None:
-        """
-        Set output paths for all discovered pages.
-
-        This must be called after discovery and cascade application but before
-        any code tries to access page.url (which depends on output_path).
-
-        Setting output_path early ensures:
-        - page.url returns correct paths based on file structure
-        - Templates can access page.url without getting fallback slug-based URLs
-        - xref_index links work correctly
-        - Navigation links have proper URLs
-        """
-        from bengal.utils.url_strategy import URLStrategy
-        # SyntheticPage import removed - using traditional pages only
-
-        paths_set = 0
-        already_set = 0
-        synthetic_paths_set = 0
-
-        for page in self.site.pages:
-            # Note: SyntheticPage handling removed - using traditional pages only
-
-            # Skip if already set (e.g., generated pages, or set by section orchestrator)
-            if page.output_path:
-                already_set += 1
-                continue
-
-            # Compute output path using centralized strategy for regular pages
-            page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
-            paths_set += 1
-
-        self.logger.debug(
-            "output_paths_configured",
-            paths_set=paths_set,
-            synthetic_paths_set=synthetic_paths_set,
-            already_set=already_set,
-            total_pages=len(self.site.pages),
-        )
 
     def _check_weight_metadata(self) -> None:
         """
