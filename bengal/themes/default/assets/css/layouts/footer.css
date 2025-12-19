@@ -237,7 +237,7 @@ footer .container {
 .footer-right {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 
 /* ============================================
@@ -423,6 +423,7 @@ footer .container {
   .bengal-build-time {
     transition: none;
   }
+
   .bengal-build-time:hover,
   .bengal-build-time:focus-visible {
     transform: none;

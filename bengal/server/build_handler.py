@@ -17,12 +17,54 @@ import yaml
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
 from bengal.cache.paths import STATE_DIR_NAME
+from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
+from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.reload_controller import ReloadDecision, controller
+from bengal.server.utils import is_process_isolation_enabled
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+# Module-level executor instance (lazy-initialized)
+# This allows the executor to be shared across multiple BuildHandler instances
+# and ensures proper cleanup on shutdown
+_build_executor = None
+_executor_lock = threading.Lock()
+
+
+def get_build_executor():
+    """
+    Get or create the shared BuildExecutor instance.
+
+    Returns:
+        BuildExecutor instance (lazily created on first access)
+    """
+    global _build_executor
+    with _executor_lock:
+        if _build_executor is None:
+            from bengal.server.build_executor import BuildExecutor
+
+            _build_executor = BuildExecutor(max_workers=1)
+            logger.debug("build_executor_created_lazy")
+        return _build_executor
+
+
+def shutdown_build_executor():
+    """
+    Shutdown the shared BuildExecutor instance.
+
+    Called during server cleanup to ensure proper resource release.
+    """
+    global _build_executor
+    with _executor_lock:
+        if _build_executor is not None:
+            logger.debug("build_executor_shutdown_requested")
+            _build_executor.shutdown(wait=True)
+            _build_executor = None
+            logger.debug("build_executor_shutdown_complete")
 
 
 class BuildHandler(FileSystemEventHandler):
@@ -83,6 +125,64 @@ class BuildHandler(FileSystemEventHandler):
         self.pending_event_types: set[str] = set()  # Track event types for build strategy
         self.debounce_timer: threading.Timer | None = None
         self.timer_lock = threading.Lock()
+
+        # Create ignore filter from config (with output_dir always ignored)
+        self._ignore_filter = self._create_ignore_filter()
+
+        # Check if process isolation is enabled (BENGAL_DEV_SERVER_V2=1 or config)
+        config = getattr(self.site, "config", {}) or {}
+        self._use_process_isolation = is_process_isolation_enabled(config)
+        if self._use_process_isolation:
+            logger.info("build_handler_process_isolation_enabled")
+        else:
+            logger.debug("build_handler_process_isolation_disabled")
+
+    def _create_ignore_filter(self) -> IgnoreFilter:
+        """
+        Create IgnoreFilter from site config.
+
+        Includes:
+        - User-configured patterns from dev_server config
+        - Output directory (to prevent rebuild loops)
+        - Default transient file patterns (vim swap, etc.)
+
+        Returns:
+            Configured IgnoreFilter instance
+        """
+        # Get user config, fall back to empty dict
+        config = getattr(self.site, "config", {}) or {}
+
+        # Add standard suffix patterns that _should_ignore_file used
+        standard_globs = [
+            "*.swp",
+            "*.swo",
+            "*.swx",  # Vim swap files
+            "*.tmp",
+            "*.pyc",
+            "*.pyo",
+            "*.orig",
+            "*.rej",
+            "*~",  # Editor backup files
+            "*~~",  # Alternate backup suffixes
+            ".DS_Store",
+            ".bengal-cache.json",
+        ]
+
+        # Merge with user-configured patterns
+        dev_server = config.get("dev_server", {})
+        user_patterns = dev_server.get("exclude_patterns", [])
+
+        all_patterns = standard_globs + list(user_patterns)
+
+        # Get user regex patterns
+        user_regex = dev_server.get("exclude_regex", [])
+
+        return IgnoreFilter(
+            glob_patterns=all_patterns,
+            regex_patterns=user_regex,
+            directories=[self.site.output_dir] if hasattr(self.site, "output_dir") else [],
+            include_defaults=True,  # Include .git, node_modules, etc.
+        )
 
     def _clear_ephemeral_state(self) -> None:
         """Clear ephemeral state safely via Site API."""
@@ -236,6 +336,12 @@ class BuildHandler(FileSystemEventHandler):
         """
         Check if file should be ignored (temp files, swap files, etc).
 
+        Uses IgnoreFilter for pattern matching with support for:
+        - Glob patterns (user-configurable via exclude_patterns)
+        - Regex patterns (user-configurable via exclude_regex)
+        - Default ignored directories (.git, node_modules, etc.)
+        - Output directory (always ignored to prevent loops)
+
         Args:
             file_path: Path to file
 
@@ -244,58 +350,13 @@ class BuildHandler(FileSystemEventHandler):
         """
         path = Path(file_path)
 
-        # Ignore common transient files by suffix
-        suffix_ignores = {
-            ".swp",
-            ".swo",
-            ".swx",  # Vim swap files
-            ".tmp",
-            ".pyc",
-            ".pyo",
-            ".orig",
-            ".rej",
-            "~",  # Editor backup files (Emacs, Vim)
-            "~~",  # Alternate backup suffixes
-        }
-
-        # Ignore common transient files by exact filename
-        # Note: .bengal/ directory is ignored via dir_ignores below,
-        # which covers logs, metrics, cache, etc.
-        name_ignores = {
-            ".DS_Store",
-            ".bengal-cache.json",
-        }
-
-        # Ignore when file lives under these directories anywhere in the path
-        dir_ignores = {
-            ".git",
-            STATE_DIR_NAME,  # Build cache and server state (prevents rebuild loops)
-            "node_modules",
-            "__pycache__",
-            ".pytest_cache",
-            ".mypy_cache",
-            ".cache",
-            "venv",
-            ".venv",
-            ".idea",
-            ".vscode",
-            "coverage",
-            "htmlcov",
-            "dist",
-            "build",
-            "public",
-        }
-
-        # Suffix ignores
-        if any(str(path).endswith(suf) for suf in suffix_ignores):
+        # Use IgnoreFilter for pattern matching
+        if self._ignore_filter(path):
             return True
 
-        # Filename ignores
-        if path.name in name_ignores:
-            return True
-
-        # Directory ignores (match any segment)
-        return any(seg in dir_ignores for seg in path.parts)
+        # Also check for STATE_DIR_NAME explicitly (bengal cache directory)
+        # This is critical to prevent rebuild loops
+        return STATE_DIR_NAME in path.parts
 
     def _trigger_build(self) -> None:
         """
@@ -477,6 +538,22 @@ class BuildHandler(FileSystemEventHandler):
             # This prevents stale object references (bug: taxonomy counts wrong)
             self._clear_ephemeral_state()
 
+            # Run pre-build hooks (e.g., npm run build:css)
+            # Skip build if any pre-build hook fails
+            config = getattr(self.site, "config", {}) or {}
+            if not run_pre_build_hooks(config, self.site.root_path):
+                show_error("Pre-build hook failed - skipping build", show_art=False)
+                cli.request_log_header()
+                logger.error("rebuild_skipped", reason="pre_build_hook_failed")
+                self.building = False
+                try:
+                    from bengal.server.request_handler import BengalRequestHandler
+
+                    BengalRequestHandler.set_build_in_progress(False)
+                except Exception:
+                    pass
+                return
+
             try:
                 # Use incremental + parallel for fast dev server rebuilds (5-10x faster)
                 # Cache invalidation auto-detects config/template changes and falls back to full rebuild
@@ -484,37 +561,88 @@ class BuildHandler(FileSystemEventHandler):
                 # Config can override profile to enable directives validator without full THEME_DEV overhead
                 from bengal.utils.profile import BuildProfile
 
-                # Ensure dev flags remain active on rebuilds
-                try:
-                    cfg = self.site.config
-                    cfg["dev_server"] = True
-                    cfg["fingerprint_assets"] = False
-                    cfg.setdefault("minify_assets", False)
-                except Exception as e:
-                    logger.debug(
-                        "build_handler_dev_config_update_failed",
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        action="continuing_without_update",
-                    )
-                    pass
-
                 # Use incremental builds only for file modifications
                 # Force full rebuild for structural changes (created/deleted/moved)
                 # to ensure proper section relationships and cascade application
                 use_incremental = not needs_full_rebuild
 
-                stats = self.site.build(
-                    parallel=True,
-                    incremental=use_incremental,
-                    profile=BuildProfile.WRITER,
-                    changed_sources={Path(p) for p in changed_files},
-                    nav_changed_sources=nav_changed_files,
-                    structural_changed=structural_changed,
-                )
-                build_duration = time.time() - build_start
+                # Execute build - either in-process or in subprocess depending on config
+                if self._use_process_isolation:
+                    # Process-isolated build for crash resilience
+                    from bengal.server.build_executor import BuildRequest
+
+                    executor = get_build_executor()
+                    request = BuildRequest(
+                        site_root=str(self.site.root_path),
+                        changed_paths=tuple(str(p) for p in changed_files),
+                        incremental=use_incremental,
+                        profile="WRITER",
+                        nav_changed_paths=tuple(str(p) for p in nav_changed_files),
+                        structural_changed=structural_changed,
+                        parallel=True,
+                    )
+
+                    # Use a reasonable timeout (5 minutes for large sites)
+                    result = executor.submit(request, timeout=300.0)
+                    build_duration = result.build_time_ms / 1000
+
+                    if not result.success:
+                        raise RuntimeError(result.error_message or "Build failed in subprocess")
+
+                    # Create a stats-like object for display
+                    class _BuildStats:
+                        def __init__(self, pages: int, time_ms: float, outputs: tuple):
+                            self.total_pages = pages
+                            self.build_time_ms = time_ms
+                            self.incremental = use_incremental
+                            self.parallel = True
+                            self.cache_bypass_hits = 0
+                            self.cache_bypass_misses = 0
+                            self.changed_outputs = list(outputs)
+                            self.skipped = False
+
+                    stats = _BuildStats(
+                        result.pages_built, result.build_time_ms, result.changed_outputs
+                    )
+
+                    logger.info(
+                        "rebuild_complete_subprocess",
+                        duration_seconds=round(build_duration, 2),
+                        pages_built=result.pages_built,
+                    )
+                else:
+                    # In-process build (default, faster for small sites)
+                    # Ensure dev flags remain active on rebuilds
+                    try:
+                        cfg = self.site.config
+                        cfg["dev_server"] = True
+                        cfg["fingerprint_assets"] = False
+                        cfg.setdefault("minify_assets", False)
+                    except Exception as e:
+                        logger.debug(
+                            "build_handler_dev_config_update_failed",
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="continuing_without_update",
+                        )
+                        pass
+
+                    stats = self.site.build(
+                        parallel=True,
+                        incremental=use_incremental,
+                        profile=BuildProfile.WRITER,
+                        changed_sources={Path(p) for p in changed_files},
+                        nav_changed_sources=nav_changed_files,
+                        structural_changed=structural_changed,
+                    )
+                    build_duration = time.time() - build_start
 
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+
+                # Run post-build hooks (e.g., custom notifications, cache warming)
+                # Log but don't fail if post-build hooks fail
+                if not run_post_build_hooks(config, self.site.root_path):
+                    logger.warning("post_build_hook_failed", action="continuing")
 
                 # Show server URL after rebuild for easy access
                 cli.server_url_inline(host=self.host, port=self.port)
@@ -528,6 +656,7 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=stats.parallel,
                     cache_bypass_hits=getattr(stats, "cache_bypass_hits", 0),
                     cache_bypass_misses=getattr(stats, "cache_bypass_misses", 0),
+                    process_isolated=self._use_process_isolation,
                 )
 
                 # Reload decision (prefer source-gated, then builder hints, then output diff)

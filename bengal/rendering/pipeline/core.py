@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.page import Page
+from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.output import (
     determine_output_path,
     determine_template,
@@ -42,7 +43,6 @@ from bengal.rendering.pipeline.transforms import (
     transform_internal_links,
 )
 from bengal.rendering.renderer import Renderer
-from bengal.rendering.template_engine import TemplateEngine
 from bengal.utils.logger import get_logger, truncate_error
 
 logger = get_logger(__name__)
@@ -150,7 +150,7 @@ class RenderingPipeline:
             profile_templates = (
                 getattr(build_context, "profile_templates", False) if build_context else False
             )
-            self.template_engine = TemplateEngine(site, profile_templates=profile_templates)
+            self.template_engine = create_engine(site, profile=profile_templates)
 
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker

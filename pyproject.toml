@@ -47,6 +47,9 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Enhanced dev server with Rust-based file watcher (10-50x faster change detection)
+dev-server = ["watchfiles>=0.20"]
+
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
 github = ["aiohttp>=3.9.0"]

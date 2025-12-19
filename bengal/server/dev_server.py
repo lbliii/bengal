@@ -227,6 +227,10 @@ class DevServer:
             PIDManager.write_pid_file(pid_file)
             rm.register_pidfile(pid_file)
 
+            # 4.5. Register build executor cleanup (for process-isolated builds)
+            # This ensures the executor is properly shut down when the server stops
+            rm.register_build_executor_cleanup()
+
             # 5. Create HTTP server (determines actual port)
             httpd, actual_port = self._create_server()
             rm.register_server(httpd)

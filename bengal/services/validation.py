@@ -42,8 +42,8 @@ class DefaultTemplateValidationService:
     strict: bool = False
 
     def validate(self, site: Any) -> int:
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
         from bengal.rendering.validator import validate_templates
 
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
         return validate_templates(engine)
