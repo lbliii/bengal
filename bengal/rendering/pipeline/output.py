@@ -111,19 +111,37 @@ def write_output(
     # Fast mode skips atomic writes for dev server (PERFORMANCE OPTIMIZATION)
     fast_writes = site.config.get("build", {}).get("fast_writes", False)
 
-    if fast_writes:
-        # Direct write (faster, but not crash-safe)
-        page.output_path.write_text(page.rendered_html, encoding="utf-8")
-    else:
-        # Atomic write (crash-safe, slightly slower)
-        from bengal.utils.atomic_write import atomic_write_text
+    try:
+        if fast_writes:
+            # Direct write (faster, but not crash-safe)
+            page.output_path.write_text(page.rendered_html, encoding="utf-8")
+        else:
+            # Atomic write (crash-safe, slightly slower)
+            from bengal.utils.atomic_write import atomic_write_text
 
-        atomic_write_text(
-            page.output_path,
-            page.rendered_html,
-            encoding="utf-8",
-            ensure_parent=False,  # parent dir already ensured above (cached)
-        )
+            atomic_write_text(
+                page.output_path,
+                page.rendered_html,
+                encoding="utf-8",
+                ensure_parent=False,  # parent dir already ensured above (cached)
+            )
+    except FileNotFoundError:
+        # Robustness fallback: if write fails due to missing parent directory
+        # (can happen if output_dir was cleaned but our thread-safe cache is stale),
+        # force directory creation and retry once.
+        parent_dir.mkdir(parents=True, exist_ok=True)
+
+        if fast_writes:
+            page.output_path.write_text(page.rendered_html, encoding="utf-8")
+        else:
+            from bengal.utils.atomic_write import atomic_write_text
+
+            atomic_write_text(
+                page.output_path,
+                page.rendered_html,
+                encoding="utf-8",
+                ensure_parent=False,
+            )
 
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)

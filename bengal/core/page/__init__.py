@@ -180,7 +180,8 @@ class Page(
         """Initialize computed fields and PageCore."""
         if self.metadata:
             self.tags = self.metadata.get("tags", [])
-            self.version = self.metadata.get("version")
+            # Priority: explicit 'version' frontmatter -> auto-detected '_version' metadata
+            self.version = self.metadata.get("version") or self.metadata.get("_version")
             self.aliases = self.metadata.get("aliases", [])
 
         # Auto-create PageCore from Page fields

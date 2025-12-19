@@ -430,6 +430,12 @@ class Site(
         self._bengal_template_metadata_cache = None
         self._discovery_breakdown_ms = None
         self._asset_manifest_fallbacks_global.clear()
+
+        # Clear thread-local rendering caches (Phase B formalization)
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
+        get_created_dirs().clear()
+
         # Note: Don't reset _asset_manifest_previous (needed for incremental asset comparison)
         # Note: Don't reset _asset_manifest_fallbacks_lock (thread lock should persist)
 

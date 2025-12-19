@@ -162,6 +162,11 @@ class BuildOrchestrator:
         # Start timing
         build_start = time.time()
 
+        # Clear directory creation cache to ensure robustness if output was cleaned
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
+        get_created_dirs().clear()
+
         # Initialize performance collection only if profile enables it
         collector = None
         if profile_config.get("collect_metrics", False):

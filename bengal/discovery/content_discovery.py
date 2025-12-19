@@ -176,9 +176,14 @@ class ContentDiscovery:
             pending_pages: list[Any] = []
             produced_pages: list[Page] = []
             # Skip hidden files and directories
-            if item_path.name.startswith((".", "_")) and item_path.name not in (
-                "_index.md",
-                "_index.markdown",
+            # NOTE: We allow _index.md, and versioning directories (_versions, _shared) if enabled
+            is_versioning_dir = item_path.name in ("_versions", "_shared") and getattr(
+                self.site, "versioning_enabled", False
+            )
+            if (
+                item_path.name.startswith((".", "_"))
+                and item_path.name not in ("_index.md", "_index.markdown")
+                and not is_versioning_dir
             ):
                 return produced_pages
             if item_path.is_file() and self._is_content_file(item_path):
@@ -235,9 +240,14 @@ class ContentDiscovery:
             # Walk top-level items, with i18n-aware handling when enabled
             for item in sorted(self.content_dir.iterdir()):
                 # Skip hidden files and directories
-                if item.name.startswith((".", "_")) and item.name not in (
-                    "_index.md",
-                    "_index.markdown",
+                # NOTE: We allow _index.md, and versioning directories (_versions, _shared) if enabled
+                is_versioning_dir = item.name in ("_versions", "_shared") and getattr(
+                    self.site, "versioning_enabled", False
+                )
+                if (
+                    item.name.startswith((".", "_"))
+                    and item.name not in ("_index.md", "_index.markdown")
+                    and not is_versioning_dir
                 ):
                     continue
 
@@ -467,9 +477,14 @@ class ContentDiscovery:
 
         for item in dir_items:
             # Skip hidden files and directories
-            if item.name.startswith((".", "_")) and item.name not in (
-                "_index.md",
-                "_index.markdown",
+            # NOTE: We allow _index.md, and versioning directories (_versions, _shared) if enabled
+            is_versioning_dir = item.name in ("_versions", "_shared") and getattr(
+                self.site, "versioning_enabled", False
+            )
+            if (
+                item.name.startswith((".", "_"))
+                and item.name not in ("_index.md", "_index.markdown")
+                and not is_versioning_dir
             ):
                 continue
 
@@ -744,6 +759,11 @@ class ContentDiscovery:
                     if page.metadata is None:
                         page.metadata = {}
                     page.metadata["_version"] = version.id
+                    # Set version attribute directly on page for URLStrategy and templates
+                    page.version = version.id
+                    # Also update PageCore if it exists
+                    if page.core:
+                        object.__setattr__(page.core, "version", version.id)
 
             self.logger.debug(
                 "page_created",
