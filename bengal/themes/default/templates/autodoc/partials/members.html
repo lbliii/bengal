@@ -83,30 +83,35 @@ Optional: title (str), member_type (str), first_open (bool, default true)
         {% if member_params %}
         <div class="autodoc-params-section">
           <h5 class="autodoc-params-title">Parameters</h5>
-          <dl class="autodoc-params">
-            {% for param in member_params %}
-            {# Handle both dict and object access patterns #}
-            {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
-            {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
-            {# docstring is the description from parsed docstring #}
-            {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
-            {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
-            <div class="autodoc-param">
-              <dt class="autodoc-param-name">
-                <code>{{ param_name }}</code>
-                {% if param_type_val %}
-                <span class="autodoc-param-type">{{ param_type_val }}</span>
-                {% endif %}
-              </dt>
-              <dd class="autodoc-param-desc">
-                {{ param_desc }}
-                {% if param_default is not none and param_default != '' %}
-                <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-                {% endif %}
-              </dd>
-            </div>
-            {% endfor %}
-          </dl>
+          <table class="autodoc-table autodoc-table--compact" data-table="parameters">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for param in member_params %}
+              {# Handle both dict and object access patterns #}
+              {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+              {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+              {# docstring is the description from parsed docstring #}
+              {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+              {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+              <tr>
+                <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
+                <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
+                <td class="autodoc-cell-desc">
+                  {{ param_desc }}
+                  {% if param_default is not none and param_default != '' %}
+                  <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
         {% endif %}
 
@@ -197,28 +202,33 @@ Optional: title (str), member_type (str), first_open (bool, default true)
           {% if member_params %}
           <div class="autodoc-params-section">
             <h5 class="autodoc-params-title">Parameters</h5>
-            <dl class="autodoc-params">
-              {% for param in member_params %}
-              {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
-              {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
-              {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
-              {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
-              <div class="autodoc-param">
-                <dt class="autodoc-param-name">
-                  <code>{{ param_name }}</code>
-                  {% if param_type_val %}
-                  <span class="autodoc-param-type">{{ param_type_val }}</span>
-                  {% endif %}
-                </dt>
-                <dd class="autodoc-param-desc">
-                  {{ param_desc }}
-                  {% if param_default is not none and param_default != '' %}
-                  <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-                  {% endif %}
-                </dd>
-              </div>
-              {% endfor %}
-            </dl>
+            <table class="autodoc-table autodoc-table--compact" data-table="parameters">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for param in member_params %}
+                {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
+                {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
+                {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
+                {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+                <tr>
+                  <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
+                  <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
+                  <td class="autodoc-cell-desc">
+                    {{ param_desc }}
+                    {% if param_default is not none and param_default != '' %}
+                    <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
           {% endif %}
         </div>

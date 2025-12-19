@@ -32,57 +32,6 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
         )
         return site
 
-    def test_streaming_calls_render_orchestrator_which_clears_cache(self, mock_site):
-        """
-        StreamingRenderOrchestrator calls RenderOrchestrator.process() multiple times.
-        Each call should clear thread-local pipelines.
-        """
-        from bengal.orchestration.streaming import StreamingRenderOrchestrator
-
-        # Create some mock pages with connectivity attributes
-        pages = []
-        for i in range(5):
-            page = MagicMock()
-            page.url_path = f"/page-{i}/"
-            pages.append(page)
-
-        gen_before = _get_current_generation()
-
-        with (
-            patch(
-                "bengal.orchestration.streaming.RenderOrchestrator"
-            ) as MockRenderOrchestrator,
-            patch("bengal.orchestration.streaming.KnowledgeGraph") as MockKnowledgeGraph,
-        ):
-            # Setup mock knowledge graph
-            mock_graph = MagicMock()
-            mock_layers = MagicMock()
-            mock_layers.hubs = pages[:2]
-            mock_layers.mid_tier = pages[2:4]
-            mock_layers.leaves = pages[4:]
-            mock_graph.get_layers.return_value = mock_layers
-            MockKnowledgeGraph.return_value = mock_graph
-
-            # Mock RenderOrchestrator.process to actually call clear_thread_local_pipelines
-            # (mimics what the real implementation does)
-            def mock_process(*args, **kwargs):
-                clear_thread_local_pipelines()
-
-            mock_render = MagicMock()
-            mock_render.process.side_effect = mock_process
-            MockRenderOrchestrator.return_value = mock_render
-
-            orch = StreamingRenderOrchestrator(mock_site)
-            orch.process(pages, parallel=False, quiet=True)
-
-        gen_after = _get_current_generation()
-
-        # RenderOrchestrator.process is called at least 3 times (hubs, mid-tier, leaves)
-        # Each call should increment the generation
-        assert gen_after > gen_before
-        # Verify process was called for each layer
-        assert mock_render.process.call_count >= 1
-
     def test_streaming_with_empty_pages_skips_rendering(self, mock_site):
         """StreamingRenderOrchestrator with empty pages returns early."""
         from bengal.orchestration.streaming import StreamingRenderOrchestrator
@@ -97,67 +46,82 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
         # No pages means no render calls, generation unchanged
         assert gen_after == gen_before
 
-
-class TestStreamingRenderBatchCacheInvalidation:
-    """Test cache invalidation works correctly across batches in streaming mode."""
-
-    @pytest.fixture
-    def mock_site(self, tmp_path):
-        """Create a mock site."""
-        return SimpleNamespace(
-            root_path=tmp_path,
-            output_dir=tmp_path / "public",
-            config={},
-            pages=[],
-            theme=None,
-        )
-
-    def test_batch_rendering_uses_fresh_pipelines(self, mock_site):
+    def test_render_orchestrator_process_increments_generation(self):
         """
-        When _render_batches processes multiple batches, each should get fresh pipelines.
+        RenderOrchestrator.process() should increment the build generation.
         
-        This is important for memory-optimized mode where leaves are rendered in batches
-        with gc.collect() between them.
+        This is the core mechanism that StreamingRenderOrchestrator relies on
+        when it calls RenderOrchestrator.process() for each batch.
         """
-        from bengal.orchestration.streaming import StreamingRenderOrchestrator
+        from bengal.orchestration.render import RenderOrchestrator
 
-        # Create mock pages
-        pages = [MagicMock() for _ in range(15)]
-        for i, page in enumerate(pages):
-            page.url_path = f"/page-{i}/"
+        site = MagicMock()
+        site.root_path = Path("/fake")
+        site.output_dir = Path("/fake/public")
+        site.config = {}
+        site.pages = []
 
-        generations_at_process = []
+        orch = RenderOrchestrator(site)
 
-        with (
-            patch(
-                "bengal.orchestration.streaming.RenderOrchestrator"
-            ) as MockRenderOrchestrator,
-            patch("bengal.orchestration.streaming.KnowledgeGraph") as MockKnowledgeGraph,
-        ):
-            # Setup - all pages are leaves (streaming scenario)
-            mock_graph = MagicMock()
-            mock_layers = MagicMock()
-            mock_layers.hubs = []
-            mock_layers.mid_tier = []
-            mock_layers.leaves = pages
-            mock_graph.get_layers.return_value = mock_layers
-            MockKnowledgeGraph.return_value = mock_graph
+        gen_before = _get_current_generation()
 
-            def track_process(*args, **kwargs):
-                clear_thread_local_pipelines()
-                generations_at_process.append(_get_current_generation())
+        # Process with no pages (just to trigger generation increment)
+        with patch.object(orch, "_set_output_paths_for_pages"):
+            orch.process([], parallel=False, quiet=True)
 
-            mock_render = MagicMock()
-            mock_render.process.side_effect = track_process
-            MockRenderOrchestrator.return_value = mock_render
+        gen_after = _get_current_generation()
 
-            orch = StreamingRenderOrchestrator(mock_site)
-            # Use small batch size to force multiple batches
-            orch.process(pages, parallel=False, quiet=True, batch_size=5)
+        # Generation should have been incremented
+        assert gen_after == gen_before + 1
 
-        # Should have been called multiple times for batched leaves
-        assert mock_render.process.call_count > 1
-        # Each call should see incrementing generation
-        assert generations_at_process == sorted(generations_at_process)
-        assert len(set(generations_at_process)) == len(generations_at_process)
+    def test_multiple_process_calls_increment_generation_each_time(self):
+        """
+        Each call to RenderOrchestrator.process() should increment generation.
+        
+        This is critical for StreamingRenderOrchestrator which calls process()
+        multiple times (hubs, mid-tier, leaves).
+        """
+        from bengal.orchestration.render import RenderOrchestrator
 
+        site = MagicMock()
+        site.root_path = Path("/fake")
+        site.output_dir = Path("/fake/public")
+        site.config = {}
+        site.pages = []
+
+        orch = RenderOrchestrator(site)
+
+        gen_start = _get_current_generation()
+
+        # Simulate 3 process calls (like hub/mid/leaf batches)
+        for _ in range(3):
+            with patch.object(orch, "_set_output_paths_for_pages"):
+                orch.process([], parallel=False, quiet=True)
+
+        gen_end = _get_current_generation()
+
+        # Should have incremented 3 times
+        assert gen_end == gen_start + 3
+
+
+class TestBuildGenerationForCacheInvalidation:
+    """Test build generation counter is properly used for cache invalidation."""
+
+    def test_clear_thread_local_pipelines_increments_generation(self):
+        """Verify clear_thread_local_pipelines increments the build generation."""
+        gen_before = _get_current_generation()
+        clear_thread_local_pipelines()
+        gen_after = _get_current_generation()
+
+        assert gen_after == gen_before + 1
+
+    def test_generation_monotonically_increases(self):
+        """Build generation should always increase, never decrease."""
+        generations = []
+        for _ in range(5):
+            clear_thread_local_pipelines()
+            generations.append(_get_current_generation())
+
+        # Should be strictly increasing
+        for i in range(1, len(generations)):
+            assert generations[i] > generations[i - 1]

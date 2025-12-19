@@ -287,6 +287,22 @@ article[data-autodoc] > p:first-of-type,
   background: var(--autodoc-bg-hover);
 }
 
+/* Compact table variant for nested contexts */
+.autodoc-table--compact {
+  font-size: var(--text-xs);
+}
+
+.autodoc-table--compact th,
+.autodoc-table--compact td {
+  padding: var(--space-2);
+}
+
+.autodoc-table--compact th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .autodoc-cell-name {
   font-family: var(--autodoc-font-mono);
   font-weight: var(--weight-medium);
@@ -570,7 +586,8 @@ tr[data-required="true"] .autodoc-cell-name::after {
   margin-left: var(--space-1);
 }
 
-.autodoc-member[open] .autodoc-member-toggle {
+/* Only rotate the toggle that belongs to THIS details, not nested ones */
+.autodoc-member[open] > .autodoc-member-header .autodoc-member-toggle {
   transform: rotate(180deg);
 }
 
@@ -694,7 +711,7 @@ tr[data-required="true"] .autodoc-cell-name::after {
   background: var(--color-bg-primary);
 }
 
-.autodoc-internal-methods[open] .autodoc-member-toggle {
+.autodoc-internal-methods[open] > .autodoc-internal-methods-header .autodoc-member-toggle {
   transform: rotate(180deg);
 }
 

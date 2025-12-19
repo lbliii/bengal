@@ -26,10 +26,12 @@ class TestBytecodeaCacheDevMode:
         site.output_dir.mkdir(parents=True)
         site.config = {"dev_server": False, "cache_templates": True}
         site.theme = None
+        site.theme_config = {}
 
         # Create paths mock
         paths = MagicMock()
         paths.templates_dir = tmp_path / ".bengal-cache" / "templates"
+        paths.templates_dir.mkdir(parents=True, exist_ok=True)
         site.paths = paths
 
         return site
@@ -43,10 +45,12 @@ class TestBytecodeaCacheDevMode:
         site.output_dir.mkdir(parents=True)
         site.config = {"dev_server": True, "cache_templates": True}
         site.theme = None
+        site.theme_config = {}
 
         # Create paths mock
         paths = MagicMock()
         paths.templates_dir = tmp_path / ".bengal-cache" / "templates"
+        paths.templates_dir.mkdir(parents=True, exist_ok=True)
         site.paths = paths
 
         return site
@@ -64,7 +68,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
@@ -84,7 +88,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
@@ -104,7 +108,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
@@ -124,7 +128,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
@@ -145,8 +149,10 @@ class TestTemplateDirsCacheDevMode:
         site.output_dir = tmp_path / "public"
         site.output_dir.mkdir(parents=True)
         site.theme = None
+        site.theme_config = {}
         site.paths = MagicMock()
         site.paths.templates_dir = tmp_path / ".bengal-cache" / "templates"
+        site.paths.templates_dir.mkdir(parents=True, exist_ok=True)
         return site
 
     def test_template_dirs_not_cached_in_dev_mode(self, mock_site):
@@ -167,7 +173,7 @@ class TestTemplateDirsCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
@@ -199,7 +205,7 @@ class TestTemplateDirsCacheDevMode:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
@@ -222,9 +228,11 @@ class TestConfigChangeTriggersCacheInvalidation:
         site1.output_dir = tmp_path / "public"
         site1.output_dir.mkdir(parents=True)
         site1.theme = "theme-a"
+        site1.theme_config = {}
         site1.config = {"dev_server": False, "cache_templates": True}
         site1.paths = MagicMock()
         site1.paths.templates_dir = tmp_path / ".cache" / "templates"
+        site1.paths.templates_dir.mkdir(parents=True, exist_ok=True)
 
         # Cache with theme-a
         cached_dir_a = str(tmp_path / "templates-a")
@@ -239,7 +247,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         mock_engine = MagicMock()
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env1, dirs1 = create_jinja_environment(
                 site1, mock_engine, profile_templates=False
@@ -253,6 +261,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         site2.root_path = tmp_path
         site2.output_dir = tmp_path / "public"
         site2.theme = "theme-b"
+        site2.theme_config = {}
         site2.config = {"dev_server": False, "cache_templates": True}
         site2.paths = MagicMock()
         site2.paths.templates_dir = tmp_path / ".cache" / "templates"
@@ -264,7 +273,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         }
 
         with patch(
-            "bengal.rendering.template_engine.environment.register_all_functions"
+            "bengal.rendering.template_engine.environment.register_all"
         ):
             env2, dirs2 = create_jinja_environment(
                 site2, mock_engine, profile_templates=False
@@ -274,4 +283,3 @@ class TestConfigChangeTriggersCacheInvalidation:
         # (The actual template dirs will be computed fresh)
         # We can verify by checking the cache wasn't used - cached_dir_a shouldn't
         # necessarily appear unless it's a valid default location
-
