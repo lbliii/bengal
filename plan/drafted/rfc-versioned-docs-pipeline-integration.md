@@ -48,58 +48,76 @@ These gaps cause:
 
 ## Current State Analysis
 
-### Evidence: Incremental Build (Gap 1)
+### Verified Infrastructure
+
+The versioning infrastructure is already in place:
+- `site.versioning_enabled` — `bengal/core/site/properties.py:215`
+- `site.version_config` — `bengal/core/site/core.py:244`  
+- `VersionResolver.get_shared_content_paths()` — `bengal/discovery/version_resolver.py:168`
+
+### Evidence: Incremental Build (Gap 1) ✅ VERIFIED
 
 ```python
-# bengal/orchestration/incremental.py:find_work()
+# bengal/orchestration/incremental.py:482-620 (find_work_early method)
 
-# Current behavior: Only checks if individual files changed
-for page in pages_to_check:
-    if self.cache.is_changed(page.source_path):
-        pages_to_rebuild.add(page.source_path)
+# Current cascade methods:
+# - _apply_cascade_rebuilds() - section metadata changes
+# - _apply_nav_frontmatter_section_rebuilds() - nav frontmatter
+# - _apply_adjacent_navigation_rebuilds() - prev/next links
 
-# Missing: No cascade logic for _shared/ content
+# MISSING: No cascade logic for _shared/ content
+# VersionResolver.get_shared_content_paths() exists but is NOT used here
 ```
 
 **Impact**: When editing `_shared/changelog.md`, only that file is marked for rebuild. Pages in v1, v2, v3 that include shared content are NOT rebuilt.
 
-### Evidence: Build Trigger (Gap 2)
+### Evidence: Build Trigger (Gap 2) ✅ VERIFIED
 
 ```python
-# bengal/server/build_trigger.py:_needs_full_rebuild()
+# bengal/server/build_trigger.py:226-265 (_needs_full_rebuild method)
 
-def _needs_full_rebuild(self, changed_paths, event_types):
-    # Checks: structural changes, templates, autodoc, SVG icons
-    # Missing: Version-aware logic
+def _needs_full_rebuild(self, changed_paths, event_types) -> bool:
+    # Current checks:
+    # - Structural changes (created/deleted/moved)
+    # - Template changes (.html in templates/themes)
+    # - Autodoc source changes (.py, OpenAPI specs)
+    # - SVG icon changes (inlined in HTML)
 
+    # MISSING: Version-aware logic
     # No distinction between:
     # - _versions/v2/docs/guide.md (should only rebuild v2)
     # - _shared/changelog.md (should rebuild ALL versions)
     # - docs/guide.md (should rebuild latest)
 ```
 
-### Evidence: Cross-Version Links (Gap 3)
+### Evidence: Cross-Version Links (Gap 3) ✅ VERIFIED
 
 ```python
-# bengal/rendering/pipeline/core.py
+# bengal/rendering/pipeline/core.py:140-143
 
-# Parser enables cross-references:
 version_config = getattr(site, "version_config", None)
 self.parser.enable_cross_references(site.xref_index, version_config)
 
-# But no dependency tracking for [[v2:path]] links
-# If v2/path changes or is deleted, linking page won't rebuild
+# bengal/cache/dependency_tracker.py - DependencyTracker class
+# Has: track_template, track_partial, track_config, track_asset, track_taxonomy
+# MISSING: track_cross_version_link()
 ```
 
-### Evidence: Watcher (Gap 4)
+**Impact**: If v2/path changes or is deleted, pages linking via `[[v2:path]]` won't rebuild.
+
+### Evidence: Version Config Changes (Gap 4) ✅ VERIFIED
 
 ```python
-# bengal/server/watcher_runner.py
+# bengal/server/dev_server.py:323-397 (_get_watched_directories method)
 
-# Watches: [content, templates, themes, assets]
-# If _versions/ is inside content/, it's covered
-# But _shared/ handling is not special-cased
+# Watches: content/, assets/, templates/, data/, static/, i18n/, themes/
+# content/ includes _versions/ and _shared/ (files ARE watched)
+
+# MISSING: versioning.yaml is NOT explicitly detected
+# Changes to version config (adding/removing versions) need explicit handling
 ```
+
+**Clarification**: Files in `_shared/` and `_versions/` ARE already watched (they're under `content/`). The gap is **semantic version-awareness** in the build trigger, not watcher coverage.
 
 ---
 
@@ -256,37 +274,34 @@ class CrossReferenceProcessor:
         # ... existing link resolution ...
 ```
 
-### A4. Explicit Watcher Paths
+### A4. Version Config Change Detection
+
+Detect changes to `versioning.yaml` and trigger appropriate rebuilds:
 
 ```python
-# bengal/server/dev_server.py (or wherever watcher is configured)
+# bengal/server/build_trigger.py
 
-def _get_watch_paths(self) -> list[Path]:
-    """Get paths to watch for changes."""
-    paths = [
-        self.site.content_dir,
-        self.site.root_path / "templates",
-        self.site.root_path / "themes",
-        self.site.root_path / "assets",
-    ]
+def _needs_full_rebuild(self, changed_paths, event_types) -> bool:
+    # ... existing checks ...
 
-    # NEW: Explicitly add versioning directories
-    if self.site.versioning_enabled:
-        version_config = self.site.version_config
+    # NEW: Check for version config changes (forces full rebuild)
+    if self._is_version_config_change(changed_paths):
+        logger.debug("full_rebuild_triggered_by_version_config")
+        return True
 
-        # Add _versions/ directory
-        versions_dir = self.site.content_dir / "_versions"
-        if versions_dir.exists():
-            paths.append(versions_dir)
+    return False
 
-        # Add _shared/ directories
-        for shared_path in version_config.shared:
-            shared_dir = self.site.content_dir / shared_path
-            if shared_dir.exists():
-                paths.append(shared_dir)
-
-    return [p for p in paths if p.exists()]
+def _is_version_config_change(self, changed_paths: set[Path]) -> bool:
+    """Check if versioning config changed (requires full rebuild)."""
+    for path in changed_paths:
+        path_str = str(path).replace("\\", "/")
+        # Check for versioning.yaml in config directories
+        if path.name == "versioning.yaml" or "config/" in path_str and "version" in path_str:
+            return True
+    return False
 ```
+
+**Note**: Watcher paths already cover `_shared/` and `_versions/` since they're under `content/`. No watcher changes needed.
 
 ---
 
@@ -367,6 +382,45 @@ class BuildRequest:
     version_scope: list[str] | None = None  # NEW: Only rebuild these versions
 ```
 
+### B4. BuildExecutor Subprocess Integration
+
+The `version_scope` must propagate through the subprocess boundary:
+
+```python
+# bengal/server/build_executor.py
+
+def _build_subprocess(self, request: BuildRequest) -> BuildResult:
+    """Execute build in subprocess."""
+    # Serialize version_scope to subprocess args
+    args = [
+        sys.executable, "-m", "bengal.server.build_worker",
+        "--site-root", request.site_root,
+        "--incremental" if request.incremental else "--full",
+    ]
+
+    # NEW: Pass version scope to subprocess
+    if request.version_scope:
+        args.extend(["--version-scope", ",".join(request.version_scope)])
+
+    # ... subprocess execution ...
+```
+
+```python
+# bengal/server/build_worker.py (subprocess entry point)
+
+def run_build(args: argparse.Namespace) -> BuildResult:
+    """Execute build with version scope filtering."""
+    site = Site.from_config(Path(args.site_root))
+
+    # NEW: Apply version scope filter
+    if args.version_scope:
+        version_ids = args.version_scope.split(",")
+        # Filter pages to only include specified versions
+        site.pages = [p for p in site.pages if p.version in version_ids or p.version is None]
+
+    # ... continue with build ...
+```
+
 ---
 
 ## Recommendation
@@ -392,10 +446,13 @@ class BuildRequest:
 | 1.1 Add `_check_shared_content_changes()` | `orchestration/incremental.py` | 2h |
 | 1.2 Add `_is_shared_content_change()` to build trigger | `server/build_trigger.py` | 1h |
 | 1.3 Add `_get_affected_versions()` to build trigger | `server/build_trigger.py` | 2h |
-| 1.4 Update watcher paths for versioning | `server/dev_server.py` | 1h |
+| 1.4 Add `_is_version_config_change()` to build trigger | `server/build_trigger.py` | 1h |
 | 1.5 Add integration tests | `tests/integration/test_versioned_builds.py` | 3h |
+| 1.6 Add test root `test-versioned` | `tests/roots/test-versioned/` | 1h |
 
-**Total Phase 1**: ~9 hours
+**Total Phase 1**: ~10 hours
+
+**Note**: Watcher paths already cover `_shared/` and `_versions/` (under `content/`), so no watcher changes needed.
 
 ### Phase 2: Dependencies (P2)
 
@@ -471,6 +528,7 @@ def test_incremental_build_with_shared_content(site, build_site):
 | Missed cascades (stale content) | High | Comprehensive testing, fallback to full rebuild |
 | Performance regression | Medium | Cache affected versions, lazy evaluation |
 | Backward compatibility | Low | All changes gated on `versioning_enabled` |
+| Subprocess version_scope serialization | Medium | Comprehensive integration tests, validate round-trip |
 
 ---
 
@@ -479,8 +537,9 @@ def test_incremental_build_with_shared_content(site, build_site):
 - [ ] `_shared/` content changes trigger rebuilds for all versioned pages
 - [ ] Changes to `_versions/v2/` only rebuild v2
 - [ ] Dev server correctly detects version-affecting changes
+- [ ] `versioning.yaml` changes trigger full rebuild
 - [ ] Cross-version links tracked as dependencies (Phase 2)
-- [ ] All tests pass with versioned test root
+- [ ] All tests pass with versioned test root (`test-versioned`)
 - [ ] No performance regression for non-versioned sites
 
 ---
@@ -495,15 +554,28 @@ def test_incremental_build_with_shared_content(site, build_site):
    - If `_versions/v1/` is deleted, what happens?
    - Should trigger full rebuild of navigation/version selector
 
-3. **Cache invalidation for version config changes?**
-   - If `versioning.yaml` changes, full rebuild needed
-   - Should be detected and handled explicitly
+~~3. **Cache invalidation for version config changes?**~~ → **RESOLVED: Added to Phase 1 (Task 1.4)**
 
 ---
 
 ## References
 
+### Related Documents
 - [RFC: Versioned Documentation](plan/drafted/rfc-versioned-documentation.md)
-- [Incremental Build System](bengal/orchestration/incremental.py)
-- [Build Trigger](bengal/server/build_trigger.py)
-- [Dependency Tracker](bengal/cache/dependency_tracker.py)
+
+### Verified Code Locations
+| Component | File | Key Methods/Lines |
+|-----------|------|-------------------|
+| Incremental Build | `bengal/orchestration/incremental.py` | `find_work_early()` (L482-620), `_apply_cascade_rebuilds()` |
+| Build Trigger | `bengal/server/build_trigger.py` | `_needs_full_rebuild()` (L226-265), `_execute_build()` |
+| Dependency Tracker | `bengal/cache/dependency_tracker.py` | `DependencyTracker` class |
+| Version Resolver | `bengal/discovery/version_resolver.py` | `get_shared_content_paths()` (L168), `resolve_cross_version_link()` (L210) |
+| Site Properties | `bengal/core/site/properties.py` | `versioning_enabled` (L215) |
+| Dev Server Watcher | `bengal/server/dev_server.py` | `_get_watched_directories()` (L323-397) |
+| Cross-Reference Parser | `bengal/rendering/parsers/mistune.py` | `enable_cross_references()` (L637) |
+
+### Test Infrastructure
+| Component | File |
+|-----------|------|
+| Versioning Tests | `tests/unit/test_versioning.py` |
+| Test Root (needed) | `tests/roots/test-versioned/` |
