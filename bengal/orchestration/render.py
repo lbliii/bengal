@@ -513,11 +513,19 @@ class RenderOrchestrator:
         update_interval = 0.1  # Update every 100ms (10 Hz max)
         batch_size = 10  # Or every 10 pages, whichever comes first
 
+        # Capture current generation for staleness check
+        current_gen = _get_current_generation()
+
         def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
-            if not hasattr(_thread_local, "pipeline"):
+            # Check if pipeline exists AND is from current build generation.
+            needs_new_pipeline = (
+                not hasattr(_thread_local, "pipeline")
+                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            )
+            if needs_new_pipeline:
                 # When using progress manager, suppress individual page output
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
@@ -526,6 +534,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     changed_sources=changed_sources,
                 )
+                _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
             # Pre-compute current_item outside lock (PERFORMANCE OPTIMIZATION)
@@ -609,9 +618,17 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
+        # Capture current generation for staleness check
+        current_gen = _get_current_generation()
+
         def process_page_with_pipeline(page: Page) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            if not hasattr(_thread_local, "pipeline"):
+            # Check if pipeline exists AND is from current build generation.
+            needs_new_pipeline = (
+                not hasattr(_thread_local, "pipeline")
+                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            )
+            if needs_new_pipeline:
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     tracker,
@@ -620,6 +637,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                 )
+                _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
         with Progress(
