@@ -444,17 +444,27 @@ class IncrementalOrchestrator:
         if not self.cache:
             return False
 
-        # Check if versioning is enabled
-        if not getattr(self.site, "versioning_enabled", False):
+        # Check if versioning is enabled (must be explicitly True, not a Mock)
+        versioning_enabled = getattr(self.site, "versioning_enabled", False)
+        if versioning_enabled is not True:
             return False
 
         version_config = getattr(self.site, "version_config", None)
-        if not version_config or not version_config.enabled:
+        if not version_config:
+            return False
+
+        # Check version_config.enabled and shared are properly set
+        if not getattr(version_config, "enabled", False) is True:
+            return False
+
+        shared_paths = getattr(version_config, "shared", None)
+        if not shared_paths or not isinstance(shared_paths, (list, tuple, set)):
             return False
 
         # Check each shared directory
-        for shared_path in version_config.shared:
-            shared_dir = self.site.content_dir / shared_path
+        content_dir = self.site.root_path / "content"
+        for shared_path in shared_paths:
+            shared_dir = content_dir / shared_path
             if not shared_dir.exists():
                 continue
 
@@ -464,7 +474,7 @@ class IncrementalOrchestrator:
                 if file_path in forced_changed or self.cache.is_changed(file_path):
                     logger.info(
                         "shared_content_changed",
-                        file=str(file_path.relative_to(self.site.content_dir)),
+                        file=str(file_path.relative_to(content_dir)),
                         action="cascade_to_all_versions",
                     )
                     return True
