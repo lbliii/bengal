@@ -21,8 +21,10 @@ Note: URLs are built from config output_prefix settings when available.
 {# Get output prefixes from config, with sensible defaults #}
 {% set cli_config = config.cli if config is defined and config.cli is defined else none %}
 {% set python_config = config.python if config is defined and config.python is defined else none %}
-{% set cli_prefix = (cli_config.output_prefix if cli_config is not none and cli_config.output_prefix else 'cli') | trim('/') %}
-{% set python_prefix = (python_config.output_prefix if python_config is not none and python_config.output_prefix else 'api') | trim('/') %}
+{% set cli_prefix = (cli_config.output_prefix if cli_config is not none and cli_config.output_prefix else 'cli') |
+trim('/') %}
+{% set python_prefix = (python_config.output_prefix if python_config is not none and python_config.output_prefix else
+'api') | trim('/') %}
 {# Build URL based on element type - match project patterns #}
 {% if child.url %}
 {% set child_url = child.url %}
