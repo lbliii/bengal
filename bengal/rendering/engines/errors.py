@@ -28,6 +28,7 @@ class TemplateError:
     line: int | None = None
     column: int | None = None
     path: Path | None = None
+    original_exception: Exception | None = None  # Original exception for type checking
 
     def __str__(self) -> str:
         loc = f":{self.line}" if self.line else ""

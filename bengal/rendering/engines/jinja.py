@@ -301,6 +301,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                             line=e.lineno,
                             message=str(e),
                             path=file,
+                            original_exception=e,
                         )
                     )
                 except Exception:
@@ -335,18 +336,16 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         from bengal.rendering.errors import TemplateRenderError as LegacyError
 
         errors = self.validate(include_patterns)
-        # Convert to legacy error format
+        # Convert to legacy error format using the from_jinja2_error factory
         legacy_errors: list[Any] = []
         for err in errors:
-            legacy_errors.append(
-                LegacyError(
-                    template_name=err.template,
-                    line_number=err.line,
-                    message=err.message,
-                    source_path=err.path,
-                    template_engine=self,
-                )
-            )
+            # Use the original exception if available, otherwise create a minimal one
+            exc = err.original_exception
+            if exc is None:
+                # Fallback: create a TemplateSyntaxError-like exception
+                exc = TemplateSyntaxError(err.message, lineno=err.line)
+            legacy_error = LegacyError.from_jinja2_error(exc, err.template, err.path, self)
+            legacy_errors.append(legacy_error)
         return legacy_errors
 
     def _find_template_path(self, template_name: str) -> Path | None:

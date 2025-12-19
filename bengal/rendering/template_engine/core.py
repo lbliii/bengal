@@ -224,6 +224,9 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
             )
             raise
 
+    # Protocol-compatible alias
+    render_template = render
+
     def _track_referenced_templates(self, template_name: str) -> None:
         """
         Track referenced templates (extends/include/import) as dependencies.
@@ -378,6 +381,9 @@ class TemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
         if self._template_path_cache_enabled:
             self._template_path_cache[template_name] = found
         return found
+
+    # Protocol-compatible alias
+    get_template_path = _find_template_path
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """

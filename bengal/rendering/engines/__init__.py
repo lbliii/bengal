@@ -73,9 +73,11 @@ def create_engine(
     engine_name = site.config.get("template_engine", "jinja2")
 
     if engine_name == "jinja2":
-        from bengal.rendering.engines.jinja import JinjaTemplateEngine
+        # Use the existing TemplateEngine from core.py
+        # (engines/jinja.py exists for future refactoring but isn't used yet)
+        from bengal.rendering.template_engine.core import TemplateEngine
 
-        return JinjaTemplateEngine(site, profile=profile)
+        return TemplateEngine(site, profile_templates=profile)
 
     if engine_name == "mako":
         try:

@@ -6,14 +6,15 @@ for a smooth development experience.
 
 Components:
 - DevServer: Main development server with HTTP serving and file watching
-- BuildHandler: File system event handler for triggering rebuilds
+- WatcherRunner: Async-to-sync bridge for FileWatcher
+- BuildTrigger: Build execution handler with pre/post hooks
+- BuildExecutor: Process-isolated build execution for resilience
+- FileWatcher: Abstraction for file watching backends (watchfiles + watchdog)
+- IgnoreFilter: Configurable file ignore patterns (glob + regex)
 - LiveReloadMixin: Server-Sent Events (SSE) for browser hot reload
 - RequestHandler: Custom HTTP request handler with beautiful logging
 - ResourceManager: Graceful cleanup of server resources on shutdown
 - PIDManager: Process tracking and stale process recovery
-- IgnoreFilter: Configurable file ignore patterns (glob + regex)
-- BuildExecutor: Process-isolated build execution for resilience
-- FileWatcher: Abstraction for file watching backends (watchfiles + watchdog)
 
 Features:
 - Automatic incremental rebuilds on file changes
@@ -68,17 +69,21 @@ if TYPE_CHECKING:
     from bengal.server.build_executor import BuildExecutor as BuildExecutor
     from bengal.server.build_executor import BuildRequest as BuildRequest
     from bengal.server.build_executor import BuildResult as BuildResult
+    from bengal.server.build_trigger import BuildTrigger as BuildTrigger
     from bengal.server.dev_server import DevServer as DevServer
     from bengal.server.file_watcher import FileWatcher as FileWatcher
     from bengal.server.ignore_filter import IgnoreFilter as IgnoreFilter
+    from bengal.server.watcher_runner import WatcherRunner as WatcherRunner
 
 __all__ = [
     "DevServer",
-    "IgnoreFilter",
+    "WatcherRunner",
+    "BuildTrigger",
     "BuildExecutor",
     "BuildRequest",
     "BuildResult",
     "FileWatcher",
+    "IgnoreFilter",
 ]
 
 
@@ -103,10 +108,14 @@ def __getattr__(name: str) -> Any:
         from bengal.server.dev_server import DevServer
 
         return DevServer
-    if name == "IgnoreFilter":
-        from bengal.server.ignore_filter import IgnoreFilter
+    if name == "WatcherRunner":
+        from bengal.server.watcher_runner import WatcherRunner
 
-        return IgnoreFilter
+        return WatcherRunner
+    if name == "BuildTrigger":
+        from bengal.server.build_trigger import BuildTrigger
+
+        return BuildTrigger
     if name in ("BuildExecutor", "BuildRequest", "BuildResult"):
         from bengal.server import build_executor
 
@@ -115,4 +124,8 @@ def __getattr__(name: str) -> Any:
         from bengal.server.file_watcher import FileWatcher
 
         return FileWatcher
+    if name == "IgnoreFilter":
+        from bengal.server.ignore_filter import IgnoreFilter
+
+        return IgnoreFilter
     raise AttributeError(f"module 'bengal.server' has no attribute {name!r}")

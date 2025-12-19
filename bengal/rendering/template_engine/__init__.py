@@ -25,15 +25,10 @@ Related Modules:
 
 from __future__ import annotations
 
-# Re-export from new engines package for backward compatibility
-from bengal.rendering.engines import create_engine
-from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-# Legacy alias: TemplateEngine points to JinjaTemplateEngine
-TemplateEngine = JinjaTemplateEngine
+# Import from legacy core.py to avoid circular import
+# (engines/jinja.py imports from template_engine submodules)
+from bengal.rendering.template_engine.core import TemplateEngine
 
 __all__ = [
-    "TemplateEngine",  # Legacy alias
-    "JinjaTemplateEngine",  # Explicit Jinja2 engine
-    "create_engine",  # Factory function
+    "TemplateEngine",
 ]

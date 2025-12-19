@@ -200,10 +200,10 @@ class RenderingValidator(BaseValidator):
 
         try:
             # Import template engine to check registered functions
-            from bengal.rendering.engines import create_engine
+            from bengal.rendering.template_engine import TemplateEngine
 
             # Create a temporary engine instance
-            engine = create_engine(site)
+            engine = TemplateEngine(site)
 
             # Check which functions are registered
             registered = engine.env.filters.keys()

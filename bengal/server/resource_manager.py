@@ -149,28 +149,51 @@ class ResourceManager:
         self.register("PID File", pidfile_path, cleanup)
         return pidfile_path
 
-    def register_build_executor_cleanup(self) -> None:
+    def register_watcher_runner(self, runner: Any) -> Any:
         """
-        Register build executor shutdown for cleanup.
+        Register WatcherRunner for cleanup.
 
-        This registers a cleanup callback for the shared BuildExecutor instance
-        used by the dev server. It ensures the executor is properly shut down
-        when the server stops.
+        Args:
+            runner: WatcherRunner instance
+
+        Returns:
+            The runner
         """
 
-        def cleanup(_: None) -> None:
+        def cleanup(r: Any) -> None:
             try:
-                from bengal.server.build_handler import shutdown_build_executor
-
-                shutdown_build_executor()
+                r.stop()
             except Exception as e:
                 logger.debug(
-                    "build_executor_cleanup_failed",
+                    "watcher_runner_cleanup_failed",
                     error=str(e),
                     error_type=type(e).__name__,
                 )
 
-        self.register("Build Executor", None, cleanup)
+        return self.register("Watcher Runner", runner, cleanup)
+
+    def register_build_trigger(self, trigger: Any) -> Any:
+        """
+        Register BuildTrigger for cleanup.
+
+        Args:
+            trigger: BuildTrigger instance
+
+        Returns:
+            The trigger
+        """
+
+        def cleanup(t: Any) -> None:
+            try:
+                t.shutdown()
+            except Exception as e:
+                logger.debug(
+                    "build_trigger_cleanup_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        return self.register("Build Trigger", trigger, cleanup)
 
     def cleanup(self, signum: int | None = None) -> None:
         """
