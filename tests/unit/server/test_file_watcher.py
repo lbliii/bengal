@@ -200,3 +200,118 @@ class TestWatcherEdgeCases:
 
             # Should always work (either watchdog or watchfiles)
             assert watcher is not None
+
+
+class TestWatchdogEventTypes:
+    """Tests for WatchdogWatcher event type tracking."""
+
+    def test_initializes_empty_event_types(self, tmp_path: Path) -> None:
+        """Test that WatchdogWatcher initializes with empty event types set."""
+        watcher = WatchdogWatcher(
+            paths=[tmp_path],
+            ignore_filter=_noop_filter,
+        )
+
+        assert watcher._event_types == set()
+
+    def test_handler_captures_event_types(self, tmp_path: Path) -> None:
+        """Test that the event handler captures event types correctly."""
+        watcher = WatchdogWatcher(
+            paths=[tmp_path],
+            ignore_filter=_noop_filter,
+        )
+
+        handler = watcher._create_handler()
+
+        # Simulate a 'created' event
+        class MockEvent:
+            is_directory = False
+            src_path = str(tmp_path / "test.md")
+            event_type = "created"
+
+        handler.on_any_event(MockEvent())
+
+        assert tmp_path / "test.md" in watcher._changes
+        assert "created" in watcher._event_types
+
+    def test_handler_captures_multiple_event_types(self, tmp_path: Path) -> None:
+        """Test that multiple event types are accumulated."""
+        watcher = WatchdogWatcher(
+            paths=[tmp_path],
+            ignore_filter=_noop_filter,
+        )
+
+        handler = watcher._create_handler()
+
+        # Simulate multiple events with different types
+        class MockCreatedEvent:
+            is_directory = False
+            src_path = str(tmp_path / "new.md")
+            event_type = "created"
+
+        class MockModifiedEvent:
+            is_directory = False
+            src_path = str(tmp_path / "existing.md")
+            event_type = "modified"
+
+        class MockDeletedEvent:
+            is_directory = False
+            src_path = str(tmp_path / "old.md")
+            event_type = "deleted"
+
+        handler.on_any_event(MockCreatedEvent())
+        handler.on_any_event(MockModifiedEvent())
+        handler.on_any_event(MockDeletedEvent())
+
+        assert len(watcher._changes) == 3
+        assert watcher._event_types == {"created", "modified", "deleted"}
+
+    def test_handler_skips_directory_events(self, tmp_path: Path) -> None:
+        """Test that directory events are skipped."""
+        watcher = WatchdogWatcher(
+            paths=[tmp_path],
+            ignore_filter=_noop_filter,
+        )
+
+        handler = watcher._create_handler()
+
+        class MockDirEvent:
+            is_directory = True
+            src_path = str(tmp_path / "subdir")
+            event_type = "created"
+
+        handler.on_any_event(MockDirEvent())
+
+        assert len(watcher._changes) == 0
+        assert len(watcher._event_types) == 0
+
+    def test_handler_applies_ignore_filter(self, tmp_path: Path) -> None:
+        """Test that ignore filter prevents event type tracking."""
+
+        def ignore_pyc(p: Path) -> bool:
+            return str(p).endswith(".pyc")
+
+        watcher = WatchdogWatcher(
+            paths=[tmp_path],
+            ignore_filter=ignore_pyc,
+        )
+
+        handler = watcher._create_handler()
+
+        class MockPycEvent:
+            is_directory = False
+            src_path = str(tmp_path / "module.pyc")
+            event_type = "modified"
+
+        class MockPyEvent:
+            is_directory = False
+            src_path = str(tmp_path / "module.py")
+            event_type = "modified"
+
+        handler.on_any_event(MockPycEvent())
+        handler.on_any_event(MockPyEvent())
+
+        # Only the .py file should be tracked
+        assert len(watcher._changes) == 1
+        assert tmp_path / "module.py" in watcher._changes
+        assert "modified" in watcher._event_types

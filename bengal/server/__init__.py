@@ -6,7 +6,7 @@ for a smooth development experience.
 
 Components:
 - DevServer: Main development server with HTTP serving and file watching
-- WatcherRunner: Async-to-sync bridge for FileWatcher
+- WatcherRunner: Async-to-sync bridge for FileWatcher with debouncing
 - BuildTrigger: Build execution handler with pre/post hooks
 - BuildExecutor: Process-isolated build execution for resilience
 - FileWatcher: Abstraction for file watching backends (watchfiles + watchdog)
@@ -18,6 +18,7 @@ Components:
 
 Features:
 - Automatic incremental rebuilds on file changes
+- Event type detection (created/modified/deleted) for smart rebuild decisions
 - Beautiful, minimal request logging
 - Custom 404 error pages
 - Graceful shutdown handling (Ctrl+C, SIGTERM)
@@ -28,6 +29,7 @@ Features:
 - Process-isolated builds for crash resilience
 - Configurable ignore patterns (exclude_patterns, exclude_regex)
 - Fast file watching via watchfiles (optional, falls back to watchdog)
+- Default ignore patterns for common cache/build directories (.bengal, .git, etc.)
 
 Usage:
 

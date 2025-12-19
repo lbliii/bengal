@@ -5,10 +5,24 @@ Provides an abstraction over file watching backends with:
 - WatchfilesWatcher: Rust-based, 10-50x faster on large codebases
 - WatchdogWatcher: Python-based fallback, always available
 - Automatic backend selection with env var override
+- Event type propagation for smart rebuild decisions
+
+Event Types:
+    Watchers yield tuples of (changed_paths, event_types) where event_types
+    is a set of strings indicating what kind of changes occurred:
+    - "created": File was created (triggers full rebuild in BuildTrigger)
+    - "modified": File was modified (allows incremental rebuild)
+    - "deleted": File was deleted (triggers full rebuild in BuildTrigger)
+    - "moved": File was moved (watchdog only, triggers full rebuild)
+
+    This enables BuildTrigger to make smart decisions about whether to
+    perform a full rebuild (structural changes) or incremental rebuild
+    (content-only changes).
 
 Related:
     - bengal/server/ignore_filter.py: Provides filtering for watched paths
     - bengal/server/watcher_runner.py: Runs watcher and triggers builds
+    - bengal/server/build_trigger.py: Uses event types for rebuild decisions
     - bengal/server/dev_server.py: Integrates file watching
 
 Configuration:
