@@ -49,9 +49,9 @@ Optional: title (str), member_type (str), first_open (bool, default true)
             {# Toggle indicator #}
             <span class="autodoc-member-toggle">▼</span>
           </div>
-          {# Signature preview #}
-          {% if member_signature %}
-          <code class="autodoc-member-sig">{{ member_signature }}</code>
+          {# Description preview (for scanning) #}
+          {% if member.description %}
+          <span class="autodoc-member-desc-preview">{{ member.description | striptags | truncate(80, True, '…') }}</span>
           {% endif %}
         </div>
 
@@ -73,7 +73,16 @@ Optional: title (str), member_type (str), first_open (bool, default true)
       </summary>
 
       <div class="autodoc-member-body">
-        {% if member.description %}
+        {# Signature (copy-paste ready) #}
+        {% if member_signature %}
+        <div class="autodoc-signature-section">
+          <code class="autodoc-member-sig">{{ member_signature }}</code>
+        </div>
+        {% endif %}
+
+        {# Full description - only show if truncated in header #}
+        {% set desc_stripped = member.description | striptags | trim if member.description else '' %}
+        {% if member.description and desc_stripped | length > 77 %}
         <div class="autodoc-member-desc prose">
           {{ member.description | markdownify | safe }}
         </div>
@@ -171,9 +180,9 @@ Optional: title (str), member_type (str), first_open (bool, default true)
               {# Toggle indicator #}
               <span class="autodoc-member-toggle">▼</span>
             </div>
-            {# Signature preview #}
-            {% if member_signature %}
-            <code class="autodoc-member-sig">{{ member_signature }}</code>
+            {# Description preview (for scanning) #}
+            {% if member.description %}
+            <span class="autodoc-member-desc-preview">{{ member.description | striptags | truncate(80, True, '…') }}</span>
             {% endif %}
           </div>
 
@@ -195,7 +204,16 @@ Optional: title (str), member_type (str), first_open (bool, default true)
         </summary>
 
         <div class="autodoc-member-body">
-          {% if member.description %}
+          {# Signature (copy-paste ready) #}
+          {% if member_signature %}
+          <div class="autodoc-signature-section">
+            <code class="autodoc-member-sig">{{ member_signature }}</code>
+          </div>
+          {% endif %}
+
+          {# Full description - only show if truncated in header #}
+          {% set desc_stripped = member.description | striptags | trim if member.description else '' %}
+          {% if member.description and desc_stripped | length > 77 %}
           <div class="autodoc-member-desc prose">
             {{ member.description | markdownify | safe }}
           </div>

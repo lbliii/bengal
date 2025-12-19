@@ -40,9 +40,9 @@ Args:
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
-      {# Signature preview #}
-      {% if func_signature %}
-      <code class="autodoc-member-sig">{{ func_signature }}</code>
+      {# Description preview (for scanning) #}
+      {% if func.description %}
+      <span class="autodoc-member-desc-preview">{{ func.description | striptags | truncate(80, True, '…') }}</span>
       {% endif %}
     </div>
 
@@ -55,7 +55,16 @@ Args:
   </summary>
 
   <div class="autodoc-member-body">
-    {% if func.description %}
+    {# Signature (copy-paste ready) #}
+    {% if func_signature %}
+    <div class="autodoc-signature-section">
+      <code class="autodoc-member-sig">{{ func_signature }}</code>
+    </div>
+    {% endif %}
+
+    {# Full description - only show if truncated in header #}
+    {% set desc_stripped = func.description | striptags | trim if func.description else '' %}
+    {% if func.description and desc_stripped | length > 77 %}
     <div class="autodoc-member-desc prose">
       {{ func.description | markdownify | safe }}
     </div>

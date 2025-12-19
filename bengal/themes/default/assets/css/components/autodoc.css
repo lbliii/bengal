@@ -627,6 +627,11 @@ tr[data-required="true"] .autodoc-cell-name::after {
   padding: 0;
 }
 
+/* Signature section (in body) */
+.autodoc-signature-section {
+  margin-bottom: var(--space-4);
+}
+
 /* Parameters section */
 .autodoc-params-section {
   margin-bottom: var(--space-4);
