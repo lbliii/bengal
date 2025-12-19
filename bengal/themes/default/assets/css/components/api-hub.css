@@ -1,12 +1,14 @@
 /**
- * API Hub Component Styles
+ * API Hub - Specific Styles
  *
- * Landing page for API documentation hub.
- * Mirrors the design language of tracks/list.html with neumorphic cards.
+ * API-specific overrides and extensions to hub-cards.css.
+ * Provides type-specific coloring for Python/REST/CLI.
+ *
+ * Base styles: components/hub-cards.css
  */
 
 /* ============================================
-   API HUB HOME PAGE
+   API HUB CONTAINER
    ============================================ */
 
 .api-hub-home {
@@ -15,8 +17,14 @@
   padding: var(--space-6);
 }
 
+@media (max-width: 768px) {
+  .api-hub-home {
+    padding: var(--space-4);
+  }
+}
+
 /* ============================================
-   HERO SECTION
+   API HUB HERO (extends .hub-hero)
    ============================================ */
 
 .api-hub-hero {
@@ -48,7 +56,6 @@
   font-weight: var(--weight-bold);
   margin: 0 0 var(--space-4);
   line-height: 1.1;
-  color: var(--color-text-primary);
 }
 
 .api-hub-hero__title .fluid-text {
@@ -68,7 +75,7 @@
   margin-right: auto;
 }
 
-/* Stats Bar */
+/* Stats - extends hub-stat */
 .api-hub-hero__stats {
   display: flex;
   justify-content: center;
@@ -92,8 +99,6 @@
 
 .api-hub-stat__icon {
   display: flex;
-  align-items: center;
-  justify-content: center;
   color: var(--color-text-muted);
 }
 
@@ -108,20 +113,13 @@
   color: var(--color-text-muted);
 }
 
-.api-hub-stat--python .api-hub-stat__icon {
-  color: var(--color-success);
-}
-
-.api-hub-stat--rest .api-hub-stat__icon {
-  color: var(--color-info);
-}
-
-.api-hub-stat--cli .api-hub-stat__icon {
-  color: var(--color-warning);
-}
+/* Type-specific stat colors */
+.api-hub-stat--python .api-hub-stat__icon { color: var(--color-success); }
+.api-hub-stat--rest .api-hub-stat__icon { color: var(--color-info); }
+.api-hub-stat--cli .api-hub-stat__icon { color: var(--color-warning); }
 
 /* ============================================
-   CONTENT SECTION
+   API HUB CONTENT
    ============================================ */
 
 .api-hub-content {
@@ -130,7 +128,7 @@
 }
 
 /* ============================================
-   API TILES GRID
+   API HUB GRID (extends .hub-grid)
    ============================================ */
 
 .api-hub-apis {
@@ -143,11 +141,11 @@
   gap: var(--space-6);
 }
 
-/* Staggered fade-in animation */
+/* Inherit staggered animation from hub-cards */
 .api-hub-grid .api-hub-tile {
   opacity: 0;
   transform: translateY(20px);
-  animation: api-hub-tile-fade-in 0.6s ease-out forwards;
+  animation: hub-card-fade-in 0.6s ease-out forwards;
 }
 
 .api-hub-grid .api-hub-tile:nth-child(1) { animation-delay: 0ms; }
@@ -156,17 +154,6 @@
 .api-hub-grid .api-hub-tile:nth-child(4) { animation-delay: 300ms; }
 .api-hub-grid .api-hub-tile:nth-child(5) { animation-delay: 400ms; }
 .api-hub-grid .api-hub-tile:nth-child(n+6) { animation-delay: 500ms; }
-
-@keyframes api-hub-tile-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .api-hub-grid .api-hub-tile {
@@ -177,7 +164,7 @@
 }
 
 /* ============================================
-   API TILE CARD
+   API TILE (extends .hub-card)
    ============================================ */
 
 .api-hub-tile {
@@ -195,7 +182,6 @@
     box-shadow var(--motion-medium) var(--ease-out),
     border-color var(--motion-fast);
   height: 100%;
-  position: relative;
 }
 
 .api-hub-tile:hover {
@@ -204,7 +190,7 @@
   box-shadow: var(--neumorphic-hover);
 }
 
-/* Type Badge Row */
+/* Type Badge */
 .api-hub-tile__badge-row {
   padding: var(--space-4) var(--space-5) 0;
 }
@@ -223,6 +209,7 @@
   color: var(--color-text-muted);
 }
 
+/* Type-specific badge colors */
 .api-hub-tile__type-badge--autodoc\/python,
 .api-hub-tile__type-badge--python-reference {
   background: var(--color-success-bg);
@@ -271,17 +258,10 @@
   box-shadow: var(--neumorphic-hover);
 }
 
-.api-hub-tile__icon .icon-python {
-  color: var(--color-success);
-}
-
-.api-hub-tile__icon .icon-openapi {
-  color: var(--color-info);
-}
-
-.api-hub-tile__icon .icon-cli {
-  color: var(--color-warning);
-}
+/* Type-specific icon colors */
+.api-hub-tile__icon .icon-python { color: var(--color-success); }
+.api-hub-tile__icon .icon-openapi { color: var(--color-info); }
+.api-hub-tile__icon .icon-cli { color: var(--color-warning); }
 
 .api-hub-tile__title {
   flex: 1;
@@ -317,7 +297,7 @@
   margin: 0;
 }
 
-/* Preview Items */
+/* Preview */
 .api-hub-tile__preview {
   margin-top: var(--space-2);
 }
@@ -419,10 +399,6 @@
     var(--color-primary-hover),
     var(--color-primary));
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
-    0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
 .api-hub-tile__button:active {
@@ -439,7 +415,7 @@
 }
 
 /* ============================================
-   EMPTY STATE
+   API HUB EMPTY STATE
    ============================================ */
 
 .api-hub-empty {
@@ -482,7 +458,7 @@
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE
    ============================================ */
 
 @media (max-width: 1024px) {
@@ -493,10 +469,6 @@
 }
 
 @media (max-width: 768px) {
-  .api-hub-home {
-    padding: var(--space-4);
-  }
-
   .api-hub-hero {
     margin-bottom: var(--space-8);
     padding-bottom: var(--space-6);
@@ -510,28 +482,15 @@
     font-size: var(--text-lg);
   }
 
-  .api-hub-hero__stats {
-    gap: var(--space-3);
-  }
-
   .api-hub-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-5);
-    margin-top: var(--space-6);
   }
 
-  .api-hub-tile__header {
-    padding: var(--space-4);
-    padding-bottom: var(--space-3);
-  }
-
-  .api-hub-tile__content {
-    padding: 0 var(--space-4);
-  }
-
+  .api-hub-tile__header,
+  .api-hub-tile__content,
   .api-hub-tile__footer {
-    padding: var(--space-4);
-    padding-top: var(--space-3);
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 }
 
@@ -545,10 +504,6 @@
     height: 40px;
   }
 
-  .api-hub-tile__title {
-    font-size: var(--text-base);
-  }
-
   .api-hub-tile__footer {
     flex-direction: column;
     gap: var(--space-3);
@@ -557,41 +512,5 @@
 
   .api-hub-tile__button {
     justify-content: center;
-  }
-}
-
-/* ============================================
-   DARK MODE
-   ============================================ */
-
-@media (prefers-color-scheme: dark) {
-  .api-hub-tile:hover {
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
-  }
-}
-
-/* ============================================
-   ACCESSIBILITY
-   ============================================ */
-
-.api-hub-tile:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.api-hub-tile__button:focus-visible {
-  outline: 2px solid var(--color-text-inverse);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .api-hub-tile,
-  .api-hub-tile__icon,
-  .api-hub-tile__button {
-    transition: none;
-  }
-
-  .api-hub-tile:hover {
-    transform: none;
   }
 }

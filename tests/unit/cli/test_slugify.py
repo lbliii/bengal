@@ -105,7 +105,7 @@ class TestSlugify:
         "page_name,expected_slug",
         [
             ("Getting Started", "getting-started"),
-            ("API Reference", "autodoc/python"),
+            ("API Reference", "api-reference"),
             ("Quick Start Guide", "quick-start-guide"),
             ("v1.2.3 Release Notes", "v123-release-notes"),
             ("Test - Page", "test-page"),

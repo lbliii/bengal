@@ -88,7 +88,9 @@ Runs the main function.
 
 **Returns:** `None`
 """
-    (site_dir / "content" / "autodoc/python.md").write_text(page2)
+    autodoc_dir = site_dir / "content" / "autodoc"
+    autodoc_dir.mkdir(parents=True, exist_ok=True)
+    (autodoc_dir / "python.md").write_text(page2)
 
     return site_dir
 

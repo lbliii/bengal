@@ -202,6 +202,11 @@
 }
 
 @layer components {
+  /* Shared hub landing page styles (tracks, api-hub, etc.) */
+  @import url('components/hub-cards.css');
+}
+
+@layer components {
   @import url('components/tracks.css');
 }
 

@@ -18,8 +18,8 @@ def test_bengal_global_minimal_exposure():
     meta = engine.env.globals.get("bengal")
     assert isinstance(meta, dict)
     assert meta["engine"]["name"] == "Bengal SSG"
-    # minimal should only expose engine
-    assert set(meta.keys()) == {"engine"}
+    # minimal exposes engine + capabilities (runtime feature detection)
+    assert set(meta.keys()) == {"engine", "capabilities"}
 
 
 def test_bengal_global_standard_exposure_includes_theme_and_build_and_i18n():
