@@ -1,0 +1,37 @@
+# Versioning configuration for test-versioned root
+# Used by tests in tests/integration/test_versioned_builds.py
+
+versioning:
+  enabled: true
+
+  # Sections to version
+  sections:
+    - docs
+
+  # Shared content directories (included in all versions)
+  shared:
+    - _shared
+
+  # Version definitions
+  versions:
+    - id: v3
+      label: "3.0"
+      latest: true
+      # Latest version uses main content/docs/
+
+    - id: v2
+      label: "2.0"
+      # Older versions live in _versions/<id>/
+
+    - id: v1
+      label: "1.0 (Legacy)"
+      deprecated: true
+      banner:
+        type: warning
+        message: "This is an old version."
+
+  # Aliases
+  aliases:
+    latest: v3
+    stable: v3
+
