@@ -29,7 +29,10 @@ trim('/') %}
 {% if child.url %}
 {% set child_url = child.url %}
 {% elif child_type in ['command', 'command-group'] %}
-{% set child_url = '/' ~ cli_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{# Drop the first segment of qualified_name (the root command name) to get the correct path #}
+{% set qualified_parts = child.qualified_name.split('.') %}
+{% set child_path = (qualified_parts[1:] if qualified_parts | length > 1 else []) | join('/') %}
+{% set child_url = '/' ~ cli_prefix ~ '/' ~ (child_path ~ '/' if child_path else '') %}
 {% elif child_type in ['class', 'function', 'module'] %}
 {% set child_url = '/' ~ python_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
 {% elif url_prefix %}

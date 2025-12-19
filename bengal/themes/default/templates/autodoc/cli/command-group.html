@@ -49,7 +49,10 @@ This template receives:
         <h2 class="autodoc-section-title">Commands</h2>
         <div class="autodoc-cards">
           {% for child in element_children %}
-          {% set child_url = '/' ~ cli_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+          {# Drop the first segment of qualified_name (the root command name) to get the correct path #}
+          {% set qualified_parts = child.qualified_name.split('.') %}
+          {% set child_path = (qualified_parts[1:] if qualified_parts | length > 1 else []) | join('/') %}
+          {% set child_url = '/' ~ cli_prefix ~ '/' ~ (child_path ~ '/' if child_path else '') %}
           <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child.element_type }}">
             <code class="autodoc-card-name">{{ child.name }}</code>
             {% if child.description %}

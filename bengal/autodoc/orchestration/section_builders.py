@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.autodoc.base import DocElement
-from bengal.autodoc.utils import get_openapi_tags
+from bengal.autodoc.utils import get_openapi_tags, resolve_cli_url_path
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
 from bengal.utils.url_normalization import join_url_paths
@@ -171,12 +171,14 @@ def create_cli_sections(
             continue
 
         # Build URL path components
-        group_parts = group_name.split(".")
-        section_path = f"{prefix}/{group_name.replace('.', '/')}"
+        group_path = resolve_cli_url_path(group_name)
+        section_path = f"{prefix}/{group_path}" if group_path else prefix
+        group_parts = group_path.split("/") if group_path else []
+
         group_section = Section.create_virtual(
-            name=group_parts[-1],
+            name=group_name.split(".")[-1],
             relative_url=join_url_paths(prefix, *group_parts),
-            title=group_parts[-1].replace("_", " ").title(),
+            title=group_name.split(".")[-1].replace("_", " ").title(),
             metadata={
                 "type": "autodoc-cli",
                 "qualified_name": group_name,

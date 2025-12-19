@@ -294,6 +294,39 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
     return group_name, remaining
 
 
+def resolve_cli_url_path(qualified_name: str) -> str:
+    """
+    Resolve CLI qualified name to a URL path by dropping the root command.
+
+    This ensures that CLI documentation paths are concise and don't redundantly
+    include the tool name (e.g., /cli/build instead of /cli/bengal/build).
+
+    Args:
+        qualified_name: Dotted qualified name from Click/Typer (e.g. 'bengal.build')
+
+    Returns:
+        Slash-separated path relative to CLI prefix
+
+    Example:
+        >>> resolve_cli_url_path("bengal.build")
+        'build'
+        >>> resolve_cli_url_path("bengal.site.new")
+        'site/new'
+        >>> resolve_cli_url_path("bengal")
+        ''
+    """
+    if not qualified_name:
+        return ""
+
+    parts = qualified_name.split(".")
+    if len(parts) > 1:
+        # Drop the first part (the root CLI name, e.g. "bengal")
+        return "/".join(parts[1:])
+
+    # This is the root group itself
+    return ""
+
+
 # =============================================================================
 # Typed Metadata Access Helpers
 # =============================================================================

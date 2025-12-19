@@ -11,7 +11,12 @@ from typing import TYPE_CHECKING, Any
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration.result import AutodocRunResult
 from bengal.autodoc.orchestration.utils import format_source_file_for_display
-from bengal.autodoc.utils import get_openapi_method, get_openapi_path, get_openapi_tags
+from bengal.autodoc.utils import (
+    get_openapi_method,
+    get_openapi_path,
+    get_openapi_tags,
+    resolve_cli_url_path,
+)
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
@@ -187,11 +192,12 @@ def find_parent_section(
         section_path = f"{prefix}/" + "/".join(parts[:-1]) if len(parts) > 1 else prefix
         return sections.get(section_path) or sections.get(prefix) or default_section
     elif doc_type == "cli":
-        if element.element_type == "command-group":
-            return sections.get(prefix) or default_section
         parts = element.qualified_name.split(".")
         if len(parts) > 1:
-            section_path = f"{prefix}/{'.'.join(parts[:-1]).replace('.', '/')}"
+            # Parent is everything except the last part
+            parent_qualified = ".".join(parts[:-1])
+            parent_path = resolve_cli_url_path(parent_qualified)
+            section_path = f"{prefix}/{parent_path}" if parent_path else prefix
             return sections.get(section_path) or sections.get(prefix) or default_section
         return sections.get(prefix) or default_section
     elif doc_type == "openapi":
@@ -220,11 +226,12 @@ def get_element_metadata(
         # Python API docs use python-reference type for prose-constrained layout
         return "autodoc/python/module", url_path, "autodoc-python"
     elif doc_type == "cli":
+        cli_path = resolve_cli_url_path(element.qualified_name)
+        url_path = f"{prefix}/{cli_path}" if cli_path else prefix
+
         if element.element_type == "command-group":
-            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
             return "autodoc/cli/command-group", url_path, "autodoc-cli"
         else:
-            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
             return "autodoc/cli/command", url_path, "autodoc-cli"
     elif doc_type == "openapi":
         # OpenAPI docs use openautodoc/python type for full-width 3-panel layout
