@@ -11,11 +11,20 @@ Key Concepts:
     - Shared content: Content included in all versions (_shared/)
 
 Design:
-    Versioning is folder-based with smart features:
-    - Main content (e.g., docs/) is the "latest" version
-    - Older versions live in _versions/<version>/
-    - Shared content in _shared/ is included in all versions
-    - Multiple aliases (latest, stable, lts) point to specific versions
+    Versioning supports two modes:
+    1. Folder mode (default): Versions in _versions/<version>/ folders
+    2. Git mode: Versions from Git branches/tags
+
+    Folder Mode:
+        - Main content (e.g., docs/) is the "latest" version
+        - Older versions live in _versions/<version>/
+        - Shared content in _shared/ is included in all versions
+
+    Git Mode:
+        - Versions discovered from Git branches/tags
+        - Pattern matching (e.g., release/*)
+        - No folder duplication - builds from Git history
+        - Parallel builds for all versions
 
 URL Structure:
     - Latest version: /docs/guide/ (no version prefix)
@@ -26,10 +35,12 @@ Related:
     - plan/drafted/rfc-versioned-documentation.md: Design rationale
     - bengal/config/loader.py: Config loading
     - bengal/discovery/content_discovery.py: Version discovery
+    - bengal/discovery/git_version_adapter.py: Git branch/tag discovery
 
 Example:
     >>> from bengal.core.version import Version, VersionConfig
     >>>
+    >>> # Folder mode
     >>> v3 = Version(id="v3", source="docs", label="3.0", latest=True)
     >>> v2 = Version(id="v2", source="_versions/v2/docs", label="2.0")
     >>>
@@ -38,10 +49,15 @@ Example:
     ...     versions=[v3, v2],
     ...     aliases={"latest": "v3", "stable": "v3"},
     ... )
-    >>> config.get_version("v2")
-    Version(id='v2', ...)
-    >>> config.latest_version
-    Version(id='v3', ...)
+    >>>
+    >>> # Git mode
+    >>> config = VersionConfig(
+    ...     enabled=True,
+    ...     mode="git",
+    ...     git_config=GitVersionConfig(
+    ...         branches=[GitBranchPattern(pattern="release/*", version_from="branch")],
+    ...     ),
+    ... )
 """
 
 from __future__ import annotations
@@ -67,6 +83,78 @@ class VersionBanner:
     type: str = "warning"
     message: str = "You're viewing docs for an older version."
     show_latest_link: bool = True
+
+
+@dataclass
+class GitBranchPattern:
+    """
+    Pattern for matching Git branches/tags to versions.
+
+    Attributes:
+        pattern: Glob pattern to match (e.g., "release/*", "v*")
+        version_from: How to extract version ("branch", "tag", or regex)
+        strip_prefix: Prefix to remove from branch name for version ID
+        latest: Whether matching branches should be marked as latest
+        name: Explicit branch name (alternative to pattern)
+
+    Example:
+        >>> pattern = GitBranchPattern(
+        ...     pattern="release/*",
+        ...     version_from="branch",
+        ...     strip_prefix="release/",
+        ... )
+        >>> # Matches: release/0.1.6 → version "0.1.6"
+    """
+
+    pattern: str = ""
+    version_from: str = "branch"  # "branch", "tag", or regex pattern
+    strip_prefix: str = ""
+    latest: bool = False
+    name: str = ""  # Explicit branch name (alternative to pattern)
+
+    def matches(self, ref_name: str) -> bool:
+        """Check if a git ref matches this pattern."""
+        import fnmatch
+
+        if self.name:
+            return ref_name == self.name
+        if self.pattern:
+            return fnmatch.fnmatch(ref_name, self.pattern)
+        return False
+
+    def extract_version_id(self, ref_name: str) -> str:
+        """Extract version ID from a matching ref name."""
+        if self.strip_prefix and ref_name.startswith(self.strip_prefix):
+            return ref_name[len(self.strip_prefix) :]
+        return ref_name
+
+
+@dataclass
+class GitVersionConfig:
+    """
+    Git-specific versioning configuration.
+
+    Attributes:
+        branches: List of branch patterns to match
+        tags: List of tag patterns to match
+        default_branch: Branch to use as "latest" (default: main)
+        cache_worktrees: Whether to cache git worktrees for speed
+        parallel_builds: Number of parallel version builds
+
+    Example:
+        >>> config = GitVersionConfig(
+        ...     branches=[
+        ...         GitBranchPattern(name="main", latest=True),
+        ...         GitBranchPattern(pattern="release/*", strip_prefix="release/"),
+        ...     ],
+        ... )
+    """
+
+    branches: list[GitBranchPattern] = field(default_factory=list)
+    tags: list[GitBranchPattern] = field(default_factory=list)
+    default_branch: str = "main"
+    cache_worktrees: bool = True
+    parallel_builds: int = 4
 
 
 @dataclass
@@ -153,16 +241,19 @@ class VersionConfig:
     Site-wide versioning configuration.
 
     Manages multiple documentation versions, aliases, and shared content.
+    Supports two modes: folder-based (default) and git-based.
 
     Attributes:
         enabled: Whether versioning is enabled
-        versions: List of Version objects
+        mode: Versioning mode ('folder' or 'git')
+        versions: List of Version objects (for folder mode or discovered)
         aliases: Named aliases to version ids (e.g., {'latest': 'v3'})
         sections: Content sections that are versioned (e.g., ['docs'])
         shared: Paths to shared content included in all versions
         url_config: URL generation configuration
+        git_config: Git-specific configuration (for git mode)
 
-    Example:
+    Example (Folder Mode):
         >>> config = VersionConfig(
         ...     enabled=True,
         ...     versions=[
@@ -171,17 +262,29 @@ class VersionConfig:
         ...     ],
         ...     aliases={"latest": "v3", "stable": "v3", "lts": "v2"},
         ... )
-        >>> config.resolve_alias("latest")
-        'v3'
+
+    Example (Git Mode):
+        >>> config = VersionConfig(
+        ...     enabled=True,
+        ...     mode="git",
+        ...     git_config=GitVersionConfig(
+        ...         branches=[
+        ...             GitBranchPattern(name="main", latest=True),
+        ...             GitBranchPattern(pattern="release/*", strip_prefix="release/"),
+        ...         ],
+        ...     ),
+        ... )
     """
 
     enabled: bool = False
+    mode: str = "folder"  # "folder" or "git"
     versions: list[Version] = field(default_factory=list)
     aliases: dict[str, str] = field(default_factory=dict)
     sections: list[str] = field(default_factory=lambda: ["docs"])
     shared: list[str] = field(default_factory=lambda: ["_shared"])
     url_config: dict[str, Any] = field(default_factory=dict)
     seo_config: dict[str, Any] = field(default_factory=dict)
+    git_config: GitVersionConfig | None = None
 
     # Computed caches
     _version_map: dict[str, Version] = field(default_factory=dict, repr=False)
@@ -200,6 +303,25 @@ class VersionConfig:
             latest = self.latest_version
             if latest:
                 self.aliases["latest"] = latest.id
+
+    @property
+    def is_git_mode(self) -> bool:
+        """Check if using git-based versioning."""
+        return self.mode == "git" and self.git_config is not None
+
+    def add_discovered_version(self, version: Version) -> None:
+        """
+        Add a dynamically discovered version (from git).
+
+        Args:
+            version: Version discovered from git branches/tags
+        """
+        self.versions.append(version)
+        self._version_map[version.id] = version
+
+        # Update latest alias if this is the latest version
+        if version.latest and "latest" not in self.aliases:
+            self.aliases["latest"] = version.id
 
     @property
     def latest_version(self) -> Version | None:
@@ -383,12 +505,61 @@ class VersionConfig:
                     )
                 )
 
+        # Parse mode
+        mode = versioning.get("mode", "folder")
+
+        # Parse git configuration if in git mode
+        git_config = None
+        if mode == "git":
+            git_raw = versioning.get("git", {})
+            if git_raw:
+                branches: list[GitBranchPattern] = []
+                for b in git_raw.get("branches", []):
+                    if isinstance(b, str):
+                        # Simple format: just branch name
+                        branches.append(GitBranchPattern(name=b))
+                    elif isinstance(b, dict):
+                        branches.append(
+                            GitBranchPattern(
+                                pattern=b.get("pattern", ""),
+                                version_from=b.get("version_from", "branch"),
+                                strip_prefix=b.get("strip_prefix", ""),
+                                latest=b.get("latest", False),
+                                name=b.get("name", ""),
+                            )
+                        )
+
+                tags: list[GitBranchPattern] = []
+                for t in git_raw.get("tags", []):
+                    if isinstance(t, str):
+                        tags.append(GitBranchPattern(pattern=t))
+                    elif isinstance(t, dict):
+                        tags.append(
+                            GitBranchPattern(
+                                pattern=t.get("pattern", ""),
+                                version_from=t.get("version_from", "tag"),
+                                strip_prefix=t.get("strip_prefix", ""),
+                                latest=t.get("latest", False),
+                                name=t.get("name", ""),
+                            )
+                        )
+
+                git_config = GitVersionConfig(
+                    branches=branches,
+                    tags=tags,
+                    default_branch=git_raw.get("default_branch", "main"),
+                    cache_worktrees=git_raw.get("cache_worktrees", True),
+                    parallel_builds=git_raw.get("parallel_builds", 4),
+                )
+
         return cls(
             enabled=enabled,
+            mode=mode,
             versions=versions,
             aliases=versioning.get("aliases", {}),
             sections=versioning.get("sections", ["docs"]),
             shared=versioning.get("shared", ["_shared"]),
             url_config=versioning.get("urls", {}),
             seo_config=versioning.get("seo", {}),
+            git_config=git_config,
         )

@@ -912,3 +912,392 @@ class TestVersionedSEO:
 
         priority = generator._get_version_priority(page)
         assert priority == "0.5"  # Default priority
+
+
+# =============================================================================
+# Phase 4: Git Mode Tests
+# =============================================================================
+
+
+class TestGitBranchPattern:
+    """Tests for GitBranchPattern matching and extraction."""
+
+    def test_pattern_matches_glob(self) -> None:
+        """Test glob pattern matching."""
+        from bengal.core.version import GitBranchPattern
+
+        pattern = GitBranchPattern(pattern="release/*")
+
+        assert pattern.matches("release/0.1.6") is True
+        assert pattern.matches("release/1.0.0") is True
+        assert pattern.matches("main") is False
+        assert pattern.matches("feature/foo") is False
+
+    def test_pattern_matches_name(self) -> None:
+        """Test explicit name matching."""
+        from bengal.core.version import GitBranchPattern
+
+        pattern = GitBranchPattern(name="main")
+
+        assert pattern.matches("main") is True
+        assert pattern.matches("release/0.1.6") is False
+
+    def test_extract_version_with_prefix(self) -> None:
+        """Test version extraction with prefix stripping."""
+        from bengal.core.version import GitBranchPattern
+
+        pattern = GitBranchPattern(pattern="release/*", strip_prefix="release/")
+
+        assert pattern.extract_version_id("release/0.1.6") == "0.1.6"
+        assert pattern.extract_version_id("release/1.0.0") == "1.0.0"
+
+    def test_extract_version_no_prefix(self) -> None:
+        """Test version extraction without prefix."""
+        from bengal.core.version import GitBranchPattern
+
+        pattern = GitBranchPattern(pattern="v*")
+
+        assert pattern.extract_version_id("v1.0.0") == "v1.0.0"
+
+
+class TestGitVersionConfig:
+    """Tests for GitVersionConfig model."""
+
+    def test_default_values(self) -> None:
+        """Test GitVersionConfig default values."""
+        from bengal.core.version import GitVersionConfig
+
+        config = GitVersionConfig()
+
+        assert config.branches == []
+        assert config.tags == []
+        assert config.default_branch == "main"
+        assert config.cache_worktrees is True
+        assert config.parallel_builds == 4
+
+    def test_with_branch_patterns(self) -> None:
+        """Test GitVersionConfig with branch patterns."""
+        from bengal.core.version import GitBranchPattern, GitVersionConfig
+
+        config = GitVersionConfig(
+            branches=[
+                GitBranchPattern(name="main", latest=True),
+                GitBranchPattern(pattern="release/*", strip_prefix="release/"),
+            ],
+        )
+
+        assert len(config.branches) == 2
+        assert config.branches[0].name == "main"
+        assert config.branches[0].latest is True
+        assert config.branches[1].pattern == "release/*"
+
+
+class TestVersionConfigGitMode:
+    """Tests for VersionConfig in git mode."""
+
+    def test_is_git_mode(self) -> None:
+        """Test git mode detection."""
+        from bengal.core.version import GitVersionConfig, VersionConfig
+
+        # Folder mode (default)
+        folder_config = VersionConfig(enabled=True)
+        assert folder_config.is_git_mode is False
+
+        # Git mode
+        git_config = VersionConfig(
+            enabled=True,
+            mode="git",
+            git_config=GitVersionConfig(),
+        )
+        assert git_config.is_git_mode is True
+
+    def test_from_config_git_mode(self) -> None:
+        """Test parsing git mode from config."""
+        config = {
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "git": {
+                    "branches": [
+                        {"name": "main", "latest": True},
+                        {"pattern": "release/*", "strip_prefix": "release/"},
+                    ],
+                    "default_branch": "main",
+                    "parallel_builds": 8,
+                },
+            }
+        }
+
+        vc = VersionConfig.from_config(config)
+
+        assert vc.enabled is True
+        assert vc.mode == "git"
+        assert vc.is_git_mode is True
+        assert vc.git_config is not None
+        assert len(vc.git_config.branches) == 2
+        assert vc.git_config.branches[0].name == "main"
+        assert vc.git_config.branches[0].latest is True
+        assert vc.git_config.branches[1].pattern == "release/*"
+        assert vc.git_config.parallel_builds == 8
+
+    def test_from_config_simple_branches(self) -> None:
+        """Test parsing simple branch names."""
+        config = {
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "git": {
+                    "branches": ["main", "develop"],
+                },
+            }
+        }
+
+        vc = VersionConfig.from_config(config)
+
+        assert vc.git_config is not None
+        assert len(vc.git_config.branches) == 2
+        assert vc.git_config.branches[0].name == "main"
+        assert vc.git_config.branches[1].name == "develop"
+
+    def test_add_discovered_version(self) -> None:
+        """Test adding dynamically discovered versions."""
+        from bengal.core.version import GitVersionConfig
+
+        vc = VersionConfig(
+            enabled=True,
+            mode="git",
+            git_config=GitVersionConfig(),
+        )
+
+        assert len(vc.versions) == 0
+
+        # Add discovered version
+        vc.add_discovered_version(Version(id="0.1.6", source="git:release/0.1.6"))
+        vc.add_discovered_version(Version(id="0.1.5", source="git:release/0.1.5"))
+
+        assert len(vc.versions) == 2
+        assert vc.get_version("0.1.6") is not None
+        assert vc.get_version("0.1.5") is not None
+
+
+class TestGitVersionAdapter:
+    """Tests for GitVersionAdapter (mocked Git commands)."""
+
+    def test_discover_versions_branches(self, tmp_path: Path) -> None:
+        """Test version discovery from branches (mocked)."""
+        from unittest.mock import MagicMock, patch
+
+        from bengal.core.version import GitBranchPattern, GitVersionConfig
+        from bengal.discovery.git_version_adapter import GitVersionAdapter
+
+        config = GitVersionConfig(
+            branches=[
+                GitBranchPattern(name="main", latest=True),
+                GitBranchPattern(pattern="release/*", strip_prefix="release/"),
+            ],
+        )
+
+        adapter = GitVersionAdapter(tmp_path, config)
+
+        # Mock Git refs
+        mock_refs = [
+            MagicMock(short_name="main", ref_type="branch"),
+            MagicMock(short_name="release/0.1.6", ref_type="branch"),
+            MagicMock(short_name="release/0.1.5", ref_type="branch"),
+            MagicMock(short_name="feature/test", ref_type="branch"),
+        ]
+
+        with patch.object(adapter, "_get_refs", return_value=mock_refs):
+            versions = adapter.discover_versions()
+
+        # Should find main and two release branches
+        version_ids = [v.id for v in versions]
+        assert "main" in version_ids
+        assert "0.1.6" in version_ids
+        assert "0.1.5" in version_ids
+        assert "feature/test" not in version_ids
+
+    def test_is_version_changed(self, tmp_path: Path) -> None:
+        """Test checking if a version has changed."""
+        from bengal.core.version import GitVersionConfig
+        from bengal.discovery.git_version_adapter import GitVersionAdapter, GitWorktree
+
+        config = GitVersionConfig()
+        adapter = GitVersionAdapter(tmp_path, config)
+
+        # No cache - always changed
+        assert adapter.is_version_changed("0.1.6", None) is True
+
+        # Add worktree with known commit
+        adapter._worktrees["0.1.6"] = GitWorktree(
+            version_id="0.1.6",
+            path=tmp_path / "0.1.6",
+            ref="release/0.1.6",
+            commit="abc123",
+        )
+
+        # Same commit - not changed
+        assert adapter.is_version_changed("0.1.6", "abc123") is False
+
+        # Different commit - changed
+        assert adapter.is_version_changed("0.1.6", "def456") is True
+
+
+# =============================================================================
+# Phase 4: Version Diff Tests
+# =============================================================================
+
+
+class TestVersionDiff:
+    """Tests for version diffing utilities."""
+
+    def test_version_differ_added_pages(self, tmp_path: Path) -> None:
+        """Test detecting added pages between versions."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        # Create old version (empty)
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+
+        # Create new version with a page
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+        (new_path / "guide.md").write_text("# New Guide\n\nContent here.")
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        assert len(result.added_pages) == 1
+        assert result.added_pages[0].path == "guide.md"
+        assert result.added_pages[0].status == "added"
+        assert len(result.removed_pages) == 0
+        assert len(result.modified_pages) == 0
+
+    def test_version_differ_removed_pages(self, tmp_path: Path) -> None:
+        """Test detecting removed pages between versions."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        # Create old version with a page
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+        (old_path / "old-page.md").write_text("# Old Page")
+
+        # Create new version (empty)
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        assert len(result.removed_pages) == 1
+        assert result.removed_pages[0].path == "old-page.md"
+        assert result.removed_pages[0].status == "removed"
+        assert len(result.added_pages) == 0
+
+    def test_version_differ_modified_pages(self, tmp_path: Path) -> None:
+        """Test detecting modified pages between versions."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        # Create old version
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+        (old_path / "guide.md").write_text("# Guide\n\nOld content.")
+
+        # Create new version with modified page
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+        (new_path / "guide.md").write_text("# Guide\n\nNew content with updates.")
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        assert len(result.modified_pages) == 1
+        assert result.modified_pages[0].path == "guide.md"
+        assert result.modified_pages[0].status == "modified"
+        assert result.modified_pages[0].change_percentage > 0
+
+    def test_version_differ_unchanged_pages(self, tmp_path: Path) -> None:
+        """Test detecting unchanged pages."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        content = "# Guide\n\nSame content."
+
+        # Create both versions with identical content
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+        (old_path / "guide.md").write_text(content)
+
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+        (new_path / "guide.md").write_text(content)
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        assert len(result.unchanged_pages) == 1
+        assert len(result.modified_pages) == 0
+
+    def test_version_diff_summary(self, tmp_path: Path) -> None:
+        """Test version diff summary generation."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        # Create versions with various changes
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+        (old_path / "removed.md").write_text("To be removed")
+        (old_path / "unchanged.md").write_text("Same")
+        (old_path / "modified.md").write_text("Old content")
+
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+        (new_path / "added.md").write_text("New page")
+        (new_path / "unchanged.md").write_text("Same")
+        (new_path / "modified.md").write_text("New content here")
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        summary = result.summary()
+        assert "v1 → v2" in summary
+        assert "Added: 1" in summary
+        assert "Removed: 1" in summary
+        assert "Modified: 1" in summary
+
+    def test_version_diff_to_markdown(self, tmp_path: Path) -> None:
+        """Test markdown changelog generation."""
+        from bengal.utils.version_diff import VersionDiffer
+
+        old_path = tmp_path / "v1"
+        old_path.mkdir()
+
+        new_path = tmp_path / "v2"
+        new_path.mkdir()
+        (new_path / "feature.md").write_text("# New Feature")
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff("v1", "v2")
+
+        markdown = result.to_markdown()
+        assert "# Changes: v1 → v2" in markdown
+        assert "## ✨ New Pages" in markdown
+        assert "`feature.md`" in markdown
+
+    def test_version_diff_has_changes(self, tmp_path: Path) -> None:
+        """Test has_changes property."""
+        from bengal.utils.version_diff import VersionDiff
+
+        # No changes
+        empty_diff = VersionDiff(old_version="v1", new_version="v2")
+        assert empty_diff.has_changes is False
+        assert empty_diff.total_changes == 0
+
+        # With changes
+        from bengal.utils.version_diff import PageDiff
+
+        diff_with_changes = VersionDiff(
+            old_version="v1",
+            new_version="v2",
+            added_pages=[PageDiff(path="new.md", status="added")],
+        )
+        assert diff_with_changes.has_changes is True
+        assert diff_with_changes.total_changes == 1

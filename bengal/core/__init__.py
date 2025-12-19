@@ -43,7 +43,12 @@ from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
-from bengal.core.version import Version, VersionConfig
+from bengal.core.version import (
+    GitBranchPattern,
+    GitVersionConfig,
+    Version,
+    VersionConfig,
+)
 
 __all__ = [
     "Asset",

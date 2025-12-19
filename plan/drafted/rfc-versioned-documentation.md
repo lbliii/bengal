@@ -406,11 +406,15 @@ Bengal ships a default version selector partial. Themes can override.
 - [ ] Per-version redirect maps (deferred - use existing redirect system)
 - [ ] Search integration (deferred - per-version or unified)
 
-### Phase 4: Git Integration & Advanced
-- [ ] Git branch mode (optional): build from multiple branches
-- [ ] Version diffing ("What changed in v3?")
-- [ ] Auto-migration guide generation
-- [ ] API version detection from OpenAPI specs
+### Phase 4: Git Integration & Advanced ✅ COMPLETE
+- [x] Git branch mode: build from multiple branches (`mode: git`)
+- [x] Pattern-based branch/tag discovery (e.g., `release/*`)
+- [x] Git worktree adapter for parallel version builds
+- [x] CLI: `bengal build --all-versions`, `bengal build --version 0.1.6`
+- [x] Version diffing: `bengal version diff v1 v2` + `--git` mode
+- [x] Markdown changelog generation from diffs
+- [ ] Auto-migration guide generation (deferred)
+- [ ] API version detection from OpenAPI specs (deferred)
 
 ---
 

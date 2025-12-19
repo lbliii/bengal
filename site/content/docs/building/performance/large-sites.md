@@ -1,0 +1,416 @@
+---
+title: Large Site Optimization
+nav_title: Large Sites
+description: Build and render 5K-100K+ pages efficiently with streaming, parallel processing, and query indexes
+weight: 10
+type: doc
+icon: server
+tags:
+- performance
+- large-sites
+- streaming
+- query-indexes
+keywords:
+- large site
+- streaming build
+- memory optimization
+- query indexes
+- parallel builds
+- performance
+- scale
+category: how-to
+---
+# Large Site Optimization
+
+Bengal is designed for sites with thousands of pages. This guide covers strategies for sites beyond 5,000 pages.
+
+## Quick Start
+
+For sites with 5K+ pages:
+
+```bash
+# Memory-optimized build
+bengal build --memory-optimized --fast
+
+# Full incremental + parallel + fast
+bengal build --incremental --fast
+```
+
+---
+
+## Strategy Overview
+
+| Site Size | Recommended Strategy | Build Time |
+|-----------|---------------------|------------|
+| <500 pages | Default (no changes needed) | 1-3s |
+| 500-5K pages | `--parallel --incremental` | 3-15s |
+| 5K-20K pages | `--memory-optimized` | 15-60s |
+| 20K+ pages | Full optimization stack | 1-5min |
+
+---
+
+## 1. Memory-Optimized Builds (Streaming Mode)
+
+For sites with 5K+ pages, enable streaming mode:
+
+```bash
+bengal build --memory-optimized
+```
+
+### How It Works
+
+1. **Builds knowledge graph** to understand page connectivity
+2. **Renders hubs first** (highly connected pages) and keeps them in memory
+3. **Streams leaves** in batches and releases memory immediately
+4. **Result**: 80-90% memory reduction
+
+### Configuration
+
+```toml
+# bengal.toml
+[build]
+memory_optimized = true    # Enable streaming for all builds
+batch_size = 100           # Pages per batch (default: 100)
+```
+
+### When to Use
+
+- Sites with 5K+ pages
+- CI runners with limited memory
+- Docker containers with memory limits
+- Local machines with <16GB RAM
+
+:::{warning}
+Streaming mode and `--perf-profile` cannot be used together (profiler doesn't work with batched rendering).
+:::
+
+---
+
+## 2. Query Indexes (O(1) Lookups)
+
+Replace O(n) page filtering with O(1) index lookups in templates.
+
+### The Problem
+
+```jinja2
+{# O(n) - scans ALL pages on every request #}
+{% set blog_posts = site.pages | where('section', 'blog') %}
+```
+
+On a 10K page site, this filter runs 10,000 comparisons.
+
+### The Solution
+
+```jinja2
+{# O(1) - instant hash lookup #}
+{% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+```
+
+### Built-in Indexes
+
+| Index | Key Type | Example |
+|-------|----------|---------|
+| `section` | Section name | `site.indexes.section.get('blog')` |
+| `author` | Author name | `site.indexes.author.get('Jane')` |
+| `category` | Category | `site.indexes.category.get('tutorial')` |
+| `date_range` | Year or Year-Month | `site.indexes.date_range.get('2024')` |
+
+### Usage Examples
+
+**Section-based listing:**
+
+```jinja2
+{% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+{% for post in blog_posts | sort_by('date', reverse=true) %}
+  <h2>{{ post.title }}</h2>
+{% endfor %}
+```
+
+**Author archive:**
+
+```jinja2
+{% set author_posts = site.indexes.author.get('Jane Smith') | resolve_pages %}
+<p>{{ author_posts | length }} posts by Jane</p>
+```
+
+**Monthly archives:**
+
+```jinja2
+{% set jan_posts = site.indexes.date_range.get('2024-01') | resolve_pages %}
+{% for post in jan_posts %}
+  {{ post.title }}
+{% endfor %}
+```
+
+### Performance Impact
+
+| Pages | O(n) Filter | Query Index |
+|-------|-------------|-------------|
+| 1K | 2ms | <0.1ms |
+| 10K | 20ms | <0.1ms |
+| 100K | 200ms | <0.1ms |
+
+---
+
+## 3. Parallel Processing
+
+Enable true parallelism:
+
+```toml
+# bengal.toml
+[build]
+parallel = true
+max_workers = 8    # Adjust based on CPU cores
+```
+
+### Free-Threaded Python
+
+Bengal automatically detects Python 3.13t+ (free-threaded):
+
+```bash
+# 1.5-2x faster rendering
+# Install free-threaded Python:
+pyenv install 3.13t
+python3.13t -m pip install bengal
+```
+
+When running on free-threaded Python:
+- ThreadPoolExecutor gets true parallelism (no GIL contention)
+- ~1.78x faster rendering on multi-core machines
+- No code changes needed
+
+---
+
+## 4. Incremental Builds
+
+Only rebuild what changed:
+
+```bash
+bengal build --incremental
+```
+
+### What Gets Cached
+
+- **Content parsing** — Markdown AST cached per file
+- **Template rendering** — Output cached by content hash
+- **Asset hashing** — Fingerprints cached
+- **Query indexes** — Updated incrementally
+
+### Cache Location
+
+```
+.bengal/
+├── cache/
+│   ├── content/        # Parsed markdown cache
+│   ├── render/         # Rendered output cache
+│   └── indexes/        # Query index cache
+└── deps.json           # Dependency graph
+```
+
+### Force Fresh Build
+
+```bash
+# Clear all caches
+bengal clean --cache
+
+# Build from scratch
+bengal build --no-incremental
+```
+
+---
+
+## 5. Fast Mode
+
+Combine all optimizations:
+
+```bash
+bengal build --fast
+```
+
+`--fast` enables:
+- Parallel processing
+- Quiet output (minimal I/O)
+- Optimized rendering path
+
+---
+
+## 6. Build Profiling
+
+Identify bottlenecks:
+
+```bash
+# Generate performance profile
+bengal build --perf-profile
+
+# View results
+python -m pstats .bengal/profiles/profile.stats
+```
+
+### Template Profiling
+
+Find slow templates:
+
+```bash
+bengal build --profile-templates
+```
+
+**Output:**
+
+```
+Template Rendering Times:
+  layouts/blog.html: 1.2s (340 pages, 3.5ms avg)
+  layouts/docs.html: 0.8s (890 pages, 0.9ms avg)
+  partials/nav.html: 0.3s (included 1230 times)
+```
+
+---
+
+## 7. Content Organization
+
+### Split Large Sections
+
+If one section has 5K+ pages, consider splitting:
+
+```
+content/
+├── blog/
+│   ├── 2024/     # 500 pages
+│   ├── 2023/     # 800 pages
+│   └── archive/  # 3000+ pages (separate pagination)
+```
+
+### Use Pagination
+
+Don't render 1000 items on one page:
+
+```yaml
+# Paginate blog listing
+pagination:
+  enabled: true
+  per_page: 20
+```
+
+### Lazy-Load Heavy Content
+
+Move rarely-accessed content to separate pages:
+
+```jinja2
+{# Don't: render full changelog inline #}
+{{ include('changelog.html') }}
+
+{# Do: link to separate page #}
+<a href="/changelog/">View full changelog</a>
+```
+
+---
+
+## 8. CI/CD Optimization
+
+### GitHub Actions Example
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Bengal
+        uses: actions/cache@v3
+        with:
+          path: .bengal/cache
+          key: bengal-${{ hashFiles('content/**/*.md') }}
+
+      - name: Build
+        run: bengal build --fast --incremental
+```
+
+### Docker Memory Limits
+
+```dockerfile
+# Use memory-optimized for container builds
+CMD ["bengal", "build", "--memory-optimized", "--fast"]
+```
+
+---
+
+## 9. Monitoring Build Health
+
+Track build performance over time:
+
+```bash
+# Detailed build stats
+bengal build --verbose
+```
+
+**Output:**
+
+```
+Build Summary:
+  Total Pages: 15,432
+  Rendered: 342 (incremental)
+  Skipped: 15,090 (cached)
+  Duration: 12.3s
+  Memory Peak: 245MB
+  Pages/sec: 1,254
+```
+
+---
+
+## Quick Reference
+
+```bash
+# Memory-efficient large site build
+bengal build --memory-optimized --fast
+
+# Profile to find bottlenecks
+bengal build --perf-profile --profile-templates
+
+# Force full rebuild
+bengal build --no-incremental
+
+# Clear all caches
+bengal clean --cache
+```
+
+### Configuration
+
+```toml
+# bengal.toml - optimized for large sites
+[build]
+parallel = true
+incremental = true
+memory_optimized = true
+max_workers = 8
+batch_size = 100
+```
+
+---
+
+## Troubleshooting
+
+### Build runs out of memory
+
+1. Enable streaming: `--memory-optimized`
+2. Reduce batch size: `batch_size = 50`
+3. Increase swap space
+
+### Build is slow despite caching
+
+1. Check what's invalidating cache: `bengal build --verbose`
+2. Profile templates: `--profile-templates`
+3. Check for O(n) filters in templates (use query indexes)
+
+### Incremental not working
+
+1. Ensure `.bengal/` is not gitignored for local dev
+2. Check `deps.json` exists
+3. Run `bengal clean --cache` to reset
+
+---
+
+:::{seealso}
+- [[docs/building/performance|Performance Overview]]
+- [[docs/building/commands|Build Commands]]
+- [[docs/theming/templating|Template Optimization]]
+:::

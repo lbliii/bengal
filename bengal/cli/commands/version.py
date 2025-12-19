@@ -372,6 +372,163 @@ def _display_version_table(cli, version_config: VersionConfig) -> None:
     cli.console.print(table)
 
 
+@version_cli.command("diff")
+@command_metadata(
+    category="version",
+    description="Compare documentation between two versions",
+    examples=[
+        "bengal version diff v2 v3",
+        "bengal version diff main release/0.1.6 --git",
+    ],
+    requires_site=False,
+    tags=["version", "docs", "diff"],
+)
+@handle_cli_errors(show_art=False)
+@click.argument("old_version", required=True)
+@click.argument("new_version", required=True)
+@click.option(
+    "--git",
+    is_flag=True,
+    help="Compare git refs instead of folder versions",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Choice(["summary", "markdown", "json"]),
+    default="summary",
+    help="Output format (default: summary)",
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def diff_versions(
+    old_version: str,
+    new_version: str,
+    git: bool,
+    output: str,
+    source: str,
+) -> None:
+    """
+    📊 Compare documentation between two versions.
+
+    Shows added, removed, and modified pages between versions.
+
+    Examples:
+        bengal version diff v2 v3
+        bengal version diff main release/0.1.6 --git
+        bengal version diff v1 v2 --output markdown
+
+    Output formats:
+        summary  - Brief summary of changes (default)
+        markdown - Markdown changelog suitable for release notes
+        json     - JSON output for automation
+
+    See also:
+        bengal version list - List all versions
+    """
+    cli = get_cli_output()
+
+    root_path = Path(source).resolve()
+
+    cli.header(f"📊 Version Diff: {old_version} → {new_version}")
+    cli.blank()
+
+    if git:
+        # Git mode - compare refs directly
+        from bengal.utils.version_diff import diff_git_versions
+
+        cli.info("Comparing git refs...")
+        result = diff_git_versions(
+            repo_path=root_path,
+            old_ref=old_version,
+            new_ref=new_version,
+            content_dir="docs",
+        )
+    else:
+        # Folder mode - compare directories
+        version_config = _load_version_config(root_path)
+
+        if not version_config or not version_config.enabled:
+            cli.error("Versioning is not enabled in this site.")
+            raise click.Abort()
+
+        # Find versions
+        old_v = next((v for v in version_config.versions if v.id == old_version), None)
+        new_v = next((v for v in version_config.versions if v.id == new_version), None)
+
+        if not old_v:
+            cli.error(f"Version '{old_version}' not found.")
+            raise click.Abort()
+        if not new_v:
+            cli.error(f"Version '{new_version}' not found.")
+            raise click.Abort()
+
+        # Compare directories
+        from bengal.utils.version_diff import VersionDiffer
+
+        old_path = root_path / old_v.source
+        new_path = root_path / new_v.source
+
+        if not old_path.exists():
+            cli.error(f"Old version path not found: {old_path}")
+            raise click.Abort()
+        if not new_path.exists():
+            cli.error(f"New version path not found: {new_path}")
+            raise click.Abort()
+
+        differ = VersionDiffer(old_path, new_path)
+        result = differ.diff(old_version, new_version)
+
+    # Output results
+    if output == "json":
+        import json
+
+        data = {
+            "old_version": result.old_version,
+            "new_version": result.new_version,
+            "added": [p.path for p in result.added_pages],
+            "removed": [p.path for p in result.removed_pages],
+            "modified": [
+                {"path": p.path, "change_pct": p.change_percentage} for p in result.modified_pages
+            ],
+            "unchanged_count": len(result.unchanged_pages),
+        }
+        cli.console.print(json.dumps(data, indent=2))
+    elif output == "markdown":
+        cli.console.print(result.to_markdown())
+    else:
+        # Summary output
+        cli.info(result.summary())
+        cli.blank()
+
+        if result.added_pages:
+            cli.success("✨ Added pages:")
+            for p in result.added_pages[:10]:
+                cli.info(f"  + {p.path}")
+            if len(result.added_pages) > 10:
+                cli.info(f"  ... and {len(result.added_pages) - 10} more")
+            cli.blank()
+
+        if result.removed_pages:
+            cli.warning("🗑️ Removed pages:")
+            for p in result.removed_pages[:10]:
+                cli.info(f"  - {p.path}")
+            if len(result.removed_pages) > 10:
+                cli.info(f"  ... and {len(result.removed_pages) - 10} more")
+            cli.blank()
+
+        if result.modified_pages:
+            cli.info("📝 Modified pages:")
+            for p in sorted(result.modified_pages, key=lambda x: x.change_percentage, reverse=True)[
+                :10
+            ]:
+                cli.info(f"  ~ {p.path} ({p.change_percentage:.1f}% changed)")
+            if len(result.modified_pages) > 10:
+                cli.info(f"  ... and {len(result.modified_pages) - 10} more")
+            cli.blank()
+
+        if not result.has_changes:
+            cli.success("✅ No changes between versions")
+
+
 def _update_config_with_version(
     root_path: Path,
     version_id: str,
