@@ -58,8 +58,8 @@ Args:
 
   <div class="autodoc-member-body">
     {% if cls.description %}
-    <div class="autodoc-member-desc">
-      <p>{{ cls.description }}</p>
+    <div class="autodoc-member-desc prose">
+      {{ cls.description | markdownify | safe }}
     </div>
     {% endif %}
 

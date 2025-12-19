@@ -57,7 +57,7 @@ Args:
   <div class="autodoc-member-body">
     {% if func.description %}
     <div class="autodoc-member-desc prose">
-      {{ func.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
+      {{ func.description | markdownify | safe }}
     </div>
     {% endif %}
 

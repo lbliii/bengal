@@ -9,8 +9,7 @@ friendly "rebuilding" page instead of an ugly directory listing.
 from __future__ import annotations
 
 import io
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -216,12 +215,157 @@ class TestRebuildingPageContent:
         assert b"rosette" in REBUILDING_PAGE_HTML.lower() or b"ellipse" in REBUILDING_PAGE_HTML
 
 
+class TestRebuildingPagePalette:
+    """Test the palette-aware rebuilding page functionality."""
+
+    def test_get_rebuilding_page_html_replaces_path(self):
+        """Test that get_rebuilding_page_html replaces the path placeholder."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/api/bengal/config/")
+        assert b"/api/bengal/config/" in html
+        assert b"%PATH%" not in html
+
+    def test_get_rebuilding_page_html_default_palette(self):
+        """Test that get_rebuilding_page_html uses default palette when none specified."""
+        from bengal.server.request_handler import (
+            DEFAULT_PALETTE,
+            PALETTE_COLORS,
+            get_rebuilding_page_html,
+        )
+
+        html = get_rebuilding_page_html("/test/")
+
+        # Get the expected accent color for the default palette
+        accent, accent_rgb, _, _, _ = PALETTE_COLORS[DEFAULT_PALETTE]
+
+        assert accent.encode() in html
+        assert b"%ACCENT%" not in html
+        assert b"%ACCENT_RGB%" not in html
+
+    def test_get_rebuilding_page_html_charcoal_palette(self):
+        """Test that charcoal-bengal palette uses golden accent color."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "charcoal-bengal")
+
+        # Charcoal Bengal uses golden glitter accent #C9A84D
+        assert b"#C9A84D" in html
+        assert b"201, 168, 77" in html  # RGB values
+
+    def test_get_rebuilding_page_html_snow_lynx_palette(self):
+        """Test that snow-lynx palette uses icy teal accent color."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "snow-lynx")
+
+        # Snow Lynx uses icy teal accent #6EC4BC
+        assert b"#6EC4BC" in html
+        assert b"110, 196, 188" in html  # RGB values
+
+    def test_get_rebuilding_page_html_blue_bengal_palette(self):
+        """Test that blue-bengal palette uses powder blue accent color."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "blue-bengal")
+
+        # Blue Bengal uses powder blue accent #9DBDD9
+        assert b"#9DBDD9" in html
+        assert b"157, 189, 217" in html  # RGB values
+
+    def test_get_rebuilding_page_html_brown_bengal_palette(self):
+        """Test that brown-bengal palette uses warm amber accent color."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "brown-bengal")
+
+        # Brown Bengal uses warm amber accent #FFAD3D
+        assert b"#FFAD3D" in html
+        assert b"255, 173, 61" in html  # RGB values
+
+    def test_get_rebuilding_page_html_silver_bengal_palette(self):
+        """Test that silver-bengal palette uses pure silver accent color."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "silver-bengal")
+
+        # Silver Bengal uses pure silver accent #D1D5DB
+        assert b"#D1D5DB" in html
+        assert b"209, 213, 219" in html  # RGB values
+
+    def test_get_rebuilding_page_html_unknown_palette_uses_default(self):
+        """Test that unknown palette names fall back to default."""
+        from bengal.server.request_handler import (
+            DEFAULT_PALETTE,
+            PALETTE_COLORS,
+            get_rebuilding_page_html,
+        )
+
+        html = get_rebuilding_page_html("/test/", "unknown-palette")
+
+        # Should use default palette colors
+        accent, _, _, _, _ = PALETTE_COLORS[DEFAULT_PALETTE]
+        assert accent.encode() in html
+
+    def test_get_rebuilding_page_html_none_palette_uses_default(self):
+        """Test that None palette uses default."""
+        from bengal.server.request_handler import (
+            DEFAULT_PALETTE,
+            PALETTE_COLORS,
+            get_rebuilding_page_html,
+        )
+
+        html = get_rebuilding_page_html("/test/", None)
+
+        # Should use default palette colors
+        accent, _, _, _, _ = PALETTE_COLORS[DEFAULT_PALETTE]
+        assert accent.encode() in html
+
+    def test_all_placeholders_replaced(self):
+        """Test that all color placeholders are replaced."""
+        from bengal.server.request_handler import get_rebuilding_page_html
+
+        html = get_rebuilding_page_html("/test/", "charcoal-bengal")
+
+        # No placeholders should remain
+        assert b"%PATH%" not in html
+        assert b"%ACCENT%" not in html
+        assert b"%ACCENT_RGB%" not in html
+        assert b"%BG_PRIMARY%" not in html
+        assert b"%BG_SECONDARY%" not in html
+        assert b"%BG_TERTIARY%" not in html
+
+    def test_handler_uses_active_palette(self, tmp_path):
+        """Test that BengalRequestHandler uses the _active_palette class attribute."""
+        from bengal.server.request_handler import BengalRequestHandler
+
+        # Set charcoal as active palette
+        BengalRequestHandler._active_palette = "charcoal-bengal"
+        BengalRequestHandler.set_build_in_progress(True)
+
+        try:
+            handler = MagicMock()
+            handler.path = "/api/test/"
+            handler.send_response = MagicMock()
+            handler.send_header = MagicMock()
+            handler.end_headers = MagicMock()
+
+            result = BengalRequestHandler.list_directory(handler, str(tmp_path))
+            content = result.read()
+
+            # Should use charcoal palette colors
+            assert b"#C9A84D" in content
+        finally:
+            BengalRequestHandler.set_build_in_progress(False)
+            BengalRequestHandler._active_palette = None
+
+
 class TestBuildHandlerIntegration:
     """Test that BuildHandler properly signals build state."""
 
     def test_build_handler_sets_build_in_progress(self, tmp_path):
         """Test that BuildHandler signals build start/end."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
         from bengal.server.build_handler import BuildHandler
         from bengal.server.request_handler import BengalRequestHandler
@@ -232,7 +376,8 @@ class TestBuildHandlerIntegration:
         mock_site.output_dir = tmp_path / "public"
         mock_site.config = {}
 
-        handler = BuildHandler(mock_site)
+        # Creating a BuildHandler verifies the integration with BengalRequestHandler
+        _ = BuildHandler(mock_site)
 
         # Ensure initial state
         BengalRequestHandler.set_build_in_progress(False)
@@ -244,4 +389,3 @@ class TestBuildHandlerIntegration:
             initial_state = BengalRequestHandler._build_in_progress
 
         assert initial_state is False
-

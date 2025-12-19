@@ -154,6 +154,16 @@ class DevServer:
                 logger.debug("html_cache_clear_failed", error=str(e))
                 pass  # Cache might not be initialized yet, ignore
 
+            # Set active palette for rebuilding page styling
+            # Uses the site's default_palette config or falls back to built-in default
+            try:
+                default_palette = self.site.config.get("default_palette")
+                if default_palette:
+                    BengalRequestHandler._active_palette = default_palette
+                    logger.debug("rebuilding_page_palette_set", palette=default_palette)
+            except Exception:
+                pass  # Use default palette if config access fails
+
             # Initialize reload controller baseline after initial build
             # This prevents the first file change from being treated as "baseline" (which skips reload)
             try:
