@@ -137,7 +137,10 @@ class URLStrategy:
             parts = rel_path.parts
             if len(parts) >= 2 and parts[0] == "_versions":
                 # _versions/v3/docs/guide.md → docs/guide.md
-                return Path(*parts[2:])
+                if len(parts) > 2:
+                    return Path(*parts[2:])
+                # Path is just _versions/<id>/; nothing to strip into a content path
+                return rel_path
             return rel_path
 
         # Non-latest version: insert version prefix after section
