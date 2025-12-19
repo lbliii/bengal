@@ -13,7 +13,7 @@ Features:
     - Serializable BuildRequest/BuildResult for cross-process communication
 
 Related:
-    - bengal/server/build_handler.py: Uses BuildExecutor for safe builds
+    - bengal/server/build_trigger.py: Uses BuildExecutor for safe builds
     - bengal/server/dev_server.py: Manages executor lifecycle
 """
 

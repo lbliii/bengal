@@ -8,7 +8,7 @@ Provides configurable filtering for file watching with support for:
 - Default ignores (common temp/cache directories)
 
 Related:
-    - bengal/server/build_handler.py: Uses IgnoreFilter for file watching
+    - bengal/server/watcher_runner.py: Uses IgnoreFilter for file watching
     - bengal/server/file_watcher.py: Integrates with file watcher backends
 """
 

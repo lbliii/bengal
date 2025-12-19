@@ -11,7 +11,7 @@ Features:
     - Graceful handling of failures and timeouts
 
 Related:
-    - bengal/server/build_handler.py: Integrates hooks into build cycle
+    - bengal/server/build_trigger.py: Integrates hooks into build cycle
     - bengal.toml [dev_server] section: Configuration for hooks
 """
 

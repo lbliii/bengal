@@ -360,14 +360,14 @@ class TestRebuildingPagePalette:
             BengalRequestHandler._active_palette = None
 
 
-class TestBuildHandlerIntegration:
-    """Test that BuildHandler properly signals build state."""
+class TestBuildTriggerIntegration:
+    """Test that BuildTrigger properly signals build state."""
 
-    def test_build_handler_sets_build_in_progress(self, tmp_path):
-        """Test that BuildHandler signals build start/end."""
+    def test_build_trigger_sets_build_in_progress(self, tmp_path):
+        """Test that BuildTrigger signals build start/end."""
         from unittest.mock import MagicMock
 
-        from bengal.server.build_handler import BuildHandler
+        from bengal.server.build_trigger import BuildTrigger
         from bengal.server.request_handler import BengalRequestHandler
 
         # Create a mock site
@@ -376,16 +376,20 @@ class TestBuildHandlerIntegration:
         mock_site.output_dir = tmp_path / "public"
         mock_site.config = {}
 
-        # Creating a BuildHandler verifies the integration with BengalRequestHandler
-        _ = BuildHandler(mock_site)
+        # Create a mock executor
+        mock_executor = MagicMock()
+
+        # Creating a BuildTrigger verifies the integration with BengalRequestHandler
+        trigger = BuildTrigger(mock_site, executor=mock_executor)
 
         # Ensure initial state
         BengalRequestHandler.set_build_in_progress(False)
 
-        # The _trigger_build method should set build_in_progress to True
-        # We can't easily test the full method, but we can verify the
-        # import and call work
+        # Verify initial state is False
         with BengalRequestHandler._build_lock:
             initial_state = BengalRequestHandler._build_in_progress
 
         assert initial_state is False
+
+        # Clean up
+        trigger.shutdown()

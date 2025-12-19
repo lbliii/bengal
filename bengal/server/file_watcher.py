@@ -8,7 +8,7 @@ Provides an abstraction over file watching backends with:
 
 Related:
     - bengal/server/ignore_filter.py: Provides filtering for watched paths
-    - bengal/server/build_handler.py: Handles file change events
+    - bengal/server/watcher_runner.py: Runs watcher and triggers builds
     - bengal/server/dev_server.py: Integrates file watching
 
 Configuration:
