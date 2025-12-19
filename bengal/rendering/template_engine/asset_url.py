@@ -142,7 +142,7 @@ class AssetURLMixin:
 
         # In dev server mode, prefer stable URLs without fingerprints
         try:
-            if self.site.config.get("_dev_server_active", False):
+            if self.site.dev_mode:
                 return with_baseurl(f"/assets/{safe_asset_path}", self.site)
         except Exception as e:
             logger.debug(

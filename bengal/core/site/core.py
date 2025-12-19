@@ -125,6 +125,9 @@ class Site(
     # Global data from data/ directory (YAML, JSON, TOML files).
     # NOTE: Loaded from site root data/ directory. Accessible in templates as site.data.
     data: Any = field(default_factory=dict)
+    # Runtime flag: True when running in dev server mode (not persisted to config).
+    # NOTE: Set by DevServer and BuildExecutor. Used to disable caching, timestamps, etc.
+    dev_mode: bool = False
 
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)

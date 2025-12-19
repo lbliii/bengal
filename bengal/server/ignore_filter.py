@@ -78,6 +78,8 @@ class IgnoreFilter:
             "coverage",
             "htmlcov",
             ".coverage",
+            # Bengal cache directory
+            ".bengal",
         }
     )
 
@@ -175,6 +177,11 @@ class IgnoreFilter:
             >>> filter = IgnoreFilter.from_config(config, Path("public/"))
         """
         dev_server = config.get("dev_server", {})
+
+        # Note: dev_server should always be a dict (user settings).
+        # Runtime state uses site.dev_mode, not config["dev_server"].
+        if not isinstance(dev_server, dict):
+            dev_server = {}
 
         directories: list[Path] = []
         if output_dir:

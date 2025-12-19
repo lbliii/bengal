@@ -136,6 +136,7 @@ class TestIgnoreFilterDefaults:
             ".tox",
             ".idea",
             ".vscode",
+            ".bengal",
         ],
     )
     def test_default_directories_are_ignored(self, dirname: str) -> None:
@@ -187,6 +188,41 @@ class TestIgnoreFilterFromConfig:
 
         assert f(output_dir / "index.html") is True
         assert f(tmp_path / "content" / "post.md") is False
+
+    def test_handles_dev_server_as_bool_gracefully(self) -> None:
+        """Test that from_config handles dev_server being a bool (not a dict).
+
+        This is defensive coding - the proper design uses site.dev_mode for
+        runtime state, keeping config["dev_server"] as a dict for user settings.
+        But we still handle the edge case gracefully.
+        """
+        # Edge case: dev_server is a bool instead of a dict
+        config = {"dev_server": True}
+
+        # Should NOT crash - should use defaults
+        f = IgnoreFilter.from_config(config)
+
+        # Should still work with default patterns
+        assert f(Path("/project/.git/config")) is True
+
+    def test_dev_server_config_is_dict_not_runtime_flag(self) -> None:
+        """Test that config["dev_server"] is a dict for user settings.
+
+        Runtime state (dev mode active) should be on site.dev_mode,
+        not in config. This keeps config pure (static settings only).
+        """
+        config = {
+            "dev_server": {  # User config (dict) - static settings
+                "exclude_patterns": ["*.log"],
+            },
+        }
+        # Note: site.dev_mode = True would be set separately for runtime state
+
+        f = IgnoreFilter.from_config(config)
+
+        # Should read user patterns correctly
+        assert f(Path("/project/debug.log")) is True
+        assert f(Path("/project/app.py")) is False
 
 
 class TestIgnoreFilterCallbacks:

@@ -72,7 +72,7 @@ class SiteLlmTxtGenerator:
             lines.append(f"Site: {baseurl}")
 
         # Only include build date in production
-        if not self.site.config.get("_dev_server_active", False):
+        if not self.site.dev_mode:
             lines.append(f"Build Date: {datetime.now().isoformat()}")
 
         lines.append(f"Total Pages: {len(pages)}\n")

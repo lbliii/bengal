@@ -66,7 +66,7 @@ class ManifestHelpersMixin:
 
         # In dev server mode, be conservative: allow the manifest to change while
         # the process is running (e.g., assets pipeline updates).
-        if getattr(self.site, "config", {}).get("_dev_server_active", False):
+        if getattr(self.site, "dev_mode", False):
             try:
                 stat = manifest_path.stat()
             except FileNotFoundError:

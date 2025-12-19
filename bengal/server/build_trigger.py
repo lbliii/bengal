@@ -377,6 +377,7 @@ class BuildTrigger:
                 self.build_time_ms = res.build_time_ms
                 self.incremental = inc
                 self.parallel = True
+                self.skipped = False
 
         stats = _Stats(result, incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))

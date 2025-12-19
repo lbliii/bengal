@@ -135,7 +135,7 @@ def create_template_environment(site: Site) -> Environment:
             return "/assets/"
 
         # In dev server mode, return simple path
-        if site.config.get("_dev_server_active", False):
+        if site.dev_mode:
             return with_baseurl(f"/assets/{safe_path}", site)
 
         # Otherwise, return path with baseurl

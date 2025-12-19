@@ -148,7 +148,7 @@ def create_jinja_environment(
     import sys
 
     # Dev server should always reflect filesystem changes (do not cache).
-    auto_reload = site.config.get("_dev_server_active", False)
+    auto_reload = site.dev_mode
 
     # Look for templates in multiple locations with theme inheritance.
     # Optimization: avoid repeating filesystem scanning N times when rendering in parallel
