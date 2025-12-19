@@ -27,6 +27,7 @@ rmtree_robust(Path('/path/to/dir'))
 from __future__ import annotations
 
 import errno
+import json
 import platform
 import shutil
 import subprocess
@@ -34,7 +35,6 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
-from bengal.utils import json_compat
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -258,7 +258,7 @@ def load_json(
 
     # Parse JSON (using orjson if available for 3-10x speedup)
     try:
-        data = json_compat.loads(content)
+        data = json.loads(content)
 
         logger.debug(
             "json_loaded",
@@ -270,7 +270,7 @@ def load_json(
         )
         return data
 
-    except json_compat.JSONDecodeError as e:
+    except json.JSONDecodeError as e:
         logger.error(
             "json_parse_error",
             path=str(file_path),
@@ -560,7 +560,7 @@ def write_json(
         >>> write_json('data.json', data, indent=None)  # Compact
     """
     try:
-        content = json_compat.dumps(data, indent=indent)
+        content = json.dumps(data, indent=indent)
         write_text_file(file_path, content, create_parents=create_parents, caller=caller)
 
     except TypeError as e:

@@ -7,12 +7,12 @@ Handles source registration, parallel fetching, caching, and aggregation.
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils import json_compat
 from bengal.utils.async_compat import run_async
 from bengal.utils.logger import get_logger
 
@@ -230,7 +230,7 @@ class ContentLayerManager:
             return False
 
         try:
-            meta = json_compat.loads(meta_path.read_text())
+            meta = json.loads(meta_path.read_text())
             cached_meta = CachedSource(
                 source_key=meta["source_key"],
                 cached_at=datetime.fromisoformat(meta["cached_at"]),
@@ -251,7 +251,7 @@ class ContentLayerManager:
 
             return True
 
-        except (json_compat.JSONDecodeError, KeyError, ValueError) as e:
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.debug(f"Invalid cache metadata for '{name}': {e}")
             return False
 
@@ -273,9 +273,9 @@ class ContentLayerManager:
             return None
 
         try:
-            data = json_compat.loads(cache_path.read_text())
+            data = json.loads(cache_path.read_text())
             return [ContentEntry.from_dict(entry) for entry in data]
-        except (json_compat.JSONDecodeError, KeyError, ValueError) as e:
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.debug(f"Failed to load cache for '{name}': {e}")
             return None
 
@@ -298,7 +298,7 @@ class ContentLayerManager:
 
         # Save entries
         data = [entry.to_dict() for entry in entries]
-        cache_path.write_text(json_compat.dumps(data, indent=2))
+        cache_path.write_text(json.dumps(data, indent=2))
 
         # Save metadata
         meta = {
@@ -306,7 +306,7 @@ class ContentLayerManager:
             "cached_at": datetime.now().isoformat(),
             "entry_count": len(entries),
         }
-        meta_path.write_text(json_compat.dumps(meta, indent=2))
+        meta_path.write_text(json.dumps(meta, indent=2))
 
         logger.debug(f"Cached {len(entries)} entries for '{name}'")
 
@@ -353,7 +353,7 @@ class ContentLayerManager:
 
             if meta_path.exists():
                 try:
-                    meta = json_compat.loads(meta_path.read_text())
+                    meta = json.loads(meta_path.read_text())
                     cached_at = datetime.fromisoformat(meta["cached_at"])
                     age = datetime.now() - cached_at
                     status[name] = {
