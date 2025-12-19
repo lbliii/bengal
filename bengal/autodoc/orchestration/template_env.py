@@ -83,6 +83,13 @@ def create_template_environment(site: Site) -> Environment:
     env.globals["config"] = site.config
     env.globals["theme"] = site.theme_config
 
+    # Add versioning context (required by version-selector.html and version-banner.html)
+    # Autodoc pages are not versioned, so current_version is always None
+    env.globals["versioning_enabled"] = site.versioning_enabled
+    env.globals["versions"] = site.versions
+    env.globals["current_version"] = None
+    env.globals["is_latest_version"] = True
+
     # Add bengal metadata (used by base.html for generator meta tag)
     from bengal.utils.metadata import build_template_metadata
 

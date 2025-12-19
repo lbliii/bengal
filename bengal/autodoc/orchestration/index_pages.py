@@ -124,34 +124,31 @@ def render_section_index(
         section=section,
     )
 
+    # Build common render context
+    # Include versioning context (autodoc pages are not versioned)
+    render_context = {
+        "section": section,
+        "page": page_context,
+        "config": config,
+        "site": site,
+        # Versioning context - autodoc pages are not versioned
+        "current_version": None,
+        "is_latest_version": True,
+    }
+
     # Try theme template first
     try:
         template = template_env.get_template(f"{template_name}.html")
-        return template.render(
-            section=section,
-            page=page_context,
-            config=config,
-            site=site,
-        )
+        return template.render(**render_context)
     except Exception as e:
         # Fall back to generic section-index or legacy path
         try:
             template = template_env.get_template("autodoc/python/section-index.html")
-            return template.render(
-                section=section,
-                page=page_context,
-                config=config,
-                site=site,
-            )
+            return template.render(**render_context)
         except Exception as e2:
             try:
                 template = template_env.get_template("section-index.html")
-                return template.render(
-                    section=section,
-                    page=page_context,
-                    config=config,
-                    site=site,
-                )
+                return template.render(**render_context)
             except Exception as e3:
                 logger.warning(
                     "autodoc_template_fallback",

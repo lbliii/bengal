@@ -361,26 +361,28 @@ def render_element(
         section=section,
     )
 
+    # Build common render context
+    # Include versioning context (autodoc pages are not versioned)
+    render_context = {
+        "element": element_data,  # Pass clean dict, not DocElement
+        "page": page_context,
+        "config": normalized_config,
+        "site": site,
+        # Versioning context - autodoc pages are not versioned
+        "current_version": None,
+        "is_latest_version": True,
+    }
+
     # Try theme template first
     try:
         template = template_env.get_template(f"{template_name}.html")
-        return template.render(
-            element=element_data,  # Pass clean dict, not DocElement
-            page=page_context,
-            config=normalized_config,
-            site=site,
-        )
+        return template.render(**render_context)
     except Exception as e:
         # Fall back to generic template or legacy path
         try:
             # Try without .html extension
             template = template_env.get_template(template_name)
-            return template.render(
-                element=element_data,  # Pass clean dict, not DocElement
-                page=page_context,
-                config=normalized_config,
-                site=site,
-            )
+            return template.render(**render_context)
         except Exception as fallback_error:
             logger.warning(
                 "autodoc_template_render_failed",
