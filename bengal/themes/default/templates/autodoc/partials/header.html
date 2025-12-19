@@ -75,7 +75,7 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
       {% set _ = subcommands.append(child) %}
     {% endif %}
   {% endfor %}
-  {% set parameters = element.metadata.parameters | default([]) %}
+  {% set parameters = element.metadata.args or element.metadata.parameters or [] %}
 
   {% set stats = [] %}
   {% if options %}{% set _ = stats.append({'value': options | length, 'label': 'Options'}) %}{% endif %}

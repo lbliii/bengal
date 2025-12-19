@@ -37,7 +37,8 @@ DocElements have:
       {% set param_name = meta.opts | join(', ') if meta.opts else param.name %}
       {% set param_type_val = meta.type | default('') %}
       {% set param_default = meta.default | default('') %}
-      {% set param_desc = param.description | default('—') %}
+      {# Check both description (DocElement) and docstring (raw dict) #}
+      {% set param_desc = param.description or (meta.docstring if meta.docstring else '—') %}
       <tr data-required="{{ 'true' if is_required else 'false' }}">
         <td class="autodoc-cell-name" data-label="Name"><code>{{ param_name }}</code></td>
         <td class="autodoc-cell-type" data-label="Type"><code>{{ param_type_val or '—' }}</code></td>

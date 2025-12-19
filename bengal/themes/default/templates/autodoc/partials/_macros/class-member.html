@@ -15,8 +15,11 @@ Args:
 
 {% macro class_member(cls, is_first=false) %}
 {% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
-{% set cls_attrs = cls.metadata.attributes or [] %}
-{% set total_members = (cls_methods | length) + (cls_attrs | length) %}
+{# Attributes are stored as children with element_type='attribute', or sometimes properties #}
+{% set cls_attrs = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
+{% set cls_props = (cls.children or []) | selectattr('element_type', 'eq', 'property') | list %}
+{% set all_attrs = cls_attrs + cls_props %}
+{% set total_members = (cls_methods | length) + (all_attrs | length) %}
 {% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
 {% set is_abstract = cls.metadata.is_abstract | default(false) %}
 
@@ -30,7 +33,7 @@ Args:
       <div class="autodoc-member-name-row">
         <code class="autodoc-member-name">{{ cls.name }}</code>
         {# Count badge #}
-        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% endif %}{% if cls_attrs %}, {{ cls_attrs | length }} attribute{% if cls_attrs | length != 1 %}s{% endif %}{% endif %}">{{ total_members }}</span>
+        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% endif %}{% if all_attrs %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% endif %}{% endif %}">{{ total_members }}</span>
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
@@ -60,8 +63,8 @@ Args:
     </div>
     {% endif %}
 
-    {# Class attributes #}
-    {% if cls_attrs %}
+    {# Class attributes (from children with element_type='attribute' or 'property') #}
+    {% if all_attrs %}
     <div class="autodoc-section" data-section="attributes">
       <h4 class="autodoc-label">Attributes</h4>
       <table class="autodoc-table" data-table="attributes">
@@ -73,11 +76,13 @@ Args:
           </tr>
         </thead>
         <tbody>
-          {% for attr in cls_attrs %}
+          {% for attr in all_attrs %}
+          {# Attributes are DocElements with name, description, and metadata.annotation #}
+          {% set attr_type = attr.metadata.annotation if attr.metadata else '' %}
           <tr>
-            <td class="autodoc-cell-name"><code>{{ attr.name | default(attr.get('name', '')) }}</code></td>
-            <td class="autodoc-cell-type"><code>{{ attr.type | default(attr.get('type', '')) }}</code></td>
-            <td class="autodoc-cell-desc">{{ attr.description | default(attr.get('description', '')) }}</td>
+            <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
+            <td class="autodoc-cell-type"><code>{{ attr_type }}</code></td>
+            <td class="autodoc-cell-desc">{{ attr.description }}</td>
           </tr>
           {% endfor %}
         </tbody>

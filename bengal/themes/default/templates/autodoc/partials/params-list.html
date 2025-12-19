@@ -15,11 +15,13 @@ Optional: title (str)
 
   <dl class="autodoc-params">
     {% for param in params %}
-    {% set is_required = param.metadata.required | default(param.required | default(false)) if param.metadata is defined else param.get('required', false) %}
-    {% set param_name = param.name if param.name is defined else param.get('name', '') %}
-    {% set param_type_val = param.metadata.type if (param.metadata is defined and param.metadata.type) else (param.type if param.type is defined else param.get('type', '')) %}
-    {% set param_default = param.metadata.default if (param.metadata is defined and param.metadata.default) else (param.default if param.default is defined else param.get('default', '')) %}
-    {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
+    {# Handle both dict and object access patterns #}
+    {% set is_required = param.metadata.required | default(param.required | default(false)) if param.metadata is defined else (param.get('required', false) if param.get else false) %}
+    {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
+    {% set param_type_val = param.metadata.type if (param.metadata is defined and param.metadata.type) else (param.type if param.type is defined else (param.get('type', '') if param.get else '')) %}
+    {% set param_default = param.metadata.default if (param.metadata is defined and param.metadata.default) else (param.default if param.default is defined else (param.get('default', '') if param.get else '')) %}
+    {# Check both docstring (from extractor) and description keys #}
+    {% set param_desc = param.description if param.description is defined else (param.get('docstring', '') or param.get('description', '') if param.get else '') %}
     <div class="autodoc-param" data-required="{{ 'true' if is_required else 'false' }}">
       <dt class="autodoc-param-name">
         <code>{{ param_name }}</code>
