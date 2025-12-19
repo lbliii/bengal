@@ -10,6 +10,7 @@ Supports:
 from __future__ import annotations
 
 import re
+import textwrap
 from typing import Any
 
 
@@ -177,13 +178,17 @@ class GoogleDocstringParser:
         result.attributes = self._parse_args_section(sections.get("Attributes", ""))
 
         # Build description: base description + custom sections (documentation prose)
-        description_parts = [sections.get("description", result.summary)]
+        base_desc = sections.get("description", result.summary)
+        # Dedent to prevent markdown treating indented content as code blocks
+        description_parts = [textwrap.dedent(base_desc) if base_desc else ""]
 
         # Append custom sections to description (they're documentation, not structured data)
         for section_name, section_content in sections.items():
             if section_name not in known_sections and section_content:
+                # Dedent the content to prevent markdown treating it as code block
+                dedented = textwrap.dedent(section_content)
                 # Format as markdown section
-                description_parts.append(f"\n\n**{section_name}:**\n{section_content}")
+                description_parts.append(f"\n\n**{section_name}:**\n{dedented}")
 
         result.description = "\n".join(description_parts).strip()
 
