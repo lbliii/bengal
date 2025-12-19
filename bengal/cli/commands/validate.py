@@ -211,9 +211,9 @@ def _run_watch_mode(
         incremental: Whether to use incremental validation
         cli: CLI output instance
     """
-    import asyncio
-
     import watchfiles
+
+    from bengal.utils.async_compat import run_async
 
     cli.blank()
     cli.info("👀 Watch mode: Validating on file changes...")
@@ -321,6 +321,6 @@ def _run_watch_mode(
     signal.signal(signal.SIGINT, signal_handler)
 
     try:
-        asyncio.run(_watch_loop())
+        run_async(_watch_loop())
     except KeyboardInterrupt:
         signal_handler(signal.SIGINT, None)
