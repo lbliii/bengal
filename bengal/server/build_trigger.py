@@ -28,12 +28,13 @@ from typing import Any
 
 import yaml
 
-from bengal.server.build_executor import BuildExecutor, BuildRequest
+from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
+from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
 
@@ -368,32 +369,9 @@ class BuildTrigger:
 
         return False
 
-    def _display_stats(self, result: Any, incremental: bool) -> None:
-        """Display build statistics."""
-
-        class _Stats:
-            def __init__(self, res: Any, inc: bool) -> None:
-                self.total_pages = res.pages_built
-                self.regular_pages = getattr(res, "regular_pages", res.pages_built)
-                self.generated_pages = getattr(res, "generated_pages", 0)
-                self.total_assets = getattr(res, "total_assets", 0)
-                self.total_sections = getattr(res, "total_sections", 0)
-                self.taxonomies_count = getattr(res, "taxonomies_count", 0)
-                self.total_directives = getattr(res, "total_directives", 0)
-                self.build_time_ms = res.build_time_ms
-                self.incremental = inc
-                self.parallel = True
-                self.skipped = False
-                self.warnings: list[Any] = []
-                # Phase timing attributes (required by display_build_stats)
-                self.discovery_time_ms: float = 0
-                self.taxonomy_time_ms: float = 0
-                self.rendering_time_ms: float = 0
-                self.assets_time_ms: float = 0
-                self.postprocess_time_ms: float = 0
-                self.health_check_time_ms: float = 0
-
-        stats = _Stats(result, incremental)
+    def _display_stats(self, result: BuildResult, incremental: bool) -> None:
+        """Display build statistics using MinimalStats adapter."""
+        stats = MinimalStats.from_build_result(result, incremental=incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
     def _handle_reload(
