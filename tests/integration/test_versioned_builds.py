@@ -337,9 +337,7 @@ baseurl = "/"
             "---\ntitle: Guide v1\n---\n"
         )
         (content_dir / "_shared").mkdir(parents=True)
-        (content_dir / "_shared" / "changelog.md").write_text(
-            "---\ntitle: Changelog\n---\n"
-        )
+        (content_dir / "_shared" / "changelog.md").write_text("---\ntitle: Changelog\n---\n")
 
         yield temp_dir
         shutil.rmtree(temp_dir)
@@ -367,9 +365,7 @@ baseurl = "/"
     def test_check_shared_content_changes_disabled(self, temp_versioned_site_with_cache):
         """Test that shared content checking returns False when versioning disabled."""
         # Modify config to disable versioning
-        config_file = (
-            temp_versioned_site_with_cache / "config" / "_default" / "versioning.yaml"
-        )
+        config_file = temp_versioned_site_with_cache / "config" / "_default" / "versioning.yaml"
         config_file.write_text("""
 versioning:
   enabled: false
@@ -421,4 +417,3 @@ class TestVersionedBuildIntegration:
 
         # Check sections
         assert "docs" in config.sections
-

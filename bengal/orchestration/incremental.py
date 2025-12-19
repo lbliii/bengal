@@ -454,7 +454,7 @@ class IncrementalOrchestrator:
             return False
 
         # Check version_config.enabled and shared are properly set
-        if not getattr(version_config, "enabled", False) is True:
+        if getattr(version_config, "enabled", False) is not True:
             return False
 
         shared_paths = getattr(version_config, "shared", None)
@@ -685,7 +685,7 @@ class IncrementalOrchestrator:
 
         # Check for shared content changes (RFC: rfc-versioned-docs-pipeline-integration)
         # When _shared/ content changes, all versioned pages need rebuild
-        shared_content_affected = self._apply_shared_content_cascade(
+        self._apply_shared_content_cascade(
             pages_to_rebuild=pages_to_rebuild,
             forced_changed=forced_changed,
             verbose=verbose,
