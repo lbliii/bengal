@@ -38,7 +38,7 @@ content/
 
 **Best for**: Most projects, simple setup, easy to understand.
 
-→ [Set up Folder Mode](folder-mode.md)
+→ [Set up Folder Mode](./folder-mode.md)
 
 ### Git Mode
 
@@ -57,7 +57,7 @@ versioning:
 
 **Best for**: Projects that already use release branches, CI/CD pipelines.
 
-→ [Set up Git Mode](git-mode.md)
+→ [Set up Git Mode](./git-mode.md)
 
 ## Quick Start (Folder Mode)
 
@@ -136,7 +136,7 @@ Link to specific versions from any page:
 See the [[v2:docs/migration|v2 Migration Guide]] for upgrade steps.
 ```
 
-→ [Cross-Version Linking](cross-version-links.md)
+→ [Cross-Version Linking](./cross-version-links.md)
 
 ### Version Directives
 
@@ -156,7 +156,7 @@ Default timeout changed from 30s to 60s.
 :::
 ```
 
-→ [Version Directives](directives.md)
+→ [Version Directives](./directives.md)
 
 ### SEO Optimization
 
@@ -184,7 +184,7 @@ bengal version diff v2 v3
 
 ## Next Steps
 
-- [Folder Mode Setup](folder-mode.md) — Step-by-step guide
-- [Git Mode Setup](git-mode.md) — Build from branches
-- [Cross-Version Links](cross-version-links.md) — Link between versions
-- [Version Directives](directives.md) — Mark version-specific content
+- [Folder Mode Setup](./folder-mode.md) — Step-by-step guide
+- [Git Mode Setup](./git-mode.md) — Build from branches
+- [Cross-Version Links](./cross-version-links.md) — Link between versions
+- [Version Directives](./directives.md) — Mark version-specific content

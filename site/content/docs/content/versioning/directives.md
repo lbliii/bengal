@@ -84,7 +84,7 @@ Use `new_function()` instead. This will be removed in v4.0.
 
 Deprecate a function:
 
-```markdown
+````markdown
 ## old_function()
 
 :::{deprecated} v3.0
@@ -98,11 +98,11 @@ result = old_function(data)
 # Use this instead
 result = new_function(data)
 ```
-```
+````
 
 Deprecate a configuration option:
 
-```markdown
+````markdown
 ### legacy_mode
 
 :::{deprecated} v2.5
@@ -118,7 +118,7 @@ legacy_mode: true
 compatibility:
   version: 2
 ```
-```
+````
 
 ## Changed Directive
 
@@ -159,7 +159,7 @@ Default changed from 30 to 60 seconds for better reliability with slow networks.
 
 Document API changes:
 
-```markdown
+````markdown
 ## Response Format
 
 :::{changed} v3.0
@@ -175,7 +175,7 @@ The response now includes a `metadata` field with additional information.
   }
 }
 ```
-```
+````
 
 ## Inline Usage
 
@@ -292,6 +292,6 @@ Don't annotate every minor change—it creates noise.
 
 ## Next Steps
 
-- [Cross-Version Links](cross-version-links.md) — Link between versions
-- [Folder Mode](folder-mode.md) — Set up folder-based versioning
-- [Git Mode](git-mode.md) — Set up git-based versioning
+- [Cross-Version Links](./cross-version-links.md) — Link between versions
+- [Folder Mode](./folder-mode.md) — Set up folder-based versioning
+- [Git Mode](./git-mode.md) — Set up git-based versioning

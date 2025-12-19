@@ -54,11 +54,17 @@ This is a recent addition.
 
 ### Rendered Output
 
-Renders as a styled badge/admonition:
+Renders with Bengal's theme aesthetic:
 
-- Badge text: "✨ New in v2.0"
-- Background: Success/green theme
-- Icon: Sparkles emoji
+**Inline badge** (no content):
+- Neumorphic badge styling
+- SVG sparkles icon
+- Success/green theme colors
+
+**Full directive** (with content):
+- Luminescent left-edge glow animation
+- Palette-aware blob background
+- Rounded container with badge header
 
 ---
 
@@ -114,11 +120,17 @@ This feature is deprecated and will be removed.
 
 ### Rendered Output
 
-Renders as a warning admonition:
+Renders with Bengal's theme aesthetic:
 
-- Badge text: "⚠️ Deprecated in v3.0"
-- Background: Warning/yellow theme
-- Icon: Warning emoji
+**Inline badge** (no content):
+- Neumorphic badge styling
+- SVG alert triangle icon
+- Warning/orange theme colors
+
+**Full directive** (with content):
+- Luminescent left-edge glow animation
+- Palette-aware blob background (warning colors)
+- Rounded container with badge header
 
 ---
 

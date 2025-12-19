@@ -32,7 +32,7 @@ Renders as a link to `/docs/v2/installation/` with the page title as link text.
 Check the [[v2:docs/migration|v2 Migration Guide]] before upgrading.
 ```
 
-Renders as: [v2 Migration Guide](/docs/v2/migration/)
+Renders as a link to `/docs/v2/migration/` with text "v2 Migration Guide"
 
 ### With Anchor
 
@@ -58,7 +58,7 @@ You can use version aliases instead of IDs:
 
 When writing upgrade documentation, link to the old version for reference:
 
-```markdown
+````markdown
 # Upgrading from v2 to v3
 
 ## Breaking Changes
@@ -77,7 +77,7 @@ client = Client(api_key="...")
 ```python
 client = Client(oauth_token="...")
 ```
-```
+````
 
 ### Changelogs
 
@@ -189,5 +189,5 @@ For regular content, users expect links to stay within their current version.
 
 ## Next Steps
 
-- [Version Directives](directives.md) — Mark version-specific content
-- [Versioning Overview](_index.md) — Full versioning documentation
+- [Version Directives](./directives.md) — Mark version-specific content
+- [Versioning Overview](./_index.md) — Full versioning documentation

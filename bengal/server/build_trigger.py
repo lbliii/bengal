@@ -385,6 +385,13 @@ class BuildTrigger:
                 self.parallel = True
                 self.skipped = False
                 self.warnings: list[Any] = []
+                # Phase timing attributes (required by display_build_stats)
+                self.discovery_time_ms: float = 0
+                self.taxonomy_time_ms: float = 0
+                self.rendering_time_ms: float = 0
+                self.assets_time_ms: float = 0
+                self.postprocess_time_ms: float = 0
+                self.health_check_time_ms: float = 0
 
         stats = _Stats(result, incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))

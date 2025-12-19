@@ -351,6 +351,6 @@ git:
 
 ## Next Steps
 
-- [Cross-Version Links](cross-version-links.md) — Link between versions
-- [Version Directives](directives.md) — Mark version-specific content
-- [Folder Mode](folder-mode.md) — Alternative: folder-based versioning
+- [Cross-Version Links](./cross-version-links.md) — Link between versions
+- [Version Directives](./directives.md) — Mark version-specific content
+- [Folder Mode](./folder-mode.md) — Alternative: folder-based versioning

@@ -4,118 +4,183 @@
  * Styles for versioned documentation features:
  * - Version selector dropdown
  * - Version banners for older versions
- * - Version badges and indicators
+ * - Version badges and version-aware directives
  *
- * These styles are loaded when versioning is enabled.
+ * These styles integrate with Bengal's admonition aesthetic:
+ * - Luminescent left-edge glow animation
+ * - Palette-aware blob backgrounds
+ * - Proper semantic color tokens
+ *
  * Colors use CSS custom properties for theme integration.
  */
 
 /* =============================================================================
-   Version Selector
+   LUMINESCENT LEFT-EDGE GLOW ANIMATION
+   Matching Bengal's signature admonition aesthetic
+   ============================================================================= */
+
+@keyframes version-edge-glow {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--version-color, var(--color-success)) 15%, transparent),
+      -3px 0 8px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 8%, transparent),
+      -1px 0 12px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 4%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--version-color, var(--color-success)) 25%, transparent),
+      -3px 0 12px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 6%, transparent);
+  }
+}
+
+@keyframes version-edge-glow-dark {
+  0%, 100% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--version-color, var(--color-success)) 20%, transparent),
+      -3px 0 10px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 12%, transparent),
+      -1px 0 16px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      var(--elevation-card),
+      -1px 0 0 0 color-mix(in srgb, var(--version-color, var(--color-success)) 35%, transparent),
+      -3px 0 14px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 18%, transparent),
+      -1px 0 20px 0 color-mix(in srgb, var(--version-color, var(--color-success)) 10%, transparent);
+  }
+}
+
+/* Blob morph animation reference (defined in fluid-blobs.css) */
+@keyframes blob-morph {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.02) rotate(1deg); }
+  50% { transform: scale(0.98) rotate(-1deg); }
+  75% { transform: scale(1.01) rotate(0.5deg); }
+}
+
+/* =============================================================================
+   Version Selector (Header Dropdown)
    ============================================================================= */
 
 .version-selector {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-2, 0.5rem);
-  font-size: var(--text-sm, 0.875rem);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .version-selector__label {
   display: flex;
   align-items: center;
-  color: var(--text-muted);
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .version-selector__icon {
   width: 1rem;
   height: 1rem;
+  color: var(--color-text-muted);
 }
 
 .version-selector__select {
   appearance: none;
-  background-color: var(--surface-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md, 0.375rem);
-  padding: var(--spacing-1-5, 0.375rem) var(--spacing-8, 2rem) var(--spacing-1-5, 0.375rem) var(--spacing-3, 0.75rem);
-  font-size: inherit;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1-5) var(--space-8) var(--space-1-5) var(--space-3);
+  font-size: var(--text-sm);
   font-family: inherit;
-  color: var(--text-color);
+  color: var(--color-text-primary);
   cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .version-selector__select:hover {
-  border-color: var(--primary-color);
+  border-color: var(--color-primary);
 }
 
 .version-selector__select:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-color-alpha-20);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
+/* Version badges in selector */
 .version-selector__badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--spacing-0-5, 0.125rem) var(--spacing-2, 0.5rem);
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: 500;
-  border-radius: var(--radius-full, 9999px);
-  background-color: var(--success-subtle);
-  color: var(--success-emphasis);
+  padding: var(--space-0-5) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-full);
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .version-selector__badge--old {
-  background-color: var(--warning-subtle);
-  color: var(--warning-emphasis);
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .version-selector__badge--deprecated {
-  background-color: var(--danger-subtle);
-  color: var(--danger-emphasis);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 /* =============================================================================
-   Version Banner
+   Version Banner (Full-Width Alert for Older Versions)
    ============================================================================= */
 
 .version-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-3, 0.75rem) var(--spacing-4, 1rem);
-  margin-bottom: var(--spacing-4, 1rem);
-  border-radius: var(--radius-lg, 0.5rem);
-  font-size: var(--text-sm, 0.875rem);
-  line-height: 1.5;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  box-shadow: var(--elevation-card);
 }
 
 .version-banner--info {
-  background-color: var(--info-subtle);
-  color: var(--info-emphasis);
-  border: 1px solid var(--info-border);
+  --version-banner-color: var(--color-info);
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info-border);
+  border-left: 3px solid var(--color-info);
 }
 
 .version-banner--warning {
-  background-color: var(--warning-subtle);
-  color: var(--warning-emphasis);
-  border: 1px solid var(--warning-border);
+  --version-banner-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning-border);
+  border-left: 3px solid var(--color-warning);
 }
 
 .version-banner--danger {
-  background-color: var(--danger-subtle);
-  color: var(--danger-emphasis);
-  border: 1px solid var(--danger-border);
+  --version-banner-color: var(--color-error);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
+  border-left: 3px solid var(--color-error);
 }
 
 .version-banner__content {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-3, 0.75rem);
+  gap: var(--space-3);
 }
 
 .version-banner__icon {
@@ -123,17 +188,18 @@
   width: 1.25rem;
   height: 1.25rem;
   margin-top: 0.125rem;
+  color: var(--version-banner-color, var(--color-info));
 }
 
 .version-banner__message {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-1, 0.25rem);
+  gap: var(--space-1);
 }
 
 .version-banner__link {
   color: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -152,7 +218,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm, 0.25rem);
+  border-radius: var(--radius-sm);
   color: inherit;
   opacity: 0.7;
   cursor: pointer;
@@ -164,110 +230,343 @@
 }
 
 /* =============================================================================
-   Version-aware Directives
+   VERSION BADGES
+   Inline badges for marking version-specific features
    ============================================================================= */
 
-/* Version badges - shared styles */
+/* Base badge style with Bengal neumorphic aesthetic */
 .version-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-1, 0.25rem);
-  padding: var(--spacing-0-5, 0.125rem) var(--spacing-2, 0.5rem);
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: 500;
-  border-radius: var(--radius-md, 0.375rem);
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1.4;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  box-shadow: var(--neumorphic-subtle);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
-/* Since badge - "New in X.X" */
+.version-badge:hover {
+  box-shadow: var(--neumorphic-hover);
+  transform: translateY(-1px);
+}
+
+/* Since badge - "New in X.X" - Success/Green */
 .version-badge-since {
-  background-color: var(--success-subtle);
-  color: var(--success-emphasis);
+  --version-color: var(--color-success);
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
 }
 
-.version-badge-since::before {
-  content: "✨ ";
+.version-badge-since .version-badge-icon {
+  color: var(--color-success);
 }
 
-/* Deprecated badge - "Deprecated since X.X" */
+/* Deprecated badge - "Deprecated since X.X" - Warning/Orange */
 .version-badge-deprecated {
-  background-color: var(--warning-subtle);
-  color: var(--warning-emphasis);
+  --version-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning-border);
 }
 
-.version-badge-deprecated::before {
-  content: "⚠️ ";
+.version-badge-deprecated .version-badge-icon {
+  color: var(--color-warning);
 }
 
-/* Changed badge - "Changed in X.X" */
+/* Changed badge - "Changed in X.X" - Info/Blue */
 .version-badge-changed {
-  background-color: var(--info-subtle);
-  color: var(--info-emphasis);
+  --version-color: var(--color-info);
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info-border);
 }
 
-.version-badge-changed::before {
-  content: "📝 ";
+.version-badge-changed .version-badge-icon {
+  color: var(--color-info);
 }
 
-/* Version since container (with content) */
+/* Badge icons (SVG) */
+.version-badge-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+/* =============================================================================
+   VERSION DIRECTIVE CONTAINERS
+   Full version blocks with content (:::{since}, :::{deprecated}, :::{changed})
+   Matches Bengal's admonition aesthetic with left-edge glow
+   ============================================================================= */
+
+/* Base version directive container */
+.version-directive {
+  --version-color: var(--color-success);
+  position: relative;
+  margin-block: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-inline-start: 2px solid color-mix(in srgb, var(--version-color) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  background-color: var(--color-bg-secondary);
+  animation: version-edge-glow 8s ease-in-out infinite;
+  transition: border-color var(--transition-base);
+  overflow: hidden;
+}
+
+/* Blob background animation - matches admonition aesthetic */
+.version-directive::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -15%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(circle at 35% 35%,
+    color-mix(in srgb, var(--version-color) 7%, transparent) 0%,
+    color-mix(in srgb, var(--version-color) 5%, transparent) 30%,
+    color-mix(in srgb, var(--version-color) 3%, transparent) 55%,
+    transparent 70%);
+  border-radius: 50%;
+  animation: blob-morph 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.version-directive:hover::before {
+  opacity: 0.8;
+}
+
+.version-directive > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Version directive header (badge + optional title) */
+.version-directive-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+/* Version directive content */
+.version-directive-content {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.version-directive-content > p:first-child {
+  margin-top: 0;
+}
+
+.version-directive-content > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Since directive - Success/Green theme */
 .version-since {
-  padding: var(--spacing-3, 0.75rem) var(--spacing-4, 1rem);
-  margin: var(--spacing-4, 1rem) 0;
-  border-left: 3px solid var(--success-border, var(--success-emphasis));
-  background-color: var(--success-subtle);
-  border-radius: 0 var(--radius-md, 0.375rem) var(--radius-md, 0.375rem) 0;
+  --version-color: var(--color-success);
+  background-color: var(--color-success-bg);
+  border-inline-start-color: color-mix(in srgb, var(--color-success) 60%, transparent);
 }
 
-.version-since .version-badge {
-  margin-bottom: var(--spacing-2, 0.5rem);
-}
-
-/* Version deprecated container (with content) */
+/* Deprecated directive - Warning/Orange theme (builds on admonition warning) */
 .version-deprecated {
-  /* Uses admonition warning styling */
+  --version-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
+  border-inline-start-color: color-mix(in srgb, var(--color-warning) 60%, transparent);
 }
 
-.version-deprecated .version-content {
-  margin-top: var(--spacing-2, 0.5rem);
-}
-
-/* Version changed container (with content) */
+/* Changed directive - Info/Blue theme */
 .version-changed {
-  /* Uses admonition note styling */
+  --version-color: var(--color-info);
+  background-color: var(--color-info-bg);
+  border-inline-start-color: color-mix(in srgb, var(--color-info) 60%, transparent);
 }
 
-.version-changed .version-content {
-  margin-top: var(--spacing-2, 0.5rem);
+/* =============================================================================
+   LEGACY COMPATIBILITY - Old HTML structure
+   For directives that use the old .admonition wrapper
+   ============================================================================= */
+
+/* When version directives use admonition wrapper */
+.admonition.version-deprecated,
+.admonition.version-changed {
+  --admonition-color: var(--version-color, var(--color-warning));
 }
 
-/* Content wrapper */
-.version-content {
-  color: var(--text-color);
+.admonition.version-deprecated {
+  --version-color: var(--color-warning);
+  --admonition-color: var(--color-warning);
 }
 
-.version-content p:last-child {
+.admonition.version-changed {
+  --version-color: var(--color-info);
+  --admonition-color: var(--color-info);
+}
+
+/* Ensure version content inside admonitions inherits proper spacing */
+.admonition .version-content {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.admonition .version-content > p:first-child {
+  margin-top: 0;
+}
+
+.admonition .version-content > p:last-child {
   margin-bottom: 0;
 }
 
 /* =============================================================================
-   Responsive Adjustments
+   DARK MODE
+   ============================================================================= */
+
+[data-theme="dark"] .version-selector__select {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] .version-directive {
+  animation-name: version-edge-glow-dark;
+}
+
+[data-theme="dark"] .version-directive::before {
+  opacity: 0.3;
+}
+
+[data-theme="dark"] .version-directive:hover::before {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .version-badge {
+  box-shadow: var(--neumorphic-subtle);
+}
+
+[data-theme="dark"] .version-badge:hover {
+  box-shadow: var(--neumorphic-hover);
+}
+
+/* System preference dark mode */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .version-selector__select {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  }
+
+  :root:not([data-theme="light"]) .version-directive {
+    animation-name: version-edge-glow-dark;
+  }
+
+  :root:not([data-theme="light"]) .version-directive::before {
+    opacity: 0.3;
+  }
+
+  :root:not([data-theme="light"]) .version-directive:hover::before {
+    opacity: 0.5;
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .version-directive {
+    animation: none;
+  }
+
+  .version-directive::before {
+    animation: none;
+  }
+
+  .version-badge {
+    transition: none;
+  }
+
+  .version-badge:hover {
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
    ============================================================================= */
 
 @media (max-width: 640px) {
   .version-banner {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--spacing-2, 0.5rem);
+    gap: var(--space-2);
     position: relative;
-    padding-right: var(--spacing-10, 2.5rem);
+    padding-right: var(--space-10);
   }
 
   .version-banner__dismiss {
     position: absolute;
-    top: var(--spacing-2, 0.5rem);
-    right: var(--spacing-2, 0.5rem);
+    top: var(--space-2);
+    right: var(--space-2);
   }
 
   .version-selector {
     flex-wrap: wrap;
+  }
+
+  .version-directive {
+    margin-block: 1rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .version-badge {
+    font-size: var(--text-xxs, 0.625rem);
+    padding: 0.25rem var(--space-1-5);
+  }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  .version-directive {
+    animation: none;
+    box-shadow: none;
+    border: 1px solid var(--version-color, var(--color-border));
+    border-left-width: 3px;
+    page-break-inside: avoid;
+  }
+
+  .version-directive::before {
+    display: none;
+  }
+
+  .version-badge {
+    box-shadow: none;
+    border: 1px solid currentColor;
+  }
+
+  .version-banner {
+    box-shadow: none;
+    border: 1px solid var(--version-banner-color, var(--color-border));
+    border-left-width: 3px;
+    page-break-inside: avoid;
+  }
+
+  .version-selector {
+    display: none;
   }
 }

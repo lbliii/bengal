@@ -241,6 +241,6 @@ sections:
 
 ## Next Steps
 
-- [Cross-Version Links](cross-version-links.md) — Link between versions
-- [Version Directives](directives.md) — Mark version-specific content
-- [Git Mode](git-mode.md) — Alternative: build from branches
+- [Cross-Version Links](./cross-version-links.md) — Link between versions
+- [Version Directives](./directives.md) — Mark version-specific content
+- [Git Mode](./git-mode.md) — Alternative: build from branches

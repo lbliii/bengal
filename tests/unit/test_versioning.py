@@ -695,10 +695,16 @@ class TestCrossVersionLinks:
 
 
 class TestVersionDirectives:
-    """Tests for version-aware directives (since, deprecated, changed)."""
+    """Tests for version-aware directives (since, deprecated, changed).
+
+    Version directives now use Bengal's theme aesthetic with:
+    - Luminescent left-edge glow animation
+    - Palette-aware colors via CSS custom properties
+    - Neumorphic badge styling with SVG icons
+    """
 
     def test_since_directive_badge(self) -> None:
-        """Test since directive renders as badge."""
+        """Test since directive renders as badge with icon."""
         from bengal.rendering.plugins.directives.versioning import SinceDirective
 
         directive = SinceDirective()
@@ -706,9 +712,10 @@ class TestVersionDirectives:
 
         assert "version-badge-since" in html
         assert "New in v2.0" in html
+        assert "version-badge-icon" in html  # SVG icon included
 
     def test_since_directive_with_content(self) -> None:
-        """Test since directive with content renders as box."""
+        """Test since directive with content renders as full directive container."""
         from bengal.rendering.plugins.directives.versioning import SinceDirective
 
         directive = SinceDirective()
@@ -720,20 +727,23 @@ class TestVersionDirectives:
             **{"class": "version-since"},
         )
 
+        assert "version-directive" in html  # New container class
         assert "version-since" in html
-        assert "version-content" in html
+        assert "version-directive-content" in html  # Updated content wrapper
+        assert "version-directive-header" in html  # Badge in header
         assert "This feature was added." in html
 
-    def test_deprecated_directive_warning(self) -> None:
-        """Test deprecated directive renders as warning."""
+    def test_deprecated_directive_badge(self) -> None:
+        """Test deprecated directive renders as inline badge (no content)."""
         from bengal.rendering.plugins.directives.versioning import DeprecatedDirective
 
         directive = DeprecatedDirective()
         html = directive.render(None, "", version="v3.0", has_content=False)
 
-        assert "admonition warning" in html
+        # Now renders as inline badge, not wrapped in admonition
         assert "version-badge-deprecated" in html
         assert "Deprecated since v3.0" in html
+        assert "version-badge-icon" in html  # SVG icon included
 
     def test_deprecated_directive_with_migration(self) -> None:
         """Test deprecated directive with migration content."""
@@ -748,19 +758,22 @@ class TestVersionDirectives:
             **{"class": "version-deprecated"},
         )
 
-        assert "version-content" in html
+        assert "version-directive" in html  # New container class
+        assert "version-deprecated" in html
+        assert "version-directive-content" in html  # Updated content wrapper
         assert "Use new_function()" in html
 
-    def test_changed_directive_info(self) -> None:
-        """Test changed directive renders as info note."""
+    def test_changed_directive_badge(self) -> None:
+        """Test changed directive renders as inline badge (no content)."""
         from bengal.rendering.plugins.directives.versioning import ChangedDirective
 
         directive = ChangedDirective()
         html = directive.render(None, "", version="v2.5", has_content=False)
 
-        assert "admonition note" in html
+        # Now renders as inline badge, not wrapped in admonition
         assert "version-badge-changed" in html
         assert "Changed in v2.5" in html
+        assert "version-badge-icon" in html  # SVG icon included
 
     def test_changed_directive_with_details(self) -> None:
         """Test changed directive with change details."""
@@ -775,7 +788,9 @@ class TestVersionDirectives:
             **{"class": "version-changed"},
         )
 
-        assert "version-content" in html
+        assert "version-directive" in html  # New container class
+        assert "version-changed" in html
+        assert "version-directive-content" in html  # Updated content wrapper
         assert "Default changed from 10 to 20" in html
 
 
