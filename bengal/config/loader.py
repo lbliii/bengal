@@ -92,6 +92,8 @@ class ConfigLoader:
         "fonts",
         "autodoc",
         "i18n",
+        # Versioning
+        "versioning",
     }
 
     def __init__(self, root_path: Path) -> None:

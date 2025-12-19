@@ -1,0 +1,177 @@
+{#
+  Version Banner Component
+
+  Displays a warning banner for older documentation versions.
+  Automatically shows when viewing non-latest versioned content.
+
+  Available context:
+    - versioning_enabled: bool - Whether versioning is enabled
+    - current_version: dict|None - Current page's version info
+    - is_latest_version: bool - Whether current page is latest version
+    - site.latest_version: dict - The latest version info
+
+  Usage in templates:
+    {% include "partials/version-banner.html" %}
+
+  Customization:
+    Override this partial in your theme to customize the banner.
+    You can also style it using CSS class: .version-banner
+#}
+
+{% if versioning_enabled and current_version and not is_latest_version %}
+<div class="version-banner version-banner--{{ current_version.deprecated and 'danger' or 'warning' }}" role="alert">
+  <div class="version-banner__content">
+    {# Icon #}
+    <svg class="version-banner__icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      {% if current_version.deprecated %}
+      {# Error/danger icon for deprecated versions #}
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+      {% else %}
+      {# Warning icon for older versions #}
+      <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+      {% endif %}
+    </svg>
+
+    {# Message #}
+    <div class="version-banner__message">
+      <strong>
+        {% if current_version.deprecated %}
+          This version ({{ current_version.label }}) is deprecated.
+        {% else %}
+          You're viewing docs for {{ current_version.label }}.
+        {% endif %}
+      </strong>
+      {% if site.latest_version %}
+      <span class="version-banner__link-text">
+        For the latest documentation, see
+        <a href="{{ site.latest_version.url_prefix or '/' }}" class="version-banner__link">
+          version {{ site.latest_version.label }}
+        </a>.
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Dismiss button (optional) #}
+  <button
+    type="button"
+    class="version-banner__dismiss"
+    onclick="this.parentElement.style.display='none'"
+    aria-label="Dismiss version notice"
+  >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M4.28 3.22a.75.75 0 00-1.06 1.06L6.94 8l-3.72 3.72a.75.75 0 101.06 1.06L8 9.06l3.72 3.72a.75.75 0 101.06-1.06L9.06 8l3.72-3.72a.75.75 0 00-1.06-1.06L8 6.94 4.28 3.22z"/>
+    </svg>
+  </button>
+</div>
+
+{# Styles for version banner #}
+<style>
+.version-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.version-banner--warning {
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-text, #92400e);
+  border: 1px solid var(--warning-border, #fcd34d);
+}
+
+.version-banner--danger {
+  background: var(--danger-bg, #fee2e2);
+  color: var(--danger-text, #991b1b);
+  border: 1px solid var(--danger-border, #fca5a5);
+}
+
+.version-banner__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.version-banner__icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.version-banner__message {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.version-banner__link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.version-banner__link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.version-banner__dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.version-banner__dismiss:hover {
+  opacity: 1;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .version-banner--warning {
+    background: var(--warning-bg-dark, #78350f);
+    color: var(--warning-text-dark, #fde68a);
+    border-color: var(--warning-border-dark, #b45309);
+  }
+
+  .version-banner--danger {
+    background: var(--danger-bg-dark, #7f1d1d);
+    color: var(--danger-text-dark, #fecaca);
+    border-color: var(--danger-border-dark, #dc2626);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .version-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .version-banner__dismiss {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .version-banner {
+    position: relative;
+    padding-right: 2.5rem;
+  }
+}
+</style>
+{% endif %}

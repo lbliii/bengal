@@ -177,6 +177,21 @@ class Renderer:
             "excerpt": page.excerpt,  # From cached_property
         }
 
+        # Add versioning context if enabled
+        # current_version: Version dict for the current page (or None)
+        # is_latest_version: Whether this page is from the latest version
+        if self.site.versioning_enabled and page.version:
+            version_obj = self.site.get_version(page.version)
+            if version_obj:
+                context["current_version"] = version_obj.to_dict()
+                context["is_latest_version"] = version_obj.latest
+            else:
+                context["current_version"] = None
+                context["is_latest_version"] = True
+        else:
+            context["current_version"] = None
+            context["is_latest_version"] = True
+
         # Add special context for generated pages
         if page.metadata.get("_generated"):
             self._add_generated_page_context(page, context)

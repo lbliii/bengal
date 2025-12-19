@@ -46,6 +46,10 @@ class URLStrategy:
             content/about.md → public/about/index.html (pretty URLs)
             content/blog/post.md → public/blog/post/index.html
             content/docs/_index.md → public/docs/index.html
+
+        Version-aware examples:
+            content/docs/guide.md (v3, latest) → public/docs/guide/index.html
+            _versions/v2/docs/guide.md → public/docs/v2/guide/index.html
         """
         content_dir = site.root_path / "content"
         pretty_urls = site.config.get("pretty_urls", True)
@@ -65,6 +69,10 @@ class URLStrategy:
         if pre_cascade:
             # For pre-cascade, use source_path as-is without modifications
             rel_path = page.source_path.relative_to(content_dir)
+
+        # Handle versioned content paths
+        # _versions/v2/docs/guide.md → docs/v2/guide.md
+        rel_path = URLStrategy._apply_version_path_transform(rel_path, page, site)
 
         # Change extension to .html
         output_rel_path = rel_path.with_suffix(".html")
@@ -89,6 +97,71 @@ class URLStrategy:
                 output_rel_path = Path(lang) / output_rel_path
         # strategy 'domain' or 'none' → no path prefixing here
         return site.output_dir / output_rel_path
+
+    @staticmethod
+    def _apply_version_path_transform(rel_path: Path, page: Page, site: Site) -> Path:
+        """
+        Transform versioned content path to output path structure.
+
+        For non-latest versions, inserts version prefix after the section:
+        - _versions/v2/docs/guide.md → docs/v2/guide.md
+        - _versions/v1/docs/api/ref.md → docs/v1/api/ref.md
+
+        For latest version or non-versioned content:
+        - docs/guide.md → docs/guide.md (unchanged)
+
+        Args:
+            rel_path: Relative path from content directory
+            page: Page object (for version info)
+            site: Site object (for version config)
+
+        Returns:
+            Transformed path with version prefix if applicable
+        """
+        # Get version config
+        version_config = getattr(site, "version_config", None)
+        if not version_config or not version_config.enabled:
+            return rel_path
+
+        # Get page's version
+        page_version = getattr(page, "version", None)
+        if not page_version:
+            return rel_path
+
+        # Check if this is the latest version (no prefix needed)
+        version_obj = version_config.get_version(page_version)
+        if not version_obj or version_obj.latest:
+            # Latest version: strip _versions/<id>/ prefix if present
+            parts = rel_path.parts
+            if len(parts) >= 2 and parts[0] == "_versions":
+                # _versions/v3/docs/guide.md → docs/guide.md
+                return Path(*parts[2:])
+            return rel_path
+
+        # Non-latest version: insert version prefix after section
+        parts = rel_path.parts
+
+        # Check if path starts with _versions/<id>/
+        if len(parts) >= 2 and parts[0] == "_versions":
+            # _versions/v2/docs/guide.md → docs/v2/guide.md
+            version_id = parts[1]
+            section_and_rest = parts[2:]  # docs/guide.md
+
+            if section_and_rest:
+                section = section_and_rest[0]  # docs
+                rest = section_and_rest[1:]  # guide.md
+
+                # Insert version after section: docs/v2/guide.md
+                if rest:
+                    return Path(section) / version_id / Path(*rest)
+                return Path(section) / version_id
+            else:
+                # Just _versions/v2/ → v2/
+                return Path(version_id)
+
+        # Content is in main content directory but has version set
+        # (shouldn't normally happen, but handle gracefully)
+        return rel_path
 
     @staticmethod
     def compute_archive_output_path(section: Section, page_num: int, site: Site) -> Path:

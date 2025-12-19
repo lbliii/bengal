@@ -377,12 +377,15 @@ Bengal ships a default version selector partial. Themes can override.
 
 ## Implementation Phases
 
-### Phase 1: Foundation (MVP)
-- [ ] Version config schema with validation
-- [ ] Discovery: find versioned content from folders
-- [ ] URL generation with version prefixes
-- [ ] Basic version selector data for templates
-- [ ] Default `version-selector.html` partial
+### Phase 1: Foundation (MVP) ✅ COMPLETE
+- [x] Version config schema with validation
+- [x] Discovery: find versioned content from folders
+- [x] URL generation with version prefixes
+- [x] Basic version selector data for templates
+- [x] Default `version-selector.html` partial
+- [x] Version banner partial for older versions
+- [x] PageCore.version field for caching
+- [x] Unit tests for versioning models
 
 ### Phase 2: Core Features
 - [ ] CLI: `bengal version create v4` (snapshot current docs)

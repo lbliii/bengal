@@ -226,6 +226,9 @@ class PageCore(Cacheable):
     # Redirect aliases - alternative URLs that redirect to this page
     aliases: list[str] = field(default_factory=list)
 
+    # Versioning (from discovery or frontmatter)
+    version: str | None = None  # Version ID (e.g., 'v3', 'v2')
+
     def __post_init__(self) -> None:
         """
         Validate and normalize fields after initialization.
@@ -266,6 +269,7 @@ class PageCore(Cacheable):
             "section": self.section,
             "file_hash": self.file_hash,
             "aliases": self.aliases,
+            "version": self.version,
         }
 
     @classmethod
@@ -297,4 +301,5 @@ class PageCore(Cacheable):
             section=data.get("section"),
             file_hash=data.get("file_hash"),
             aliases=data.get("aliases", []),
+            version=data.get("version"),
         )

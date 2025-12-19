@@ -303,6 +303,12 @@ def create_jinja_environment(
     # Add theme object for template access (alias for site.theme_config)
     env.globals["theme"] = site.theme_config
 
+    # Add versioning context
+    # Templates can access: versions (list), versioning_enabled (bool)
+    # Per-page: current_version is set in page context, not here
+    env.globals["versioning_enabled"] = site.versioning_enabled
+    env.globals["versions"] = site.versions
+
     try:
         env.globals["bengal"] = build_template_metadata(site)
     except Exception as e:
