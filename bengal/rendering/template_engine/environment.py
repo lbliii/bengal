@@ -156,7 +156,7 @@ def create_jinja_environment(
     template_dirs: list[str] = []
     used_cache = False
     cache_key = (getattr(site, "theme", None), str(getattr(site, "root_path", "")))
-    cached = getattr(site, "_bengal_template_dirs_cache", None)
+    cached = site._bengal_template_dirs_cache
     if not auto_reload and isinstance(cached, dict) and cached.get("key") == cache_key:
         cached_dirs = cached.get("template_dirs")
         if isinstance(cached_dirs, list) and all(isinstance(d, str) for d in cached_dirs):
@@ -171,7 +171,7 @@ def create_jinja_environment(
 
     # Theme templates with inheritance (child first, then parents)
     if not used_cache:
-        theme_chain_cached = getattr(site, "_bengal_theme_chain_cache", None)
+        theme_chain_cached = site._bengal_theme_chain_cache
         if (
             not auto_reload
             and isinstance(theme_chain_cached, dict)
@@ -181,11 +181,7 @@ def create_jinja_environment(
         else:
             theme_chain = resolve_theme_chain(site.theme, site)
             if not auto_reload:
-                try:
-                    site._bengal_theme_chain_cache = {"key": cache_key, "chain": list(theme_chain)}
-                except Exception:
-                    # Best-effort cache only; never fail environment creation
-                    pass
+                site._bengal_theme_chain_cache = {"key": cache_key, "chain": list(theme_chain)}
 
         for theme_name in theme_chain:
             theme_found = False
@@ -342,12 +338,9 @@ def create_jinja_environment(
 
     # Best-effort cache of template search paths for non-dev builds.
     if not auto_reload:
-        try:
-            site._bengal_template_dirs_cache = {
-                "key": cache_key,
-                "template_dirs": list(template_dirs),
-            }
-        except Exception:
-            pass
+        site._bengal_template_dirs_cache = {
+            "key": cache_key,
+            "template_dirs": list(template_dirs),
+        }
 
     return env, template_dir_paths

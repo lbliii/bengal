@@ -210,12 +210,3 @@ class IgnoreFilter:
             return not self(Path(path))
 
         return filter_fn
-
-    def as_watchdog_filter(self) -> Callable[[Path], bool]:
-        """
-        Return a filter function compatible with watchdog integration.
-
-        Returns:
-            Filter function that returns True if path should be ignored
-        """
-        return self.__call__

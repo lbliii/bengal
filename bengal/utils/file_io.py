@@ -27,7 +27,6 @@ rmtree_robust(Path('/path/to/dir'))
 from __future__ import annotations
 
 import errno
-import json
 import platform
 import shutil
 import subprocess
@@ -35,6 +34,7 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
+from bengal.utils import json_compat
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

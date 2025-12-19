@@ -145,3 +145,100 @@ def test_regular_pages_cache_across_multiple_accesses(tmp_path):
         regular = site.regular_pages
         assert len(regular) == 100
         assert regular is site._regular_pages_cache
+
+
+# =============================================================================
+# Tests for Site runtime caches (Phase B: Formalized from dynamic injection)
+# =============================================================================
+
+
+class TestSiteRuntimeCaches:
+    """Tests for Site runtime cache management."""
+
+    def test_asset_fallback_lock_initialized(self, tmp_path):
+        """Verify thread lock is initialized automatically in __post_init__."""
+        import threading
+
+        site = Site(root_path=tmp_path)
+
+        assert site._asset_manifest_fallbacks_lock is not None
+        assert isinstance(site._asset_manifest_fallbacks_lock, type(threading.Lock()))
+
+    def test_asset_fallback_set_initialized(self, tmp_path):
+        """Verify fallback set is initialized as empty set."""
+        site = Site(root_path=tmp_path)
+
+        assert site._asset_manifest_fallbacks_global is not None
+        assert isinstance(site._asset_manifest_fallbacks_global, set)
+        assert len(site._asset_manifest_fallbacks_global) == 0
+
+    def test_runtime_caches_default_to_none(self, tmp_path):
+        """Verify template environment caches default to None."""
+        site = Site(root_path=tmp_path)
+
+        assert site._bengal_theme_chain_cache is None
+        assert site._bengal_template_dirs_cache is None
+        assert site._bengal_template_metadata_cache is None
+        assert site._discovery_breakdown_ms is None
+        assert site._asset_manifest_previous is None
+
+    def test_reset_ephemeral_clears_runtime_caches(self, tmp_path):
+        """Verify reset_ephemeral_state clears Phase B fields."""
+        site = Site(root_path=tmp_path)
+
+        # Set some caches
+        site._bengal_theme_chain_cache = {"key": "test", "chain": ["default"]}
+        site._bengal_template_dirs_cache = {"key": "test", "template_dirs": ["/tmp"]}
+        site._bengal_template_metadata_cache = {"key": "test", "metadata": {"engine": "test"}}
+        site._discovery_breakdown_ms = {"pages": 100.0, "total": 150.0}
+        site._asset_manifest_fallbacks_global.add("test.css")
+
+        # Reset
+        site.reset_ephemeral_state()
+
+        # Verify caches cleared
+        assert site._bengal_theme_chain_cache is None
+        assert site._bengal_template_dirs_cache is None
+        assert site._bengal_template_metadata_cache is None
+        assert site._discovery_breakdown_ms is None
+        assert len(site._asset_manifest_fallbacks_global) == 0
+
+    def test_reset_ephemeral_preserves_asset_manifest_previous(self, tmp_path):
+        """Verify reset_ephemeral_state preserves _asset_manifest_previous for incremental builds."""
+        site = Site(root_path=tmp_path)
+
+        # Set asset manifest previous (needed for incremental)
+        site._asset_manifest_previous = {"some": "manifest"}
+
+        # Reset
+        site.reset_ephemeral_state()
+
+        # _asset_manifest_previous should NOT be reset (needed for incremental asset comparison)
+        assert site._asset_manifest_previous == {"some": "manifest"}
+
+    def test_reset_ephemeral_preserves_lock(self, tmp_path):
+        """Verify reset_ephemeral_state preserves the thread lock."""
+        import threading
+
+        site = Site(root_path=tmp_path)
+        original_lock = site._asset_manifest_fallbacks_lock
+
+        # Reset
+        site.reset_ephemeral_state()
+
+        # Lock should still be the same object (not reset)
+        assert site._asset_manifest_fallbacks_lock is original_lock
+        assert isinstance(site._asset_manifest_fallbacks_lock, type(threading.Lock()))
+
+    def test_fallback_set_thread_safe_usage(self, tmp_path):
+        """Verify fallback set can be used with lock for thread safety."""
+        site = Site(root_path=tmp_path)
+
+        # Simulate thread-safe usage pattern
+        with site._asset_manifest_fallbacks_lock:
+            site._asset_manifest_fallbacks_global.add("css/style.css")
+            site._asset_manifest_fallbacks_global.add("js/main.js")
+
+        assert "css/style.css" in site._asset_manifest_fallbacks_global
+        assert "js/main.js" in site._asset_manifest_fallbacks_global
+        assert len(site._asset_manifest_fallbacks_global) == 2

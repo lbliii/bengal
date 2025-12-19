@@ -400,7 +400,7 @@ class DevServer:
         """
         Create file watcher and build trigger.
 
-        Uses the modern FileWatcher abstraction (watchfiles with watchdog fallback)
+        Uses the modern FileWatcher abstraction (watchfiles)
         and always executes builds via BuildExecutor in a subprocess.
 
         Args:

@@ -22,6 +22,7 @@ See Also:
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -168,7 +169,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
                 i18n_info.get("defaultLanguage"),
                 tuple(i18n_info.get("languages") or []),
             )
-            cached = getattr(site, "_bengal_template_metadata_cache", None)
+            cached = site._bengal_template_metadata_cache
             if (
                 isinstance(cached, dict)
                 and cached.get("key") == cache_key
@@ -237,9 +238,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
         result = full
 
     if not getattr(site, "dev_mode", False):
-        try:
+        with suppress(Exception):
             site._bengal_template_metadata_cache = {"key": cache_key, "metadata": result}
-        except Exception:
-            pass
 
     return result

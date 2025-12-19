@@ -14,7 +14,6 @@ Example:
 from __future__ import annotations
 
 import contextlib
-import threading
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -99,14 +98,8 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self._asset_manifest_loaded: bool = False
         self._fingerprinted_asset_cache: dict[str, str | None] = {}
 
-        # Thread-safe warnings
-        try:
-            if not hasattr(self.site, "_asset_manifest_fallbacks_global"):
-                self.site._asset_manifest_fallbacks_global = set()  # type: ignore[attr-defined]
-            if not hasattr(self.site, "_asset_manifest_fallbacks_lock"):
-                self.site._asset_manifest_fallbacks_lock = threading.Lock()  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        # Thread-safe warnings - fields are pre-initialized in Site.__post_init__()
+        # No setup needed here, just use the formalized Site attributes directly
 
         # Menu dict cache
         self._menu_dict_cache: dict[str, list[dict[str, Any]]] = {}

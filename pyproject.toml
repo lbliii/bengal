@@ -39,16 +39,15 @@ dependencies = [
     "psutil>=5.9.0",             # For better process management in cleanup
     "rich>=13.7.0",              # Enhanced terminal output
     "questionary>=2.0.0",        # Interactive CLI prompts with arrow key navigation
-    "watchdog>=3.0.0",           # File watching for dev server (bengal site serve)
+    "watchfiles>=0.20",          # Rust-based file watching for dev server (fast)
     "httpx>=0.27.0",             # Async HTTP client for link checking
+    "orjson>=3.10.0",            # Rust-based JSON (3-10x faster serialization)
+    "uvloop>=0.21.0; sys_platform != 'win32'",  # Rust-based event loop (Linux/macOS)
 ]
 
 [project.optional-dependencies]
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
-
-# Enhanced dev server with Rust-based file watcher (10-50x faster change detection)
-dev-server = ["watchfiles>=0.20"]
 
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.

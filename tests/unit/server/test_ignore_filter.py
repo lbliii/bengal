@@ -237,15 +237,6 @@ class TestIgnoreFilterCallbacks:
         assert filter_fn("modify", "/project/app.py") is True
         assert filter_fn("modify", "/project/app.pyc") is False
 
-    def test_watchdog_filter_returns_true_for_ignored(self) -> None:
-        """Test that watchdog filter returns True for ignored paths."""
-        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False)
-        filter_fn = f.as_watchdog_filter()
-
-        # Returns True to IGNORE
-        assert filter_fn(Path("/project/app.pyc")) is True
-        assert filter_fn(Path("/project/app.py")) is False
-
 
 class TestIgnoreFilterEdgeCases:
     """Tests for edge cases and error handling."""
@@ -271,3 +262,47 @@ class TestIgnoreFilterEdgeCases:
         # Relative paths should be resolved
         assert f(Path("./foo.pyc")) is True
         assert f(Path("./foo.py")) is False
+
+
+class TestIgnoreFilterBengalCache:
+    """Tests for .bengal cache directory ignoring.
+
+    The .bengal directory contains cache files that are written during builds.
+    These must be ignored to prevent infinite rebuild loops in the dev server.
+    """
+
+    def test_bengal_cache_dir_is_ignored_by_default(self) -> None:
+        """Test that .bengal cache directory is in default ignores."""
+        f = IgnoreFilter(include_defaults=True)
+
+        # Files inside .bengal should be ignored
+        assert f(Path("/project/.bengal/cache.json")) is True
+        assert f(Path("/project/.bengal/page_metadata.json")) is True
+        assert f(Path("/project/.bengal/taxonomy_index.json")) is True
+
+    def test_bengal_cache_files_ignored_in_nested_paths(self) -> None:
+        """Test that .bengal is ignored regardless of project location."""
+        f = IgnoreFilter(include_defaults=True)
+
+        # Deeply nested project paths
+        assert f(Path("/home/user/sites/my-site/.bengal/cache.json.zst")) is True
+        assert f(Path("/Users/dev/projects/docs/.bengal/asset_deps.json")) is True
+
+    def test_bengal_cache_not_ignored_when_defaults_disabled(self) -> None:
+        """Test that .bengal is NOT ignored when include_defaults=False."""
+        f = IgnoreFilter(include_defaults=False)
+
+        # Should not be ignored without defaults
+        assert f(Path("/project/.bengal/cache.json")) is False
+
+    def test_bengal_temp_files_ignored(self) -> None:
+        """Test that temp files in .bengal directory are ignored.
+
+        During cache writes, temporary files like .foo.json.12345.tmp are created.
+        These must also be ignored.
+        """
+        f = IgnoreFilter(include_defaults=True)
+
+        # Temp file patterns that appear during cache updates
+        assert f(Path("/project/.bengal/.cache.json.12345.tmp")) is True
+        assert f(Path("/project/.bengal/.author_index.json.89978.tmp")) is True

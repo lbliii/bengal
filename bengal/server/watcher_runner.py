@@ -7,13 +7,13 @@ via callback when changes are detected.
 Architecture:
     WatcherRunner owns the file watching lifecycle:
     1. Creates IgnoreFilter from site config
-    2. Creates FileWatcher (watchfiles or watchdog)
+    2. Creates FileWatcher (using watchfiles)
     3. Runs async watcher in background thread
     4. Collects and debounces changes
     5. Triggers builds via BuildTrigger
 
 Related:
-    - bengal/server/file_watcher.py: Async file watching abstraction
+    - bengal/server/file_watcher.py: Async file watching (watchfiles)
     - bengal/server/ignore_filter.py: Path filtering
     - bengal/server/build_trigger.py: Build execution
 """
@@ -158,7 +158,6 @@ class WatcherRunner:
         watcher = create_watcher(
             paths=self.paths,
             ignore_filter=self.ignore_filter,
-            backend="auto",
         )
 
         logger.debug("watcher_runner_watching", backend=type(watcher).__name__)

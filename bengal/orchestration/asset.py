@@ -189,9 +189,9 @@ class AssetOrchestrator:
         # can delete exact old outputs (O(1)) instead of scanning directories (glob).
         try:
             manifest_path = self.site.output_dir / "asset-manifest.json"
-            self.site._asset_manifest_previous = AssetManifest.load(manifest_path)  # type: ignore[attr-defined]
+            self.site._asset_manifest_previous = AssetManifest.load(manifest_path)
         except Exception:
-            self.site._asset_manifest_previous = None  # type: ignore[attr-defined]
+            self.site._asset_manifest_previous = None
 
         # Separate CSS entry points, CSS modules, and other assets
         css_entries = [a for a in assets if a.is_css_entry_point()]

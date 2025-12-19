@@ -9,7 +9,7 @@ Components:
 - WatcherRunner: Async-to-sync bridge for FileWatcher with debouncing
 - BuildTrigger: Build execution handler with pre/post hooks
 - BuildExecutor: Process-isolated build execution for resilience
-- FileWatcher: Abstraction for file watching backends (watchfiles + watchdog)
+- FileWatcher: Rust-based file watching (watchfiles)
 - IgnoreFilter: Configurable file ignore patterns (glob + regex)
 - LiveReloadMixin: Server-Sent Events (SSE) for browser hot reload
 - RequestHandler: Custom HTTP request handler with beautiful logging
@@ -28,7 +28,7 @@ Features:
 - Pre/post build hooks for custom workflows
 - Process-isolated builds for crash resilience
 - Configurable ignore patterns (exclude_patterns, exclude_regex)
-- Fast file watching via watchfiles (optional, falls back to watchdog)
+- Fast file watching via watchfiles (Rust-based, 10-50x faster)
 - Default ignore patterns for common cache/build directories (.bengal, .git, etc.)
 
 Usage:
@@ -62,9 +62,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-# Lazy export of DevServer to avoid importing heavy dependencies (e.g., watchdog)
-# when users are not running the dev server. This prevents noisy runtime warnings
-# in free-threaded Python when unrelated commands import bengal.server.
+# Lazy export of DevServer to avoid importing heavy dependencies
+# when users are not running the dev server.
 
 if TYPE_CHECKING:
     # For type checkers only; does not execute at runtime
@@ -91,11 +90,7 @@ __all__ = [
 
 def __getattr__(name: str) -> Any:
     """
-    Lazy import pattern for server components to avoid loading heavy dependencies.
-
-    This defers the import of watchdog and other dev server dependencies
-    until actually needed, preventing noisy runtime warnings in free-threaded
-    Python when users run other commands that don't require the dev server.
+    Lazy import pattern for server components.
 
     Args:
         name: The attribute name being accessed
