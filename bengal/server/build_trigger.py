@@ -378,6 +378,7 @@ class BuildTrigger:
                 self.incremental = inc
                 self.parallel = True
                 self.skipped = False
+                self.warnings: list[Any] = []
 
         stats = _Stats(result, incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
