@@ -180,11 +180,13 @@ class TestListDirectoryOverride:
 class TestRebuildingPageContent:
     """Test the rebuilding page HTML content."""
 
-    def test_rebuilding_page_contains_spinner(self):
-        """Test that rebuilding page has a loading spinner."""
+    def test_rebuilding_page_contains_loading_animation(self):
+        """Test that rebuilding page has a loading animation."""
         from bengal.server.request_handler import REBUILDING_PAGE_HTML
 
-        assert b"spinner" in REBUILDING_PAGE_HTML
+        # Page should have CSS animation (pulse for logo, orbit for dots)
+        assert b"animation" in REBUILDING_PAGE_HTML
+        assert b"@keyframes" in REBUILDING_PAGE_HTML
 
     def test_rebuilding_page_has_auto_refresh(self):
         """Test that rebuilding page has auto-refresh."""
@@ -203,6 +205,15 @@ class TestRebuildingPageContent:
         from bengal.server.request_handler import REBUILDING_PAGE_HTML
 
         assert b"%PATH%" in REBUILDING_PAGE_HTML
+
+    def test_rebuilding_page_has_bengal_branding(self):
+        """Test that rebuilding page includes Bengal branding."""
+        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+
+        # Should have Bengal brand name
+        assert b"Bengal" in REBUILDING_PAGE_HTML
+        # Should have the rosette logo (SVG with characteristic ellipses)
+        assert b"rosette" in REBUILDING_PAGE_HTML.lower() or b"ellipse" in REBUILDING_PAGE_HTML
 
 
 class TestBuildHandlerIntegration:

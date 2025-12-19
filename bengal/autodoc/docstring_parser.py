@@ -176,8 +176,8 @@ class GoogleDocstringParser:
         sections = {}
         lines = docstring.split("\n")
 
-        # Section markers
-        section_markers = [
+        # Known section markers (we care about extracting these)
+        known_markers = [
             "Args",
             "Arguments",
             "Parameters",
@@ -206,7 +206,9 @@ class GoogleDocstringParser:
 
             # Check if this line is a section header
             is_section = False
-            for marker in section_markers:
+
+            # First check known markers
+            for marker in known_markers:
                 if stripped == f"{marker}:":
                     # Save previous section
                     if section_buffer:
@@ -215,6 +217,20 @@ class GoogleDocstringParser:
                     current_section = marker
                     is_section = True
                     break
+
+            # Also detect custom section headers: unindented lines ending with ":"
+            # but NOT argument patterns like "name (type): description"
+            # Pattern: starts at column 0, is a title-like phrase ending with ":"
+            if not is_section and not line.startswith(" ") and not line.startswith("\t"):
+                # Custom section: "Cache File Format:", "Version Management:", etc.
+                # Must be title-case words (not arg pattern which has lowercase or parens)
+                if re.match(r"^[A-Z][A-Za-z\s]+:$", stripped):
+                    # Save previous section
+                    if section_buffer:
+                        sections[current_section] = "\n".join(section_buffer).strip()
+                        section_buffer = []
+                    current_section = stripped.rstrip(":")
+                    is_section = True
 
             if not is_section:
                 section_buffer.append(line)
