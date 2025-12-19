@@ -48,6 +48,9 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 | `{vimeo}` | ` :::{vimeo} ` | Vimeo embed (DNT default) | Media |
 | `{video}` | ` :::{video} ` | Self-hosted HTML5 video | Media |
 | `{figure}` | ` :::{figure} ` | Image with caption | Media |
+| `{since}` | ` :::{since} ` | Mark feature as new | Versioning |
+| `{deprecated}` | ` :::{deprecated} ` | Mark feature as deprecated | Versioning |
+| `{changed}` | ` :::{changed} ` | Mark behavior change | Versioning |
 | `{audio}` | ` :::{audio} ` | Self-hosted HTML5 audio | Media |
 | `{gist}` | ` :::{gist} ` | GitHub Gist embed | Media |
 | `{codepen}` | ` :::{codepen} ` | CodePen embed | Media |

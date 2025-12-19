@@ -14,6 +14,8 @@ class DummySite:
         self.output_dir = root_path / "public"  # Required by TemplateEngine for bytecode cache
         # Required Site attributes for template engine
         self.dev_mode = False
+        self.versioning_enabled = False
+        self.versions: list[str] = []
         self._bengal_template_dirs_cache = None
         self._bengal_theme_chain_cache = None
         self._bengal_template_metadata_cache = None
