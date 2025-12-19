@@ -118,9 +118,12 @@ class PageMetadataMixin:
         Returns:
             Version ID string or None if not versioned
         """
-        # Core has authoritative version
+        # Core has authoritative version (for cached pages)
         if self.core is not None and self.core.version:
             return self.core.version
+        # Check internal version set during discovery
+        if "_version" in self.metadata:
+            return self.metadata.get("_version")
         # Check frontmatter override
         return self.metadata.get("version")
 

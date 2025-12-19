@@ -444,3 +444,113 @@ class TestURLStrategyVersioning:
         result = URLStrategy._apply_version_path_transform(rel_path, page, site)
         # Latest version: strip _versions/v3/ prefix
         assert result == Path("docs/guide.md")
+
+
+class TestVersionResolver:
+    """Tests for version resolution utilities."""
+
+    def test_version_resolver_get_version_for_path(self) -> None:
+        """Test version resolver path detection."""
+        from bengal.discovery.version_resolver import VersionResolver
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True, source="docs"),
+                Version(id="v2", source="_versions/v2/docs"),
+            ],
+            sections=["docs"],
+        )
+
+        resolver = VersionResolver(config, Path("/site"))
+
+        # _versions/v2/ path → v2
+        version = resolver.get_version_for_path("_versions/v2/docs/guide.md")
+        assert version is not None
+        assert version.id == "v2"
+
+        # docs/ path → latest (v3)
+        version = resolver.get_version_for_path("docs/guide.md")
+        assert version is not None
+        assert version.id == "v3"
+
+        # non-versioned path → None
+        version = resolver.get_version_for_path("blog/post.md")
+        assert version is None
+
+    def test_version_resolver_get_logical_path(self) -> None:
+        """Test logical path extraction."""
+        from bengal.discovery.version_resolver import VersionResolver
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[Version(id="v2")],
+        )
+
+        resolver = VersionResolver(config, Path("/site"))
+
+        # _versions/v2/docs/guide.md → docs/guide.md
+        logical = resolver.get_logical_path("_versions/v2/docs/guide.md")
+        assert logical == Path("docs/guide.md")
+
+        # Regular path unchanged
+        logical = resolver.get_logical_path("docs/guide.md")
+        assert logical == Path("docs/guide.md")
+
+    def test_version_resolver_disabled(self) -> None:
+        """Test resolver when versioning is disabled."""
+        from bengal.discovery.version_resolver import VersionResolver
+
+        config = VersionConfig(enabled=False)
+        resolver = VersionResolver(config, Path("/site"))
+
+        assert resolver.enabled is False
+        assert resolver.get_version_for_path("docs/guide.md") is None
+        assert resolver.get_shared_content_paths() == []
+
+
+class TestVersionCLI:
+    """Tests for version CLI commands (smoke tests)."""
+
+    def test_version_list_no_versioning(self, tmp_path: Path) -> None:
+        """Test version list with no versioning configured."""
+        from click.testing import CliRunner
+
+        from bengal.cli.commands.version import version_cli
+
+        # Create minimal config
+        config_file = tmp_path / "bengal.yaml"
+        config_file.write_text("site:\n  title: Test\n")
+
+        runner = CliRunner()
+        result = runner.invoke(version_cli, ["list", str(tmp_path)])
+
+        # Should warn that versioning is not enabled
+        assert "not enabled" in result.output.lower() or result.exit_code == 0
+
+    def test_version_create_dry_run(self, tmp_path: Path) -> None:
+        """Test version create with dry run."""
+        from click.testing import CliRunner
+
+        from bengal.cli.commands.version import version_cli
+
+        # Create minimal site structure
+        config_file = tmp_path / "bengal.yaml"
+        config_file.write_text("site:\n  title: Test\n")
+
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        (docs_dir / "guide.md").write_text("# Guide\n\nContent")
+
+        runner = CliRunner()
+        result = runner.invoke(
+            version_cli,
+            ["create", "v1", "--dry-run", str(tmp_path)],
+        )
+
+        # Should show what would be done
+        assert "dry run" in result.output.lower()
+        assert result.exit_code == 0
+
+        # Should NOT have created the directory
+        assert not (tmp_path / "_versions" / "v1").exists()

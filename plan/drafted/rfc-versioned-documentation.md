@@ -387,14 +387,16 @@ Bengal ships a default version selector partial. Themes can override.
 - [x] PageCore.version field for caching
 - [x] Unit tests for versioning models
 
-### Phase 2: Core Features
-- [ ] CLI: `bengal version create v4` (snapshot current docs)
-- [ ] CLI: `bengal version list`
-- [ ] "Latest" alias and redirects
-- [ ] Multiple alias support (`latest`, `stable`, `lts`)
-- [ ] Version banners (frontmatter + auto)
-- [ ] Shared content across versions (`_shared/`)
-- [ ] Per-version menus
+### Phase 2: Core Features ✅ COMPLETE
+- [x] CLI: `bengal version create v4` (snapshot current docs)
+- [x] CLI: `bengal version list`
+- [x] CLI: `bengal version info`
+- [x] "Latest" alias and redirects
+- [x] Multiple alias support (`latest`, `stable`, `lts`)
+- [x] Version banners (frontmatter + auto)
+- [x] Shared content across versions (`_shared/`)
+- [x] VersionResolver for path resolution
+- [ ] Per-version menus (deferred - can use existing menu system)
 
 ### Phase 3: Cross-Version & SEO
 - [ ] Cross-version linking syntax `[[v2:path]]`

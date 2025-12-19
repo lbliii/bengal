@@ -6,5 +6,6 @@ from __future__ import annotations
 
 from bengal.discovery.asset_discovery import AssetDiscovery
 from bengal.discovery.content_discovery import ContentDiscovery
+from bengal.discovery.version_resolver import VersionResolver
 
-__all__ = ["AssetDiscovery", "ContentDiscovery"]
+__all__ = ["AssetDiscovery", "ContentDiscovery", "VersionResolver"]
