@@ -1,11 +1,12 @@
 # RFC: Versioned Documentation Pipeline Integration
 
-**Status**: Draft  
+**Status**: Evaluated  
 **Created**: 2025-12-19  
 **Updated**: 2025-12-19  
 **Author**: AI Assistant + Lawrence Lane  
 **Priority**: P1 (High)  
-**Related**: `plan/drafted/rfc-versioned-documentation.md`
+**Related**: `plan/drafted/rfc-versioned-documentation.md`  
+**Confidence**: 88% 🟢
 
 ---
 
@@ -14,15 +15,15 @@
 The versioned documentation RFC (`rfc-versioned-documentation.md`) designed versioning at the content/config/rendering layer but didn't fully anticipate how it integrates with:
 
 1. **Incremental build system** - Shared content changes don't cascade
-2. **Dev server rebuild pipeline** - Not version-aware
+2. **Dev server rebuild pipeline** - Build trigger lacks version semantics
 3. **Dependency tracking** - Cross-version links not tracked
-4. **Watcher configuration** - Version directories may not be watched
+4. **Version config changes** - `versioning.yaml` changes not detected
 
 These gaps cause:
 - Stale content when `_shared/` files change (requires manual full rebuild)
 - Unnecessary full rebuilds during development
 - Broken cross-version links not detected until full build
-- Confusion about which version is being previewed/rebuilt
+- Config changes (adding/removing versions) require manual cache clear
 
 ---
 

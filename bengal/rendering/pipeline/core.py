@@ -673,6 +673,9 @@ class RenderingPipeline:
                 config=self._normalize_config(self.site.config),
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",
+                # Versioning context - autodoc pages are not versioned
+                current_version=None,
+                is_latest_version=True,
             )
         except Exception as e:  # Capture template errors with context
             logger.error(
