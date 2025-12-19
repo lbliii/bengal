@@ -14,8 +14,10 @@ Args:
 #}
 
 {% macro function_member(func, is_first=false) %}
-{% set func_params = func.metadata.parameters or [] %}
+{# Parameters can be in metadata.args (from extractor) or metadata.parameters #}
+{% set func_params = func.metadata.args or func.metadata.parameters or [] %}
 {% set func_return = func.metadata.return_type or func.metadata.returns or '' %}
+{% set func_signature = func.metadata.signature or '' %}
 {% set is_async = func.metadata.is_async | default(false) %}
 
 <details class="autodoc-member" data-member="function" {% if is_first %}open{% endif %}>
@@ -38,9 +40,9 @@ Args:
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
-      {# Description preview #}
-      {% if func.description %}
-      <span class="autodoc-member-desc-preview">{{ func.description | truncate(100, True, '…') }}</span>
+      {# Signature preview #}
+      {% if func_signature %}
+      <code class="autodoc-member-sig">{{ func_signature }}</code>
       {% endif %}
     </div>
 
@@ -53,36 +55,44 @@ Args:
   </summary>
 
   <div class="autodoc-member-body">
+    {# Full signature display #}
+    {% if func_signature %}
+    <pre class="autodoc-signature"><code>{{ func_signature }}</code></pre>
+    {% endif %}
+
     {% if func.description %}
-    <div class="autodoc-member-desc">
-      <p>{{ func.description }}</p>
+    <div class="autodoc-member-desc prose">
+      {{ func.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
     </div>
     {% endif %}
 
-    {# Function parameters #}
+    {# Function parameters - check both metadata.args and parsed docstring #}
     {% if func_params %}
-    <dl class="autodoc-params">
-      {% for param in func_params %}
-      {% set param_name = param.name if param.name is defined else param.get('name', '') %}
-      {% set param_type = param.type if param.type is defined else param.get('type', '') %}
-      {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
-      {% set param_default = param.default if param.default is defined else param.get('default', none) %}
-      <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
-        <dt class="autodoc-param-name">
-          <code>{{ param_name }}</code>
-          {% if param_type %}
-          <span class="autodoc-param-type">{{ param_type }}</span>
-          {% endif %}
-        </dt>
-        <dd class="autodoc-param-desc">
-          {{ param_desc }}
-          {% if param_default is not none %}
-          <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-          {% endif %}
-        </dd>
-      </div>
-      {% endfor %}
-    </dl>
+    <div class="autodoc-params-section">
+      <h5 class="autodoc-params-title">Parameters</h5>
+      <dl class="autodoc-params">
+        {% for param in func_params %}
+        {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
+        {% set param_type = param.type if param.type is defined else (param.get('type', '') if param.get else '') %}
+        {% set param_desc = param.description if param.description is defined else (param.get('description', '') if param.get else '') %}
+        {% set param_default = param.default if param.default is defined else (param.get('default', none) if param.get else none) %}
+        <div class="autodoc-param" {% if param.required | default(false) %}data-required="true"{% endif %}>
+          <dt class="autodoc-param-name">
+            <code>{{ param_name }}</code>
+            {% if param_type %}
+            <span class="autodoc-param-type">{{ param_type }}</span>
+            {% endif %}
+          </dt>
+          <dd class="autodoc-param-desc">
+            {{ param_desc }}
+            {% if param_default is not none and param_default != '' %}
+            <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+            {% endif %}
+          </dd>
+        </div>
+        {% endfor %}
+      </dl>
+    </div>
     {% endif %}
 
     {# Return type (detailed) #}

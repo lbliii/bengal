@@ -25,7 +25,8 @@ Optional: title (str), member_type (str), first_open (bool, default true)
   <div class="autodoc-members-list">
     {% for member in public_members %}
     {% set member_return = member.metadata.return_type or member.metadata.returns or '' %}
-    {% set member_params = member.metadata.parameters or (member.children or []) | selectattr('element_type', 'eq', 'parameter') | list %}
+    {% set member_params = member.metadata.args or member.metadata.parameters or (member.children or []) | selectattr('element_type', 'eq', 'parameter') | list %}
+    {% set member_signature = member.metadata.signature or '' %}
     {% set param_count = member_params | length %}
 
     <details class="autodoc-member" data-member="{{ member_type }}" {% if first_open and loop.first %}open{% endif %}>
@@ -48,6 +49,10 @@ Optional: title (str), member_type (str), first_open (bool, default true)
             {# Toggle indicator #}
             <span class="autodoc-member-toggle">▼</span>
           </div>
+          {# Signature preview #}
+          {% if member_signature %}
+          <code class="autodoc-member-sig">{{ member_signature }}</code>
+          {% endif %}
         </div>
 
         {# Badges #}
@@ -68,37 +73,54 @@ Optional: title (str), member_type (str), first_open (bool, default true)
       </summary>
 
       <div class="autodoc-member-body">
+        {# Full signature #}
+        {% if member_signature %}
+        <pre class="autodoc-signature"><code>{{ member_signature }}</code></pre>
+        {% endif %}
+
         {% if member.description %}
-        <div class="autodoc-member-desc">
-          <p>{{ member.description }}</p>
+        <div class="autodoc-member-desc prose">
+          {{ member.description | replace('\n\n', '</p><p>') | replace('\n', '<br>') | safe }}
         </div>
         {% endif %}
 
         {# Member parameters #}
         {% if member_params %}
-        <dl class="autodoc-params">
-          {% for param in member_params %}
-          {% set param_name = param.name if param.name is defined else param.get('name', '') %}
-          {% set param_type_val = param.type if param.type is defined else param.get('type', '') %}
-          {% set param_desc = param.description if param.description is defined else param.get('description', '') %}
-          <div class="autodoc-param">
-            <dt class="autodoc-param-name">
-              <code>{{ param_name }}</code>
-              {% if param_type_val %}
-              <span class="autodoc-param-type">{{ param_type_val }}</span>
-              {% endif %}
-            </dt>
-            <dd class="autodoc-param-desc">{{ param_desc }}</dd>
-          </div>
-          {% endfor %}
-        </dl>
+        <div class="autodoc-params-section">
+          <h5 class="autodoc-params-title">Parameters</h5>
+          <dl class="autodoc-params">
+            {% for param in member_params %}
+            {% set param_name = param.name if param.name is defined else (param.get('name', '') if param.get else '') %}
+            {% set param_type_val = param.type if param.type is defined else (param.get('type', '') if param.get else '') %}
+            {% set param_desc = param.description if param.description is defined else (param.get('description', '') if param.get else '') %}
+            {% set param_default = param.default if param.default is defined else (param.get('default', none) if param.get else none) %}
+            <div class="autodoc-param">
+              <dt class="autodoc-param-name">
+                <code>{{ param_name }}</code>
+                {% if param_type_val %}
+                <span class="autodoc-param-type">{{ param_type_val }}</span>
+                {% endif %}
+              </dt>
+              <dd class="autodoc-param-desc">
+                {{ param_desc }}
+                {% if param_default is not none and param_default != '' %}
+                <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
+                {% endif %}
+              </dd>
+            </div>
+            {% endfor %}
+          </dl>
+        </div>
         {% endif %}
 
         {# Member return type (detailed) #}
-        {% if member_return and member.metadata.return_description %}
+        {% if member_return %}
         <div class="autodoc-returns">
+          <h5 class="autodoc-returns-title">Returns</h5>
           <code class="autodoc-returns-type">{{ member_return }}</code>
+          {% if member.metadata.return_description %}
           <span class="autodoc-returns-desc">{{ member.metadata.return_description }}</span>
+          {% endif %}
         </div>
         {% endif %}
       </div>
