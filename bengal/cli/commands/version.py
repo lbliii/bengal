@@ -339,8 +339,9 @@ def _version_to_dict(version: Version) -> dict:
     }
     if version.deprecated:
         result["deprecated"] = True
-    if version.aliases:
-        result["aliases"] = version.aliases
+    aliases = getattr(version, "aliases", None)
+    if aliases:
+        result["aliases"] = aliases
     if version.banner:
         result["banner"] = {
             "type": version.banner.type,
