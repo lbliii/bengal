@@ -250,7 +250,7 @@ class GitVersionAdapter:
 
         # Create new worktree
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["git", "worktree", "add", str(worktree_path), ref],
                 cwd=self.repo_path,
                 capture_output=True,
