@@ -40,6 +40,7 @@ from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION, extract_toc_st
 from bengal.rendering.pipeline.transforms import (
     escape_jinja_blocks,
     escape_template_syntax_in_html,
+    normalize_markdown_links,
     transform_internal_links,
 )
 from bengal.rendering.renderer import Renderer
@@ -348,7 +349,10 @@ class RenderingPipeline:
         # Additional hardening: escape Jinja2 blocks
         page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")
 
-        # Transform internal links
+        # Normalize .md links to clean URLs (./page.md -> ./page/)
+        page.parsed_ast = normalize_markdown_links(page.parsed_ast)
+
+        # Transform internal links (add baseurl prefix)
         page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)
 
         # Pre-compute plain_text cache

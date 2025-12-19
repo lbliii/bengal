@@ -101,3 +101,27 @@ def transform_internal_links(html: str, config: dict[str, Any]) -> str:
         # Never fail the build on link transformation errors
         logger.debug("link_transformation_error", error=str(e))
         return html
+
+
+def normalize_markdown_links(html: str) -> str:
+    """
+    Transform .md links to clean URLs.
+
+    Converts markdown-style file links (e.g., ./page.md) to clean URLs
+    (e.g., ./page/). This allows users to write natural markdown links
+    that work in both GitHub/editors and the rendered site.
+
+    Args:
+        html: Rendered HTML content
+
+    Returns:
+        HTML with .md links transformed to clean URLs
+    """
+    try:
+        from bengal.rendering.link_transformer import normalize_md_links
+
+        return normalize_md_links(html)
+    except Exception as e:
+        # Never fail the build on link normalization errors
+        logger.debug("md_link_normalization_error", error=str(e))
+        return html
