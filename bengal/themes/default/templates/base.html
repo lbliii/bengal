@@ -498,7 +498,7 @@ See: plan/active/rfc-template-performance-optimization.md
     <script defer src="{{ asset_url('js/core/search.js') }}"></script>
     <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
     <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
-    <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>
+    {% if _build_badge_enabled %}<script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% endif %}
     {# Main initialization #}
     <script defer src="{{ asset_url('js/main.js') }}"></script>
     {# Core enhancements - Always loaded (provide essential interactivity) #}
