@@ -119,15 +119,18 @@ class WatcherRunner:
         if self._thread is None:
             return
 
+        # Signal the watch loop to exit gracefully
         self._stop_event.set()
 
-        # Stop the event loop if running
-        if self._loop is not None:
-            self._loop.call_soon_threadsafe(self._loop.stop)
-
+        # Wait for thread to finish (the loop will exit via stop_event check)
         self._thread.join(timeout=5.0)
         if self._thread.is_alive():
-            logger.warning("watcher_runner_thread_did_not_stop")
+            # Force stop the loop if thread didn't exit gracefully
+            if self._loop is not None:
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            self._thread.join(timeout=1.0)
+            if self._thread.is_alive():
+                logger.warning("watcher_runner_thread_did_not_stop")
         else:
             logger.debug("watcher_runner_stopped")
 
