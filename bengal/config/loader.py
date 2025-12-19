@@ -68,6 +68,7 @@ class ConfigLoader:
         # Core
         "site",
         "build",
+        "build_badge",
         "theme",
         "params",
         # Content

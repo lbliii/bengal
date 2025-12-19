@@ -577,7 +577,7 @@ class ContentOrchestrator:
         to ensure correct navigation order. This logs info (not a warning)
         to educate users about weight metadata.
         """
-        doc_types = {"doc", "tutorial", "autodoc/python", "autodoc/cli", "changelog"}
+        doc_types = {"doc", "tutorial", "autodoc-python", "autodoc-cli", "changelog"}
 
         missing_weight_pages = []
         for page in self.site.pages:

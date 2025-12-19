@@ -12,17 +12,22 @@ Args:
 child: DocElement to render (required)
 card_type: Override element type for styling (optional)
 url_prefix: Custom URL prefix (optional)
+
+Note: URLs are built from config output_prefix settings when available.
 #}
 
 {% macro element_card(child, card_type=none, url_prefix=none) %}
 {% set child_type = card_type or child.element_type %}
+{# Get output prefixes from config, with sensible defaults #}
+{% set cli_prefix = (config.cli.output_prefix if config is defined and config.cli is defined and config.cli.output_prefix else 'cli') | trim('/') %}
+{% set python_prefix = (config.python.output_prefix if config is defined and config.python is defined and config.python.output_prefix else 'api') | trim('/') %}
 {# Build URL based on element type - match project patterns #}
 {% if child.url %}
 {% set child_url = child.url %}
 {% elif child_type in ['command', 'command-group'] %}
-{% set child_url = '/cli/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{% set child_url = '/' ~ cli_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
 {% elif child_type in ['class', 'function', 'module'] %}
-{% set child_url = '/api/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
+{% set child_url = '/' ~ python_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
 {% elif url_prefix %}
 {% set child_url = url_prefix ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
 {% else %}

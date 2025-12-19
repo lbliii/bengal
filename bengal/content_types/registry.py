@@ -30,8 +30,8 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "archive": ArchiveStrategy(),
     "changelog": ChangelogStrategy(),
     "doc": DocsStrategy(),
-    "autodoc/python": ApiReferenceStrategy(),
-    "autodoc/cli": CliReferenceStrategy(),
+    "autodoc-python": ApiReferenceStrategy(),
+    "autodoc-cli": CliReferenceStrategy(),
     "tutorial": TutorialStrategy(),
     "page": PageStrategy(),
     "list": PageStrategy(),  # Alias for generic lists
@@ -63,8 +63,8 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
     """
     # Special mappings for autodoc-generated types
     special_mappings = {
-        "python-module": "autodoc/python",
-        "cli-command": "autodoc/cli",
+        "python-module": "autodoc-python",
+        "cli-command": "autodoc-cli",
     }
 
     if page_type in special_mappings:
@@ -142,8 +142,8 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
     # 3. Auto-detect using strategy heuristics
     # Try strategies in priority order
     detection_order = [
-        ("autodoc/python", ApiReferenceStrategy()),
-        ("autodoc/cli", CliReferenceStrategy()),
+        ("autodoc-python", ApiReferenceStrategy()),
+        ("autodoc-cli", CliReferenceStrategy()),
         ("blog", BlogStrategy()),
         ("tutorial", TutorialStrategy()),
         ("doc", DocsStrategy()),

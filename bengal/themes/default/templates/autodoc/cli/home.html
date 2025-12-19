@@ -10,7 +10,7 @@ Optimized home page template for CLI reference sites. Features:
 - Quick links to key CLI reference sections
 - No blog posts (CLI reference sites don't need recent posts)
 
-Usage: Set `type: autodoc/cli` on home page to auto-select
+Usage: Set `type: autodoc-cli` on home page to auto-select
 Or set `template: autodoc/cli/home.html` in frontmatter
 #}
 
@@ -39,14 +39,14 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {# Find CLI reference sections #}
     {% set cli_sections = [] %}
     {% for section in site.sections %}
-    {% if section.metadata.get('type') == 'autodoc/cli' or section.metadata.get('content_type') == 'autodoc/cli' %}
+    {% if section.metadata.get('type') == 'autodoc-cli' or section.metadata.get('content_type') == 'autodoc-cli' %}
     {% set _ = cli_sections.append(section) %}
     {% endif %}
     {% endfor %}
 
-    {# If no autodoc/cli sections found, try common section names #}
+    {# If no autodoc-cli sections found, try common section names #}
     {% if not cli_sections %}
-    {% set common_names = ['cli', 'autodoc/cli', 'commands', 'command-line'] %}
+    {% set common_names = ['cli', 'autodoc-cli', 'commands', 'command-line'] %}
     {% for name in common_names %}
     {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
     {% if candidates %}

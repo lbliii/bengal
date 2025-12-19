@@ -281,7 +281,7 @@ class NavigationValidator(BaseValidator):
         """
         results = []
         issues = []
-        doc_types = {"doc", "tutorial", "autodoc/python", "autodoc/cli", "changelog"}
+        doc_types = {"doc", "tutorial", "autodoc-python", "autodoc-cli", "changelog"}
 
         # Check each section with doc-type content
         for section in site.sections:

@@ -106,37 +106,25 @@
   margin-inline: auto;
 }
 
-/* Python API docs (python-reference) use prose-width constraints for readable
-   docstring content. Constrain at parent level for DRY - both hero and article
-   inherit the same max-width. */
-body[data-type="python-reference"] .docs-main > * {
+/* ============================================
+   AUTODOC PAGE TYPE CONSTRAINTS
+
+   Page types (set via metadata.type):
+   - autodoc-python: Python API docs
+   - autodoc-cli: CLI reference
+   - autodoc-rest: OpenAPI/REST docs
+   - autodoc-hub: Hub pages aggregating API sections
+
+   All use consistent prose-width for readability.
+   ============================================ */
+
+/* All autodoc reference pages: constrain at parent level for DRY.
+   Both hero and article inherit the same max-width. */
+body[data-type="autodoc-python"] .docs-main>*,
+body[data-type="autodoc-cli"] .docs-main>*,
+body[data-type="autodoc-rest"] .docs-main>* {
   max-width: var(--prose-width, 75ch);
   margin-inline: auto;
-}
-
-/* OpenAPI/CLI reference pages use app-like card layouts (not long-form prose).
-   Constrain at parent level for DRY - hero, article, and navigation all inherit
-   the same max-width (--container-lg) for visual cohesion. */
-body[data-type="openapi-reference"] .docs-main > *,
-body[data-type="cli-reference"] .docs-main > * {
-  max-width: var(--container-lg, 1024px);
-}
-
-/* Reset .prose wrapper to full-width within the constrained container.
-   This allows card grids to use the full container width. */
-body[data-type="openapi-reference"] .docs-main .prose,
-body[data-type="cli-reference"] .docs-main .prose {
-  max-width: 100%;
-  margin-inline: 0;
-}
-
-/* Within CLI/OpenAPI content, constrain prose text elements (usage sections,
-   descriptions) to standard reading width for better readability. */
-body[data-type="openapi-reference"] .docs-main .api-usage,
-body[data-type="cli-reference"] .docs-main .api-usage,
-body[data-type="openapi-reference"] .docs-main .cli-usage,
-body[data-type="cli-reference"] .docs-main .cli-usage {
-  max-width: var(--prose-width, 75ch);
 }
 
 /* Right Sidebar (TOC) - touches right edge */

@@ -383,7 +383,7 @@ class SectionOrchestrator:
             "blog",
             "archive",
             "autodoc/python",
-            "autodoc/cli",
+            "autodoc-cli",
             "tutorial",
             "changelog",
         ):

@@ -158,7 +158,7 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         """Detect API sections by name or content."""
         name = section.name.lower()
 
-        if name in ("api", "reference", "autodoc/python", "api-docs"):
+        if name in ("api", "reference", "autodoc-python", "api-docs"):
             return True
 
         # Check page metadata
@@ -166,9 +166,8 @@ class ApiReferenceStrategy(ContentTypeStrategy):
             for page in section.pages[:3]:
                 page_type = page.metadata.get("type", "")
                 if "python-module" in page_type or page_type in (
-                    "python-reference",
-                    "openautodoc/python",
-                    "autodoc/python",
+                    "autodoc-python",
+                    "autodoc-rest",
                 ):
                     return True
 
@@ -225,7 +224,7 @@ class CliReferenceStrategy(ContentTypeStrategy):
         """Detect CLI sections by name or content."""
         name = section.name.lower()
 
-        if name in ("cli", "commands", "autodoc/cli", "command-line"):
+        if name in ("cli", "commands", "autodoc-cli", "command-line"):
             return True
 
         # Check page metadata

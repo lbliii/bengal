@@ -10,7 +10,7 @@ Optimized home page template for API reference sites. Features:
 - Quick links to key API reference sections
 - No blog posts (API reference sites don't need recent posts)
 
-Usage: Set `type: autodoc/python` on home page to auto-select
+Usage: Set `type: autodoc-python` on home page to auto-select
 Or set `template: autodoc/python/home.html` in frontmatter
 #}
 
@@ -39,14 +39,14 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {# Find API reference sections #}
     {% set api_sections = [] %}
     {% for section in site.sections %}
-    {% if section.metadata.get('type') == 'autodoc/python' or section.metadata.get('content_type') == 'autodoc/python' %}
+    {% if section.metadata.get('type') == 'autodoc-python' or section.metadata.get('content_type') == 'autodoc-python' %}
     {% set _ = api_sections.append(section) %}
     {% endif %}
     {% endfor %}
 
-    {# If no autodoc/python sections found, try common section names #}
+    {# If no autodoc-python sections found, try common section names #}
     {% if not api_sections %}
-    {% set common_names = ['api', 'autodoc/python', 'api-docs', 'reference'] %}
+    {% set common_names = ['api', 'autodoc-python', 'api-docs', 'reference'] %}
     {% for name in common_names %}
     {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
     {% if candidates %}

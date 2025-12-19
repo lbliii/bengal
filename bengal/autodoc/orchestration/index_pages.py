@@ -48,12 +48,12 @@ def create_index_pages(
 
         # Determine template and page type based on section metadata
         # Page type controls CSS styling, template dir may differ
-        section_type = section.metadata.get("type", "python-reference")
+        section_type = section.metadata.get("type", "autodoc-python")
         template_dir = get_template_dir_for_type(section_type)
 
         # api-hub sections use 'home' template for the premium landing page
         # with banner and tiles; other sections use 'section-index'
-        if section_type == "api-hub":
+        if section_type == "autodoc-hub":
             template_name = f"{template_dir}/home"
         else:
             template_name = f"{template_dir}/section-index"
@@ -102,11 +102,11 @@ def render_section_index(
     config: dict,
 ) -> str:
     """Render section index page HTML."""
-    section_type = section.metadata.get("type", "python-reference")
+    section_type = section.metadata.get("type", "autodoc-python")
     template_dir = get_template_dir_for_type(section_type)
 
     # api-hub sections use 'home' template for the premium landing page
-    if section_type == "api-hub":
+    if section_type == "autodoc-hub":
         template_name = f"{template_dir}/home"
     else:
         template_name = f"{template_dir}/section-index"

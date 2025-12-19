@@ -195,7 +195,7 @@ class Renderer:
                 page_type
                 in (
                     "autodoc/python",
-                    "autodoc/cli",
+                    "autodoc-cli",
                     "tutorial",
                     "doc",
                     "blog",
@@ -328,7 +328,7 @@ class Renderer:
             "archive",
             "blog",
             "autodoc/python",
-            "autodoc/cli",
+            "autodoc-cli",
             "tutorial",
             "changelog",
         }

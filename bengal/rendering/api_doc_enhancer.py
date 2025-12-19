@@ -79,7 +79,7 @@ class APIDocEnhancer:
         "python-module",
         "autodoc/python",
         "cli-command",
-        "autodoc/cli",
+        "autodoc-cli",
     }
 
     def __init__(self) -> None:

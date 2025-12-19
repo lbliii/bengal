@@ -62,7 +62,7 @@ def create_python_sections(
         relative_url=join_url_paths(prefix),
         title="Python API Reference",
         metadata={
-            "type": "python-reference",
+            "type": "autodoc-python",
             "weight": 100,
             "icon": "book",
             "description": "Browse Python API documentation by package.",
@@ -99,7 +99,7 @@ def create_python_sections(
                     relative_url=relative_url,
                     title=part.replace("_", " ").title(),
                     metadata={
-                        "type": "python-reference",
+                        "type": "autodoc-python",
                         "qualified_name": qualified_name,
                         "description": description,
                     },
@@ -138,7 +138,7 @@ def create_cli_sections(
         relative_url=join_url_paths(prefix),
         title="CLI Reference",
         metadata={
-            "type": "autodoc/cli",
+            "type": "autodoc-cli",
             "weight": 100,
             "icon": "terminal",
             "description": "Command-line interface documentation.",
@@ -178,7 +178,7 @@ def create_cli_sections(
             relative_url=join_url_paths(prefix, *group_parts),
             title=group_parts[-1].replace("_", " ").title(),
             metadata={
-                "type": "autodoc/cli",
+                "type": "autodoc-cli",
                 "qualified_name": group_name,
             },
         )
@@ -211,7 +211,7 @@ def create_openapi_sections(
         relative_url=join_url_paths(prefix),
         title="REST API Reference",
         metadata={
-            "type": "openautodoc/python",
+            "type": "autodoc-rest",
             "weight": 100,
             "icon": "book",
             "description": "REST API documentation.",
@@ -246,7 +246,7 @@ def create_openapi_sections(
                     relative_url=join_url_paths(prefix, "schemas"),
                     title="Schemas",
                     metadata={
-                        "type": "openautodoc/python",
+                        "type": "autodoc-rest",
                         "description": "API data schemas and models.",
                     },
                 )
@@ -260,7 +260,7 @@ def create_openapi_sections(
             relative_url=join_url_paths(prefix, "tags", tag),
             title=tag.replace("-", " ").title(),
             metadata={
-                "type": "openautodoc/python",
+                "type": "autodoc-rest",
                 "tag": tag,
             },
         )
@@ -317,7 +317,7 @@ def create_aggregating_parent_sections(
 
         # Collect child types for template to display appropriate icons/labels
         child_types = list(
-            set(sections[cp].metadata.get("type", "python-reference") for cp in child_paths)
+            set(sections[cp].metadata.get("type", "autodoc-python") for cp in child_paths)
         )
 
         # Create the parent section with 'api-hub' type for agnostic landing page
@@ -327,7 +327,7 @@ def create_aggregating_parent_sections(
             relative_url=join_url_paths(parent_path),
             title=f"{parent_path.replace('-', ' ').title()} Documentation",
             metadata={
-                "type": "api-hub",  # Dedicated type for aggregating API sections
+                "type": "autodoc-hub",  # Dedicated type for aggregating API sections
                 "weight": 50,
                 "icon": "book-open",
                 "description": f"Browse all {parent_path} documentation.",
