@@ -42,7 +42,8 @@ This template receives:
       {# Commands and Sub-groups - use getattr for safe access to children #}
       {% set element_children = getattr(element, 'children', []) %}
       {# Get output prefix from config, default to 'cli' #}
-      {% set cli_prefix = (config.cli.output_prefix if config is defined and config.cli is defined and config.cli.output_prefix else 'cli') | trim('/') %}
+      {% set cli_config = config.cli if config is defined and config.cli is defined else none %}
+      {% set cli_prefix = (cli_config.output_prefix if cli_config is not none and cli_config.output_prefix else 'cli') | trim('/') %}
       {% if element_children %}
       <section class="autodoc-section" data-section="subcommands">
         <h2 class="autodoc-section-title">Commands</h2>
