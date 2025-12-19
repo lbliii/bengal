@@ -554,3 +554,361 @@ class TestVersionCLI:
 
         # Should NOT have created the directory
         assert not (tmp_path / "_versions" / "v1").exists()
+
+
+# =============================================================================
+# Phase 3: Cross-Version Linking Tests
+# =============================================================================
+
+
+class TestCrossVersionLinks:
+    """Tests for cross-version linking [[v2:path]] syntax."""
+
+    def test_version_link_resolution(self) -> None:
+        """Test resolving cross-version link syntax."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        # Test resolving v2 link
+        html = plugin._resolve_version_link("v2:docs/guide", None)
+        assert 'href="/docs/v2/guide/"' in html
+        assert "(v2)" in html
+
+    def test_version_link_latest_no_prefix(self) -> None:
+        """Test that latest version links have no version prefix."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        # Latest should have no version prefix
+        html = plugin._resolve_version_link("v3:docs/guide", None)
+        assert 'href="/docs/guide/"' in html
+        assert "/v3/" not in html
+
+    def test_version_link_with_custom_text(self) -> None:
+        """Test cross-version link with custom text."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2", label="Version 2.0"),
+            ],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        # Resolve with custom text
+        html = plugin._resolve_version_link("v2:docs/guide", "See v2 Guide")
+        assert 'href="/docs/v2/guide/"' in html
+        assert "See v2 Guide" in html
+
+    def test_version_link_alias(self) -> None:
+        """Test cross-version link using alias (latest)."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        # Use 'latest' alias
+        html = plugin._resolve_version_link("latest:docs/guide", None)
+        assert 'href="/docs/guide/"' in html  # Latest has no prefix
+
+    def test_version_link_disabled_versioning(self) -> None:
+        """Test cross-version link when versioning is disabled."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        # No version config
+        plugin = CrossReferencePlugin({}, version_config=None)
+
+        html = plugin._resolve_version_link("v2:docs/guide", None)
+        assert 'class="broken-ref"' in html
+        assert "Versioning not enabled" in html
+
+    def test_version_link_unknown_version(self) -> None:
+        """Test cross-version link with unknown version."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[Version(id="v3", latest=True)],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        html = plugin._resolve_version_link("v99:docs/guide", None)
+        assert 'class="broken-ref"' in html
+        assert "Version not found" in html
+
+    def test_version_link_with_anchor(self) -> None:
+        """Test cross-version link with anchor fragment."""
+        from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+
+        config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        plugin = CrossReferencePlugin({}, version_config=config)
+
+        html = plugin._resolve_version_link("v2:docs/guide#section", None)
+        assert 'href="/docs/v2/guide/#section"' in html
+
+
+# =============================================================================
+# Phase 3: Version Directive Tests
+# =============================================================================
+
+
+class TestVersionDirectives:
+    """Tests for version-aware directives (since, deprecated, changed)."""
+
+    def test_since_directive_badge(self) -> None:
+        """Test since directive renders as badge."""
+        from bengal.rendering.plugins.directives.versioning import SinceDirective
+
+        directive = SinceDirective()
+        html = directive.render(None, "", version="v2.0", has_content=False)
+
+        assert "version-badge-since" in html
+        assert "New in v2.0" in html
+
+    def test_since_directive_with_content(self) -> None:
+        """Test since directive with content renders as box."""
+        from bengal.rendering.plugins.directives.versioning import SinceDirective
+
+        directive = SinceDirective()
+        html = directive.render(
+            None,
+            "<p>This feature was added.</p>",
+            version="v2.0",
+            has_content=True,
+            **{"class": "version-since"},
+        )
+
+        assert "version-since" in html
+        assert "version-content" in html
+        assert "This feature was added." in html
+
+    def test_deprecated_directive_warning(self) -> None:
+        """Test deprecated directive renders as warning."""
+        from bengal.rendering.plugins.directives.versioning import DeprecatedDirective
+
+        directive = DeprecatedDirective()
+        html = directive.render(None, "", version="v3.0", has_content=False)
+
+        assert "admonition warning" in html
+        assert "version-badge-deprecated" in html
+        assert "Deprecated since v3.0" in html
+
+    def test_deprecated_directive_with_migration(self) -> None:
+        """Test deprecated directive with migration content."""
+        from bengal.rendering.plugins.directives.versioning import DeprecatedDirective
+
+        directive = DeprecatedDirective()
+        html = directive.render(
+            None,
+            "<p>Use new_function() instead.</p>",
+            version="v3.0",
+            has_content=True,
+            **{"class": "version-deprecated"},
+        )
+
+        assert "version-content" in html
+        assert "Use new_function()" in html
+
+    def test_changed_directive_info(self) -> None:
+        """Test changed directive renders as info note."""
+        from bengal.rendering.plugins.directives.versioning import ChangedDirective
+
+        directive = ChangedDirective()
+        html = directive.render(None, "", version="v2.5", has_content=False)
+
+        assert "admonition note" in html
+        assert "version-badge-changed" in html
+        assert "Changed in v2.5" in html
+
+    def test_changed_directive_with_details(self) -> None:
+        """Test changed directive with change details."""
+        from bengal.rendering.plugins.directives.versioning import ChangedDirective
+
+        directive = ChangedDirective()
+        html = directive.render(
+            None,
+            "<p>Default changed from 10 to 20.</p>",
+            version="v2.5",
+            has_content=True,
+            **{"class": "version-changed"},
+        )
+
+        assert "version-content" in html
+        assert "Default changed from 10 to 20" in html
+
+
+# =============================================================================
+# Phase 3: SEO & Sitemap Tests
+# =============================================================================
+
+
+class TestVersionedSEO:
+    """Tests for version-aware SEO (canonical URLs, sitemap priority)."""
+
+    def test_canonical_url_latest_version(self) -> None:
+        """Test canonical URL for latest version page (no change)."""
+        from unittest.mock import MagicMock
+
+        from bengal.rendering.template_functions.seo import canonical_url
+
+        # Mock site with versioning
+        site = MagicMock()
+        site.versioning_enabled = True
+        site.version_config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        # Mock page on latest version
+        page = MagicMock()
+        page.version = "v3"
+
+        result = canonical_url("/docs/guide/", "https://example.com", site, page)
+
+        # Latest version - canonical unchanged
+        assert result == "https://example.com/docs/guide/"
+
+    def test_canonical_url_older_version(self) -> None:
+        """Test canonical URL for older version points to latest."""
+        from unittest.mock import MagicMock
+
+        from bengal.rendering.template_functions.seo import canonical_url
+
+        # Mock site with versioning
+        site = MagicMock()
+        site.versioning_enabled = True
+        site.version_config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+            sections=["docs"],
+        )
+
+        # Mock page on older version
+        page = MagicMock()
+        page.version = "v2"
+
+        # Path with version prefix
+        result = canonical_url("/docs/v2/guide/", "https://example.com", site, page)
+
+        # Should point to latest (no version prefix)
+        assert result == "https://example.com/docs/guide/"
+
+    def test_sitemap_priority_latest(self) -> None:
+        """Test sitemap priority for latest version pages."""
+        from unittest.mock import MagicMock
+
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # Mock site
+        site = MagicMock()
+        site.versioning_enabled = True
+        site.version_config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+        )
+
+        generator = SitemapGenerator(site)
+
+        # Mock page on latest version
+        page = MagicMock()
+        page.version = "v3"
+
+        priority = generator._get_version_priority(page)
+        assert priority == "0.8"  # Higher priority for latest
+
+    def test_sitemap_priority_older_version(self) -> None:
+        """Test sitemap priority for older version pages."""
+        from unittest.mock import MagicMock
+
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # Mock site
+        site = MagicMock()
+        site.versioning_enabled = True
+        site.version_config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v2"),
+            ],
+        )
+
+        generator = SitemapGenerator(site)
+
+        # Mock page on older version
+        page = MagicMock()
+        page.version = "v2"
+
+        priority = generator._get_version_priority(page)
+        assert priority == "0.3"  # Lower priority for older
+
+    def test_sitemap_priority_non_versioned(self) -> None:
+        """Test sitemap priority for non-versioned pages."""
+        from unittest.mock import MagicMock
+
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # Mock site (versioning disabled)
+        site = MagicMock()
+        site.versioning_enabled = False
+
+        generator = SitemapGenerator(site)
+
+        # Mock non-versioned page
+        page = MagicMock()
+        page.version = None
+
+        priority = generator._get_version_priority(page)
+        assert priority == "0.5"  # Default priority

@@ -49,7 +49,7 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 | **Admonitions** | ✅ 8 types | ✅ 12+ types | ⚠️ Shortcodes | ✅ MDX | ✅ Directives | ❌ Plugin |
 | **Tabs** | ✅ Native | ✅ Native | ⚠️ Shortcode | ✅ Native | ✅ Plugin | ❌ Plugin |
 | **Code Blocks** | ✅ Pygments + copy | ✅ Pygments + copy | ✅ Chroma + copy | ✅ Prism + copy | ✅ Pygments | ⚠️ Plugin |
-| **Code Annotations** | ❌ Not yet | ✅ Yes | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Code Annotations** | ⚠️ Flag exists, not impl | ✅ Yes (unique!) | ❌ No | ❌ No | ❌ No | ❌ No |
 | **Dropdowns** | ✅ Native | ✅ Native | ⚠️ Shortcode | ✅ Native | ✅ Plugin | ❌ Plugin |
 | **Cards/Grids** | ✅ Native | ✅ Native | ⚠️ Shortcode | ✅ Native | ⚠️ Plugin | ❌ Plugin |
 | **Steps/Procedures** | ✅ Native | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
@@ -63,8 +63,8 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 | **Variable Substitution** | ✅ `{{ var }}` | ⚠️ Plugin | ✅ Params | ❌ No | ✅ `|var|` | ⚠️ Data files |
 | **Cross-References** | ✅ `[[link]]` | ⚠️ Plugin | ⚠️ Relref | ⚠️ Manual | ✅ `:ref:` | ❌ No |
 
-**Bengal Advantage:** Steps directive, list-table, glossary terms, and cross-references are all native.  
-**Bengal Gap:** Code annotations (MkDocs Material's killer feature).
+**Bengal Advantage:** Steps directive, list-table, glossary terms, cross-references, line highlighting, and line numbers are all native.  
+**Bengal Gap:** Code annotations (MkDocs Material's unique feature for inline explanatory markers) — niche, only MkDocs has it.
 
 ---
 
@@ -113,6 +113,15 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 
 **Bengal Advantage:** LLM-friendly text output (`llm.txt`) is unique.  
 **Bengal Gap:** No Algolia DocSearch integration.
+
+**Bengal's Full i18n Support:**
+- `t()` for UI string translation
+- `locale_date()` for date formatting
+- `languages()` for language lists
+- `alternate_links()` for hreflang SEO
+- **Content routing:** `i18n.strategy: "prefix"` outputs to `/en/`, `/fr/` paths
+- **Directory structure:** `content/en/docs/` → `/en/docs/`
+- Integrated with: menus, RSS, taxonomy, search index
 
 ---
 
@@ -191,7 +200,7 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 | **Plugin Ecosystem** | ⚠️ Emerging | ✅ 50+ plugins | ✅ Built-in | ✅ 100+ plugins | ✅ 1000+ extensions | ✅ 100+ plugins |
 | **Remote Content** | ✅ GitHub/Notion/REST | ⚠️ Plugin | ⚠️ Modules | ⚠️ Plugin | ❌ No | ⚠️ Data files |
 | **Custom Directives** | ✅ Python API | ⚠️ Plugin | ✅ Shortcodes | ✅ MDX/React | ✅ Sphinx API | ✅ Filters |
-| **i18n/Multilingual** | ❌ Not yet | ✅ Native | ✅ Native | ✅ Native | ✅ Native | ⚠️ Manual |
+| **i18n/Multilingual** | ✅ Native (full: UI + content paths) | ✅ Native | ✅ Native | ✅ Native | ✅ Native | ⚠️ Manual |
 | **Versioning** | ❌ Not yet | ✅ mike | ⚠️ Manual | ✅ Native | ✅ Native | ❌ No |
 
 **Bengal Advantage:** Remote content sources (GitHub, Notion, REST APIs) are first-class.  
@@ -217,10 +226,11 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 - No streaming for large sites
 
 **Bengal's Competitive Position:**
-- ✅ Beat them on: Incremental builds, AST-based autodoc safety, query indexes, streaming
-- ❌ Behind on: Code annotations, versioning, community size, polish
+- ✅ Beat them on: Incremental builds, AST-based autodoc safety, query indexes, streaming, full i18n
+- ❌ Behind on: Versioning (in progress!), community size, polish
+- ⚠️ Code annotations: MkDocs-unique feature (niche demand)
 
-**Strategic Recommendation:** Add code annotations as high-priority feature.
+**Strategic Recommendation:** Versioning is in progress; after that, focus on ecosystem growth.
 
 ---
 
@@ -239,8 +249,8 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 - No Python API docs
 
 **Bengal's Competitive Position:**
-- ✅ Beat them on: Default theme quality, Python autodoc, directives out-of-box
-- ❌ Behind on: Raw speed, theme ecosystem, i18n, community
+- ✅ Beat them on: Default theme quality, Python autodoc, directives out-of-box, full i18n
+- ❌ Behind on: Raw speed, theme ecosystem, community size
 
 **Strategic Recommendation:** Position as "Hugo for Python developers who want batteries-included."
 
@@ -261,10 +271,10 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 - Memory-heavy for large sites
 
 **Bengal's Competitive Position:**
-- ✅ Beat them on: Python-native, no Node.js, AST autodoc, query indexes
-- ❌ Behind on: Versioning, MDX flexibility, Algolia integration
+- ✅ Beat them on: Python-native, no Node.js, AST autodoc, query indexes, full i18n
+- ❌ Behind on: Versioning (in progress!), MDX flexibility, Algolia integration
 
-**Strategic Recommendation:** Implement versioning as high-priority feature.
+**Strategic Recommendation:** Versioning is actively being built; Algolia integration next.
 
 ---
 
@@ -304,6 +314,7 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 | **Health Validation + Fix** | Built-in quality checks with auto-remediation |
 | **Remote Content Sources** | GitHub/Notion/REST APIs as first-class sources |
 | **Incremental Builds** | 18-42x faster rebuilds with dependency tracking |
+| **Full i18n Support** | `t()` + content routing (`content/en/`, `/fr/` output) + locale dates + hreflang SEO |
 
 ### 🟡 Competitive Parity
 
@@ -318,32 +329,32 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
-| **Versioning** | Blocks enterprise adoption | 🔥 High |
-| **i18n/Multilingual** | Blocks international projects | 🔥 High |
-| **Code Annotations** | MkDocs Material's killer feature | 🔥 High |
+| **Versioning** | Blocks enterprise adoption | 🔥 High (actively building!) |
 | **Algolia DocSearch** | Expected for large doc sites | Medium |
 | **Theme Ecosystem** | Only 1 theme limits adoption | Medium |
 | **Image Optimization** | Expected in 2025 | Medium |
+| **Code Annotations** | MkDocs Material's unique feature (niche) | Low |
 | **Raw Build Speed** | 50x slower than Hugo | Low (acceptable) |
 
 ---
 
 ## Recommended Roadmap Priorities
 
-### Phase 1: Close Critical Gaps
-1. **Versioned Documentation** — Multiple versions in single site
-2. **Code Annotations** — Inline explanations for code blocks
-3. **i18n Framework** — Multilingual content support
+### Phase 1: In Progress ✅
+1. **Versioned Documentation** — Multiple versions in single site (actively building!)
 
 ### Phase 2: Ecosystem Growth
-4. **Algolia DocSearch** — Enterprise search integration
-5. **ReadTheDocs Integration** — Hosting platform support
-6. **Plugin API** — Formalize extension points
+2. **Algolia DocSearch** — Enterprise search integration
+3. **ReadTheDocs Integration** — Hosting platform support
+4. **Plugin API** — Formalize extension points
 
 ### Phase 3: Performance & Polish
-7. **Image Optimization Pipeline** — WebP conversion, responsive images
-8. **Additional Themes** — 2-3 alternative themes
-9. **Build Speed Improvements** — Target 500+ pages/s
+5. **Image Optimization Pipeline** — WebP conversion, responsive images
+6. **Additional Themes** — 2-3 alternative themes
+7. **Build Speed Improvements** — Target 500+ pages/s
+
+### Phase 4: Nice-to-Have
+8. **Code Annotations** — Inline explanatory markers (MkDocs Material's unique feature, niche demand)
 
 ---
 
@@ -358,7 +369,6 @@ Bengal occupies a unique position as a **Python-native documentation SSG** with 
 - Large documentation sites (1000+ pages) needing performance
 
 **Not For:**
-- Projects requiring versioned docs (until implemented)
-- Multilingual sites (until implemented)
+- Projects requiring versioned docs (until implementation complete — in progress!)
 - Users wanting maximum theme choice (Hugo/Jekyll better)
 - Teams already invested in React/MDX (Docusaurus better)

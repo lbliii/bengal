@@ -137,7 +137,9 @@ class RenderingPipeline:
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
-            self.parser.enable_cross_references(site.xref_index)
+            # Pass version_config for cross-version linking support [[v2:path]]
+            version_config = getattr(site, "version_config", None)
+            self.parser.enable_cross_references(site.xref_index, version_config)
 
         self.dependency_tracker = dependency_tracker
         self.quiet = quiet

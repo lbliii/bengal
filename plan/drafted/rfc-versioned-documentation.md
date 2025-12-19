@@ -398,13 +398,13 @@ Bengal ships a default version selector partial. Themes can override.
 - [x] VersionResolver for path resolution
 - [ ] Per-version menus (deferred - can use existing menu system)
 
-### Phase 3: Cross-Version & SEO
-- [ ] Cross-version linking syntax `[[v2:path]]`
-- [ ] Version-aware directives (`:::{since}`, `:::{deprecated}`)
-- [ ] Canonical URL generation
-- [ ] Sitemap with version awareness
-- [ ] Per-version redirect maps (for renamed pages)
-- [ ] Search integration (per-version or unified)
+### Phase 3: Cross-Version & SEO ✅ COMPLETE
+- [x] Cross-version linking syntax `[[v2:path]]`
+- [x] Version-aware directives (`:::{since}`, `:::{deprecated}`, `:::{changed}`)
+- [x] Canonical URL generation (older versions point to latest)
+- [x] Sitemap with version awareness (priority: 0.8 latest, 0.3 older)
+- [ ] Per-version redirect maps (deferred - use existing redirect system)
+- [ ] Search integration (deferred - per-version or unified)
 
 ### Phase 4: Git Integration & Advanced
 - [ ] Git branch mode (optional): build from multiple branches

@@ -634,7 +634,11 @@ class MistuneParser(BaseMarkdownParser):
 
         return html, toc
 
-    def enable_cross_references(self, xref_index: dict[str, Any]) -> None:
+    def enable_cross_references(
+        self,
+        xref_index: dict[str, Any],
+        version_config: Any | None = None,
+    ) -> None:
         """
         Enable cross-reference support with [[link]] syntax.
 
@@ -648,6 +652,8 @@ class MistuneParser(BaseMarkdownParser):
 
         Args:
             xref_index: Pre-built cross-reference index from site discovery
+            version_config: Optional versioning configuration for cross-version links
+                           (enables [[v2:path]] syntax)
 
         Raises:
             ImportError: If CrossReferencePlugin cannot be imported
@@ -655,15 +661,16 @@ class MistuneParser(BaseMarkdownParser):
         Example:
             >>> parser = MistuneParser()
             >>> # ... after content discovery ...
-            >>> parser.enable_cross_references(site.xref_index)
-            >>> # Now [[docs/installation]] works in markdown!
+            >>> parser.enable_cross_references(site.xref_index, site.version_config)
+            >>> # Now [[docs/installation]] and [[v2:docs/guide]] work in markdown!
             >>> html = parser.parse("See [[docs/getting-started]]", {})
             >>> print(html)  # Contains <a href="/docs/getting-started">...</a>
         """
         if self._xref_enabled:
-            # Already enabled, just update index
+            # Already enabled, just update index and version_config
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
+                self._xref_plugin.version_config = version_config
             # Update shared renderer (automatically available to all Markdown instances)
             self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
             return
@@ -671,7 +678,7 @@ class MistuneParser(BaseMarkdownParser):
         from bengal.rendering.plugins import CrossReferencePlugin
 
         # Create plugin instance (for post-processing HTML)
-        self._xref_plugin = CrossReferencePlugin(xref_index)
+        self._xref_plugin = CrossReferencePlugin(xref_index, version_config)
         self._xref_enabled = True
 
         # Store xref_index on shared renderer for directive access (e.g., cards :pull: option)
