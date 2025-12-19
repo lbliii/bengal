@@ -230,11 +230,14 @@ class VersionResolver:
             >>> resolver.resolve_cross_version_link("[[latest:guide]]", current_v2)
             "/docs/guide/"  # latest has no prefix
         """
-        if not link_target.startswith("[[") or ":" not in link_target:
+        # Must look like [[version:path]]
+        if not link_target.startswith("[[") or not link_target.endswith("]]"):
             return None
 
         # Parse [[version:path]] format
         content = link_target[2:-2]  # Remove [[ and ]]
+        if ":" not in content:
+            return None
         version_id, path = content.split(":", 1)
 
         target_version = self.version_config.get_version_or_alias(version_id)
