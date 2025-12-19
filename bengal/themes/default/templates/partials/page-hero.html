@@ -43,7 +43,7 @@ _template_default else _theme_hero_style)) %}
 {% elif section is defined and section %}
 {% include 'partials/page-hero/section.html' %}
 {% else %}
-{# Fallback to editorial when api style is set but no element/section context #}
+{# Fallback to editorial: API hero requires element/section context; without it we cannot render an API-specific layout, so we use the standard editorial hero as the safe, context-agnostic default. #}
 {% include 'partials/page-hero-editorial.html' %}
 {% endif %}
 {% else %}

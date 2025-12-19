@@ -53,7 +53,7 @@ This template receives:
             <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
             {% elif child.element_type == 'command-group' %}
             {% set child_children = getattr(child, 'children', []) %}
-            <span class="autodoc-card-desc">{{ child_children | length }} command{{ 's' if child_children | length != 1 else '' }}</span>
+            <span class="autodoc-card-desc">{{ child_children | length }} {{ child_children | length | pluralize('command') }}</span>
             {% else %}
             <span class="autodoc-card-desc">No description available</span>
             {% endif %}
