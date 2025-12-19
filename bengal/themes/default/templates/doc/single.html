@@ -25,6 +25,9 @@ Or set `type: doc` to auto-select this template
 
   {# Main Content #}
   <div class="docs-main">
+    {# Version Banner - warns users when viewing old/deprecated versions #}
+    {% include 'partials/version-banner.html' %}
+
     {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
     {# Supports variants: classic (default) or magazine (set via hero_style) #}
     {% include 'partials/page-hero.html' %}

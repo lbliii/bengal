@@ -38,6 +38,7 @@ class LinkValidator:
         validated_urls: Set of URLs that have been validated (cache)
         broken_links: List of (page_path, broken_link) tuples
         _page_urls: Cached set of all page URLs for O(1) lookup
+        _source_paths: Cached set of all source paths for resolving relative links
         _site: Reference to site being validated
     """
 
@@ -51,6 +52,7 @@ class LinkValidator:
         self.validated_urls: set[str] = set()
         self.broken_links: list[tuple[Path | None, str]] = []
         self._page_urls: set[str] | None = None
+        self._source_paths: set[str] | None = None
         self._site: Site | None = site
 
     def _build_page_url_index(self, site: Any) -> set[str]:
@@ -84,6 +86,35 @@ class LinkValidator:
 
         return urls
 
+    def _build_source_path_index(self, site: Any) -> set[str]:
+        """
+        Build an index of all source paths for resolving relative links.
+
+        Used to validate relative links like ./sibling.md against actual source files.
+
+        Args:
+            site: Site instance containing pages
+
+        Returns:
+            Set of all source paths (normalized, relative to content dir)
+        """
+        paths: set[str] = set()
+        content_root = getattr(site, "content_dir", None) or (site.root_path / "content")
+
+        for page in site.pages:
+            source_path = getattr(page, "source_path", None)
+            if source_path:
+                # Add the full path
+                paths.add(str(source_path))
+                # Try to add path relative to content root
+                try:
+                    rel_path = Path(source_path).relative_to(content_root)
+                    paths.add(str(rel_path))
+                except ValueError:
+                    pass
+
+        return paths
+
     def validate_page_links(self, page: Page, site: Any | None = None) -> list[str]:
         """
         Validate all links in a page.
@@ -98,9 +129,10 @@ class LinkValidator:
         # Use provided site or cached site
         site = site or self._site
 
-        # Build URL index on first use (or if site changed)
+        # Build indexes on first use (or if site changed)
         if self._page_urls is None and site is not None:
             self._page_urls = self._build_page_url_index(site)
+            self._source_paths = self._build_source_path_index(site)
             self._site = site
 
         logger.debug(
@@ -140,6 +172,7 @@ class LinkValidator:
         self.broken_links = []
         self._site = site
         self._page_urls = self._build_page_url_index(site)
+        self._source_paths = self._build_source_path_index(site)
 
         for page in site.pages:
             self.validate_page_links(page, site)
@@ -248,7 +281,15 @@ class LinkValidator:
             )
             return True
 
-        # Get page's URL for resolving relative links
+        # Handle relative links to .md files by resolving against source path
+        # This handles common patterns like:
+        # - [link](./sibling.md)
+        # - [link](../other.md)
+        # - [link](sibling.md)  (implicit current directory)
+        if parsed.path.endswith(".md") and not parsed.path.startswith("/"):
+            return self._validate_relative_md_link(parsed.path, page)
+
+        # Get page's URL for resolving other relative links
         page_url = getattr(page, "url", None)
         if not page_url:
             # Can't resolve without page URL
@@ -266,6 +307,22 @@ class LinkValidator:
 
         # Strip fragment for URL matching
         resolved_path = resolved.split("#")[0] if "#" in resolved else resolved
+
+        # Normalize .md extensions - users commonly link to .md files which
+        # resolve to clean URLs without extensions
+        if resolved_path.endswith(".md"):
+            # Handle _index.md -> parent directory URL
+            if resolved_path.endswith("/_index.md"):
+                resolved_path = resolved_path[:-10]  # Strip /_index.md
+                if not resolved_path:
+                    resolved_path = "/"
+            elif resolved_path.endswith("/index.md"):
+                resolved_path = resolved_path[:-9]  # Strip /index.md
+                if not resolved_path:
+                    resolved_path = "/"
+            else:
+                # Regular .md file -> strip extension
+                resolved_path = resolved_path[:-3]
 
         # Check all normalized variants
         variants = [
@@ -294,6 +351,85 @@ class LinkValidator:
                 page=str(page.source_path),
                 result="broken",
                 checked_variants=variants[:3],
+            )
+
+        return is_valid
+
+    def _validate_relative_md_link(self, link_path: str, page: Page) -> bool:
+        """
+        Validate a relative link to a .md file by resolving against source path.
+
+        This handles common markdown patterns like:
+        - [sibling](./sibling.md)
+        - [parent](../parent.md)
+        - [index](./_index.md)
+
+        Args:
+            link_path: The relative path (e.g., "./sibling.md")
+            page: The page containing the link
+
+        Returns:
+            True if the target .md file exists, False otherwise
+        """
+        source_path = getattr(page, "source_path", None)
+        if not source_path:
+            logger.debug(
+                "link_validation_skipped",
+                link=link_path,
+                reason="no_source_path",
+            )
+            return True  # Graceful degradation
+
+        # Get the directory containing the source file
+        source_dir = Path(source_path).parent
+
+        # Resolve the relative link against the source directory
+        # Handle ./file.md, ../file.md, and plain file.md patterns
+        if link_path.startswith("./"):
+            target_path = source_dir / link_path[2:]
+        elif link_path.startswith("../"):
+            # Count parent directory traversals
+            remaining = link_path
+            current_dir = source_dir
+            while remaining.startswith("../"):
+                current_dir = current_dir.parent
+                remaining = remaining[3:]
+            target_path = current_dir / remaining
+        else:
+            # Plain filename like "sibling.md" - relative to current directory
+            target_path = source_dir / link_path
+
+        # Normalize the path
+        try:
+            target_path = target_path.resolve()
+        except (OSError, ValueError):
+            # Path resolution failed
+            return False
+
+        # Check if this target exists in our source paths
+        target_str = str(target_path)
+        is_valid = target_str in self._source_paths if self._source_paths else False
+
+        # Also try checking if the file actually exists on disk
+        if not is_valid and target_path.exists():
+            is_valid = True
+
+        if is_valid:
+            logger.debug(
+                "validating_relative_md_link",
+                link=link_path,
+                resolved=str(target_path),
+                page=str(source_path),
+                result="valid",
+            )
+            self.validated_urls.add(link_path)
+        else:
+            logger.debug(
+                "validating_relative_md_link",
+                link=link_path,
+                resolved=str(target_path),
+                page=str(source_path),
+                result="broken",
             )
 
         return is_valid
