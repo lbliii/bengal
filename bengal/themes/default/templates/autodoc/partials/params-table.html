@@ -62,7 +62,7 @@ Supports:
           <span class="table-empty">—</span>
           {%- endif -%}
         </td>
-        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc }}</td>
+        <td class="autodoc-cell-desc" data-label="Description">{{ param_desc | markdownify | safe }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -103,7 +103,7 @@ Optional: title (str), member_type (str), first_open (bool, default true)
                 <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
                 <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
                 <td class="autodoc-cell-desc">
-                  {{ param_desc }}
+                  {{ param_desc | markdownify | safe }}
                   {% if param_default is not none and param_default != '' %}
                   <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
                   {% endif %}

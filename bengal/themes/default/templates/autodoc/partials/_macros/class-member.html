@@ -82,7 +82,7 @@ Args:
           <tr>
             <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
             <td class="autodoc-cell-type"><code>{{ attr_type }}</code></td>
-            <td class="autodoc-cell-desc">{{ attr.description }}</td>
+            <td class="autodoc-cell-desc">{{ attr.description | markdownify | safe }}</td>
           </tr>
           {% endfor %}
         </tbody>
