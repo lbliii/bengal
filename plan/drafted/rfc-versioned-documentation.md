@@ -319,29 +319,29 @@ The [LTS documentation]([[lts:overview]]) is also available.
 ## Version-Aware Directives
 
 ```markdown
-:::{since}
-3.0
+:::{since} 3.0
 :::
 
-:::{deprecated}
-2.0
+:::{deprecated} 2.0
 Use `new_api()` instead.
 :::
 
-:::{version-changed}
-version: 2.5
+:::{changed} 2.5
 The default timeout changed from 30s to 60s.
-:::
-
-:::{version-note}
-This feature behaves differently in v1. See [[v1:quirks]].
 :::
 ```
 
-**Rendering:**
-- `:::{since}` → Badge: "New in 3.0"
-- `:::{deprecated}` → Warning box with deprecation notice
-- `:::{version-changed}` → Info box with change description
+**Rendering** (aligned with Bengal's theme aesthetic):
+
+- **Inline badges** (no content): Neumorphic badges with SVG icons
+  - `:::{since}` → ✨ Sparkles icon, success/green theme
+  - `:::{deprecated}` → ⚠️ Alert triangle icon, warning/orange theme  
+  - `:::{changed}` → 🔄 Refresh icon, info/blue theme
+
+- **Full directives** (with content): Luminescent left-edge glow animation
+  - Palette-aware blob backgrounds
+  - Rounded containers with badge headers
+  - Matches admonition aesthetic from Bengal's default theme
 
 ---
 

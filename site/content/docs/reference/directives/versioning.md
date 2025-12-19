@@ -187,55 +187,70 @@ This behavior has been updated.
 
 ### Rendered Output
 
-Renders as an info admonition:
+Renders with Bengal's theme aesthetic:
 
-- Badge text: "📝 Changed in v2.5"
-- Background: Info/blue theme
-- Icon: Memo emoji
+**Inline badge** (no content):
+- Neumorphic badge styling
+- SVG refresh icon
+- Info/blue theme colors
+
+**Full directive** (with content):
+- Luminescent left-edge glow animation
+- Palette-aware blob background (info colors)
+- Rounded container with badge header
 
 ---
 
 ## CSS Classes
 
-All versioning directives use consistent CSS classes:
+All versioning directives use consistent CSS classes that integrate with Bengal's theme system:
 
 ```css
-/* Container classes */
-.version-directive { }
-.version-since { }
-.version-deprecated { }
-.version-changed { }
+/* Container classes - full directive with content */
+.version-directive { }        /* Base container with glow animation */
+.version-directive-header { } /* Badge container */
+.version-directive-content { } /* Content wrapper */
 
-/* Badge classes */
-.version-badge { }
-.since-badge { }
-.deprecated-badge { }
-.changed-badge { }
+/* Type-specific containers */
+.version-since { }            /* Success/green theme */
+.version-deprecated { }       /* Warning/orange theme */
+.version-changed { }          /* Info/blue theme */
+
+/* Badge classes - inline badges */
+.version-badge { }            /* Base neumorphic badge */
+.version-badge-since { }      /* New in X.X badge */
+.version-badge-deprecated { } /* Deprecated badge */
+.version-badge-changed { }    /* Changed badge */
+.version-badge-icon { }       /* SVG icon styling */
 ```
 
 ### Customizing Styles
 
-Override in your theme CSS:
+Version directives use CSS custom properties for easy theming:
 
 ```css
-/* Custom since styling */
+/* Override the version color (affects glow animation) */
 .version-since {
-  background-color: #d4edda;
-  border-left: 4px solid #28a745;
+  --version-color: var(--color-success);
 }
 
-/* Custom deprecated styling */
 .version-deprecated {
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
+  --version-color: var(--color-warning);
 }
 
-/* Custom changed styling */
 .version-changed {
-  background-color: #cce5ff;
-  border-left: 4px solid #007bff;
+  --version-color: var(--color-info);
+}
+
+/* Disable glow animation if preferred */
+@media (prefers-reduced-motion: reduce) {
+  .version-directive {
+    animation: none;
+  }
 }
 ```
+
+For complete customization, see `assets/css/components/versioning.css` in the default theme.
 
 ---
 
