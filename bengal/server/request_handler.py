@@ -24,6 +24,7 @@ logger = get_logger(__name__)
 # HTML template for "rebuilding" page shown during builds
 # Uses CSS animation and auto-retry via meta refresh + live reload script
 # Features Bengal branding with rosette logo and cat theme
+# Placeholders: %PATH%, %ACCENT%, %ACCENT_RGB%, %BG_PRIMARY%, %BG_SECONDARY%
 REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +36,7 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(145deg, #0c0b0a 0%, #14130f 50%, #1e1c18 100%);
+            background: linear-gradient(145deg, %BG_PRIMARY% 0%, %BG_SECONDARY% 50%, %BG_TERTIARY% 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -49,8 +50,8 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
             content: '';
             position: absolute;
             inset: 0;
-            background-image: radial-gradient(circle at 20% 30%, rgba(201, 168, 77, 0.03) 0%, transparent 50%),
-                              radial-gradient(circle at 80% 70%, rgba(201, 168, 77, 0.03) 0%, transparent 50%);
+            background-image: radial-gradient(circle at 20% 30%, rgba(%ACCENT_RGB%, 0.03) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 70%, rgba(%ACCENT_RGB%, 0.03) 0%, transparent 50%);
             pointer-events: none;
         }
         .container {
@@ -67,13 +68,13 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
             width: 72px;
             height: 72px;
             margin: 0 auto;
-            color: #C9A84D;
+            color: %ACCENT%;
             animation: pulse 2s ease-in-out infinite;
         }
         .logo svg {
             width: 100%;
             height: 100%;
-            filter: drop-shadow(0 0 12px rgba(201, 168, 77, 0.3));
+            filter: drop-shadow(0 0 12px rgba(%ACCENT_RGB%, 0.3));
         }
         @keyframes pulse {
             0%, 100% { 
@@ -100,7 +101,7 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
             position: absolute;
             width: 6px;
             height: 6px;
-            background: #C9A84D;
+            background: %ACCENT%;
             border-radius: 50%;
         }
         .orbit::before { top: 0; left: 50%; transform: translateX(-50%); }
@@ -114,7 +115,7 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
             font-weight: 600;
             letter-spacing: 0.15em;
             text-transform: uppercase;
-            color: #C9A84D;
+            color: %ACCENT%;
             margin-bottom: 1.5rem;
             opacity: 0.9;
         }
@@ -133,12 +134,12 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
         .path {
             display: inline-block;
             padding: 0.5rem 1rem;
-            background: rgba(201, 168, 77, 0.08);
-            border: 1px solid rgba(201, 168, 77, 0.15);
+            background: rgba(%ACCENT_RGB%, 0.08);
+            border: 1px solid rgba(%ACCENT_RGB%, 0.15);
             border-radius: 0.5rem;
             font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
             font-size: 0.8rem;
-            color: #C9A84D;
+            color: %ACCENT%;
         }
         .paw-prints {
             margin-top: 2rem;
@@ -162,7 +163,7 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
         .paw svg {
             width: 100%;
             height: 100%;
-            fill: #C9A84D;
+            fill: %ACCENT%;
         }
     </style>
 </head>
@@ -218,6 +219,55 @@ REBUILDING_PAGE_HTML = b"""<!DOCTYPE html>
 </html>
 """
 
+# Palette color schemes for the rebuilding page (dark mode colors)
+# Each palette maps to: (accent_hex, accent_rgb, bg_primary, bg_secondary, bg_tertiary)
+PALETTE_COLORS: dict[str, tuple[str, str, str, str, str]] = {
+    # Snow Lynx - Icy teal
+    "snow-lynx": ("#6EC4BC", "110, 196, 188", "#18191A", "#252729", "#333538"),
+    # Silver Bengal - Pure silver (monochromatic)
+    "silver-bengal": ("#D1D5DB", "209, 213, 219", "#000000", "#0F0F0F", "#1A1A1A"),
+    # Charcoal Bengal - Golden glitter
+    "charcoal-bengal": ("#C9A84D", "201, 168, 77", "#0C0B0A", "#14130F", "#1E1C18"),
+    # Brown Bengal - Warm amber
+    "brown-bengal": ("#FFAD3D", "255, 173, 61", "#1F1811", "#2D2218", "#3D3020"),
+    # Blue Bengal - Powder blue
+    "blue-bengal": ("#9DBDD9", "157, 189, 217", "#141B22", "#1B2430", "#243140"),
+}
+
+# Default palette colors (Snow Lynx - the default palette)
+DEFAULT_PALETTE = "snow-lynx"
+
+
+def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
+    """
+    Generate the rebuilding page HTML with the appropriate palette colors.
+
+    Args:
+        path: The URL path being rebuilt
+        palette: The palette name (e.g., 'snow-lynx', 'charcoal-bengal')
+                 If None, uses the default palette.
+
+    Returns:
+        Bytes containing the complete HTML with colors applied
+    """
+    # Get colors for the palette (or default)
+    palette_key = palette or DEFAULT_PALETTE
+    if palette_key not in PALETTE_COLORS:
+        palette_key = DEFAULT_PALETTE
+
+    accent, accent_rgb, bg_primary, bg_secondary, bg_tertiary = PALETTE_COLORS[palette_key]
+
+    # Apply all replacements
+    html = REBUILDING_PAGE_HTML
+    html = html.replace(b"%PATH%", path.encode("utf-8"))
+    html = html.replace(b"%ACCENT%", accent.encode("utf-8"))
+    html = html.replace(b"%ACCENT_RGB%", accent_rgb.encode("utf-8"))
+    html = html.replace(b"%BG_PRIMARY%", bg_primary.encode("utf-8"))
+    html = html.replace(b"%BG_SECONDARY%", bg_secondary.encode("utf-8"))
+    html = html.replace(b"%BG_TERTIARY%", bg_tertiary.encode("utf-8"))
+
+    return html
+
 
 class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
     """
@@ -253,6 +303,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # When True, directory listings show "rebuilding" page instead
     _build_in_progress: bool = False
     _build_lock = threading.Lock()
+
+    # Active theme palette for rebuilding page styling
+    # Set by dev_server at startup based on site config
+    _active_palette: str | None = None
 
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
@@ -574,7 +628,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         if building:
             # Show rebuilding page instead of directory listing
             request_path = getattr(self, "path", "/")
-            html = REBUILDING_PAGE_HTML.replace(b"%PATH%", request_path.encode("utf-8"))
+            html = get_rebuilding_page_html(request_path, BengalRequestHandler._active_palette)
 
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -602,7 +656,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         is_api_path = request_path.startswith("/api/")
 
         if is_api_path and not index_path.exists():
-            html = REBUILDING_PAGE_HTML.replace(b"%PATH%", request_path.encode("utf-8"))
+            html = get_rebuilding_page_html(request_path, BengalRequestHandler._active_palette)
 
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")

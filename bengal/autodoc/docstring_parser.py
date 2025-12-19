@@ -148,8 +148,15 @@ class GoogleDocstringParser:
         # Split into sections
         sections = self._split_sections(docstring)
 
-        # Parse each section
-        result.description = sections.get("description", result.summary)
+        # Known structured sections (we parse these specially)
+        known_sections = {
+            "Args", "Arguments", "Parameters", "Returns", "Return",
+            "Raises", "Raise", "Example", "Examples", "See Also",
+            "Note", "Notes", "Warning", "Warnings", "Deprecated",
+            "Attributes", "Yields", "Yield", "description",
+        }
+
+        # Parse structured sections
         result.args = self._parse_args_section(sections.get("Args", ""))
         if not result.args:
             result.args = self._parse_args_section(sections.get("Arguments", ""))
@@ -168,6 +175,17 @@ class GoogleDocstringParser:
         )
         result.deprecated = sections.get("Deprecated")
         result.attributes = self._parse_args_section(sections.get("Attributes", ""))
+
+        # Build description: base description + custom sections (documentation prose)
+        description_parts = [sections.get("description", result.summary)]
+
+        # Append custom sections to description (they're documentation, not structured data)
+        for section_name, section_content in sections.items():
+            if section_name not in known_sections and section_content:
+                # Format as markdown section
+                description_parts.append(f"\n\n**{section_name}:**\n{section_content}")
+
+        result.description = "\n".join(description_parts).strip()
 
         return result
 
