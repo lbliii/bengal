@@ -115,9 +115,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self._referenced_template_cache: dict[str, set[str]] = {}
         self._referenced_template_paths_cache: dict[str, tuple[Path, ...]] = {}
         self._template_path_cache_enabled: bool = not bool(
-            self.site.dev_mode
-            if isinstance(self.site.config, dict)
-            else False
+            self.site.dev_mode if isinstance(self.site.config, dict) else False
         )
         self._template_path_cache: dict[str, Path | None] = {}
 

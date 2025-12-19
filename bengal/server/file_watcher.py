@@ -35,19 +35,24 @@ class FileWatcher(Protocol):
     """
     Protocol for file watchers.
 
-    File watchers yield sets of changed paths asynchronously.
+    File watchers yield tuples of (changed_paths, event_types) asynchronously.
     Implementations must handle filtering internally.
+
+    Event types follow watchfiles conventions:
+        - "added": File was created
+        - "modified": File was modified
+        - "deleted": File was deleted
     """
 
-    async def watch(self) -> AsyncIterator[set[Path]]:
+    async def watch(self) -> AsyncIterator[tuple[set[Path], set[str]]]:
         """
-        Yield sets of changed paths.
+        Yield tuples of (changed_paths, event_types).
 
-        Each yield produces a set of paths that changed since the last yield.
-        The watcher handles debouncing and batching internally.
+        Each yield produces a set of paths that changed since the last yield,
+        along with the types of changes that occurred.
 
         Yields:
-            Set of changed Path objects
+            Tuple of (set of changed Path objects, set of event type strings)
         """
         ...
 
@@ -81,14 +86,26 @@ class WatchfilesWatcher:
         self.paths = paths
         self.ignore_filter = ignore_filter
 
-    async def watch(self) -> AsyncIterator[set[Path]]:
+    async def watch(self) -> AsyncIterator[tuple[set[Path], set[str]]]:
         """
-        Yield sets of changed paths using watchfiles.
+        Yield tuples of (changed_paths, event_types) using watchfiles.
 
         Uses watchfiles.awatch for native async file watching.
         The watch_filter callback excludes paths matching the ignore filter.
+
+        Maps watchfiles.Change to event type strings:
+            - Change.added -> "added" (maps to "created" for BuildTrigger)
+            - Change.modified -> "modified"
+            - Change.deleted -> "deleted"
         """
         import watchfiles
+
+        # Map watchfiles.Change enum to event type strings
+        change_type_map = {
+            watchfiles.Change.added: "created",
+            watchfiles.Change.modified: "modified",
+            watchfiles.Change.deleted: "deleted",
+        }
 
         # Create filter for watchfiles (returns True to INCLUDE)
         def watch_filter(change_type: watchfiles.Change, path: str) -> bool:
@@ -98,7 +115,9 @@ class WatchfilesWatcher:
             *self.paths,
             watch_filter=watch_filter,
         ):
-            yield {Path(path) for (_, path) in changes}
+            paths = {Path(path) for (_, path) in changes}
+            event_types = {change_type_map.get(change, "modified") for (change, _) in changes}
+            yield (paths, event_types)
 
 
 class WatchdogWatcher:
@@ -133,14 +152,21 @@ class WatchdogWatcher:
         self.ignore_filter = ignore_filter
         self.debounce_ms = debounce_ms
         self._changes: set[Path] = set()
+        self._event_types: set[str] = set()
         self._event = asyncio.Event()
 
-    async def watch(self) -> AsyncIterator[set[Path]]:
+    async def watch(self) -> AsyncIterator[tuple[set[Path], set[str]]]:
         """
-        Yield sets of changed paths using watchdog.
+        Yield tuples of (changed_paths, event_types) using watchdog.
 
         Runs watchdog Observer in background thread and bridges events
         to the async context using asyncio.Event.
+
+        Maps watchdog event types to strings:
+            - created -> "created"
+            - modified -> "modified"
+            - deleted -> "deleted"
+            - moved -> "moved"
         """
         from watchdog.observers import Observer
 
@@ -158,11 +184,13 @@ class WatchdogWatcher:
                 await asyncio.sleep(self.debounce_ms / 1000)
 
                 changes = self._changes.copy()
+                event_types = self._event_types.copy()
                 self._changes.clear()
+                self._event_types.clear()
                 self._event.clear()
 
                 if changes:
-                    yield changes
+                    yield (changes, event_types)
         finally:
             observer.stop()
             observer.join()
@@ -187,6 +215,9 @@ class WatchdogWatcher:
                 path = Path(getattr(event, "src_path", ""))
                 if not watcher.ignore_filter(path):
                     watcher._changes.add(path)
+                    # Map watchdog event_type to our standard types
+                    event_type = getattr(event, "event_type", "modified")
+                    watcher._event_types.add(event_type)
                     watcher._event.set()
 
         return Handler()

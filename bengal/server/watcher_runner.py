@@ -175,11 +175,13 @@ class WatcherRunner:
             watch_task.cancel()
             debounce_task.cancel()
 
-            with contextlib.suppress(asyncio.CancelledError):
-                await watch_task
-
-            with contextlib.suppress(asyncio.CancelledError):
-                await debounce_task
+            # Wait for tasks to complete with timeout to avoid hanging
+            # This prevents "Task was destroyed but it is pending!" warnings
+            with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    asyncio.gather(watch_task, debounce_task, return_exceptions=True),
+                    timeout=1.0,
+                )
 
     async def _process_changes(self, watcher: Any) -> None:
         """
@@ -188,20 +190,20 @@ class WatcherRunner:
         Accumulates changes for debouncing.
         """
         try:
-            async for changed_paths in watcher.watch():
+            async for changed_paths, event_types in watcher.watch():
                 if self._stop_event.is_set():
                     break
 
                 with self._changes_lock:
                     self._pending_changes.update(changed_paths)
-                    # We don't get event types from FileWatcher, so mark as "modified"
-                    self._pending_event_types.add("modified")
+                    self._pending_event_types.update(event_types)
                     self._last_change_time = time.time()
 
                 logger.debug(
                     "watcher_runner_changes_received",
                     count=len(changed_paths),
                     pending=len(self._pending_changes),
+                    event_types=list(event_types),
                 )
         except asyncio.CancelledError:
             raise
