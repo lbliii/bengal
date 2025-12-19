@@ -7,14 +7,18 @@ Covers:
 - phase_collect_stats(): Statistics collection
 - run_health_check(): Health check execution
 - phase_finalize(): Final cleanup phase
+- Build badge artifact generation
 """
 
+import json
 import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 from bengal.orchestration.build.finalization import (
+    _normalize_build_badge_config,
+    _write_if_changed_atomic,
     phase_cache_save,
     phase_collect_stats,
     phase_finalize,
@@ -232,6 +236,257 @@ class TestPhaseCollectStats:
 
         assert "built in" in svg
         assert '"build_time_ms"' in data
+
+
+class TestBuildBadgeConfig:
+    """Tests for build badge configuration normalization."""
+
+    def test_none_config_disables_badge(self):
+        """None config disables build badge."""
+        result = _normalize_build_badge_config(None)
+        assert result["enabled"] is False
+
+    def test_false_config_disables_badge(self):
+        """False config disables build badge."""
+        result = _normalize_build_badge_config(False)
+        assert result["enabled"] is False
+
+    def test_true_config_enables_badge_with_defaults(self):
+        """True config enables build badge with defaults."""
+        result = _normalize_build_badge_config(True)
+
+        assert result["enabled"] is True
+        assert result["dir_name"] == "bengal"
+        assert result["label"] == "built in"
+        assert result["label_color"] == "#555"
+        assert result["message_color"] == "#4c1d95"
+
+    def test_dict_with_enabled_true(self):
+        """Dict with enabled=True enables badge."""
+        result = _normalize_build_badge_config({"enabled": True})
+        assert result["enabled"] is True
+
+    def test_dict_with_enabled_false(self):
+        """Dict with enabled=False disables badge."""
+        result = _normalize_build_badge_config({"enabled": False})
+        assert result["enabled"] is False
+
+    def test_dict_without_enabled_defaults_to_true(self):
+        """Dict without 'enabled' key defaults to enabled."""
+        result = _normalize_build_badge_config({"dir_name": "custom"})
+        assert result["enabled"] is True
+
+    def test_custom_dir_name(self):
+        """Custom dir_name is respected."""
+        result = _normalize_build_badge_config({"dir_name": "_meta"})
+        assert result["dir_name"] == "_meta"
+
+    def test_custom_label(self):
+        """Custom label is respected."""
+        result = _normalize_build_badge_config({"label": "generated in"})
+        assert result["label"] == "generated in"
+
+    def test_custom_colors(self):
+        """Custom colors are respected."""
+        result = _normalize_build_badge_config(
+            {
+                "label_color": "#333",
+                "message_color": "#007bff",
+            }
+        )
+        assert result["label_color"] == "#333"
+        assert result["message_color"] == "#007bff"
+
+    def test_unknown_type_disables_badge(self):
+        """Unknown config type disables badge (fail-safe)."""
+        result = _normalize_build_badge_config("invalid")
+        assert result["enabled"] is False
+
+        result = _normalize_build_badge_config(123)
+        assert result["enabled"] is False
+
+        result = _normalize_build_badge_config(["list"])
+        assert result["enabled"] is False
+
+
+class TestBuildBadgeArtifacts:
+    """Tests for build badge artifact generation."""
+
+    def test_json_contains_required_fields(self, tmp_path):
+        """JSON artifact contains all required fields."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": True},
+        )
+        orchestrator.site.taxonomies = {}
+        orchestrator.site.pages = [MagicMock() for _ in range(10)]
+        orchestrator.site.assets = [MagicMock() for _ in range(5)]
+        orchestrator.stats.rendering_time_ms = 150.5
+
+        phase_collect_stats(orchestrator, build_start=time.time() - 2.5)
+
+        json_path = orchestrator.site.output_dir / "bengal" / "build.json"
+        data = json.loads(json_path.read_text())
+
+        assert "build_time_ms" in data
+        assert "build_time_human" in data
+        assert "total_pages" in data
+        assert "total_assets" in data
+        assert "rendering_time_ms" in data
+        assert "timestamp" in data
+
+        assert data["total_pages"] == 10
+        assert data["total_assets"] == 5
+        assert data["rendering_time_ms"] == 150.5
+        assert data["build_time_ms"] >= 2400  # ~2.5 seconds
+
+    def test_custom_dir_name_used(self, tmp_path):
+        """Custom dir_name creates artifacts in custom directory."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": {"dir_name": "_meta"}},
+        )
+        orchestrator.site.taxonomies = {}
+
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        assert (orchestrator.site.output_dir / "_meta" / "build.json").exists()
+        assert (orchestrator.site.output_dir / "_meta" / "build.svg").exists()
+        # Original dir should NOT exist
+        assert not (orchestrator.site.output_dir / "bengal").exists()
+
+    def test_custom_label_in_svg(self, tmp_path):
+        """Custom label appears in SVG badge."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": {"label": "generated in"}},
+        )
+        orchestrator.site.taxonomies = {}
+
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        svg = (orchestrator.site.output_dir / "bengal" / "build.svg").read_text()
+        assert "generated in" in svg
+
+    def test_boolean_true_shorthand(self, tmp_path):
+        """build_badge: true works as shorthand."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": True},
+        )
+        orchestrator.site.taxonomies = {}
+
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        assert (orchestrator.site.output_dir / "bengal" / "build.json").exists()
+
+    def test_no_output_dir_gracefully_skips(self, tmp_path):
+        """Gracefully skips when output_dir is None."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": True},
+        )
+        orchestrator.site.output_dir = None
+        orchestrator.site.taxonomies = {}
+
+        # Should not raise
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+
+class TestBuildBadgeIncremental:
+    """Tests for build badge behavior during incremental rebuilds."""
+
+    def test_badge_updates_on_rebuild(self, tmp_path):
+        """Badge artifacts update when build time changes."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": True},
+        )
+        orchestrator.site.taxonomies = {}
+
+        # First build: 1 second
+        phase_collect_stats(orchestrator, build_start=time.time() - 1.0)
+
+        json_path = orchestrator.site.output_dir / "bengal" / "build.json"
+        first_data = json.loads(json_path.read_text())
+        first_mtime = json_path.stat().st_mtime
+
+        # Second build: 3 seconds (different build time)
+        time.sleep(0.1)  # Ensure mtime can differ
+        phase_collect_stats(orchestrator, build_start=time.time() - 3.0)
+
+        second_data = json.loads(json_path.read_text())
+        second_mtime = json_path.stat().st_mtime
+
+        # Build time should be different
+        assert second_data["build_time_ms"] > first_data["build_time_ms"]
+        # File should have been rewritten
+        assert second_mtime > first_mtime
+
+    def test_write_if_changed_skips_identical_content(self, tmp_path):
+        """_write_if_changed_atomic skips write when content is identical."""
+        from bengal.utils.atomic_write import AtomicFile
+
+        test_file = tmp_path / "test.txt"
+        content = "test content"
+
+        # First write
+        _write_if_changed_atomic(test_file, content, AtomicFile)
+        first_mtime = test_file.stat().st_mtime
+
+        # Small delay to ensure mtime could differ
+        time.sleep(0.1)
+
+        # Second write with identical content
+        _write_if_changed_atomic(test_file, content, AtomicFile)
+        second_mtime = test_file.stat().st_mtime
+
+        # mtime should NOT change (file not rewritten)
+        assert second_mtime == first_mtime
+
+    def test_write_if_changed_updates_on_different_content(self, tmp_path):
+        """_write_if_changed_atomic updates when content differs."""
+        from bengal.utils.atomic_write import AtomicFile
+
+        test_file = tmp_path / "test.txt"
+
+        # First write
+        _write_if_changed_atomic(test_file, "content v1", AtomicFile)
+        first_mtime = test_file.stat().st_mtime
+
+        # Small delay to ensure mtime could differ
+        time.sleep(0.1)
+
+        # Second write with different content
+        _write_if_changed_atomic(test_file, "content v2", AtomicFile)
+        second_mtime = test_file.stat().st_mtime
+
+        # mtime should change (file rewritten)
+        assert second_mtime > first_mtime
+        assert test_file.read_text() == "content v2"
+
+    def test_page_count_updates_on_incremental(self, tmp_path):
+        """Page count in badge updates on incremental builds."""
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path,
+            config={"build_badge": True},
+        )
+        orchestrator.site.taxonomies = {}
+
+        # First build: 5 pages
+        orchestrator.site.pages = [MagicMock() for _ in range(5)]
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        json_path = orchestrator.site.output_dir / "bengal" / "build.json"
+        first_data = json.loads(json_path.read_text())
+        assert first_data["total_pages"] == 5
+
+        # Second build: 10 pages (new content added)
+        orchestrator.site.pages = [MagicMock() for _ in range(10)]
+        phase_collect_stats(orchestrator, build_start=time.time())
+
+        second_data = json.loads(json_path.read_text())
+        assert second_data["total_pages"] == 10
 
 
 class TestRunHealthCheck:

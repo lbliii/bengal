@@ -127,6 +127,16 @@ body[data-type="autodoc-rest"] .docs-main>* {
   margin-inline: auto;
 }
 
+/* Ensure page-navigation respects max-width and centering on autodoc pages.
+   The margin shorthand in navigation.css sets margin-left/right to 0,
+   so we need higher specificity to override with margin-inline: auto. */
+body[data-type="autodoc-python"] .docs-main>.page-navigation,
+body[data-type="autodoc-cli"] .docs-main>.page-navigation,
+body[data-type="autodoc-rest"] .docs-main>.page-navigation {
+  max-width: var(--prose-width, 75ch);
+  margin-inline: auto;
+}
+
 /* Right Sidebar (TOC) - touches right edge */
 .docs-toc {
   grid-area: toc;
