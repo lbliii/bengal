@@ -43,8 +43,8 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
     Normalize a page type to a content type.
 
     Handles special cases where page types (from frontmatter) map to content types:
-    - python-module -> autodoc/python
-    - cli-command -> autodoc/cli
+    - python-module -> autodoc-python
+    - cli-command -> autodoc-cli
     - Other types pass through if registered
 
     Args:
@@ -55,7 +55,7 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
 
     Example:
         >>> normalize_page_type_to_content_type("python-module")
-        'autodoc/python'
+        'autodoc-python'
         >>> normalize_page_type_to_content_type("blog")
         'blog'
         >>> normalize_page_type_to_content_type("unknown")

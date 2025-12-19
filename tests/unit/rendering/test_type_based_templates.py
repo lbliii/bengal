@@ -278,7 +278,7 @@ class TestContentTypeCascade:
 
         section = Mock(spec=Section)
         section.name = "api"
-        section.metadata = {"content_type": "autodoc/python"}
+        section.metadata = {"content_type": "autodoc-python"}
 
         page = Mock(spec=Page)
         page.metadata = {}  # No type set on page
@@ -294,7 +294,7 @@ class TestContentTypeCascade:
 
         template = renderer._get_template_name(page)
 
-        # Should use section's content_type
+        # Should use section's content_type (autodoc-python -> autodoc/python/single.html)
         assert template == "autodoc/python/single.html"
 
     def test_page_type_overrides_section_content_type(self):

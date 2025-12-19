@@ -249,8 +249,8 @@ class TestContentTypeRegistry:
         """Registry should have all standard content types."""
         assert "blog" in CONTENT_TYPE_REGISTRY
         assert "doc" in CONTENT_TYPE_REGISTRY
-        assert "autodoc/python" in CONTENT_TYPE_REGISTRY
-        assert "autodoc/cli" in CONTENT_TYPE_REGISTRY
+        assert "autodoc-python" in CONTENT_TYPE_REGISTRY
+        assert "autodoc-cli" in CONTENT_TYPE_REGISTRY
         assert "tutorial" in CONTENT_TYPE_REGISTRY
         assert "list" in CONTENT_TYPE_REGISTRY
 
@@ -259,12 +259,12 @@ class TestContentTypeRegistry:
         [
             ("blog", BlogStrategy),
             ("doc", DocsStrategy),
-            ("autodoc/python", ApiReferenceStrategy),
-            ("autodoc/cli", CliReferenceStrategy),
+            ("autodoc-python", ApiReferenceStrategy),
+            ("autodoc-cli", CliReferenceStrategy),
             ("tutorial", TutorialStrategy),
             ("list", PageStrategy),
         ],
-        ids=["blog", "doc", "autodoc/python", "autodoc/cli", "tutorial", "list"],
+        ids=["blog", "doc", "autodoc-python", "autodoc-cli", "tutorial", "list"],
     )
     def test_get_strategy_returns_correct_instance(self, content_type, expected_strategy_class):
         """
@@ -310,12 +310,12 @@ class TestContentTypeDetection:
 
     @pytest.mark.parametrize(
         "section_name",
-        ["api", "reference", "autodoc/python", "api-docs"],
-        ids=["api", "reference", "autodoc/python", "api-docs"],
+        ["api", "reference", "autodoc-python", "api-docs"],
+        ids=["api", "reference", "autodoc-python", "api-docs"],
     )
     def test_detect_from_section_name_api(self, section_name):
         """
-        Section names for API documentation should be detected as autodoc/python.
+        Section names for API documentation should be detected as autodoc-python.
 
         Tests common naming conventions for API documentation sections to ensure
         automatic content type detection works across different naming styles.
@@ -327,19 +327,19 @@ class TestContentTypeDetection:
         section.pages = []
 
         detected = detect_content_type(section)
-        assert detected == "autodoc/python", (
-            f"Section name '{section_name}' should be detected as 'autodoc/python', "
+        assert detected == "autodoc-python", (
+            f"Section name '{section_name}' should be detected as 'autodoc-python', "
             f"but was detected as '{detected}'"
         )
 
     @pytest.mark.parametrize(
         "section_name",
-        ["cli", "commands", "autodoc/cli"],
-        ids=["cli", "commands", "autodoc/cli"],
+        ["cli", "commands", "autodoc-cli"],
+        ids=["cli", "commands", "autodoc-cli"],
     )
     def test_detect_from_section_name_cli(self, section_name):
         """
-        Section names for CLI documentation should be detected as autodoc/cli.
+        Section names for CLI documentation should be detected as autodoc-cli.
 
         Tests common naming conventions for CLI documentation sections to ensure
         automatic content type detection works across different naming styles.
@@ -351,8 +351,8 @@ class TestContentTypeDetection:
         section.pages = []
 
         detected = detect_content_type(section)
-        assert detected == "autodoc/cli", (
-            f"Section name '{section_name}' should be detected as 'autodoc/cli', "
+        assert detected == "autodoc-cli", (
+            f"Section name '{section_name}' should be detected as 'autodoc-cli', "
             f"but was detected as '{detected}'"
         )
 

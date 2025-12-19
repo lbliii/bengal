@@ -17,29 +17,27 @@ from pathlib import Path
 
 
 def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
-    """Ensure OpenAPI/CLI reference pages opt out of prose centering constraints.
+    """Ensure autodoc reference pages have prose constraints for readable content.
 
-    The new CSS system uses data-type selectors on body with semantic type names:
-    - openapi-reference: REST/OpenAPI documentation
-    - cli-reference: CLI command documentation
-    - python-reference: Python API documentation (keeps prose constraints)
+    The CSS system uses data-type selectors on body with autodoc type names:
+    - autodoc-python: Python API documentation
+    - autodoc-cli: CLI command documentation
+    - autodoc-rest: REST/OpenAPI documentation
 
-    OpenAPI and CLI pages get larger container width, while Python API docs
-    keep prose constraints for readable docstring content.
+    All autodoc pages constrain their content to prose-width for readability.
     """
     css_path = Path("bengal/themes/default/assets/css/composition/layouts.css")
     css = css_path.read_text(encoding="utf-8")
 
-    # OpenAPI and CLI reference pages should have container-lg constraints
-    assert 'body[data-type="openapi-reference"]' in css
-    assert 'body[data-type="cli-reference"]' in css
+    # All autodoc reference pages should have prose-width constraints
+    assert 'body[data-type="autodoc-python"]' in css
+    assert 'body[data-type="autodoc-cli"]' in css
+    assert 'body[data-type="autodoc-rest"]' in css
 
-    # These pages should reset .prose max-width to 100%
-    assert 'body[data-type="openapi-reference"] .docs-main .prose' in css
-    assert 'body[data-type="cli-reference"] .docs-main .prose' in css
-
-    # Python API docs use prose-width constraints
-    assert 'body[data-type="python-reference"]' in css
+    # These pages should have max-width constraints on .docs-main children
+    assert 'body[data-type="autodoc-python"] .docs-main>*' in css
+    assert 'body[data-type="autodoc-cli"] .docs-main>*' in css
+    assert 'body[data-type="autodoc-rest"] .docs-main>*' in css
 
 
 def test_base_template_does_not_render_none_variant_attribute() -> None:

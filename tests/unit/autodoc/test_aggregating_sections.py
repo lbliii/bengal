@@ -16,19 +16,19 @@ class TestAggregatingParentSections:
     """Tests for create_aggregating_parent_sections()."""
 
     def test_creates_api_hub_type_for_aggregating_section(self) -> None:
-        """Aggregating section should use 'api-hub' type for agnostic landing page."""
+        """Aggregating section should use 'autodoc-hub' type for agnostic landing page."""
         # Create child sections with different types
         python_section = Section.create_virtual(
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
         openapi_section = Section.create_virtual(
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openautodoc/python"},
+            metadata={"type": "autodoc-rest"},
         )
 
         sections = {
@@ -43,8 +43,8 @@ class TestAggregatingParentSections:
         assert "api" in parent_sections
         api_section = parent_sections["api"]
 
-        # Should use 'api-hub' type, not inherit from children
-        assert api_section.metadata.get("type") == "api-hub"
+        # Should use 'autodoc-hub' type, not inherit from children
+        assert api_section.metadata.get("type") == "autodoc-hub"
 
     def test_aggregating_section_tracks_child_types(self) -> None:
         """Aggregating section should track child types in metadata."""
@@ -52,13 +52,13 @@ class TestAggregatingParentSections:
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
         openapi_section = Section.create_virtual(
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openautodoc/python"},
+            metadata={"type": "autodoc-rest"},
         )
 
         sections = {
@@ -71,8 +71,8 @@ class TestAggregatingParentSections:
 
         # Should track child types
         child_types = api_section.metadata.get("child_types", [])
-        assert "python-reference" in child_types
-        assert "openautodoc/python" in child_types
+        assert "autodoc-python" in child_types
+        assert "autodoc-rest" in child_types
 
     def test_aggregating_section_has_is_aggregating_flag(self) -> None:
         """Aggregating section should have is_aggregating_section flag."""
@@ -80,7 +80,7 @@ class TestAggregatingParentSections:
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
 
         sections = {"api/python": python_section}
@@ -96,13 +96,13 @@ class TestAggregatingParentSections:
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
         openapi_section = Section.create_virtual(
             name="rest",
             relative_url="/api/rest/",
             title="REST API Reference",
-            metadata={"type": "openautodoc/python"},
+            metadata={"type": "autodoc-rest"},
         )
 
         sections = {
@@ -125,13 +125,13 @@ class TestAggregatingParentSections:
             name="api",
             relative_url="/api/",
             title="API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
         python_section = Section.create_virtual(
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
 
         sections = {
@@ -150,7 +150,7 @@ class TestAggregatingParentSections:
             name="python",
             relative_url="/api/python/",
             title="Python API Reference",
-            metadata={"type": "python-reference"},
+            metadata={"type": "autodoc-python"},
         )
 
         sections = {"api/python": python_section}
@@ -159,28 +159,28 @@ class TestAggregatingParentSections:
 
         # Should still create 'api' parent for Dev dropdown detection
         assert "api" in parent_sections
-        assert parent_sections["api"].metadata.get("type") == "api-hub"
+        assert parent_sections["api"].metadata.get("type") == "autodoc-hub"
 
 
 class TestApiHubTemplateMapping:
-    """Tests for api-hub template directory mapping."""
+    """Tests for autodoc-hub template directory mapping."""
 
-    def test_api_hub_maps_to_api_hub_template_dir(self) -> None:
-        """api-hub type should map to api-hub template directory."""
-        template_dir = get_template_dir_for_type("api-hub")
+    def test_autodoc_hub_maps_to_api_hub_template_dir(self) -> None:
+        """autodoc-hub type should map to api-hub template directory."""
+        template_dir = get_template_dir_for_type("autodoc-hub")
         assert template_dir == "api-hub"
 
-    def test_python_reference_maps_to_api_reference(self) -> None:
-        """python-reference type should still map to autodoc/python."""
-        template_dir = get_template_dir_for_type("python-reference")
+    def test_autodoc_python_maps_to_autodoc_python(self) -> None:
+        """autodoc-python type should map to autodoc/python template directory."""
+        template_dir = get_template_dir_for_type("autodoc-python")
         assert template_dir == "autodoc/python"
 
-    def test_openapi_reference_maps_to_itself(self) -> None:
-        """openautodoc/python type should map to openautodoc/python."""
-        template_dir = get_template_dir_for_type("openautodoc/python")
+    def test_autodoc_rest_maps_to_openapi(self) -> None:
+        """autodoc-rest type should map to openautodoc/python."""
+        template_dir = get_template_dir_for_type("autodoc-rest")
         assert template_dir == "openautodoc/python"
 
-    def test_cli_reference_maps_to_itself(self) -> None:
-        """autodoc/cli type should map to autodoc/cli."""
-        template_dir = get_template_dir_for_type("autodoc/cli")
+    def test_autodoc_cli_maps_to_autodoc_cli(self) -> None:
+        """autodoc-cli type should map to autodoc/cli."""
+        template_dir = get_template_dir_for_type("autodoc-cli")
         assert template_dir == "autodoc/cli"
