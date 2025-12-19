@@ -115,13 +115,16 @@ Optional: title (str), member_type (str), first_open (bool, default true)
         </div>
         {% endif %}
 
-        {# Member return type (detailed) #}
-        {% if member_return %}
+        {# Member return type (detailed) - only show if has description OR non-trivial type #}
+        {# Trivial types (None) are already visible in header badge + signature #}
+        {% set has_return_desc = member.metadata.return_description %}
+        {% set is_nontrivial_return = member_return and member_return not in ('None', 'none', 'void', '') %}
+        {% if has_return_desc or is_nontrivial_return %}
         <div class="autodoc-returns">
           <h5 class="autodoc-returns-title">Returns</h5>
           <code class="autodoc-returns-type">{{ member_return }}</code>
-          {% if member.metadata.return_description %}
-          <span class="autodoc-returns-desc">{{ member.metadata.return_description }}</span>
+          {% if has_return_desc %}
+          <span class="autodoc-returns-desc">{{ has_return_desc }}</span>
           {% endif %}
         </div>
         {% endif %}

@@ -97,12 +97,16 @@ Args:
     </div>
     {% endif %}
 
-    {# Return type (detailed) #}
-    {% if func_return %}
+    {# Return type (detailed) - only show if has description OR non-trivial type #}
+    {# Trivial types (None) are already visible in header badge + signature #}
+    {% set has_return_desc = func.metadata.return_description %}
+    {% set is_nontrivial_return = func_return and func_return not in ('None', 'none', 'void', '') %}
+    {% if has_return_desc or is_nontrivial_return %}
     <div class="autodoc-returns">
+      <h5 class="autodoc-returns-title">Returns</h5>
       <code class="autodoc-returns-type">{{ func_return }}</code>
-      {% if func.metadata.return_description %}
-      <span class="autodoc-returns-desc">{{ func.metadata.return_description }}</span>
+      {% if has_return_desc %}
+      <span class="autodoc-returns-desc">{{ has_return_desc }}</span>
       {% endif %}
     </div>
     {% endif %}

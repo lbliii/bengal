@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{#
+OpenAPI Reference Section Index Template
+
+Renders an OpenAPI section index page showing subsections and endpoints
+using a card-based layout. Extends base.html to inherit theme navigation.
+Uses autodoc.css for all styling.
+
+This template receives:
+- section: Section object for the API section
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content - autodoc skeleton #}
+    <article data-autodoc data-type="openapi" data-element="section-index" class="autodoc docs-content">
+
+      {# Header #}
+      <header class="autodoc-header">
+        <h1 class="autodoc-title">{{ section.title }}</h1>
+        {% if section.metadata.get('description') %}
+        <div class="autodoc-description">
+          <p>{{ section.metadata.get('description') | first_sentence }}</p>
+        </div>
+        {% else %}
+        <div class="autodoc-description">
+          <p>Browse {{ section.name }} resources and endpoints.</p>
+        </div>
+        {% endif %}
+      </header>
+
+      {# Quick Stats #}
+      <div class="autodoc-stats">
+        {% if section.subsections %}
+        <span class="autodoc-stat">
+          <span class="autodoc-stat-value">{{ section.subsections | length }}</span>
+          <span class="autodoc-stat-label">Resources</span>
+        </span>
+        {% endif %}
+        {% set endpoint_pages = section.sorted_pages | selectattr('metadata.element_type', 'defined') | list %}
+        {% if endpoint_pages %}
+        <span class="autodoc-stat">
+          <span class="autodoc-stat-value">{{ endpoint_pages | length }}</span>
+          <span class="autodoc-stat-label">Endpoints</span>
+        </span>
+        {% endif %}
+      </div>
+
+      {# Subsections (Resource Groups) - Card Grid #}
+      {% if section.sorted_subsections %}
+      <section class="autodoc-section" data-section="resources">
+        <h2 class="autodoc-section-title">Resources</h2>
+
+        <div class="autodoc-cards">
+          {% for subsection in section.sorted_subsections %}
+          {% set desc = subsection.metadata.description | default('') | first_sentence %}
+          {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+          <a href="{{ subsection.url }}" class="autodoc-card" data-card="resource">
+            <div class="autodoc-card-header">
+              <span class="autodoc-card-icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
+              <span class="autodoc-card-name">{{ subsection.name | title }}</span>
+            </div>
+            <div class="autodoc-card-body">
+              {% if desc %}
+              <p class="autodoc-card-desc">{{ desc }}</p>
+              {% else %}
+              <p class="autodoc-card-desc">{{ subsection.name | title }} resource</p>
+              {% endif %}
+            </div>
+            <div class="autodoc-card-footer">
+              <span class="autodoc-card-meta">
+                {{ child_count }} item{{ 's' if child_count != 1 else '' }}
+              </span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {# Endpoint Pages - Card Grid #}
+      {% set endpoint_pages = [] %}
+      {% for page in section.sorted_pages %}
+        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
+          {% set _ = endpoint_pages.append(page) %}
+        {% endif %}
+      {% endfor %}
+
+      {% if endpoint_pages %}
+      <section class="autodoc-section" data-section="endpoints">
+        <h2 class="autodoc-section-title">Endpoints</h2>
+
+        <div class="autodoc-cards">
+          {% for page in endpoint_pages %}
+          {% set desc = page.metadata.description | default('') | first_sentence %}
+          <a href="{{ page.url }}" class="autodoc-card" data-card="endpoint">
+            <div class="autodoc-card-header">
+              <span class="autodoc-card-icon">
+                {%- if page.metadata.http_method -%}
+                {{ icon("zap", size=16, css_class="icon-" ~ page.metadata.http_method|lower) }}
+                {%- elif page.metadata.element_type == 'schema' -%}
+                {{ icon("layers", size=16, css_class="icon-info") }}
+                {%- else -%}
+                {{ icon("code", size=16, css_class="icon-muted") }}
+                {%- endif -%}
+              </span>
+              <span class="autodoc-card-name">{{ page.title }}</span>
+              {% if page.metadata.http_method %}
+              <span class="autodoc-badge" data-badge="{{ page.metadata.http_method|lower }}">{{ page.metadata.http_method }}</span>
+              {% elif page.metadata.element_type %}
+              <span class="autodoc-badge" data-badge="{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
+              {% endif %}
+            </div>
+            <div class="autodoc-card-body">
+              {% if desc %}
+              <p class="autodoc-card-desc">{{ desc }}</p>
+              {% else %}
+              <p class="autodoc-card-desc">No description available</p>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {# Empty State #}
+      {% if not section.subsections and not endpoint_pages %}
+      <div class="autodoc-empty-state">
+        <div class="autodoc-empty-state-icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
+        <p class="autodoc-empty-state-text">No documentation available in this section yet.</p>
+      </div>
+      {% endif %}
+
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

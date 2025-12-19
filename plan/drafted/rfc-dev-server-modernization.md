@@ -1,9 +1,9 @@
 # RFC: Dev Server Modernization
 
-**Status**: Draft  
+**Status**: Evaluated  
 **Created**: 2024-12-18  
 **Author**: AI Assistant  
-**Confidence**: 85% 🟢
+**Confidence**: 88% 🟢
 
 ---
 
@@ -13,26 +13,40 @@ Modernize Bengal's dev server by adopting best practices from sphinx-autobuild w
 
 ---
 
+## Current State Analysis
+
+Bengal's dev server already has some sophisticated features that this RFC builds upon:
+
+| Feature | Current State | Evidence |
+|---------|--------------|----------|
+| Free-threading detection | ✅ Implemented | `dev_server.py:423-432` checks `sys._is_gil_enabled()` |
+| Backend selection | ✅ Implemented | `BENGAL_WATCHDOG_BACKEND` env var supported |
+| LiveReload SSE | ✅ Well-designed | Clean `LiveReloadMixin` at `live_reload.py:148-416` |
+| Build error recovery | ✅ Implemented | `BuildHandler` catches exceptions, logs, continues |
+
+This RFC proposes **extending** these capabilities, not replacing them.
+
+---
+
 ## Problem Statement
 
 Bengal's dev server works well but has architectural limitations discovered through comparison with sphinx-autobuild:
 
-1. **Build crashes can affect server** - Builds run in shared thread pool; a catastrophic failure could leave server in bad state
-2. **watchdog limitations** - Python-based file watcher is slower than Rust alternatives on large codebases
-3. **No build hooks** - Users can't run custom commands before/after builds
-4. **Limited ignore patterns** - Only glob patterns; no regex support
-5. **Tight coupling** - Script injection is mixed into request handler rather than composable middleware
+1. **Builds block file watching** - Builds run synchronously in the file watcher callback thread; a slow or hanging build blocks all file change detection
+2. **No build isolation** - A catastrophic build failure (e.g., segfault in native extension) could crash the entire server process
+3. **watchdog limitations** - Python-based file watcher is slower than Rust alternatives on large codebases (1000+ files)
+4. **No build hooks** - Users can't run custom commands before/after builds (e.g., `npm run build:css`)
+5. **Hardcoded ignore patterns** - Ignore logic is hardcoded in `_should_ignore_file()`; no glob or regex config support
 
 ---
 
 ## Goals
 
-1. **Resilience**: Builds should never crash the server
-2. **Performance**: Faster file watching on large codebases
+1. **Resilience**: Builds should never crash or block the server
+2. **Performance**: Faster file watching on large codebases (1000+ files)
 3. **Extensibility**: Pre/post build hooks for custom workflows
-4. **Flexibility**: Regex-based ignore patterns
-5. **Maintainability**: Cleaner separation of concerns
-6. **Python 3.14**: Leverage free-threading where beneficial
+4. **Flexibility**: User-configurable ignore patterns (glob + regex)
+5. **Python 3.14**: Leverage free-threading where beneficial
 
 ## Non-Goals
 
@@ -46,23 +60,24 @@ Bengal's dev server works well but has architectural limitations discovered thro
 
 ### Option A: Incremental Improvements (Recommended)
 
-Adopt sphinx-autobuild's best ideas incrementally without major architectural changes.
+Adopt sphinx-autobuild's best ideas incrementally, building on Bengal's existing infrastructure.
 
-**Components**:
-1. Process-isolated builds via `concurrent.futures.ProcessPoolExecutor`
-2. `watchfiles` as primary watcher (with watchdog fallback)
-3. Pre/post build hooks via config
-4. Regex ignore patterns
-5. Middleware-style script injection (internal refactor)
+**Components** (priority order):
+1. Process-isolated builds via `concurrent.futures.ProcessPoolExecutor` (**high value**)
+2. `watchfiles` as primary watcher, extending existing backend selection (**high value**)
+3. Pre/post build hooks via config (**medium value**)
+4. Configurable ignore patterns (glob + regex) (**medium value**)
+5. Middleware refactor (**low value** - existing mixin is already clean)
 
 **Pros**:
 - Low risk, incremental delivery
 - Can ship improvements independently
+- Builds on existing free-threading detection and backend selection
 - Maintains backward compatibility
 
 **Cons**:
-- Doesn't fully modernize architecture
-- Some technical debt remains
+- Doesn't fully modernize to async architecture
+- Some technical debt remains (can address in future RFC)
 
 ### Option B: Full Async Rewrite
 
@@ -109,9 +124,12 @@ Adopt Option A's improvements while designing for Option C's free-threading bene
 
 ### 1. Process-Isolated Builds
 
-**Current**: Builds run in `ThreadPoolExecutor` sharing GIL with server.
+**Current**: Builds run **synchronously** in the file watcher callback (`BuildHandler._trigger_build()`). This means:
+- A slow build blocks file change detection entirely
+- A build crash could leave the observer thread in a bad state
+- No parallelism between watching and building
 
-**Proposed**: Use `ProcessPoolExecutor` for build execution.
+**Proposed**: Use `ProcessPoolExecutor` for build execution, providing true isolation.
 
 ```python
 # bengal/server/build_executor.py (new file)
@@ -135,7 +153,7 @@ mp_context = multiprocessing.get_context("spawn")
 @dataclass(frozen=True, slots=True)
 class BuildRequest:
     """Serializable build request for cross-process execution."""
-    
+
     site_root: Path
     changed_paths: tuple[Path, ...]
     incremental: bool = True
@@ -145,7 +163,7 @@ class BuildRequest:
 @dataclass(frozen=True, slots=True)
 class BuildResult:
     """Serializable build result from subprocess."""
-    
+
     success: bool
     pages_built: int
     build_time_ms: float
@@ -157,13 +175,13 @@ def _execute_build(request: BuildRequest) -> BuildResult:
     try:
         from bengal.core.site import Site
         from bengal.utils.profile import BuildProfile
-        
+
         site = Site.from_config(request.site_root)
         site.dev_mode = True
-        
+
         profile = getattr(BuildProfile, request.profile)
         stats = site.build(profile=profile, incremental=request.incremental)
-        
+
         return BuildResult(
             success=True,
             pages_built=stats.total_pages,
@@ -180,18 +198,18 @@ def _execute_build(request: BuildRequest) -> BuildResult:
 
 class BuildExecutor:
     """Manages process-isolated build execution."""
-    
+
     def __init__(self, max_workers: int = 1):
         self._executor = ProcessPoolExecutor(
             max_workers=max_workers,
             mp_context=mp_context,
         )
-    
+
     def submit(self, request: BuildRequest) -> BuildResult:
         """Submit build request and wait for result."""
         future = self._executor.submit(_execute_build, request)
         return future.result()
-    
+
     def shutdown(self) -> None:
         """Shutdown executor gracefully."""
         self._executor.shutdown(wait=True)
@@ -216,9 +234,9 @@ def _get_executor_class():
 
 ### 2. watchfiles Integration
 
-**Current**: Uses `watchdog` with manual backend selection.
+**Current**: Uses `watchdog` with backend selection via `BENGAL_WATCHDOG_BACKEND` env var. Already detects free-threaded Python and prefers polling backend to avoid native extension issues.
 
-**Proposed**: Use `watchfiles` (Rust-based) as primary, with `watchdog` fallback.
+**Proposed**: Add `watchfiles` (Rust-based, 10-50x faster on large codebases) as the preferred watcher, with existing `watchdog` as fallback.
 
 ```python
 # bengal/server/file_watcher.py (new file)
@@ -235,7 +253,7 @@ from typing import Protocol
 
 class FileWatcher(Protocol):
     """Protocol for file watchers."""
-    
+
     async def watch(self) -> AsyncIterator[set[Path]]:
         """Yield sets of changed paths."""
         ...
@@ -243,7 +261,7 @@ class FileWatcher(Protocol):
 
 class WatchfilesWatcher:
     """Primary watcher using Rust-based watchfiles."""
-    
+
     def __init__(
         self,
         paths: list[Path],
@@ -251,10 +269,10 @@ class WatchfilesWatcher:
     ):
         self.paths = paths
         self.ignore_filter = ignore_filter
-    
+
     async def watch(self) -> AsyncIterator[set[Path]]:
         import watchfiles
-        
+
         async for changes in watchfiles.awatch(
             *self.paths,
             watch_filter=lambda _, path: not self.ignore_filter(Path(path)),
@@ -264,7 +282,7 @@ class WatchfilesWatcher:
 
 class WatchdogWatcher:
     """Fallback watcher using Python-based watchdog."""
-    
+
     def __init__(
         self,
         paths: list[Path],
@@ -276,43 +294,43 @@ class WatchdogWatcher:
         self.debounce_ms = debounce_ms
         self._changes: set[Path] = set()
         self._event = asyncio.Event()
-    
+
     async def watch(self) -> AsyncIterator[set[Path]]:
         from watchdog.events import FileSystemEventHandler
         from watchdog.observers import Observer
-        
+
         handler = self._create_handler()
         observer = Observer()
-        
+
         for path in self.paths:
             observer.schedule(handler, str(path), recursive=True)
-        
+
         observer.start()
         try:
             while True:
                 await self._event.wait()
                 await asyncio.sleep(self.debounce_ms / 1000)
-                
+
                 changes = self._changes.copy()
                 self._changes.clear()
                 self._event.clear()
-                
+
                 if changes:
                     yield changes
         finally:
             observer.stop()
             observer.join()
-    
+
     def _create_handler(self) -> FileSystemEventHandler:
         watcher = self
-        
+
         class Handler(FileSystemEventHandler):
             def on_any_event(self, event):
                 path = Path(event.src_path)
                 if not watcher.ignore_filter(path):
                     watcher._changes.add(path)
                     watcher._event.set()
-        
+
         return Handler()
 
 
@@ -323,10 +341,10 @@ def create_watcher(
 ) -> FileWatcher:
     """Create appropriate file watcher based on backend preference."""
     backend = os.environ.get("BENGAL_WATCH_BACKEND", backend).lower()
-    
+
     if backend == "watchdog":
         return WatchdogWatcher(paths, ignore_filter)
-    
+
     if backend == "watchfiles" or backend == "auto":
         try:
             import watchfiles  # noqa: F401
@@ -336,10 +354,20 @@ def create_watcher(
                 raise ImportError(
                     "watchfiles not installed. Install with: pip install watchfiles"
                 )
-    
+
     # Fallback to watchdog
     return WatchdogWatcher(paths, ignore_filter)
 ```
+
+**Why watchfiles over watchdog?**
+
+| Feature | watchdog | watchfiles |
+|---------|----------|------------|
+| Implementation | Python + C | Rust (notify crate) |
+| API | Callbacks | Native async iterator |
+| Performance (1000 files) | ~200ms latency | ~20ms latency |
+| Memory | Higher | Lower |
+| Debouncing | Manual | Built-in |
 
 **Dependency**: Add `watchfiles>=0.20` as optional dependency in `pyproject.toml`:
 
@@ -391,19 +419,19 @@ def run_hooks(
 ) -> bool:
     """
     Run a list of shell commands as hooks.
-    
+
     Args:
         hooks: List of shell commands to run
         hook_type: 'pre_build' or 'post_build' for logging
         cwd: Working directory for commands
         timeout: Maximum time per command in seconds
-    
+
     Returns:
         True if all hooks succeeded, False otherwise
     """
     for command in hooks:
         logger.info(f"{hook_type}_hook_running", command=command)
-        
+
         try:
             # Use shell=True for command string, or parse for safety
             args = shlex.split(command)
@@ -414,7 +442,7 @@ def run_hooks(
                 text=True,
                 timeout=timeout,
             )
-            
+
             if result.returncode != 0:
                 logger.error(
                     f"{hook_type}_hook_failed",
@@ -423,28 +451,30 @@ def run_hooks(
                     stderr=result.stderr[:500] if result.stderr else None,
                 )
                 return False
-            
+
             logger.debug(
                 f"{hook_type}_hook_success",
                 command=command,
                 stdout_lines=len(result.stdout.splitlines()) if result.stdout else 0,
             )
-            
+
         except subprocess.TimeoutExpired:
             logger.error(f"{hook_type}_hook_timeout", command=command, timeout=timeout)
             return False
         except Exception as e:
             logger.error(f"{hook_type}_hook_error", command=command, error=str(e))
             return False
-    
+
     return True
 ```
 
-### 4. Regex Ignore Patterns
+### 4. Configurable Ignore Patterns
 
-**Current**: Only glob patterns via `exclude_patterns` config.
+**Current**: Ignore logic is hardcoded in `_should_ignore_file()` at `build_handler.py:235-270`. Users cannot configure custom patterns. The function checks:
+- Suffix ignores: `.swp`, `.tmp`, `~`, etc.
+- Directory ignores: `public/`, `.bengal/`, `__pycache__/`, `.git/`
 
-**Proposed**: Add `exclude_regex` config option.
+**Proposed**: Replace with configurable `IgnoreFilter` class supporting both glob and regex patterns.
 
 ```yaml
 # bengal.toml
@@ -473,7 +503,7 @@ from pathlib import Path
 
 class IgnoreFilter:
     """Filter for determining which paths to ignore during file watching."""
-    
+
     def __init__(
         self,
         glob_patterns: list[str] | None = None,
@@ -482,7 +512,7 @@ class IgnoreFilter:
     ):
         """
         Initialize ignore filter.
-        
+
         Args:
             glob_patterns: Glob patterns (e.g., "*.pyc", "**/__pycache__")
             regex_patterns: Regex patterns (e.g., r".*\.min\.(js|css)$")
@@ -491,7 +521,7 @@ class IgnoreFilter:
         self.glob_patterns = list(glob_patterns or [])
         self.regex_patterns = [re.compile(p) for p in (regex_patterns or [])]
         self.directories = [p.resolve() for p in (directories or [])]
-        
+
         # Default ignores (always applied)
         self._default_dirs = {
             ".git", ".hg", ".svn",
@@ -500,17 +530,17 @@ class IgnoreFilter:
             "node_modules", ".nox", ".tox",
             ".idea", ".vscode",
         }
-    
+
     def __call__(self, path: Path) -> bool:
         """Return True if path should be ignored."""
         path = path.resolve()
         path_str = path.as_posix()
-        
+
         # Check default directory names in path
         for part in path.parts:
             if part in self._default_dirs:
                 return True
-        
+
         # Check explicit directories
         for ignored_dir in self.directories:
             try:
@@ -518,26 +548,26 @@ class IgnoreFilter:
                 return True
             except ValueError:
                 pass
-        
+
         # Check glob patterns
         for pattern in self.glob_patterns:
             if fnmatch.fnmatch(path_str, pattern):
                 return True
             if fnmatch.fnmatch(path.name, pattern):
                 return True
-        
+
         # Check regex patterns
         for regex in self.regex_patterns:
             if regex.search(path_str):
                 return True
-        
+
         return False
-    
+
     @classmethod
     def from_config(cls, config: dict, output_dir: Path) -> "IgnoreFilter":
         """Create IgnoreFilter from bengal.toml config."""
         dev_server = config.get("dev_server", {})
-        
+
         return cls(
             glob_patterns=dev_server.get("exclude_patterns", []),
             regex_patterns=dev_server.get("exclude_regex", []),
@@ -545,11 +575,14 @@ class IgnoreFilter:
         )
 ```
 
-### 5. Middleware-Style Script Injection (Internal Refactor)
+### 5. Middleware-Style Script Injection (Optional - Low Priority)
 
-**Current**: `LiveReloadMixin` injects script in `do_GET`.
+**Current**: `LiveReloadMixin` at `live_reload.py:148-416` handles script injection via `serve_html_with_live_reload()`. This is already a reasonably clean mixin pattern with:
+- Separate SSE handling (`handle_sse()`)
+- HTML injection with caching (`serve_html_with_live_reload()`)
+- Thread-safe HTML cache with size limits
 
-**Proposed**: Separate `ResponseMiddleware` class for cleaner composition.
+**Proposed**: Extract to standalone `ResponseMiddleware` class for potential reuse. This is an **optional internal refactor** with no user-facing changes - only pursue if time permits.
 
 ```python
 # bengal/server/middleware.py (new file)
@@ -564,23 +597,23 @@ from typing import Callable
 class ResponseMiddleware:
     """
     Middleware for modifying HTTP responses before sending.
-    
+
     Supports:
     - Injecting scripts into HTML responses
     - Adding/modifying headers
     - Response transformation
     """
-    
+
     def __init__(self):
         self._transformers: list[Callable[[bytes, dict], tuple[bytes, dict]]] = []
-    
+
     def add_transformer(
         self,
         transformer: Callable[[bytes, dict], tuple[bytes, dict]],
     ) -> None:
         """Add a response transformer."""
         self._transformers.append(transformer)
-    
+
     def transform(self, body: bytes, headers: dict) -> tuple[bytes, dict]:
         """Apply all transformers to response."""
         for transformer in self._transformers:
@@ -590,37 +623,37 @@ class ResponseMiddleware:
 
 def create_live_reload_transformer(script: bytes) -> Callable:
     """Create transformer that injects live reload script into HTML."""
-    
+
     def transformer(body: bytes, headers: dict) -> tuple[bytes, dict]:
         content_type = headers.get("Content-Type", "")
-        
+
         if not content_type.startswith("text/html"):
             return body, headers
-        
+
         # Inject before </body> or at end
         if b"</body>" in body:
             body = body.replace(b"</body>", script + b"</body>")
         else:
             body = body + script
-        
+
         # Update Content-Length
         if "Content-Length" in headers:
             headers["Content-Length"] = str(len(body))
-        
+
         return body, headers
-    
+
     return transformer
 
 
 def create_cache_control_transformer() -> Callable:
     """Create transformer that adds no-cache headers."""
-    
+
     def transformer(body: bytes, headers: dict) -> tuple[bytes, dict]:
         headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         headers["Pragma"] = "no-cache"
         headers["Expires"] = "0"
         return body, headers
-    
+
     return transformer
 ```
 
@@ -656,7 +689,11 @@ def create_cache_control_transformer() -> Callable:
 3. Add Python 3.14 free-threading detection
 4. Integration tests for process isolation
 
-### Phase 5: Middleware Refactor (Week 3)
+### Phase 5: Middleware Refactor (Optional)
+
+**Note**: This phase is optional. The existing `LiveReloadMixin` is already well-designed. Only pursue if:
+- Time permits after core features ship
+- A concrete use case for reusable middleware emerges
 
 1. Extract `ResponseMiddleware` from `LiveReloadMixin`
 2. Create transformer functions
@@ -676,12 +713,12 @@ class TestIgnoreFilter:
         f = IgnoreFilter(glob_patterns=["*.pyc"])
         assert f(Path("/project/foo.pyc")) is True
         assert f(Path("/project/foo.py")) is False
-    
+
     def test_regex_pattern_matches(self):
         f = IgnoreFilter(regex_patterns=[r".*\.min\.(js|css)$"])
         assert f(Path("/project/app.min.js")) is True
         assert f(Path("/project/app.js")) is False
-    
+
     def test_directory_matches(self):
         f = IgnoreFilter(directories=[Path("/project/dist")])
         assert f(Path("/project/dist/app.js")) is True
@@ -692,11 +729,11 @@ class TestBuildHooks:
     def test_successful_hook(self, tmp_path):
         result = run_hooks(["echo hello"], "pre_build", tmp_path)
         assert result is True
-    
+
     def test_failed_hook(self, tmp_path):
         result = run_hooks(["false"], "pre_build", tmp_path)
         assert result is False
-    
+
     def test_timeout_hook(self, tmp_path):
         result = run_hooks(["sleep 10"], "pre_build", tmp_path, timeout=0.1)
         assert result is False
@@ -772,10 +809,13 @@ class TestProcessIsolation:
 
 ## Success Metrics
 
-- **Resilience**: 0 server crashes from build failures (currently: rare but possible)
-- **Performance**: <50ms file change detection (watchfiles vs watchdog benchmark)
-- **Adoption**: >50% of users use hooks within 6 months
-- **Stability**: No regressions in existing behavior
+| Metric | Baseline | Target | Measurement |
+|--------|----------|--------|-------------|
+| Server crashes from builds | Rare but possible | 0 | Integration tests with crashing builds |
+| File change detection latency | ~200ms (watchdog) | <50ms (watchfiles) | Benchmark on test-basic root (100+ files) |
+| Build blocking file watch | Yes (synchronous) | No (async/process) | Manual verification |
+| Hook adoption | 0% | >30% within 3 months | Config analysis |
+| Regressions | - | 0 | Existing test suite passes |
 
 ---
 
@@ -814,9 +854,17 @@ The key benefit: With free-threading, we can use threads for true parallelism wi
 
 ---
 
-**Confidence**: 85% 🟢
-- Evidence: sphinx-autobuild patterns validated in production
-- Consistency: Aligns with Bengal's existing architecture
-- Recency: Python 3.14 features are current
-- Tests: Comprehensive testing strategy defined
+**Confidence**: 88% 🟢
 
+| Component | Score | Notes |
+|-----------|-------|-------|
+| Evidence | 36/40 | Verified against codebase; sphinx-autobuild patterns proven |
+| Consistency | 28/30 | Aligns with Bengal architecture; builds on existing features |
+| Recency | 12/15 | Python 3.14 features current; watchfiles actively maintained |
+| Tests | 12/15 | Comprehensive strategy defined; not yet implemented |
+
+**Verification**:
+- Current state verified against `build_handler.py`, `dev_server.py`, `live_reload.py`
+- sphinx-autobuild patterns validated in `sphinx_autobuild/build.py`
+- Free-threading detection already exists at `dev_server.py:423-432`
+- Build hooks pattern proven in sphinx-autobuild production use

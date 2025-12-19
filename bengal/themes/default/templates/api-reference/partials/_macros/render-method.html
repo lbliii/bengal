@@ -1,0 +1,82 @@
+{#
+Render Method Macro
+
+Renders a single method as an information-rich collapsible card.
+Shows: icon, name, params, return type, description, full details on expand.
+
+Usage:
+  {% from 'api-reference/partials/_macros/render-method.html' import render_method %}
+  {{ render_method(method) }}
+
+Args:
+  method: Method DocElement to render (required)
+#}
+
+{% macro render_method(method) %}
+  {# Use normalized param_count and return_type filters #}
+  {% set method_param_count = method | param_count %}
+  {% set method_return_type = method | return_type %}
+  {% set is_async = method.metadata.is_async | default(false) %}
+  {% set is_property = method.metadata.is_property | default(false) %}
+  {% set is_classmethod = method.metadata.is_classmethod | default(false) %}
+  {% set is_staticmethod = method.metadata.is_staticmethod | default(false) %}
+  {% set is_private = method.name.startswith('_') %}
+  {% set first_sentence = ((method.description or '') | truncate(80, True, '…')) %}
+
+  <details class="api-card api-card--collapsible api-card--method{% if is_property %} api-card--property{% endif %}{% if is_async %} api-card--async{% endif %}{% if is_private %} api-card--private{% endif %}">
+    <summary class="api-card__header">
+      {# Status dot indicator #}
+      <span class="api-card__dot"></span>
+
+      {# Name + return type #}
+      <div class="api-card__info">
+        <div class="api-card__name-row">
+          <code class="api-card__name">{{ method.name }}</code>
+          {# Parameter count badge (skip for properties) #}
+          {% if not is_property %}
+          <span class="api-card__count-badge" title="{{ method_param_count }} parameter{% if method_param_count != 1 %}s{% endif %}">{{ method_param_count }}</span>
+          {% endif %}
+          {# Return type with arrow #}
+          <span class="api-card__return-arrow" title="Returns {{ method_return_type }}">
+            <code>{{ method_return_type | truncate(20, True, '…') }}</code>
+          </span>
+          {# Toggle indicator #}
+          <span class="api-card__toggle">
+            {{ icon('caret-down', size=14) }}
+          </span>
+        </div>
+        {# Description preview #}
+        {% if first_sentence %}
+        <span class="api-card__desc-preview">{{ first_sentence }}</span>
+        {% endif %}
+      </div>
+
+      {# Inline badges #}
+      <div class="api-card__meta">
+        {% if is_async %}<span class="api-badge--inline api-badge--async">async</span>{% endif %}
+        {% if is_property %}<span class="api-badge--inline api-badge--property">property</span>{% endif %}
+        {% if is_classmethod %}<span class="api-badge--inline api-badge--classmethod">classmethod</span>{% endif %}
+        {% if is_staticmethod %}<span class="api-badge--inline api-badge--staticmethod">staticmethod</span>{% endif %}
+      </div>
+    </summary>
+
+    <div class="api-card__body">
+      {# Full signature #}
+      {% set element = method %}
+      {% include 'api-reference/partials/signature.html' %}
+
+      {# Full description (markdown rendered) #}
+      {% if method.description %}
+      <div class="api-card__description">{{ method.description | markdownify | safe }}</div>
+      {% endif %}
+
+      {# Parameters, Returns, Raises #}
+      {% set element = method %}
+      {% include 'api-reference/partials/parameters-table.html' %}
+      {% set element = method %}
+      {% include 'api-reference/partials/returns-section.html' %}
+      {% set element = method %}
+      {% include 'api-reference/partials/raises-list.html' %}
+    </div>
+  </details>
+{% endmacro %}

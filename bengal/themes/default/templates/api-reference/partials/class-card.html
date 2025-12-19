@@ -1,0 +1,85 @@
+{#
+Class Card Macro
+
+Renders a class as an information-rich collapsible card.
+Shows: icon, name, badges, method/attribute counts, description preview.
+Uses unified api-card classes from autodoc CSS modules.
+
+Args:
+cls: The class DocElement to render
+is_first: Whether this is the first item (to auto-open)
+#}
+
+{% macro class_card(cls, is_first=false) %}
+{# Compute preview info #}
+{% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
+{% set is_abstract = cls.metadata.is_abstract | default(false) %}
+{% set methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+{% set method_count = methods | length %}
+{% set attrs = cls.metadata.attributes or [] %}
+{% set attr_count = attrs | length %}
+{% set total_items = method_count + attr_count %}
+{% set first_sentence = ((cls.description or '') | truncate(100, True, '…')) %}
+{% set bases = cls.metadata.bases or [] %}
+
+<details
+  class="api-card api-card--collapsible api-card--class{% if is_dataclass %} api-card--dataclass{% endif %}{% if is_abstract %} api-card--abstract{% endif %}"
+  {% if is_first %}open{% endif %}>
+  <summary class="api-card__header">
+    {# Status dot indicator #}
+    <span class="api-card__dot"></span>
+
+    {# Name + inline badges #}
+    <div class="api-card__info">
+      <div class="api-card__name-row">
+        <code class="api-card__name">{{ cls.name }}</code>
+        {# Count badge #}
+        <span class="api-card__count-badge" title="{{ method_count }} method{% if method_count != 1 %}s{% endif %}{% if attr_count > 0 %}, {{ attr_count }} attribute{% if attr_count != 1 %}s{% endif %}{% endif %}">{{ total_items }}</span>
+        {# Toggle indicator #}
+        <span class="api-card__toggle">
+          {{ icon('caret-down', size=14) }}
+        </span>
+      </div>
+      {# Description preview on second line #}
+      {% if first_sentence %}
+      <span class="api-card__desc-preview">{{ first_sentence }}</span>
+      {% endif %}
+    </div>
+
+    {# Inline type badges - dataclass, abstract #}
+    <div class="api-card__meta">
+      {% if is_dataclass %}<span class="api-badge--inline api-badge--dataclass">dataclass</span>{% endif %}
+      {% if is_abstract %}<span class="api-badge--inline api-badge--abstract">abstract</span>{% endif %}
+    </div>
+  </summary>
+
+  <div class="api-card__body">
+    {# Full description (markdown rendered) #}
+    {% if cls.description %}
+    <div class="api-card__description">{{ cls.description | markdownify | safe }}</div>
+    {% endif %}
+
+    {# Inheritance #}
+    {% if bases %}
+    <div class="api-class__bases">
+      <span class="api-label">Inherits from</span>
+      {% for base in bases %}
+      <code class="api-class__base">{{ base }}</code>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Class Signature #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/signature.html' %}
+
+    {# Attributes #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/attributes-table.html' %}
+
+    {# Methods #}
+    {% set element = cls %}
+    {% include 'api-reference/partials/method-item.html' %}
+  </div>
+</details>
+{% endmacro %}

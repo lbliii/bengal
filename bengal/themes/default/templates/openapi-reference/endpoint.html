@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{#
+OpenAPI Reference Endpoint Template
+
+Three-panel layout optimized for REST API documentation.
+Uses the unified autodoc skeleton with OpenAPI-specific extensions.
+
+This template receives:
+- element: DocElement for the endpoint
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-panel REST API layout #}
+<div class="docs-layout docs-layout--three-panel">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Center: Endpoint Documentation #}
+  <div class="docs-main">
+    {# Breadcrumbs #}
+    {{ breadcrumbs(page) }}
+
+    {# Article Content - New autodoc skeleton #}
+    <article data-autodoc data-type="openapi" data-element="endpoint" class="autodoc docs-content">
+
+      {# Header with method badge #}
+      <header class="autodoc-header">
+        {% if element.metadata.deprecated %}
+        <div class="autodoc-badges">
+          <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        </div>
+        {% endif %}
+
+        <h1 class="autodoc-title">
+          <span class="autodoc-method" data-method="{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
+          <code>{{ element.metadata.path }}</code>
+        </h1>
+
+        {% if element.metadata.summary or element.description %}
+        <div class="autodoc-description">
+          <p>{{ element.metadata.summary or element.description }}</p>
+        </div>
+        {% endif %}
+
+        {% if element.metadata.operation_id %}
+        <div class="autodoc-stats">
+          <span class="autodoc-stat">
+            <span class="autodoc-stat-label">Operation ID:</span>
+            <span class="autodoc-stat-value"><code>{{ element.metadata.operation_id }}</code></span>
+          </span>
+        </div>
+        {% endif %}
+      </header>
+
+      {# Parameters Section #}
+      {% if element.metadata.parameters %}
+      {% set params = element.metadata.parameters %}
+      {% set title = 'Parameters' %}
+      {% include 'autodoc/partials/params-table.html' %}
+      {% endif %}
+
+      {# Request Body Section #}
+      {% if element.metadata.request_body %}
+      <section class="autodoc-section" data-section="request-body">
+        <h2 class="autodoc-section-title">Request Body</h2>
+        {% if element.metadata.request_body.get('description') %}
+        <div class="autodoc-description">
+          <p>{{ element.metadata.request_body.get('description') }}</p>
+        </div>
+        {% endif %}
+        {% if element.metadata.request_body.get('content') %}
+        <div class="autodoc-badges">
+          {% for content_type, schema in element.metadata.request_body.get('content', {}).items() %}
+          <span class="autodoc-badge">{{ content_type }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      {# Responses Section #}
+      {% if element.metadata.responses %}
+      <section class="autodoc-section" data-section="responses">
+        <h2 class="autodoc-section-title">Responses</h2>
+        <table class="autodoc-table" data-table="responses">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Description</th>
+              <th>Content Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for status_code, response in element.metadata.responses.items() %}
+            <tr>
+              <td class="autodoc-cell-name" data-label="Status">
+                <code>{{ status_code }}</code>
+              </td>
+              <td class="autodoc-cell-desc" data-label="Description">
+                {{ response.get('description', 'No description') }}
+              </td>
+              <td class="autodoc-cell-type" data-label="Content Type">
+                {% for content_type in response.get('content', {}).keys() %}
+                <code>{{ content_type }}</code>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Panel: Code Examples #}
+  <aside class="autodoc-examples-panel" id="autodoc-examples" role="complementary" aria-label="Code examples">
+    <div class="autodoc-examples-panel-content">
+      <h3 class="autodoc-examples-panel-title">{{ icon('code', size=16) }} Code Examples</h3>
+
+      {# Request Example #}
+      <div class="autodoc-example">
+        <h4 class="autodoc-example-title">Request</h4>
+        <pre><code class="language-bash">curl -X {{ element.metadata.method | upper }} \
+  "https://api.example.com{{ element.metadata.path }}"{% if element.metadata.method | upper in ['POST', 'PUT', 'PATCH'] %} \
+  -H "Content-Type: application/json" \
+  -d '{}'{% endif %}</code></pre>
+      </div>
+
+      {# Response Examples #}
+      {% if element.metadata.responses %}
+      {% for status_code, response in element.metadata.responses.items() %}
+      {% if status_code[:1] == '2' %}
+      <div class="autodoc-example">
+        <h4 class="autodoc-example-title">Response {{ status_code }}</h4>
+        <pre><code class="language-json">{
+  "status": "success"
+}</code></pre>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    </div>
+  </aside>
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

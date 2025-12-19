@@ -1,0 +1,84 @@
+{#
+Function Card Macro
+
+Renders a function as an information-rich collapsible card.
+Shows: icon, name, param count, return type, description preview.
+Uses unified api-card classes from autodoc CSS modules.
+#}
+
+{% macro function_card(func) %}
+{# Use normalized param_count and return_type filters #}
+{% set func_param_count = func | param_count %}
+{% set func_return_type = func | return_type %}
+{% set is_async = func.metadata.is_async | default(false) %}
+{% set first_sentence = ((func.description or '') | truncate(100, True, '…')) %}
+
+<details class="api-card api-card--collapsible api-card--function{% if is_async %} api-card--async{% endif %}{% if func.name.startswith('_') %} api-card--private{% endif %}">
+  <summary class="api-card__header">
+    {# Status dot indicator (green for functions) #}
+    <span class="api-card__dot"></span>
+
+    {# Name + count + return type #}
+    <div class="api-card__info">
+      <div class="api-card__name-row">
+        <code class="api-card__name">{{ func.name }}</code>
+        {# Parameter count badge #}
+        <span class="api-card__count-badge" title="{{ func_param_count }} parameter{% if func_param_count != 1 %}s{% endif %}">{{ func_param_count }}</span>
+        {# Return type with arrow #}
+        <span class="api-card__return-arrow" title="Returns {{ func_return_type }}">
+          <code>{{ func_return_type | truncate(25, True, '…') }}</code>
+        </span>
+        {# Toggle indicator #}
+        <span class="api-card__toggle">
+          {{ icon('caret-down', size=14) }}
+        </span>
+      </div>
+      {# Description preview on second line #}
+      {% if first_sentence %}
+      <span class="api-card__desc-preview">{{ first_sentence }}</span>
+      {% endif %}
+    </div>
+
+    {# Async badge if applicable #}
+    {% if is_async %}
+    <div class="api-card__meta">
+      <span class="api-badge--inline api-badge--async">async</span>
+    </div>
+    {% endif %}
+  </summary>
+
+  <div class="api-card__body">
+    {# Full signature #}
+    {% set element = func %}
+    {% include 'api-reference/partials/signature.html' %}
+
+    {# Full description (markdown rendered) #}
+    {% if func.description %}
+    <div class="api-card__description">{{ func.description | markdownify | safe }}</div>
+    {% endif %}
+
+    {# Parameters, Returns, Raises #}
+    {% set element = func %}
+    {% include 'api-reference/partials/parameters-table.html' %}
+    {% set element = func %}
+    {% include 'api-reference/partials/returns-section.html' %}
+    {% set element = func %}
+    {% include 'api-reference/partials/raises-list.html' %}
+
+    {# Examples #}
+    {% if func.metadata.examples %}
+    <div class="api-examples">
+      <h4 class="api-label">Examples</h4>
+      {% for example in func.metadata.examples %}
+      <div class="code-block-wrapper">
+        <div class="code-header-inline">
+          <span class="code-language">Python</span>
+        </div>
+        <pre><code class="language-python">{{ example }}</code></pre>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

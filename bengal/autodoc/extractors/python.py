@@ -507,12 +507,13 @@ class PythonExtractor(Extractor):
         raw_description = parsed_doc.description if parsed_doc else docstring
         description = sanitize_text(raw_description)
 
-        # Detect exception and dataclass
+        # Detect exception, dataclass, abstract, mixin
         is_exception = any(b in ("Exception", "BaseException") for b in bases) or any(
             "Exception" in b for b in bases
         )
         is_dataclass = "dataclass" in decorators or any("dataclass" in d for d in decorators)
         is_abstract = any("ABC" in base for base in bases)
+        is_mixin = node.name.endswith("Mixin")
 
         # Build typed metadata
         typed_meta = PythonClassMetadata(
@@ -521,6 +522,7 @@ class PythonExtractor(Extractor):
             is_exception=is_exception,
             is_dataclass=is_dataclass,
             is_abstract=is_abstract,
+            is_mixin=is_mixin,
             parsed_doc=self._to_parsed_docstring(parsed_doc) if parsed_doc else None,
         )
 
@@ -536,6 +538,7 @@ class PythonExtractor(Extractor):
                 "decorators": decorators,
                 "is_dataclass": is_dataclass,
                 "is_abstract": is_abstract,
+                "is_mixin": is_mixin,
                 "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
             typed_metadata=typed_meta,

@@ -1,0 +1,57 @@
+{#
+Method List Partial
+
+Renders all methods for a class element, grouped by visibility.
+Groups public methods first, then private (internal) methods in collapsible section.
+
+Usage as INCLUDE:
+  {% set element = cls %}
+  {% include 'api-reference/partials/method-item.html' %}
+
+Required context:
+  element: The class DocElement with children containing methods
+
+For individual methods, import the macro:
+  {% from 'api-reference/partials/_macros/render-method.html' import render_method %}
+  {{ render_method(method) }}
+#}
+
+{% from 'api-reference/partials/_macros/render-method.html' import render_method %}
+
+{% set all_methods = getattr(element, 'children', []) | selectattr('element_type', 'eq', 'method') | list %}
+{% set public_methods = all_methods | rejectattr('name', 'match', '^_') | list %}
+{% set private_methods = all_methods | selectattr('name', 'match', '^_') | list %}
+
+{% if all_methods %}
+<div class="api-methods">
+  {# Public Methods - shown first, prominently #}
+  {% if public_methods %}
+  <div class="api-methods__section">
+    <h4 class="api-label">Methods <span class="api-label__count">{{ public_methods | length }}</span></h4>
+    {% for method in public_methods %}
+    {{ render_method(method) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Private/Internal Methods - collapsed by default with clear separation #}
+  {% if private_methods %}
+  <details class="api-methods__internal">
+    <summary class="api-methods__internal-header">
+      <span class="api-methods__internal-label">
+        <span>Internal Methods</span>
+        <span class="api-label__count">{{ private_methods | length }}</span>
+      </span>
+      <span class="api-card__toggle">
+        {{ icon('caret-down', size=14) }}
+      </span>
+    </summary>
+    <div class="api-methods__internal-content">
+      {% for method in private_methods %}
+      {{ render_method(method) }}
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</div>
+{% endif %}

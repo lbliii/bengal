@@ -119,6 +119,7 @@ class PythonClassMetadata:
         is_exception: Whether class inherits from Exception/BaseException
         is_dataclass: Whether class has @dataclass decorator
         is_abstract: Whether class inherits from ABC
+        is_mixin: Whether class name ends with "Mixin"
         parsed_doc: Parsed docstring
 
     Example:
@@ -132,6 +133,7 @@ class PythonClassMetadata:
     is_exception: bool = False
     is_dataclass: bool = False
     is_abstract: bool = False
+    is_mixin: bool = False
     parsed_doc: ParsedDocstring | None = None
 
 

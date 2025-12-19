@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{#
+OpenAPI Reference Schema Template
+
+Renders an OpenAPI schema's documentation using the autodoc skeleton.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses autodoc.css for all styling.
+
+This template receives:
+- element: DocElement for the schema
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
+    {% include 'partials/page-hero.html' %}
+
+    {# Article Content - autodoc skeleton #}
+    <article data-autodoc data-type="openapi" data-element="schema" class="autodoc docs-content">
+
+      {# Header #}
+      <header class="autodoc-header">
+        <div class="autodoc-badges">
+          <span class="autodoc-badge" data-badge="schema">Schema</span>
+        </div>
+
+        <h1 class="autodoc-title">
+          <code>{{ element.name }}</code>
+        </h1>
+
+        {% if element.description %}
+        <div class="autodoc-description">
+          <p>{{ element.description }}</p>
+        </div>
+        {% endif %}
+      </header>
+
+      {# Schema Type #}
+      {% if element.metadata.get('type') %}
+      <div class="autodoc-stats">
+        <span class="autodoc-stat">
+          <span class="autodoc-stat-label">Type:</span>
+          <span class="autodoc-stat-value"><code>{{ element.metadata.get('type') }}</code></span>
+        </span>
+      </div>
+      {% endif %}
+
+      {# Properties #}
+      {% if element.metadata.get('properties') %}
+      <section class="autodoc-section" data-section="properties">
+        <h2 class="autodoc-section-title">Properties</h2>
+        <table class="autodoc-table" data-table="properties">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prop_name, prop_schema in element.metadata.get('properties', {}).items() %}
+            <tr {% if element.metadata.get('required') and prop_name in element.metadata.get('required', []) %}data-required="true"{% endif %}>
+              <td class="autodoc-cell-name"><code>{{ prop_name }}</code></td>
+              <td class="autodoc-cell-type"><code>{{ prop_schema.get('type', 'object') if prop_schema is mapping else 'object' }}</code></td>
+              <td>{% if element.metadata.get('required') and prop_name in element.metadata.get('required', []) %}Yes{% else %}No{% endif %}</td>
+              <td class="autodoc-cell-desc">{{ prop_schema.get('description', '—') if prop_schema is mapping else '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      {# Example #}
+      {% if element.metadata.get('example') %}
+      <section class="autodoc-section" data-section="examples">
+        <h2 class="autodoc-section-title">Example</h2>
+        <div class="autodoc-example">
+          <pre><code class="language-json">{{ element.metadata.get('example') | tojson(indent=2) }}</code></pre>
+        </div>
+      </section>
+      {% endif %}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

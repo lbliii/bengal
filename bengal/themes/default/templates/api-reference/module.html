@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{#
+API Reference Module Template
+
+Renders a Python module's API documentation using the unified autodoc skeleton.
+Extends base.html to inherit theme navigation, sidebars, and styling.
+Uses autodoc.css for all styling and autodoc/partials for components.
+
+This template receives:
+- element: DocElement for the module
+- config: Autodoc configuration
+- site: Site instance
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'autodoc/partials/_macros/class-member.html' import class_member %}
+{% from 'autodoc/partials/_macros/function-member.html' import function_member %}
+
+{% block content %}
+{# Pre-compute element children - use getattr for safe access #}
+{% set element_children = getattr(element, 'children', []) %}
+{% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
+{% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
+
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+
+  {# Main Content #}
+  <div class="docs-main">
+    {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
+    {% include 'partials/page-hero/element.html' %}
+
+    {# Article Content - Unified autodoc skeleton #}
+    <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">
+
+      {# Classes Section #}
+      {% if classes %}
+      <section class="autodoc-section" data-section="classes">
+        <h2 class="autodoc-section-title">Classes</h2>
+        {% for cls in classes %}
+        {{ class_member(cls, is_first=loop.first) }}
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {# Functions Section #}
+      {% if functions %}
+      <section class="autodoc-section" data-section="functions">
+        <h2 class="autodoc-section-title">Functions</h2>
+        {% for func in functions %}
+        {{ function_member(func, is_first=loop.first) }}
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/content-components.html' import tag_list with context %}
+        {{ tag_list(page.tags) }}
+      </footer>
+      {% endif %}
+    </article>
+
+    {# Page navigation (prev/next) at bottom #}
+    {{ page_navigation(page) }}
+  </div>
+
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {% include 'partials/docs-toc-sidebar.html' %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}

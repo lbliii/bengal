@@ -16,6 +16,9 @@ The caller (page-hero/element.html) should guard inclusion with {% if element %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
 {% endif %}
 {% elif element.element_type == 'class' %}
+{% if element.metadata.is_mixin %}
+<span class="autodoc-badge" data-badge="mixin">Mixin</span>
+{% endif %}
 {% if element.metadata.is_dataclass %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
 {% endif %}

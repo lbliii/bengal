@@ -250,6 +250,11 @@ article[data-autodoc] > p:first-of-type,
   color: var(--color-example-text);
 }
 
+.autodoc-badge[data-badge="mixin"] {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
 .autodoc-badge[data-badge="dataclass"] {
   background: var(--color-success-bg);
   color: var(--color-success-text);
