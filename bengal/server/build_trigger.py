@@ -374,6 +374,12 @@ class BuildTrigger:
         class _Stats:
             def __init__(self, res: Any, inc: bool) -> None:
                 self.total_pages = res.pages_built
+                self.regular_pages = getattr(res, "regular_pages", res.pages_built)
+                self.generated_pages = getattr(res, "generated_pages", 0)
+                self.total_assets = getattr(res, "total_assets", 0)
+                self.total_sections = getattr(res, "total_sections", 0)
+                self.taxonomies_count = getattr(res, "taxonomies_count", 0)
+                self.total_directives = getattr(res, "total_directives", 0)
                 self.build_time_ms = res.build_time_ms
                 self.incremental = inc
                 self.parallel = True
