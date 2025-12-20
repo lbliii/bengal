@@ -11,7 +11,7 @@ Covers:
 
 from unittest.mock import MagicMock, patch
 
-from bengal.utils.theme_resolution import (
+from bengal.core.theme import (
     _read_theme_extends,
     iter_theme_asset_dirs,
     resolve_theme_chain,

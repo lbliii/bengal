@@ -366,8 +366,8 @@ class IncrementalOrchestrator:
 
             # Compare only nav-affecting keys between current and cached metadata
             try:
+                from bengal.orchestration.constants import extract_nav_metadata
                 from bengal.utils.hashing import hash_str
-                from bengal.utils.incremental_constants import extract_nav_metadata
 
                 current_nav_meta = extract_nav_metadata(section_page.metadata or {})
                 current_nav_hash = hash_str(

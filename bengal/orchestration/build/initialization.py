@@ -10,8 +10,8 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
-from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
     from pathlib import Path

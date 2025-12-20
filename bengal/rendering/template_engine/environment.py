@@ -18,10 +18,10 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
 
+from bengal.core.theme import get_theme_package
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
 from bengal.utils.metadata import build_template_metadata
-from bengal.utils.theme_registry import get_theme_package
 
 logger = get_logger(__name__)
 

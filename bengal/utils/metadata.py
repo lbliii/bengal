@@ -27,8 +27,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
+from bengal.core.theme import get_theme_package
 from bengal.utils.logger import get_logger
-from bengal.utils.theme_registry import get_theme_package
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

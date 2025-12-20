@@ -173,7 +173,7 @@ class TestIncrementalOrchestrator:
 
         # Cache with matching nav_metadata_hash (including nav_metadata_hash for Phase 3)
         cache = BuildCache()
-        from bengal.utils.incremental_constants import extract_nav_metadata
+        from bengal.orchestration.constants import extract_nav_metadata
 
         nav_meta = extract_nav_metadata(metadata)
         cache.parsed_content[str(nav_path)] = {

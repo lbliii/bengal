@@ -124,8 +124,8 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
 
     from pathlib import Path
 
+    from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
     from bengal.utils.atomic_write import AtomicFile
-    from bengal.utils.build_badge import build_shields_like_badge_svg, format_duration_ms_compact
 
     duration_ms = float(last_build_stats.get("build_time_ms") or 0)
     duration_text = format_duration_ms_compact(duration_ms)

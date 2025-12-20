@@ -90,7 +90,7 @@ class ThemeIntegrationMixin:
         """
         dirs: list[Path] = []
         try:
-            from bengal.utils.theme_resolution import resolve_theme_chain
+            from bengal.core.theme import resolve_theme_chain
 
             chain = resolve_theme_chain(self.root_path, self.theme)
         except Exception as e:
@@ -104,7 +104,7 @@ class ThemeIntegrationMixin:
             chain = [self.theme] if self.theme else []
 
         for theme_name in reversed(chain):
-            from bengal.utils.theme_resolution import iter_theme_asset_dirs
+            from bengal.core.theme import iter_theme_asset_dirs
 
             for d in iter_theme_asset_dirs(self.root_path, [theme_name]):
                 dirs.append(d)

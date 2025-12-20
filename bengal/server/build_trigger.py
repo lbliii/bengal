@@ -390,7 +390,7 @@ class BuildTrigger:
         if needs_full_rebuild:
             return set()
 
-        from bengal.utils.incremental_constants import NAV_AFFECTING_KEYS
+        from bengal.orchestration.constants import NAV_AFFECTING_KEYS
 
         nav_changed: set[Path] = set()
 

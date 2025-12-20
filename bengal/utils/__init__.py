@@ -4,6 +4,7 @@ Utility functions and classes for Bengal SSG.
 
 from __future__ import annotations
 
+from bengal.core.section import resolve_page_section_path
 from bengal.utils import (
     async_compat,
     dates,
@@ -19,7 +20,6 @@ from bengal.utils.pagination import Paginator
 from bengal.utils.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths import BengalPaths
 from bengal.utils.retry import async_retry_with_backoff, calculate_backoff, retry_with_backoff
-from bengal.utils.sections import resolve_page_section_path
 from bengal.utils.text import humanize_slug
 from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 

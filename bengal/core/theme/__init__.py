@@ -30,6 +30,7 @@ from bengal.core.theme.registry import (
     get_theme_package,
 )
 from bengal.core.theme.resolution import (
+    _read_theme_extends,
     iter_theme_asset_dirs,
     resolve_theme_chain,
 )
@@ -45,4 +46,5 @@ __all__ = [
     # Theme resolution
     "resolve_theme_chain",
     "iter_theme_asset_dirs",
+    "_read_theme_extends",  # Internal helper (used by CLI)
 ]

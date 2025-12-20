@@ -17,7 +17,7 @@ import pytest
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
-from bengal.utils.page_initializer import PageInitializer
+from bengal.discovery.page_factory import PageInitializer
 
 
 class TestPageInitializer:
