@@ -811,6 +811,80 @@ class Section:
 
         return sections
 
+    # =========================================================================
+    # ERGONOMIC HELPER METHODS (for theme developers)
+    # =========================================================================
+
+    @cached_property
+    def content_pages(self) -> list[Page]:
+        """
+        Get content pages (regular pages excluding index).
+
+        This is useful for listing a section's pages without
+        including the section's own index page in the list.
+
+        Note:
+            `sorted_pages` already excludes `_index.md`/`index.md` files
+            (see sorted_pages implementation). This property is effectively
+            an alias but provides semantic clarity for theme developers.
+
+        Returns:
+            Sorted list of pages, excluding the section's index page
+
+        Example:
+            {% for page in section.content_pages %}
+              <a href="{{ page.url }}">{{ page.title }}</a>
+            {% endfor %}
+        """
+        # sorted_pages already excludes index files, so this is a semantic alias
+        return self.sorted_pages
+
+    def recent_pages(self, limit: int = 10) -> list[Page]:
+        """
+        Get most recent pages by date.
+
+        Returns pages that have a date, sorted newest first.
+        Pages without dates are excluded.
+
+        Args:
+            limit: Maximum number of pages to return (default: 10)
+
+        Returns:
+            List of pages sorted by date descending
+
+        Example:
+            {% for post in section.recent_pages(5) %}
+              <article>{{ post.title }} - {{ post.date }}</article>
+            {% endfor %}
+        """
+        dated_pages = [p for p in self.sorted_pages if getattr(p, "date", None)]
+        dated_pages.sort(key=lambda p: p.date, reverse=True)
+        return dated_pages[:limit]
+
+    def pages_with_tag(self, tag: str) -> list[Page]:
+        """
+        Get pages containing a specific tag.
+
+        Filters sorted_pages to return only pages that have the given tag.
+        Matching is case-insensitive.
+
+        Args:
+            tag: Tag to filter by (case-insensitive)
+
+        Returns:
+            Sorted list of pages with the tag
+
+        Example:
+            {% set python_posts = section.pages_with_tag('python') %}
+            {% for post in python_posts %}
+              <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        tag_lower = tag.lower()
+        return [
+            p for p in self.sorted_pages if tag_lower in [t.lower() for t in getattr(p, "tags", [])]
+        ]
+
     def __hash__(self) -> int:
         """
         Hash based on section path (or name for virtual sections) for stable identity.

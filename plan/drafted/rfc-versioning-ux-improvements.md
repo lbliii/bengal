@@ -104,7 +104,7 @@ At build time, compute the fallback URL for each (page, version) pair and embed 
   {% for v in versions %}
   <option
     value="{{ v.url_prefix or '/' }}"
-    data-target="{{ get_version_target_url(page, v) }}"
+    data-target="{{ site.get_version_target_url(page, v) }}"
     {% if current_version and current_version.id == v.id %}selected{% endif %}
   >
     {{ v.label }}{% if v.latest %} (Latest){% endif %}
@@ -119,6 +119,8 @@ function handleVersionChange(option) {
 }
 </script>
 ```
+
+**Engine-Agnostic**: Uses `site.get_version_target_url()` method which works with any template engine (Jinja2, Mako, or BYORenderer).
 
 **Build-time template function** (`get_version_target_url`):
 ```python
@@ -226,37 +228,56 @@ Generate a version-aware 404 page that redirects on load.
 
 ## Implementation Plan
 
-### Phase 1: Template Function for Fallback URLs
+### Phase 1: Engine-Agnostic Site Method ✅
 
-1. Create `bengal/rendering/template_functions/version_url.py`:
+**Key Design Decision**: Expose the version URL logic as a **Site method** rather than a Jinja-specific global function. This enables BYORenderer support.
+
+1. Add `Site.get_version_target_url()` method (`bengal/core/site/core.py`):
    ```python
-   def get_version_target_url(page: Page, version: Version, site: Site) -> str:
+   def get_version_target_url(
+       self, page: Page | None, target_version: dict[str, Any] | None
+   ) -> str:
+       """
+       Get the best URL for a page in the target version.
+
+       Works with any template engine (Jinja2, Mako, BYORenderer).
+       """
+       from bengal.rendering.template_functions.version_url import (
+           get_version_target_url as _get_version_target_url,
+       )
+       return _get_version_target_url(page, target_version, self)
+   ```
+
+2. Core logic in `bengal/rendering/template_functions/version_url.py`:
+   ```python
+   def get_version_target_url(page: Page, version: dict, site: Site) -> str:
        """Compute best URL for page in target version with fallback cascade."""
        ...
 
-   def page_exists_in_version(path: str, version: Version, site: Site) -> bool:
+   def page_exists_in_version(path: str, version_id: str, site: Site) -> bool:
        """Check if a page exists in the given version."""
        ...
    ```
 
-2. Register in template environment (`bengal/rendering/template_functions/__init__.py`)
+3. Jinja registration for backward compatibility only:
+   - Templates using `{{ get_version_target_url(page, v) }}` still work
+   - Preferred: `{{ site.get_version_target_url(page, v) }}`
 
-3. Add version→pages index to Site for O(1) lookups:
+4. O(1) lookups via LRU-cached version→pages index:
    ```python
-   # In Site or VersionConfig
-   @cached_property
-   def pages_by_version(self) -> dict[str, set[str]]:
+   @lru_cache(maxsize=1)
+   def _build_version_page_index(site: Site) -> dict[str, set[str]]:
        """Index of page URLs by version for fast existence checks."""
        ...
    ```
 
-### Phase 2: Update Version Selector Template
+### Phase 2: Update Version Selector Template ✅
 
 1. Update `bengal/themes/default/templates/partials/version-selector.html`:
    ```html
    <option
      value="{{ v.url_prefix or '/' }}"
-     data-target="{{ get_version_target_url(page, v) }}"
+     data-target="{{ site.get_version_target_url(page, v) }}"
      ...
    >
    ```
@@ -277,6 +298,15 @@ Generate a version-aware 404 page that redirects on load.
    </div>
    {% endif %}
    ```
+
+**BYORenderer Example (Mako)**:
+```mako
+% for v in versions:
+<option data-target="${site.get_version_target_url(page, v)}">
+  ${v['label']}
+</option>
+% endfor
+```
 
 ### Phase 3: Expand Test Fixtures
 
@@ -307,14 +337,16 @@ Generate a version-aware 404 page that redirects on load.
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `bengal/rendering/template_functions/version_url.py` | NEW: Fallback URL computation |
-| `bengal/rendering/template_functions/__init__.py` | Register new functions |
-| `bengal/core/site/properties.py` | Add `pages_by_version` index |
-| `bengal/themes/default/templates/partials/version-selector.html` | Use pre-computed URLs |
-| `site/content/_versions/v1/` | Expand test content |
-| `tests/roots/test-versioned/` | Expand test fixture |
+| File | Change | Status |
+|------|--------|--------|
+| `bengal/core/site/core.py` | Add `get_version_target_url()` method (engine-agnostic) | ✅ Done |
+| `bengal/rendering/template_functions/version_url.py` | Core fallback URL computation logic | ✅ Done |
+| `bengal/rendering/template_functions/__init__.py` | Register functions (backward compat) | ✅ Done |
+| `bengal/themes/default/templates/partials/version-selector.html` | Use `site.get_version_target_url()` | ✅ Done |
+| `site/content/_versions/v1/` | Expand test content | Pending |
+| `tests/roots/test-versioned/` | Expand test fixture | Pending |
+| `tests/unit/test_versioning_template_functions.py` | Unit tests | ✅ Done |
+| `tests/integration/test_versioning_ux.py` | Integration tests | ✅ Done |
 | `tests/unit/test_version_url.py` | NEW: Unit tests |
 
 ---

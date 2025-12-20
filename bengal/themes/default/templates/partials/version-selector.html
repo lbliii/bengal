@@ -16,6 +16,10 @@
   Customization:
     Override this partial in your theme to customize the version selector.
     You can also style it using CSS class: .version-selector
+
+  Engine-Agnostic:
+    Uses site.get_version_target_url() method which works with any template
+    engine (Jinja2, Mako, or BYORenderer). No global function dependency.
 #}
 
 {% if versioning_enabled and versions | length > 1 %}
@@ -52,7 +56,7 @@
     {% for v in versions %}
     <option
       value="{{ v.url_prefix or '/' }}"
-      data-target="{{ get_version_target_url(page, v) }}"
+      data-target="{{ site.get_version_target_url(page, v) }}"
       {% if current_version and current_version.id == v.id %}selected{% endif %}
       {% if v.deprecated %}class="version-deprecated"{% endif %}
     >

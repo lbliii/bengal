@@ -6,11 +6,25 @@ for cross-version navigation. Enables the version selector to always land
 on valid pages instead of 404 errors.
 
 Key function:
-    get_version_target_url(page, version) -> URL to navigate to when switching versions
+    get_version_target_url(page, version, site) -> URL to navigate to when switching versions
 
 Design:
     Pre-computes fallback URLs at build time for instant client-side navigation.
     No runtime manifest fetch or HEAD requests needed.
+
+Engine-Agnostic Access:
+    The preferred way to use this is via the Site method:
+
+        site.get_version_target_url(page, version)
+
+    This works with any template engine (Jinja2, Mako, BYORenderer).
+    The Jinja2 global function is provided for backward compatibility only.
+
+    Example (Jinja2):
+        {{ site.get_version_target_url(page, v) }}
+
+    Example (Mako):
+        ${site.get_version_target_url(page, v)}
 """
 
 from __future__ import annotations
@@ -30,7 +44,17 @@ logger = get_logger(__name__)
 
 
 def register(env: Environment, site: Site) -> None:
-    """Register version URL functions with Jinja2 environment."""
+    """
+    Register version URL functions with Jinja2 environment.
+
+    Note: This registration is provided for backward compatibility with templates
+    using the global function syntax: {{ get_version_target_url(page, v) }}
+
+    The preferred engine-agnostic approach is to use the Site method:
+        {{ site.get_version_target_url(page, v) }}
+
+    This Site method works with any template engine, not just Jinja2.
+    """
 
     def get_version_target_url_wrapper(
         page: Page | None, target_version: dict[str, Any] | None
