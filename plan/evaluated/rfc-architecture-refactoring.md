@@ -1,11 +1,13 @@
 # RFC: Architecture Refactoring - Package Consolidation and Code Smell Remediation
 
-**Status**: Draft
+**Status**: Planned ✅
 **Author**: AI Assistant
 **Created**: 2025-01-27
 **Updated**: 2025-12-20
+**Planned**: 2025-12-20
+**Plan**: `plan/ready/plan-architecture-refactoring.md`
 **Consolidates**: `rfc-code-smell-remediation.md`, `rfc-package-architecture-consolidation.md`
-**Confidence**: 88% 🟢
+**Confidence**: 92% 🟢
 **Category**: Architecture / Refactoring
 
 ---
@@ -188,11 +190,27 @@ rendering/plugins/directives/
 └── ... (20+ more)
 ```
 
-**Proposed**: Extract to `bengal/directives/` AND break up `cards.py`:
+**Proposed**: Extract to `bengal/directives/` AND break up `cards.py`.
 
+**Pattern: Lazy Loading Registry**:
+To prevent performance regression in the rendering pipeline, the new `directives/__init__.py` will implement a lazy-loading registry. Directives will only be imported when their shortcode is actually encountered in a page's AST.
+
+```python
+# bengal/directives/__init__.py
+_DIRECTIVE_MAP = {
+    "cards": "bengal.directives.cards",
+    "tabs": "bengal.directives.tabs",
+    # ...
+}
+
+def get_directive(name: str) -> type[BaseDirective]:
+    # Lazy import logic here
+```
+
+**Proposed Structure**:
 ```
 bengal/directives/
-├── __init__.py              # register_all(), registry
+├── __init__.py              # register_all(), lazy registry
 ├── registry.py              # Directive registration system
 ├── base.py                  # BaseDirective class
 ├── admonitions.py
@@ -373,7 +391,7 @@ def build(self, options: BuildOptions | None = None) -> BuildStats:
 ```python
 # bengal/rendering/template_functions/navigation/models.py
 
-@dataclass
+@dataclass(slots=True)  # Use slots for memory efficiency (RFC evaluation)
 class BreadcrumbItem:
     """Single breadcrumb in navigation trail."""
     title: str
@@ -388,7 +406,7 @@ class BreadcrumbItem:
         """Support dict(item) conversion."""
         return ["title", "url", "is_current"]
 
-@dataclass  
+@dataclass(slots=True)  
 class PaginationItem:
     """Single page in pagination."""
     num: int | None
@@ -399,7 +417,7 @@ class PaginationItem:
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
-@dataclass
+@dataclass(slots=True)
 class NavTreeItem:
     """Item in navigation tree."""
     title: str
@@ -443,10 +461,11 @@ bengal/orchestration/incremental/
 **Estimated Impact**: -400 lines of duplication, improved testability
 
 **Risk Mitigation** (CRITICAL):
-1. **Pre-requisite**: Audit existing test coverage for `find_work_early()` and `find_work()`
-2. **Feature flag**: Introduce `use_unified_change_detector: bool = False` config option
-3. **Parallel execution period**: Run both old and new code paths, compare results
-4. **Rollback plan**: Git revert to last known-good if issues arise
+1. **Pre-requisite**: Audit existing test coverage for `find_work_early()` and `find_work()`.
+2. **Feature flag**: Introduce `use_unified_change_detector: bool = False` config option.
+3. **Differential Regression Testing**: Implement a "shadow mode" where both old and new logic paths are executed, and their resulting page lists are compared. Any discrepancy must raise a critical error in CI.
+4. **Parallel execution period**: Run both old and new code paths, compare results.
+5. **Rollback plan**: Git revert to last known-good if issues arise.
 
 ---
 
@@ -558,7 +577,8 @@ autodoc/
 ```
 
 **Note**: The current structure is already well-organized. Changes are minimal:
-- Rename `virtual_orchestrator.py` → `virtual.py` (consistency, it's only 27 lines)
+- Rename `virtual_orchestrator.py` → `virtual.py` (consistency, it's only 27 lines).
+- **External Plugin Check**: Audit external plugins to ensure no direct imports of `virtual_orchestrator` exist before renaming.
 
 ---
 
@@ -571,6 +591,7 @@ autodoc/
 | Task | Effort | Risk |
 |------|--------|------|
 | Create `bengal/directives/` package structure | 2h | Low |
+| Implement lazy-loading directive registry | 3h | Medium |
 | Move base directive classes | 2h | Low |
 | Move directive implementations (39 files) | 10h | Medium |
 | Break `cards.py` into `directives/cards/` package (1,027 lines) | 4h | Medium |
@@ -598,12 +619,13 @@ autodoc/
 
 | Task | Effort | Risk |
 |------|--------|------|
+| **Circular Dependency Audit**: CLI Output | 4h | **High** |
 | Convert `cli_output.py` (838 lines) to `cli/output/` package | 6h | Medium |
 | Convert `build_stats.py` (613 lines) to `orchestration/stats/` package | 5h | Medium |
 | Move `live_progress.py` (555 lines) to `cli/progress.py` | 2h | Low |
 | Move `build_summary.py` (433 lines) to `orchestration/summary.py` | 2h | Low |
 | Create `BuildOptions` dataclass | 2h | Low |
-| Create navigation dataclasses | 3h | Low |
+| Create navigation dataclasses (with `__slots__`) | 3h | Low |
 | Update call sites for `BuildOptions` | 4h | Medium |
 | Update imports | 6h | Medium |
 | Update tests | 6h | Medium |
@@ -645,6 +667,7 @@ autodoc/
 | Create `orchestration/incremental/` package structure | 1h | Low |
 | Extract `ChangeDetector` class | 4h | Medium |
 | Merge `find_work()` and `find_work_early()` | 6h | **High** |
+| **Shadow Execution**: Compare old/new logic results | 8h | **High** |
 | Extract `CascadeTracker` | 3h | Low |
 | Update imports and tests | 4h | Medium |
 | Feature flag validation (1-week parallel execution) | 8h | Medium |

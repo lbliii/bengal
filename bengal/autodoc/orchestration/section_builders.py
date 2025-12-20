@@ -170,8 +170,14 @@ def create_cli_sections(
     for group_name in command_groups:
         # Build URL path components
         group_path = resolve_cli_url_path(group_name)
-        section_path = f"{prefix}/{group_path}" if group_path else prefix
-        group_parts = group_path.split("/") if group_path else []
+
+        # Skip the root command group (e.g., "bengal") - its section is already
+        # created above as cli_section. Otherwise we'd overwrite it and lose subsections.
+        if not group_path:
+            continue
+
+        section_path = f"{prefix}/{group_path}"
+        group_parts = group_path.split("/")
 
         group_section = Section.create_virtual(
             name=group_name.split(".")[-1],
@@ -184,6 +190,15 @@ def create_cli_sections(
         )
         cli_section.add_subsection(group_section)
         sections[section_path] = group_section
+
+    # DEBUG: Print to stderr to see what sections are created
+    import sys
+
+    print(
+        f"[DEBUG] CLI sections created: {len(sections)} total, {len(cli_section.subsections)} subsections",
+        file=sys.stderr,
+    )
+    print(f"[DEBUG] CLI section paths: {list(sections.keys())[:10]}", file=sys.stderr)
 
     logger.debug("autodoc_sections_created", count=len(sections), type="cli")
     return sections

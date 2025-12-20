@@ -88,7 +88,8 @@ def create_pages(
 
         # Create page metadata without rendering HTML yet
         template_name, url_path, page_type = get_element_metadata(element, doc_type)
-        source_id = f"{doc_type}/{url_path}.md"
+        # Note: url_path already includes the prefix (e.g., "cli/assets/build")
+        source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"
 
         # Create page with deferred rendering - HTML rendered in rendering phase
