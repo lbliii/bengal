@@ -4,6 +4,7 @@
 **Author**: AI Assistant
 **Created**: 2025-12-19
 **Evaluated**: 2025-12-19
+**Refreshed**: 2025-01-27
 **Confidence**: 91% 🟢
 **Category**: Architecture / Refactoring
 
@@ -30,13 +31,14 @@ However, several modules have grown beyond the **400-line threshold** specified 
 
 | File | Lines | Threshold Exceeded |
 |------|-------|-------------------|
-| `orchestration/incremental.py` | 1,284 | 3.2x |
+| `orchestration/incremental.py` | 1,399 | 3.5x |
 | `analysis/knowledge_graph.py` | 1,222 | 3.1x |
 | `autodoc/extractors/python.py` | 1,146 | 2.9x |
 | `rendering/parsers/mistune.py` | 1,075 | 2.7x |
 | `rendering/plugins/directives/cards.py` | 1,027 | 2.6x |
-| `rendering/template_functions/navigation.py` | 950 | 2.4x |
-| `discovery/content_discovery.py` | 911 | 2.3x |
+| `rendering/template_functions/navigation.py` | 966 | 2.4x |
+| `discovery/content_discovery.py` | 944 | 2.4x |
+| `core/section.py` | 934 | 2.3x |
 | `utils/cli_output.py` | 838 | 2.1x |
 
 ### Evidence: God Functions (Top 15)
@@ -52,8 +54,8 @@ However, several modules have grown beyond the **400-line threshold** specified 
 | `rendering/renderer.py:117` | `render_page()` | 215 |
 | `rendering/template_engine/environment.py:132` | `create_jinja_environment()` | 203 |
 | `rendering/template_functions/navigation.py:132` | `get_breadcrumbs()` | 196 |
-| `orchestration/incremental.py:727` | `find_work()` | 177 |
-| `orchestration/incremental.py:482` | `find_work_early()` | 168 |
+| `orchestration/incremental.py:842` | `find_work()` | 176 |
+| `orchestration/incremental.py:588` | `find_work_early()` | 254 |
 | `rendering/parsers/mistune.py:179` | `_create_syntax_highlighting_plugin()` | 175 |
 | `postprocess/sitemap.py:74` | `generate()` | 150 |
 | `health/autofix.py:427` | `apply_fix()` | 150 |
@@ -98,8 +100,8 @@ Both share ~70% of their logic but are maintained separately.
 
 **Evidence** (`orchestration/incremental.py`):
 ```python
-# Lines 482-725: find_work_early()
-# Lines 727-902: find_work()
+# Lines 588-841: find_work_early() (254 lines)
+# Lines 842-1017: find_work() (176 lines)
 # Both contain:
 #   - Section-level filtering
 #   - Cache bypass checking  
@@ -167,7 +169,7 @@ def get_leaves(self, threshold: int | None = None) -> list[Page]:
 
 #### 1.1 Convert `orchestration/incremental.py` to Package
 
-**Current**: 1,284 lines in single file
+**Current**: 1,399 lines in single file (increased from 1,284)
 
 **Proposed Structure**:
 ```
@@ -188,7 +190,7 @@ bengal/orchestration/incremental/
 
 #### 1.2 Convert `rendering/template_functions/navigation.py` to Package
 
-**Current**: 950 lines in single file
+**Current**: 966 lines in single file (increased from 950)
 
 **Proposed Structure**:
 ```
@@ -416,15 +418,15 @@ class BuildCommandExecutor:
 1. **Pre-requisite**: Audit existing test coverage for `find_work_early()` and `find_work()`
    - Location: `tests/unit/test_incremental.py`
    - Required: Tests covering both pre-taxonomy and post-taxonomy phases
-   
+
 2. **Feature flag**: Introduce `use_unified_change_detector: bool = False` config option
    - Old code path remains default until validated
    - New code path opt-in for testing
-   
+
 3. **Parallel execution period**: Run both old and new code paths, compare results
    - Log any discrepancies
    - 1-week validation before switching default
-   
+
 4. **Rollback plan**: Git revert to last known-good if issues arise
 
 ### Sprint 3: Navigation Package (Week 3)
@@ -498,7 +500,7 @@ class BuildCommandExecutor:
 
 ## Evaluation Notes
 
-**Evaluated**: 2025-12-19 | **Confidence**: 91% 🟢
+**Evaluated**: 2025-12-19 | **Refreshed**: 2025-01-27 | **Confidence**: 91% 🟢
 
 ### Claims Verified (17/18)
 
@@ -507,7 +509,7 @@ class BuildCommandExecutor:
 | File sizes (8 files) | 8/8 ✅ | All line counts exact match |
 | God function locations | ✅ | Line numbers verified |
 | BuildOrchestrator signature | ✅ | 11 params at `build/__init__.py:97-111` |
-| find_work duplication | ✅ | Lines 482 and 727 confirmed |
+| find_work duplication | ✅ | Lines 588 and 842 confirmed (functions have grown) |
 | Existing package patterns | ✅ | `core/page/`, `core/site/`, `build/` verified |
 | Architecture threshold | ✅ | 400-line rule in `architecture-patterns.mdc:223` |
 
@@ -515,6 +517,17 @@ class BuildCommandExecutor:
 
 1. **CLI build function**: 421 → 419 lines (file is 575 lines, function spans 156-575)
 2. **Middle Man assessment**: Added nuance - delegation includes defensive build-state checks
+
+### Refresh Updates (2025-01-27)
+
+1. **File sizes updated**: `incremental.py` grew from 1,284 → 1,399 lines (+115 lines)
+2. **Function locations shifted**: `find_work_early()` moved from line 482 → 588, `find_work()` from 727 → 842
+3. **Function sizes**: `find_work_early()` grew from 168 → 254 lines, `find_work()` remains ~176 lines
+4. **New entry**: `core/section.py` (934 lines) added to largest files list
+5. **Navigation file**: Grew from 950 → 966 lines
+6. **Content discovery**: Grew from 911 → 944 lines
+
+**Impact**: The problem has worsened since RFC creation. Refactoring is more urgent.
 
 ### Improvements Added
 

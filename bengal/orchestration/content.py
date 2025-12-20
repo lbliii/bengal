@@ -645,7 +645,7 @@ class ContentOrchestrator:
                         existing_page, existing_anchor = self.site.xref_index["by_anchor"][
                             anchor_key
                         ]
-                        self.self.logger.warning(
+                        self.logger.warning(
                             "anchor_collision",
                             anchor_id=anchor_id,
                             target_page=str(getattr(page, "source_path", "unknown")),
