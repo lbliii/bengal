@@ -651,7 +651,7 @@ class ContentOrchestrator:
                             target_page=str(getattr(page, "source_path", "unknown")),
                             existing_page=str(getattr(existing_page, "source_path", "unknown")),
                             existing_anchor=existing_anchor,
-                            message=(
+                            details=(
                                 f"Target directive '::{{target}} {anchor_id}' collides with "
                                 f"existing anchor '{existing_anchor}' in {existing_page}. "
                                 f"Use '[[!{anchor_id}]]' to explicitly reference the target directive, "
