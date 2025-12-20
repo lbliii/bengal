@@ -1,6 +1,6 @@
 # RFC: Version-Aware Section Methods
 
-**Status**: Draft  
+**Status**: Implemented  
 **Author**: AI Assistant  
 **Created**: 2025-12-20  
 **Subsystem**: Core (bengal/core/section.py)  
