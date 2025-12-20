@@ -191,16 +191,12 @@ def create_cli_sections(
         cli_section.add_subsection(group_section)
         sections[section_path] = group_section
 
-    # DEBUG: Print to stderr to see what sections are created
-    import sys
-
-    print(
-        f"[DEBUG] CLI sections created: {len(sections)} total, {len(cli_section.subsections)} subsections",
-        file=sys.stderr,
+    logger.debug(
+        "autodoc_sections_created",
+        count=len(sections),
+        type="cli",
+        subsection_count=len(cli_section.subsections),
     )
-    print(f"[DEBUG] CLI section paths: {list(sections.keys())[:10]}", file=sys.stderr)
-
-    logger.debug("autodoc_sections_created", count=len(sections), type="cli")
     return sections
 
 

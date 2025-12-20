@@ -208,28 +208,17 @@ class SectionRegistryMixin:
         elapsed_ms = (time.time() - start) * 1000
         total_registered = len(self._section_registry) + len(self._section_url_registry)
 
-        # Log registered URL keys for debugging virtual section lookups
-        url_keys = list(self._section_url_registry.keys())
-
-        # DEBUG: Print to stdout to see what's registered
-        import sys
-
-        print(
-            f"[DEBUG] Section registry built: {len(self._section_registry)} path sections, {len(self._section_url_registry)} URL sections",
-            file=sys.stderr,
-        )
-        if url_keys:
-            print(f"[DEBUG] URL keys: {url_keys[:20]}", file=sys.stderr)
-
         emit_diagnostic(
             self,
             "debug",
             "section_registry_built",
             path_sections=len(self._section_registry),
             url_sections=len(self._section_url_registry),
-            url_keys=url_keys[:20] if len(url_keys) > 20 else url_keys,
             total_registered=total_registered,
             elapsed_ms=f"{elapsed_ms:.2f}",
+            avg_us_per_section=f"{(elapsed_ms * 1000 / total_registered):.2f}"
+            if total_registered
+            else "0",
         )
 
     def _register_section_recursive(self, section: Section) -> None:
@@ -258,13 +247,6 @@ class SectionRegistryMixin:
             rel_url_path = rel_url.strip("/") if rel_url else section.name
             self._section_registry[Path(rel_url_path)] = section
 
-            # Debug: log virtual section registration with subsection count
-            import sys
-
-            print(
-                f"[DEBUG] Registering virtual section: {section.name} at {rel_url} with {len(section.subsections)} subsections",
-                file=sys.stderr,
-            )
         else:
             # Register regular section by normalized path
             normalized = self._normalize_section_path(section.path)

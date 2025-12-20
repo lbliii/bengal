@@ -640,17 +640,6 @@ class VirtualAutodocOrchestrator:
 
         root_sections = [s for key, s in all_sections.items() if key in root_section_keys]
 
-        # DEBUG: Check what's being returned
-        import sys
-
-        for key in root_section_keys:
-            if key in all_sections:
-                s = all_sections[key]
-                print(
-                    f"[DEBUG] Root section key={key}, name={s.name}, subsections={len(s.subsections)}",
-                    file=sys.stderr,
-                )
-
         logger.debug(
             "virtual_autodoc_root_sections",
             count=len(root_sections),
