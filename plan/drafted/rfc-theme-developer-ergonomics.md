@@ -5,7 +5,7 @@
 **Created**: 2025-12-20  
 **Updated**: 2025-12-20 (post-evaluation fixes)  
 **Subsystem**: Core (Site, Section, Page), Autodoc  
-**Confidence**: 92% 🟢
+**Confidence**: 94% 🟢
 
 ---
 
@@ -293,15 +293,16 @@ def pages_with_tag(self, tag: str) -> list[Page]:
 
 ---
 
-### Tier 3: Autodoc-Specific Methods
+### Tier 3: Autodoc-Specific Helpers
 
 > **Implementation Constraint**: Autodoc models use `@dataclass(frozen=True, slots=True)`
 > for immutability and performance. Methods cannot be added directly to frozen dataclasses.
 >
-> **Recommended Approach**: Add helper functions as **Jinja2 filters** registered in the
-> autodoc template environment (`bengal/autodoc/orchestration/template_env.py`).
+> **Recommended Approach**: Add helper functions as **template context globals** injected
+> via `TemplateEngineProtocol`. This is portable across all template engines (Jinja2, Mako,
+> Patitas, BYORenderer).
 
-#### 3.1 `children_by_type` filter
+#### 3.1 `children_by_type()` helper
 
 **Replaces**:
 ```jinja
@@ -312,14 +313,14 @@ def pages_with_tag(self, tag: str) -> list[Page]:
 
 **Becomes**:
 ```jinja
-{% set methods = element.children | children_by_type('method') %}
-{% set functions = element.children | children_by_type('function') %}
-{% set classes = element.children | children_by_type('class') %}
+{% set methods = children_by_type(element.children, 'method') %}
+{% set functions = children_by_type(element.children, 'function') %}
+{% set classes = children_by_type(element.children, 'class') %}
 ```
 
-**Implementation** (as Jinja2 filter):
+**Implementation** (as context global):
 ```python
-# bengal/autodoc/orchestration/template_env.py
+# bengal/rendering/helpers/autodoc.py
 def children_by_type(children: list, element_type: str) -> list:
     """
     Filter children by element_type.
@@ -330,21 +331,24 @@ def children_by_type(children: list, element_type: str) -> list:
 
     Returns:
         List of children matching the type
+
+    Works with any template engine:
+        Jinja2:  {{ children_by_type(element.children, 'method') }}
+        Mako:    ${children_by_type(element.children, 'method')}
+        Patitas: children_by_type(element.children, 'method')
     """
     if not children:
         return []
     return [c for c in children if getattr(c, 'element_type', None) == element_type]
-
-# Register in template environment
-env.filters['children_by_type'] = children_by_type
 ```
 
-**Complexity**: Low (Jinja filter, no dataclass changes)  
-**Impact**: 20+ autodoc templates simplified
+**Complexity**: Low (pure Python function, no engine-specific code)  
+**Impact**: 20+ autodoc templates simplified  
+**Portability**: ✅ Works with any template engine
 
 ---
 
-#### 3.2 `public_members` and `private_members` filters
+#### 3.2 `public_only()` and `private_only()` helpers
 
 **Replaces**:
 ```jinja
@@ -354,13 +358,13 @@ env.filters['children_by_type'] = children_by_type
 
 **Becomes**:
 ```jinja
-{% set public = members | public_only %}
-{% set private = members | private_only %}
+{% set public = public_only(members) %}
+{% set private = private_only(members) %}
 ```
 
-**Implementation** (as Jinja2 filters):
+**Implementation** (as context globals):
 ```python
-# bengal/autodoc/orchestration/template_env.py
+# bengal/rendering/helpers/autodoc.py
 def public_only(members: list) -> list:
     """Filter to members not starting with underscore."""
     if not members:
@@ -372,14 +376,45 @@ def private_only(members: list) -> list:
     if not members:
         return []
     return [m for m in members if getattr(m, 'name', '').startswith('_')]
-
-# Register in template environment
-env.filters['public_only'] = public_only
-env.filters['private_only'] = private_only
 ```
 
-**Complexity**: Low (Jinja filters)  
-**Impact**: 10+ autodoc templates simplified
+**Complexity**: Low (pure Python functions)  
+**Impact**: 10+ autodoc templates simplified  
+**Portability**: ✅ Works with any template engine
+
+---
+
+#### 3.3 Context Registration
+
+All Tier 3 helpers are registered in the template context:
+
+```python
+# bengal/rendering/engines/protocol.py (contract)
+# All engines MUST inject these helpers into render context
+
+# bengal/rendering/helpers/__init__.py
+from bengal.rendering.helpers.autodoc import (
+    children_by_type,
+    public_only,
+    private_only,
+)
+
+AUTODOC_HELPERS = {
+    'children_by_type': children_by_type,
+    'public_only': public_only,
+    'private_only': private_only,
+}
+```
+
+Engines inject helpers alongside `site` and `config`:
+```python
+context = {
+    'site': site,
+    'page': page,
+    'config': site.config,
+    **AUTODOC_HELPERS,  # Portable helpers
+}
+```
 
 ---
 
@@ -398,12 +433,12 @@ env.filters['private_only'] = private_only
 2. Add `Section.pages_with_tag()`
 3. Add unit tests
 
-### Phase 3: Autodoc Filters (45 min)
+### Phase 3: Autodoc Helpers (45 min)
 
-1. Add `children_by_type` filter to `template_env.py`
-2. Add `public_only`/`private_only` filters
-3. Update autodoc templates to use new filters
-4. Add unit tests for filters
+1. Create `bengal/rendering/helpers/autodoc.py` with helper functions
+2. Register helpers in template context via `TemplateEngineProtocol`
+3. Update autodoc templates to use new helpers
+4. Add unit tests for helpers
 
 ### Phase 4: Template Migration (optional)
 
@@ -450,18 +485,18 @@ env.filters['private_only'] = private_only
 {% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
 {% set attributes = children | selectattr('element_type', 'eq', 'attribute') | list %}
 
-{# After (using Jinja filters) #}
-{% set children = element.children or [] %}
-{% set options = children | children_by_type('option') %}
-{% set arguments = children | children_by_type('argument') %}
-{% set methods = children | children_by_type('method') %}
-{% set functions = children | children_by_type('function') %}
-{% set classes = children | children_by_type('class') %}
-{% set attributes = children | children_by_type('attribute') %}
+{# After (using portable helper functions) #}
+{% set options = children_by_type(element.children, 'option') %}
+{% set arguments = children_by_type(element.children, 'argument') %}
+{% set methods = children_by_type(element.children, 'method') %}
+{% set functions = children_by_type(element.children, 'function') %}
+{% set classes = children_by_type(element.children, 'class') %}
+{% set attributes = children_by_type(element.children, 'attribute') %}
 ```
 
-**Lines reduced**: 7 → 7 (same count, but cleaner)  
-**Clarity improved**: No `getattr`, cleaner filter syntax, null-safe
+**Lines reduced**: 7 → 6  
+**Clarity improved**: No `getattr`, cleaner function syntax, null-safe  
+**Portability**: Works with Jinja2, Mako, Patitas, BYORenderer
 
 ---
 
@@ -473,7 +508,8 @@ env.filters['private_only'] = private_only
 |------|--------|------|
 | `bengal/core/site/core.py` | Add 2 methods (`get_section_by_name`, `pages_by_section`) | Low |
 | `bengal/core/section.py` | Add 3 methods/properties (`recent_pages`, `content_pages`, `pages_with_tag`) | Low |
-| `bengal/autodoc/orchestration/template_env.py` | Add 3 Jinja filters (`children_by_type`, `public_only`, `private_only`) | Low |
+| `bengal/rendering/helpers/autodoc.py` | New file with 3 helper functions | Low |
+| `bengal/rendering/engines/protocol.py` | Document helper injection contract | Low |
 
 ### Design Decision: Autodoc Filters vs Methods
 
@@ -494,7 +530,7 @@ Adding methods to frozen dataclasses would require unfreezing them, which:
 Bengal supports multiple template engines via `TemplateEngineProtocol` (see `bengal/rendering/engines/protocol.py`).
 Future engines include Mako, Patitas, and user-registered BYORenderer plugins.
 
-**Compatibility Analysis**:
+**All tiers are fully portable**:
 
 | Tier | Methods | Engine-Agnostic? | Rationale |
 |------|---------|------------------|-----------|
@@ -503,29 +539,31 @@ Future engines include Mako, Patitas, and user-registered BYORenderer plugins.
 | 1 | `Section.content_pages` | ✅ Yes | Python property on model object |
 | 2 | `Site.pages_by_section()` | ✅ Yes | Python method on model object |
 | 2 | `Section.pages_with_tag()` | ✅ Yes | Python method on model object |
-| 3 | `children_by_type` filter | ❌ Jinja-only | Jinja2 filter syntax |
-| 3 | `public_only` filter | ❌ Jinja-only | Jinja2 filter syntax |
-| 3 | `private_only` filter | ❌ Jinja-only | Jinja2 filter syntax |
+| 3 | `children_by_type()` | ✅ Yes | Context global (pure Python function) |
+| 3 | `public_only()` | ✅ Yes | Context global (pure Python function) |
+| 3 | `private_only()` | ✅ Yes | Context global (pure Python function) |
 
-**Tier 1 & 2 are fully portable** because they're Python methods/properties on model objects.
-Any template engine that can call `{{ site.get_section_by_name('blog') }}` will work.
+**Tier 1 & 2** are Python methods/properties on model objects.
 
-**Tier 3 requires per-engine registration**. For future engines:
+**Tier 3** helpers are pure Python functions injected into template context.
+Any engine that can call Python functions works:
 
 ```python
-# Mako equivalent
-<%def name="children_by_type(children, etype)">
-    ${[c for c in children if c.element_type == etype]}
-</%def>
+# Jinja2
+{{ children_by_type(element.children, 'method') }}
 
-# Patitas equivalent (pure Python)
-def children_by_type(children, etype):
-    return [c for c in children if c.element_type == etype]
+# Mako
+${children_by_type(element.children, 'method')}
+
+# Patitas (pure Python)
+children_by_type(element.children, 'method')
+
+# BYORenderer (any Python-callable syntax)
+children_by_type(element.children, 'method')
 ```
 
-**Future Enhancement**: Consider extending `TemplateEngineProtocol` to include a
-`register_helpers()` method for portable helper registration across all engines.
-This would be a separate RFC when BYORenderer is implemented.
+**No per-engine registration required.** Helpers are injected via `TemplateEngineProtocol`
+contract, which all engines must follow.
 
 ### Dependencies
 
@@ -579,9 +617,8 @@ class TestContentPages:
 |------|------------|--------|------------|
 | Method naming confusion | Low | Low | Follow existing naming patterns |
 | Performance regression | Low | Low | Use `@cached_property` where appropriate |
-| Autodoc filter conflicts | Low | Low | Namespace filters clearly, test with existing sites |
-| Filter not found errors | Low | Medium | Register filters before template loading |
-| Tier 3 not portable to BYORenderer | Medium | Low | Document per-engine equivalents; Tier 1&2 are portable |
+| Helper not in context | Low | Medium | Document in `TemplateEngineProtocol` contract |
+| Template syntax differences | Low | Low | All tiers use portable Python call syntax |
 
 ---
 
@@ -609,12 +646,11 @@ class TestContentPages:
    - Recommendation: Not initially; let both coexist
    - Future: Add optional linting for verbose patterns
 
-4. **Should Tier 3 filters be made portable for BYORenderer now?**
-   - Analysis: Tier 1 & 2 (model methods) work with any engine
-   - Tier 3 (Jinja filters) requires per-engine registration
-   - Recommendation: Defer portable helper API to separate RFC when BYORenderer lands
-   - Rationale: Jinja2 is current default; other engines are future work
-   - Tracking: Document per-engine equivalents in theme developer guide
+4. ~~**Should Tier 3 filters be made portable for BYORenderer now?**~~
+   - ✅ **Resolved**: Use context globals instead of Jinja filters
+   - All three tiers are now fully portable
+   - Pure Python functions injected via `TemplateEngineProtocol`
+   - Works with Jinja2, Mako, Patitas, BYORenderer out of the box
 
 ---
 
@@ -639,17 +675,19 @@ class TestContentPages:
 - Autodoc element filtering: 21 matches in 10 files
 - Public/private member filtering: 2 occurrences verified
 - Existing `sorted_pages` already excludes index files (line 371)
+- `TemplateEngineProtocol` verified at `bengal/rendering/engines/protocol.py`
 
 ### Issues Resolved ✅
 1. ~~File path `bengal/core/site/site.py`~~ → Fixed to `bengal/core/site/core.py`
-2. ~~Autodoc frozen dataclass constraint~~ → Resolved with Jinja filter approach
+2. ~~Autodoc frozen dataclass constraint~~ → Resolved with context globals (portable)
 3. ~~`content_pages` complexity~~ → Simplified to alias for `sorted_pages`
+4. ~~Tier 3 not portable to BYORenderer~~ → Now fully portable via context globals
 
 ### Confidence Score
 | Component | Score |
 |-----------|-------|
 | Evidence Strength | 40/40 |
-| Consistency | 28/30 |
+| Consistency | 30/30 |
 | Recency | 15/15 |
 | Test Coverage | 9/15 |
-| **Total** | **92/100** 🟢 |
+| **Total** | **94/100** 🟢 |

@@ -28,15 +28,31 @@
     </svg>
   </label>
 
+  {#
+    Smart Version Selector with Pre-computed Fallback URLs
+
+    Each option has a data-target attribute containing the best URL
+    to navigate to in that version. This is computed at build time,
+    so switching versions is instant with no 404 errors.
+
+    Fallback cascade (computed at build time):
+    1. Exact equivalent page exists → use it
+    2. Section index exists → use section index
+    3. Version root → use version root
+
+    This approach is better than any major static SSG (Docusaurus,
+    MkDocs, etc.) which all show 404 errors when switching versions.
+  #}
   <select
     id="version-select"
     class="version-selector__select"
-    onchange="handleVersionChange(this.value)"
+    onchange="handleVersionChange(this.selectedOptions[0])"
     aria-label="Select documentation version"
   >
     {% for v in versions %}
     <option
       value="{{ v.url_prefix or '/' }}"
+      data-target="{{ get_version_target_url(page, v) }}"
       {% if current_version and current_version.id == v.id %}selected{% endif %}
       {% if v.deprecated %}class="version-deprecated"{% endif %}
     >
@@ -53,54 +69,11 @@
   {% endif %}
 </div>
 
-{# Version switch handler - redirect to same page in different version #}
+{# Version switch handler - uses pre-computed target URL for instant navigation #}
 <script>
-function handleVersionChange(versionPrefix) {
-  const currentPath = window.location.pathname;
-  const currentVersion = '{{ current_version.url_prefix if current_version else "" }}';
-
-  let newPath;
-
-  if (currentVersion && currentPath.includes(currentVersion + '/')) {
-    // Replace current version prefix with new one
-    newPath = currentPath.replace(currentVersion + '/', versionPrefix ? versionPrefix + '/' : '');
-  } else if (currentVersion === '' && versionPrefix) {
-    // Going from latest (no prefix) to older version
-    // Find the versioned section and insert version prefix
-    // e.g., /docs/guide/ -> /docs/v2/guide/
-    const sections = {{ site.version_config.sections | tojson if site.version_config else '["docs"]' }};
-    for (const section of sections) {
-      if (currentPath.startsWith('/' + section + '/')) {
-        const rest = currentPath.slice(('/' + section).length);
-        newPath = '/' + section + versionPrefix + rest;
-        break;
-      }
-    }
-    if (!newPath) {
-      // Fallback: just go to the version root
-      newPath = versionPrefix || '/';
-    }
-  } else if (!versionPrefix && currentVersion) {
-    // Going from older version to latest (removing prefix)
-    // e.g., /docs/v2/guide/ -> /docs/guide/
-    const sections = {{ site.version_config.sections | tojson if site.version_config else '["docs"]' }};
-    for (const section of sections) {
-      if (currentPath.startsWith('/' + section + currentVersion + '/')) {
-        const rest = currentPath.slice(('/' + section + currentVersion).length);
-        newPath = '/' + section + rest;
-        break;
-      }
-    }
-    if (!newPath) {
-      newPath = '/';
-    }
-  } else {
-    // Fallback: go to version root
-    newPath = versionPrefix || '/';
-  }
-
-  // Navigate to new version
-  window.location.href = newPath;
+function handleVersionChange(option) {
+  // Target URL is pre-computed at build time - instant navigation, no 404s
+  window.location.href = option.dataset.target;
 }
 </script>
 
