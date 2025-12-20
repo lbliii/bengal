@@ -27,6 +27,7 @@ from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.utils.logger import get_logger
 
 from . import content, finalization, initialization, rendering
+from .options import BuildOptions
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -96,6 +97,9 @@ class BuildOrchestrator:
 
     def build(
         self,
+        options: BuildOptions | None = None,
+        *,
+        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -113,6 +117,8 @@ class BuildOrchestrator:
         Execute full build pipeline.
 
         Args:
+            options: BuildOptions dataclass with all build configuration.
+                    If provided, individual parameters are ignored.
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show verbose console logs during build (default: False, logs go to file)
@@ -127,7 +133,46 @@ class BuildOrchestrator:
 
         Returns:
             BuildStats object with build statistics
+
+        Example:
+            >>> # Using BuildOptions (preferred)
+            >>> from bengal.orchestration.build.options import BuildOptions
+            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> stats = orchestrator.build(options)
+            >>>
+            >>> # Using individual parameters (backward compatibility)
+            >>> stats = orchestrator.build(parallel=True, strict=True)
         """
+        # Resolve options: use provided BuildOptions or construct from individual params
+        if options is None:
+            options = BuildOptions(
+                parallel=parallel,
+                incremental=incremental,
+                verbose=verbose,
+                quiet=quiet,
+                profile=profile,
+                memory_optimized=memory_optimized,
+                strict=strict,
+                full_output=full_output,
+                profile_templates=profile_templates,
+                changed_sources=changed_sources or set(),
+                nav_changed_sources=nav_changed_sources or set(),
+                structural_changed=structural_changed,
+            )
+
+        # Extract values from options for use in build phases
+        parallel = options.parallel
+        incremental = options.incremental
+        verbose = options.verbose
+        quiet = options.quiet
+        profile = options.profile
+        memory_optimized = options.memory_optimized
+        strict = options.strict
+        full_output = options.full_output
+        profile_templates = options.profile_templates
+        changed_sources = options.changed_sources or None
+        nav_changed_sources = options.nav_changed_sources or None
+        structural_changed = options.structural_changed
         # Import profile utilities
         from bengal.output import init_cli_output
         from bengal.utils.profile import BuildProfile

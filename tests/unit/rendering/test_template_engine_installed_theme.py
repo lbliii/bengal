@@ -38,11 +38,11 @@ def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
         return mock_pkg if slug == "acme" else None
 
     # Patch the theme registry BEFORE creating Site
-    import bengal.utils.theme_registry
+    import bengal.core.theme.registry
 
-    monkeypatch.setattr(bengal.utils.theme_registry, "get_theme_package", mock_get_theme_package)
+    monkeypatch.setattr(bengal.core.theme.registry, "get_theme_package", mock_get_theme_package)
     monkeypatch.setattr(
-        bengal.utils.theme_registry, "get_installed_themes", lambda: {"acme": mock_pkg}
+        bengal.core.theme.registry, "get_installed_themes", lambda: {"acme": mock_pkg}
     )
 
     from bengal.rendering.template_engine import TemplateEngine
@@ -82,11 +82,11 @@ def test_extends_read_from_installed_theme(tmp_path, monkeypatch):
     def mock_get_theme_package(slug: str):
         return mock_pkg if slug == "acme" else None
 
-    import bengal.utils.theme_registry
+    import bengal.core.theme.registry
 
-    monkeypatch.setattr(bengal.utils.theme_registry, "get_theme_package", mock_get_theme_package)
+    monkeypatch.setattr(bengal.core.theme.registry, "get_theme_package", mock_get_theme_package)
     monkeypatch.setattr(
-        bengal.utils.theme_registry, "get_installed_themes", lambda: {"acme": mock_pkg}
+        bengal.core.theme.registry, "get_installed_themes", lambda: {"acme": mock_pkg}
     )
 
     from bengal.rendering.template_engine import TemplateEngine

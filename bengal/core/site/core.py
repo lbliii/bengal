@@ -46,6 +46,7 @@ from bengal.core.version import Version, VersionConfig
 from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
+    from bengal.orchestration.build.options import BuildOptions
     from bengal.utils.profile import BuildProfile
 
 
@@ -257,6 +258,9 @@ class Site(
 
     def build(
         self,
+        options: BuildOptions | None = None,
+        *,
+        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -276,6 +280,8 @@ class Site(
         Delegates to BuildOrchestrator for actual build process.
 
         Args:
+            options: BuildOptions dataclass with all build configuration.
+                    If provided, individual parameters are ignored.
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
@@ -290,24 +296,38 @@ class Site(
 
         Returns:
             BuildStats object with build statistics
+
+        Example:
+            >>> # Using BuildOptions (preferred)
+            >>> from bengal.orchestration.build.options import BuildOptions
+            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> stats = site.build(options)
+            >>>
+            >>> # Using individual parameters (backward compatibility)
+            >>> stats = site.build(parallel=True, strict=True)
         """
         from bengal.orchestration import BuildOrchestrator
+        from bengal.orchestration.build.options import BuildOptions as _BuildOptions
+
+        # Resolve options: use provided BuildOptions or construct from individual params
+        if options is None:
+            options = _BuildOptions(
+                parallel=parallel,
+                incremental=incremental,
+                verbose=verbose,
+                quiet=quiet,
+                profile=profile,
+                memory_optimized=memory_optimized,
+                strict=strict,
+                full_output=full_output,
+                profile_templates=profile_templates,
+                changed_sources=changed_sources or set(),
+                nav_changed_sources=nav_changed_sources or set(),
+                structural_changed=structural_changed,
+            )
 
         orchestrator = BuildOrchestrator(self)
-        result = orchestrator.build(
-            parallel=parallel,
-            incremental=incremental,
-            verbose=verbose,
-            quiet=quiet,
-            profile=profile,
-            memory_optimized=memory_optimized,
-            strict=strict,
-            full_output=full_output,
-            profile_templates=profile_templates,
-            changed_sources=changed_sources,
-            nav_changed_sources=nav_changed_sources,
-            structural_changed=structural_changed,
-        )
+        result = orchestrator.build(options)
         # Ensure we return BuildStats (orchestrator.build returns Any)
         # BuildStats is already imported at top of file
         if isinstance(result, BuildStats):

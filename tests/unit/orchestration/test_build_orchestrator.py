@@ -44,7 +44,7 @@ class TestBuildOrchestrator:
             patch("bengal.orchestration.build.PostprocessOrchestrator") as MockPostprocess,
             patch("bengal.orchestration.build.IncrementalOrchestrator") as MockIncremental,
             patch("bengal.orchestration.build.get_logger") as MockLogger,
-            patch("bengal.utils.cli_output.init_cli_output") as MockCli,
+            patch("bengal.output.init_cli_output") as MockCli,
         ):
             # Configure logger level to avoid TypeError in comparisons
             MockLogger.return_value.level.value = 20  # INFO level

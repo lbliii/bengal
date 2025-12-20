@@ -29,11 +29,11 @@ def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
     def mock_get_theme_package(slug: str):
         return mock_pkg if slug == "acme" else None
 
-    import bengal.utils.theme_registry
+    import bengal.core.theme.registry
 
-    monkeypatch.setattr(bengal.utils.theme_registry, "get_theme_package", mock_get_theme_package)
+    monkeypatch.setattr(bengal.core.theme.registry, "get_theme_package", mock_get_theme_package)
     monkeypatch.setattr(
-        bengal.utils.theme_registry, "get_installed_themes", lambda: {"acme": mock_pkg}
+        bengal.core.theme.registry, "get_installed_themes", lambda: {"acme": mock_pkg}
     )
 
     site = Site.from_config(site_root)
