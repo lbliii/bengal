@@ -2,7 +2,7 @@
 
 **Status**: Draft  
 **Created**: 2025-12-20  
-**Subsystem**: core/version, rendering/templates, postprocess  
+**Subsystem**: core/version, rendering/templates, discovery  
 
 ---
 
@@ -19,11 +19,11 @@ When a user toggles to a previous version and that specific page doesn't exist i
 **Expected behavior**:
 1. User is on `/docs/content/versioning/folder-mode/` (v2)
 2. User selects "v1" from version dropdown
-3. System detects target page doesn't exist
-4. System falls back to closest match:
+3. System **already knows** target page doesn't exist (computed at build time)
+4. System navigates directly to best fallback:
    - `/docs/v1/content/versioning/` (section index), OR
    - `/docs/v1/` (version root)
-5. User lands on valid page with helpful context
+5. User lands on valid page instantly
 
 ### Secondary Issue: Ordering/Nesting Validation
 
@@ -31,6 +31,25 @@ The current v1 test fixture (`site/content/_versions/v1/`) is minimal (only 3 pa
 - Weight-based ordering across versions
 - Nested section hierarchy in versioned content
 - Subsection filtering in navigation
+
+---
+
+## Industry Context
+
+### How Other SSGs Handle This
+
+| SSG | Versioning | 404 on Version Switch? |
+|-----|------------|------------------------|
+| **Docusaurus** | `versioned_docs/` + manifest | **Yes, 404** - no smart fallback |
+| **MkDocs + mike** | Separate deployments | **Yes, 404** - no smart fallback |
+| **VitePress** | No built-in versioning | N/A |
+| **Hugo** | No built-in versioning | N/A |
+| **ReadTheDocs** | Server-side platform | **No** - has server-side redirects |
+| **GitBook** | SaaS platform | **No** - has server-side logic |
+
+**Key insight**: Most pure static SSGs don't solve this problem. They show 404s. Platforms that handle it gracefully have server-side logic (ReadTheDocs, GitBook) or are SPAs with client-side routing (Docusaurus with React).
+
+**Opportunity**: Bengal can differentiate by solving this elegantly at build time.
 
 ---
 
@@ -59,11 +78,11 @@ function handleVersionChange(versionPrefix) {
 
 ## Goals
 
-1. **Smart fallback on version switch**: When target page doesn't exist, navigate to the best available fallback
+1. **Zero latency fallback**: Pre-compute fallback URLs at build time
 2. **Zero 404s from version switching**: All version switches land on valid pages
 3. **Preserve user context**: Land as close to the original context as possible
-4. **Static-site compatible**: Solution works without server-side logic
-5. **Validate ordering/nesting**: Expand test fixtures to exercise full versioning behavior
+4. **Static-site compatible**: No server-side logic required
+5. **Industry-leading UX**: Better than Docusaurus, MkDocs, and other pure SSGs
 
 ### Non-Goals
 
@@ -75,175 +94,189 @@ function handleVersionChange(versionPrefix) {
 
 ## Design Options
 
-### Option A: Build-time Version Manifest (Recommended)
+### Option A: Pre-computed Fallback URLs (Recommended) ⭐
 
-Generate a JSON manifest during build listing all pages per version. Embed manifest reference in template for client-side validation.
+At build time, compute the fallback URL for each (page, version) pair and embed it in the version selector. **No runtime lookup needed**.
 
-**Build output**:
-```json
-// public/_version-manifest.json
-{
-  "v2": [
-    "/docs/",
-    "/docs/get-started/",
-    "/docs/content/versioning/",
-    "/docs/content/versioning/folder-mode/"
-  ],
-  "v1": [
-    "/docs/",
-    "/docs/get-started/",
-    "/docs/get-started/installation/"
-  ]
+**Template output** (`version-selector.html`):
+```html
+<select onchange="handleVersionChange(this.selectedOptions[0])">
+  {% for v in versions %}
+  <option
+    value="{{ v.url_prefix or '/' }}"
+    data-target="{{ get_version_target_url(page, v) }}"
+    {% if current_version and current_version.id == v.id %}selected{% endif %}
+  >
+    {{ v.label }}{% if v.latest %} (Latest){% endif %}
+  </option>
+  {% endfor %}
+</select>
+
+<script>
+function handleVersionChange(option) {
+  // Target URL is pre-computed at build time - instant navigation
+  window.location.href = option.dataset.target;
 }
+</script>
 ```
 
-**Template changes** (`version-selector.html`):
-```javascript
-// Fetch manifest once (cached by browser)
-let versionManifest = null;
+**Build-time template function** (`get_version_target_url`):
+```python
+def get_version_target_url(page: Page, target_version: Version, site: Site) -> str:
+    """
+    Compute the best URL for this page in the target version.
 
-async function loadVersionManifest() {
-  if (versionManifest) return versionManifest;
-  const response = await fetch('/_version-manifest.json');
-  versionManifest = await response.json();
-  return versionManifest;
-}
+    Fallback cascade:
+    1. Exact page exists → use it
+    2. Section index exists → use it
+    3. Version root → use it
+    """
+    # Construct equivalent path in target version
+    target_path = construct_version_path(page, target_version)
 
-async function handleVersionChange(versionPrefix) {
-  const manifest = await loadVersionManifest();
-  const targetVersion = versionPrefix.replace('/', '') || 'latest';
-  const versionPages = manifest[targetVersion] || [];
+    # Check if exact page exists in target version
+    if page_exists_in_version(target_path, target_version, site):
+        return target_path
 
-  // Construct target path
-  let targetPath = constructTargetPath(versionPrefix);
+    # Fallback to section index
+    section_index = get_section_index_path(target_path, target_version)
+    if page_exists_in_version(section_index, target_version, site):
+        return section_index
 
-  // Fallback cascade if target doesn't exist
-  if (!versionPages.includes(targetPath)) {
-    targetPath = findBestFallback(targetPath, versionPages);
-  }
+    # Fallback to version root
+    return get_version_root_url(target_version, site)
+```
 
-  window.location.href = targetPath;
-}
+**Pros**:
+- ✅ **Zero latency** - fallback pre-computed, no runtime lookup
+- ✅ **No extra files** - data embedded in HTML
+- ✅ **No JavaScript complexity** - trivial one-liner handler
+- ✅ **Works offline** - no fetch needed
+- ✅ **Build-time validated** - errors caught during build, not at runtime
 
-function findBestFallback(targetPath, versionPages) {
-  // 1. Try section index (parent)
-  const parts = targetPath.split('/').filter(Boolean);
-  while (parts.length > 1) {
-    parts.pop();
-    const parentPath = '/' + parts.join('/') + '/';
-    if (versionPages.includes(parentPath)) {
-      return parentPath;
-    }
-  }
+**Cons**:
+- ❌ Slight HTML size increase (~50 bytes per version per page)
+- ❌ Requires build-time page existence checking
 
-  // 2. Fall back to version root (first versioned section)
-  return versionPages[0] || '/';
+**Performance**: For 5 versions × 1000 pages = ~250KB total overhead across entire site (~50 bytes/page/version)
+
+---
+
+### Option B: Runtime Version Manifest
+
+Generate a JSON manifest during build listing all pages per version. Client fetches and caches it.
+
+```json
+{
+  "v2": ["/docs/", "/docs/get-started/", ...],
+  "v1": ["/docs/", "/docs/get-started/", ...]
 }
 ```
 
 **Pros**:
 - ✅ Works with static hosting
-- ✅ No visible delay (manifest cached)
-- ✅ Simple fallback logic
-- ✅ Build-time validated
+- ✅ Single source of truth
 
 **Cons**:
-- ❌ Extra file in output (`_version-manifest.json`)
-- ❌ Manifest can grow large for huge sites (mitigated: paths only, no metadata)
-
-**Estimated size**: ~10KB for 1000 pages (acceptable)
+- ❌ **Extra network request** on first version switch
+- ❌ **Runtime lookup latency** (must search manifest)
+- ❌ **Extra build artifact** to maintain
+- ❌ Manifest can grow large for huge sites
 
 ---
 
-### Option B: Client-side HEAD Request
+### Option C: Client-side HEAD Request
 
 Before navigating, use `fetch()` with HEAD method to check if target URL exists.
 
-```javascript
-async function handleVersionChange(versionPrefix) {
-  const targetPath = constructTargetPath(versionPrefix);
-
-  try {
-    const response = await fetch(targetPath, { method: 'HEAD' });
-    if (response.ok) {
-      window.location.href = targetPath;
-      return;
-    }
-  } catch (e) { }
-
-  // Fallback cascade
-  const fallbackPath = await findFallbackWithHEAD(targetPath, versionPrefix);
-  window.location.href = fallbackPath;
-}
-```
-
-**Pros**:
-- ✅ No build-time changes
-- ✅ Always accurate (real-time check)
-
 **Cons**:
-- ❌ Network latency on each switch (visible delay)
-- ❌ Multiple HEAD requests for fallback cascade
-- ❌ May fail on some static hosts (CORS)
-- ❌ Poor UX: loading indicator needed
+- ❌ **Network latency** on every switch
+- ❌ **Multiple requests** for fallback cascade
+- ❌ **CORS issues** on some static hosts
+- ❌ **Poor UX** - visible loading delay
 
 ---
 
-### Option C: Inline Manifest per Page
+### Option D: Smart 404 Page
 
-Embed the current version's page list in each page's HTML.
-
-```html
-<script>
-  const currentVersionPages = {{ version_pages | tojson }};
-</script>
-```
-
-**Pros**:
-- ✅ Instant lookup (already loaded)
-- ✅ No extra request
+Generate a version-aware 404 page that redirects on load.
 
 **Cons**:
-- ❌ Increases HTML size of every page
-- ❌ Need to know ALL other versions' pages (not just current)
-- ❌ Duplicated data across all pages
+- ❌ **User sees 404 briefly** before redirect
+- ❌ **Two navigations** (original + redirect)
+- ❌ **Less granular** - can't know section context
 
 ---
 
 ## Recommendation
 
-**Option A (Build-time Version Manifest)** provides the best balance of UX and implementation simplicity:
+**Option A (Pre-computed Fallback URLs)** is the most elegant and performant solution:
 
-1. Single JSON file generated during build
-2. Fetched once and cached by browser
-3. Enables instant client-side validation
-4. Works with any static host
+| Metric | Option A | Option B | Option C | Option D |
+|--------|----------|----------|----------|----------|
+| Latency | **0ms** | 50-200ms | 100-500ms | 200-400ms |
+| Extra requests | **0** | 1 | 1-5 | 1 |
+| Build artifacts | **0** | 1 | 0 | 0 |
+| Complexity | Medium | Medium | Low | Low |
+| UX quality | **Best** | Good | Poor | Poor |
+
+**This approach is better than any major static SSG** because fallback is instant and invisible to the user.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Version Manifest Generation
+### Phase 1: Template Function for Fallback URLs
 
-1. Create `bengal/postprocess/version_manifest.py`:
-   - `VersionManifestGenerator` class
-   - Collect all page URLs grouped by version
-   - Write `_version-manifest.json` to output directory
+1. Create `bengal/rendering/template_functions/version_url.py`:
+   ```python
+   def get_version_target_url(page: Page, version: Version, site: Site) -> str:
+       """Compute best URL for page in target version with fallback cascade."""
+       ...
 
-2. Wire into build pipeline (`bengal/orchestration/build_orchestrator.py`):
-   - Call manifest generator after page rendering
-   - Only generate if versioning is enabled
+   def page_exists_in_version(path: str, version: Version, site: Site) -> bool:
+       """Check if a page exists in the given version."""
+       ...
+   ```
 
-### Phase 2: Smart Version Selector
+2. Register in template environment (`bengal/rendering/template_functions/__init__.py`)
+
+3. Add version→pages index to Site for O(1) lookups:
+   ```python
+   # In Site or VersionConfig
+   @cached_property
+   def pages_by_version(self) -> dict[str, set[str]]:
+       """Index of page URLs by version for fast existence checks."""
+       ...
+   ```
+
+### Phase 2: Update Version Selector Template
 
 1. Update `bengal/themes/default/templates/partials/version-selector.html`:
-   - Add manifest loading and caching
-   - Implement fallback cascade logic
-   - Add loading indicator during manifest fetch (first time only)
+   ```html
+   <option
+     value="{{ v.url_prefix or '/' }}"
+     data-target="{{ get_version_target_url(page, v) }}"
+     ...
+   >
+   ```
 
-2. Add user feedback:
-   - Toast/banner when landing on fallback page
-   - "This page doesn't exist in {version}. Showing the closest match."
+2. Simplify JavaScript handler:
+   ```javascript
+   function handleVersionChange(option) {
+     window.location.href = option.dataset.target;
+   }
+   ```
+
+3. Optional: Add visual indicator when landing on fallback:
+   ```html
+   {% if page_is_version_fallback %}
+   <div class="version-fallback-notice">
+     This page doesn't exist in {{ current_version.label }}.
+     Showing {{ page.title }} instead.
+   </div>
+   {% endif %}
+   ```
 
 ### Phase 3: Expand Test Fixtures
 
@@ -257,17 +290,18 @@ Embed the current version's page list in each page's HTML.
    - Add pages with different weights per version
    - Add subsection nesting tests
 
-### Phase 4: Integration Tests
+### Phase 4: Tests
 
-1. Add tests for manifest generation:
-   - Verify all versioned pages included
-   - Verify format is correct
-   - Verify manifest updates on incremental builds
+1. Unit tests for `get_version_target_url`:
+   - Exact page exists → returns exact URL
+   - Page missing, section exists → returns section index
+   - Section missing → returns version root
+   - All missing → returns site root
 
-2. Add e2e tests for version switching:
-   - Test fallback cascade
-   - Test both directions (latest→old, old→latest)
-   - Test deeply nested pages
+2. Integration tests:
+   - Build versioned site
+   - Verify all version selector options have valid `data-target` URLs
+   - Verify fallback cascade logic
 
 ---
 
@@ -275,13 +309,13 @@ Embed the current version's page list in each page's HTML.
 
 | File | Change |
 |------|--------|
-| `bengal/postprocess/version_manifest.py` | NEW: Manifest generator |
-| `bengal/orchestration/build_orchestrator.py` | Wire manifest generation |
-| `bengal/themes/default/templates/partials/version-selector.html` | Smart fallback logic |
+| `bengal/rendering/template_functions/version_url.py` | NEW: Fallback URL computation |
+| `bengal/rendering/template_functions/__init__.py` | Register new functions |
+| `bengal/core/site/properties.py` | Add `pages_by_version` index |
+| `bengal/themes/default/templates/partials/version-selector.html` | Use pre-computed URLs |
 | `site/content/_versions/v1/` | Expand test content |
 | `tests/roots/test-versioned/` | Expand test fixture |
-| `tests/unit/test_version_manifest.py` | NEW: Unit tests |
-| `tests/integration/test_versioning_ux.py` | NEW: Integration tests |
+| `tests/unit/test_version_url.py` | NEW: Unit tests |
 
 ---
 
@@ -289,27 +323,40 @@ Embed the current version's page list in each page's HTML.
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Large manifest for huge sites | Performance | Paginate or compress if >100KB |
-| Manifest not cached | Extra request | Use proper cache headers, service worker |
-| JavaScript disabled | No fallback | Acceptable: 404 behavior unchanged |
+| Build time increase | Slight slowdown | Pages indexed once, O(1) lookups |
+| HTML size increase | ~50 bytes/version/page | Negligible for typical sites |
+| Complex edge cases | Incorrect fallback | Comprehensive test coverage |
 
 ---
 
 ## Success Criteria
 
 - [ ] Version switching never results in 404 (when target version has any content)
-- [ ] Fallback lands on logical page (section index > version root)
-- [ ] User sees feedback when landing on fallback
-- [ ] Manifest size <50KB for 5000 page site
+- [ ] Fallback is **instant** (no visible delay)
+- [ ] Fallback lands on logical page (exact → section index → version root)
+- [ ] Build time increase <5% for 1000 page site
+- [ ] HTML size increase <100 bytes per page
 - [ ] Ordering/nesting works correctly across versions
 
 ---
 
 ## Open Questions
 
-1. **Fallback message UX**: Toast, banner, or inline message?
-2. **Manifest caching strategy**: How long? Service worker?
-3. **Very large sites**: Should we split manifest by section?
+1. **Fallback notice UX**: Should we show a subtle banner when user lands on fallback? Or is silent fallback better?
+2. **URL parameter**: Should we add `?fallback=true` to track fallback navigations for analytics?
+
+---
+
+## Comparison with Industry
+
+| Feature | Bengal (proposed) | Docusaurus | MkDocs | ReadTheDocs |
+|---------|------------------|------------|--------|-------------|
+| Smart fallback | ✅ Pre-computed | ❌ 404 | ❌ 404 | ✅ Server-side |
+| Latency | **0ms** | N/A | N/A | ~50ms |
+| Static hosting | ✅ | ✅ | ✅ | ❌ |
+| Build artifact | None | `versions.json` | None | N/A |
+
+**Bengal will have the best version-switching UX of any pure static site generator.**
 
 ---
 
