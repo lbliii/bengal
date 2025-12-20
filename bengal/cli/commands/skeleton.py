@@ -14,7 +14,7 @@ from bengal.cli.base import BengalCommand, BengalGroup
 from bengal.cli.helpers import command_metadata, handle_cli_errors
 from bengal.cli.skeleton.hydrator import Hydrator
 from bengal.cli.skeleton.schema import Skeleton
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 @click.group(cls=BengalGroup, name="skeleton")

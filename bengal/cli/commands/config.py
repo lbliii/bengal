@@ -28,7 +28,7 @@ from bengal.cli.helpers import (
 )
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 @click.group("config", cls=BengalGroup)

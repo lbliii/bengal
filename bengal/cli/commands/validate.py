@@ -27,7 +27,7 @@ from bengal.utils.traceback_config import TracebackStyle
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.utils.cli_output import CLIOutput
+    from bengal.output import CLIOutput
 
 
 @click.command("validate")

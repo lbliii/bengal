@@ -28,11 +28,11 @@ from typing import Any
 
 import yaml
 
+from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
-from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 from bengal.utils.stats_minimal import MinimalStats
 

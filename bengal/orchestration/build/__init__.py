@@ -35,8 +35,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
 
@@ -129,7 +129,7 @@ class BuildOrchestrator:
             BuildStats object with build statistics
         """
         # Import profile utilities
-        from bengal.utils.cli_output import init_cli_output
+        from bengal.output import init_cli_output
         from bengal.utils.profile import BuildProfile
 
         # Use default profile if not provided
@@ -375,7 +375,7 @@ class BuildOrchestrator:
 
     def _print_rendering_summary(self) -> None:
         """Print summary of rendered pages (quiet mode)."""
-        from bengal.utils.cli_output import get_cli_output
+        from bengal.output import get_cli_output
 
         cli = get_cli_output()
 

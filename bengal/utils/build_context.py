@@ -37,8 +37,8 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.output import CLIOutput
     from bengal.utils.build_stats import BuildStats
-    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.live_progress import LiveProgressManager
     from bengal.utils.profile import BuildProfile
     from bengal.utils.progress import ProgressReporter

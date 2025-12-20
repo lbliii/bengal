@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
-    from bengal.utils.cli_output import CLIOutput
+    from bengal.output import CLIOutput
 
 
 def phase_sections(

@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
 from bengal.cli.helpers import get_cli_output
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 @contextmanager

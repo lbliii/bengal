@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
 
 
 def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:

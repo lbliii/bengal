@@ -699,7 +699,7 @@ class DevServer:
         console.print()
 
         # Request log header
-        from bengal.utils.cli_output import CLIOutput
+        from bengal.output import CLIOutput
 
         cli = CLIOutput()
         cli.request_log_header()

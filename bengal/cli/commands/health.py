@@ -23,7 +23,7 @@ from bengal.cli.helpers import (
 )
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 from bengal.utils.traceback_config import TracebackStyle
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

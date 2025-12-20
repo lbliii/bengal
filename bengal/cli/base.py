@@ -4,7 +4,7 @@ import re
 
 import click
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 # =============================================================================
 # ALIAS REGISTRY

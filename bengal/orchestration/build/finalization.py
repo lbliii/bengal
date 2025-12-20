@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
 
@@ -320,7 +320,7 @@ def run_health_check(
     health_config = get_feature_config(orchestrator.site.config, "health_check")
 
     # Get CLI output early for timing display
-    from bengal.utils.cli_output import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
 

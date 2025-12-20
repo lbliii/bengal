@@ -45,7 +45,7 @@ from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.cli.commands.version import version_cli
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
 
 # Import commands from new modular structure
@@ -81,8 +81,8 @@ def main(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
         from click.core import HelpFormatter
 
+        from bengal.output import CLIOutput
         from bengal.utils.build_stats import show_welcome
-        from bengal.utils.cli_output import CLIOutput
 
         show_welcome()
         formatter = HelpFormatter()

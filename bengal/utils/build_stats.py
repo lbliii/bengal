@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 if TYPE_CHECKING:
     from bengal.health.report import HealthReport
@@ -555,7 +555,7 @@ def show_error(message: str, show_art: bool = True) -> None:
 
 def show_welcome() -> None:
     """Show welcome banner with Bengal cat mascot."""
-    from bengal.utils.cli_output import CLIOutput
+    from bengal.output import CLIOutput
 
     cli = CLIOutput()
     cli.header("BENGAL SSG", mascot=True, leading_blank=True, trailing_blank=False)
@@ -567,7 +567,7 @@ def show_clean_success(output_dir: str) -> None:
     Note: This is now only used for --force mode (when there's no prompt).
     Regular clean uses inline success message after prompt confirmation.
     """
-    from bengal.utils.cli_output import CLIOutput
+    from bengal.output import CLIOutput
 
     # Create CLI output instance (simple, no profile needed for clean)
     cli = CLIOutput(quiet=False, verbose=False)
