@@ -9,16 +9,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from bengal.directives.base import BengalDirective
 from bengal.directives.cards.utils import (
     VALID_GAPS,
     VALID_LAYOUTS,
     VALID_STYLES,
     normalize_columns,
 )
-from bengal.rendering.plugins.directives.base import BengalDirective
-from bengal.rendering.plugins.directives.contracts import CARDS_CONTRACT, DirectiveContract
-from bengal.rendering.plugins.directives.options import DirectiveOptions
-from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.directives.contracts import CARDS_CONTRACT, DirectiveContract
+from bengal.directives.options import DirectiveOptions
+from bengal.directives.tokens import DirectiveToken
 
 __all__ = ["CardsDirective", "CardsOptions"]
 

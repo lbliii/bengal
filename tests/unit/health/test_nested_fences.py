@@ -2,7 +2,7 @@
 Tests for nested fence validation in DirectiveValidator.
 """
 
-from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+from bengal.directives.validator import DirectiveSyntaxValidator
 
 
 class TestNestedFenceValidation:

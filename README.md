@@ -248,6 +248,22 @@ Bengal ships with a modern, accessible default theme featuring:
 
 ---
 
+## Philosophy
+
+Bengal prioritizes **correctness and clarity over backwards compatibility**.
+
+Each release represents the best solution we know how to deliver. When existing behavior no longer reflects the best design, it may be changed or removed. Upgrades require reading release notes and making any necessary changes.
+
+- **Fail loudly** — Breaking changes produce clear errors, not silent degradation
+- **User control** — You choose when to upgrade; we choose what changes
+- **No hidden layers** — No compatibility shims, fallbacks, or deprecated code paths
+
+This approach keeps the codebase healthy and allows rapid evolution. If you need multi-year stability guarantees, pin your version.
+
+See the full [Project Philosophy](https://lbliii.github.io/bengal/docs/about/philosophy/) for details.
+
+---
+
 ## Documentation
 
 📚 Full documentation at **[lbliii.github.io/bengal](https://lbliii.github.io/bengal/)**

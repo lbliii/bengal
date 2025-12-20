@@ -160,9 +160,7 @@ class FencedDirective(BaseFencedDirective):
 
         # Fall back to fence-depth counting if no named closer found
         if end_pos is None:
-            _end_pattern = (
-                r"^ {0,3}" + marker[0] + "{" + str(mlen) + r",}" + r"[ \t]*(?:\n|$)"
-            )
+            _end_pattern = r"^ {0,3}" + marker[0] + "{" + str(mlen) + r",}" + r"[ \t]*(?:\n|$)"
             _end_re = re.compile(_end_pattern, re.M)
 
             for _end_m in _end_re.finditer(remaining_src):

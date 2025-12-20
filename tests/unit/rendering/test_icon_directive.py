@@ -208,7 +208,7 @@ class TestGetAvailableIcons:
 
     def test_get_available_icons(self):
         """Test get_available_icons returns icon names."""
-        from bengal.rendering.plugins.directives.icon import get_available_icons
+        from bengal.directives.icon import get_available_icons
 
         icons = get_available_icons()
         assert isinstance(icons, list)
@@ -219,7 +219,7 @@ class TestGetAvailableIcons:
 
     def test_icon_cache(self):
         """Test icon caching works."""
-        from bengal.rendering.plugins.directives.icon import _icon_cache, _load_icon
+        from bengal.directives.icon import _icon_cache, _load_icon
 
         # Clear cache
         _icon_cache.clear()

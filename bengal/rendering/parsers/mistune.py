@@ -100,13 +100,13 @@ class MistuneParser(BaseMarkdownParser):
         self.enable_highlighting = enable_highlighting
 
         # Import our custom plugins
+        from bengal.directives.validator import DirectiveSyntaxValidator
         from bengal.rendering.plugins import (
             BadgePlugin,
             InlineIconPlugin,
             TermPlugin,
             create_documentation_directives,
         )
-        from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
         self._validator = DirectiveSyntaxValidator()
 

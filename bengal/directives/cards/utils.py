@@ -218,8 +218,8 @@ def render_icon(icon_name: str, card_title: str = "") -> str:
     Returns:
         SVG HTML string, or empty string if not found
     """
-    from bengal.rendering.plugins.directives._icons import render_icon as _render_icon
-    from bengal.rendering.plugins.directives._icons import warn_missing_icon
+    from bengal.directives._icons import render_icon as _render_icon
+    from bengal.directives._icons import warn_missing_icon
 
     icon_html = _render_icon(icon_name, size=20)
 

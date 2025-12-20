@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from bengal.directives.base import BengalDirective
 from bengal.directives.cards.utils import (
     VALID_COLORS,
     VALID_LAYOUTS,
@@ -17,10 +18,9 @@ from bengal.directives.cards.utils import (
     render_icon,
     resolve_link_url,
 )
-from bengal.rendering.plugins.directives.base import BengalDirective
-from bengal.rendering.plugins.directives.contracts import CARD_CONTRACT, DirectiveContract
-from bengal.rendering.plugins.directives.options import DirectiveOptions
-from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.directives.contracts import CARD_CONTRACT, DirectiveContract
+from bengal.directives.options import DirectiveOptions
+from bengal.directives.tokens import DirectiveToken
 
 __all__ = ["CardDirective", "CardOptions"]
 

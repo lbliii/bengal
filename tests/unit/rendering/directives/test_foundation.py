@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar
 
-from bengal.rendering.plugins.directives import (
+from bengal.directives import (
     ContainerOptions,
     DirectiveOptions,
     DirectiveToken,

@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from bengal.directives.base import BengalDirective
 from bengal.directives.cards.utils import (
     VALID_GAPS,
     VALID_LAYOUTS,
@@ -16,9 +17,8 @@ from bengal.directives.cards.utils import (
     collect_children,
     render_child_card,
 )
-from bengal.rendering.plugins.directives.base import BengalDirective
-from bengal.rendering.plugins.directives.options import DirectiveOptions
-from bengal.rendering.plugins.directives.tokens import DirectiveToken
+from bengal.directives.options import DirectiveOptions
+from bengal.directives.tokens import DirectiveToken
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

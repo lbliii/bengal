@@ -65,7 +65,9 @@ _DIRECTIVE_MAP: dict[str, str] = {
     "grid-item-card": "bengal.directives.cards",
     # Tabs
     "tab-set": "bengal.directives.tabs",
+    "tabs": "bengal.directives.tabs",  # Alias for tab-set
     "tab-item": "bengal.directives.tabs",
+    "tab": "bengal.directives.tabs",  # Alias for tab-item
     # Dropdowns
     "dropdown": "bengal.directives.dropdown",
     "details": "bengal.directives.dropdown",

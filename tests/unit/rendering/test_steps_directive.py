@@ -9,11 +9,11 @@ import sys
 import pytest
 
 import bengal
-from bengal.rendering.parsers import MistuneParser
-from bengal.rendering.plugins.directives.steps import (
+from bengal.directives.steps import (
     StepOptions,
     StepsOptions,
 )
+from bengal.rendering.parsers import MistuneParser
 
 print(f"DEBUG: bengal imported from {bengal.__file__}", file=sys.stderr)
 

@@ -9,8 +9,7 @@ Architecture:
     imported directly by directives needing standalone access.
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: Uses these utilities
-    - RFC: plan/active/rfc-directive-system-v2.md (Issue 1: duplicated boilerplate)
+    - bengal/directives/base.py: Uses these utilities
 """
 
 from __future__ import annotations

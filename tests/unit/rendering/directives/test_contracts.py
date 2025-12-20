@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.plugins.directives import (
+from bengal.directives import (
     CARD_CONTRACT,
     CARDS_CONTRACT,
     CODE_TABS_CONTRACT,
@@ -71,9 +71,11 @@ class TestDirectiveContract:
 
     def test_frozen_contract(self) -> None:
         """Test that contract is immutable (frozen)."""
+        from dataclasses import FrozenInstanceError
+
         contract = DirectiveContract(requires_parent=("steps",))
 
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(FrozenInstanceError):
             contract.requires_parent = ("other",)  # type: ignore
 
     def test_invalid_min_children(self) -> None:

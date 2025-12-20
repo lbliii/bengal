@@ -13,8 +13,7 @@ Architecture:
     - Self-documentation
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective uses these
-    - RFC: plan/active/rfc-directive-system-v2.md
+    - bengal/directives/base.py: BengalDirective uses these
 """
 
 from __future__ import annotations
@@ -158,19 +157,19 @@ class DirectiveOptions:
             target_type = next((a for a in args if a is not type(None)), str)
             origin = get_origin(target_type)
 
-        if target_type == bool:
+        if target_type is bool:
             return value.lower() in ("true", "1", "yes", "")
 
-        if target_type == int:
+        if target_type is int:
             return int(value) if value.lstrip("-").isdigit() else 0
 
-        if target_type == float:
+        if target_type is float:
             try:
                 return float(value)
             except ValueError:
                 return 0.0
 
-        if origin == list or target_type == list:
+        if origin is list or target_type is list:
             return [v.strip() for v in value.split(",") if v.strip()]
 
         return value

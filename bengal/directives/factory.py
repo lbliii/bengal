@@ -13,7 +13,7 @@ Usage:
 
 Architecture:
     This module imports directive classes from bengal.directives.* and wraps
-    them with FencedDirective (from bengal.rendering.plugins.directives.fenced)
+    them with FencedDirective (from bengal.directives.fenced)
     to create a Mistune-compatible plugin.
 
     The FencedDirective is kept in bengal.rendering because it's Mistune-specific
@@ -29,56 +29,55 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-# Import directive classes directly from implementation location
-# (Not via bengal.directives.* to avoid circular import with bengal.rendering.plugins)
-from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
-from bengal.rendering.plugins.directives.badge import BadgeDirective
-from bengal.rendering.plugins.directives.build import BuildDirective
-from bengal.rendering.plugins.directives.button import ButtonDirective
-from bengal.rendering.plugins.directives.cards import (
+# Import directive classes from local package
+from bengal.directives.admonitions import AdmonitionDirective
+from bengal.directives.badge import BadgeDirective
+from bengal.directives.build import BuildDirective
+from bengal.directives.button import ButtonDirective
+from bengal.directives.cards import (
     CardDirective,
     CardsDirective,
     ChildCardsDirective,
     GridDirective,
     GridItemCardDirective,
 )
-from bengal.rendering.plugins.directives.checklist import ChecklistDirective
-from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
-from bengal.rendering.plugins.directives.container import ContainerDirective
-from bengal.rendering.plugins.directives.data_table import DataTableDirective
-from bengal.rendering.plugins.directives.dropdown import DropdownDirective
-from bengal.rendering.plugins.directives.embed import (
+from bengal.directives.checklist import ChecklistDirective
+from bengal.directives.code_tabs import CodeTabsDirective
+from bengal.directives.container import ContainerDirective
+from bengal.directives.data_table import DataTableDirective
+from bengal.directives.dropdown import DropdownDirective
+from bengal.directives.embed import (
     CodePenDirective,
     CodeSandboxDirective,
     GistDirective,
     StackBlitzDirective,
 )
-from bengal.rendering.plugins.directives.example_label import ExampleLabelDirective
-from bengal.rendering.plugins.directives.fenced import FencedDirective
-from bengal.rendering.plugins.directives.figure import AudioDirective, FigureDirective
-from bengal.rendering.plugins.directives.glossary import GlossaryDirective
-from bengal.rendering.plugins.directives.icon import IconDirective
-from bengal.rendering.plugins.directives.include import IncludeDirective
-from bengal.rendering.plugins.directives.list_table import ListTableDirective
-from bengal.rendering.plugins.directives.literalinclude import LiteralIncludeDirective
-from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
-from bengal.rendering.plugins.directives.navigation import (
+from bengal.directives.example_label import ExampleLabelDirective
+from bengal.directives.fenced import FencedDirective
+from bengal.directives.figure import AudioDirective, FigureDirective
+from bengal.directives.glossary import GlossaryDirective
+from bengal.directives.icon import IconDirective
+from bengal.directives.include import IncludeDirective
+from bengal.directives.list_table import ListTableDirective
+from bengal.directives.literalinclude import LiteralIncludeDirective
+from bengal.directives.marimo import MarimoCellDirective
+from bengal.directives.navigation import (
     BreadcrumbsDirective,
     PrevNextDirective,
     RelatedDirective,
     SiblingsDirective,
 )
-from bengal.rendering.plugins.directives.rubric import RubricDirective
-from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
-from bengal.rendering.plugins.directives.tabs import TabItemDirective, TabSetDirective
-from bengal.rendering.plugins.directives.target import TargetDirective
-from bengal.rendering.plugins.directives.terminal import AsciinemaDirective
-from bengal.rendering.plugins.directives.versioning import (
+from bengal.directives.rubric import RubricDirective
+from bengal.directives.steps import StepDirective, StepsDirective
+from bengal.directives.tabs import TabItemDirective, TabSetDirective
+from bengal.directives.target import TargetDirective
+from bengal.directives.terminal import AsciinemaDirective
+from bengal.directives.versioning import (
     ChangedDirective,
     DeprecatedDirective,
     SinceDirective,
 )
-from bengal.rendering.plugins.directives.video import (
+from bengal.directives.video import (
     SelfHostedVideoDirective,
     VimeoDirective,
     YouTubeDirective,

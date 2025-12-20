@@ -12,7 +12,7 @@ Performance:
 Usage:
 
 ```python
-from bengal.rendering.plugins.directives._icons import render_svg_icon
+from bengal.directives._icons import render_svg_icon
 
 icon_html = render_svg_icon("terminal", size=20)
 ```
@@ -20,7 +20,7 @@ icon_html = render_svg_icon("terminal", size=20)
 For directives that want warnings on missing icons:
 
 ```python
-from bengal.rendering.plugins.directives._icons import (
+from bengal.directives._icons import (
     render_svg_icon,
     icon_exists,
     warn_missing_icon,
@@ -67,7 +67,8 @@ _RE_SVG_TAG = re.compile(r"<svg\s")
 
 def _get_icons_directory() -> Path:
     """Get the icons directory from the default theme."""
-    return Path(__file__).parents[3] / "themes" / "default" / "assets" / "icons"
+    # Path: bengal/directives/_icons.py -> bengal/themes/default/assets/icons
+    return Path(__file__).parents[1] / "themes" / "default" / "assets" / "icons"
 
 
 def _load_icon(name: str) -> str | None:

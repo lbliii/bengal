@@ -18,7 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+from bengal.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 

@@ -20,7 +20,7 @@ class TestMarimoCellDirective:
 
     def test_directive_initialization(self):
         """Test directive can be initialized."""
-        from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
+        from bengal.directives.marimo import MarimoCellDirective
 
         directive = MarimoCellDirective()
         assert directive.cell_counter == 0
@@ -28,7 +28,7 @@ class TestMarimoCellDirective:
 
     def test_marimo_not_installed_error(self):
         """Test graceful handling when Marimo is not installed."""
-        from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
+        from bengal.directives.marimo import MarimoCellDirective
 
         directive = MarimoCellDirective()
 
@@ -42,7 +42,7 @@ class TestMarimoCellDirective:
 
     def test_error_rendering(self):
         """Test error HTML rendering."""
-        from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
+        from bengal.directives.marimo import MarimoCellDirective
 
         directive = MarimoCellDirective()
 
@@ -56,7 +56,7 @@ class TestMarimoCellDirective:
     @pytest.mark.skipif(not _marimo_available(), reason="Marimo not installed")
     def test_basic_execution(self):
         """Test basic code execution with Marimo."""
-        from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
+        from bengal.directives.marimo import MarimoCellDirective
 
         directive = MarimoCellDirective()
 

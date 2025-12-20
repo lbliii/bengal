@@ -11,8 +11,7 @@ Architecture:
     parsing, emitting warnings for violations.
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective validates contracts
-    - RFC: plan/active/rfc-directive-system-v2.md (Issue 7: No nested directive validation)
+    - bengal/directives/base.py: BengalDirective validates contracts
 
 Example:
 
@@ -211,21 +210,20 @@ class ContractValidator:
         """
         violations = []
 
-        if contract.requires_parent:
-            if parent_type not in contract.requires_parent:
-                violations.append(
-                    ContractViolation(
-                        directive=directive_type,
-                        violation_type="directive_invalid_parent",
-                        message=(
-                            f"{directive_type} must be inside {list(contract.requires_parent)}, "
-                            f"found: {parent_type or '(root)'}"
-                        ),
-                        expected=list(contract.requires_parent),
-                        found=parent_type or "(root)",
-                        location=location,
-                    )
+        if contract.requires_parent and parent_type not in contract.requires_parent:
+            violations.append(
+                ContractViolation(
+                    directive=directive_type,
+                    violation_type="directive_invalid_parent",
+                    message=(
+                        f"{directive_type} must be inside {list(contract.requires_parent)}, "
+                        f"found: {parent_type or '(root)'}"
+                    ),
+                    expected=list(contract.requires_parent),
+                    found=parent_type or "(root)",
+                    location=location,
                 )
+            )
 
         return violations
 

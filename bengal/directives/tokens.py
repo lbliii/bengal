@@ -9,8 +9,7 @@ Architecture:
     providing type safety while maintaining full compatibility via to_dict().
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective uses these tokens
-    - RFC: plan/active/rfc-directive-system-v2.md
+    - bengal/directives/base.py: BengalDirective uses these tokens
 """
 
 from __future__ import annotations
