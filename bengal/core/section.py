@@ -458,6 +458,86 @@ class Section:
         """
         return bool(self.sorted_pages or self.sorted_subsections)
 
+    # Version-aware navigation methods
+
+    def pages_for_version(self, version_id: str | None) -> list[Page]:
+        """
+        Get pages matching the specified version.
+
+        Filters sorted_pages to return only pages whose version attribute
+        matches the given version_id. If version_id is None, returns all
+        sorted pages (useful when versioning is disabled).
+
+        Args:
+            version_id: Version to filter by (e.g., "v1", "latest"), or None
+                        to return all pages
+
+        Returns:
+            Sorted list of pages matching the version
+
+        Example:
+            {% set version_id = current_version.id if site.versioning_enabled else none %}
+            {% for page in section.pages_for_version(version_id) %}
+              <a href="{{ page.url }}">{{ page.title }}</a>
+            {% endfor %}
+        """
+        if version_id is None:
+            return self.sorted_pages
+        return [p for p in self.sorted_pages if getattr(p, "version", None) == version_id]
+
+    def subsections_for_version(self, version_id: str | None) -> list[Section]:
+        """
+        Get subsections that have content for the specified version.
+
+        A subsection is included if has_content_for_version returns True,
+        meaning either its index page matches the version or it contains
+        pages matching the version.
+
+        Args:
+            version_id: Version to filter by, or None to return all subsections
+
+        Returns:
+            Sorted list of subsections with content for the version
+
+        Example:
+            {% set version_id = current_version.id if site.versioning_enabled else none %}
+            {% for subsection in section.subsections_for_version(version_id) %}
+              <h3>{{ subsection.title }}</h3>
+            {% endfor %}
+        """
+        if version_id is None:
+            return self.sorted_subsections
+        return [s for s in self.sorted_subsections if s.has_content_for_version(version_id)]
+
+    def has_content_for_version(self, version_id: str | None) -> bool:
+        """
+        Check if this section has any content for the specified version.
+
+        A section has content for a version if:
+        - Its index_page exists and matches the version, OR
+        - Any of its sorted_pages match the version
+
+        Args:
+            version_id: Version to check, or None (always returns True)
+
+        Returns:
+            True if section has matching index page or any matching pages
+
+        Example:
+            {% if section.has_content_for_version(current_version.id) %}
+              {# Show this section in navigation #}
+            {% endif %}
+        """
+        if version_id is None:
+            return True
+
+        # Check index page first
+        if self.index_page and getattr(self.index_page, "version", None) == version_id:
+            return True
+
+        # Check any regular page
+        return any(getattr(p, "version", None) == version_id for p in self.sorted_pages)
+
     @property
     def regular_pages_recursive(self) -> list[Page]:
         """

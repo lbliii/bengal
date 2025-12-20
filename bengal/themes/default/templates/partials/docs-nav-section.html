@@ -72,37 +72,13 @@ Usage:
 
   {# Section Items (collapsible children) #}
   <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">
-    {# Get current version ID for filtering #}
+    {# Get version filter (None disables version filtering) #}
     {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
+    {% set version_filter = current_version_id if site.versioning_enabled else none %}
 
-    {# Cache sorted lists for O(1) access - computed once per section #}
-    {# Filter pages and subsections by current version if versioning is enabled #}
-    {% if current_version_id and site.versioning_enabled %}
-      {% set section_sorted_pages = section.sorted_pages | selectattr('version', 'equalto', current_version_id) | list %}
-      {# Filter subsections to only those that have pages from current version #}
-      {% set filtered_subsections = [] %}
-      {% for subsection in section.sorted_subsections %}
-        {# Include subsection if its index page matches current version, or if it has any pages from current version #}
-        {% set has_versioned_content = false %}
-        {% if subsection.index_page and subsection.index_page.version == current_version_id %}
-          {% set has_versioned_content = true %}
-        {% else %}
-          {% for p in subsection.sorted_pages %}
-            {% if p.version == current_version_id %}
-              {% set has_versioned_content = true %}
-              {% break %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {% if has_versioned_content %}
-          {% set _ = filtered_subsections.append(subsection) %}
-        {% endif %}
-      {% endfor %}
-      {% set section_sorted_subsections = filtered_subsections %}
-    {% else %}
-      {% set section_sorted_pages = section.sorted_pages %}
-      {% set section_sorted_subsections = section.sorted_subsections %}
-    {% endif %}
+    {# Use version-aware Section methods for clean filtering #}
+    {% set section_sorted_pages = section.pages_for_version(version_filter) %}
+    {% set section_sorted_subsections = section.subsections_for_version(version_filter) %}
     {% set section_index_url = section.index_page.relative_url if section.index_page else none %}
 
     {# Regular pages in this section (excluding index page) - sorted by weight #}

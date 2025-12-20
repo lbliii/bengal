@@ -49,37 +49,13 @@ Usage:
 
     {# If we have a root section, show only its tree #}
     {% if root_section %}
-    {# Get current version ID for filtering #}
+    {# Get current version ID for filtering (None disables version filtering) #}
     {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
+    {% set version_filter = current_version_id if site.versioning_enabled else none %}
 
-    {# Cache sorted lists and subsection index URLs for O(1) lookups #}
-    {# Filter pages and subsections by current version if versioning is enabled #}
-    {% if current_version_id and site.versioning_enabled %}
-      {% set sorted_pages = root_section.sorted_pages | selectattr('version', 'equalto', current_version_id) | list %}
-      {# Filter subsections to only those that have pages from current version #}
-      {% set filtered_subsections = [] %}
-      {% for subsection in root_section.sorted_subsections %}
-        {# Include subsection if its index page matches current version, or if it has any pages from current version #}
-        {% set has_versioned_content = false %}
-        {% if subsection.index_page and subsection.index_page.version == current_version_id %}
-          {% set has_versioned_content = true %}
-        {% else %}
-          {% for p in subsection.sorted_pages %}
-            {% if p.version == current_version_id %}
-              {% set has_versioned_content = true %}
-              {% break %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {% if has_versioned_content %}
-          {% set _ = filtered_subsections.append(subsection) %}
-        {% endif %}
-      {% endfor %}
-      {% set sorted_subsections = filtered_subsections %}
-    {% else %}
-      {% set sorted_pages = root_section.sorted_pages %}
-      {% set sorted_subsections = root_section.sorted_subsections %}
-    {% endif %}
+    {# Use version-aware Section methods for clean filtering #}
+    {% set sorted_pages = root_section.pages_for_version(version_filter) %}
+    {% set sorted_subsections = root_section.subsections_for_version(version_filter) %}
     {# subsection_index_urls is a set from Python for O(1) membership checks #}
     {% set subsection_index_urls = root_section.subsection_index_urls %}
     {% set root_index_url = root_section.index_page.relative_url if root_section.index_page else none %}
@@ -90,11 +66,8 @@ Usage:
 
     {# Show the section's index page if it exists and matches current version #}
     {% if root_section.index_page %}
-      {# Filter index page by version if versioning is enabled #}
-      {% set show_index = true %}
-      {% if current_version_id and site.versioning_enabled %}
-        {% set show_index = (root_section.index_page.version == current_version_id) %}
-      {% endif %}
+      {# Use version-aware check (version_filter is None when versioning disabled) #}
+      {% set show_index = (version_filter is none) or (root_section.index_page.version == version_filter) %}
       {% if show_index %}
       {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
       {% set root_title = root_section.index_page.nav_title or root_section.index_page.title if root_section.index_page.title and
@@ -139,31 +112,22 @@ Usage:
     {% endfor %}
     {% else %}
     {# Fallback: Show all top-level sections (original behavior) #}
-    {# Get current version ID for filtering #}
+    {# Get current version ID for filtering (None disables version filtering) #}
     {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
+    {% set version_filter = current_version_id if site.versioning_enabled else none %}
 
-    {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
-    {# Filter top-level sections by version if versioning is enabled #}
-    {% if current_version_id and site.versioning_enabled %}
-      {% set filtered_top_sections = [] %}
-      {% for section in top_sections %}
-        {# Include section if it has pages from current version #}
-        {% set has_versioned_content = false %}
-        {% if section.index_page and section.index_page.version == current_version_id %}
-          {% set has_versioned_content = true %}
-        {% else %}
-          {% for p in section.sorted_pages %}
-            {% if p.version == current_version_id %}
-              {% set has_versioned_content = true %}
-              {% break %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        {% if has_versioned_content %}
-          {% set _ = filtered_top_sections.append(section) %}
+    {# Get top-level sections and filter by version using Section methods #}
+    {% set all_top_sections = site.sections | selectattr('parent', 'none') | list %}
+    {% if version_filter %}
+      {% set top_sections = all_top_sections | selectattr('has_content_for_version', 'callable') | list %}
+      {% set top_sections = [] %}
+      {% for section in all_top_sections %}
+        {% if section.has_content_for_version(version_filter) %}
+          {% set _ = top_sections.append(section) %}
         {% endif %}
       {% endfor %}
-      {% set top_sections = filtered_top_sections %}
+    {% else %}
+      {% set top_sections = all_top_sections %}
     {% endif %}
 
     {# Normalize current page URL for exact matching (remove trailing slash) #}
@@ -173,8 +137,8 @@ Usage:
     {# Show any top-level pages first (regular pages without a section) #}
     {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list %}
     {# Filter top-level pages by version if versioning is enabled #}
-    {% if current_version_id and site.versioning_enabled %}
-      {% set top_pages = top_pages | selectattr('version', 'equalto', current_version_id) | list %}
+    {% if version_filter %}
+      {% set top_pages = top_pages | selectattr('version', 'equalto', version_filter) | list %}
     {% endif %}
     {% for p in top_pages %}
     {# Use relative_url for comparisons (without baseurl) #}
