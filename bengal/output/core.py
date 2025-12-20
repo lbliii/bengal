@@ -65,13 +65,11 @@ class CLIOutput(DevServerOutputMixin):
 
         self.use_rich = use_rich
 
-        # Use themed console for semantic styles (header, success, etc.)
-        if use_rich:
-            from bengal.utils.rich_console import get_console
+        # Always create console (even when not using Rich features)
+        # This simplifies type checking - console is never None
+        from bengal.utils.rich_console import get_console
 
-            self.console = get_console()
-        else:
-            self.console = None  # type: ignore[assignment]
+        self.console = get_console()
 
         # Dev mode detection (set by dev server)
         try:

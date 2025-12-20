@@ -10,11 +10,11 @@ from __future__ import annotations
 from typing import Any
 
 import click
-from bengal.cli.output.dev_server import DevServerOutputMixin
-from bengal.cli.output.enums import MessageLevel
 from rich.panel import Panel
 from rich.table import Table
 
+from bengal.output.dev_server import DevServerOutputMixin
+from bengal.output.enums import MessageLevel
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -65,13 +65,11 @@ class CLIOutput(DevServerOutputMixin):
 
         self.use_rich = use_rich
 
-        # Use themed console for semantic styles (header, success, etc.)
-        if use_rich:
-            from bengal.utils.rich_console import get_console
+        # Always create console (even when not using Rich features)
+        # This simplifies type checking - console is never None
+        from bengal.utils.rich_console import get_console
 
-            self.console = get_console()
-        else:
-            self.console = None  # type: ignore[assignment]
+        self.console = get_console()
 
         # Dev mode detection (set by dev server)
         try:

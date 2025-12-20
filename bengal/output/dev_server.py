@@ -28,7 +28,7 @@ class DevServerOutputMixin:
 
     # These attributes are defined in CLIOutput
     use_rich: bool
-    console: Console | None
+    console: Console
 
     def should_show(self, level: MessageLevel) -> bool:
         """Check if message should be shown (implemented in CLIOutput)."""
@@ -51,7 +51,7 @@ class DevServerOutputMixin:
         line = "─" * width
 
         if self.use_rich:
-            self.console.print(f"  [{style}]{line}[/{style}]")  # type: ignore[union-attr]
+            self.console.print(f"  [{style}]{line}[/{style}]")
         else:
             # ANSI dim for fallback
             click.echo(f"  \033[90m{line}\033[0m")
@@ -79,9 +79,7 @@ class DevServerOutputMixin:
 
         self.separator()
         if self.use_rich:
-            self.console.print(  # type: ignore[union-attr]
-                f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}"
-            )
+            self.console.print(f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}")
         else:
             click.echo(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
         self.separator()
@@ -104,7 +102,7 @@ class DevServerOutputMixin:
         url = f"http://{host}:{port}/"
 
         if self.use_rich:
-            self.console.print(f"\n  [cyan]➜[/cyan]  Local: [bold]{url}[/bold]\n")  # type: ignore[union-attr]
+            self.console.print(f"\n  [cyan]➜[/cyan]  Local: [bold]{url}[/bold]\n")
         else:
             click.echo(f"\n  \033[36m➜\033[0m  Local: \033[1m{url}\033[0m\n")
 
@@ -120,12 +118,8 @@ class DevServerOutputMixin:
             return
 
         if self.use_rich:
-            self.console.print(  # type: ignore[union-attr]
-                f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]"
-            )
-            self.console.print(  # type: ignore[union-attr]
-                f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]"
-            )
+            self.console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
+            self.console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
         else:
             click.echo(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
             click.echo(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
@@ -176,7 +170,7 @@ class DevServerOutputMixin:
             # Use Rich markup for colors
             status_style = get_status_style(status_code)
             method_style = get_method_style(method)
-            self.console.print(  # type: ignore[union-attr]
+            self.console.print(
                 f"  {timestamp} │ [{method_style}]{method:6}[/{method_style}] │ "
                 f"[{status_style}]{status_code:3}[/{status_style}] │ {indicator}{display_path}"
             )
