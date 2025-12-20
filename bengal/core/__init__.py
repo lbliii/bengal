@@ -43,6 +43,7 @@ from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from bengal.core.theme import Theme
 from bengal.core.version import (
     GitBranchPattern,
     GitVersionConfig,
@@ -57,6 +58,7 @@ __all__ = [
     "Page",
     "Section",
     "Site",
+    "Theme",
     "Version",
     "VersionConfig",
 ]
