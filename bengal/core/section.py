@@ -932,3 +932,65 @@ class Section:
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"
+
+
+# =========================================================================
+# MODULE-LEVEL HELPER FUNCTIONS
+# =========================================================================
+# These were relocated from utils/sections.py during architecture refactoring.
+
+
+def resolve_page_section_path(page: Any) -> str | None:
+    """
+    Resolve a page's section path as a string, handling multiple representations.
+
+    The page may expose its section association in different ways depending on
+    build phase or caching:
+    - `page.section` may be a `Section` object with a `.path` attribute
+    - `page.section` may already be a string path
+    - It may be missing or falsy for root-level pages
+
+    Args:
+        page: Page-like object which may have a `section` attribute
+
+    Returns:
+        String path to the section (e.g., "docs/tutorials") or None if not set.
+    """
+    from bengal.utils.logger import get_logger
+
+    logger = get_logger(__name__)
+
+    if page is None:
+        return None
+
+    # Some page proxies may raise on getattr; guard with try/except
+    try:
+        section_value = getattr(page, "section", None)
+    except Exception as e:
+        logger.debug(
+            "sections_getattr_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_none_section",
+        )
+        section_value = None
+
+    if not section_value:
+        return None
+
+    # If it's a Section-like object with a `.path`, return its string form
+    if hasattr(section_value, "path"):
+        try:
+            return str(section_value.path)
+        except Exception as e:
+            # Fallback to str(section_value) if `.path` isn't convertible
+            logger.debug(
+                "sections_path_convert_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_string_fallback",
+            )
+            return str(section_value)
+
+    # Already a string or stringable value
+    return str(section_value)

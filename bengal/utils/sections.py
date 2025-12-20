@@ -1,67 +1,35 @@
 """
 Section-related utility helpers.
 
-Provides safe normalization helpers for section references that may be either
-`Section` objects or precomputed string paths depending on context (e.g.,
-runtime vs cached/incremental data structures).
+DEPRECATED: This module has moved to bengal.core.section.
+Import from bengal.core.section instead:
+
+    from bengal.core.section import resolve_page_section_path
+
+This module re-exports from the new location for backwards compatibility.
 """
 
 from __future__ import annotations
 
-from typing import Any
+# Re-export from new location
+from bengal.core.section import resolve_page_section_path
 
-from bengal.utils.logger import get_logger
+__all__ = [
+    "resolve_page_section_path",
+]
 
-logger = get_logger(__name__)
 
+def __getattr__(name: str) -> object:
+    """Emit deprecation warning on attribute access."""
+    import warnings
 
-def resolve_page_section_path(page: Any) -> str | None:
-    """
-    Resolve a page's section path as a string, handling multiple representations.
-
-    The page may expose its section association in different ways depending on
-    build phase or caching:
-    - `page.section` may be a `Section` object with a `.path` attribute
-    - `page.section` may already be a string path
-    - It may be missing or falsy for root-level pages
-
-    Args:
-        page: Page-like object which may have a `section` attribute
-
-    Returns:
-        String path to the section (e.g., "docs/tutorials") or None if not set.
-    """
-    if page is None:
-        return None
-
-    # Some page proxies may raise on getattr; guard with try/except
-    try:
-        section_value = getattr(page, "section", None)
-    except Exception as e:
-        logger.debug(
-            "sections_getattr_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_none_section",
-        )
-        section_value = None
-
-    if not section_value:
-        return None
-
-    # If it's a Section-like object with a `.path`, return its string form
-    if hasattr(section_value, "path"):
-        try:
-            return str(section_value.path)
-        except Exception as e:
-            # Fallback to str(section_value) if `.path` isn't convertible
-            logger.debug(
-                "sections_path_convert_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_string_fallback",
-            )
-            return str(section_value)
-
-    # Already a string or stringable value
-    return str(section_value)
+    warnings.warn(
+        "bengal.utils.sections is deprecated. "
+        "Import from bengal.core.section instead: "
+        "from bengal.core.section import resolve_page_section_path",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    if name in __all__:
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
