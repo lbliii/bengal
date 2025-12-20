@@ -165,11 +165,9 @@ def create_cli_sections(
             else:
                 standalone_commands.append(element)
 
-    # Create sections for command groups
-    for group_name, commands in command_groups.items():
-        if not commands:
-            continue
-
+    # Create sections for ALL command groups (even empty ones)
+    # Empty groups still need sections for navigation and index pages
+    for group_name in command_groups:
         # Build URL path components
         group_path = resolve_cli_url_path(group_name)
         section_path = f"{prefix}/{group_path}" if group_path else prefix

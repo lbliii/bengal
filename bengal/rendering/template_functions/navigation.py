@@ -921,6 +921,15 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
         if not hasattr(section, "path") or not section.path:
             continue
 
+        # Skip _versions and _shared directories (versioning internal directories)
+        # These should not appear in navigation
+        section_path_str = str(section.path)
+        if "_versions" in section_path_str or "_shared" in section_path_str:
+            # Check if this is a direct _versions or _shared section
+            path_parts = section_path_str.replace("\\", "/").split("/")
+            if "_versions" in path_parts or "_shared" in path_parts:
+                continue
+
         # Check if section has a parent - if not, it's top-level
         if not hasattr(section, "parent") or section.parent is None:
             top_level_sections.append(section)
@@ -928,6 +937,13 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     # Recursively build menu items from top-level sections
     def _add_section_recursive(section: Any, parent_id: str | None = None) -> None:
         """Recursively add section and its subsections to nav_items."""
+        # Skip _versions and _shared directories (versioning internal directories)
+        if hasattr(section, "path") and section.path:
+            section_path_str = str(section.path)
+            path_parts = section_path_str.replace("\\", "/").split("/")
+            if "_versions" in path_parts or "_shared" in path_parts:
+                return
+
         item = _build_section_menu_item(section, site, parent_id)
         if item is None:
             return

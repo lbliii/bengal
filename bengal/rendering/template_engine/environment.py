@@ -284,7 +284,8 @@ def create_jinja_environment(
         "bytecode_cache": bytecode_cache,
         "auto_reload": auto_reload,
         # Enable 'do' extension for statement execution in templates (e.g., {% do list.append(x) %})
-        "extensions": ["jinja2.ext.do"],
+        # Enable 'loopcontrols' extension for {% break %} and {% continue %} in loops
+        "extensions": ["jinja2.ext.do", "jinja2.ext.loopcontrols"],
     }
 
     if site.config.get("strict_mode", False):

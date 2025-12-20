@@ -33,14 +33,16 @@ This template receives:
 
       {# Build module list once for cards #}
       {% set module_pages = [] %}
+      {% if section %}
       {% for page in section.sorted_pages %}
       {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
       {% set _ = module_pages.append(page) %}
       {% endif %}
       {% endfor %}
+      {% endif %}
 
       {# Subsections (Packages) - Card Grid #}
-      {% if section.sorted_subsections %}
+      {% if section and section.sorted_subsections %}
       <section class="autodoc-section" data-section="packages">
         <h2 class="autodoc-section-title">Packages</h2>
 
@@ -111,7 +113,7 @@ This template receives:
       {% endif %}
 
       {# Empty State #}
-      {% if not section.subsections and not module_pages %}
+      {% if not section or (not section.subsections and not module_pages) %}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No documentation available in this section yet.</p>

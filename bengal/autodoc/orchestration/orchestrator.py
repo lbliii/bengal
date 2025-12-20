@@ -621,12 +621,13 @@ class VirtualAutodocOrchestrator:
         root_section_keys.update(aggregating_keys)
 
         # Then add individual type sections that aren't children of aggregating sections
+        # NOTE: Use default=True to match the generation logic above
         for doc_type, config in [
             ("python", self.python_config),
             ("openapi", self.openapi_config),
             ("cli", self.cli_config),
         ]:
-            if not config.get("enabled", False):
+            if not config.get("enabled", True):
                 continue
             prefix = self._resolve_output_prefix(doc_type)
             if prefix not in all_sections:

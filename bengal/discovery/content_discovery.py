@@ -198,6 +198,19 @@ class ContentDiscovery:
                         self._executor.submit(self._create_page, item_path, current_lang, None)
                     )
             elif item_path.is_dir():
+                # Skip _versions and _shared directories themselves - they're versioning infrastructure
+                # Their contents (like _versions/v1/docs/) will be discovered as separate sections
+                if item_path.name in ("_versions", "_shared"):
+                    # Still walk the directory to discover content inside, but don't add _versions/_shared as a section
+                    section = Section(
+                        name=item_path.name,
+                        path=item_path,
+                        _site=self.site,
+                    )
+                    self._walk_directory(item_path, section, current_lang=current_lang)
+                    # Don't add _versions/_shared itself as a section - only its contents
+                    return produced_pages
+
                 section = Section(
                     name=item_path.name,
                     path=item_path,

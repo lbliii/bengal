@@ -25,11 +25,11 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
 
       {# Title #}
       <h1 class="api-hub-hero__title">
-        <span class="fluid-text">{{ section.title | default(page.title) | default('API Documentation') }}</span>
+        <span class="fluid-text">{{ (section.title if section else page.title) | default('API Documentation') }}</span>
       </h1>
 
       {# Description #}
-      {% set desc = section.metadata.get('description', '') or page.metadata.get('description', '') %}
+      {% set desc = (section.metadata.get('description', '') if section else '') or page.metadata.get('description', '') %}
       {% if desc %}
       <p class="api-hub-hero__subtitle">{{ desc }}</p>
       {% else %}
@@ -37,7 +37,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
       {% endif %}
 
       {# Stats Bar #}
-      {% if section.sorted_subsections %}
+      {% if section and section.sorted_subsections %}
       <div class="api-hub-hero__stats">
         {% set python_count = 0 %}
         {% set rest_count = 0 %}
@@ -94,7 +94,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
   {% endif %}
 
   {# API Tiles Grid #}
-  {% if section.sorted_subsections %}
+  {% if section and section.sorted_subsections %}
   <section class="api-hub-apis" aria-label="Available APIs">
     <div class="api-hub-grid">
       {% for subsection in section.sorted_subsections %}

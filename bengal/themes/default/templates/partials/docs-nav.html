@@ -49,9 +49,37 @@ Usage:
 
     {# If we have a root section, show only its tree #}
     {% if root_section %}
+    {# Get current version ID for filtering #}
+    {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
+
     {# Cache sorted lists and subsection index URLs for O(1) lookups #}
-    {% set sorted_pages = root_section.sorted_pages %}
-    {% set sorted_subsections = root_section.sorted_subsections %}
+    {# Filter pages and subsections by current version if versioning is enabled #}
+    {% if current_version_id and site.versioning_enabled %}
+      {% set sorted_pages = root_section.sorted_pages | selectattr('version', 'equalto', current_version_id) | list %}
+      {# Filter subsections to only those that have pages from current version #}
+      {% set filtered_subsections = [] %}
+      {% for subsection in root_section.sorted_subsections %}
+        {# Include subsection if its index page matches current version, or if it has any pages from current version #}
+        {% set has_versioned_content = false %}
+        {% if subsection.index_page and subsection.index_page.version == current_version_id %}
+          {% set has_versioned_content = true %}
+        {% else %}
+          {% for p in subsection.sorted_pages %}
+            {% if p.version == current_version_id %}
+              {% set has_versioned_content = true %}
+              {% break %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if has_versioned_content %}
+          {% set _ = filtered_subsections.append(subsection) %}
+        {% endif %}
+      {% endfor %}
+      {% set sorted_subsections = filtered_subsections %}
+    {% else %}
+      {% set sorted_pages = root_section.sorted_pages %}
+      {% set sorted_subsections = root_section.sorted_subsections %}
+    {% endif %}
     {# subsection_index_urls is a set from Python for O(1) membership checks #}
     {% set subsection_index_urls = root_section.subsection_index_urls %}
     {% set root_index_url = root_section.index_page.relative_url if root_section.index_page else none %}
@@ -60,32 +88,41 @@ Usage:
     {# Use relative_url for comparisons (without baseurl) #}
     {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
-    {# Show the section's index page if it exists #}
+    {# Show the section's index page if it exists and matches current version #}
     {% if root_section.index_page %}
-    {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
-    {% set root_title = root_section.index_page.nav_title or root_section.index_page.title if root_section.index_page.title and
-    root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if
-    root_section.slug else 'API Reference') %}
-    {% set root_icon = root_section.icon if root_section.icon else none %}
-    {% set root_is_active = (page is defined and page and current_url == root_url_normalized) %}
-    <a href="{{ root_section.index_page.url }}"
-      class="docs-nav-link docs-nav-link--root {% if root_is_active %}active{% endif %}" {% if root_is_active
-      %}aria-current="page" {% endif %}>
-      {# Root Section Icon (from frontmatter, defaults to book-open for docs) #}
-      {% if show_nav_icons %}
-      <span class="docs-nav-icon docs-nav-icon--root" {% if not root_icon %}data-default="true" {% endif %}>
-        {{ icon(root_icon or 'book-open', size=16) }}
-      </span>
+      {# Filter index page by version if versioning is enabled #}
+      {% set show_index = true %}
+      {% if current_version_id and site.versioning_enabled %}
+        {% set show_index = (root_section.index_page.version == current_version_id) %}
       {% endif %}
-      <span class="docs-nav-link-text">{{ root_title }}</span>
-    </a>
+      {% if show_index %}
+      {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
+      {% set root_title = root_section.index_page.nav_title or root_section.index_page.title if root_section.index_page.title and
+      root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if
+      root_section.slug else 'API Reference') %}
+      {% set root_icon = root_section.icon if root_section.icon else none %}
+      {% set root_is_active = (page is defined and page and current_url == root_url_normalized) %}
+      <a href="{{ root_section.index_page.url }}"
+        class="docs-nav-link docs-nav-link--root {% if root_is_active %}active{% endif %}" {% if root_is_active
+        %}aria-current="page" {% endif %}>
+        {# Root Section Icon (from frontmatter, defaults to book-open for docs) #}
+        {% if show_nav_icons %}
+        <span class="docs-nav-icon docs-nav-icon--root" {% if not root_icon %}data-default="true" {% endif %}>
+          {{ icon(root_icon or 'book-open', size=16) }}
+        </span>
+        {% endif %}
+        <span class="docs-nav-link-text">{{ root_title }}</span>
+      </a>
+      {% endif %}
     {% endif %}
 
     {# Show regular pages (O(n) with O(1) lookups) - sorted by weight #}
     {% for p in sorted_pages %}
     {# Skip root index and subsection index pages - now O(1) set lookup! #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls %}
+    {# Skip autodoc pages (they belong in /api/ or /cli/ sections, not docs nav) #}
+    {% set page_type = p.metadata.get('type', '') %}
+    {% set is_autodoc = page_type.startswith('autodoc-') or page_type.startswith('python-') or page_type.startswith('cli-') or page_type.startswith('openapi-') or p.metadata.get('generator') == 'bengal-autodoc' %}
+    {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls and not is_autodoc %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
     {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
     <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
@@ -102,15 +139,43 @@ Usage:
     {% endfor %}
     {% else %}
     {# Fallback: Show all top-level sections (original behavior) #}
+    {# Get current version ID for filtering #}
+    {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
+
     {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
+    {# Filter top-level sections by version if versioning is enabled #}
+    {% if current_version_id and site.versioning_enabled %}
+      {% set filtered_top_sections = [] %}
+      {% for section in top_sections %}
+        {# Include section if it has pages from current version #}
+        {% set has_versioned_content = false %}
+        {% if section.index_page and section.index_page.version == current_version_id %}
+          {% set has_versioned_content = true %}
+        {% else %}
+          {% for p in section.sorted_pages %}
+            {% if p.version == current_version_id %}
+              {% set has_versioned_content = true %}
+              {% break %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if has_versioned_content %}
+          {% set _ = filtered_top_sections.append(section) %}
+        {% endif %}
+      {% endfor %}
+      {% set top_sections = filtered_top_sections %}
+    {% endif %}
 
     {# Normalize current page URL for exact matching (remove trailing slash) #}
     {# Use relative_url for comparisons (without baseurl) #}
     {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
     {# Show any top-level pages first (regular pages without a section) #}
-    {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list
-    %}
+    {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list %}
+    {# Filter top-level pages by version if versioning is enabled #}
+    {% if current_version_id and site.versioning_enabled %}
+      {% set top_pages = top_pages | selectattr('version', 'equalto', current_version_id) | list %}
+    {% endif %}
     {% for p in top_pages %}
     {# Use relative_url for comparisons (without baseurl) #}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}

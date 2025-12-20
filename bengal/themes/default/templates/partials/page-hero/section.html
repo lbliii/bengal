@@ -35,18 +35,25 @@ Usage:
 
   {# No badges for sections #}
 
-  {# Title - section title #}
+  {# Title - section title (with None check) #}
+  {% if section and section.title %}
   <h1 class="page-hero__title">{{ section.title }}</h1>
+  {% elif page and page.title %}
+  <h1 class="page-hero__title">{{ page.title }}</h1>
+  {% endif %}
 
   {# Description from section metadata (dict access) #}
+  {% if section %}
   {% set desc = section.metadata.get('description', '') %}
   {% if desc %}
   <div class="page-hero__description page-hero__description--prose">
     {{ desc | markdownify | safe }}
   </div>
   {% endif %}
+  {% endif %}
 
   {# Footer: Stats from section children #}
+  {% if section %}
   <div class="page-hero__footer">
     {% set section_subsections = section.sorted_subsections | default([]) | list %}
     {% set section_pages = section.sorted_pages | default([]) | rejectattr('source_path', 'match', '.*_index.*') | list %}
@@ -76,4 +83,5 @@ Usage:
     </div>
     {% endif %}
   </div>
+  {% endif %}
 </div>
