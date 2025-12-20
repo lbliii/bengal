@@ -3,8 +3,9 @@
 **Status**: Draft
 **Author**: AI Assistant
 **Created**: 2025-01-27
+**Updated**: 2025-12-20
 **Consolidates**: `rfc-code-smell-remediation.md`, `rfc-package-architecture-consolidation.md`
-**Confidence**: 91% 🟢
+**Confidence**: 88% 🟢
 **Category**: Architecture / Refactoring
 
 ---
@@ -24,10 +25,10 @@ Comprehensive architecture analysis identified **package-level structural issues
 Bengal's architecture has grown organically, introducing structural drift at both package and file levels:
 
 **Package-Level Issues**:
-- `rendering/` package: 107 files (too large, contains 30+ directive plugins)
-- `utils/` package: 25 files (grab-bag with domain-specific code)
+- `rendering/` package: 107 files (too large, contains 39 directive plugins)
+- `utils/` package: 46 files (grab-bag with domain-specific code)
 - Overlapping validation: Duplicate logic in `health/` and `rendering/`
-- Inconsistent patterns: `autodoc/orchestration/` breaks main orchestration pattern
+- `autodoc/orchestration/` has different naming pattern than main orchestration
 
 **File-Level Issues**:
 - 8+ monolithic files exceeding 700 lines (3.5x the 400-line threshold)
@@ -40,14 +41,14 @@ Bengal's architecture has grown organically, introducing structural drift at bot
 ```bash
 # File counts per package (excluding __pycache__)
 rendering/          107 files  # 🔴 Needs extraction
-utils/               25 files  # 🟡 Needs relocation
-autodoc/             18 files
-cache/               17 files
-orchestration/       16 files
-health/              16 files
-core/                15 files
-cli/                 14 files
-discovery/            8 files
+cli/                 73 files  # 🟡 Large but cohesive
+utils/               46 files  # 🔴 Grab-bag, needs relocation
+health/              33 files
+core/                30 files
+cache/               26 files
+autodoc/             24 files
+orchestration/       19 files
+discovery/            5 files
 ```
 
 ### Evidence: Largest Files
@@ -86,23 +87,41 @@ discovery/            8 files
 
 ### Evidence: Utils Grab-Bag
 
-`bengal/utils/` contains domain-specific modules that violate single-responsibility:
+`bengal/utils/` contains **46 files** (838–51 lines each), many domain-specific modules that violate single-responsibility:
+
+**Large Files (>400 lines) - Relocate AND break up**:
+
+| File | Lines | Belongs In | Action |
+|------|-------|------------|--------|
+| `cli_output.py` | 838 | `cli/output/` | Relocate + split into package |
+| `file_io.py` | 734 | Keep in utils | Consider splitting |
+| `build_stats.py` | 613 | `orchestration/stats/` | Relocate + split into package |
+| `logger.py` | 603 | Keep in utils | Generic utility |
+| `live_progress.py` | 555 | `cli/progress/` | Relocate |
+| `text.py` | 476 | Keep in utils | Generic utility |
+| `build_summary.py` | 433 | `orchestration/summary.py` | Relocate (>400, consider split) |
+
+**Medium Files (100–400 lines) - Relocate only**:
 
 | File | Lines | Belongs In |
 |------|-------|------------|
-| `theme_resolution.py` | 245 | `core/theme/resolution.py` |
-| `theme_registry.py` | 180 | `core/theme/registry.py` |
-| `build_stats.py` | 156 | `orchestration/stats.py` |
-| `build_summary.py` | 142 | `orchestration/summary.py` |
-| `build_badge.py` | 89 | `orchestration/badge.py` |
-| `page_initializer.py` | 234 | `discovery/page_factory.py` |
-| `sections.py` | 178 | `core/section.py` (merge) |
-| `cli_output.py` | 838 | `cli/output.py` (relocate AND break up) |
+| `theme_registry.py` | 298 | `core/theme/registry.py` |
+| `theme_resolution.py` | 165 | `core/theme/resolution.py` |
+| `page_initializer.py` | 138 | `discovery/page_factory.py` |
+| `build_badge.py` | 119 | `orchestration/badge.py` |
+| `incremental_constants.py` | 55 | `orchestration/constants.py` |
+
+**Small Files (<100 lines) - Consider merge vs relocate**:
+
+| File | Lines | Belongs In |
+|------|-------|------------|
+| `sections.py` | 67 | `core/section.py` (merge) |
 
 **Impact**:
 - Developers search multiple locations for related code
 - Circular import risks when domain packages import from utils
 - Unclear ownership for bug fixes
+- 5 files exceed 400-line threshold within utils itself
 
 ### Evidence: Overlapping Validation
 
@@ -150,7 +169,7 @@ Both share ~70% of their logic but are maintained separately.
 
 ## Phase 1: Extract Directives Package (Priority 1)
 
-**Problem**: `rendering/plugins/directives/` is 30+ files that could be independent, including `cards.py` (1,027 lines) that needs both extraction AND breakdown.
+**Problem**: `rendering/plugins/directives/` is 39 files that could be independent, including `cards.py` (1,027 lines) that needs both extraction AND breakdown.
 
 **Current Structure**:
 ```
@@ -210,33 +229,55 @@ bengal/directives/
 
 ## Phase 2: Relocate Domain Utils (Priority 1)
 
-**Problem**: `utils/` contains domain-specific code that belongs in domain packages.
+**Problem**: `utils/` contains 46 files (many domain-specific), far exceeding single-responsibility principles.
 
-**Proposed Relocations**:
+**Tier 1: Large Files (>400 lines) - Relocate AND break up**:
 
-| Current Location | New Location | Rationale |
-|------------------|--------------|-----------|
-| `utils/theme_resolution.py` | `core/theme/resolution.py` | Theme logic belongs with core models |
-| `utils/theme_registry.py` | `core/theme/registry.py` | Theme logic belongs with core models |
-| `utils/build_stats.py` | `orchestration/stats.py` | Build artifacts belong with orchestration |
-| `utils/build_summary.py` | `orchestration/summary.py` | Build artifacts belong with orchestration |
-| `utils/build_badge.py` | `orchestration/badge.py` | Build artifacts belong with orchestration |
-| `utils/page_initializer.py` | `discovery/page_factory.py` | Page creation is discovery concern |
-| `utils/sections.py` | `core/section.py` (merge) | Section logic belongs with Section class |
-| `utils/cli_output.py` | `cli/output.py` | CLI output belongs with CLI package (will break up in Phase 6) |
+| Current Location | Lines | New Location | Action |
+|------------------|-------|--------------|--------|
+| `utils/cli_output.py` | 838 | `cli/output/` | Convert to package |
+| `utils/build_stats.py` | 613 | `orchestration/stats/` | Convert to package |
+| `utils/live_progress.py` | 555 | `cli/progress.py` | Relocate (borderline split) |
+| `utils/build_summary.py` | 433 | `orchestration/summary.py` | Relocate (>400, consider split) |
+
+**Tier 2: Medium Files (100–400 lines) - Relocate only**:
+
+| Current Location | Lines | New Location | Rationale |
+|------------------|-------|--------------|-----------|
+| `utils/theme_registry.py` | 298 | `core/theme/registry.py` | Theme logic belongs with core |
+| `utils/theme_resolution.py` | 165 | `core/theme/resolution.py` | Theme logic belongs with core |
+| `utils/page_initializer.py` | 138 | `discovery/page_factory.py` | Page creation is discovery concern |
+| `utils/build_badge.py` | 119 | `orchestration/badge.py` | Build artifacts |
+| `utils/incremental_constants.py` | 55 | `orchestration/constants.py` | Incremental build config |
+
+**Tier 3: Small Files (<100 lines) - Merge**:
+
+| Current Location | Lines | Target | Action |
+|------------------|-------|--------|--------|
+| `utils/sections.py` | 67 | `core/section.py` | Merge into existing module |
 
 **What Remains in `utils/`** (generic utilities only):
 ```
 utils/
-├── async_compat.py      # Async utilities
-├── dates.py             # Date parsing/formatting
-├── file_io.py           # File operations
-├── hashing.py           # Hash utilities
-├── retry.py             # Retry decorators
-├── text.py              # Text utilities
-├── thread_local.py      # Thread-local storage
-├── paths.py             # Path resolution (generic)
-└── paginator.py         # Generic pagination
+├── file_io.py           # 734 lines - File operations (consider split later)
+├── logger.py            # 603 lines - Logging utilities (consider split later)
+├── text.py              # 476 lines - Text utilities (consider split later)
+├── version_diff.py      # 389 lines - Version diffing
+├── performance_report.py # 360 lines - Performance reporting
+├── build_context.py     # 358 lines - Build context
+├── profile.py           # 349 lines - Profiling utilities
+├── url_strategy.py      # 337 lines - URL strategies
+├── swizzle.py           # 331 lines - Swizzle utilities
+├── css_minifier.py      # 330 lines - CSS minification
+├── dates.py             # 309 lines - Date parsing/formatting
+├── js_bundler.py        # 285 lines - JS bundling
+├── async_compat.py      # 78 lines - Async utilities
+├── hashing.py           # 167 lines - Hash utilities
+├── retry.py             # 184 lines - Retry decorators
+├── thread_local.py      # 170 lines - Thread-local storage
+├── paths.py             # 194 lines - Path resolution
+├── pagination.py        # 106 lines - Generic pagination
+└── ... (remaining generic utilities)
 ```
 
 **Migration Strategy**:
@@ -244,6 +285,11 @@ utils/
 2. Add deprecation warnings to old locations
 3. Update internal imports
 4. Remove old modules after 1 release cycle
+
+**Expected Outcome**:
+- `utils/` reduces from 46 to ~35 files
+- All domain-specific code moves to owning packages
+- 3 large files (>500 lines) converted to packages
 
 ---
 
@@ -475,29 +521,44 @@ bengal/cli/output/
 
 ### 7.4 Standardize Autodoc Orchestration (Priority 2)
 
-**Problem**: `autodoc/orchestration/` duplicates main orchestration pattern.
+**Problem**: `autodoc/orchestration/` has internal structure that could be simplified.
 
-**Current**:
+**Current Structure** (9 files):
 ```
 autodoc/
 ├── orchestration/
 │   ├── __init__.py
-│   ├── base.py
-│   └── python_orchestrator.py
-├── virtual_orchestrator.py
+│   ├── extractors.py
+│   ├── index_pages.py
+│   ├── orchestrator.py        # Main orchestrator
+│   ├── page_builders.py
+│   ├── result.py
+│   ├── section_builders.py
+│   ├── template_env.py
+│   └── utils.py
+├── virtual_orchestrator.py     # 27 lines (thin wrapper)
 └── ...
 ```
 
 **Proposed**:
 ```
 autodoc/
-├── orchestrators/              # Rename, plural for consistency
+├── orchestration/              # Keep name (matches convention)
 │   ├── __init__.py
-│   ├── base.py
-│   └── python.py              # Rename from python_orchestrator.py
-├── virtual.py                  # Rename from virtual_orchestrator.py
+│   ├── extractors.py
+│   ├── index_pages.py
+│   ├── orchestrator.py
+│   ├── page_builders.py
+│   ├── result.py
+│   ├── section_builders.py
+│   ├── template_env.py
+│   └── utils.py
+├── virtual.py                  # Rename (drop _orchestrator suffix)
 └── ...
 ```
+
+**Note**: The current structure is already well-organized. Changes are minimal:
+- Rename `virtual_orchestrator.py` → `virtual.py` (consistency, it's only 27 lines)
 
 ---
 
@@ -511,29 +572,53 @@ autodoc/
 |------|--------|------|
 | Create `bengal/directives/` package structure | 2h | Low |
 | Move base directive classes | 2h | Low |
-| Move directive implementations (29 files) | 8h | Medium |
+| Move directive implementations (39 files) | 10h | Medium |
 | Break `cards.py` into `directives/cards/` package (1,027 lines) | 4h | Medium |
 | Create `core/theme/` package | 1h | Low |
-| Move theme_resolution.py, theme_registry.py | 2h | Low |
-| Move build_*.py to orchestration/ | 2h | Low |
-| Move page_initializer.py to discovery/ | 2h | Low |
-| Merge sections.py into core/section.py | 3h | Medium |
-| Move cli_output.py to cli/output.py | 2h | Low |
+| Move theme_resolution.py (165 lines), theme_registry.py (298 lines) | 2h | Low |
+| Move build_badge.py (119 lines) to orchestration/ | 1h | Low |
+| Move incremental_constants.py (55 lines) to orchestration/ | 1h | Low |
+| Move page_initializer.py (138 lines) to discovery/ | 1h | Low |
+| Merge sections.py (67 lines) into core/section.py | 2h | Medium |
 | Add deprecation warnings to old locations | 2h | Low |
 | Update imports | 8h | Medium |
 | Update tests | 6h | Medium |
 
 **Exit Criteria**:
-- `rendering/` file count < 80
-- `utils/` contains only generic utilities
+- `rendering/` file count < 70 (from 107)
+- `utils/` file count < 40 (from 46)
 - `cards.py` broken into focused modules
 - All tests pass
 
 ---
 
-### Sprint 2: Validation Consolidation & Foundation Dataclasses (Week 3)
+### Sprint 2: Large Utils Extraction & Foundation Dataclasses (Week 3-4)
 
-**Goal**: Consolidate validation and create foundational dataclasses.
+**Goal**: Extract large utils files to proper packages and create foundational dataclasses.
+
+| Task | Effort | Risk |
+|------|--------|------|
+| Convert `cli_output.py` (838 lines) to `cli/output/` package | 6h | Medium |
+| Convert `build_stats.py` (613 lines) to `orchestration/stats/` package | 5h | Medium |
+| Move `live_progress.py` (555 lines) to `cli/progress.py` | 2h | Low |
+| Move `build_summary.py` (433 lines) to `orchestration/summary.py` | 2h | Low |
+| Create `BuildOptions` dataclass | 2h | Low |
+| Create navigation dataclasses | 3h | Low |
+| Update call sites for `BuildOptions` | 4h | Medium |
+| Update imports | 6h | Medium |
+| Update tests | 6h | Medium |
+
+**Exit Criteria**:
+- `utils/` file count < 35
+- Large domain files extracted to owning packages
+- `BuildOptions` and navigation dataclasses created
+- All tests pass
+
+---
+
+### Sprint 3: Validation Consolidation (Week 5)
+
+**Goal**: Consolidate overlapping validation logic.
 
 | Task | Effort | Risk |
 |------|--------|------|
@@ -542,19 +627,16 @@ autodoc/
 | Merge template validation logic | 4h | Medium |
 | Update rendering pipeline to use health validators | 4h | Medium |
 | Remove duplicated code | 2h | Low |
-| Create `BuildOptions` dataclass | 2h | Low |
-| Create navigation dataclasses | 3h | Low |
-| Update call sites for `BuildOptions` | 4h | Medium |
 | Update tests | 4h | Medium |
 
 **Exit Criteria**:
 - Single source of truth for each validator
-- `BuildOptions` and navigation dataclasses created
+- No duplicate validation logic
 - All tests pass
 
 ---
 
-### Sprint 3: Incremental Package Refactoring (Week 4-5) ⚠️ HIGH RISK
+### Sprint 4: Incremental Package Refactoring (Week 6-7) ⚠️ HIGH RISK
 
 **Goal**: Break up `incremental.py` (1,399 lines) into focused package.
 
@@ -580,7 +662,7 @@ autodoc/
 
 ---
 
-### Sprint 4: Navigation & Parser Packages (Week 6-7)
+### Sprint 5: Navigation & Parser Packages (Week 8-9)
 
 **Goal**: Break up navigation and mistune parser.
 
@@ -602,15 +684,15 @@ autodoc/
 
 ---
 
-### Sprint 5: Remaining Large Files (Week 8)
+### Sprint 6: Remaining Large Files (Week 10)
 
 **Goal**: Break up remaining large files.
 
 | Task | Effort | Risk |
 |------|--------|------|
-| Break up `cli/output.py` (relocated) | 4h | Medium |
+| Break up `cli/output/` package (if not done in Sprint 2) | 4h | Medium |
 | Convert `autodoc/extractors/python.py` to package | 6h | Medium |
-| Rename autodoc/orchestration/ to orchestrators/ | 2h | Low |
+| Rename `autodoc/virtual_orchestrator.py` to `virtual.py` | 0.5h | Low |
 | Update imports and tests | 4h | Medium |
 
 **Exit Criteria**:
@@ -628,7 +710,7 @@ autodoc/
 | Template breakage from navigation changes | Low | Medium | Dataclasses implement `__getitem__` for dict compatibility; gradual migration path |
 | Circular imports after relocation | Medium | Medium | Careful dependency analysis before moving |
 | Performance regression | Low | Medium | Benchmark before/after each sprint |
-| Test coverage gaps | Medium | Medium | Run full test suite after each file move; audit incremental tests before Sprint 3 |
+| Test coverage gaps | Medium | Medium | Run full test suite after each file move; audit incremental tests before Sprint 4 |
 
 ---
 
@@ -636,8 +718,8 @@ autodoc/
 
 ### Quantitative
 
-- [ ] `rendering/` has < 80 files (from 107)
-- [ ] `utils/` has < 15 files (from 25)
+- [ ] `rendering/` has < 70 files (from 107)
+- [ ] `utils/` has < 35 files (from 46)
 - [ ] No file in `bengal/` exceeds 600 lines (soft target: 400)
 - [ ] No function exceeds 100 lines (soft target: 50)
 - [ ] No validation logic duplicated between packages
@@ -684,11 +766,62 @@ autodoc/
 
 ---
 
+## Evidence Verification
+
+**Last Verified**: 2025-12-20
+
+### Package File Counts (verified via `find ... -name "*.py" | wc -l`)
+
+| Package | Files | Status |
+|---------|-------|--------|
+| `rendering/` | 107 | 🔴 Needs extraction |
+| `cli/` | 73 | 🟡 Large but cohesive |
+| `utils/` | 46 | 🔴 Grab-bag |
+| `health/` | 33 | ✅ OK |
+| `core/` | 30 | ✅ OK |
+| `cache/` | 26 | ✅ OK |
+| `autodoc/` | 24 | ✅ OK |
+| `orchestration/` | 19 | ✅ OK |
+| `discovery/` | 5 | ✅ OK |
+
+### Largest Files (verified via `wc -l`)
+
+| File | Lines | Verified |
+|------|-------|----------|
+| `orchestration/incremental.py` | 1,399 | ✅ |
+| `analysis/knowledge_graph.py` | 1,222 | ✅ |
+| `autodoc/extractors/python.py` | 1,146 | ✅ |
+| `rendering/parsers/mistune.py` | 1,075 | ✅ |
+| `rendering/plugins/directives/cards.py` | 1,027 | ✅ |
+| `rendering/template_functions/navigation.py` | 966 | ✅ |
+| `discovery/content_discovery.py` | 944 | ✅ |
+| `core/section.py` | 934 | ✅ |
+| `utils/cli_output.py` | 838 | ✅ |
+
+### Utils Files (verified via `wc -l`)
+
+| File | Lines | Verified |
+|------|-------|----------|
+| `cli_output.py` | 838 | ✅ |
+| `file_io.py` | 734 | ✅ |
+| `build_stats.py` | 613 | ✅ |
+| `logger.py` | 603 | ✅ |
+| `live_progress.py` | 555 | ✅ |
+| `text.py` | 476 | ✅ |
+| `build_summary.py` | 433 | ✅ |
+| `theme_registry.py` | 298 | ✅ |
+| `theme_resolution.py` | 165 | ✅ |
+| `page_initializer.py` | 138 | ✅ |
+| `build_badge.py` | 119 | ✅ |
+| `sections.py` | 67 | ✅ |
+| `incremental_constants.py` | 55 | ✅ |
+
+---
+
 ## Related
 
-- **Deprecated RFCs**: 
+- **Deprecated RFCs**:
   - `plan/drafted/rfc-code-smell-remediation.md` (consolidated into this RFC)
   - `plan/drafted/rfc-package-architecture-consolidation.md` (consolidated into this RFC)
 - **Architecture Rule**: `bengal/.cursor/rules/architecture-patterns.mdc` - 400-line threshold
 - **Existing Patterns**: `bengal/core/page/`, `bengal/core/site/` - Well-structured packages
-
