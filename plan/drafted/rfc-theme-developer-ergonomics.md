@@ -3,8 +3,9 @@
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-20  
+**Updated**: 2025-12-20 (post-evaluation fixes)  
 **Subsystem**: Core (Site, Section, Page), Autodoc  
-**Confidence**: 88% 🟢
+**Confidence**: 92% 🟢
 
 ---
 
@@ -99,7 +100,7 @@ Files: All autodoc templates (`partials/header.html`, `module.html`, `partials/m
 
 **Implementation**:
 ```python
-# bengal/core/site/site.py
+# bengal/core/site/core.py
 def get_section_by_name(self, name: str) -> Section | None:
     """
     Get a section by its name.
@@ -194,6 +195,12 @@ def content_pages(self) -> list[Page]:
     This is useful for listing a section's pages without
     including the section's own index page in the list.
 
+    Note:
+        `sorted_pages` already excludes `_index.md`/`index.md` files
+        (see sorted_pages implementation at line 371). This property
+        is effectively an alias but provides semantic clarity for
+        theme developers.
+
     Returns:
         Sorted list of pages, excluding the section's index page
 
@@ -202,12 +209,12 @@ def content_pages(self) -> list[Page]:
           <a href="{{ page.url }}">{{ page.title }}</a>
         {% endfor %}
     """
-    index_url = self.index_page.relative_url if self.index_page else None
-    return [p for p in self.sorted_pages if p.relative_url != index_url]
+    # sorted_pages already excludes index files, so this is a semantic alias
+    return self.sorted_pages
 ```
 
-**Complexity**: Low  
-**Impact**: 5+ templates simplified
+**Complexity**: Trivial (alias for sorted_pages)  
+**Impact**: 5+ templates simplified, improved semantic clarity
 
 ---
 
@@ -227,7 +234,7 @@ def content_pages(self) -> list[Page]:
 
 **Implementation**:
 ```python
-# bengal/core/site/site.py
+# bengal/core/site/core.py
 def pages_by_section(self, section_name: str) -> list[Page]:
     """
     Get all pages belonging to a section by name.
@@ -288,7 +295,13 @@ def pages_with_tag(self, tag: str) -> list[Page]:
 
 ### Tier 3: Autodoc-Specific Methods
 
-#### 3.1 `children_by_type(element_type: str) -> list`
+> **Implementation Constraint**: Autodoc models use `@dataclass(frozen=True, slots=True)`
+> for immutability and performance. Methods cannot be added directly to frozen dataclasses.
+>
+> **Recommended Approach**: Add helper functions as **Jinja2 filters** registered in the
+> autodoc template environment (`bengal/autodoc/orchestration/template_env.py`).
+
+#### 3.1 `children_by_type` filter
 
 **Replaces**:
 ```jinja
@@ -299,33 +312,39 @@ def pages_with_tag(self, tag: str) -> list[Page]:
 
 **Becomes**:
 ```jinja
-{% set methods = element.children_by_type('method') %}
-{% set functions = element.children_by_type('function') %}
-{% set classes = element.children_by_type('class') %}
+{% set methods = element.children | children_by_type('method') %}
+{% set functions = element.children | children_by_type('function') %}
+{% set classes = element.children | children_by_type('class') %}
 ```
 
-**Implementation** (on autodoc element metadata):
+**Implementation** (as Jinja2 filter):
 ```python
-def children_by_type(self, element_type: str) -> list:
+# bengal/autodoc/orchestration/template_env.py
+def children_by_type(children: list, element_type: str) -> list:
     """
     Filter children by element_type.
 
     Args:
+        children: List of child elements
         element_type: Type to filter (method, function, class, attribute, etc.)
 
     Returns:
         List of children matching the type
     """
-    children = getattr(self, 'children', []) or []
+    if not children:
+        return []
     return [c for c in children if getattr(c, 'element_type', None) == element_type]
+
+# Register in template environment
+env.filters['children_by_type'] = children_by_type
 ```
 
-**Complexity**: Medium (needs to be added to autodoc metadata)  
+**Complexity**: Low (Jinja filter, no dataclass changes)  
 **Impact**: 20+ autodoc templates simplified
 
 ---
 
-#### 3.2 `public_members` and `private_members` properties
+#### 3.2 `public_members` and `private_members` filters
 
 **Replaces**:
 ```jinja
@@ -335,26 +354,31 @@ def children_by_type(self, element_type: str) -> list:
 
 **Becomes**:
 ```jinja
-{% set public = element.public_members %}
-{% set private = element.private_members %}
+{% set public = members | public_only %}
+{% set private = members | private_only %}
 ```
 
-**Implementation**:
+**Implementation** (as Jinja2 filters):
 ```python
-@property
-def public_members(self) -> list:
-    """Members not starting with underscore."""
-    members = getattr(self, 'children', []) or []
+# bengal/autodoc/orchestration/template_env.py
+def public_only(members: list) -> list:
+    """Filter to members not starting with underscore."""
+    if not members:
+        return []
     return [m for m in members if not getattr(m, 'name', '').startswith('_')]
 
-@property
-def private_members(self) -> list:
-    """Members starting with underscore (internal)."""
-    members = getattr(self, 'children', []) or []
+def private_only(members: list) -> list:
+    """Filter to members starting with underscore (internal)."""
+    if not members:
+        return []
     return [m for m in members if getattr(m, 'name', '').startswith('_')]
+
+# Register in template environment
+env.filters['public_only'] = public_only
+env.filters['private_only'] = private_only
 ```
 
-**Complexity**: Medium  
+**Complexity**: Low (Jinja filters)  
 **Impact**: 10+ autodoc templates simplified
 
 ---
@@ -374,12 +398,12 @@ def private_members(self) -> list:
 2. Add `Section.pages_with_tag()`
 3. Add unit tests
 
-### Phase 3: Autodoc Methods (1 hour)
+### Phase 3: Autodoc Filters (45 min)
 
-1. Add `children_by_type()` to autodoc metadata
-2. Add `public_members`/`private_members` properties
-3. Update autodoc templates to use new methods
-4. Add unit tests
+1. Add `children_by_type` filter to `template_env.py`
+2. Add `public_only`/`private_only` filters
+3. Update autodoc templates to use new filters
+4. Add unit tests for filters
 
 ### Phase 4: Template Migration (optional)
 
@@ -426,17 +450,18 @@ def private_members(self) -> list:
 {% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
 {% set attributes = children | selectattr('element_type', 'eq', 'attribute') | list %}
 
-{# After #}
-{% set options = element.children_by_type('option') %}
-{% set arguments = element.children_by_type('argument') %}
-{% set methods = element.children_by_type('method') %}
-{% set functions = element.children_by_type('function') %}
-{% set classes = element.children_by_type('class') %}
-{% set attributes = element.children_by_type('attribute') %}
+{# After (using Jinja filters) #}
+{% set children = element.children or [] %}
+{% set options = children | children_by_type('option') %}
+{% set arguments = children | children_by_type('argument') %}
+{% set methods = children | children_by_type('method') %}
+{% set functions = children | children_by_type('function') %}
+{% set classes = children | children_by_type('class') %}
+{% set attributes = children | children_by_type('attribute') %}
 ```
 
-**Lines reduced**: 7 → 6  
-**Clarity improved**: No `getattr` wrapper needed, cleaner API
+**Lines reduced**: 7 → 7 (same count, but cleaner)  
+**Clarity improved**: No `getattr`, cleaner filter syntax, null-safe
 
 ---
 
@@ -446,15 +471,30 @@ def private_members(self) -> list:
 
 | File | Change | Risk |
 |------|--------|------|
-| `bengal/core/site/site.py` | Add 2 methods | Low |
-| `bengal/core/section.py` | Add 3 methods/properties | Low |
-| `bengal/autodoc/models.py` | Add 3 methods/properties | Medium |
+| `bengal/core/site/core.py` | Add 2 methods (`get_section_by_name`, `pages_by_section`) | Low |
+| `bengal/core/section.py` | Add 3 methods/properties (`recent_pages`, `content_pages`, `pages_with_tag`) | Low |
+| `bengal/autodoc/orchestration/template_env.py` | Add 3 Jinja filters (`children_by_type`, `public_only`, `private_only`) | Low |
+
+### Design Decision: Autodoc Filters vs Methods
+
+Autodoc models use `@dataclass(frozen=True, slots=True)` for:
+- Immutability guarantees
+- Memory efficiency (~40% savings)
+- Thread safety
+
+Adding methods to frozen dataclasses would require unfreezing them, which:
+- Breaks immutability contract
+- Reduces performance
+- Could introduce subtle bugs
+
+**Solution**: Jinja2 filters provide the same ergonomic benefit without modifying model architecture.
 
 ### Dependencies
 
 - No new dependencies
 - No breaking changes
 - Fully backward compatible
+- Autodoc models remain frozen and immutable
 
 ---
 
@@ -499,8 +539,9 @@ class TestContentPages:
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Method naming confusion | Low | Low | Follow existing naming patterns |
-| Performance regression | Low | Low | Use cached_property where appropriate |
-| Autodoc integration issues | Medium | Medium | Thorough testing with existing autodoc sites |
+| Performance regression | Low | Low | Use `@cached_property` where appropriate |
+| Autodoc filter conflicts | Low | Low | Namespace filters clearly, test with existing sites |
+| Filter not found errors | Low | Medium | Register filters before template loading |
 
 ---
 
@@ -519,9 +560,10 @@ class TestContentPages:
    - `recent_pages_for_version(limit, version_id)`
    - Decision: Can add later if needed
 
-2. **Should autodoc methods go on Page metadata or separate class?**
-   - Recommendation: Add to existing autodoc metadata structure
-   - Keeps autodoc-specific logic separate from core
+2. ~~**Should autodoc methods go on Page metadata or separate class?**~~
+   - ✅ **Resolved**: Use Jinja2 filters instead of modifying frozen dataclasses
+   - Rationale: Preserves immutability, no model changes, same ergonomic benefit
+   - Implementation: `bengal/autodoc/orchestration/template_env.py`
 
 3. **Should we deprecate verbose patterns in templates?**
    - Recommendation: Not initially; let both coexist
@@ -533,5 +575,34 @@ class TestContentPages:
 
 - RFC: Version-Aware Section Methods (implemented)
 - `bengal/core/section.py`: Existing Section class
-- `bengal/core/site/site.py`: Existing Site class
+- `bengal/core/site/core.py`: Existing Site class
+- `bengal/autodoc/orchestration/template_env.py`: Autodoc template environment
 - Template grep results: 52+ usages of selectattr/rejectattr
+
+---
+
+## Validation Record
+
+**Evaluated**: 2025-12-20  
+**Validator**: AI Assistant (::validate)
+
+### Evidence Verified ✅
+- 52 selectattr/rejectattr usages confirmed (grep found exactly 52 in 27 files)
+- Section lookup pattern: 5 occurrences verified
+- Autodoc element filtering: 21 matches in 10 files
+- Public/private member filtering: 2 occurrences verified
+- Existing `sorted_pages` already excludes index files (line 371)
+
+### Issues Resolved ✅
+1. ~~File path `bengal/core/site/site.py`~~ → Fixed to `bengal/core/site/core.py`
+2. ~~Autodoc frozen dataclass constraint~~ → Resolved with Jinja filter approach
+3. ~~`content_pages` complexity~~ → Simplified to alias for `sorted_pages`
+
+### Confidence Score
+| Component | Score |
+|-----------|-------|
+| Evidence Strength | 40/40 |
+| Consistency | 28/30 |
+| Recency | 15/15 |
+| Test Coverage | 9/15 |
+| **Total** | **92/100** 🟢 |

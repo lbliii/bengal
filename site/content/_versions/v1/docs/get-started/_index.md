@@ -1,49 +1,75 @@
 ---
-title: Get Started (v1)
-description: Install Bengal v1.0 and create your first site
+title: Get Started
+description: Install Bengal and create your first site
+draft: false
 weight: 10
+lang: en
 type: doc
-icon: arrow-clockwise
+tags:
+- onboarding
+- quickstart
+keywords:
+- getting started
+- installation
+- quickstart
+category: onboarding
 cascade:
   type: doc
+icon: arrow-clockwise
 ---
+# Get Started
 
-# Get Started with Bengal v1.0
-
-:::{deprecated} v2.0
-This installation guide is for Bengal v1.0. The v2.0 installation process has changed—see the [latest get started guide](/docs/get-started/).
-:::
 
 ## Install
 
 ```bash
-pip install bengal==1.0.0
+pip install bengal
 ```
 
-Requires Python 3.11+.
+Requires Python 3.14+. See [[docs/get-started/installation|installation guide]] for details.
 
 ## Create a Site
 
 ```bash
-bengal init mysite
+bengal new site mysite
 cd mysite
 bengal serve
 ```
 
-Your site runs at `localhost:8000`.
+Your site runs at `localhost:5173`.
 
-## Basic Structure
+## Pick a Path
 
-```
-mysite/
-├── bengal.yaml      # Site configuration
-├── content/         # Markdown content
-│   └── _index.md
-├── templates/       # Jinja2 templates
-└── static/          # Static assets
-```
+:::{cards}
+:columns: 1-2-3
+:gap: medium
+
+:::{card} Writer
+:icon: pencil
+:link: /docs/get-started/quickstart-writer/
+:description: Write content in Markdown with the default theme
+:badge: Start Here
+Get up and running in 5 minutes with Bengal's writer-focused workflow.
+:::{/card}
+
+:::{card} Theme developer
+:icon: palette
+:link: /docs/get-started/quickstart-themer/
+:description: Customize templates and styles to match your brand
+Build your own theme or override just the parts you want to change.
+:::{/card}
+
+:::{card} Contributor
+:icon: code
+:link: /docs/get-started/quickstart-contributor/
+:description: Hack on Bengal core - fix bugs, add features
+Set up your development environment and start contributing.
+:::{/card}
+:::{/cards}
 
 ## Next Steps
 
-- Read the [content guide](../content/) for writing pages
-- Check out [theming](../theming/) for customization
+- [[docs/tutorials|Tutorials]] — Step-by-step guides
+- [[docs/content|Content]] — Writing and organizing content
+- [[docs/theming|Theming]] — Templates and styling
+- [[cli|CLI Reference]] — All commands

@@ -1,40 +1,184 @@
 ---
-title: Installation (v1)
-description: How to install Bengal v1.0
-weight: 1
+title: Install Bengal
+nav_title: Install
+description: Install Bengal using pip, uv, or from source
+weight: 10
 type: doc
+draft: false
+lang: en
+tags:
+- onboarding
+- installation
+keywords:
+- installation
+- setup
+- python
+- pyenv
+- uv
+category: onboarding
 ---
 
-# Installation
-
-:::{deprecated} v2.0
-This page documents Bengal v1.0 installation. See the [current installation guide](/docs/get-started/installation/) for v2.0.
-:::
+# Install Bengal
 
 ## Requirements
 
-- Python 3.11 or higher
-- pip package manager
+Bengal requires **Python 3.14 or later**. For best performance, use Python 3.14t (free-threaded build).
 
-## Install from PyPI
+## Install
+
+:::{tab-set}
+:::{tab-item} uv
+:icon: rocket
+:badge: Recommended
+```bash
+uv pip install bengal
+```
+
+Or for a one-time run:
 
 ```bash
-pip install bengal==1.0.0
+uvx bengal --version
 ```
+:::{/tab-item}
+
+:::{tab-item} pip
+:icon: package
+```bash
+pip install bengal
+```
+:::{/tab-item}
+
+:::{tab-item} pipx
+:icon: terminal
+```bash
+pipx install bengal
+```
+
+This installs Bengal in an isolated environment while making the `bengal` command available globally.
+:::{/tab-item}
+
+:::{tab-item} From Source
+:icon: code
+:badge: Development
+```bash
+git clone https://github.com/lbliii/bengal.git
+cd bengal
+make setup
+make install
+```
+
+This installs Bengal in development mode.
+:::{/tab-item}
+:::{/tab-set}
 
 ## Verify Installation
 
 ```bash
 bengal --version
-# Bengal v1.0.0
 ```
 
-## Upgrade to v2
+You should see output like: `Bengal SSG, version X.X.X`
 
-To upgrade to the latest version:
+## Python Version Setup
+
+:::{tab-set}
+:::{tab-item} pyenv
+:icon: settings
+:badge: Recommended
+pyenv lets you install and switch between multiple Python versions:
 
 ```bash
-pip install --upgrade bengal
+# macOS (with Homebrew)
+brew install pyenv
+
+# Install Python 3.14
+pyenv install 3.14.0
+
+# Set as default
+pyenv global 3.14.0
+
+# Verify
+python --version
+```
+:::{/tab-item}
+
+:::{tab-item} Official Installer
+:icon: download
+Download Python 3.14 from [python.org/downloads](https://www.python.org/downloads/).
+
+After installation, verify: `python3 --version`
+:::{/tab-item}
+:::{/tab-set}
+
+## Free-Threaded Python (Optional)
+
+For best performance, use the free-threaded build (Python 3.14t):
+
+```bash
+# With pyenv
+pyenv install 3.14.0t
+pyenv global 3.14.0t
+
+# Verify free-threading is enabled
+python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False else 'GIL enabled')"
 ```
 
-See the [migration guide](/docs/about/migration/) for breaking changes between v1 and v2.
+**Why?** The free-threaded build enables true parallel processing for 1.8-2x faster builds.
+
+## Troubleshooting
+
+:::{dropdown} Command not found
+:icon: alert
+
+Ensure Python's bin directory is in your PATH.
+
+If using a virtual environment, activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Try reinstalling:
+
+```bash
+pip uninstall bengal && pip install bengal
+```
+
+:::
+
+:::{dropdown} Python version errors
+:icon: alert
+
+Verify your Python version:
+
+```bash
+python --version
+# or
+python3 --version
+```
+
+Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
+:::
+
+:::{dropdown} Permission errors
+:icon: alert
+
+Use the `--user` flag:
+
+```bash
+pip install --user bengal
+```
+
+Or use a virtual environment:
+
+```bash
+python -m venv venv && source venv/bin/activate
+```
+
+:::
+
+## Next Steps
+
+- **[[docs/get-started/quickstart-writer|Writer Quickstart]]** — Start creating content
+- **[[docs/get-started/quickstart-themer|Themer Quickstart]]** — Customize your site's look
+- **[[docs/tutorials|Tutorials]]** — Guided learning journeys
