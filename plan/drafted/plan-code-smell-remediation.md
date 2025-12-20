@@ -1,10 +1,26 @@
 # Plan: Code Smell Remediation - Monolithic Modules and God Functions
 
-**Status**: Draft  
+**Status**: Deprecated ⚠️  
 **Created**: 2025-01-27  
-**RFC**: `plan/drafted/rfc-code-smell-remediation.md`  
+**Deprecated**: 2025-01-27  
+**Replaced By**: `plan/drafted/rfc-architecture-refactoring.md` (unified RFC includes implementation plan)  
+**RFC**: `plan/drafted/rfc-code-smell-remediation.md` (deprecated)  
 **Confidence**: 91% 🟢  
 **Estimated Effort**: ~72 hours across 4 sprints
+
+---
+
+## ⚠️ This Plan Has Been Consolidated
+
+This plan has been **deprecated** and consolidated into the unified architecture refactoring RFC.
+
+**See**: `plan/drafted/rfc-architecture-refactoring.md` for the complete, unified refactoring plan with implementation details.
+
+The unified RFC includes a comprehensive implementation plan that sequences package consolidation before file-level refactoring, eliminating overlap and ensuring optimal execution order.
+
+---
+
+## Original Content (Preserved for Reference)
 
 ---
 

@@ -1,9 +1,27 @@
 # RFC: Package Architecture Consolidation
 
-**Status**: Draft
+**Status**: Deprecated ⚠️
 **Author**: AI Assistant
 **Created**: 2025-12-20
+**Deprecated**: 2025-01-27
+**Replaced By**: `plan/drafted/rfc-architecture-refactoring.md`
 **Category**: Architecture / Refactoring
+
+---
+
+## ⚠️ This RFC Has Been Consolidated
+
+This RFC has been **deprecated** and consolidated into a unified architecture refactoring plan.
+
+**See**: `plan/drafted/rfc-architecture-refactoring.md` for the complete, unified refactoring plan that combines:
+- Package-level consolidation (this RFC)
+- File-level code smell remediation (from `rfc-code-smell-remediation.md`)
+
+The unified RFC provides better sequencing (package consolidation first, then file-level refactoring) and eliminates overlap (e.g., `cards.py` extraction and breakdown handled in one coordinated step).
+
+---
+
+## Original Content (Preserved for Reference)
 
 ---
 

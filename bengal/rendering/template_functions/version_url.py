@@ -29,7 +29,6 @@ Engine-Agnostic Access:
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
@@ -262,14 +261,24 @@ def _get_version_root_url(version_id: str, is_latest: bool, site: Site) -> str:
         return f"/{section}/{version_id}/"
 
 
-@lru_cache(maxsize=1)
+# Module-level cache for version page index (keyed by id(site))
+_version_page_index_cache: dict[int, dict[str, set[str]]] = {}
+
+
 def _build_version_page_index(site: Site) -> dict[str, set[str]]:
     """
     Build an index of page URLs by version for O(1) existence checks.
 
+    Uses a module-level cache keyed by site id to avoid rebuilding
+    the index on every call. Cache is invalidated via invalidate_version_page_index().
+
     Returns:
         Dict mapping version_id to set of relative URLs
     """
+    site_id = id(site)
+    if site_id in _version_page_index_cache:
+        return _version_page_index_cache[site_id]
+
     index: dict[str, set[str]] = {}
 
     for page in site.pages:
@@ -287,6 +296,7 @@ def _build_version_page_index(site: Site) -> dict[str, set[str]]:
             if url.endswith("/") and len(url) > 1:
                 index[version].add(url.rstrip("/"))
 
+    _version_page_index_cache[site_id] = index
     return index
 
 
@@ -327,4 +337,4 @@ def invalidate_version_page_index() -> None:
 
     Call this when pages are modified during a build.
     """
-    _build_version_page_index.cache_clear()
+    _version_page_index_cache.clear()

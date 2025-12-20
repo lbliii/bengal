@@ -1,12 +1,30 @@
 # RFC: Code Smell Remediation - Monolithic Modules and God Functions
 
-**Status**: Evaluated
+**Status**: Deprecated ⚠️
 **Author**: AI Assistant
 **Created**: 2025-12-19
 **Evaluated**: 2025-12-19
 **Refreshed**: 2025-01-27
+**Deprecated**: 2025-01-27
+**Replaced By**: `plan/drafted/rfc-architecture-refactoring.md`
 **Confidence**: 91% 🟢
 **Category**: Architecture / Refactoring
+
+---
+
+## ⚠️ This RFC Has Been Consolidated
+
+This RFC has been **deprecated** and consolidated into a unified architecture refactoring plan.
+
+**See**: `plan/drafted/rfc-architecture-refactoring.md` for the complete, unified refactoring plan that combines:
+- Package-level consolidation (from `rfc-package-architecture-consolidation.md`)
+- File-level code smell remediation (this RFC)
+
+The unified RFC provides better sequencing (package consolidation first, then file-level refactoring) and eliminates overlap (e.g., `cards.py` extraction and breakdown handled in one coordinated step).
+
+---
+
+## Original Content (Preserved for Reference)
 
 ---
 
