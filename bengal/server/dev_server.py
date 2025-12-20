@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
+from bengal.orchestration.stats import display_build_stats, show_building_indicator
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
@@ -20,7 +21,6 @@ from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.watcher_runner import WatcherRunner
-from bengal.utils.build_stats import display_build_stats, show_building_indicator
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

@@ -43,7 +43,7 @@ from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.core.version import Version, VersionConfig
-from bengal.utils.build_stats import BuildStats
+from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
     from bengal.utils.profile import BuildProfile

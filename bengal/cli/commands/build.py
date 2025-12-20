@@ -16,7 +16,7 @@ from bengal.cli.helpers import (
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
-from bengal.utils.build_stats import (
+from bengal.orchestration.stats import (
     display_build_stats,
     show_building_indicator,
 )
@@ -539,7 +539,7 @@ def build(
 
         # Display template errors first if we're in theme-dev or dev mode
         if stats.template_errors and build_profile != BuildProfile.WRITER:
-            from bengal.utils.build_stats import display_template_errors
+            from bengal.orchestration.stats import display_template_errors
 
             display_template_errors(stats)
 
@@ -550,7 +550,7 @@ def build(
         if not quiet:
             if build_profile == BuildProfile.WRITER:
                 # Simple, clean output for writers
-                from bengal.utils.build_stats import display_simple_build_stats
+                from bengal.orchestration.stats import display_simple_build_stats
 
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:

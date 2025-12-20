@@ -18,8 +18,8 @@ from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import command_metadata, handle_cli_errors
 from bengal.cli.skeleton.hydrator import Hydrator
 from bengal.cli.skeleton.schema import Component, Skeleton
+from bengal.orchestration.stats import show_error
 from bengal.output import CLIOutput
-from bengal.utils.build_stats import show_error
 
 
 def create_skeleton_from_args(

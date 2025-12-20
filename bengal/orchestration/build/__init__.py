@@ -22,8 +22,8 @@ from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
+from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
-from bengal.utils.build_stats import BuildStats
 from bengal.utils.logger import get_logger
 
 from . import content, finalization, initialization, rendering

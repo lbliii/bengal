@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.render import RenderOrchestrator
-    from bengal.utils.build_stats import BuildStats
+    from bengal.orchestration.stats import BuildStats
 
 logger = get_logger(__name__)
 

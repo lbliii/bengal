@@ -4,7 +4,7 @@ Tests to ensure BuildStats objects are accessed correctly (not as dicts).
 
 import pytest
 
-from bengal.utils.build_stats import BuildStats
+from bengal.orchestration.stats import BuildStats
 
 
 class TestBuildStatsAccess:

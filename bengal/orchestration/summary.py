@@ -20,7 +20,7 @@ from rich.text import Text
 
 if TYPE_CHECKING:
     from bengal.analysis.performance_advisor import PerformanceAdvisor
-    from bengal.utils.build_stats import BuildStats
+    from bengal.orchestration.stats import BuildStats
 
 
 def create_timing_breakdown_table(stats: BuildStats) -> Table:
@@ -367,7 +367,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     # Check if we should use rich output
     if not should_use_rich():
         # Fall back to simple display
-        from bengal.utils.build_stats import display_build_stats
+        from bengal.orchestration.stats import display_build_stats
 
         display_build_stats(stats)
         return
@@ -427,7 +427,7 @@ def display_simple_summary(stats: BuildStats) -> None:
     Args:
         stats: Build statistics
     """
-    from bengal.utils.build_stats import display_simple_build_stats
+    from bengal.orchestration.stats import display_simple_build_stats
 
     # Use existing simple display
     display_simple_build_stats(stats)

@@ -11,7 +11,7 @@ from bengal.analysis.performance_advisor import (
     SuggestionType,
     analyze_build,
 )
-from bengal.utils.build_stats import BuildStats
+from bengal.orchestration.stats import BuildStats
 
 
 @pytest.fixture

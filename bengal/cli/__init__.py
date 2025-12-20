@@ -81,8 +81,8 @@ def main(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
         from click.core import HelpFormatter
 
+        from bengal.orchestration.stats import show_welcome
         from bengal.output import CLIOutput
-        from bengal.utils.build_stats import show_welcome
 
         show_welcome()
         formatter = HelpFormatter()

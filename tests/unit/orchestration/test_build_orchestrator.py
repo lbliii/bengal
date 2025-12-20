@@ -7,7 +7,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 import pytest
 
 from bengal.orchestration.build import BuildOrchestrator
-from bengal.utils.build_stats import BuildStats
+from bengal.orchestration.stats import BuildStats
 
 
 class TestBuildOrchestrator:
