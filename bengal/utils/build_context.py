@@ -34,12 +34,12 @@ if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.output import CLIOutput
     from bengal.utils.build_stats import BuildStats
-    from bengal.utils.live_progress import LiveProgressManager
     from bengal.utils.profile import BuildProfile
     from bengal.utils.progress import ProgressReporter
 

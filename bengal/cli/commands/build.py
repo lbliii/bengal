@@ -555,7 +555,7 @@ def build(
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:
                 # Rich intelligent summary with performance insights (Phase 2)
-                from bengal.utils.build_summary import display_build_summary
+                from bengal.orchestration.summary import display_build_summary
                 from bengal.utils.rich_console import detect_environment
 
                 console_env = detect_environment()

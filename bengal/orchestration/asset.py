@@ -34,9 +34,9 @@ from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.site import Site
-    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()

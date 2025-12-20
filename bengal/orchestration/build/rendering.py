@@ -31,12 +31,12 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.cache import DependencyTracker
+    from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.live_progress import LiveProgressManager
     from bengal.utils.profile import BuildProfile
     from bengal.utils.progress import ProgressReporter
 
