@@ -489,12 +489,51 @@ Adding methods to frozen dataclasses would require unfreezing them, which:
 
 **Solution**: Jinja2 filters provide the same ergonomic benefit without modifying model architecture.
 
+### Multi-Engine Compatibility (BYORenderer)
+
+Bengal supports multiple template engines via `TemplateEngineProtocol` (see `bengal/rendering/engines/protocol.py`).
+Future engines include Mako, Patitas, and user-registered BYORenderer plugins.
+
+**Compatibility Analysis**:
+
+| Tier | Methods | Engine-Agnostic? | Rationale |
+|------|---------|------------------|-----------|
+| 1 | `Site.get_section_by_name()` | ✅ Yes | Python method on model object |
+| 1 | `Section.recent_pages()` | ✅ Yes | Python method on model object |
+| 1 | `Section.content_pages` | ✅ Yes | Python property on model object |
+| 2 | `Site.pages_by_section()` | ✅ Yes | Python method on model object |
+| 2 | `Section.pages_with_tag()` | ✅ Yes | Python method on model object |
+| 3 | `children_by_type` filter | ❌ Jinja-only | Jinja2 filter syntax |
+| 3 | `public_only` filter | ❌ Jinja-only | Jinja2 filter syntax |
+| 3 | `private_only` filter | ❌ Jinja-only | Jinja2 filter syntax |
+
+**Tier 1 & 2 are fully portable** because they're Python methods/properties on model objects.
+Any template engine that can call `{{ site.get_section_by_name('blog') }}` will work.
+
+**Tier 3 requires per-engine registration**. For future engines:
+
+```python
+# Mako equivalent
+<%def name="children_by_type(children, etype)">
+    ${[c for c in children if c.element_type == etype]}
+</%def>
+
+# Patitas equivalent (pure Python)
+def children_by_type(children, etype):
+    return [c for c in children if c.element_type == etype]
+```
+
+**Future Enhancement**: Consider extending `TemplateEngineProtocol` to include a
+`register_helpers()` method for portable helper registration across all engines.
+This would be a separate RFC when BYORenderer is implemented.
+
 ### Dependencies
 
 - No new dependencies
 - No breaking changes
 - Fully backward compatible
 - Autodoc models remain frozen and immutable
+- Tier 1 & 2 methods work with any template engine
 
 ---
 
@@ -542,6 +581,7 @@ class TestContentPages:
 | Performance regression | Low | Low | Use `@cached_property` where appropriate |
 | Autodoc filter conflicts | Low | Low | Namespace filters clearly, test with existing sites |
 | Filter not found errors | Low | Medium | Register filters before template loading |
+| Tier 3 not portable to BYORenderer | Medium | Low | Document per-engine equivalents; Tier 1&2 are portable |
 
 ---
 
@@ -568,6 +608,13 @@ class TestContentPages:
 3. **Should we deprecate verbose patterns in templates?**
    - Recommendation: Not initially; let both coexist
    - Future: Add optional linting for verbose patterns
+
+4. **Should Tier 3 filters be made portable for BYORenderer now?**
+   - Analysis: Tier 1 & 2 (model methods) work with any engine
+   - Tier 3 (Jinja filters) requires per-engine registration
+   - Recommendation: Defer portable helper API to separate RFC when BYORenderer lands
+   - Rationale: Jinja2 is current default; other engines are future work
+   - Tracking: Document per-engine equivalents in theme developer guide
 
 ---
 
