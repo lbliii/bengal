@@ -49,7 +49,7 @@ class PageOperationsMixin:
         Returns:
             List of broken link URLs
         """
-        from bengal.rendering.link_validator import LinkValidator
+        from bengal.health.validators.links import LinkValidator
 
         validator = LinkValidator()
         broken_links = validator.validate_page_links(self)

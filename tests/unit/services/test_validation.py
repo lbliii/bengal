@@ -72,7 +72,7 @@ class TestDefaultTemplateValidationService:
         # Mock the imports within validate() - patch where they're looked up
         with (
             patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
+            patch("bengal.health.validators.templates.validate_templates") as mock_validate,
         ):
             mock_validate.return_value = 0
             mock_site = MagicMock()
@@ -90,7 +90,7 @@ class TestDefaultTemplateValidationService:
 
         with (
             patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
+            patch("bengal.health.validators.templates.validate_templates") as mock_validate,
         ):
             mock_validate.return_value = 5  # 5 errors
             mock_site = MagicMock()
@@ -105,7 +105,7 @@ class TestDefaultTemplateValidationService:
 
         with (
             patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates"),
+            patch("bengal.health.validators.templates.validate_templates"),
         ):
             mock_site = MagicMock()
             mock_site.config = {"theme": "default"}
@@ -120,7 +120,7 @@ class TestDefaultTemplateValidationService:
 
         with (
             patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
+            patch("bengal.health.validators.templates.validate_templates") as mock_validate,
         ):
             mock_engine_instance = MagicMock()
             MockEngine.return_value = mock_engine_instance
@@ -228,7 +228,7 @@ class TestValidationServiceIntegration:
 
         with (
             patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
+            patch("bengal.health.validators.templates.validate_templates") as mock_validate,
         ):
             mock_validate.return_value = 2  # 2 errors
 
@@ -257,7 +257,7 @@ class TestValidationServiceIntegration:
 
         with (
             patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates", return_value=3),
+            patch("bengal.health.validators.templates.validate_templates", return_value=3),
         ):
             # Original service returns actual validation result
             assert validate_site(original, mock_site) == 3

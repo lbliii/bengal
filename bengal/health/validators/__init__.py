@@ -39,7 +39,7 @@ from bengal.health.validators.connectivity import ConnectivityValidator
 from bengal.health.validators.cross_ref import CrossReferenceValidator
 from bengal.health.validators.directives import DirectiveValidator
 from bengal.health.validators.fonts import FontValidator
-from bengal.health.validators.links import LinkValidatorWrapper
+from bengal.health.validators.links import LinkValidator, LinkValidatorWrapper, validate_links
 from bengal.health.validators.menu import MenuValidator
 from bengal.health.validators.navigation import NavigationValidator
 from bengal.health.validators.output import OutputValidator
@@ -48,6 +48,7 @@ from bengal.health.validators.rendering import RenderingValidator
 from bengal.health.validators.rss import RSSValidator
 from bengal.health.validators.sitemap import SitemapValidator
 from bengal.health.validators.taxonomy import TaxonomyValidator
+from bengal.health.validators.templates import TemplateValidator, validate_templates
 from bengal.health.validators.tracks import TrackValidator
 
 __all__ = [
@@ -63,6 +64,8 @@ __all__ = [
     "CrossReferenceValidator",
     "DirectiveValidator",
     "FontValidator",
+    # Link validation (consolidated from rendering/)
+    "LinkValidator",
     "LinkValidatorWrapper",
     "MenuValidator",
     # Phase 2
@@ -75,5 +78,10 @@ __all__ = [
     "RenderingValidator",
     "SitemapValidator",
     "TaxonomyValidator",
+    # Template validation (consolidated from rendering/)
+    "TemplateValidator",
     "TrackValidator",
+    # Convenience functions
+    "validate_links",
+    "validate_templates",
 ]

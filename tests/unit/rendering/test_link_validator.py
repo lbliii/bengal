@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.rendering.link_validator import LinkValidator
+from bengal.health.validators.links import LinkValidator
 
 
 @pytest.fixture

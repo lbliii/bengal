@@ -1,9 +1,29 @@
 """
-Template validation before rendering.
+Template validation for catching syntax errors before rendering.
+
+This module provides the single source of truth for template validation in Bengal.
+It validates Jinja2 template syntax and checks for missing includes/dependencies.
+
+Key features:
+- Validates template syntax before rendering
+- Checks that included templates exist
+- Provides detailed error context
+- CLI integration for validation commands
+
+Architecture:
+    This module consolidates template validation that was previously in
+    rendering/validator.py. The TemplateValidator class contains the core logic,
+    while validate_templates() provides CLI integration.
+
+Related:
+    - bengal/health/validators/__init__.py: Validator exports
+    - bengal/rendering/engines/jinja.py: TemplateEngine.validate_templates()
+    - plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -18,9 +38,18 @@ logger = get_logger(__name__)
 class TemplateValidator:
     """
     Validates templates for syntax errors and missing dependencies.
+
+    This validator checks Jinja2 templates for:
+    - Syntax errors (unclosed tags, invalid expressions)
+    - Missing included templates
+    - Invalid extends references
+
+    Attributes:
+        template_engine: TemplateEngine instance to validate
+        env: Jinja2 environment from the template engine
     """
 
-    def __init__(self, template_engine: Any):
+    def __init__(self, template_engine: Any) -> None:
         """
         Initialize validator.
 
@@ -37,7 +66,6 @@ class TemplateValidator:
         Returns:
             List of errors found
         """
-
         errors = []
 
         for template_dir in self.template_engine.template_dirs:
@@ -108,8 +136,6 @@ class TemplateValidator:
             source = f.read()
 
         # Simple regex to find includes (not perfect but good enough)
-        import re
-
         includes = re.findall(r"{%\s*include\s+['\"]([^'\"]+)['\"]", source)
 
         for include_name in includes:
@@ -149,6 +175,8 @@ class TemplateValidator:
 def validate_templates(template_engine: Any) -> int:
     """
     Validate all templates and display results.
+
+    This is the main entry point for CLI template validation.
 
     Args:
         template_engine: TemplateEngine instance

@@ -12,7 +12,7 @@ Key Concepts:
     - Default implementation: DefaultTemplateValidationService adapter
 
 Related Modules:
-    - bengal.rendering.validator: Template validation implementation
+    - bengal.health.validators.templates: Template validation implementation
     - bengal.rendering.template_engine: Template engine for validation
     - bengal.cli.commands.validate: CLI validation command
 
@@ -34,7 +34,7 @@ class TemplateValidationService(Protocol):
 
 @dataclass
 class DefaultTemplateValidationService:
-    """Adapter around bengal.rendering.validator with current TemplateEngine.
+    """Adapter around bengal.health.validators.templates with current TemplateEngine.
 
     Keeps CLI decoupled from concrete rendering internals while preserving behavior.
     """
@@ -42,8 +42,8 @@ class DefaultTemplateValidationService:
     strict: bool = False
 
     def validate(self, site: Any) -> int:
+        from bengal.health.validators.templates import validate_templates
         from bengal.rendering.template_engine import TemplateEngine
-        from bengal.rendering.validator import validate_templates
 
         engine = TemplateEngine(site)
         return validate_templates(engine)
