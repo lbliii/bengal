@@ -65,7 +65,7 @@ class TestReadThemeExtends:
         mock_manifest.write_text('extends = "installed-parent"')
         mock_pkg.resolve_resource_path.return_value = mock_manifest
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=mock_pkg):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
             extends = _read_theme_extends(tmp_path, "installed-theme")
 
         assert extends == "installed-parent"
@@ -73,7 +73,7 @@ class TestReadThemeExtends:
     def test_checks_bundled_themes(self, tmp_path):
         """Falls back to bundled themes."""
         # No site or installed theme
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=None):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
             # Bundled theme check happens via Path(__file__).parent.parent / "themes"
             # This is harder to test without mocking Path, so we verify no error
             extends = _read_theme_extends(tmp_path, "bundled-theme")
@@ -192,7 +192,7 @@ class TestIterThemeAssetDirs:
         assets_dir.mkdir(parents=True)
         (assets_dir / "style.css").write_text("/* test */")
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=None):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
             dirs = iter_theme_asset_dirs(tmp_path, ["my-theme"])
 
         assert len(dirs) == 1
@@ -206,7 +206,7 @@ class TestIterThemeAssetDirs:
         mock_pkg = MagicMock()
         mock_pkg.resolve_resource_path.return_value = mock_assets_dir
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=mock_pkg):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
             dirs = iter_theme_asset_dirs(tmp_path, ["installed-theme"])
 
         assert len(dirs) == 1
@@ -224,7 +224,7 @@ class TestIterThemeAssetDirs:
         mock_pkg = MagicMock()
         mock_pkg.resolve_resource_path.return_value = installed_assets
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=mock_pkg):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
             dirs = iter_theme_asset_dirs(tmp_path, ["dual-theme"])
 
         # Should only return site assets (takes precedence)
@@ -238,7 +238,7 @@ class TestIterThemeAssetDirs:
             assets_dir = tmp_path / "themes" / theme_name / "assets"
             assets_dir.mkdir(parents=True)
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=None):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
             # Chain order is child-first in input
             dirs = iter_theme_asset_dirs(tmp_path, ["child", "parent"])
 
@@ -258,7 +258,7 @@ class TestIterThemeAssetDirs:
         without_assets.mkdir(parents=True)
         # No assets/ subdirectory
 
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=None):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
             dirs = iter_theme_asset_dirs(tmp_path, ["with-assets", "without-assets"])
 
         # Should only include theme with assets
@@ -268,7 +268,7 @@ class TestIterThemeAssetDirs:
     def test_handles_package_lookup_errors(self, tmp_path):
         """Handles errors during package lookup gracefully."""
         with patch(
-            "bengal.utils.theme_resolution.get_theme_package",
+            "bengal.core.theme.resolution.get_theme_package",
             side_effect=Exception("Package error"),
         ):
             # Should not raise
@@ -297,7 +297,7 @@ class TestThemeResolutionIntegration:
         assert chain == ["custom", "base"]
 
         # Get asset directories
-        with patch("bengal.utils.theme_resolution.get_theme_package", return_value=None):
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
             asset_dirs = iter_theme_asset_dirs(tmp_path, chain)
 
         # Both themes have assets
