@@ -84,7 +84,3 @@ class BuildOptions:
     changed_sources: set[Path] = field(default_factory=set)
     nav_changed_sources: set[Path] = field(default_factory=set)
     structural_changed: bool = False
-
-    # Feature flags for incremental refactor (Sprint 4)
-    use_unified_change_detector: bool = False  # Use new ChangeDetector class
-    shadow_mode: bool = False  # Run both paths and compare for validation

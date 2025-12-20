@@ -1,8 +1,8 @@
 """
-Tests for shadow mode execution in IncrementalOrchestrator.
+Tests for IncrementalOrchestrator change detection.
 
-Shadow mode runs both legacy and new change detection paths
-and compares results for validation during the refactoring period.
+Tests that the orchestrator correctly delegates to ChangeDetector
+for both early and full phase change detection.
 """
 
 from unittest.mock import Mock, patch
@@ -11,7 +11,6 @@ import pytest
 
 from bengal.cache.paths import BengalPaths
 from bengal.core.page import Page
-from bengal.orchestration.build.options import BuildOptions
 from bengal.orchestration.incremental import IncrementalOrchestrator
 
 
@@ -54,72 +53,34 @@ def orchestrator(mock_site):
     return orch
 
 
-class TestFeatureFlagConfiguration:
-    """Test feature flag configuration for unified change detector."""
+class TestOrchestratorInitialization:
+    """Test IncrementalOrchestrator initialization."""
 
-    def test_default_feature_flags(self):
-        """Default options should have feature flags disabled."""
-        options = BuildOptions()
-
-        assert options.use_unified_change_detector is False
-        assert options.shadow_mode is False
-
-    def test_enable_unified_change_detector(self):
-        """Can enable unified change detector via options."""
-        options = BuildOptions(use_unified_change_detector=True)
-
-        assert options.use_unified_change_detector is True
-
-    def test_enable_shadow_mode(self):
-        """Can enable shadow mode via options."""
-        options = BuildOptions(shadow_mode=True)
-
-        assert options.shadow_mode is True
-
-    def test_orchestrator_reads_config_flags(self, mock_site):
-        """Orchestrator should read feature flags from site config."""
-        # Setup config with feature flags
-        mock_site.config = {
-            "build": {
-                "use_unified_change_detector": True,
-                "shadow_mode": True,
-            }
-        }
-
+    def test_initialization(self, mock_site):
+        """Orchestrator should initialize with site reference."""
         orch = IncrementalOrchestrator(mock_site)
 
-        assert orch._use_unified_change_detector is True
-        assert orch._shadow_mode is True
+        assert orch.site is mock_site
+        assert orch.cache is None
+        assert orch.tracker is None
+        assert orch._change_detector is None
 
-    def test_orchestrator_defaults_when_config_missing(self, mock_site):
-        """Orchestrator should use defaults when config is missing."""
-        # Setup config without build section
-        mock_site.config = {}
-
+    def test_initialize_creates_cache_and_tracker(self, mock_site):
+        """initialize() should create cache and tracker."""
         orch = IncrementalOrchestrator(mock_site)
+        cache, tracker = orch.initialize(enabled=False)
 
-        assert orch._use_unified_change_detector is False
-        assert orch._shadow_mode is False
+        assert cache is not None
+        assert tracker is not None
+        assert orch.cache is cache
+        assert orch.tracker is tracker
 
 
-class TestLegacyPath:
-    """Test legacy change detection path."""
+class TestFindWorkEarly:
+    """Test early phase change detection."""
 
-    def test_find_work_uses_legacy_by_default(self, orchestrator, mock_site):
-        """find_work should use legacy path when feature flag is off."""
-        # Setup cache mocks
-        orchestrator.cache.is_changed = Mock(return_value=True)
-        orchestrator.cache.should_bypass = Mock(return_value=True)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
-
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
-            pages, assets, summary = orchestrator.find_work(verbose=True)
-
-        # Should return pages
-        assert len(pages) == 2
-
-    def test_find_work_early_uses_legacy_by_default(self, orchestrator, mock_site):
-        """find_work_early should use legacy path when feature flag is off."""
+    def test_find_work_early_detects_changed_pages(self, orchestrator, mock_site):
+        """find_work_early should detect changed pages."""
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.is_changed = Mock(return_value=False)
 
@@ -128,74 +89,95 @@ class TestLegacyPath:
 
         assert len(pages) == 2
 
+    def test_find_work_early_with_forced_changes(self, orchestrator, mock_site):
+        """find_work_early should handle forced changes from watcher."""
+        forced_path = mock_site.pages[0].source_path
+        orchestrator.cache.should_bypass = Mock(return_value=True)
+        orchestrator.cache.is_changed = Mock(return_value=False)
 
-class TestUnifiedPath:
-    """Test unified change detection path."""
-
-    def test_find_work_early_uses_unified_when_enabled(self, mock_site):
-        """find_work_early should use unified path when feature flag is on."""
-        mock_site.config = {"build": {"use_unified_change_detector": True}}
-
-        orch = IncrementalOrchestrator(mock_site)
-        orch.initialize(enabled=False)
-
-        orch.cache.should_bypass = Mock(return_value=True)
-        orch.cache.is_changed = Mock(return_value=False)
-
-        with patch.object(orch, "_get_theme_templates_dir", return_value=None):
-            pages, assets, summary = orch.find_work_early(verbose=True)
-
-        # Should work with unified path
-        assert len(pages) == 2
-
-    def test_find_work_uses_unified_when_enabled(self, mock_site):
-        """find_work should use unified path when feature flag is on."""
-        mock_site.config = {"build": {"use_unified_change_detector": True}}
-
-        orch = IncrementalOrchestrator(mock_site)
-        orch.initialize(enabled=False)
-
-        orch.cache.should_bypass = Mock(return_value=True)
-        orch.cache.is_changed = Mock(return_value=True)
-        orch.cache.get_previous_tags = Mock(return_value=set())
-
-        with patch.object(orch, "_get_theme_templates_dir", return_value=None):
-            pages, assets, summary = orch.find_work(verbose=True)
-
-        assert len(pages) == 2
-
-
-class TestResultComparison:
-    """Test comparison logic between legacy and new results."""
-
-    def test_compare_results_matching(self, orchestrator, mock_site):
-        """Matching results should not log warnings."""
-        page = mock_site.pages[0]
-
-        # Should not raise
-        orchestrator._compare_results(
-            "find_work",
-            new_pages=[page],
-            new_assets=[],
-            legacy_pages=[page],
-            legacy_assets=[],
-        )
-
-    def test_compare_results_different_pages(self, orchestrator, mock_site, caplog):
-        """Different page results should be logged."""
-        import logging
-
-        with caplog.at_level(logging.WARNING):
-            orchestrator._compare_results(
-                "find_work",
-                new_pages=[mock_site.pages[0]],
-                new_assets=[],
-                legacy_pages=[mock_site.pages[1]],
-                legacy_assets=[],
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            pages, assets, summary = orchestrator.find_work_early(
+                verbose=True,
+                forced_changed_sources={forced_path},
             )
 
-        # Should log discrepancy
-        # Note: Actual logging depends on structlog configuration
+        assert len(pages) >= 1
+
+    def test_find_work_early_without_cache_raises(self, mock_site):
+        """find_work_early should raise if cache not initialized."""
+        orch = IncrementalOrchestrator(mock_site)
+
+        with pytest.raises(RuntimeError, match="Cache not initialized"):
+            orch.find_work_early()
+
+
+class TestFindWork:
+    """Test full phase change detection."""
+
+    def test_find_work_detects_all_changes(self, orchestrator, mock_site):
+        """find_work should detect all changed pages."""
+        orchestrator.cache.is_changed = Mock(return_value=True)
+        orchestrator.cache.should_bypass = Mock(return_value=True)
+        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            pages, assets, summary = orchestrator.find_work(verbose=True)
+
+        assert len(pages) == 2
+
+    def test_find_work_returns_summary_dict(self, orchestrator, mock_site):
+        """find_work should return legacy dict format for summary."""
+        orchestrator.cache.is_changed = Mock(return_value=True)
+        orchestrator.cache.should_bypass = Mock(return_value=True)
+        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            pages, assets, summary = orchestrator.find_work(verbose=True)
+
+        # Summary should be dict format for backwards compatibility
+        assert isinstance(summary, dict)
+        assert "Modified content" in summary
+        assert "Modified assets" in summary
+        assert "Modified templates" in summary
+        assert "Taxonomy changes" in summary
+
+    def test_find_work_without_cache_raises(self, mock_site):
+        """find_work should raise if cache not initialized."""
+        orch = IncrementalOrchestrator(mock_site)
+
+        with pytest.raises(RuntimeError, match="Cache not initialized"):
+            orch.find_work()
+
+
+class TestChangeDetectorDelegation:
+    """Test that orchestrator properly delegates to ChangeDetector."""
+
+    def test_change_detector_lazily_initialized(self, orchestrator, mock_site):
+        """ChangeDetector should be lazily initialized on first use."""
+        assert orchestrator._change_detector is None
+
+        orchestrator.cache.should_bypass = Mock(return_value=False)
+        orchestrator.cache.is_changed = Mock(return_value=False)
+
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            orchestrator.find_work_early()
+
+        assert orchestrator._change_detector is not None
+
+    def test_change_detector_reused(self, orchestrator, mock_site):
+        """ChangeDetector should be reused across calls."""
+        orchestrator.cache.should_bypass = Mock(return_value=False)
+        orchestrator.cache.is_changed = Mock(return_value=False)
+        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            orchestrator.find_work_early()
+            first_detector = orchestrator._change_detector
+
+            orchestrator.find_work()
+            second_detector = orchestrator._change_detector
+
+        assert first_detector is second_detector
 
 
 if __name__ == "__main__":

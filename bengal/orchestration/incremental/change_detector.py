@@ -482,17 +482,19 @@ class ChangeDetector:
 
     def _get_theme_templates_dir(self) -> Path | None:
         """Get the templates directory for the current theme."""
-        if not self.site.theme:
+        # Be defensive: site.theme may be None, a string, or a Mock in tests
+        theme = self.site.theme
+        if not theme or not isinstance(theme, str):
             return None
 
-        site_theme_dir = self.site.root_path / "themes" / self.site.theme / "templates"
+        site_theme_dir = self.site.root_path / "themes" / theme / "templates"
         if site_theme_dir.exists():
             return site_theme_dir
 
         import bengal
 
         bengal_dir = Path(bengal.__file__).parent
-        bundled_theme_dir = bengal_dir / "themes" / self.site.theme / "templates"
+        bundled_theme_dir = bengal_dir / "themes" / theme / "templates"
         if bundled_theme_dir.exists():
             return bundled_theme_dir
 
