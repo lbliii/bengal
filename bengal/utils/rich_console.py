@@ -5,6 +5,11 @@ Provides a singleton console instance that respects:
 - Build profiles (Writer/Theme-Dev/Developer)
 - Terminal capabilities
 - CI/CD environments
+- Emoji preferences (BENGAL_EMOJI env var)
+
+Configuration:
+    Set BENGAL_EMOJI=1 to enable emoji in CLI output.
+    Default is ASCII-first output with cat+mouse branding.
 """
 
 from __future__ import annotations
@@ -57,6 +62,18 @@ bengal_theme = Theme(
 _console: Console | None = None
 
 
+def should_use_emoji() -> bool:
+    """
+    Determine if emoji should be used in CLI output.
+
+    Checks the BENGAL_EMOJI environment variable. ASCII-first by default.
+
+    Returns:
+        True if BENGAL_EMOJI=1, False otherwise
+    """
+    return os.getenv("BENGAL_EMOJI", "").strip() == "1"
+
+
 def get_console() -> Console:
     """
     Get singleton rich console instance.
@@ -81,7 +98,7 @@ def get_console() -> Console:
             force_terminal=force_terminal,
             no_color=no_color,
             highlight=True,
-            emoji=True,  # Support emoji on all platforms
+            emoji=should_use_emoji(),  # ASCII-first; opt-in via BENGAL_EMOJI=1
         )
 
     return _console
