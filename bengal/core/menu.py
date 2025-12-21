@@ -213,7 +213,8 @@ class MenuItem:
         """
         return {
             "name": self.name,
-            "url": self.url,
+            "url": self.href,  # Use href for unified URL model
+            "href": self.href,  # Also include href for templates
             "icon": self.icon,
             "active": self.active,
             "active_trail": self.active_trail,
@@ -312,8 +313,10 @@ class MenuBuilder:
         """
         if item.identifier:
             self._seen_identifiers.add(item.identifier)
-        if item.url:
-            self._seen_urls.add(item.url.rstrip("/"))
+        # Use href (unified URL model) but fallback to url for backward compatibility
+        url = getattr(item, "href", None) or getattr(item, "url", None)
+        if url:
+            self._seen_urls.add(url.rstrip("/"))
         if item.name:
             self._seen_names.add(item.name.lower())
 

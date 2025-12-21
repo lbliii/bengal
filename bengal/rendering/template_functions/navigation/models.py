@@ -208,7 +208,7 @@ class AutoNavItem:
     Example (Jinja template):
         {% set auto_items = get_auto_nav() %}
         {% for item in auto_items %}
-          <a href="{{ item.url }}"
+          <a href="{{ item.href }}"
              {% if item.icon %}class="icon-{{ item.icon }}"{% endif %}>
             {{ item.name }}
           </a>
