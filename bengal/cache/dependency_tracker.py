@@ -259,6 +259,82 @@ class DependencyTracker:
             tag_key = f"tag:{tag.lower().replace(' ', '-')}"
             self.cache.add_taxonomy_dependency(tag_key, page_path)
 
+    def track_cross_version_link(
+        self,
+        source_page: Path,
+        target_version: str,
+        target_path: str,
+    ) -> None:
+        """
+        Track dependency from source page to cross-version target.
+
+        When the target page in another version changes, the source page
+        should be rebuilt to update the cross-version link.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+
+        Args:
+            source_page: Path to the page containing the cross-version link
+            target_version: Version ID being linked to (e.g., "v2")
+            target_path: Path within the target version (e.g., "docs/guide")
+
+        Thread Safety:
+            Uses existing lock for thread-safe dependency tracking.
+
+        Example:
+            When page "v3/docs/index.md" contains [[v2:docs/guide]]:
+            >>> tracker.track_cross_version_link(
+            ...     source_page=Path("content/docs/index.md"),
+            ...     target_version="v2",
+            ...     target_path="docs/guide",
+            ... )
+        """
+        target_key = f"xver:{target_version}:{target_path}"
+
+        with self.lock:
+            if target_key not in self.reverse_dependencies:
+                self.reverse_dependencies[target_key] = set()
+
+            self.reverse_dependencies[target_key].add(str(source_page))
+
+        self.logger.debug(
+            "cross_version_link_tracked",
+            source=str(source_page),
+            target_version=target_version,
+            target_path=target_path,
+        )
+
+    def get_cross_version_dependents(
+        self,
+        changed_version: str,
+        changed_path: str,
+    ) -> set[Path]:
+        """
+        Get pages that link to a changed cross-version target.
+
+        When a page in version X changes, this method returns all pages
+        that have cross-version links pointing to that page (from any version).
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+
+        Args:
+            changed_version: Version ID of the changed page (e.g., "v2")
+            changed_path: Path of the changed page (e.g., "docs/guide")
+
+        Returns:
+            Set of page paths that should be rebuilt because they link
+            to the changed cross-version target.
+
+        Example:
+            >>> dependents = tracker.get_cross_version_dependents("v2", "docs/guide")
+            >>> # Returns {Path("content/docs/index.md")} if that page links to [[v2:docs/guide]]
+        """
+        target_key = f"xver:{changed_version}:{changed_path}"
+
+        with self.lock:
+            dependents = self.reverse_dependencies.get(target_key, set())
+            return {Path(p) for p in dependents}
+
     def end_page(self) -> None:
         """Mark the end of processing a page (thread-safe)."""
         if hasattr(self.current_page, "value"):

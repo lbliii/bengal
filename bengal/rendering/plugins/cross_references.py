@@ -12,6 +12,8 @@ Extended to support cross-version linking:
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from pathlib import Path
 from re import Match
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +23,9 @@ if TYPE_CHECKING:
     from bengal.core.version import VersionConfig
 
 logger = get_logger(__name__)
+
+# Type alias for cross-version dependency callback
+CrossVersionTracker = Callable[[Path, str, str], None]
 
 __all__ = ["CrossReferencePlugin"]
 
@@ -58,6 +63,7 @@ class CrossReferencePlugin:
         self,
         xref_index: dict[str, Any],
         version_config: VersionConfig | None = None,
+        cross_version_tracker: CrossVersionTracker | None = None,
     ):
         """
         Initialize cross-reference plugin.
@@ -65,12 +71,21 @@ class CrossReferencePlugin:
         Args:
             xref_index: Pre-built cross-reference index from site discovery
             version_config: Optional versioning configuration for cross-version links
+            cross_version_tracker: Optional callback to track cross-version link dependencies.
+                Called with (source_page, target_version, target_path) when a [[v2:path]]
+                link is resolved. Used by DependencyTracker for incremental rebuilds.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
         """
         self.xref_index = xref_index
         self.version_config = version_config
         self.current_version: str | None = (
             None  # Current page's version (set per-page during rendering)
         )
+        self.current_source_page: Path | None = (
+            None  # Current page's source path (set per-page during rendering)
+        )
+        self._cross_version_tracker = cross_version_tracker
         # Compile regex once (reused for all pages)
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
