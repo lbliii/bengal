@@ -451,6 +451,81 @@ class TestSitemapGeneratorTranslationIndex:
         assert nonexistent == []
 
 
+class TestSitemapGeneratorTranslationIndexEdgeCases:
+    """Edge case tests for translation index optimization."""
+
+    def test_single_page_with_translation_key(self) -> None:
+        """Test page with translation_key but no other translations."""
+        page = MagicMock()
+        page.translation_key = "orphan-key"
+        page.lang = "en"
+
+        translation_index: dict[str, list[Any]] = {}
+        for p in [page]:
+            key = getattr(p, "translation_key", None)
+            if key:
+                translation_index.setdefault(key, []).append(p)
+
+        # Should still be indexed
+        assert "orphan-key" in translation_index
+        assert len(translation_index["orphan-key"]) == 1
+
+    def test_multiple_translation_groups(self) -> None:
+        """Test multiple independent translation groups."""
+        # Group 1: post-1 in en, fr, de
+        page1_en = MagicMock(translation_key="post-1", lang="en")
+        page1_fr = MagicMock(translation_key="post-1", lang="fr")
+        page1_de = MagicMock(translation_key="post-1", lang="de")
+
+        # Group 2: post-2 in en, es
+        page2_en = MagicMock(translation_key="post-2", lang="en")
+        page2_es = MagicMock(translation_key="post-2", lang="es")
+
+        pages = [page1_en, page1_fr, page1_de, page2_en, page2_es]
+
+        translation_index: dict[str, list[Any]] = {}
+        for p in pages:
+            key = getattr(p, "translation_key", None)
+            if key:
+                translation_index.setdefault(key, []).append(p)
+
+        assert len(translation_index) == 2
+        assert len(translation_index["post-1"]) == 3
+        assert len(translation_index["post-2"]) == 2
+
+    def test_empty_string_translation_key_treated_as_none(self) -> None:
+        """Test that empty string translation_key is not indexed (falsy)."""
+        page = MagicMock()
+        page.translation_key = ""  # Empty string is falsy
+
+        translation_index: dict[str, list[Any]] = {}
+        for p in [page]:
+            key = getattr(p, "translation_key", None)
+            if key:  # Empty string is falsy, so skipped
+                translation_index.setdefault(key, []).append(p)
+
+        assert translation_index == {}
+
+    def test_translation_index_with_mixed_pages(self) -> None:
+        """Test index with mix of translated and non-translated pages."""
+        page_translated_1 = MagicMock(translation_key="post-1", lang="en")
+        page_translated_2 = MagicMock(translation_key="post-1", lang="fr")
+        page_no_key = MagicMock(translation_key=None, lang="en")
+        page_different_key = MagicMock(translation_key="post-2", lang="de")
+
+        pages = [page_translated_1, page_no_key, page_translated_2, page_different_key]
+
+        translation_index: dict[str, list[Any]] = {}
+        for p in pages:
+            key = getattr(p, "translation_key", None)
+            if key:
+                translation_index.setdefault(key, []).append(p)
+
+        assert len(translation_index) == 2
+        assert page_no_key not in translation_index.get("post-1", [])
+        assert page_no_key not in translation_index.get("post-2", [])
+
+
 class TestSitemapGeneratorHreflangRegression:
     """Regression tests for hreflang output after optimization."""
 
@@ -548,6 +623,155 @@ class TestSitemapGeneratorHreflangRegression:
         generator.generate()
 
         # Verify sitemap was generated successfully
+        assert mock_atomic.called
+
+
+class TestSitemapGeneratorHreflangEdgeCases:
+    """Edge case tests for hreflang generation in sitemap."""
+
+    def _create_mock_page(
+        self,
+        title: str,
+        translation_key: str | None = None,
+        lang: str | None = None,
+        output_path: Path | None = None,
+        in_sitemap: bool = True,
+    ) -> MagicMock:
+        """Create a mock page with i18n attributes."""
+        page = MagicMock()
+        page.title = title
+        page.translation_key = translation_key
+        page.lang = lang
+        page.output_path = output_path
+        page.in_sitemap = in_sitemap
+        page.date = None
+        return page
+
+    @patch("bengal.utils.atomic_write.AtomicFile")
+    def test_skips_translation_without_output_path(
+        self, mock_atomic: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that translations without output_path are skipped in hreflang."""
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # One page has output_path, one doesn't
+        page_en = self._create_mock_page(
+            "English Post",
+            translation_key="post-1",
+            lang="en",
+            output_path=tmp_path / "en" / "post" / "index.html",
+        )
+        page_fr = self._create_mock_page(
+            "French Post",
+            translation_key="post-1",
+            lang="fr",
+            output_path=None,  # No output path
+        )
+
+        site = MagicMock()
+        site.pages = [page_en, page_fr]
+        site.config = {
+            "baseurl": "https://example.com",
+            "i18n": {"default_language": "en"},
+        }
+        site.output_dir = tmp_path
+        site.versioning_enabled = False
+
+        generator = SitemapGenerator(site)
+
+        mock_file = MagicMock()
+        mock_atomic.return_value.__enter__ = MagicMock(return_value=mock_file)
+        mock_atomic.return_value.__exit__ = MagicMock(return_value=False)
+
+        # Should not raise - gracefully handles missing output_path
+        generator.generate()
+        assert mock_atomic.called
+
+    @patch("bengal.utils.atomic_write.AtomicFile")
+    def test_lang_fallback_to_default(
+        self, mock_atomic: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that missing lang falls back to default_language."""
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # Page without explicit lang
+        page = self._create_mock_page(
+            "Post",
+            translation_key="post-1",
+            lang=None,  # No lang set
+            output_path=tmp_path / "post" / "index.html",
+        )
+
+        site = MagicMock()
+        site.pages = [page]
+        site.config = {
+            "baseurl": "https://example.com",
+            "i18n": {"default_language": "en"},
+        }
+        site.output_dir = tmp_path
+        site.versioning_enabled = False
+
+        generator = SitemapGenerator(site)
+
+        mock_file = MagicMock()
+        mock_atomic.return_value.__enter__ = MagicMock(return_value=mock_file)
+        mock_atomic.return_value.__exit__ = MagicMock(return_value=False)
+
+        # Should not raise
+        generator.generate()
+        assert mock_atomic.called
+
+    @patch("bengal.utils.atomic_write.AtomicFile")
+    def test_multiple_translation_groups_in_sitemap(
+        self, mock_atomic: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test sitemap with multiple independent translation groups."""
+        from bengal.postprocess.sitemap import SitemapGenerator
+
+        # Group 1
+        page1_en = self._create_mock_page(
+            "Post 1 EN",
+            translation_key="post-1",
+            lang="en",
+            output_path=tmp_path / "en" / "post1" / "index.html",
+        )
+        page1_fr = self._create_mock_page(
+            "Post 1 FR",
+            translation_key="post-1",
+            lang="fr",
+            output_path=tmp_path / "fr" / "post1" / "index.html",
+        )
+
+        # Group 2
+        page2_en = self._create_mock_page(
+            "Post 2 EN",
+            translation_key="post-2",
+            lang="en",
+            output_path=tmp_path / "en" / "post2" / "index.html",
+        )
+        page2_de = self._create_mock_page(
+            "Post 2 DE",
+            translation_key="post-2",
+            lang="de",
+            output_path=tmp_path / "de" / "post2" / "index.html",
+        )
+
+        site = MagicMock()
+        site.pages = [page1_en, page1_fr, page2_en, page2_de]
+        site.config = {
+            "baseurl": "https://example.com",
+            "i18n": {"default_language": "en"},
+        }
+        site.output_dir = tmp_path
+        site.versioning_enabled = False
+
+        generator = SitemapGenerator(site)
+
+        mock_file = MagicMock()
+        mock_atomic.return_value.__enter__ = MagicMock(return_value=mock_file)
+        mock_atomic.return_value.__exit__ = MagicMock(return_value=False)
+
+        generator.generate()
         assert mock_atomic.called
 
 

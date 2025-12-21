@@ -26,6 +26,7 @@ from bengal.utils.logger import LogLevel, configure_logging
         "bengal serve",
         "bengal serve --port 8080",
         "bengal serve --watch",
+        "bengal serve --version v2",
     ],
     requires_site=True,
     tags=["dev", "server", "quick"],
@@ -59,6 +60,17 @@ from bengal.utils.logger import LogLevel, configure_logging
     help="Config profile to use: writer, theme-dev, or dev",
 )
 @click.option(
+    "--version",
+    "-V",
+    "version_scope",
+    help="Focus on single version (e.g., v2, latest). Only rebuilds pages for this version.",
+)
+@click.option(
+    "--all-versions",
+    is_flag=True,
+    help="Explicitly build all versions (default behavior, for clarity)",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -87,6 +99,8 @@ def serve(
     open_browser: bool,
     environment: str | None,
     profile: str | None,
+    version_scope: str | None,
+    all_versions: bool,
     verbose: bool,
     debug: bool,
     traceback: str | None,
@@ -98,11 +112,22 @@ def serve(
 
     Watches for changes in content, assets, and templates,
     automatically rebuilding the site when files are modified.
+
+    Version Scoping (RFC: rfc-versioned-docs-pipeline-integration):
+        --version v2     Focus on single version, faster rebuilds
+        --all-versions   Explicitly build all versions (default)
     """
     # Validate conflicting flags
     if verbose and debug:
         raise click.UsageError(
             "--verbose and --debug cannot be used together (debug includes all verbose output)"
+        )
+
+    # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+    # Validate version flags
+    if version_scope and all_versions:
+        raise click.UsageError(
+            "--version and --all-versions cannot be used together"
         )
 
     # Configure logging based on flags
@@ -150,11 +175,13 @@ def serve(
     if debug:
         site.config["debug"] = True
 
-    # Start server (this blocks)
+    # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+    # Start server with optional version scope
     site.serve(
         host=host,
         port=port,
         watch=watch,
         auto_port=auto_port,
         open_browser=open_browser,
+        version_scope=version_scope,
     )
