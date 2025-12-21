@@ -199,6 +199,54 @@ class NavTree:
         )
 
     @classmethod
+    def _should_exclude_from_nav(cls, page: Page) -> bool:
+        """
+        Determine if a page should be excluded from navigation.
+
+        Different autodoc types have different navigation expectations:
+
+        - **Python API pages**: EXCLUDE - Too granular (hundreds of classes/functions
+          would flood the nav). Users use search or the index page to find items.
+
+        - **CLI command pages**: INCLUDE - Users expect to navigate to individual
+          commands like 'bengal build' or 'bengal serve'.
+
+        - **OpenAPI endpoint pages**: EXCLUDE - Similar to Python, too many endpoints.
+          Users typically browse by tag/category.
+
+        - **Regular content pages**: INCLUDE - Always shown in nav.
+
+        Args:
+            page: Page to check
+
+        Returns:
+            True if page should be excluded from navigation
+        """
+        metadata = getattr(page, "metadata", {}) or {}
+        page_type = metadata.get("type", "")
+
+        # CLI command pages should be shown in navigation
+        # Users expect to navigate to individual commands
+        if page_type.startswith("cli-") or page_type == "autodoc-cli":
+            return False
+
+        # Python API pages are too granular for navigation
+        # Hundreds of classes/functions would flood the nav
+        if page_type.startswith("python-") or page_type == "autodoc-python":
+            return True
+
+        # OpenAPI endpoint pages - exclude by default (too many endpoints)
+        if page_type.startswith("openapi-") or page_type == "autodoc-rest":
+            return True
+
+        # For other autodoc indicators, use the general check as fallback
+        # If it's autodoc but we couldn't determine the type, exclude it
+        # Regular content pages (not autodoc) are always shown
+        from bengal.utils.autodoc import is_autodoc_page
+
+        return is_autodoc_page(page)
+
+    @classmethod
     def _build_node_recursive(cls, section: Section, version_id: str | None, depth: int) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
@@ -223,11 +271,9 @@ class NavTree:
             if page == section.index_page:
                 continue
 
-            # Skip autodoc pages (excluded from navigation by default)
-            # This centralizes exclusion logic so themes don't need to filter
-            from bengal.utils.autodoc import is_autodoc_page
-
-            if is_autodoc_page(page):
+            # Skip Python autodoc pages (too granular - hundreds of classes/functions)
+            # BUT include CLI command pages (users expect to navigate to commands)
+            if cls._should_exclude_from_nav(page):
                 continue
 
             # Use relative_url for nav tree (without baseurl) for consistent lookups
