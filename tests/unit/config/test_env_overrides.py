@@ -50,12 +50,26 @@ class TestApplyEnvOverridesExplicit:
             result = apply_env_overrides(config)
         assert result["baseurl"] == "https://example.com"
 
-    def test_explicit_empty_baseurl_respected(self):
-        """Explicit empty baseurl is respected and not overridden."""
+    def test_explicit_empty_baseurl_respected_by_platform_detection(self):
+        """Explicit empty baseurl is respected by platform detection (not overridden)."""
         config = {"baseurl": ""}  # Explicit empty should be respected
-        with patch.dict(os.environ, {"BENGAL_BASEURL": "https://env-override.com"}, clear=False):
+        # Platform detection should not override
+        env = {
+            "NETLIFY": "true",
+            "URL": "https://should-not-apply.netlify.app",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "owner/repo",
+        }
+        with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
         assert result["baseurl"] == ""  # Should stay empty
+
+    def test_bengal_baseurl_overrides_explicit_empty(self):
+        """BENGAL_BASEURL can override explicit empty baseurl."""
+        config = {"baseurl": ""}  # Explicit empty
+        with patch.dict(os.environ, {"BENGAL_BASEURL": "https://env-override.com"}, clear=False):
+            result = apply_env_overrides(config)
+        assert result["baseurl"] == "https://env-override.com"  # BENGAL_BASEURL overrides
 
 
 class TestApplyEnvOverridesNetlify:

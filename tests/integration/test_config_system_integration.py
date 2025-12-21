@@ -344,7 +344,7 @@ class TestGitHubPagesDeployment:
         default_site = {
             "site": {
                 "title": "Bengal Documentation",
-                "baseurl": "",  # Empty allows env override
+                # baseurl missing allows platform detection to override
                 "description": "A modern Python SSG",
             }
         }

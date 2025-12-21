@@ -31,8 +31,10 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
            - Set GITHUB_PAGES_ROOT=true for root deployments (user/org sites)
            - Auto-detects user/org sites when repo name is {owner}.github.io
 
-    Only applies when config baseurl is not explicitly set (missing from config).
-    If baseurl is present in config (even if empty), it is respected and not overridden.
+    Behavior:
+    - BENGAL_BASEURL (priority 1) can override any baseurl setting (explicit or missing)
+    - Platform detection (priorities 2-4) only applies when baseurl is missing from config
+    - If baseurl is explicitly set (even if empty), platform detection respects it
 
     Args:
         config: Configuration dictionary (flat or nested)
@@ -50,11 +52,19 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         >>> result["baseurl"]
         '/repo'
 
-        >>> # Explicit empty baseurl is respected
+        >>> # Explicit empty baseurl is respected by platform detection
         >>> config = {"baseurl": ""}
         >>> result = apply_env_overrides(config)
         >>> result["baseurl"]
         ''
+
+        >>> # But BENGAL_BASEURL can override explicit empty
+        >>> import os
+        >>> os.environ["BENGAL_BASEURL"] = "https://override.com"
+        >>> config = {"baseurl": ""}
+        >>> result = apply_env_overrides(config)
+        >>> result["baseurl"]
+        'https://override.com'
 
         >>> # Explicit non-empty baseurl is respected
         >>> config = {"baseurl": "https://custom.com"}
@@ -63,19 +73,21 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         'https://custom.com'
     """
     try:
-        # Only apply env overrides if baseurl is not explicitly set in config
-        # If baseurl is present (even if empty), respect the explicit setting
-        if "baseurl" in config:
-            # baseurl is explicitly set (empty or non-empty), don't override
-            return config
+        # Check if baseurl is explicitly set in config
+        baseurl_explicitly_set = "baseurl" in config
 
-        # 1) Explicit override (highest priority)
+        # 1) Explicit override (highest priority) - can override anything
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
         if explicit:
             config["baseurl"] = explicit.rstrip("/")
             return config
 
-        # 2) Netlify detection
+        # If baseurl is explicitly set (even if empty), don't allow platform detection to override
+        # This respects explicit empty baseurl in config files and test overrides
+        if baseurl_explicitly_set:
+            return config
+
+        # 2) Netlify detection (only if baseurl not explicitly set)
         if os.environ.get("NETLIFY") == "true":
             # Production has URL; previews have DEPLOY_PRIME_URL
             netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
@@ -83,7 +95,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 config["baseurl"] = netlify_url.rstrip("/")
                 return config
 
-        # 3) Vercel detection
+        # 3) Vercel detection (only if baseurl not explicitly set)
         if os.environ.get("VERCEL") in ("1", "true"):
             vercel_host = os.environ.get("VERCEL_URL")
             if vercel_host:
@@ -92,7 +104,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 config["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
                 return config
 
-        # 4) GitHub Pages in Actions (best-effort computation)
+        # 4) GitHub Pages in Actions (only if baseurl not explicitly set)
         if os.environ.get("GITHUB_ACTIONS") == "true":
             repo = os.environ.get("GITHUB_REPOSITORY", "")  # owner/repo format
             if repo and "/" in repo:

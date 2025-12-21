@@ -17,6 +17,7 @@ def write_min_config(dir_path: Path, baseurl: str | None = None) -> Path:
 def test_env_explicit_bengal_baseurl_overrides_when_config_empty(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
+    # BENGAL_BASEURL can override explicit empty baseurl
     write_min_config(tmp_path, baseurl="")
     monkeypatch.setenv("BENGAL_BASEURL", "https://example.com/sub")
 
@@ -27,7 +28,8 @@ def test_env_explicit_bengal_baseurl_overrides_when_config_empty(
 
 
 def test_netlify_url_used_when_config_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    write_min_config(tmp_path, baseurl="")
+    # Platform detection only works when baseurl is missing (not explicitly empty)
+    write_min_config(tmp_path, baseurl=None)  # Missing baseurl allows platform detection
     # Ensure BENGAL_BASEURL isn't set from test matrix
     monkeypatch.delenv("BENGAL_BASEURL", raising=False)
     monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
@@ -41,7 +43,8 @@ def test_netlify_url_used_when_config_empty(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_netlify_preview_deploy_prime_url_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    write_min_config(tmp_path, baseurl="")
+    # Platform detection only works when baseurl is missing (not explicitly empty)
+    write_min_config(tmp_path, baseurl=None)  # Missing baseurl allows platform detection
     # Ensure BENGAL_BASEURL isn't set from test matrix
     monkeypatch.delenv("BENGAL_BASEURL", raising=False)
     monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
@@ -59,7 +62,8 @@ def test_netlify_preview_deploy_prime_url_fallback(tmp_path: Path, monkeypatch: 
 def test_vercel_url_with_protocol_added_when_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    write_min_config(tmp_path, baseurl="")
+    # Platform detection only works when baseurl is missing (not explicitly empty)
+    write_min_config(tmp_path, baseurl=None)  # Missing baseurl allows platform detection
     # Ensure BENGAL_BASEURL isn't set from test matrix
     monkeypatch.delenv("BENGAL_BASEURL", raising=False)
     monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
@@ -73,7 +77,8 @@ def test_vercel_url_with_protocol_added_when_missing(
 
 
 def test_github_pages_owner_repo_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    write_min_config(tmp_path, baseurl="")
+    # Platform detection only works when baseurl is missing (not explicitly empty)
+    write_min_config(tmp_path, baseurl=None)  # Missing baseurl allows platform detection
     # Ensure BENGAL_BASEURL isn't set from test matrix
     monkeypatch.delenv("BENGAL_BASEURL", raising=False)
     monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
