@@ -349,9 +349,7 @@ class NavTree:
     def _build_node_recursive(cls, section: Section, version_id: str | None, depth: int) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
-        node_url = getattr(section, "_path", None) or getattr(
-            section, "relative_url", f"/{section.name}/"
-        )
+        node_url = getattr(section, "_path", None) or f"/{section.name}/"
         node_title = section.nav_title
         node_icon = section.icon
 
@@ -377,12 +375,8 @@ class NavTree:
             if cls._should_exclude_from_nav(page):
                 continue
 
-            # Use relative_url for nav tree (without baseurl) for consistent lookups
-            page_url = (
-                getattr(page, "_path", None)
-                or getattr(page, "relative_url", None)
-                or getattr(page, "href", "/")
-            )
+            # Use _path for nav tree (without baseurl) for consistent lookups
+            page_url = getattr(page, "_path", None) or getattr(page, "href", "/")
 
             # Skip pages with the same URL as the section (they're section index content)
             # This prevents section+page collisions from autodoc-generated content
@@ -432,11 +426,7 @@ class NavTreeContext:
         self.tree = tree
         self.page = page
         # Use _path for consistent matching with nav tree nodes
-        self.current_url = (
-            getattr(page, "_path", None)
-            or getattr(page, "relative_url", None)
-            or getattr(page, "href", "/")
-        )
+        self.current_url = getattr(page, "_path", None) or getattr(page, "href", "/")
         self._mark_active_trail = mark_active_trail
         self._root_node = root_node or tree.root
 
@@ -453,10 +443,7 @@ class NavTreeContext:
         # Walk up from current section (use _section - the private attribute)
         section = getattr(self.page, "_section", None)
         while section:
-            self.active_trail_urls.add(
-                getattr(section, "_path", None)
-                or getattr(section, "relative_url", f"/{section.name}/")
-            )
+            self.active_trail_urls.add(getattr(section, "_path", None) or f"/{section.name}/")
             section = section.parent
 
     def is_active(self, node: NavNode) -> bool:

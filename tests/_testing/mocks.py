@@ -138,7 +138,8 @@ class MockSection:
         """Initialize index page if not provided."""
         if self.index_page is None:
             self.index_page = Mock()
-            self.index_page.url = f"/{self.name}/"
+            self.index_page.href = f"/{self.name}/"
+            self.index_page._path = f"/{self.name}/"
             self.index_page.title = self.title
             self.index_page.metadata = self.metadata
 

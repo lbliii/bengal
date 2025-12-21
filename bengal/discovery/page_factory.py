@@ -116,9 +116,7 @@ class PageInitializer:
                     f"falling back to slug-based URL"
                 )
             # Use _path for validation (site-relative path without baseurl)
-            rel_url = getattr(page, "_path", None) or getattr(
-                page, "relative_url", f"/{page.slug}/"
-            )
+            rel_url = getattr(page, "_path", None) or f"/{page.slug}/"
             if not rel_url.startswith("/"):
                 from bengal.errors import BengalContentError
 

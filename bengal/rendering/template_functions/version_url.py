@@ -128,7 +128,7 @@ def get_version_target_url(
 
     if not site.versioning_enabled:
         # Versioning not enabled, return current page URL
-        return getattr(page, "_path", None) or getattr(page, "relative_url", None) or "/"
+        return getattr(page, "_path", None) or "/"
 
     target_version_id = target_version.get("id", "")
     target_is_latest = target_version.get("latest", False)
@@ -136,10 +136,10 @@ def get_version_target_url(
 
     # Same version - no change needed
     if current_version_id == target_version_id:
-        return getattr(page, "_path", None) or getattr(page, "relative_url", None) or "/"
+        return getattr(page, "_path", None) or "/"
 
     # Get the current page URL
-    current_url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or "/"
+    current_url = getattr(page, "_path", None) or "/"
 
     # Construct the equivalent URL in the target version
     target_url = _construct_version_url(
@@ -311,7 +311,7 @@ def _build_version_page_index(site: Site) -> dict[str, set[str]]:
         if version not in index:
             index[version] = set()
 
-        url = getattr(page, "relative_url", None)
+        url = getattr(page, "_path", None)
         if url:
             index[version].add(url)
             # Also add without trailing slash for flexibility

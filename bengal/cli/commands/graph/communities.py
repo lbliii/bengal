@@ -157,7 +157,7 @@ def communities(
                     "pages": [
                         {
                             "title": page.title,
-                            "url": getattr(page, "url_path", str(page.source_path)),
+                            "url": getattr(page, "href", str(page.source_path)),
                             "incoming_refs": refs,
                         }
                         for page, refs in pages_with_refs[:5]  # Top 5 pages

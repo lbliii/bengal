@@ -540,7 +540,7 @@ class Page(
         else:
             # Virtual section: use _path for lookup
             self._section_path = None
-            self._section_url = getattr(value, "_path", None) or getattr(value, "relative_url", f"/{value.name}/")
+            self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
 
 __all__ = ["Page", "PageProxy"]

@@ -240,7 +240,7 @@ class SectionRegistryMixin:
         # Handle virtual sections (path is None)
         if section.path is None:
             # Register in URL registry for virtual section lookups
-            rel_url = getattr(section, "_path", None) or getattr(section, "relative_url", None) or f"/{section.name}/"
+            rel_url = getattr(section, "_path", None) or f"/{section.name}/"
             self._section_url_registry[rel_url] = section
 
             # Also register in path registry using URL path as key (for backward compatibility)

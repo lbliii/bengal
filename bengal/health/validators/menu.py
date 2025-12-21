@@ -111,12 +111,7 @@ class MenuValidator(BaseValidator):
 
         for item in items:
             # Check if URL points to a page
-            # Prefer _path (internal), fallback to href (template), then url (legacy)
-            url = (
-                getattr(item, "_path", None)
-                or getattr(item, "href", None)
-                or getattr(item, "url", None)
-            )
+            url = getattr(item, "_path", None) or getattr(item, "href", None)
             if url:
                 # Skip external URLs
                 if url.startswith(("http://", "https://", "//")):

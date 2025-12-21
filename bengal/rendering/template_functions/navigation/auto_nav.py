@@ -75,9 +75,7 @@ def _build_section_menu_item(
 
     # Build nav item
     # Use _path for menu items (templates apply baseurl via | absolute_url filter)
-    section_url = getattr(section, "_path", None) or getattr(
-        section, "relative_url", f"/{section.name}/"
-    )
+    section_url = getattr(section, "_path", None) or f"/{section.name}/"
     section_identifier = section.name
 
     # Get section icon from Section.icon property (reads from _index.md frontmatter)

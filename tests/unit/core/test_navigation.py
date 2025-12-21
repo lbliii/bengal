@@ -15,7 +15,7 @@ class TestSectionURLGeneration:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Should construct URL from section name
-        assert section.url == "/docs/"
+        assert section._path == "/docs/"
 
     def test_section_url_with_index_page_no_output_path(self):
         """Test section URL when index page exists but has no output_path yet."""
@@ -27,7 +27,7 @@ class TestSectionURLGeneration:
         section.add_page(index_page)
 
         # Should fall back to hierarchy-based URL (not index page's fallback URL)
-        assert section.url == "/docs/"
+        assert section._path == "/docs/"
 
     def test_section_url_with_index_page_with_output_path(self):
         """Test section URL when index page has output_path set."""
@@ -46,7 +46,7 @@ class TestSectionURLGeneration:
         section.add_page(index_page)
 
         # Should use index page's properly computed URL
-        assert section.url == "/docs/"
+        assert section._path == "/docs/"
 
     def test_nested_section_url_hierarchy(self):
         """Test URL generation for nested sections using hierarchy."""
@@ -56,10 +56,10 @@ class TestSectionURLGeneration:
         parent.add_subsection(child)
 
         # Parent URL
-        assert parent.url == "/api/"
+        assert parent._path == "/api/"
 
         # Child should construct from parent's URL
-        assert child.url == "/api/v2/"
+        assert child._path == "/api/v2/"
 
     def test_deeply_nested_section_url(self):
         """Test URL generation for deeply nested sections."""
@@ -70,9 +70,9 @@ class TestSectionURLGeneration:
         level1.add_subsection(level2)
         level2.add_subsection(level3)
 
-        assert level1.url == "/docs/"
-        assert level2.url == "/docs/guides/"
-        assert level3.url == "/docs/guides/advanced/"
+        assert level1._path == "/docs/"
+        assert level2._path == "/docs/guides/"
+        assert level3._path == "/docs/guides/advanced/"
 
     def test_top_level_section_url(self):
         """Test URL generation for top-level section (no parent)."""
@@ -80,7 +80,7 @@ class TestSectionURLGeneration:
         top_level = Section(name="docs", path=Path("/content/docs"))
 
         # Top-level section should have URL like "/docs/"
-        assert top_level.url == "/docs/"
+        assert top_level._path == "/docs/"
 
 
 class TestPageAncestors:
@@ -233,7 +233,7 @@ class TestBreadcrumbLogic:
         breadcrumb_items = []
 
         for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor.url})
+            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
 
         # Should only have docs (no root)
         assert len(breadcrumb_items) == 1
@@ -269,7 +269,7 @@ class TestBreadcrumbLogic:
         breadcrumb_items = []
 
         for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor.url})
+            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
 
         # Should have: Api → V2 (no root)
         assert len(breadcrumb_items) == 2
@@ -286,7 +286,7 @@ class TestNavigationEdgeCases:
         """Test section without parent generates correct URL."""
         section = Section(name="blog", path=Path("/content/blog"))
 
-        assert section.url == "/blog/"
+        assert section._path == "/blog/"
         assert section.parent is None
 
     def test_page_parent_property(self):

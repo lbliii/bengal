@@ -172,7 +172,7 @@ class MenuOrchestrator:
                         "path": str(page.source_path),
                         "menu": page.metadata["menu"],
                         "title": page.title,
-                        "url": getattr(page, "href", None) or getattr(page, "url", "/"),
+                        "url": getattr(page, "href", "/"),
                     }
                 )
 
@@ -228,9 +228,7 @@ class MenuOrchestrator:
         api_section = self._find_section_by_name("api")
         if api_section:
             # Use _path (templates apply baseurl via | absolute_url filter)
-            api_url = getattr(api_section, "_path", None) or getattr(
-                api_section, "relative_url", "/api/"
-            )
+            api_url = getattr(api_section, "_path", None) or "/api/"
             dev_assets.append({"name": "API Reference", "url": api_url, "type": "api"})
             dev_sections_to_remove.add("api")
 
@@ -238,9 +236,7 @@ class MenuOrchestrator:
         cli_section = self._find_section_by_name("cli")
         if cli_section:
             # Use _path (templates apply baseurl via | absolute_url filter)
-            cli_url = getattr(cli_section, "_path", None) or getattr(
-                cli_section, "relative_url", "/cli/"
-            )
+            cli_url = getattr(cli_section, "_path", None) or "/cli/"
             dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
             dev_sections_to_remove.add("cli")
 
@@ -493,8 +489,6 @@ class MenuOrchestrator:
             current_page: Page currently being rendered
         """
         # Use _path for comparison (menu items store site-relative paths)
-        current_url = getattr(current_page, "_path", None) or getattr(
-            current_page, "relative_url", "/"
-        )
+        current_url = getattr(current_page, "_path", None) or "/"
         for menu_name, builder in self.site.menu_builders.items():
             builder.mark_active_items(current_url, self.site.menu[menu_name])

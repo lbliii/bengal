@@ -424,7 +424,6 @@ class Section:
         """
         return {
             getattr(subsection.index_page, "_path", None)
-            or getattr(subsection.index_page, "relative_url", None)
             for subsection in self.subsections
             if subsection.index_page
         }
