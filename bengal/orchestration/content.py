@@ -633,15 +633,14 @@ class ContentOrchestrator:
                             self.site.xref_index["by_anchor"][anchor_key] = []
                         # Check for collisions within the same version only
                         existing_entries = self.site.xref_index["by_anchor"][anchor_key]
-                        same_version_collision = any(
-                            existing_version == page_version
-                            for _, _, existing_version in existing_entries
+                        same_version_entry = (
+                            next((p, a, v) for p, a, v in existing_entries if v == page_version)
+                            if any(v == page_version for _, _, v in existing_entries)
+                            else None
                         )
-                        if same_version_collision:
-                            # Collision within same version - warn but allow (target directives will overwrite)
-                            existing_page, existing_anchor, _ = next(
-                                (p, a, v) for p, a, v in existing_entries if v == page_version
-                            )
+                        if same_version_entry:
+                            # Collision within same version - warn but keep existing (target directives will overwrite later)
+                            existing_page, existing_anchor, _ = same_version_entry
                             self.logger.warning(
                                 "anchor_collision",
                                 anchor_id=anchor_id,
@@ -650,17 +649,17 @@ class ContentOrchestrator:
                                 existing_anchor=existing_anchor,
                                 version=page_version or "unversioned",
                                 details=(
-                                    f"Anchor '{anchor_id}' collides within version '{page_version or 'unversioned'}'. "
-                                    f"Target directive '::{{target}} {anchor_id}' in {page.source_path} conflicts with "
-                                    f"existing anchor '{existing_anchor}' in {existing_page.source_path}. "
-                                    f"Use '[[!{anchor_id}]]' to explicitly reference the target directive, "
-                                    f"or rename one anchor to avoid collisions."
+                                    f"Heading anchor '{anchor_id}' collides within version '{page_version or 'unversioned'}'. "
+                                    f"Heading in {page.source_path} conflicts with existing anchor '{existing_anchor}' "
+                                    f"in {existing_page.source_path}. Target directives will take precedence if added later."
                                 ),
                             )
-                        # Add entry (target directives added later will overwrite same-version entries)
-                        self.site.xref_index["by_anchor"][anchor_key].append(
-                            (page, anchor_id, page_version)
-                        )
+                            # Don't add duplicate - keep existing entry
+                        else:
+                            # No collision - add entry
+                            self.site.xref_index["by_anchor"][anchor_key].append(
+                                (page, anchor_id, page_version)
+                            )
 
             # Index target directives (:::{target} id)
             # Extract target directives from content for cross-reference indexing
