@@ -1029,24 +1029,18 @@ def resolve_page_section_path(page: Any) -> str | None:
 
     Returns:
         String path to the section (e.g., "docs/tutorials") or None if not set.
+
+    Note:
+        This function is intentionally silent on errors, falling back gracefully.
+        Core modules do not log; orchestrators handle observability.
     """
-    from bengal.utils.logger import get_logger
-
-    logger = get_logger(__name__)
-
     if page is None:
         return None
 
     # Some page proxies may raise on getattr; guard with try/except
     try:
         section_value = getattr(page, "section", None)
-    except Exception as e:
-        logger.debug(
-            "sections_getattr_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_none_section",
-        )
+    except Exception:
         section_value = None
 
     if not section_value:
@@ -1056,14 +1050,8 @@ def resolve_page_section_path(page: Any) -> str | None:
     if hasattr(section_value, "path"):
         try:
             return str(section_value.path)
-        except Exception as e:
+        except Exception:
             # Fallback to str(section_value) if `.path` isn't convertible
-            logger.debug(
-                "sections_path_convert_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_string_fallback",
-            )
             return str(section_value)
 
     # Already a string or stringable value
