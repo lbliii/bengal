@@ -87,35 +87,11 @@ def get_page_relative_url(page: Page, site: Any) -> str:
     Returns:
         Relative URL string (without baseurl)
     """
-    # Prefer _path for postprocessing (guaranteed to be without baseurl)
-    if hasattr(page, "_path"):
-        path = page._path
-        if callable(path):
-            try:
-                result = path()
-                if isinstance(result, str):
-                    return result
-            except Exception as e:
-                # Ignore exceptions from _path() to allow fallback to other URL methods
-                logger.debug(
-                    "output_format_path_failed",
-                    page=str(page.source_path) if hasattr(page, "source_path") else None,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="trying_relative_url_fallback",
-                )
-                pass
-        elif isinstance(result := path, str):
-            return result
-
     # Use _path (internal path without baseurl)
     return page._path
 
-            if url:
-                return url
 
-    # Build from output_path
-    output_path = getattr(page, "output_path", None)
+def get_page_public_url(page: Page, site: Site) -> str:
     if not output_path:
         return f"/{getattr(page, 'slug', page.source_path.stem)}/"
 
