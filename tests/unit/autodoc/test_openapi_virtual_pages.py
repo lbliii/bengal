@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
 
 def _make_mock_site(tmp_path: Path, spec_path: Path) -> MagicMock:

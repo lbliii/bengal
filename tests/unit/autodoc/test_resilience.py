@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.autodoc.base import DocElement
-from bengal.autodoc.virtual_orchestrator import AutodocRunResult, VirtualAutodocOrchestrator
+from bengal.autodoc.orchestration import AutodocRunResult, VirtualAutodocOrchestrator
 
 # Note: The orchestrator calls module-level functions from these modules:
 # - bengal.autodoc.orchestration.extractors: extract_python, extract_cli, extract_openapi
@@ -394,7 +394,7 @@ class TestResultReturnValue:
 
         # Mock the import inside the method
         with patch(
-            "bengal.autodoc.virtual_orchestrator.VirtualAutodocOrchestrator", autospec=True
+            "bengal.autodoc.orchestration.VirtualAutodocOrchestrator", autospec=True
         ) as mock_orchestrator_class:
             mock_orchestrator_instance = MagicMock()
             mock_orchestrator_instance.is_enabled.return_value = True

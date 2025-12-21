@@ -44,7 +44,7 @@ class TestSeparateSectionTrees:
     def test_python_and_openapi_create_distinct_sections(self, mock_site, tmp_path):
         """Test that Python and OpenAPI create separate root sections."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         # Create minimal Python source
         src_dir = tmp_path / "src"
@@ -122,7 +122,7 @@ paths:
     def test_cli_output_prefix_drops_root_name(self, mock_site, tmp_path):
         """Test that CLI output prefix drops the root command name ('bengal')."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         # Configure CLI
         mock_site.config["autodoc"] = {
@@ -204,7 +204,7 @@ class TestBackwardsCompatibility:
     def test_python_only_with_api_prefix(self, mock_site, tmp_path):
         """Test Python-only config with 'api' prefix works unchanged."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {
@@ -250,7 +250,7 @@ class TestBackwardsCompatibility:
     def test_openapi_only_with_api_prefix(self, mock_site, tmp_path):
         """Test OpenAPI-only config with explicit 'api' prefix works unchanged."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {
@@ -303,7 +303,7 @@ paths: {}
 
     def test_default_prefixes_when_not_specified(self, mock_site, tmp_path):
         """Test that default prefixes are used when not explicitly configured."""
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {

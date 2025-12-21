@@ -3,17 +3,37 @@ Python API documentation extractor.
 
 Extracts documentation from Python source files via AST parsing.
 No imports required - fast and reliable.
+
+This is the main extractor class that coordinates the extraction process
+using utilities from sibling modules.
 """
 
 from __future__ import annotations
 
 import ast
-import fnmatch
 from pathlib import Path
 from typing import Any, override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
+from bengal.autodoc.extractors.python.aliases import detect_aliases, extract_all_exports
+from bengal.autodoc.extractors.python.inheritance import (
+    should_include_inherited,
+    synthesize_inherited_members,
+)
+from bengal.autodoc.extractors.python.module_info import (
+    get_output_path,
+    get_relative_source_path,
+    infer_module_name,
+)
+from bengal.autodoc.extractors.python.signature import (
+    annotation_to_string,
+    build_signature,
+    expr_to_string,
+    extract_arguments,
+    has_yield,
+)
+from bengal.autodoc.extractors.python.skip_logic import should_skip
 from bengal.autodoc.models import (
     PythonAliasMetadata,
     PythonAttributeMetadata,
@@ -23,9 +43,7 @@ from bengal.autodoc.models import (
 )
 from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring, RaisesInfo
 from bengal.autodoc.utils import (
-    apply_grouping,
     auto_detect_prefix_map,
-    get_python_class_bases,
     get_python_function_is_property,
     sanitize_text,
 )
@@ -144,7 +162,7 @@ class PythonExtractor(Extractor):
 
         # First pass: extract all elements
         for py_file in directory.rglob("*.py"):
-            if self._should_skip(py_file):
+            if should_skip(py_file, self.exclude_patterns):
                 continue
 
             try:
@@ -184,102 +202,14 @@ class PythonExtractor(Extractor):
                         self.class_index[child.qualified_name] = child
 
         # Third pass: synthesize inherited members if enabled
-        if self._should_include_inherited():
+        if should_include_inherited(self.config):
             for element in elements:
                 if element.element_type == "module":
                     for child in element.children:
                         if child.element_type == "class":
-                            self._synthesize_inherited_members(child)
+                            synthesize_inherited_members(child, self.class_index, self.config)
 
         return elements
-
-    def _should_skip(self, path: Path) -> bool:
-        """
-        Check if file should be skipped.
-
-        Handles common exclusion patterns:
-        - Hidden directories (starting with .)
-        - Virtual environments (.venv, venv, env, .env)
-        - Site-packages (dependencies)
-        - Build artifacts (__pycache__, build, dist)
-        - Test files and directories
-        """
-        # NOTE: We intentionally do not require paths to exist here; callers may pass synthetic paths.
-        #
-        # IMPORTANT: We treat configured exclude patterns as *globs*, but with path-separator-aware
-        # semantics (i.e., "*" should not match "/"). Python's built-in fnmatch works on strings and
-        # allows "*" to span "/" which can cause surprising over-matches when applied to full paths.
-        # We therefore:
-        # - Apply filename patterns to the basename only (e.g., "*_test.py", "*/test_*.py")
-        # - Apply directory patterns to path segments (e.g., "*/tests/*", "*/__pycache__/*")
-        name = path.name
-        path_parts = path.parts
-
-        # Skip hidden directories (any part starting with .)
-        for part in path_parts:
-            if part.startswith(".") and part not in (".", ".."):
-                return True
-
-        # Skip common virtual environment and dependency directories
-        common_skip_dirs = {
-            "venv",
-            ".venv",
-            "env",
-            ".env",
-            "site-packages",
-            "__pycache__",
-            ".tox",
-            ".nox",
-            ".eggs",
-            "build",
-            "dist",
-            "node_modules",
-        }
-        for part in path_parts:
-            if part in common_skip_dirs:
-                return True
-            # Skip egg-info directories
-            if part.endswith(".egg-info"):
-                return True
-
-        # Apply user-specified exclude patterns
-        for pattern in self.exclude_patterns:
-            if not pattern:
-                continue
-
-            # 1) Basename-only patterns (recommended): "*_test.py"
-            if "/" not in pattern and fnmatch.fnmatchcase(name, pattern):
-                return True
-
-            # 2) Common config style: "*/<basename_glob>"
-            # Example: "*/test_*.py" should NOT match any directory named "test_*".
-            if pattern.startswith("*/") and pattern.count("/") == 1:
-                if fnmatch.fnmatchcase(name, pattern[2:]):
-                    return True
-                continue
-
-            # 3) Directory containment: "*/<dir_glob>/*"
-            # Example: "*/tests/*", "*/__pycache__/*", "*/.venv/*"
-            if pattern.startswith("*/") and pattern.endswith("/*") and pattern.count("/") == 2:
-                dir_glob = pattern.split("/")[1]
-                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
-                    return True
-                continue
-
-            # 4) Extension dir pattern: "*.egg-info/*" (already covered by egg-info check above,
-            # but keep this for config parity).
-            if pattern.endswith("/*") and pattern.count("/") == 1:
-                dir_glob = pattern[:-2]
-                if any(fnmatch.fnmatchcase(part, dir_glob) for part in path_parts):
-                    return True
-                continue
-
-            # 5) Fallback: treat as a plain string glob against the basename.
-            # This keeps behavior predictable without introducing "/"-spanning matches.
-            if fnmatch.fnmatchcase(name, pattern):
-                return True
-
-        return False
 
     def _extract_file(self, file_path: Path) -> list[DocElement]:
         """Extract documentation from a single Python file."""
@@ -302,16 +232,16 @@ class PythonExtractor(Extractor):
                 self.class_index[child.qualified_name] = child
 
         # Synthesize inherited members if enabled
-        if self._should_include_inherited():
+        if should_include_inherited(self.config):
             for child in module_element.children:
                 if child.element_type == "class":
-                    self._synthesize_inherited_members(child)
+                    synthesize_inherited_members(child, self.class_index, self.config)
 
         return [module_element]
 
     def _extract_module(self, tree: ast.Module, file_path: Path, source: str) -> DocElement | None:
         """Extract module documentation."""
-        module_name = self._infer_module_name(file_path)
+        module_name = infer_module_name(file_path, self._source_root)
         docstring = ast.get_docstring(tree)
 
         # Extract top-level classes and functions
@@ -334,7 +264,7 @@ class PythonExtractor(Extractor):
                     defined_names.add(node.name)
 
         # Detect aliases after extracting all definitions
-        aliases = self._detect_aliases(tree, module_name, defined_names)
+        aliases = detect_aliases(tree, module_name, defined_names, expr_to_string)
 
         # Create DocElements for aliases
         for alias_name, canonical_name in aliases.items():
@@ -361,7 +291,7 @@ class PythonExtractor(Extractor):
                 qualified_name=f"{module_name}.{alias_name}",
                 description=f"Alias of `{canonical_name}`",
                 element_type="alias",
-                source_file=self._get_relative_source_path(file_path),
+                source_file=get_relative_source_path(file_path, self._source_root),
                 line_number=line_number,
                 metadata={
                     "alias_of": canonical_name,
@@ -390,7 +320,7 @@ class PythonExtractor(Extractor):
         is_package = file_path.name == "__init__.py"
 
         # Extract __all__ exports
-        all_exports = self._extract_all_exports(tree)
+        all_exports = extract_all_exports(tree)
 
         # Build typed metadata
         typed_meta = PythonModuleMetadata(
@@ -405,7 +335,7 @@ class PythonExtractor(Extractor):
             qualified_name=module_name,
             description=sanitize_text(docstring),
             element_type="module",
-            source_file=self._get_relative_source_path(file_path),
+            source_file=get_relative_source_path(file_path, self._source_root),
             line_number=1,
             metadata={
                 "file_path": str(file_path),
@@ -428,10 +358,10 @@ class PythonExtractor(Extractor):
         # Extract base classes
         bases = []
         for base in node.bases:
-            bases.append(self._expr_to_string(base))
+            bases.append(expr_to_string(base))
 
         # Extract decorators
-        decorators = [self._expr_to_string(d) for d in node.decorator_list]
+        decorators = [expr_to_string(d) for d in node.decorator_list]
 
         # Extract methods and properties
         methods = []
@@ -450,18 +380,18 @@ class PythonExtractor(Extractor):
 
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 # Class variable with type annotation
-                annotation_str = self._annotation_to_string(item.annotation)
+                annotation_str = annotation_to_string(item.annotation)
                 typed_attr_meta = PythonAttributeMetadata(
                     annotation=annotation_str,
                     is_class_var=True,
-                    default_value=self._expr_to_string(item.value) if item.value else None,
+                    default_value=expr_to_string(item.value) if item.value else None,
                 )
                 var_elem = DocElement(
                     name=item.target.id,
                     qualified_name=f"{qualified_name}.{item.target.id}",
                     description="",
                     element_type="attribute",
-                    source_file=self._get_relative_source_path(file_path),
+                    source_file=get_relative_source_path(file_path, self._source_root),
                     line_number=item.lineno,
                     metadata={
                         "annotation": annotation_str,
@@ -491,7 +421,7 @@ class PythonExtractor(Extractor):
                         qualified_name=f"{qualified_name}.{attr_name}",
                         description=attr_desc,
                         element_type="attribute",
-                        source_file=self._get_relative_source_path(file_path),
+                        source_file=get_relative_source_path(file_path, self._source_root),
                         line_number=node.lineno,
                         metadata={
                             "annotation": None,
@@ -531,7 +461,7 @@ class PythonExtractor(Extractor):
             qualified_name=qualified_name,
             description=description,
             element_type="class",
-            source_file=self._get_relative_source_path(file_path),
+            source_file=get_relative_source_path(file_path, self._source_root),
             line_number=node.lineno,
             metadata={
                 "bases": bases,
@@ -563,16 +493,16 @@ class PythonExtractor(Extractor):
         parsed_doc = parse_docstring(docstring) if docstring else None
 
         # Build signature
-        signature = self._build_signature(node)
+        signature = build_signature(node)
 
         # Extract decorators
-        decorators = [self._expr_to_string(d) for d in node.decorator_list]
+        decorators = [expr_to_string(d) for d in node.decorator_list]
 
         # Extract arguments
-        args = self._extract_arguments(node)
+        args = extract_arguments(node)
 
         # Extract return annotation
-        returns = self._annotation_to_string(node.returns) if node.returns else None
+        returns = annotation_to_string(node.returns) if node.returns else None
 
         # Determine function type
         is_property = any("property" in d for d in decorators)
@@ -605,7 +535,7 @@ class PythonExtractor(Extractor):
         description = sanitize_text(raw_description)
 
         # Detect generator (simple heuristic - check for yield in body)
-        is_generator = self._has_yield(node)
+        is_generator = has_yield(node)
 
         # Build typed metadata with ParameterInfo objects
         typed_params = tuple(self._to_parameter_info(arg) for arg in merged_args)
@@ -627,7 +557,7 @@ class PythonExtractor(Extractor):
             qualified_name=qualified_name,
             description=description,
             element_type=element_type,
-            source_file=self._get_relative_source_path(file_path),
+            source_file=get_relative_source_path(file_path, self._source_root),
             line_number=node.lineno,
             metadata={
                 "signature": signature,
@@ -645,76 +575,6 @@ class PythonExtractor(Extractor):
             see_also=parsed_doc.see_also if parsed_doc else [],
             deprecated=parsed_doc.deprecated if parsed_doc else None,
         )
-
-    def _build_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
-        """Build function signature string."""
-        args_parts = []
-
-        # Regular arguments
-        for arg in node.args.args:
-            part = arg.arg
-            if arg.annotation:
-                part += f": {self._annotation_to_string(arg.annotation)}"
-            args_parts.append(part)
-
-        # Add defaults
-        defaults = node.args.defaults
-        if defaults:
-            for i, default in enumerate(defaults):
-                idx = len(args_parts) - len(defaults) + i
-                if idx >= 0:
-                    args_parts[idx] += f" = {self._expr_to_string(default)}"
-
-        # *args
-        if node.args.vararg:
-            part = f"*{node.args.vararg.arg}"
-            if node.args.vararg.annotation:
-                part += f": {self._annotation_to_string(node.args.vararg.annotation)}"
-            args_parts.append(part)
-
-        # **kwargs
-        if node.args.kwarg:
-            part = f"**{node.args.kwarg.arg}"
-            if node.args.kwarg.annotation:
-                part += f": {self._annotation_to_string(node.args.kwarg.annotation)}"
-            args_parts.append(part)
-
-        # Build full signature
-        async_prefix = "async " if isinstance(node, ast.AsyncFunctionDef) else ""
-        signature = f"{async_prefix}def {node.name}({', '.join(args_parts)})"
-
-        # Add return annotation
-        if node.returns:
-            signature += f" -> {self._annotation_to_string(node.returns)}"
-
-        return signature
-
-    def _extract_arguments(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> list[dict[str, Any]]:
-        """Extract argument information."""
-        args = []
-
-        for arg in node.args.args:
-            args.append(
-                {
-                    "name": arg.arg,
-                    "annotation": self._annotation_to_string(arg.annotation)
-                    if arg.annotation
-                    else None,
-                    "default": None,  # Will be filled in with defaults
-                }
-            )
-
-        # Add defaults
-        defaults = node.args.defaults
-        if defaults:
-            for i, default in enumerate(defaults):
-                idx = len(args) - len(defaults) + i
-                if idx >= 0:
-                    args[idx]["default"] = self._expr_to_string(default)
-
-        return args
 
     def _to_parsed_docstring(self, parsed: Any) -> ParsedDocstring | None:
         """
@@ -778,281 +638,33 @@ class PythonExtractor(Extractor):
             description=arg.get("docstring"),
         )
 
-    def _has_yield(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    def _should_skip(self, path: Path) -> bool:
         """
-        Check if function contains yield statement.
+        Check if file should be skipped during extraction.
+
+        This is a thin wrapper around skip_logic.should_skip for backward compatibility.
 
         Args:
-            node: Function AST node
+            path: Path to check
 
         Returns:
-            True if function is a generator
+            True if path should be skipped
         """
-        return any(isinstance(child, ast.Yield | ast.YieldFrom) for child in ast.walk(node))
-
-    def _annotation_to_string(self, annotation: ast.expr | None) -> str | None:
-        """Convert AST annotation to string."""
-        if annotation is None:
-            return None
-
-        try:
-            return ast.unparse(annotation)
-        except Exception as e:
-            # Fallback for complex annotations
-            logger.debug(
-                "ast_unparse_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_ast_dump_fallback",
-            )
-            return ast.dump(annotation)
-
-    def _expr_to_string(self, expr: ast.expr) -> str:
-        """Convert AST expression to string."""
-        try:
-            return ast.unparse(expr)
-        except Exception as e:
-            logger.debug(
-                "ast_expr_unparse_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_ast_dump_fallback",
-            )
-            return ast.dump(expr)
+        return should_skip(path, self.exclude_patterns)
 
     def _infer_module_name(self, file_path: Path) -> str:
         """
         Infer module name from file path relative to source root.
 
-        Examples:
-            source_root: bengal/
-            file_path: bengal/cli/commands/build.py
-            result: bengal.cli.commands.build
-        """
-        # Resolve file_path to handle relative paths correctly
-        resolved_file = file_path.resolve()
-
-        if self._source_root is None:
-            # Fallback to old behavior if source root not set
-            parts = list(resolved_file.parts)
-            package_start = 0
-            for i in range(len(parts) - 1, -1, -1):
-                parent = Path(*parts[: i + 1])
-                if (parent / "__init__.py").exists():
-                    package_start = i
-                    break
-            module_parts = parts[package_start:]
-        else:
-            # Use source root to compute relative path
-            try:
-                rel_path = resolved_file.relative_to(self._source_root)
-                module_parts = list(rel_path.parts)
-            except ValueError:
-                # File not under source root - find package root via __init__.py
-                logger.debug(
-                    "file_not_under_source_root",
-                    file=str(resolved_file),
-                    source_root=str(self._source_root),
-                )
-                parts = list(resolved_file.parts)
-                package_start = 0
-                for i in range(len(parts) - 1, -1, -1):
-                    parent = Path(*parts[: i + 1])
-                    if (parent / "__init__.py").exists():
-                        package_start = i
-                        break
-                module_parts = parts[package_start:]
-
-        # Handle __init__.py (package) vs regular module
-        if module_parts and module_parts[-1] == "__init__.py":
-            module_parts = module_parts[:-1]
-        elif module_parts and module_parts[-1].endswith(".py"):
-            module_parts[-1] = module_parts[-1][:-3]
-
-        # If module_parts is empty (root __init__.py), use source_root name
-        if not module_parts and self._source_root:
-            module_parts = [self._source_root.name]
-
-        return ".".join(module_parts)
-
-    def _get_relative_source_path(self, file_path: Path) -> Path:
-        """
-        Get source path relative to source root for GitHub links.
+        This is a thin wrapper around module_info.infer_module_name for backward compatibility.
 
         Args:
-            file_path: Absolute file path
+            file_path: Path to the Python file
 
         Returns:
-            Path relative to source root (e.g., "bengal/core/page.py")
+            Qualified module name (e.g., "bengal.cli.commands.build")
         """
-        if self._source_root:
-            for base in (self._source_root, self._source_root.parent):
-                try:
-                    return file_path.relative_to(base)
-                except ValueError:
-                    continue
-        return file_path
-
-    def _should_include_inherited(self, element_type: str = "class") -> bool:
-        """
-        Check if inherited members should be included for element type.
-
-        Args:
-            element_type: Type of element ("class" or "exception")
-
-        Returns:
-            True if inherited members should be included
-        """
-        # Global toggle
-        if self.config.get("include_inherited", False):
-            return True
-
-        # Per-type override
-        by_type = self.config.get("include_inherited_by_type", {})
-        return bool(by_type.get(element_type, False))
-
-    def _synthesize_inherited_members(self, class_elem: DocElement) -> None:
-        """
-        Add inherited members to a class element.
-
-        Args:
-            class_elem: Class DocElement to augment with inherited members
-        """
-        # Get base classes using typed accessor
-        bases = get_python_class_bases(class_elem)
-        if not bases:
-            return
-
-        # Track existing member names to avoid duplicates
-        existing_members = {child.name for child in class_elem.children}
-
-        # For each base class, look up in index and copy members
-        for base_name in bases:
-            # Try to find the base class in our index
-            # Handle both simple names and qualified names
-            base_elem = None
-
-            # Try as-is first
-            if base_name in self.class_index:
-                base_elem = self.class_index[base_name]
-            else:
-                # Try to find by simple name match
-                simple_base = base_name.split(".")[-1]
-                for qualified, elem in self.class_index.items():
-                    if qualified.endswith(f".{simple_base}"):
-                        base_elem = elem
-                        break
-
-            if not base_elem:
-                continue
-
-            # Copy methods and properties from base class
-            include_private = self.config.get("include_private", False)
-
-            for member in base_elem.children:
-                # Skip if derived class overrides this member
-                if member.name in existing_members:
-                    continue
-
-                # Skip private members unless configured to include them
-                if (
-                    member.name.startswith("_")
-                    and not member.name.startswith("__")
-                    and not include_private
-                ):
-                    continue
-
-                # Only inherit methods and properties
-                if member.element_type not in (
-                    "method",
-                    "function",
-                ) and not get_python_function_is_property(member):
-                    continue
-
-                # Create inherited member entry
-                inherited_member = DocElement(
-                    name=member.name,
-                    qualified_name=f"{class_elem.qualified_name}.{member.name}",
-                    description=f"Inherited from `{base_elem.qualified_name}`",
-                    element_type=member.element_type,
-                    source_file=member.source_file,
-                    line_number=member.line_number,
-                    metadata={
-                        **member.metadata,
-                        "inherited_from": base_elem.qualified_name,
-                        "synthetic": True,
-                    },
-                )
-                class_elem.children.append(inherited_member)
-                existing_members.add(member.name)
-
-    def _detect_aliases(
-        self, tree: ast.Module, module_name: str, defined_names: set[str]
-    ) -> dict[str, str]:
-        """
-        Detect simple assignment aliases at module level.
-
-        Patterns detected:
-        - alias = original (ast.Name)
-        - alias = module.original (ast.Attribute)
-
-        Args:
-            tree: Module AST
-            module_name: Current module qualified name
-            defined_names: Set of names defined in this module
-
-        Returns:
-            Dict mapping alias_name -> qualified_original
-        """
-        aliases = {}
-
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                # Only handle single-target simple assignments
-                if len(node.targets) != 1:
-                    continue
-
-                target = node.targets[0]
-
-                # Target must be a simple name (not attribute or subscript)
-                if not isinstance(target, ast.Name):
-                    continue
-
-                alias_name = target.id
-
-                # Value must be Name or Attribute
-                if isinstance(node.value, ast.Name):
-                    # alias = original
-                    original = node.value.id
-                    if original in defined_names:
-                        aliases[alias_name] = f"{module_name}.{original}"
-
-                elif isinstance(node.value, ast.Attribute):
-                    # alias = module.original
-                    original_qualified = self._expr_to_string(node.value)
-                    # Only track if it looks like it's in our documented corpus
-                    if original_qualified and "." in original_qualified:
-                        aliases[alias_name] = original_qualified
-
-        return aliases
-
-    def _extract_all_exports(self, tree: ast.Module) -> list[str] | None:
-        """Extract __all__ exports if present."""
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if (
-                        isinstance(target, ast.Name)
-                        and target.id == "__all__"
-                        and isinstance(node.value, ast.List | ast.Tuple)
-                    ):
-                        # Try to extract the list
-                        exports = []
-                        for elt in node.value.elts:
-                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                                exports.append(elt.value)
-                        return exports
-        return None
+        return infer_module_name(file_path, self._source_root)
 
     @override
     def get_output_path(self, element: DocElement) -> Path | None:
@@ -1063,84 +675,7 @@ class PythonExtractor(Extractor):
         section indexes. With grouping enabled, modules are organized under
         group directories based on package hierarchy or explicit configuration.
 
-        Examples (without grouping):
-            bengal (package) → bengal/_index.md
-            bengal.core (package) → bengal/core/_index.md
-            bengal.core.site (module) → bengal/core/site.md
-
-        Examples (with grouping, strip_prefix="bengal."):
-            bengal.core (package) → core/_index.md
-            bengal.cli.templates.blog (module) → templates/blog.md
-
         Returns:
             Path object for output location, or None if element should be skipped
         """
-        qualified_name = element.qualified_name
-
-        # Apply strip_prefix if configured
-        strip_prefix = self.config.get("strip_prefix", "")
-        if strip_prefix:
-            # Check if this is the stripped prefix itself
-            # (e.g., "mypackage" when strip_prefix="mypackage.")
-            strip_prefix_base = strip_prefix.rstrip(".")
-            if qualified_name == strip_prefix_base:
-                # Don't generate output for the stripped prefix package itself
-                # Return None to signal this element should be skipped
-                return None  # type: ignore[return-value]
-
-            # Strip the prefix if present
-            if qualified_name.startswith(strip_prefix):
-                qualified_name = qualified_name[len(strip_prefix) :]
-
-        # Apply grouping
-        group_name, remaining = apply_grouping(qualified_name, self._grouping_config)
-
-        if element.element_type == "module":
-            # Check if this is a package (__init__.py file)
-            is_package = element.source_file and element.source_file.name == "__init__.py"
-
-            if is_package:
-                # Packages get _index.md to act as section indexes
-                if group_name:
-                    # Grouped: {group}/{remaining}/_index.md
-                    if remaining:
-                        path = Path(group_name) / remaining.replace(".", "/")
-                    else:
-                        # Package is the group itself
-                        path = Path(group_name)
-                    return path / "_index.md"
-                else:
-                    # Ungrouped: {qualified_name}/_index.md
-                    module_path = remaining.replace(".", "/")
-                    return Path(module_path) / "_index.md"
-            else:
-                # Regular modules get their own file
-                if group_name:
-                    # Grouped: {group}/{remaining}.md
-                    if remaining:
-                        return Path(group_name) / f"{remaining.replace('.', '/')}.md"
-                    else:
-                        # Module is the group itself
-                        return Path(f"{group_name}.md")
-                else:
-                    # Ungrouped: {qualified_name}.md
-                    return Path(f"{remaining.replace('.', '/')}.md")
-        else:
-            # Classes/functions are part of module file
-            # Use the already-processed qualified_name (with strip_prefix applied)
-            parts = remaining.split(".") if group_name is None else qualified_name.split(".")
-            module_parts = parts[:-1] if len(parts) > 1 else parts
-
-            # If we have a group, the remaining is already module-relative
-            if group_name:
-                # Build path from remaining (minus class/function name)
-                if len(remaining.split(".")) > 1:
-                    module_path = ".".join(remaining.split(".")[:-1])
-                    return Path(group_name) / f"{module_path.replace('.', '/')}.md"
-                else:
-                    # Class/function at group root
-                    return Path(f"{group_name}.md")
-            else:
-                # No grouping - use qualified_name directly
-                module_path = ".".join(module_parts)
-                return Path(f"{module_path.replace('.', '/')}.md")
+        return get_output_path(element, self.config, self._grouping_config)

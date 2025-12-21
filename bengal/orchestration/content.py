@@ -234,7 +234,7 @@ class ContentOrchestrator:
             return [], []
 
         try:
-            from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+            from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
             from bengal.utils.hashing import hash_dict
 
             orchestrator = VirtualAutodocOrchestrator(self.site)

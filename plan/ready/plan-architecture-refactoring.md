@@ -1078,6 +1078,217 @@ grep -r "virtual_orchestrator" --include="*.py"
 
 ---
 
+## Sprint 7: Final Cleanup (Week 11) - Part 2
+
+**Status**: Added 2025-12-20 after codebase evaluation  
+**Estimated Effort**: 2-3 hours  
+**Risk**: LOW
+
+### Context
+
+Post-implementation evaluation identified orphaned files and incomplete cleanup:
+
+| Issue | File | Size | Cause |
+|-------|------|------|-------|
+| Dead code | `orchestration/incremental.py` | 1,399 lines | Old monolithic file; package supersedes it |
+| Empty stub | `rendering/link_validator.py` | 0 bytes | Consolidation incomplete |
+| Missing deprecation | Multiple relocated files | — | Deprecation warnings not added |
+
+### Phase 7.1: Delete Dead Code
+
+#### Task 7.1.1: Delete Old incremental.py
+
+**File**: `bengal/orchestration/incremental.py` (1,399 lines)
+
+**Verification**: Confirm all imports use the package:
+
+```bash
+# Should return ONLY files in incremental/ directory
+grep -r "from bengal.orchestration.incremental" bengal/ --include="*.py" | grep -v "incremental/"
+```
+
+**Expected**: No results (all imports use `incremental/` package)
+
+**Action**: Delete file after verification.
+
+**Commit**: `orchestration: delete orphaned incremental.py (superseded by incremental/ package)`
+
+---
+
+#### Task 7.1.2: Delete Empty link_validator.py
+
+**File**: `bengal/rendering/link_validator.py` (0 bytes)
+
+**Action**: Delete empty file.
+
+**Commit**: `rendering: delete empty link_validator.py stub`
+
+---
+
+### Phase 7.2: Verify Package Imports
+
+#### Task 7.2.1: Verify Incremental Package Usage
+
+**Action**: Ensure `IncrementalOrchestrator` is imported from package:
+
+```bash
+# Check orchestration/__init__.py exports
+grep -A2 "IncrementalOrchestrator" bengal/orchestration/__init__.py
+
+# Verify build/__init__.py uses package
+grep "incremental" bengal/orchestration/build/__init__.py
+```
+
+**Expected**: All imports reference `bengal.orchestration.incremental` (package, not file)
+
+**Commit**: N/A (verification only)
+
+---
+
+#### Task 7.2.2: Run Full Test Suite
+
+**Action**: Verify deletions don't break anything:
+
+```bash
+pytest tests/ -v --tb=short
+```
+
+**Gate**: All tests must pass.
+
+**Commit**: N/A (verification only)
+
+---
+
+### Phase 7.3: File Count Reduction
+
+#### Task 7.3.1: Audit Remaining Large Files
+
+**Action**: Identify files still exceeding thresholds:
+
+```bash
+wc -l bengal/**/*.py 2>/dev/null | sort -rn | head -15
+```
+
+**Current State** (post-Sprint 6):
+- `analysis/knowledge_graph.py` (1,222 lines) - Out of scope for this RFC
+- `core/section.py` (996 lines) - Out of scope
+- `discovery/content_discovery.py` (944 lines) - Out of scope
+- `rendering/pipeline/core.py` (925 lines) - Out of scope
+
+**Decision**: These files are outside the original RFC scope. Track in separate RFC if needed.
+
+**Commit**: N/A (audit only)
+
+---
+
+#### Task 7.3.2: Check utils/ File Count
+
+**Action**: Verify utils/ is at target:
+
+```bash
+find bengal/utils -name "*.py" | wc -l  # Target: < 35
+```
+
+**Current**: 36 files (1 over target)
+
+**Decision**: Acceptable variance. No action needed unless natural opportunity arises.
+
+**Commit**: N/A (audit only)
+
+---
+
+### Phase 7.4: Documentation Sync (from Sprint 6.3)
+
+#### Task 7.4.1: Update Architecture Documentation
+
+**Files**:
+- `architecture/object-model.md`
+- `architecture/orchestration.md`
+
+**Changes**:
+- Add `incremental/` package structure diagram
+- Update `IncrementalOrchestrator` description
+- Document new module boundaries
+
+**Commit**: `docs(arch): update documentation to match new package structure`
+
+---
+
+#### Task 7.4.2: Update Related Plan Files
+
+**Action**: Mark deprecated plan files:
+
+```bash
+# Check for outdated RFCs referencing old structure
+grep -l "incremental.py" plan/**/*.md
+```
+
+**Commit**: `docs(plan): mark superseded RFCs as archived`
+
+---
+
+### Phase 7.5: CI Enforcement (from Sprint 6.3)
+
+#### Task 7.5.1: Add File Size Lint Rule
+
+**File**: `pyproject.toml`
+
+**Action**: Add custom ruff rule or pre-commit hook:
+
+```toml
+# Option 1: Use ruff's PLR0915 (too many statements)
+[tool.ruff.lint]
+select = ["PLR0915"]
+
+# Option 2: Custom script in CI
+# scripts/check_file_size.py
+```
+
+**Note**: Ruff doesn't have a direct "lines per file" rule. Consider:
+1. Using `wc -l` in CI script
+2. Adding baseline for existing large files
+
+**Commit**: `ci: add file size enforcement gate`
+
+---
+
+### Sprint 7 Exit Criteria
+
+- [ ] `bengal/orchestration/incremental.py` deleted
+- [ ] `bengal/rendering/link_validator.py` deleted
+- [ ] All tests pass after deletions
+- [ ] `rendering/` file count verified (target: < 70)
+- [ ] `utils/` file count verified (target: < 35)
+- [ ] Architecture docs updated
+- [ ] No file exceeds 600 lines (excluding baseline exemptions)
+
+---
+
+### Quick Execution Checklist
+
+```bash
+# 1. Verify no external imports of old incremental.py
+grep -r "from bengal.orchestration.incremental import" bengal/ --include="*.py" | grep -v "incremental/"
+# Expected: empty
+
+# 2. Delete dead files
+rm bengal/orchestration/incremental.py
+rm bengal/rendering/link_validator.py
+
+# 3. Run tests
+pytest tests/ -v --tb=short
+
+# 4. Commit
+git add -A && git commit -m "cleanup: delete orphaned incremental.py and empty link_validator.py"
+
+# 5. Verify metrics
+find bengal/rendering -name "*.py" | wc -l  # Target: < 70
+find bengal/utils -name "*.py" | wc -l       # Target: < 35
+wc -l bengal/**/*.py | sort -rn | head -10
+```
+
+---
+
 ## Summary Table
 
 | Sprint | Week | Focus | Key Deliverables |
@@ -1088,6 +1299,7 @@ grep -r "virtual_orchestrator" --include="*.py"
 | 4 | 6-7 | Incremental Refactoring ⚠️ | `incremental/` package, ChangeDetector |
 | 5 | 8-9 | Navigation + Parser | `navigation/` package, `mistune/` package |
 | 6 | 10 | Cleanup | Python extractor, naming fixes |
+| **7** | **11** | **Final Cleanup** | **Dead code removal, docs sync, CI gates**
 
 ---
 
@@ -1095,19 +1307,19 @@ grep -r "virtual_orchestrator" --include="*.py"
 
 ### Quantitative
 
-- [ ] `rendering/` has < 70 files (from 107)
-- [ ] `utils/` has < 35 files (from 46)
-- [ ] No file exceeds 600 lines (soft target: 400)
+- [ ] `rendering/` has < 70 files (from 107) — **Current: 79** (after Sprint 7: ~77)
+- [ ] `utils/` has < 35 files (from 46) — **Current: 36** (1 over, acceptable)
+- [ ] No file exceeds 600 lines (soft target: 400) — **Pending Sprint 7** (delete 1,399-line orphan)
 - [ ] No function exceeds 100 lines (soft target: 50)
-- [ ] No validation logic duplicated
+- [ ] No validation logic duplicated — **✅ Done** (`link_validator.py` empty, `validator.py` removed)
 - [ ] Test coverage maintained or improved
 - [ ] Build performance within 5% of baseline
 
 ### Qualitative
 
-- [ ] New developers can find code by domain concept
-- [ ] Single source of truth for each concern
-- [ ] Clear package boundaries
+- [ ] New developers can find code by domain concept — **✅ Done** (domain packages created)
+- [ ] Single source of truth for each concern — **✅ Done** (packages consolidated)
+- [ ] Clear package boundaries — **✅ Done**
 - [ ] Type hints improve IDE experience
 
 ---
@@ -1155,3 +1367,12 @@ For Sprint 4 (high-risk incremental changes):
 - **RFC**: `plan/evaluated/rfc-architecture-refactoring.md`
 - **Deprecated RFCs**: `rfc-code-smell-remediation.md`, `rfc-package-architecture-consolidation.md`
 - **Architecture Rule**: `bengal/.cursor/rules/architecture-patterns.mdc`
+
+---
+
+## Changelog
+
+| Date | Change | Author |
+|------|--------|--------|
+| 2025-12-20 | Added Sprint 7 (Part 2 cleanup) after codebase evaluation | AI |
+| 2025-12-20 | Updated exit criteria with current state metrics | AI |

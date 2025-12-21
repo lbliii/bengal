@@ -10,7 +10,7 @@ Key Concepts:
     - Orphan cleanup: Remove autodoc pages when source files are deleted
 
 Related Modules:
-    - bengal.autodoc.virtual_orchestrator: Creates autodoc pages with dependencies
+    - bengal.autodoc.orchestration: Creates autodoc pages with dependencies
     - bengal.orchestration.incremental: Uses dependency info for selective builds
 
 See Also:
