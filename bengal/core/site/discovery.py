@@ -119,6 +119,27 @@ class ContentDiscoveryMixin:
             # Compute output path using centralized strategy for regular pages
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self)
 
+            # Claim URL in registry for ownership enforcement
+            # Priority 100 = user content (highest priority)
+            if hasattr(self, "url_registry") and self.url_registry:
+                try:
+                    url = URLStrategy.url_from_output_path(page.output_path, self)
+                    source = str(getattr(page, "source_path", page.title))
+                    version = getattr(page, "version", None)
+                    lang = getattr(page, "lang", None)
+                    self.url_registry.claim(
+                        url=url,
+                        owner="content",
+                        source=source,
+                        priority=100,  # User content always wins
+                        version=version,
+                        lang=lang,
+                    )
+                except Exception:
+                    # Don't fail discovery on registry errors (graceful degradation)
+                    # Registry errors will be caught during validation phase
+                    pass
+
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
         Discover all assets in the assets directory and theme assets.

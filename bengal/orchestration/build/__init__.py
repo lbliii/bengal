@@ -375,7 +375,7 @@ class BuildOrchestrator:
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
         if collisions:
             for msg in collisions:
-                self.logger.warning("url_collision_detected", message=msg)
+                self.logger.warning(msg, event="url_collision_detected")
 
         # Phase 13: Process Assets
         assets_to_process = rendering.phase_assets(

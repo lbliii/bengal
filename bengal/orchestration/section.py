@@ -357,6 +357,22 @@ class SectionOrchestrator:
             section=section, page_num=1, site=self.site
         )
 
+        # Claim URL in registry for ownership enforcement
+        # Priority 50 = section indexes (structural authority)
+        if hasattr(self.site, "url_registry") and self.site.url_registry:
+            try:
+                url = self.url_strategy.url_from_output_path(archive_page.output_path, self.site)
+                source = str(archive_page.source_path)
+                self.site.url_registry.claim(
+                    url=url,
+                    owner="section_index",
+                    source=source,
+                    priority=50,  # Section indexes
+                )
+            except Exception:
+                # Don't fail section finalization on registry errors (graceful degradation)
+                pass
+
         # Ensure page is correctly initialized (sets _site, validates)
         self.initializer.ensure_initialized_for_section(archive_page, section)
 

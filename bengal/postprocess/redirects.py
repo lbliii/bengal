@@ -130,15 +130,36 @@ class RedirectGenerator:
 
         output_path = self.site.output_dir / from_path_normalized / "index.html"
 
-        # Check for conflicts with existing content
-        if output_path.exists():
-            self.logger.warning(
-                "redirect_conflict",
-                alias=from_path,
-                target=to_url,
-                reason="path already exists (real content takes precedence)",
-            )
-            return False
+        # Claim URL in registry before writing (claim-before-write pattern)
+        # Priority 5 = redirects (lowest, should never shadow actual content)
+        if hasattr(self.site, "url_registry") and self.site.url_registry:
+            try:
+                self.site.url_registry.claim_output_path(
+                    output_path=output_path,
+                    site=self.site,
+                    owner="redirect",
+                    source=f"alias:{from_path}",
+                    priority=5,  # Redirects (lowest priority)
+                )
+            except Exception as e:
+                # Registry rejected claim (higher priority content exists)
+                self.logger.warning(
+                    "redirect_conflict",
+                    alias=from_path,
+                    target=to_url,
+                    reason=f"URL already claimed by higher priority content: {e}",
+                )
+                return False
+        else:
+            # Fallback to file existence check if registry not available
+            if output_path.exists():
+                self.logger.warning(
+                    "redirect_conflict",
+                    alias=from_path,
+                    target=to_url,
+                    reason="path already exists (real content takes precedence)",
+                )
+                return False
 
         # Generate redirect HTML
         html = self._render_redirect_html(from_path, to_url)

@@ -42,6 +42,7 @@ from bengal.core.site.properties import SitePropertiesMixin
 from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
+from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.orchestration.stats import BuildStats
 
@@ -157,6 +158,10 @@ class Site(
     # See: plan/active/rfc-page-section-reference-contract.md
     _section_url_registry: dict[str, Section] = field(default_factory=dict, repr=False, init=False)
 
+    # URL ownership registry for claim-time enforcement
+    # See: plan/drafted/plan-url-ownership-architecture.md
+    url_registry: URLRegistry = field(default_factory=URLRegistry, init=False)
+
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
@@ -255,6 +260,11 @@ class Site(
         # Initialize thread-safe lock for asset manifest fallback tracking
         if self._asset_manifest_fallbacks_lock is None:
             self._asset_manifest_fallbacks_lock = Lock()
+
+        # Initialize URL registry for claim-time ownership enforcement
+        # See: plan/drafted/plan-url-ownership-architecture.md
+        if not hasattr(self, "url_registry") or self.url_registry is None:
+            self.url_registry = URLRegistry()
 
     def build(
         self,

@@ -277,7 +277,7 @@ def create_markdown_parser(engine='mistune'):
 
 ## Related Documentation
 
-- [Overview](/docs/reference/architecture/) - High-level architecture
-- [Orchestration](/docs/reference/architecture/core/orchestration/) - Build coordination
-- [Performance](/docs/reference/architecture/meta/performance/) - Performance characteristics
-- [Testing](/docs/reference/architecture/meta/testing/) - Testing strategy
+- [Architecture Overview](./) - High-level architecture
+- [Orchestration](core/orchestration/) - Build coordination
+- [Performance](meta/performance/) - Benchmarks and hot paths
+- [Testing](meta/testing/) - Test strategy

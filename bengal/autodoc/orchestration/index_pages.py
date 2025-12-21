@@ -79,6 +79,27 @@ def create_index_pages(
         # Set section reference via setter (handles virtual sections with URL-based lookup)
         index_page._section = section
 
+        # Claim URL in registry for ownership enforcement
+        # Priority 90 = autodoc sections (explicitly configured by user)
+        if hasattr(site, "url_registry") and site.url_registry:
+            try:
+                from bengal.utils.url_strategy import URLStrategy
+
+                url = URLStrategy.url_from_output_path(output_path, site)
+                source = str(index_page.source_path)
+                # Extract section_id from section_path (e.g., "api/python" -> "python")
+                section_id = section_path.split("/")[-1] if "/" in section_path else section_path
+                owner = f"autodoc:{section_id}"
+                site.url_registry.claim(
+                    url=url,
+                    owner=owner,
+                    source=source,
+                    priority=90,  # Autodoc sections
+                )
+            except Exception:
+                # Don't fail autodoc generation on registry errors (graceful degradation)
+                pass
+
         # Set as section index directly (don't use add_page which would
         # trigger index collision detection)
         section.index_page = index_page

@@ -43,6 +43,7 @@ from bengal.health.validators.links import LinkValidator, LinkValidatorWrapper, 
 from bengal.health.validators.menu import MenuValidator
 from bengal.health.validators.navigation import NavigationValidator
 from bengal.health.validators.output import OutputValidator
+from bengal.health.validators.ownership_policy import OwnershipPolicyValidator
 from bengal.health.validators.performance import PerformanceValidator
 from bengal.health.validators.rendering import RenderingValidator
 from bengal.health.validators.rss import RSSValidator
@@ -71,6 +72,8 @@ __all__ = [
     "MenuValidator",
     # Phase 2
     "NavigationValidator",
+    # Ownership policy validation (RFC: plan/drafted/plan-url-ownership-architecture.md)
+    "OwnershipPolicyValidator",
     # Phase 1
     "OutputValidator",
     "PerformanceValidator",

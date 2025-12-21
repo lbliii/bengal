@@ -398,7 +398,6 @@ result = pipeline.run()
 - `ChangeType` - Change type enum
 
 :::{seealso}
-- [Build Pipeline Concepts](/docs/about/concepts/build-pipeline/) - High-level build overview
-- [Orchestration](/docs/reference/architecture/core/orchestration/) - Legacy orchestrator docs
-- [Caching](/docs/reference/architecture/core/cache/) - Cache system details
+- [Orchestration](../core/orchestration/) - Build coordination
+- [Cache](../core/cache/) - Cache system details
 :::
