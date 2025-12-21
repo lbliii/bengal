@@ -244,10 +244,13 @@ class VariableSubstitutionPlugin:
         parts = expr.split(".")
 
         # SECURITY: Block access to private/dunder attributes
+        from bengal.utils.exceptions import BengalRenderingError
+
         for part in parts:
             if part.startswith("_"):
-                raise ValueError(
-                    f"Access to private/protected attributes denied: '{part}' in '{expr}'"
+                raise BengalRenderingError(
+                    f"Access to private/protected attributes denied: '{part}' in '{expr}'",
+                    suggestion="Use public attributes only in template expressions",
                 )
 
         result: Any = self.context
@@ -255,15 +258,24 @@ class VariableSubstitutionPlugin:
         for part in parts:
             # SECURITY: Double-check dunder blocking on actual attribute access
             if part.startswith("_"):
-                raise ValueError(f"Access to private/protected attributes denied: '{part}'")
+                raise BengalRenderingError(
+                    f"Access to private/protected attributes denied: '{part}'",
+                    suggestion="Use public attributes only in template expressions",
+                )
 
             if hasattr(result, part):
                 result = getattr(result, part)
             elif isinstance(result, dict):
                 result = result.get(part)
                 if result is None:
-                    raise ValueError(f"Key '{part}' not found in expression '{expr}'")
+                    raise BengalRenderingError(
+                        f"Key '{part}' not found in expression '{expr}'",
+                        suggestion=f"Check that '{part}' exists in the context dictionary",
+                    )
             else:
-                raise ValueError(f"Cannot access '{part}' in expression '{expr}'")
+                raise BengalRenderingError(
+                    f"Cannot access '{part}' in expression '{expr}'",
+                    suggestion=f"'{part}' is not a valid attribute or key for this object",
+                )
 
         return result

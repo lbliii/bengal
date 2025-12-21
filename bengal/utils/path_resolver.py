@@ -75,9 +75,14 @@ class PathResolver:
             ValueError: If base cannot be resolved to absolute path
         """
         # Ensure base is absolute
+        from bengal.utils.exceptions import BengalError
+
         resolved_base = base.resolve() if not base.is_absolute() else base
         if not resolved_base.is_absolute():
-            raise ValueError(f"PathResolver base must be absolute, got: {base}")
+            raise BengalError(
+                f"PathResolver base must be absolute, got: {base}",
+                suggestion="Use Path.resolve() or provide an absolute path",
+            )
         self.base = resolved_base
 
         logger.debug(

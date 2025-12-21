@@ -108,8 +108,13 @@ def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeC
     """
     site = getattr(page, "_site", None)
     if site is None:
+        from bengal.utils.exceptions import BengalRenderingError
+
         msg = "Page has no site reference. Ensure content discovery has run."
-        raise ValueError(msg)
+        raise BengalRenderingError(
+            msg,
+            suggestion="Ensure content discovery has run before accessing navigation tree",
+        )
 
     version_id = None
     if getattr(site, "versioning_enabled", False):
@@ -121,6 +126,11 @@ def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeC
         root_url = root_section.relative_url
         root_node = tree.find(root_url)
         if root_node is None:
-            raise ValueError(f"Root section not found in NavTree: {root_url}")
+            from bengal.utils.exceptions import BengalRenderingError
+
+            raise BengalRenderingError(
+                f"Root section not found in NavTree: {root_url}",
+                suggestion=f"Ensure section with URL '{root_url}' exists in the site",
+            )
 
     return tree.context(page, mark_active_trail=True, root_node=root_node)

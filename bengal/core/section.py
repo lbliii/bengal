@@ -31,6 +31,7 @@ from typing import Any
 
 from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
 from bengal.core.page import Page
+from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -576,9 +577,10 @@ class Section:
         # This is a hard requirement - virtual sections are created with explicit URLs
         if self._virtual:
             if not self._relative_url_override:
-                raise ValueError(
+                raise BengalContentError(
                     f"Virtual section '{self.name}' has no _relative_url_override set. "
-                    f"Virtual sections must have explicit URLs set during creation."
+                    f"Virtual sections must have explicit URLs set during creation.",
+                    suggestion="Set _relative_url_override when creating virtual sections",
                 )
             return self._relative_url_override
 

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.utils.exceptions import BengalConfigError
 
 
 @dataclass
@@ -52,9 +53,10 @@ class Theme:
         # Validate appearance
         valid_appearances = {"light", "dark", "system"}
         if self.default_appearance not in valid_appearances:
-            raise ValueError(
+            raise BengalConfigError(
                 f"Invalid default_appearance '{self.default_appearance}'. "
-                f"Must be one of: {', '.join(valid_appearances)}"
+                f"Must be one of: {', '.join(valid_appearances)}",
+                suggestion=f"Set default_appearance to one of: {', '.join(valid_appearances)}",
             )
 
         # Ensure config is a dict

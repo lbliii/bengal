@@ -48,7 +48,12 @@ class Paginator[T]:
             ValueError: If page number is out of range
         """
         if number < 1 or number > self.num_pages:
-            raise ValueError(f"Page number {number} is out of range (1-{self.num_pages})")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                f"Page number {number} is out of range (1-{self.num_pages})",
+                suggestion=f"Use a page number between 1 and {self.num_pages}",
+            )
 
         start_index = (number - 1) * self.per_page
         end_index = start_index + self.per_page

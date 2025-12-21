@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -490,7 +491,10 @@ class MenuBuilder:
                     root_item=root.name,
                     root_identifier=root.identifier,
                 )
-                raise ValueError(f"Menu has circular reference involving '{root.name}'")
+                raise BengalContentError(
+                    f"Menu has circular reference involving '{root.name}'",
+                    suggestion="Check menu configuration for circular parent-child relationships",
+                )
 
         # Sort roots by weight
         roots.sort(key=lambda x: x.weight)
