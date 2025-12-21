@@ -8,7 +8,6 @@ file paths, line numbers, operations, and suggestions.
 from __future__ import annotations
 
 import contextlib
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -92,33 +91,8 @@ def enrich_error(
     )
 
 
-@contextmanager
-def error_context_manager(
-    file_path: Path | None = None,
-    operation: str | None = None,
-    suggestion: str | None = None,
-):
-    """
-    Context manager for capturing error context automatically.
-
-    Use this to wrap operations that might fail, automatically capturing
-    file path and operation context for any exceptions raised.
-
-    Args:
-        file_path: Path to file being processed
-        operation: Description of operation being performed
-        suggestion: Default suggestion for errors in this context
-
-    Example:
-        >>> from bengal.utils.error_context import error_context_manager
-        >>>
-        >>> with error_context_manager(file_path=path, operation="parsing frontmatter"):
-        ...     parse_file(path)  # Any exception will have context added
-    """
-    # Store context in thread-local or pass via exception attributes
-    # For now, this is a placeholder - actual implementation would need
-    # to hook into exception raising mechanism
-    yield
+# Note: error_context_manager was removed - use error_recovery_context from
+# bengal.utils.error_recovery instead, or manually use enrich_error in try/except blocks
 
 
 def get_context_from_exception(error: Exception) -> ErrorContext:

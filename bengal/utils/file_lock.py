@@ -24,6 +24,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import IO
 
+from bengal.utils.exceptions import BengalCacheError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,8 +33,12 @@ logger = get_logger(__name__)
 DEFAULT_LOCK_TIMEOUT = 30
 
 
-class LockAcquisitionError(Exception):
-    """Raised when a lock cannot be acquired within the timeout."""
+class LockAcquisitionError(BengalCacheError):
+    """
+    Raised when a lock cannot be acquired within the timeout.
+
+    Extends BengalCacheError for consistent error handling.
+    """
 
     pass
 
@@ -109,7 +114,10 @@ def _acquire_lock(
             if elapsed >= timeout:
                 raise LockAcquisitionError(
                     f"Could not acquire {'exclusive' if exclusive else 'shared'} lock on {lock_path} after {timeout}s. "
-                    "Another build process may be running."
+                    "Another build process may be running.",
+                    file_path=lock_path,
+                    suggestion="Wait for the other build process to finish, or remove the lock file if the process has terminated.",
+                    original_error=err,
                 ) from err
 
             # Log contention once per second (not on every retry)
