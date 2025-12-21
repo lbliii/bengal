@@ -2,159 +2,38 @@
 Documentation Navigation Component
 
 Displays full hierarchical sidebar navigation for documentation sites.
+Uses pre-computed NavTree for optimal performance.
 
 Variables:
 - page: Current page object (required)
-- page._section: Current section (for determining root)
-- page._section.root: Root section to display from
-- site: Site object (fallback when no section)
 - show_nav_icons: Whether to show section icons (default: true)
-- versioning_enabled: bool - Whether versioning is enabled (from render context)
-- versions: list[dict] - All versions (from render context)
-- current_version: dict|None - Current page's version (from render context)
 
 Features:
-- Hierarchical tree structure
-- Active page highlighting
-- Active trail marking
-- Scoped to current section tree
-- Recursive subsection rendering
+- Hierarchical tree structure via NavTree API
+- Active page highlighting (automatic via NavNodeProxy)
+- Active trail marking (automatic via NavTreeContext)
+- Version-aware filtering (automatic via NavTreeCache)
 - Keyboard accessible
-- Section icons from frontmatter (directories only, not pages)
-- Version selector dropdown (when versioning enabled)
-
-Note:
-Includes 'partials/docs-nav-section.html' for recursive rendering.
-If page has a section, displays only that section's tree.
-If no section, falls back to showing all top-level sections.
+- Section icons from frontmatter
 
 Usage:
 {% include 'partials/docs-nav.html' %}
 #}
 
-{# Control icon visibility - defaults to true, can be overridden by parent template #}
+{# Control icon visibility - defaults to true #}
 {% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
 
 <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
-  {# Version Selector - shows when versioning is enabled with multiple versions #}
+  {# Version Selector #}
   {% include 'partials/version-selector.html' %}
 
-  {# Navigation Tree #}
+  {# Navigation Tree - uses cached NavTree infrastructure #}
   <div class="docs-nav-tree">
-    {# Determine the root section to display #}
-    {# Strategy: If current page has a section, find its root ancestor #}
-    {# This allows the nav to be scoped to just the docs tree, not the entire site #}
-    {# Get the root section to display the navigation tree from the top #}
-    {% set root_section = page._section.root if (page is defined and page and page._section) else none %}
+    {% set nav_items = get_nav_tree(page) %}
 
-    {# If we have a root section, show only its tree #}
-    {% if root_section %}
-    {# Get current version ID for filtering (None disables version filtering) #}
-    {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
-    {% set version_filter = current_version_id if site.versioning_enabled else none %}
-
-    {# Use version-aware Section methods for clean filtering #}
-    {% set sorted_pages = root_section.pages_for_version(version_filter) %}
-    {% set sorted_subsections = root_section.subsections_for_version(version_filter) %}
-    {# subsection_index_urls is a set from Python for O(1) membership checks #}
-    {% set subsection_index_urls = root_section.subsection_index_urls %}
-    {% set root_index_url = root_section.index_page.relative_url if root_section.index_page else none %}
-
-    {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
-
-    {# Show the section's index page if it exists and matches current version #}
-    {% if root_section.index_page %}
-      {# Use version-aware check (version_filter is None when versioning disabled) #}
-      {% set show_index = (version_filter is none) or (root_section.index_page.version == version_filter) %}
-      {% if show_index %}
-      {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
-      {% set root_title = root_section.index_page.nav_title or root_section.index_page.title if root_section.index_page.title and
-      root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if
-      root_section.slug else 'API Reference') %}
-      {% set root_icon = root_section.icon if root_section.icon else none %}
-      {% set root_is_active = (page is defined and page and current_url == root_url_normalized) %}
-      <a href="{{ root_section.index_page.url }}"
-        class="docs-nav-link docs-nav-link--root {% if root_is_active %}active{% endif %}" {% if root_is_active
-        %}aria-current="page" {% endif %}>
-        {# Root Section Icon (from frontmatter, defaults to book-open for docs) #}
-        {% if show_nav_icons %}
-        <span class="docs-nav-icon docs-nav-icon--root" {% if not root_icon %}data-default="true" {% endif %}>
-          {{ icon(root_icon or 'book-open', size=16) }}
-        </span>
-        {% endif %}
-        <span class="docs-nav-link-text">{{ root_title }}</span>
-      </a>
-      {% endif %}
-    {% endif %}
-
-    {# Show regular pages (O(n) with O(1) lookups) - sorted by weight #}
-    {% for p in sorted_pages %}
-    {# Skip root index and subsection index pages - now O(1) set lookup! #}
-    {# Skip autodoc pages (they belong in /api/ or /cli/ sections, not docs nav) #}
-    {% set page_type = p.metadata.get('type', '') %}
-    {% set is_autodoc = page_type.startswith('autodoc-') or page_type.startswith('python-') or page_type.startswith('cli-') or page_type.startswith('openapi-') or p.metadata.get('generator') == 'bengal-autodoc' %}
-    {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls and not is_autodoc %}
-    {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
-    <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
-      %}aria-current="page" {% endif %}>
-      {{ p.nav_title or p.title }}
-    </a>
-    {% endif %}
+    {% for item in nav_items %}
+      {% set depth = 0 %}
+      {% include 'partials/docs-nav-node.html' %}
     {% endfor %}
-
-    {# Show subsections - sorted by weight #}
-    {% for section in sorted_subsections %}
-    {% set depth = 0 %}
-    {% include 'partials/docs-nav-section.html' %}
-    {% endfor %}
-    {% else %}
-    {# Fallback: Show all top-level sections (original behavior) #}
-    {# Get current version ID for filtering (None disables version filtering) #}
-    {% set current_version_id = current_version.id if (current_version is defined and current_version) else (page.version if (page is defined and page and page.version) else none) %}
-    {% set version_filter = current_version_id if site.versioning_enabled else none %}
-
-    {# Get top-level sections and filter by version using Section methods #}
-    {% set all_top_sections = site.sections | selectattr('parent', 'none') | list %}
-    {% if version_filter %}
-      {% set top_sections = all_top_sections | selectattr('has_content_for_version', 'callable') | list %}
-      {% set top_sections = [] %}
-      {% for section in all_top_sections %}
-        {% if section.has_content_for_version(version_filter) %}
-          {% set _ = top_sections.append(section) %}
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      {% set top_sections = all_top_sections %}
-    {% endif %}
-
-    {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
-
-    {# Show any top-level pages first (regular pages without a section) #}
-    {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list %}
-    {# Filter top-level pages by version if versioning is enabled #}
-    {% if version_filter %}
-      {% set top_pages = top_pages | selectattr('version', 'equalto', version_filter) | list %}
-    {% endif %}
-    {% for p in top_pages %}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
-    {% set p_is_active = (page is defined and page and current_url == p_url_normalized) %}
-    <a href="{{ p.url }}" class="docs-nav-link {% if p_is_active %}active{% endif %}" {% if p_is_active
-      %}aria-current="page" {% endif %}>
-      {{ p.nav_title or p.title }}
-    </a>
-    {% endfor %}
-
-    {# Show all top-level sections #}
-    {% for section in top_sections %}
-    {% set depth = 0 %}
-    {% include 'partials/docs-nav-section.html' %}
-    {% endfor %}
-    {% endif %}
   </div>
 </nav>

@@ -8,22 +8,27 @@ This package combines:
 - Type-safe dataclass models for navigation elements
 - Template functions for generating navigation structures
 - Helper functions for section access and page lookups
-
-All functions maintain backward compatibility with dict-style
-access in Jinja templates while providing type safety.
+- Cached NavTree infrastructure for O(1) navigation lookups
 
 Organization:
-    - models.py: Typed dataclasses (BreadcrumbItem, NavTreeItem, etc.)
+    - models.py: Typed dataclasses (BreadcrumbItem, etc.)
     - breadcrumbs.py: get_breadcrumbs()
     - pagination.py: get_pagination_items()
-    - tree.py: get_nav_tree()
+    - tree.py: get_nav_tree(), get_nav_context()
     - auto_nav.py: get_auto_nav(), section menu helpers
     - toc.py: get_toc_grouped(), combine_track_toc_items()
     - section.py: get_section(), section_pages()
 
+Core NavTree Models (bengal.core.nav_tree):
+    - NavNode: Immutable node in navigation tree
+    - NavTree: Cached tree with O(1) lookups
+    - NavTreeContext: Per-page active trail overlay
+    - NavNodeProxy: Template-friendly wrapper
+
 Related:
     - bengal/rendering/template_functions/get_page.py: Page lookup
     - bengal/core/section.py: Section model
+    - bengal/core/nav_tree.py: NavTree infrastructure
 """
 
 from __future__ import annotations
@@ -39,7 +44,6 @@ from bengal.rendering.template_functions.navigation.breadcrumbs import (
 from bengal.rendering.template_functions.navigation.models import (
     AutoNavItem,
     BreadcrumbItem,
-    NavTreeItem,
     PaginationInfo,
     PaginationItem,
     TocGroupItem,
@@ -84,7 +88,6 @@ __all__ = [
     "BreadcrumbItem",
     "PaginationItem",
     "PaginationInfo",
-    "NavTreeItem",
     "TocGroupItem",
     "AutoNavItem",
 ]

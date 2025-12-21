@@ -4,10 +4,11 @@ Tests for navigation dataclasses.
 Tests cover:
 - BreadcrumbItem
 - PaginationItem and PaginationInfo
-- NavTreeItem
 - TocGroupItem
 - AutoNavItem
 - Dict-style access for Jinja template compatibility
+
+Note: NavTree models (NavNode, NavNodeProxy, etc.) are in bengal.core.nav_tree
 """
 
 from __future__ import annotations
@@ -17,7 +18,6 @@ import pytest
 from bengal.rendering.template_functions.navigation.models import (
     AutoNavItem,
     BreadcrumbItem,
-    NavTreeItem,
     PaginationInfo,
     PaginationItem,
     TocGroupItem,
@@ -155,79 +155,6 @@ class TestPaginationInfo:
         assert info["pages"] == pages
 
 
-class TestNavTreeItem:
-    """Tests for NavTreeItem dataclass."""
-
-    def test_create_simple_item(self):
-        """Test creating simple nav tree item."""
-        item = NavTreeItem(title="Home", url="/")
-
-        assert item.title == "Home"
-        assert item.url == "/"
-        assert item.is_current is False
-        assert item.is_in_active_trail is False
-        assert item.is_section is False
-        assert item.depth == 0
-        assert item.children == []
-        assert item.has_children is False
-
-    def test_create_current_item(self):
-        """Test creating current nav tree item."""
-        item = NavTreeItem(title="About", url="/about/", is_current=True)
-
-        assert item.is_current is True
-
-    def test_create_section_item(self):
-        """Test creating section nav tree item."""
-        item = NavTreeItem(title="Docs", url="/docs/", is_section=True, has_children=True)
-
-        assert item.is_section is True
-        assert item.has_children is True
-
-    def test_create_with_children(self):
-        """Test creating nav tree item with children."""
-        child1 = NavTreeItem(title="Child 1", url="/parent/child1/", depth=1)
-        child2 = NavTreeItem(title="Child 2", url="/parent/child2/", depth=1)
-        parent = NavTreeItem(
-            title="Parent",
-            url="/parent/",
-            is_section=True,
-            children=[child1, child2],
-            has_children=True,
-        )
-
-        assert len(parent.children) == 2
-        assert parent.children[0].title == "Child 1"
-
-    def test_create_in_active_trail(self):
-        """Test creating item in active trail."""
-        item = NavTreeItem(title="Docs", url="/docs/", is_in_active_trail=True)
-
-        assert item.is_in_active_trail is True
-
-    def test_dict_style_access(self):
-        """Test dict-style access for template compatibility."""
-        item = NavTreeItem(title="Home", url="/", depth=0)
-
-        assert item["title"] == "Home"
-        assert item["depth"] == 0
-        assert item["children"] == []
-
-    def test_keys_method(self):
-        """Test keys() returns all field names."""
-        item = NavTreeItem(title="Home", url="/")
-
-        keys = item.keys()
-        assert "title" in keys
-        assert "url" in keys
-        assert "is_current" in keys
-        assert "is_in_active_trail" in keys
-        assert "is_section" in keys
-        assert "depth" in keys
-        assert "children" in keys
-        assert "has_children" in keys
-
-
 class TestTocGroupItem:
     """Tests for TocGroupItem dataclass."""
 
@@ -333,7 +260,6 @@ class TestDataclassSlots:
             BreadcrumbItem,
             PaginationItem,
             PaginationInfo,
-            NavTreeItem,
             TocGroupItem,
             AutoNavItem,
         ],
@@ -356,21 +282,6 @@ class TestTemplateCompatibility:
         values = [item[key] for key in keys]
         assert "Home" in values
         assert "/" in values
-
-    def test_nav_tree_recursive_access(self):
-        """Test recursive nav tree access like in Jinja macro."""
-        child = NavTreeItem(title="Child", url="/child/", depth=1)
-        parent = NavTreeItem(
-            title="Parent",
-            url="/parent/",
-            children=[child],
-            has_children=True,
-        )
-
-        # Simulate: {% if item.has_children %}{% for child in item.children %}...
-        if parent["has_children"]:
-            for child_item in parent["children"]:
-                assert child_item["title"] == "Child"
 
     def test_pagination_conditional_access(self):
         """Test pagination conditional access like in Jinja template."""

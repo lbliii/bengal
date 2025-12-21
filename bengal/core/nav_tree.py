@@ -350,9 +350,12 @@ class NavNodeProxy:
 
     Used during template rendering to avoid mutating the cached NavTree.
 
-    Provides backward-compatible access patterns:
-    - `is_in_active_trail` (legacy) aliases `is_in_trail`
-    - `is_section` indicates whether this node represents a section
+    Properties:
+    - `is_current`: True if this node is the current page
+    - `is_in_trail`: True if this node is in the path to current page
+    - `is_expanded`: True if this node should be expanded
+    - `is_section`: True if this node represents a section
+    - `has_children`: True if this node has children
     """
 
     _node: NavNode
@@ -365,11 +368,6 @@ class NavNodeProxy:
     @property
     def is_in_trail(self) -> bool:
         return self._context.is_active(self._node)
-
-    @property
-    def is_in_active_trail(self) -> bool:
-        """Backward-compatible alias for is_in_trail."""
-        return self.is_in_trail
 
     @property
     def is_expanded(self) -> bool:
@@ -392,8 +390,6 @@ class NavNodeProxy:
             return self.is_current
         if key == "is_in_trail":
             return self.is_in_trail
-        if key == "is_in_active_trail":
-            return self.is_in_active_trail
         if key == "is_expanded":
             return self.is_expanded
         if key == "is_section":

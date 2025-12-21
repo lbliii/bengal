@@ -245,226 +245,65 @@ class TestGetNavTree:
 
         assert result == []
 
-    def test_simple_section_with_pages(self):
-        """Section with pages builds simple tree."""
-        # Create mock pages
-        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
-        page1 = Mock()
-        page1.nav_title = None
-        page1.title = "Page 1"
-        page1.url = "/docs/page1/"
+    def test_no_site_returns_empty(self):
+        """Page without site reference returns empty list."""
+        # Create page without _site attribute
+        current_page = Mock(spec=[])
+        current_page._site = None
 
-        page2 = Mock()
-        page2.nav_title = None
-        page2.title = "Page 2"
-        page2.url = "/docs/page2/"
+        result = get_nav_tree(current_page)
 
-        # Create mock section
-        section = Mock()
-        section.nav_title = None
-        section.title = "Docs"
-        section.url = "/docs/"
-        section.index_page = None
-        section.regular_pages = [page1, page2]
-        section.sections = []
+        assert result == []
 
-        # Create current page
+    def test_nav_tree_with_empty_site(self):
+        """get_nav_tree with site having no sections returns empty."""
+        from bengal.core.nav_tree import NavTreeCache
+
+        # Create mock site with empty sections
+        site = Mock()
+        site.versioning_enabled = False
+        site.sections = []
+        site.title = "Test Site"
+        site.versions = []
+
+        # Create mock page
         current_page = Mock()
-        current_page.nav_title = None
         current_page.url = "/docs/page1/"
-        current_page._section = section
-        current_page.ancestors = [section]
+        current_page.relative_url = "/docs/page1/"
+        current_page.version = None
+        current_page._section = None
+        current_page._site = site
 
-        result = get_nav_tree(current_page, root_section=section)
+        # Clear the cache
+        NavTreeCache.invalidate()
 
-        assert len(result) == 2
-        assert result[0]["title"] == "Page 1"
-        assert result[0]["is_current"]
-        assert result[0]["depth"] == 0
-        assert result[1]["title"] == "Page 2"
-        assert not result[1]["is_current"]
+        result = get_nav_tree(current_page)
 
-    def test_nested_sections(self):
-        """Nested sections create hierarchical tree."""
-        # Create pages
-        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
-        page1 = Mock()
-        page1.nav_title = None
-        page1.title = "Getting Started"
-        page1.url = "/docs/getting-started/"
+        # With no sections, should return empty children list
+        assert result == []
 
-        subpage = Mock()
-        subpage.nav_title = None
-        subpage.title = "Advanced Topic"
-        subpage.url = "/docs/advanced/topic/"
+    def test_mark_active_trail_false_skips_trail_computation(self):
+        """When mark_active_trail=False, trail is not computed."""
+        from bengal.core.nav_tree import NavTreeCache
 
-        # Create subsection
-        subsection = Mock()
-        subsection.nav_title = None
-        subsection.title = "Advanced"
-        subsection.url = "/docs/advanced/"
-        subsection.index_page = None
-        subsection.regular_pages = [subpage]
-        subsection.sections = []
+        # Create mock site with empty sections
+        site = Mock()
+        site.versioning_enabled = False
+        site.sections = []
+        site.title = "Test Site"
+        site.versions = []
 
-        # Create root section
-        section = Mock()
-        section.nav_title = None
-        section.title = "Docs"
-        section.url = "/docs/"
-        section.index_page = None
-        section.regular_pages = [page1]
-        section.sections = [subsection]
-
+        # Create mock page
         current_page = Mock()
-        current_page.nav_title = None
-        current_page.url = "/docs/advanced/topic/"
-        current_page._section = subsection
-        current_page.ancestors = [subsection, section]
-
-        result = get_nav_tree(current_page, root_section=section)
-
-        assert len(result) == 2  # page1 + subsection
-        assert result[0]["title"] == "Getting Started"
-        assert result[0]["depth"] == 0
-
-        # Subsection has children
-        assert result[1]["title"] == "Advanced"
-        assert result[1]["is_section"]
-        assert result[1]["has_children"]
-        assert len(result[1]["children"]) == 1
-        assert result[1]["children"][0]["title"] == "Advanced Topic"
-        assert result[1]["children"][0]["depth"] == 1
-
-    def test_active_trail_marking(self):
-        """Active trail is marked correctly."""
-        # Create pages
-        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
-        page1 = Mock()
-        page1.nav_title = None
-        page1.title = "Page 1"
-        page1.url = "/docs/page1/"
-
-        page2 = Mock()
-        page2.nav_title = None
-        page2.title = "Page 2"
-        page2.url = "/docs/section/page2/"
-
-        subsection = Mock()
-        subsection.nav_title = None
-        subsection.title = "Section"
-        subsection.url = "/docs/section/"
-        subsection.index_page = None
-        subsection.regular_pages = [page2]
-        subsection.sections = []
-
-        section = Mock()
-        section.nav_title = None
-        section.title = "Docs"
-        section.url = "/docs/"
-        section.index_page = None
-        section.regular_pages = [page1]
-        section.sections = [subsection]
-
-        current_page = Mock()
-        current_page.nav_title = None
-        current_page.url = "/docs/section/page2/"
-        current_page._section = subsection
-        current_page.ancestors = [subsection, section]
-
-        result = get_nav_tree(current_page, root_section=section)
-
-        # page1 not in trail
-        assert not result[0]["is_in_active_trail"]
-
-        # subsection in trail
-        assert result[1]["is_in_active_trail"]
-
-        # page2 in trail and current
-        assert result[1]["children"][0]["is_in_active_trail"]
-        assert result[1]["children"][0]["is_current"]
-
-    def test_index_page_included(self):
-        """Section index page is included in tree."""
-        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
-        index_page = Mock()
-        index_page.nav_title = None
-        index_page.title = "Introduction"
-        index_page.url = "/docs/"
-
-        page1 = Mock()
-        page1.nav_title = None
-        page1.title = "Page 1"
-        page1.url = "/docs/page1/"
-
-        section = Mock()
-        section.nav_title = None
-        section.title = "Docs"
-        section.url = "/docs/"
-        section.index_page = index_page
-        section.regular_pages = [index_page, page1]  # Index page also in regular_pages
-        section.sections = []
-
-        current_page = Mock()
-        current_page.nav_title = None
         current_page.url = "/docs/page1/"
-        current_page._section = section
-        current_page.ancestors = [section]
+        current_page.relative_url = "/docs/page1/"
+        current_page.version = None
+        current_page._section = None
+        current_page._site = site
 
-        result = get_nav_tree(current_page, root_section=section)
+        # Clear the cache
+        NavTreeCache.invalidate()
 
-        # Should have 2 items: index page and page1 (not duplicated)
-        assert len(result) == 2
-        assert result[0]["title"] == "Introduction"
-        assert result[0]["url"] == "/docs/"
-        assert result[1]["title"] == "Page 1"
+        result = get_nav_tree(current_page, mark_active_trail=False)
 
-    def test_depth_tracking(self):
-        """Depth is tracked correctly for nested structures."""
-        # Create 3-level nesting
-        # Note: nav_title must be explicitly set to None so _get_nav_title falls through to title
-        page_l3 = Mock()
-        page_l3.nav_title = None
-        page_l3.title = "Deep Page"
-        page_l3.url = "/docs/l1/l2/page/"
-
-        section_l2 = Mock()
-        section_l2.nav_title = None
-        section_l2.title = "Level 2"
-        section_l2.url = "/docs/l1/l2/"
-        section_l2.index_page = None
-        section_l2.regular_pages = [page_l3]
-        section_l2.sections = []
-
-        section_l1 = Mock()
-        section_l1.nav_title = None
-        section_l1.title = "Level 1"
-        section_l1.url = "/docs/l1/"
-        section_l1.index_page = None
-        section_l1.regular_pages = []
-        section_l1.sections = [section_l2]
-
-        section_root = Mock()
-        section_root.nav_title = None
-        section_root.title = "Docs"
-        section_root.url = "/docs/"
-        section_root.index_page = None
-        section_root.regular_pages = []
-        section_root.sections = [section_l1]
-
-        current_page = Mock()
-        current_page.nav_title = None
-        current_page.url = "/docs/l1/l2/page/"
-        current_page._section = section_l2
-        current_page.ancestors = [section_l2, section_l1, section_root]
-
-        result = get_nav_tree(current_page, root_section=section_root)
-
-        # Root section
-        assert result[0]["depth"] == 0
-        # Level 1 section
-        l1 = result[0]["children"][0]
-        assert l1["depth"] == 1
-        # Level 2 section's page
-        l2_page = l1["children"][0]
-        assert l2_page["depth"] == 2
+        assert result == []

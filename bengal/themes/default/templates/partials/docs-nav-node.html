@@ -1,0 +1,89 @@
+{#
+Navigation Node Component (Recursive)
+
+Renders a single NavNodeProxy with its children.
+
+Variables:
+- item: NavNodeProxy to render (required)
+- depth: Current nesting depth for styling (required)
+- show_nav_icons: Whether to show section icons (default: true)
+
+Features:
+- Collapsible sections with toggle button
+- Simple link rendering for leaf nodes
+- Active page highlighting via item.is_current
+- Active trail via item.is_in_trail
+- Recursive rendering of children
+
+Usage:
+{% set depth = 0 %}
+{% include 'partials/docs-nav-node.html' %}
+#}
+
+{% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
+{% set item_title = item.title %}
+{% set item_icon = item.icon %}
+
+{% if item.has_children %}
+{# ===== EXPANDABLE NODE (has children) ===== #}
+<div class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
+  <div class="docs-nav-group-toggle-wrapper">
+    <button class="docs-nav-group-toggle"
+            aria-expanded="{{ 'true' if item.is_in_trail else 'false' }}"
+            aria-controls="nav-node-{{ item.id }}">
+      {{ icon('caret-right', size=14) }}
+    </button>
+
+    {% if show_nav_icons %}
+    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
+      {{ icon(item_icon or 'folder', size=16) }}
+    </span>
+    {% endif %}
+
+    {% if item.url %}
+    <a href="{{ item.url }}"
+       class="docs-nav-group-link{% if item.is_current %} active{% endif %}"
+       {% if item.is_current %}aria-current="page"{% endif %}>
+      {{ item_title }}
+    </a>
+    {% else %}
+    <span class="docs-nav-group-link">{{ item_title }}</span>
+    {% endif %}
+  </div>
+
+  <div class="docs-nav-group-items{% if item.is_in_trail %} is-expanded{% endif %}"
+       id="nav-node-{{ item.id }}">
+    {% for child in item.children %}
+      {% set item = child %}
+      {% set depth = depth + 1 %}
+      {% include 'partials/docs-nav-node.html' %}
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+{# ===== LEAF NODE (no children) ===== #}
+<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
+  {% if item.url %}
+  <a href="{{ item.url }}"
+     class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}{% if item.is_current %} active{% endif %}"
+     {% if item.is_current %}aria-current="page"{% endif %}>
+    {% if show_nav_icons and item.is_section %}
+    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% endif %}>
+      {{ icon(item_icon or 'folder', size=14) }}
+    </span>
+    {% endif %}
+    <span class="docs-nav-link-text">{{ item_title }}</span>
+  </a>
+  {% else %}
+  <span class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}">
+    {% if show_nav_icons and item.is_section %}
+    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% endif %}>
+      {{ icon(item_icon or 'folder', size=14) }}
+    </span>
+    {% endif %}
+    <span class="docs-nav-link-text">{{ item_title }}</span>
+  </span>
+  {% endif %}
+</div>
+{% endif %}
