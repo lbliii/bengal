@@ -14,6 +14,7 @@ import html as html_module
 import re
 from typing import Any
 
+from bengal.errors import format_suggestion
 from bengal.rendering.parsers.mistune.patterns import (
     EXPLICIT_ID_PATTERN,
     HEADING_PATTERN,
@@ -232,7 +233,11 @@ def extract_toc(html: str) -> str:
 
     except Exception as e:
         # On any error, return empty TOC (safe fallback)
-        logger.warning("toc_extraction_error", error=str(e), error_type=type(e).__name__)
+        suggestion = format_suggestion("parsing", "toc_extraction_error")
+        logger.warning(
+            "toc_extraction_error",
+            error=str(e),
+            error_type=type(e).__name__,
+            suggestion=suggestion,
+        )
         return ""
-
-

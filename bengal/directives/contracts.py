@@ -31,7 +31,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from bengal.utils.exceptions import BengalRenderingError
+from bengal.errors import BengalRenderingError
 
 
 @dataclass(frozen=True)

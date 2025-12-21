@@ -169,7 +169,7 @@ class SitemapGenerator:
                 # Keep sitemap resilient
                 self.logger.debug(
                     "sitemap_hreflang_processing_failed",
-                    page_url=page.relative_url if hasattr(page, "relative_url") else None,
+                    page_url=getattr(page, "_path", None),
                     error=str(e),
                     error_type=type(e).__name__,
                     action="skipping_hreflang",

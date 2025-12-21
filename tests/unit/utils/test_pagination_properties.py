@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from bengal.utils.exceptions import BengalError
+from bengal.errors import BengalError
 from bengal.utils.pagination import Paginator
 
 

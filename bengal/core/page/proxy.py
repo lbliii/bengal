@@ -60,13 +60,13 @@ class PageProxy:
        - Iterates over site.pages (now updated with fresh Pages)
        - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
          * output_path (for finding where to write .txt/.json)
-         * url, permalink (for generating index.json)
+         * href, _path, permalink (for generating index.json)
          * title, date, tags (for content in output files)
 
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
-    - **Templates**: Implements .url, .permalink, .title, etc.
+    - **Templates**: Implements .href, ._path, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
 
@@ -187,11 +187,11 @@ class PageProxy:
         """
         Get visual variant from cached metadata (Mode).
 
-        Falls back to legacy layout/hero_style fields in props if not set.
+        Falls back to layout/hero_style fields in props if not set.
         """
         if self.core.variant:
             return self.core.variant
-        # Legacy fallback via metadata
+        # Fallback via metadata
         props = self.metadata  # Triggers metadata build (but not full page)
         return props.get("layout") or props.get("hero_style")
 
@@ -416,22 +416,22 @@ class PageProxy:
         return self._full_page.translation_key if self._full_page else None
 
     @property
-    def url(self) -> str:
-        """Get the URL path for the page (lazy-loaded, cached after first access)."""
+    def href(self) -> str:
+        """Get the URL path for the page with baseurl (lazy-loaded, cached after first access)."""
         self._ensure_loaded()
-        return self._full_page.url if self._full_page else "/"
+        return self._full_page.href if self._full_page else "/"
 
     @property
-    def relative_url(self) -> str:
-        """Get the relative URL (without baseurl) for the page."""
+    def _path(self) -> str:
+        """Get the site-relative path (without baseurl) for the page."""
         self._ensure_loaded()
-        return self._full_page.relative_url if self._full_page else "/"
+        return self._full_page._path if self._full_page else "/"
 
     @property
-    def permalink(self) -> str:
-        """Get the permalink (URL with baseurl) for the page."""
+    def absolute_href(self) -> str:
+        """Fully-qualified URL for meta tags and sitemaps."""
         self._ensure_loaded()
-        return self._full_page.permalink if self._full_page else "/"
+        return self._full_page.absolute_href if self._full_page else "/"
 
     # ============================================================================
     # Computed Properties - delegate to full page (cached_properties)

@@ -5,8 +5,6 @@ Provides styled text that looks like a heading but isn't part of the
 document hierarchy or table of contents. Perfect for API documentation
 section labels like "Parameters:", "Returns:", "Raises:", etc.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
@@ -107,8 +105,3 @@ class RubricDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_rubric(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return RubricDirective().render(renderer, text, **attrs)
-
-

@@ -58,7 +58,7 @@ def phase_sections(
                     cli.error("Section validation errors:")
                     for error in section_errors:
                         cli.detail(str(error), indent=1, icon="•")
-                    from bengal.utils.exceptions import BengalContentError
+                    from bengal.errors import BengalContentError
 
                     raise BengalContentError(
                         f"Build failed: {len(section_errors)} section validation error(s)",
@@ -409,5 +409,5 @@ def phase_update_pages_list(
             if should_include:
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
 
-    # Convert back to list for rendering (preserves compatibility)
+    # Convert back to list for rendering
     return list(pages_to_build_set)

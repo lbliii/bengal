@@ -1,6 +1,6 @@
 import builtins
 
-from bengal.utils.traceback_renderer import CompactTracebackRenderer, MinimalTracebackRenderer
+from bengal.errors.traceback import CompactTracebackRenderer, MinimalTracebackRenderer
 
 
 def test_compact_renderer_importerror_hint_shown(monkeypatch, capsys):

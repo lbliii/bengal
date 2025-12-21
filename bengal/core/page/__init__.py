@@ -124,7 +124,7 @@ class Page(
     source_path: Path
 
     # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
-    # Auto-created in __post_init__ from Page fields for backward compatibility
+    # Auto-created in __post_init__ from Page fields
     core: PageCore | None = field(default=None, init=False)
 
     # Optional fields (with defaults)
@@ -185,16 +185,11 @@ class Page(
             self.aliases = self.metadata.get("aliases", [])
 
         # Auto-create PageCore from Page fields
-        # This provides backward compatibility until all instantiation updated
         self._init_core_from_fields()
 
     def _init_core_from_fields(self) -> None:
         """
-        Initialize PageCore from Page fields (backward compatibility helper).
-
-        This allows existing code that creates Page objects without passing
-        core to continue working. Once all instantiation is updated, this
-        can be removed and core made required.
+        Initialize PageCore from Page fields.
 
         Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
         should be called before caching to convert to relative paths.
@@ -204,13 +199,11 @@ class Page(
 
         standard_fields, custom_props = separate_standard_and_custom_fields(self.metadata)
 
-        # Logic to extract variant from legacy fields if needed
         # Component Model: variant (normalized from layout/hero_style)
-        variant = (
-            standard_fields.get("variant")
-            or standard_fields.get("layout")
-            or self.metadata.get("hero_style")
-        )
+        variant = standard_fields.get("variant")
+        # Normalize legacy fields to variant
+        if not variant:
+            variant = standard_fields.get("layout") or custom_props.get("hero_style")
 
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially
@@ -354,7 +347,7 @@ class Page(
         Get relative path string (alias for source_path as string).
 
         Used by templates and filtering where a string path is expected.
-        This provides backward compatibility and convenience.
+        This provides convenience.
         """
         return str(self.source_path)
 
@@ -538,9 +531,9 @@ class Page(
             self._section_path = value.path
             self._section_url = None
         else:
-            # Virtual section: use relative_url for lookup
+            # Virtual section: use _path for lookup
             self._section_path = None
-            self._section_url = value.relative_url
+            self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
 
 __all__ = ["Page", "PageProxy"]

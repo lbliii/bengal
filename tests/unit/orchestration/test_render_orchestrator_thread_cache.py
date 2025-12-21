@@ -207,5 +207,3 @@ class TestRegressionStaleTemplates:
         # Each process() call should see a new generation
         assert len(set(generations_seen)) == 3
         assert generations_seen == sorted(generations_seen)  # Monotonically increasing
-
-

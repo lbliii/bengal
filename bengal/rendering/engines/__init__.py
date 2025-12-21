@@ -22,13 +22,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalConfigError
 from bengal.rendering.engines.errors import (
     TemplateError,
     TemplateNotFoundError,
 )
 from bengal.rendering.engines.protocol import TemplateEngineProtocol
 from bengal.rendering.errors import TemplateRenderError
-from bengal.utils.exceptions import BengalConfigError
 
 if TYPE_CHECKING:
     from bengal.core import Site

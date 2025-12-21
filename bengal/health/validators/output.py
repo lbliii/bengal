@@ -1,8 +1,6 @@
 """
 Output validator - checks generated pages and assets.
 
-Migrated from Site._validate_build_health() with improvements.
-
 Provides observability stats for output validation performance tracking.
 """
 

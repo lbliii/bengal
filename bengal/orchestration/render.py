@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import get_max_workers
+from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
@@ -420,18 +421,28 @@ class RenderOrchestrator:
                 executor.submit(process_page_with_pipeline, page): page for page in pages
             }
 
+            # Track errors for aggregation
+            aggregator = ErrorAggregator(total_items=len(pages))
+            threshold = 5
+
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
                     future.result()
                 except Exception as e:
-                    logger.error(
-                        "page_rendering_error",
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        source_path=str(page.source_path),
-                    )
+                    context = extract_error_context(e, page)
+
+                    # Only log individual error if below threshold or first samples
+                    if aggregator.should_log_individual(
+                        e, context, threshold=threshold, max_samples=3
+                    ):
+                        logger.error("page_rendering_error", **context)
+
+                    aggregator.add_error(e, context=context)
+
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
 
     def _render_sequential_with_progress(
         self,
@@ -479,17 +490,27 @@ class RenderOrchestrator:
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
 
+            # Track errors for aggregation
+            aggregator = ErrorAggregator(total_items=len(pages))
+            threshold = 5
+
             for page in pages:
                 try:
                     pipeline.process_page(page)
                 except Exception as e:
-                    logger.error(
-                        "page_rendering_error",
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        source_path=str(page.source_path),
-                    )
+                    context = extract_error_context(e, page)
+
+                    # Only log individual error if below threshold or first samples
+                    if aggregator.should_log_individual(
+                        e, context, threshold=threshold, max_samples=3
+                    ):
+                        logger.error("page_rendering_error", **context)
+
+                    aggregator.add_error(e, context=context)
                 progress.update(task, advance=1)
+
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
 
     def _render_parallel_with_live_progress(
         self,
@@ -571,18 +592,28 @@ class RenderOrchestrator:
                 executor.submit(process_page_with_pipeline, page): page for page in pages
             }
 
+            # Track errors for aggregation
+            aggregator = ErrorAggregator(total_items=len(pages))
+            threshold = 5
+
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
                     future.result()
                 except Exception as e:
-                    logger.error(
-                        "page_rendering_error",
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        source_path=str(page.source_path),
-                    )
+                    context = extract_error_context(e, page)
+
+                    # Only log individual error if below threshold or first samples
+                    if aggregator.should_log_individual(
+                        e, context, threshold=threshold, max_samples=3
+                    ):
+                        logger.error("page_rendering_error", **context)
+
+                    aggregator.add_error(e, context=context)
+
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
 
             # Final update to ensure progress shows 100%
             if progress_manager:
@@ -657,15 +688,30 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
 
+                # Track errors for aggregation
+                aggregator = ErrorAggregator(total_items=len(pages))
+
                 # Wait for all to complete and update progress
+                threshold = 5
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         future.result()
                     except Exception as e:
-                        logger.error(
-                            "page_rendering_error", error=str(e), error_type=type(e).__name__
-                        )
+                        # Get page from future if possible (may not be available)
+                        page = None
+                        context = extract_error_context(e, page)
+
+                        # Only log individual error if below threshold or first samples
+                        if aggregator.should_log_individual(
+                            e, context, threshold=threshold, max_samples=3
+                        ):
+                            logger.error("page_rendering_error", **context)
+
+                        aggregator.add_error(e, context=context)
                     progress.update(task, advance=1)
+
+                # Log aggregated summary if threshold exceeded
+                aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
     def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
         """

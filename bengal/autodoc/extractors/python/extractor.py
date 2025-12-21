@@ -33,7 +33,10 @@ from bengal.autodoc.extractors.python.signature import (
     extract_arguments,
     has_yield,
 )
-from bengal.autodoc.extractors.python.skip_logic import should_skip
+from bengal.autodoc.extractors.python.skip_logic import (
+    should_skip,
+    should_skip_shadowed_module,
+)
 from bengal.autodoc.models import (
     PythonAliasMetadata,
     PythonAttributeMetadata,
@@ -154,7 +157,7 @@ class PythonExtractor(Extractor):
         elif source.is_dir():
             return self._extract_directory(source)
         else:
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError
 
             raise BengalDiscoveryError(
                 f"Source must be a file or directory: {source}",
@@ -169,6 +172,11 @@ class PythonExtractor(Extractor):
         # First pass: extract all elements
         for py_file in directory.rglob("*.py"):
             if should_skip(py_file, self.exclude_patterns):
+                continue
+
+            # Skip module files shadowed by package directories
+            # e.g., skip template_functions.py when template_functions/ exists
+            if should_skip_shadowed_module(py_file):
                 continue
 
             try:

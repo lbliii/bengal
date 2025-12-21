@@ -31,6 +31,7 @@ from typing import Any, override
 
 from mistune.renderers.html import HTMLRenderer
 
+from bengal.errors import format_suggestion
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune.ast import (
     create_ast_parser,
@@ -72,7 +73,7 @@ class MistuneParser(BaseMarkdownParser):
 
         Args:
             enable_highlighting: Enable Pygments syntax highlighting for code blocks
-                                (defaults to True for backward compatibility)
+                                (defaults to True)
 
         Parser Instances:
             This parser is typically created via thread-local caching.
@@ -141,8 +142,7 @@ class MistuneParser(BaseMarkdownParser):
         # :pull: directive) is automatically available to ALL parsing operations,
         # regardless of which internal Markdown instance is used.
         #
-        # Previously, each Markdown instance created its own renderer, requiring
-        # manual state synchronization that was error-prone and easy to forget.
+        # Shared renderer ensures consistent state across all Markdown instances.
         #
         # escape=False allows raw HTML (e.g., <br>) inside table cells and inline
         # content. This is required for GFM tables to support line breaks.
@@ -210,7 +210,13 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            logger.warning("mistune_parsing_error", error=str(e), error_type=type(e).__name__)
+            suggestion = format_suggestion("parsing", "markdown_error")
+            logger.warning(
+                "mistune_parsing_error",
+                error=str(e),
+                error_type=type(e).__name__,
+                suggestion=suggestion,
+            )
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
@@ -331,7 +337,7 @@ class MistuneParser(BaseMarkdownParser):
         site = context.get("site")
         self._shared_renderer._site = site  # type: ignore[attr-defined]
 
-        # Also store content-relative path for backward compatibility
+        # Also store content-relative path
         if current_page and hasattr(current_page, "source_path"):
             page_source = current_page.source_path
             source_str = str(page_source)

@@ -12,16 +12,16 @@ Components:
 - random_posts(count=3): Random post discovery widget
 
 Usage:
-  from 'partials/content-components.html' import content_tiles, article_card, tag_list
+from 'partials/content-components.html' import content_tiles, article_card, tag_list
 
 New recommended API:
-  content_tiles(title="In This Section", children=posts, subsections=subsections)
-  content_tiles(title="Related", related=page.related_posts[:3], variant='minimal')
-  content_tiles(children=posts, related=True, group_by='type')
+content_tiles(title="In This Section", children=posts, subsections=subsections)
+content_tiles(title="Related", related=page.related_posts[:3], variant='minimal')
+content_tiles(children=posts, related=True, group_by='type')
 
 Legacy (still works):
-  article_card(post, show_image=True)
-  tag_list(page.tags, small=True)
+article_card(post, show_image=True)
+tag_list(page.tags, small=True)
 #}
 
 {#
@@ -38,7 +38,8 @@ Example:
 {{ article_card(post, show_image=True, show_excerpt=True) }}
 #}
 {% macro article_card(article, show_excerpt=True, show_image=False) %}
-<article class="article-card gradient-border fluid-combined {% if article | has_tag('featured') %}featured-card{% endif %}">
+<article
+  class="article-card gradient-border fluid-combined {% if article | has_tag('featured') %}featured-card{% endif %}">
   {% if show_image and article.metadata.get('image') %}
   {# Responsive image with srcset - dogfooding image_srcset() #}
   <img src="{{ image_url(article.metadata.get('image'), width=800) }}"
@@ -62,7 +63,7 @@ Example:
     </div>
 
     <h2 class="article-card-title">
-      <a href="{{ article.url }}">{{ article.title }}</a>
+      <a href="{{ article.href }}">{{ article.title }}</a>
     </h2>
 
     <div class="article-card-meta">
@@ -109,38 +110,39 @@ Flexible content display with optional headers, multiple content sources,
 and variant display modes. Successor to child_page_tiles.
 
 Args:
-  title: Header for children section (string, or None to suppress)
-  children: List of child pages to display
-  subsections: List of child sections to display
-  related: Related pages (list, or True to auto-get from page.related_posts)
-  related_title: Header for related section (string, or None to suppress)
-  related_limit: Max related pages when related=True (default: 5)
-  variant: Display style - 'compact' (rows) | 'cards' | 'minimal'
-  show_descriptions: Show item descriptions (default: True)
-  show_icons: Show item icons (default: True)
-  group_by: Group items - None | 'type' (sections first, then pages, then related)
+title: Header for children section (string, or None to suppress)
+children: List of child pages to display
+subsections: List of child sections to display
+related: Related pages (list, or True to auto-get from page.related_posts)
+related_title: Header for related section (string, or None to suppress)
+related_limit: Max related pages when related=True (default: 5)
+variant: Display style - 'compact' (rows) | 'cards' | 'minimal'
+show_descriptions: Show item descriptions (default: True)
+show_icons: Show item icons (default: True)
+group_by: Group items - None | 'type' (sections first, then pages, then related)
 
 Variants:
-  - compact: Row-based list with icons (default, current style)
-  - cards: Grid of preview cards
-  - minimal: Simple link list, no descriptions
+- compact: Row-based list with icons (default, current style)
+- cards: Grid of preview cards
+- minimal: Simple link list, no descriptions
 
 Example:
-  {{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
-  {{ content_tiles(related=page.related_posts[:3], related_title="Related", variant='minimal') }}
-  {{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages", group_by='type') }}
+{{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
+{{ content_tiles(related=page.related_posts[:3], related_title="Related", variant='minimal') }}
+{{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages", group_by='type')
+}}
 #}
 {% macro content_tiles(
-  title=None,
-  children=None,
-  subsections=None,
-  related=None,
-  related_title=None,
-  related_limit=5,
-  variant='compact',
-  show_descriptions=True,
-  show_icons=True,
-  group_by=None
+title=None,
+children=None,
+subsections=None,
+related=None,
+related_title=None,
+related_limit=5,
+variant='compact',
+show_descriptions=True,
+show_icons=True,
+group_by=None
 ) %}
 {% set all_items = [] %}
 
@@ -148,15 +150,16 @@ Example:
 {% if subsections %}
 {% for subsection in subsections %}
 {% set _ = all_items.append({
-  'type': 'section',
-  'group': 'children',
-  'obj': subsection,
-  'title': subsection.title,
-  'url': subsection.url,
-  'description': subsection.metadata.get('description', '') if subsection.metadata and subsection.metadata.get('description', '') else '',
-  'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
-  'page_count': subsection.pages | length if subsection.pages else 0,
-  'icon': subsection.metadata.get('icon', '') if subsection.metadata else ''
+'type': 'section',
+'group': 'children',
+'obj': subsection,
+'title': subsection.title,
+'href': subsection.href,
+'description': subsection.metadata.get('description', '') if subsection.metadata and
+subsection.metadata.get('description', '') else '',
+'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
+'page_count': subsection.pages | length if subsection.pages else 0,
+'icon': subsection.metadata.get('icon', '') if subsection.metadata else ''
 }) %}
 {% endfor %}
 {% endif %}
@@ -165,17 +168,18 @@ Example:
 {% if children %}
 {% for post in children %}
 {# Skip the current page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
+{% if not ((page is defined and page) and (post._path == page._path)) %}
 {% set _ = all_items.append({
-  'type': 'page',
-  'group': 'children',
-  'obj': post,
-  'title': post.title,
-  'url': post.url,
-  'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else (post.content | strip_html | excerpt(120) if post.content else ''),
-  'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
-  'date': post.date if post.date else none,
-  'icon': post.metadata.get('icon', '') if post.metadata else ''
+'type': 'page',
+'group': 'children',
+'obj': post,
+'title': post.title,
+'href': post.href,
+'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
+(post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
+'date': post.date if post.date else none,
+'icon': post.metadata.get('icon', '') if post.metadata else ''
 }) %}
 {% endif %}
 {% endfor %}
@@ -184,35 +188,36 @@ Example:
 {# Add related pages (deduped - won't repeat pages from children) #}
 {% set related_pages = [] %}
 {% if related is sameas true %}
-  {# Auto-get from page.related_posts #}
-  {% if page is defined and page and page.related_posts %}
-    {% set related_pages = page.related_posts[:related_limit] %}
-  {% endif %}
+{# Auto-get from page.related_posts #}
+{% if page is defined and page and page.related_posts %}
+{% set related_pages = page.related_posts[:related_limit] %}
+{% endif %}
 {% elif related %}
-  {% set related_pages = related %}
+{% set related_pages = related %}
 {% endif %}
 
 {# Build a set of URLs already in children for O(1) lookup #}
 {% set children_urls = [] %}
 {% for item in all_items %}
-  {% set _ = children_urls.append(item.url) %}
+{% set _ = children_urls.append(item.href) %}
 {% endfor %}
 
 {% for rel_page in related_pages %}
 {# Skip current page and any pages already in children #}
-{% set is_current = (page is defined and page) and (rel_page.relative_url == page.relative_url) %}
-{% set is_duplicate = rel_page.url in children_urls %}
+{% set is_current = (page is defined and page) and (rel_page._path == page._path) %}
+{% set is_duplicate = rel_page.href in children_urls %}
 {% if not is_current and not is_duplicate %}
 {% set _ = all_items.append({
-  'type': 'related',
-  'group': 'related',
-  'obj': rel_page,
-  'title': rel_page.title,
-  'url': rel_page.url,
-  'description': rel_page.metadata.get('description', '') if rel_page.metadata and rel_page.metadata.get('description', '') else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
-  'weight': 999999,
-  'date': rel_page.date if rel_page.date else none,
-  'icon': rel_page.metadata.get('icon', '') if rel_page.metadata else ''
+'type': 'related',
+'group': 'related',
+'obj': rel_page,
+'title': rel_page.title,
+'href': rel_page.href,
+'description': rel_page.metadata.get('description', '') if rel_page.metadata and rel_page.metadata.get('description',
+'') else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
+'weight': 999999,
+'date': rel_page.date if rel_page.date else none,
+'icon': rel_page.metadata.get('icon', '') if rel_page.metadata else ''
 }) %}
 {% endif %}
 {% endfor %}
@@ -220,9 +225,9 @@ Example:
 {% if all_items %}
 {# Sort items: by group (children first), then weight, then title #}
 {% if group_by == 'type' %}
-  {% set sorted_items = all_items | sort(attribute='group,weight,title') %}
+{% set sorted_items = all_items | sort(attribute='group,weight,title') %}
 {% else %}
-  {% set sorted_items = all_items | sort(attribute='weight,title') %}
+{% set sorted_items = all_items | sort(attribute='weight,title') %}
 {% endif %}
 
 <section class="content-tiles content-tiles--{{ variant }}">
@@ -245,7 +250,7 @@ Example:
       </div>
       {% endif %}
       <h3 class="content-tile-card-title">
-        <a href="{{ item.url }}">{{ item.title }}</a>
+        <a href="{{ item.href }}">{{ item.title }}</a>
       </h3>
       {% if show_descriptions and item.description %}
       <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
@@ -268,7 +273,7 @@ Example:
   <ul class="content-tiles-minimal">
     {% for item in sorted_items %}
     <li class="{% if item.type == 'related' %}content-tile--related{% endif %}">
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.href }}">{{ item.title }}</a>
       {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% endif %}
     </li>
     {% endfor %}
@@ -281,12 +286,12 @@ Example:
     {% for item in sorted_items %}
     {# Optional group headers when group_by='type' #}
     {% if group_by == 'type' and item.group != current_group.value %}
-      {% set current_group.value = item.group %}
-      {% if item.group == 'related' and related_title %}
-      <div class="content-tiles-group-header">
-        <span class="content-tiles-group-label">{{ related_title }}</span>
-      </div>
-      {% endif %}
+    {% set current_group.value = item.group %}
+    {% if item.group == 'related' and related_title %}
+    <div class="content-tiles-group-header">
+      <span class="content-tiles-group-label">{{ related_title }}</span>
+    </div>
+    {% endif %}
     {% endif %}
     <article class="content-tile {% if item.type == 'related' %}content-tile--related{% endif %}">
       {% if show_icons %}
@@ -300,7 +305,7 @@ Example:
       {% endif %}
       <div class="content-tile-content">
         <span class="content-tile-title">
-          <a href="{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.href }}">{{ item.title }}</a>
           {% if show_descriptions and item.description %}
           <span class="content-tile-description">{{ item.description }}</span>
           {% endif %}
@@ -350,7 +355,7 @@ Example:
 'type': 'section',
 'obj': subsection,
 'title': subsection.title,
-'url': subsection.url,
+'href': subsection.href,
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
@@ -364,12 +369,12 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
+{% if not ((page is defined and page) and (post._path == page._path)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
 'title': post.title,
-'url': post.url,
+'href': post.href,
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
@@ -403,7 +408,7 @@ subsection.metadata.get('description', '') else '',
 
       <div class="child-item-content">
         <span class="child-item-title">
-          <a href="{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.href }}">{{ item.title }}</a>
 
           {% if item.description %}
           <span class="child-item-description">{{ item.description }}</span>
@@ -450,7 +455,7 @@ Usage:
 #}
 {% macro for_each_item_excluding_current(items) %}
 {%- for item in items -%}
-{%- if not (page and item.relative_url == page.relative_url) -%}
+{%- if not (page and item._path == page._path) -%}
 {{ caller(item) }}
 {%- endif -%}
 {%- endfor -%}
@@ -551,7 +556,7 @@ Example:
     {% for post in random_posts %}
     <article class="random-post-item">
       <h4>
-        <a href="{{ post.url }}">{{ post.title }}</a>
+        <a href="{{ post.href }}">{{ post.title }}</a>
       </h4>
       {% if post.date %}
       <time datetime="{{ post.date | date_iso }}">

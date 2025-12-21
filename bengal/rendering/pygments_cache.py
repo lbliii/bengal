@@ -25,11 +25,21 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Thread-safe lexer cache
+# Limited to 100 entries to prevent memory leaks (Pygments lexers are small but can accumulate)
 _lexer_cache: dict[str, Any] = {}
 _cache_lock = threading.Lock()
+_LEXER_CACHE_MAX_SIZE = 100
 
 # Stats for monitoring
 _cache_stats = {"hits": 0, "misses": 0, "guess_calls": 0}
+
+
+def _evict_lexer_cache_if_needed() -> None:
+    """Evict oldest entry from lexer cache if at max size (FIFO eviction)."""
+    if len(_lexer_cache) >= _LEXER_CACHE_MAX_SIZE:
+        # Remove first (oldest) entry
+        oldest_key = next(iter(_lexer_cache))
+        _lexer_cache.pop(oldest_key, None)
 
 
 # Known language aliases and non-highlight languages
@@ -126,6 +136,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
                 )
                 lexer = get_lexer_by_name("text")
             with _cache_lock:
+                _evict_lexer_cache_if_needed()
                 _lexer_cache[cache_key] = lexer
             # Use debug level to avoid noisy warnings for expected cases
             logger.debug("no_highlight_language", language=language, normalized=normalized)
@@ -135,6 +146,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
         if normalized in _QUIET_FALLBACK_LANGUAGES:
             lexer = get_lexer_by_name("text")
             with _cache_lock:
+                _evict_lexer_cache_if_needed()
                 _lexer_cache[cache_key] = lexer
             # Debug level - expected behavior, not an issue
             logger.debug(
@@ -149,6 +161,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
         try:
             lexer = get_lexer_by_name(normalized)
             with _cache_lock:
+                _evict_lexer_cache_if_needed()
                 _lexer_cache[cache_key] = lexer
             logger.debug(
                 "lexer_cached", language=language, normalized=normalized, cache_key=cache_key
@@ -170,6 +183,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
             # Cache the fallback too
             lexer = get_lexer_by_name("text")
             with _cache_lock:
+                _evict_lexer_cache_if_needed()
                 _lexer_cache[cache_key] = lexer
             return lexer
 
@@ -191,6 +205,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
     try:
         lexer = guess_lexer(code)
         with _cache_lock:
+            _evict_lexer_cache_if_needed()
             _lexer_cache[cache_key] = lexer
         logger.debug("lexer_guessed", guessed_language=lexer.name, cache_key=cache_key[:20])
         return lexer
@@ -198,6 +213,7 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
         logger.warning("lexer_guess_failed", error=str(e), fallback="text")
         lexer = get_lexer_by_name("text")
         with _cache_lock:
+            _evict_lexer_cache_if_needed()
             _lexer_cache[cache_key] = lexer
         return lexer
 

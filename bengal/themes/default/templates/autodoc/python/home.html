@@ -60,7 +60,7 @@ Or set `template: autodoc/python/home.html` in frontmatter
         <h2 class="docs-home-sections-title">API Reference Sections</h2>
         <div class="docs-home-sections-grid">
             {% for section in api_sections | sort(attribute='metadata.weight', reverse=false) | limit(6) %}
-            <a href="{{ section.url }}" class="docs-home-section-card gradient-border fluid-combined">
+            <a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
                 <h3 class="docs-home-section-title">{{ section.title }}</h3>
                 {% if section.metadata.get('description') %}
                 <p class="docs-home-section-description">{{ section.metadata.get('description') }}</p>
@@ -82,13 +82,13 @@ Or set `template: autodoc/python/home.html` in frontmatter
         <h2 class="docs-home-quick-links-title">Quick Links</h2>
         <div class="docs-home-quick-links-grid">
             {% for link in page.metadata.get('quick_links') %}
-            <a href="{{ link.url }}" class="docs-home-quick-link-card gradient-border">
-                {% if link.icon %}
-                <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
+            <a href="{{ link.get('href') or link.get('url') }}" class="docs-home-quick-link-card gradient-border">
+                {% if link.get('icon') %}
+                <div class="docs-home-quick-link-icon">{{ link.get('icon') }}</div>
                 {% endif %}
-                <h3>{{ link.title }}</h3>
-                {% if link.description %}
-                <p>{{ link.description }}</p>
+                <h3>{{ link.get('title') }}</h3>
+                {% if link.get('description') %}
+                <p>{{ link.get('description') }}</p>
                 {% endif %}
             </a>
             {% endfor %}

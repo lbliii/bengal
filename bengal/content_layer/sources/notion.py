@@ -71,7 +71,7 @@ class NotionSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         if "database_id" not in config:
             raise BengalConfigError(
@@ -89,7 +89,7 @@ class NotionSource(ContentSource):
         self.sorts = config.get("sorts")
 
         if not self.token:
-            from bengal.utils.exceptions import BengalConfigError
+            from bengal.errors import BengalConfigError
 
             raise BengalConfigError(
                 f"NotionSource '{name}' requires a token.\n"

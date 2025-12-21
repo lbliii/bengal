@@ -126,7 +126,7 @@ class ParsedContentCacheMixin:
         Get cached parsed content if valid (Optimization #2).
 
         Validates that:
-        1. Content file hasn't changed (via file_hashes)
+        1. Content file hasn't changed (via file_fingerprints)
         2. Metadata hasn't changed (via metadata_hash)
         3. Template hasn't changed (via template name)
         4. Parser version matches (avoid incompatibilities)

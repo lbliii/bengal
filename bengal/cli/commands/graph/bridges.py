@@ -140,7 +140,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             data["top_bridges"] = [
                 {
                     "title": page.title,
-                    "url": getattr(page, "url_path", str(page.source_path)),
+                    "url": getattr(page, "href", str(page.source_path)),
                     "betweenness": score,
                     "incoming_refs": graph_obj.incoming_refs.get(page, 0),
                 }
@@ -152,7 +152,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             data["most_accessible"] = [
                 {
                     "title": page.title,
-                    "url": getattr(page, "url_path", str(page.source_path)),
+                    "url": getattr(page, "href", str(page.source_path)),
                     "closeness": score,
                     "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
                 }

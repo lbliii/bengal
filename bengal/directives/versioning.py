@@ -11,7 +11,6 @@ Provides MyST-style directives for marking version-specific content:
     :::
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     Enhanced to align with Bengal's default theme aesthetic:
     - Luminescent left-edge glow animation
     - Palette-aware colors via CSS custom properties
@@ -26,6 +25,7 @@ from typing import Any, ClassVar
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 __all__ = ["SinceDirective", "DeprecatedDirective", "ChangedDirective"]
@@ -122,7 +122,12 @@ class SinceDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("since_directive_empty", info="Since directive has no version")
+            suggestion = format_suggestion("directive", "since_empty")
+            logger.warning(
+                "since_directive_empty",
+                info="Since directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -228,7 +233,12 @@ class DeprecatedDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("deprecated_directive_empty", info="Deprecated directive has no version")
+            suggestion = format_suggestion("directive", "deprecated_empty")
+            logger.warning(
+                "deprecated_directive_empty",
+                info="Deprecated directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -336,7 +346,12 @@ class ChangedDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("changed_directive_empty", info="Changed directive has no version")
+            suggestion = format_suggestion("directive", "changed_empty")
+            logger.warning(
+                "changed_directive_empty",
+                info="Changed directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -380,5 +395,3 @@ class ChangedDirective(BengalDirective):
         else:
             # Inline badge for simple change notice
             return badge_html
-
-

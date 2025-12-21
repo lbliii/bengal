@@ -50,7 +50,7 @@ Context variables:
         'location': author_data.location,
         'github': author_data.github,
         'post_count': post_count,
-        'url': '/authors/' ~ author_key ~ '/'
+        'href': '/authors/' ~ author_key ~ '/'
       }) %}
     {% endfor %}
   {% endif %}
@@ -70,7 +70,7 @@ Context variables:
         'location': child.metadata.get('location'),
         'github': child.metadata.get('social', {}).get('github'),
         'post_count': post_count,
-        'url': child.url
+        'href': child.href
       }) %}
     {% endif %}
   {% endfor %}
@@ -79,7 +79,7 @@ Context variables:
   <div class="authors-grid">
     {% for author in authors_list | sort(attribute='name') %}
     <article class="author-card">
-      <a href="{{ author.url }}" class="author-card-link">
+      <a href="{{ author.href }}" class="author-card-link">
         {% if author.avatar %}
         <img src="{{ author.avatar }}"
              alt="{{ author.name }}"
@@ -238,5 +238,3 @@ Context variables:
 }
 </style>
 {% endblock %}
-
-

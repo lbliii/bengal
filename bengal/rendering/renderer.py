@@ -162,7 +162,6 @@ class Renderer:
         # Build base context
         # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
         # (they're already sanitized during markdown parsing)
-        # Page objects already have _site reference and can access baseurl via permalink
         context = {
             "page": page,
             "content": Markup(content),  # Mark as safe HTML
@@ -232,7 +231,6 @@ class Renderer:
             posts = page.metadata.get("_posts", section.pages)
             subsections = page.metadata.get("_subsections", section.subsections)
 
-            # Pages and sections already have _site reference, no wrapping needed
             context.update(
                 {
                     "section": section,
@@ -259,7 +257,6 @@ class Renderer:
                 if not any(s in parent.subsections for parent in self.site.sections)
             ]
 
-            # Pages and sections already have _site reference, no wrapping needed
             context.update(
                 {
                     "section": None,  # Root has no section
@@ -290,7 +287,7 @@ class Renderer:
                 if debug_mode:
                     # Use configured traceback renderer for consistency
                     try:
-                        from bengal.utils.traceback_config import TracebackConfig
+                        from bengal.errors.traceback import TracebackConfig
 
                         TracebackConfig.from_environment().get_renderer().display_exception(e)
                     except Exception as traceback_error:
@@ -313,7 +310,7 @@ class Renderer:
             if debug_mode:
                 # Show exception using the configured renderer
                 try:
-                    from bengal.utils.traceback_config import TracebackConfig
+                    from bengal.errors.traceback import TracebackConfig
 
                     TracebackConfig.from_environment().get_renderer().display_exception(e)
                 except Exception as traceback_error:

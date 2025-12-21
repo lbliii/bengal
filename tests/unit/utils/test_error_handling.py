@@ -10,15 +10,17 @@ from pathlib import Path
 
 import pytest
 
-from bengal.utils.error_context import ErrorContext, enrich_error
-from bengal.utils.error_recovery import error_recovery_context, with_error_recovery
-from bengal.utils.exceptions import (
+from bengal.errors import (
     BengalCacheError,
     BengalConfigError,
     BengalContentError,
     BengalDiscoveryError,
     BengalError,
     BengalRenderingError,
+    ErrorContext,
+    enrich_error,
+    error_recovery_context,
+    with_error_recovery,
 )
 
 

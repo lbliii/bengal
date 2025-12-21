@@ -83,7 +83,7 @@ Context variables:
                     <div class="tutorial-card-header">
                         <span class="tutorial-icon">📁</span>
                         <h3 class="tutorial-title">
-                            <a href="{{ subsection.url }}">{{ subsection.title }}</a>
+                            <a href="{{ subsection.href }}">{{ subsection.title }}</a>
                         </h3>
                     </div>
 
@@ -99,7 +99,7 @@ Context variables:
                             {# Count only non-index pages #}
                             {# Use relative_url for comparisons (without baseurl) #}
                             {% set content_pages = subsection.regular_pages | rejectattr('relative_url', 'equalto',
-                            subsection.index_page.relative_url if subsection.index_page else '') | list %}
+                            subsection.index_page._path if subsection.index_page else '') | list %}
                             {% if content_pages %}
                             <span class="tutorial-meta-item">
                                 {{ content_pages | length }} tutorial{{ 's' if content_pages | length != 1 }}
@@ -128,7 +128,7 @@ Context variables:
                         <span class="tutorial-icon">📖</span>
                         {% endif %}
                         <h3 class="tutorial-title">
-                            <a href="{{ tutorial.url }}">{{ tutorial.title }}</a>
+                            <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
                         </h3>
                     </div>
 
@@ -169,7 +169,7 @@ Context variables:
                             {% endif %}
                         </div>
 
-                        <a href="{{ tutorial.url }}" class="tutorial-link">
+                        <a href="{{ tutorial.href }}" class="tutorial-link">
                             Start tutorial →
                         </a>
                     </div>

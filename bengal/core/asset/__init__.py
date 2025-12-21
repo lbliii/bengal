@@ -29,7 +29,7 @@ from bengal.core.asset.css_transforms import (
     transform_css_nesting,
 )
 
-# Legacy aliases for backwards compatibility (tests import these)
+# Aliases (tests import these)
 _transform_css_nesting = transform_css_nesting
 _remove_duplicate_bare_h1_rules = remove_duplicate_bare_h1_rules
 _lossless_minify_css_string = lossless_minify_css
@@ -40,10 +40,8 @@ __all__ = [
     "transform_css_nesting",
     "remove_duplicate_bare_h1_rules",
     "lossless_minify_css",
-    # Legacy aliases
+    # Aliases
     "_transform_css_nesting",
     "_remove_duplicate_bare_h1_rules",
     "_lossless_minify_css_string",
 ]
-
-

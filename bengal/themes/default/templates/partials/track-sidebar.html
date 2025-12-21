@@ -26,7 +26,7 @@ Usage:
 
           {% if track_page %}
             <li class="track-sidebar-item">
-              <a href="{{ track_page.url }}"
+              <a href="{{ track_page.href }}"
                  class="track-sidebar-link {% if id == track_id %}active{% endif %}"
                  {% if id == track_id %}aria-current="page"{% endif %}>
                 <span class="track-sidebar-link-title">{{ track.title }}</span>

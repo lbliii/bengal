@@ -45,7 +45,7 @@ Example:
       {% if item.is_current %}
       {{ item.title }}
       {% else %}
-      <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
+      <a href="{{ item.href | absolute_url }}">{{ item.title }}</a>
       {% endif %}
       </li>
       {% endfor %}
@@ -76,7 +76,7 @@ Example:
     {# Previous Button #}
     <li>
       {% if p.prev %}
-      <a href="{{ p.prev.url }}" aria-label="Previous page">
+      <a href="{{ p.prev.href }}" aria-label="Previous page">
         {{ icon('caret-left', size=20) }}
         Previous
       </a>
@@ -96,7 +96,7 @@ Example:
       {% elif item.is_current %}
       <span class="active" aria-current="page">{{ item.num }}</span>
       {% else %}
-      <a href="{{ item.url }}">{{ item.num }}</a>
+      <a href="{{ item.href }}">{{ item.num }}</a>
       {% endif %}
     </li>
     {% endfor %}
@@ -104,7 +104,7 @@ Example:
     {# Next Button #}
     <li>
       {% if p.next %}
-      <a href="{{ p.next.url }}" aria-label="Next page">
+      <a href="{{ p.next.href }}" aria-label="Next page">
         Next
         {{ icon('caret-right', size=20) }}
       </a>
@@ -151,7 +151,7 @@ Example:
   <div class="nav-links">
     {% if page.prev_in_section %}
     <div class="nav-previous">
-      <a href="{{ page.prev_in_section.url }}" rel="prev">
+      <a href="{{ page.prev_in_section.href }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev_in_section.title }}</span>
       </a>
@@ -160,7 +160,7 @@ Example:
 
     {% if page.next_in_section %}
     <div class="nav-next">
-      <a href="{{ page.next_in_section.url }}" rel="next">
+      <a href="{{ page.next_in_section.href }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next_in_section.title }}</span>
       </a>
@@ -176,7 +176,7 @@ Example:
   <div class="nav-links">
     {% if page.prev %}
     <div class="nav-previous">
-      <a href="{{ page.prev.url }}" rel="prev">
+      <a href="{{ page.prev.href }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev.title }}</span>
       </a>
@@ -185,7 +185,7 @@ Example:
 
     {% if page.next %}
     <div class="nav-next">
-      <a href="{{ page.next.url }}" rel="next">
+      <a href="{{ page.next.href }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next.title }}</span>
       </a>
@@ -241,7 +241,7 @@ Example:
       {% for subsection in page.sections %}
       <div class="subsection-card gradient-border fluid-combined">
         <h3>
-          <a href="{{ subsection.url }}">{{ subsection.title }}</a>
+          <a href="{{ subsection.href }}">{{ subsection.title }}</a>
         </h3>
         {% if subsection.metadata.get('description', '') %}
         <p>{{ subsection.metadata.get('description', '') }}</p>

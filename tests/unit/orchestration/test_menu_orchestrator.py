@@ -21,13 +21,13 @@ def test_auto_dev_menu_creation():
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
-    api_section.url = "/api/"
+    api_section.href = "/api/"
     api_section.index_page = None
 
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
     cli_section.name = "cli"
-    cli_section.url = "/cli/"
+    cli_section.href = "/cli/"
     cli_section.index_page = None
 
     site.sections = [api_section, cli_section]
@@ -50,7 +50,7 @@ def test_auto_dev_menu_creation():
 
     # Check URLs
     github_item = next(c for c in dev_item.children if c.name == "GitHub")
-    assert github_item.url == "https://github.com/example/repo"
+    assert github_item.href == "https://github.com/example/repo"
 
 
 def test_no_dev_menu_when_less_than_two_assets():
@@ -81,13 +81,13 @@ def test_dev_menu_not_injected_when_manual_menu_exists():
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
-    api_section.url = "/api/"
+    api_section.href = "/api/"
     api_section.index_page = None
 
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
     cli_section.name = "cli"
-    cli_section.url = "/cli/"
+    cli_section.href = "/cli/"
     cli_section.index_page = None
 
     site.sections = [api_section, cli_section]
@@ -124,7 +124,7 @@ def test_dev_menu_skipped_if_exists():
 
     # Should be the manual one
     assert dev_item.identifier == "dev-manual"
-    assert dev_item.url == "/manual-dev"
+    assert dev_item.href == "/manual-dev"
 
     # Should NOT have auto-added children (assuming user handles it manually)
     assert len(dev_item.children) == 0
@@ -156,7 +156,7 @@ def test_dev_menu_preserves_auto_nav():
     blog_section = MagicMock()
     blog_section.path = site.root_path / "content" / "blog"
     blog_section.name = "blog"
-    blog_section.url = "/blog/"
+    blog_section.href = "/blog/"
     blog_section.weight = 10
     blog_section.index_page = None
     blog_section.parent = None
@@ -167,7 +167,7 @@ def test_dev_menu_preserves_auto_nav():
     about_section = MagicMock()
     about_section.path = site.root_path / "content" / "about"
     about_section.name = "about"
-    about_section.url = "/about/"
+    about_section.href = "/about/"
     about_section.weight = 20
     about_section.index_page = None
     about_section.parent = None
@@ -179,7 +179,7 @@ def test_dev_menu_preserves_auto_nav():
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
-    api_section.url = "/api/"
+    api_section.href = "/api/"
     api_section.index_page = None
     api_section.parent = None
     api_section.subsections = []
@@ -188,7 +188,7 @@ def test_dev_menu_preserves_auto_nav():
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
     cli_section.name = "cli"
-    cli_section.url = "/cli/"
+    cli_section.href = "/cli/"
     cli_section.index_page = None
     cli_section.parent = None
     cli_section.subsections = []
@@ -231,8 +231,8 @@ def test_auto_menu_includes_nested_sections():
     docs_section = MagicMock()
     docs_section.path = site.root_path / "content" / "docs"
     docs_section.name = "docs"
-    docs_section.url = "/docs/"
-    docs_section.relative_url = "/docs/"
+    docs_section.href = "/docs/"
+    docs_section._path = "/docs/"
     docs_section.weight = 10
     docs_section.index_page = None
     docs_section.parent = None
@@ -244,8 +244,8 @@ def test_auto_menu_includes_nested_sections():
     guides_section = MagicMock()
     guides_section.path = site.root_path / "content" / "docs" / "guides"
     guides_section.name = "guides"
-    guides_section.url = "/docs/guides/"
-    guides_section.relative_url = "/docs/guides/"
+    guides_section.href = "/docs/guides/"
+    guides_section._path = "/docs/guides/"
     guides_section.weight = 20
     guides_section.index_page = None
     guides_section.parent = docs_section
@@ -260,8 +260,8 @@ def test_auto_menu_includes_nested_sections():
     blog_section = MagicMock()
     blog_section.path = site.root_path / "content" / "blog"
     blog_section.name = "blog"
-    blog_section.url = "/blog/"
-    blog_section.relative_url = "/blog/"
+    blog_section.href = "/blog/"
+    blog_section._path = "/blog/"
     blog_section.weight = 30
     blog_section.index_page = None
     blog_section.parent = None
@@ -286,5 +286,5 @@ def test_auto_menu_includes_nested_sections():
     docs_item = next(item for item in main_menu if item.name == "Docs")
     assert len(docs_item.children) == 1
     assert docs_item.children[0].name == "Guides"
-    assert docs_item.children[0].url == "/docs/guides/"
+    assert docs_item.children[0].href == "/docs/guides/"
     assert docs_item.children[0].parent == "docs"

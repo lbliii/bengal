@@ -70,7 +70,7 @@ class ContentDiscovery:
         self.sections: list[Section] = []
         self.pages: list[Page] = []
         self.logger = get_logger(__name__)
-        # Deprecated: do not store mutable current section on the instance; pass explicitly
+        # Do not store mutable current section on the instance; pass explicitly
         self.current_section: Section | None = None
         # Symlink loop detection: track visited (device, inode) pairs
         self._visited_inodes: set[tuple[int, int]] = set()
@@ -223,7 +223,7 @@ class ContentDiscovery:
                 if section.pages or section.subsections:
                     self.sections.append(section)
             # Resolve any pending page futures (top-level pages not in a section)
-            from bengal.utils.error_recovery import with_error_recovery
+            from bengal.errors import with_error_recovery
 
             strict_mode = self._strict_validation
 
@@ -569,7 +569,7 @@ class ContentDiscovery:
                     # should be in self.sections. Subsections are accessible via parent.subsections
 
         # Resolve parallel page futures and attach to section
-        from bengal.utils.error_recovery import with_error_recovery
+        from bengal.errors import with_error_recovery
 
         strict_mode = self._strict_validation
 
@@ -871,8 +871,7 @@ class ContentDiscovery:
 
         except yaml.YAMLError as e:
             # YAML syntax error in frontmatter - use debug to avoid noise
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorContext, enrich_error
 
             context = ErrorContext(
                 file_path=file_path,
@@ -909,8 +908,7 @@ class ContentDiscovery:
 
         except Exception as e:
             # Unexpected error - enrich with context
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorContext, enrich_error
 
             context = ErrorContext(
                 file_path=file_path,

@@ -5,12 +5,7 @@ Provides collapsible sections with markdown support including
 nested directives and code blocks.
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     Uses typed DropdownOptions and encapsulated render method.
-
-Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective
-    - RFC: plan/active/rfc-directive-system-v2.md
 """
 
 from __future__ import annotations
@@ -248,30 +243,3 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
         warn_missing_icon(icon_name, directive="dropdown", context=dropdown_title)
 
     return icon_html
-
-
-# =============================================================================
-# Backward Compatibility
-# =============================================================================
-# Legacy render_dropdown function for any code that imported it directly.
-# New code should use DropdownDirective.render() method.
-
-
-def render_dropdown(renderer: Any, text: str, **attrs: Any) -> str:
-    """
-    Legacy render function for backward compatibility.
-
-    Deprecated: Use DropdownDirective class which encapsulates rendering.
-
-    Args:
-        renderer: Mistune renderer instance
-        text: Pre-rendered children HTML
-        **attrs: Token attributes
-
-    Returns:
-        HTML string
-    """
-    # Delegate to a static instance
-    return DropdownDirective().render(renderer, text, **attrs)
-
-

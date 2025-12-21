@@ -73,7 +73,7 @@ Context variables:
                         {% if prereq is string %}
                             {% set prereq_page = doc(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
                             {% if prereq_page %}
-                                <a href="{{ prereq_page.url }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
+                                <a href="{{ prereq_page.href }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
                             {% else %}
                                 {# Fallback: if it looks like a path/slug, try ref() for link generation #}
                                 {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
@@ -176,7 +176,7 @@ Context variables:
                     <span class="tutorial-icon">📖</span>
                     {% endif %}
                     <h3 class="tutorial-title">
-                        <a href="{{ tutorial.url }}">{{ tutorial.title }}</a>
+                        <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
                     </h3>
                 </div>
                 <div class="tutorial-card-content">

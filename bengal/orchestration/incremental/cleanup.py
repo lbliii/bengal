@@ -95,9 +95,9 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
         if output_path_str in cache.output_sources:
             del cache.output_sources[output_path_str]
 
-        # Remove from file_hashes
-        if source_path_str in cache.file_hashes:
-            del cache.file_hashes[source_path_str]
+        # Remove from file_fingerprints (file_hashes is a compatibility property)
+        if source_path_str in cache.file_fingerprints:
+            del cache.file_fingerprints[source_path_str]
         if source_path_str in cache.page_tags:
             del cache.page_tags[source_path_str]
         if source_path_str in cache.parsed_content:
@@ -182,8 +182,6 @@ def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
                         error=str(e),
                     )
 
-        # Also remove from file_hashes
-        if source_file in cache.file_hashes:
-            del cache.file_hashes[source_file]
+        # Remove from file_fingerprints
         if source_file in cache.file_fingerprints:
             del cache.file_fingerprints[source_file]

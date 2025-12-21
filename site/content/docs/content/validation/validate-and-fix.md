@@ -429,5 +429,3 @@ bengal build --validate      # Pre-validate templates
 - [[docs/building/commands|Build Commands]]
 - [[docs/building/troubleshooting|Troubleshooting]]
 :::
-
-

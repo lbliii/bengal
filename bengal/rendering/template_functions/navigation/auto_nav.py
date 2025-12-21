@@ -74,8 +74,8 @@ def _build_section_menu_item(
             return None
 
     # Build nav item
-    # Use relative_url for menu items (templates apply baseurl via | absolute_url filter)
-    section_url = getattr(section, "relative_url", f"/{section.name}/")
+    # Use _path for menu items (templates apply baseurl via | absolute_url filter)
+    section_url = getattr(section, "_path", None) or f"/{section.name}/"
     section_identifier = section.name
 
     # Get section icon from Section.icon property (reads from _index.md frontmatter)
@@ -121,7 +121,7 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
         {% set auto_items = get_auto_nav() %}
         {% if auto_items %}
           {% for item in auto_items %}
-            <a href="{{ item.url }}">{{ item.name }}</a>
+            <a href="{{ item.href }}">{{ item.name }}</a>
           {% endfor %}
         {% endif %}
 
@@ -195,5 +195,3 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     nav_items.sort(key=lambda x: (x["weight"], x["name"]))
 
     return nav_items
-
-

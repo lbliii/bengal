@@ -308,9 +308,9 @@ class TestTemplateSelection:
         blog_home = self._setup_page_with_section(
             Path("/content/_index.md"), {"type": "blog"}, "root"
         )
-        # Set url to "/" to make it a home page (is_home checks url == "/")
-        # Use __dict__ since url is a read-only property
-        blog_home.__dict__["url"] = "/"
+        # Set href to "/" to make it a home page (is_home checks href == "/")
+        blog_home.__dict__["href"] = "/"
+        blog_home.__dict__["_path"] = "/"
         assert renderer._get_template_name(blog_home) == "blog/home.html"
 
     def test_track_pages_use_type_from_cascade(self):

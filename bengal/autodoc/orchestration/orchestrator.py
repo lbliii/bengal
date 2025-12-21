@@ -495,7 +495,7 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.utils.exceptions import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError
 
                     raise BengalDiscoveryError(
                         f"Python extraction failed in strict mode: {e}",
@@ -538,7 +538,7 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.utils.exceptions import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError
 
                     raise BengalDiscoveryError(
                         f"CLI extraction failed in strict mode: {e}",
@@ -584,7 +584,7 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.utils.exceptions import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError
 
                     raise BengalDiscoveryError(
                         f"OpenAPI extraction failed in strict mode: {e}",
@@ -595,7 +595,7 @@ class VirtualAutodocOrchestrator:
         if not all_elements:
             logger.info("autodoc_no_elements_found")
             if strict_mode and result.failed_extract > 0:
-                from bengal.utils.exceptions import BengalDiscoveryError
+                from bengal.errors import BengalDiscoveryError
 
                 raise BengalDiscoveryError(
                     f"Autodoc strict mode: {result.failed_extract} extraction failures, "
@@ -615,7 +615,7 @@ class VirtualAutodocOrchestrator:
 
         # Check strict mode after all processing
         if strict_mode and result.has_failures():
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError
 
             raise BengalDiscoveryError(
                 f"Autodoc strict mode: {result.failed_extract} extraction failures, "

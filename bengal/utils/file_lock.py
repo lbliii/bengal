@@ -24,7 +24,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import IO
 
-from bengal.utils.exceptions import BengalCacheError
+from bengal.errors import BengalCacheError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

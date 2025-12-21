@@ -7,31 +7,32 @@ URL NAMING CONVENTION:
 ======================
 Bengal uses explicit naming to prevent path/URL confusion across the codebase:
 
-- `site_path` / `relative_url`: Site-relative path WITHOUT baseurl
+- `_path`: Site-relative path WITHOUT baseurl (internal use only)
   Example: "/docs/getting-started/"
   Use for: Internal lookups, comparisons, active trail detection, caching
+  Note: Underscore prefix signals "internal only" to AI assistants
 
-- `url` (on Page/Section/NavNodeProxy): Public URL WITH baseurl applied
+- `href`: Public URL WITH baseurl applied (for templates)
   Example: "/bengal/docs/getting-started/" (when baseurl="/bengal")
   Use for: Template href attributes, external links
 
 TEMPLATE USAGE:
 ---------------
-In templates, always use .url for href attributes:
+In templates, always use .href for href attributes:
 
-    <a href="{{ page.url }}">{{ page.title }}</a>          {# Correct #}
-    <a href="{{ item.url }}">{{ item.title }}</a>          {# Correct #}
+    <a href="{{ page.href }}">{{ page.title }}</a>          {# Correct #}
+    <a href="{{ item.href }}">{{ item.title }}</a>          {# Correct #}
 
-The .url property automatically includes baseurl when configured.
+The .href property automatically includes baseurl when configured.
 
 HELPER FUNCTIONS:
 -----------------
-- url_for(page, site): Get public URL for any page-like object
+- href_for(obj, site): Get public URL for any page-like object (preferred)
 - with_baseurl(path, site): Apply baseurl to a site-relative path
 
 Related Modules:
-    - bengal.core.nav_tree: NavNodeProxy applies baseurl via .url property
-    - bengal.core.page: Page.url includes baseurl, Page.site_path does not
+    - bengal.core.nav_tree: NavNodeProxy provides .href (with baseurl) and ._path (without)
+    - bengal.core.page: Page.href includes baseurl, Page._path does not
     - bengal.core.section: Same pattern as Page
 """
 
@@ -50,100 +51,30 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
+def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
-    Generate public URL for a page with baseurl applied.
+    Get href for any object. Prefer obj.href directly.
 
     This is the recommended way to get URLs in template functions and filters.
     The returned URL includes baseurl and is ready for use in href attributes.
 
     Args:
-        page: Page object, PageProxy, NavNode, or dict-like object with url/slug
+        obj: Page, Section, Asset, NavNodeProxy, or dict-like object with href/_path
 
     Returns:
         Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
 
     Example:
         # In template function
-        return url_for(related_page, site)  # Returns "/bengal/docs/related/"
+        return href_for(related_page, site)  # Returns "/bengal/docs/related/"
 
     Note:
-        For Page objects, you can also use page.url directly, which already
+        For Page/Section/Asset objects, prefer obj.href directly, which already
         includes baseurl. This function is useful for handling various
         page-like objects consistently.
     """
-    url = None
-
-    # Use the page's relative_url property (doesn't include baseurl)
-    try:
-        if hasattr(page, "relative_url"):
-            url = page.relative_url
-    except Exception as e:
-        logger.debug(
-            "url_for_relative_url_access_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="trying_url_fallback",
-        )
-        pass
-
-    # Fallback to page.url if relative_url not available
-    if url is None:
-        try:
-            if hasattr(page, "url"):
-                url = page.url
-                # If url already includes baseurl, extract relative part
-                baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
-                if baseurl and url.startswith(baseurl):
-                    url = url[len(baseurl) :] or "/"
-        except Exception as e:
-            logger.debug(
-                "url_for_url_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="trying_dict_fallback",
-            )
-            pass
-
-    # Support dict-like contexts (component preview/demo data)
-    if url is None:
-        try:
-            if isinstance(page, Mapping):
-                if "url" in page:
-                    url = str(page["url"])
-                elif "relative_url" in page:
-                    url = str(page["relative_url"])
-                elif "slug" in page:
-                    url = f"/{page['slug']}/"
-        except Exception as e:
-            logger.debug(
-                "url_for_dict_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="trying_slug_fallback",
-            )
-            pass
-
-    # Fallback to slug-based URL for objects
-    if url is None:
-        try:
-            if hasattr(page, "slug"):
-                url = f"/{page.slug}/"
-        except Exception as e:
-            logger.debug(
-                "url_for_slug_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_root_fallback",
-            )
-            if url is None:
-                url = "/"
-
-    # Ensure url is never None (type narrowing)
-    if url is None:
-        url = "/"
-
-    return with_baseurl(url, site)
+    # Use href property
+    return obj.href
 
 
 def with_baseurl(path: str, site: Site) -> str:
@@ -177,6 +108,9 @@ def with_baseurl(path: str, site: Site) -> str:
     # Get baseurl from config
     try:
         baseurl_value = (site.config.get("baseurl", "") or "").rstrip("/")
+        # Treat "/" as empty (root-relative)
+        if baseurl_value == "/":
+            baseurl_value = ""
     except Exception as e:
         logger.debug(
             "with_baseurl_config_access_failed",

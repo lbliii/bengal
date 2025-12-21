@@ -128,7 +128,7 @@ class CollectionConfig[T]:
             self.directory = Path(self.directory)
 
         # Validate: must have either directory or loader
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         if self.directory is None and self.loader is None:
             raise BengalConfigError(

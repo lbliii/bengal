@@ -296,5 +296,3 @@ def get_theme_package(slug: str) -> ThemePackage | None:
 
 def clear_theme_cache() -> None:
     get_installed_themes.cache_clear()
-
-

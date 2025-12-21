@@ -108,11 +108,11 @@ paths:
         # With /api/python/ and /api/rest/, we should return a single /api/ root section that
         # aggregates both children.
         assert [s.name for s in sections] == ["api"]
-        assert [s.relative_url for s in sections] == ["/api/"]
+        assert [s._path for s in sections] == ["/api/"]
 
         root = sections[0]
         child_names = [s.name for s in root.subsections]
-        child_urls = [s.relative_url for s in root.subsections]
+        child_urls = [s._path for s in root.subsections]
 
         assert "python" in child_names
         assert "rest" in child_names
@@ -170,7 +170,7 @@ paths:
             pages, sections, result = orchestrator.generate()
 
         # Check page URLs
-        page_urls = {p.url for p in pages}
+        page_urls = {p.href for p in pages}
 
         # Root command group is NOT a separate page - the section index represents it
         # (see page_builders.py: "Skip root command-groups - the section index page represents them")
@@ -189,7 +189,7 @@ paths:
 
         # Verify the CLI section exists (represents the root command group)
         # sections is a list of Section objects
-        section_urls = {s.url for s in sections}
+        section_urls = {s.href for s in sections}
         assert "/cli/" in section_urls, "CLI section should exist at /cli/"
 
 
@@ -252,7 +252,7 @@ class TestBackwardsCompatibility:
             pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
-        assert any(s.relative_url == "/api/" for s in sections)
+        assert any(s._path == "/api/" for s in sections)
 
     def test_openapi_only_with_api_prefix(self, mock_site, tmp_path):
         """Test OpenAPI-only config with explicit 'api' prefix works unchanged."""
@@ -306,7 +306,7 @@ paths: {}
             pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
-        assert any(s.relative_url == "/api/" for s in sections)
+        assert any(s._path == "/api/" for s in sections)
 
     def test_default_prefixes_when_not_specified(self, mock_site, tmp_path):
         """Test that default prefixes are used when not explicitly configured."""

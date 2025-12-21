@@ -23,25 +23,25 @@ def mock_site():
 
     # Create mock pages with URLs
     page1 = MagicMock()
-    page1.url = "/docs/"
+    page1.href = "/docs/"
     page1.permalink = None
     page1.source_path = Path("content/docs/_index.md")
     page1.links = []
 
     page2 = MagicMock()
-    page2.url = "/docs/getting-started/"
+    page2.href = "/docs/getting-started/"
     page2.permalink = None
     page2.source_path = Path("content/docs/getting-started.md")
     page2.links = []
 
     page3 = MagicMock()
-    page3.url = "/blog/"
+    page3.href = "/blog/"
     page3.permalink = None
     page3.source_path = Path("content/blog/_index.md")
     page3.links = []
 
     page4 = MagicMock()
-    page4.url = "/about/"
+    page4.href = "/about/"
     page4.permalink = "/about/"
     page4.source_path = Path("content/about.md")
     page4.links = []
@@ -77,7 +77,7 @@ class TestExternalLinkSkipping:
     def test_http_links_are_valid(self, validator):
         """Test that HTTP links are always valid (skipped)."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("http://example.com", page) is True
         assert "http://example.com" in validator.validated_urls
@@ -85,28 +85,28 @@ class TestExternalLinkSkipping:
     def test_https_links_are_valid(self, validator):
         """Test that HTTPS links are always valid (skipped)."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("https://example.com/path", page) is True
 
     def test_mailto_links_are_valid(self, validator):
         """Test that mailto links are always valid (skipped)."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("mailto:user@example.com", page) is True
 
     def test_tel_links_are_valid(self, validator):
         """Test that tel links are always valid (skipped)."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("tel:+1234567890", page) is True
 
     def test_data_urls_are_valid(self, validator):
         """Test that data URLs are always valid (skipped)."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("data:image/png;base64,abc", page) is True
 
@@ -117,7 +117,7 @@ class TestFragmentLinks:
     def test_fragment_only_links_are_valid(self, validator):
         """Test that fragment-only links are always valid."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         assert validator._is_valid_link("#section-name", page) is True
         assert validator._is_valid_link("#", page) is True
@@ -129,7 +129,7 @@ class TestInternalLinkValidation:
     def test_valid_absolute_link(self, validator, mock_site):
         """Test that absolute links to existing pages are valid."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         # Initialize the page URL index
         validator._page_urls = validator._build_page_url_index(mock_site)
@@ -139,7 +139,7 @@ class TestInternalLinkValidation:
     def test_valid_relative_link(self, validator, mock_site):
         """Test that relative links to existing pages are valid."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         validator._page_urls = validator._build_page_url_index(mock_site)
 
@@ -148,7 +148,7 @@ class TestInternalLinkValidation:
     def test_invalid_link_to_missing_page(self, validator, mock_site):
         """Test that links to missing pages are invalid."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         validator._page_urls = validator._build_page_url_index(mock_site)
 
@@ -157,7 +157,7 @@ class TestInternalLinkValidation:
     def test_trailing_slash_normalization(self, validator, mock_site):
         """Test that links work with or without trailing slashes."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         validator._page_urls = validator._build_page_url_index(mock_site)
 
@@ -168,7 +168,7 @@ class TestInternalLinkValidation:
     def test_link_with_fragment(self, validator, mock_site):
         """Test that links with fragments resolve to the base page."""
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         validator._page_urls = validator._build_page_url_index(mock_site)
 
@@ -195,7 +195,7 @@ class TestPageUrlIndex:
         """Test that the index includes permalinks."""
         site = MagicMock()
         page = MagicMock()
-        page.url = "/blog/post/"
+        page.href = "/blog/post/"
         page.permalink = "/custom-url/"
         site.pages = [page]
 
@@ -252,7 +252,7 @@ class TestGracefulDegradation:
         """Test that without URL index, all links pass."""
         validator = LinkValidator()  # No site
         page = MagicMock()
-        page.url = "/docs/"
+        page.href = "/docs/"
 
         # Should pass because no index to validate against
         assert validator._is_valid_link("/anything/", page) is True
@@ -261,7 +261,7 @@ class TestGracefulDegradation:
         """Test that pages without URLs don't cause errors."""
         validator = LinkValidator(site=mock_site)
         page = MagicMock()
-        page.url = None  # No URL
+        page.href = None  # No URL
 
         # Should pass because can't resolve
         assert validator._is_valid_link("/anything/", page) is True

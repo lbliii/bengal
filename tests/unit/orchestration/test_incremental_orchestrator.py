@@ -10,8 +10,8 @@ import pytest
 
 from bengal.cache import BuildCache
 from bengal.core.page import Page
+from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.utils.exceptions import BengalError
 from bengal.utils.hashing import hash_str
 
 
@@ -108,7 +108,7 @@ class TestIncrementalOrchestrator:
         orchestrator.cache = Mock(spec=BuildCache)
         # validate_config returns False when config has changed (cache invalidated)
         orchestrator.cache.validate_config.return_value = False
-        orchestrator.cache.file_hashes = {}  # Add file_hashes attribute
+        orchestrator.cache.file_fingerprints = {}  # Use file_fingerprints
 
         # Create a temporary config file
         config_file = tmp_path / "bengal.toml"

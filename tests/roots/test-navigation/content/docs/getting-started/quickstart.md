@@ -13,5 +13,3 @@ Follow these steps to get started:
 3. Build and preview
 
 This is a deeply nested page (level 3) for testing breadcrumb navigation.
-
-

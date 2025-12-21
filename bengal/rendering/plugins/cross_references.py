@@ -189,7 +189,7 @@ class CrossReferencePlugin:
                 f'title="Page not found: {path}">[{text or path}]</span>'
             )
 
-        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        url = page.href
         full_url = f"{url}{anchor_fragment}"
 
         logger.debug(
@@ -226,7 +226,7 @@ class CrossReferencePlugin:
         logger.debug("xref_resolved", ref=f"id:{ref_id}", type="id", target=page.title)
 
         link_text = text or page.title
-        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        url = page.href
         return f'<a href="{url}">{link_text}</a>'
 
     def _resolve_target(self, anchor_id: str, text: str | None = None) -> str:
@@ -258,24 +258,19 @@ class CrossReferencePlugin:
                 f'title="Target directive not found: {anchor_id}">[{text or anchor_id}]</span>'
             )
 
-        # Handle both old format (tuple) and new format (list of tuples)
-        if isinstance(anchor_entries, tuple):
-            # Legacy format: (page, anchor_id) - no version info
-            page, anchor_id_resolved = anchor_entries
-        else:
-            # New format: [(page, anchor_id, version_id), ...]
-            # Prefer same-version anchor, fall back to first available
-            same_version_entry = None
-            for entry in anchor_entries:
-                if len(entry) >= 3 and entry[2] == self.current_version:
-                    same_version_entry = entry
-                    break
+        # Handle list of tuples format: [(page, anchor_id, version_id), ...]
+        # Prefer same-version anchor, fall back to first available
+        same_version_entry = None
+        for entry in anchor_entries:
+            if len(entry) >= 3 and entry[2] == self.current_version:
+                same_version_entry = entry
+                break
 
-            if same_version_entry:
-                page, anchor_id_resolved, _ = same_version_entry
-            else:
-                # Fall back to first entry (any version)
-                page, anchor_id_resolved, _ = anchor_entries[0]
+        if same_version_entry:
+            page, anchor_id_resolved, _ = same_version_entry
+        else:
+            # Fall back to first entry (any version)
+            page, anchor_id_resolved, _ = anchor_entries[0]
 
         logger.debug(
             "xref_resolved",
@@ -288,7 +283,7 @@ class CrossReferencePlugin:
             else None,
         )
         link_text = text or anchor_id.replace("-", " ").title()
-        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        url = page.href
         return f'<a href="{url}#{anchor_id_resolved}">{link_text}</a>'
 
     def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
@@ -311,24 +306,19 @@ class CrossReferencePlugin:
         # This includes both heading anchors and target directives
         anchor_entries = self.xref_index.get("by_anchor", {}).get(anchor_key)
         if anchor_entries:
-            # Handle both old format (tuple) and new format (list of tuples)
-            if isinstance(anchor_entries, tuple):
-                # Legacy format: (page, anchor_id) - no version info
-                page, anchor_id = anchor_entries
-            else:
-                # New format: [(page, anchor_id, version_id), ...]
-                # Prefer same-version anchor, fall back to first available
-                same_version_entry = None
-                for entry in anchor_entries:
-                    if len(entry) >= 3 and entry[2] == self.current_version:
-                        same_version_entry = entry
-                        break
+            # Handle list of tuples format: [(page, anchor_id, version_id), ...]
+            # Prefer same-version anchor, fall back to first available
+            same_version_entry = None
+            for entry in anchor_entries:
+                if len(entry) >= 3 and entry[2] == self.current_version:
+                    same_version_entry = entry
+                    break
 
-                if same_version_entry:
-                    page, anchor_id, _ = same_version_entry
-                else:
-                    # Fall back to first entry (any version)
-                    page, anchor_id, _ = anchor_entries[0]
+            if same_version_entry:
+                page, anchor_id, _ = same_version_entry
+            else:
+                # Fall back to first entry (any version)
+                page, anchor_id, _ = anchor_entries[0]
 
             logger.debug(
                 "xref_resolved",
@@ -342,7 +332,7 @@ class CrossReferencePlugin:
                 else None,
             )
             link_text = text or anchor_key.replace("-", " ").title()
-            url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+            url = page.href
             return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
         # Fall back to heading text lookup
@@ -374,7 +364,7 @@ class CrossReferencePlugin:
         )
 
         link_text = text or anchor.lstrip("#").replace("-", " ").title()
-        url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        url = page.href
         return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
     def _resolve_version_link(self, ref: str, text: str | None = None) -> str:

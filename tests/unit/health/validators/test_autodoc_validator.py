@@ -253,5 +253,3 @@ class TestAutodocValidatorDisabled:
         results = autodoc_validator.validate(site)
 
         assert results == []
-
-

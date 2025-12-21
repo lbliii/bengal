@@ -590,7 +590,7 @@ class ContentMigrator(DebugTool):
 
         orphans = []
         for page in self.site.pages:
-            url = getattr(page, "url", "")
+            url = getattr(page, "href", "")
             if url and incoming_links.get(url, 0) == 0 and not self._is_in_navigation(page):
                 orphans.append(str(getattr(page, "source_path", "")))
 
@@ -631,7 +631,7 @@ class ContentMigrator(DebugTool):
     def _is_in_navigation(self, page: Any) -> bool:
         """Check if page is in site navigation."""
         # Simplified check - would integrate with menu system
-        url = getattr(page, "url", "")
+        url = getattr(page, "href", "")
         return url in ("/", "/index.html") or "index" in str(getattr(page, "source_path", ""))
 
     def _path_to_url(self, path: str) -> str:

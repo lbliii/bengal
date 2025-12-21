@@ -141,7 +141,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                 {
                     "rank": i + 1,
                     "title": page.title,
-                    "url": getattr(page, "url_path", page.source_path),
+                    "url": getattr(page, "href", str(page.source_path)),
                     "score": score,
                     "incoming_refs": graph_obj.incoming_refs.get(page, 0),
                     "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),

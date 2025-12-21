@@ -4,7 +4,7 @@ Tests for page URL generation in sections.
 This test specifically covers the bug where pages in sections would have incorrect URLs
 when accessed via section.pages before they were individually rendered.
 
-Bug: Pages had output_path set lazily during rendering, causing page.url to fall back
+Bug: Pages had output_path set lazily during rendering, causing page.href to fall back
 to slug-based URLs without section prefix when accessed from navigation templates.
 
 Fix: Pre-set output_path for all pages before rendering starts.
@@ -29,7 +29,7 @@ class TestPageURLsInSections:
 
         # Without output_path or site reference, should use slug
         # This is the fallback behavior
-        assert page.url == "/getting-started/"
+        assert page.href == "/getting-started/"
 
     def test_page_url_in_section_with_output_path(self):
         """Test page URL uses output_path when set."""
@@ -44,7 +44,7 @@ class TestPageURLsInSections:
         page._site = site
 
         # Should correctly compute URL from output_path
-        assert page.url == "/docs/getting-started/"
+        assert page.href == "/docs/getting-started/"
 
     def test_all_pages_in_section_have_correct_urls(self):
         """
@@ -85,13 +85,13 @@ class TestPageURLsInSections:
             section.add_page(page)
 
         # All pages should have correct URLs with section prefix
-        assert pages[0].url == "/docs/intro/"
-        assert pages[1].url == "/docs/guide/"
-        assert pages[2].url == "/docs/api/"
+        assert pages[0].href == "/docs/intro/"
+        assert pages[1].href == "/docs/guide/"
+        assert pages[2].href == "/docs/api/"
 
         # Accessing pages via section.pages should also work
         for page in section.pages:
-            assert page.url.startswith("/docs/")
+            assert page.href.startswith("/docs/")
 
     def test_nested_section_page_urls(self):
         """Test page URLs in nested sections."""
@@ -114,7 +114,7 @@ class TestPageURLsInSections:
         child.add_page(page)
 
         # Should include full path from nested sections
-        assert page.url == "/api/v2/users/"
+        assert page.href == "/api/v2/users/"
 
     def test_section_index_page_url(self):
         """Test that section index pages (_index.md) have correct URLs."""
@@ -133,9 +133,9 @@ class TestPageURLsInSections:
         section.add_page(index_page)
 
         # Index page should have section URL
-        assert index_page.url == "/docs/"
+        assert index_page.href == "/docs/"
         # Section should use index page's URL
-        assert section.url == "/docs/"
+        assert section.href == "/docs/"
 
 
 class TestPageURLGenerationDuringRendering:
@@ -154,7 +154,7 @@ class TestPageURLGenerationDuringRendering:
         )
         page._site = site
 
-        assert page.url == "/blog/post/"
+        assert page.href == "/blog/post/"
 
         # Test index pages
         index_page = Page(
@@ -164,14 +164,14 @@ class TestPageURLGenerationDuringRendering:
         )
         index_page._site = site
 
-        assert index_page.url == "/blog/"
+        assert index_page.href == "/blog/"
 
     def test_url_without_output_path_falls_back(self):
         """Test URL generation falls back to slug when no output_path."""
         page = Page(source_path=Path("/content/docs/guide.md"), metadata={"title": "Guide"})
 
         # Should fall back to slug-based URL
-        fallback_url = page.url
+        fallback_url = page.href
         assert fallback_url == "/guide/"
 
         # This fallback is intentional but not ideal for sections
@@ -212,7 +212,7 @@ class TestNavigationLinkGeneration:
         nav_links = []
         for p in section.regular_pages:
             # This is what url_for(p) does
-            url = p.url
+            url = p.href
             nav_links.append({"title": p.title, "url": url})
 
         # All links should have correct section prefix
@@ -240,7 +240,7 @@ class TestEdgeCases:
         )
         page._site = site
 
-        assert page.url == "/about/"
+        assert page.href == "/about/"
 
     def test_home_page_url(self):
         """Test home page (index.md at root) URL."""
@@ -254,7 +254,7 @@ class TestEdgeCases:
         )
         page._site = site
 
-        assert page.url == "/"
+        assert page.href == "/"
 
     def test_deeply_nested_page_url(self):
         """Test pages in deeply nested sections."""
@@ -268,4 +268,4 @@ class TestEdgeCases:
         )
         page._site = site
 
-        assert page.url == "/docs/guides/advanced/optimization/"
+        assert page.href == "/docs/guides/advanced/optimization/"

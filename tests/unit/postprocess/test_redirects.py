@@ -304,5 +304,3 @@ def test_page_proxy_exposes_aliases():
     )
 
     assert proxy.aliases == ["/old/path/"]
-
-

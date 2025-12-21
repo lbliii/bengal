@@ -263,7 +263,7 @@ class NodePipeline:
         logger.debug("pipeline_exec", cmd=" ".join(cmd))
         proc = subprocess.run(cmd, check=False, cwd=str(cwd), capture_output=True, text=True)
         if proc.returncode != 0:
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             error_msg = proc.stderr.strip() or proc.stdout.strip()
             raise BengalError(

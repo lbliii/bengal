@@ -1,10 +1,9 @@
 """
 Result dataclasses for build orchestration phases.
 
-Replaces complex tuple return values with typed dataclasses for better
-type safety, readability, and IDE support.
+Provides typed dataclasses for better type safety, readability, and IDE support.
 
-All dataclasses support backward compatibility:
+All dataclasses support convenient access patterns:
 - Tuple unpacking via __iter__() methods
 - Dict-like access for ChangeSummary (to_dict(), items(), get(), __getitem__())
 
@@ -41,7 +40,7 @@ class ConfigCheckResult:
     config_changed: bool
 
     def __iter__(self) -> tuple[bool, bool]:
-        """Allow tuple unpacking for backward compatibility."""
+        """Allow tuple unpacking."""
         return (self.incremental, self.config_changed)
 
 
@@ -70,7 +69,7 @@ class FilterResult:
     def __iter__(
         self,
     ) -> tuple[list[Page], list[Asset], set[str], set[Path], set[str] | None]:
-        """Allow tuple unpacking for backward compatibility."""
+        """Allow tuple unpacking."""
         return (
             self.pages_to_build,
             self.assets_to_process,
@@ -104,7 +103,7 @@ class ChangeSummary:
 
     def to_dict(self) -> dict[str, list[Any]]:
         """
-        Convert to dict format for backward compatibility with existing code.
+        Convert to dict format.
 
         Returns dict with string keys matching the original format.
         """
@@ -122,16 +121,16 @@ class ChangeSummary:
         return result
 
     def items(self) -> ItemsView[str, list[Any]]:
-        """Allow dict-like iteration for backward compatibility."""
+        """Allow dict-like iteration."""
         return self.to_dict().items()
 
     def get(self, key: str, default: list[Any] | None = None) -> list[Any]:
-        """Allow dict-like get() for backward compatibility."""
+        """Allow dict-like get()."""
         result = self.to_dict().get(key, default)
         return result if result is not None else []
 
     def __getitem__(self, key: str) -> list[Any]:
-        """Allow dict-like indexing for backward compatibility."""
+        """Allow dict-like indexing."""
         result = self.to_dict()
         if key not in result:
             # Return empty list for missing keys to match original dict behavior
@@ -139,5 +138,5 @@ class ChangeSummary:
         return result[key]
 
     def __contains__(self, key: str) -> bool:
-        """Allow 'in' operator for backward compatibility."""
+        """Allow 'in' operator."""
         return key in self.to_dict()

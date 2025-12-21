@@ -808,11 +808,72 @@ class RenderingPipeline:
     def _normalize_autodoc_element(self, element: Any) -> Any:
         """
         Ensure autodoc element metadata supports both dotted and mapping access.
+        Also adds href property to elements and their children for URL access.
         """
         import contextlib
 
         if element is None:
             return None
+
+        # Determine doc_type from page metadata or template name
+        doc_type = None
+        autodoc_config = {}
+        if hasattr(self, "site") and self.site and hasattr(self.site, "config"):
+            config = self.site.config
+            if isinstance(config, dict):
+                autodoc_config = config.get("autodoc", {})
+                if "python" in autodoc_config:
+                    doc_type = "python"
+                elif "cli" in autodoc_config:
+                    doc_type = "cli"
+                elif "openapi" in autodoc_config:
+                    doc_type = "openapi"
+
+        def _compute_element_url(elem: Any, elem_type: str | None = None) -> str:
+            """Compute URL for an element based on its qualified_name and type."""
+            if not hasattr(elem, "qualified_name"):
+                return "#"
+            
+            qualified_name = elem.qualified_name
+            element_type = elem_type or getattr(elem, "element_type", None)
+            
+            # Get prefixes from config with safe defaults
+            if doc_type == "python":
+                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+                url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
+                return f"/{url_path}/"
+            elif doc_type == "cli":
+                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+                from bengal.autodoc.utils import resolve_cli_url_path
+                cli_path = resolve_cli_url_path(qualified_name)
+                url_path = f"{prefix}/{cli_path}" if cli_path else prefix
+                return f"/{url_path}/"
+            elif doc_type == "openapi":
+                prefix = autodoc_config.get("openapi", {}).get("output_prefix", "api")
+                if element_type == "openapi_endpoint":
+                    from bengal.autodoc.utils import get_openapi_method, get_openapi_path
+                    method = get_openapi_method(elem).lower()
+                    path = get_openapi_path(elem).strip("/").replace("/", "-")
+                    return f"/{prefix}/endpoints/{method}-{path}/"
+                elif element_type == "openapi_schema":
+                    return f"/{prefix}/schemas/{elem.name}/"
+                else:
+                    return f"/{prefix}/overview/"
+            
+            # Fallback: infer from element_type
+            if element_type in ["command", "command-group"]:
+                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+                from bengal.autodoc.utils import resolve_cli_url_path
+                cli_path = resolve_cli_url_path(qualified_name)
+                url_path = f"{prefix}/{cli_path}" if cli_path else prefix
+                return f"/{url_path}/"
+            elif element_type in ["class", "function", "method", "module"]:
+                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+                url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
+                return f"/{url_path}/"
+            
+            # Ultimate fallback
+            return "#"
 
         def _wrap_metadata(meta: Any) -> Any:
             if isinstance(meta, dict):
@@ -862,6 +923,19 @@ class RenderingPipeline:
                             else:
                                 normalized_props[k] = _MetadataView({})
                         meta["properties"] = normalized_props
+            # Add href property for URL access in templates
+            if not hasattr(obj, "href"):
+                try:
+                    href = _compute_element_url(obj, getattr(obj, "element_type", None))
+                    obj.href = href
+                except Exception:
+                    # If URL computation fails, set to None (template will use fallback)
+                    try:
+                        obj.href = None
+                    except (AttributeError, TypeError):
+                        # Can't set attribute, skip
+                        pass
+            
             # Recursively coerce children if they exist and are iterable
             children = getattr(obj, "children", None)
             if children and isinstance(children, (list, tuple)):

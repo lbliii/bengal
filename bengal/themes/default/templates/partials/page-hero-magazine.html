@@ -17,7 +17,7 @@ Usage: Included via page-hero.html dispatcher
 
 {# Macro: Get page URL with fallback chain for robustness #}
 {% macro get_page_url(page) -%}
-    {{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+    {{ page._path if page._path is defined else (page.href if page.href is defined else '/') }}
 {%- endmacro %}
 
 {% if page %}
@@ -32,7 +32,7 @@ Usage: Included via page-hero.html dispatcher
         {# Skip the last item (current page) - it's the H1 #}
         {% for item in breadcrumb_items[:-1] %}
         <li>
-          <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+          <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
         </li>
         {% endfor %}
       </ol>

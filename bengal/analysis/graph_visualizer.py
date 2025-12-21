@@ -174,12 +174,12 @@ class GraphVisualizer:
             elif page.metadata.get("type") == "category-index":
                 page_url = "/categories/"
 
-            # Try page.url property if we don't have a taxonomy URL
-            # NOTE: page.url already includes baseurl, so we DON'T add it again
+            # Try page.href property if we don't have a taxonomy URL
+            # NOTE: page.href already includes baseurl, so we DON'T add it again
             if not page_url:
                 try:
-                    # page.url returns URL with baseurl already applied
-                    page_url = page.url
+                    # page.href returns URL with baseurl already applied
+                    page_url = page.href
                 except (AttributeError, Exception) as e:
                     # Fallback: try to compute from output_path if available
                     logger.debug(

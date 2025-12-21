@@ -322,7 +322,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_dunder_class(self):
         """Test that __class__ access is blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
@@ -333,7 +333,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_dunder_init(self):
         """Test that __init__ access is blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
@@ -344,7 +344,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_dunder_globals(self):
         """Test that __globals__ access is blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         context = {"config": {"key": "value"}}
         plugin = VariableSubstitutionPlugin(context)
@@ -354,7 +354,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_dunder_bases(self):
         """Test that __bases__ access is blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
@@ -365,7 +365,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_single_underscore_private(self):
         """Test that _private attributes are blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         page = type("Page", (), {"title": "Test", "_secret": "hidden"})
         context = {"page": page}
@@ -376,7 +376,7 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_nested_dunder_access(self):
         """Test that nested dunder access is blocked."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         page = type("Page", (), {"metadata": {"key": "value"}})
         context = {"page": page}

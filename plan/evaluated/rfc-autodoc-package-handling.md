@@ -448,10 +448,10 @@ def test_real_shadowing_case_template_functions():
 
 ## Implementation Checklist
 
-- [ ] **Phase 1**: Skip shadowed modules in extractor
-  - [ ] Add `_should_skip_shadowed_module()` check
-  - [ ] Add warning log for visibility
-  - [ ] Add unit test
+- [x] **Phase 1**: Skip shadowed modules in extractor ✅ (2024-12-21)
+  - [x] Add `should_skip_shadowed_module()` check in `skip_logic.py`
+  - [x] Add warning log for visibility
+  - [x] Add unit tests in `test_python_extractor_exclude_patterns.py`
 
 - [ ] **Phase 2**: Enrich sections from packages
   - [ ] Add `_enrich_section_from_package()` function

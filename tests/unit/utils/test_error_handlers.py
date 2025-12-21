@@ -1,6 +1,6 @@
 import sys
 
-from bengal.utils.error_handlers import get_context_aware_help
+from bengal.errors import get_context_aware_help
 
 
 def test_import_error_suggests_exports(monkeypatch):

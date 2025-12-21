@@ -3,8 +3,6 @@ Button directive for Mistune.
 
 Provides clean button syntax for CTAs and navigation.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
@@ -224,6 +222,3 @@ class ButtonDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_button(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return ButtonDirective().render(renderer, text, **attrs)

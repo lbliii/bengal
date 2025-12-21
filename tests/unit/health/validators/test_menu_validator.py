@@ -25,22 +25,26 @@ def mock_site():
     """Create mock site with menus and pages."""
     site = MagicMock()
 
-    # Create mock pages
+    # Create mock pages (set _path=None to prevent MagicMock auto-attribute creation)
     page1 = MagicMock()
-    page1.url = "/about/"
+    page1._path = None
+    page1.href = "/about/"
     page2 = MagicMock()
-    page2.url = "/contact/"
+    page2._path = None
+    page2.href = "/contact/"
     site.pages = [page1, page2]
 
-    # Create mock menu items
+    # Create mock menu items (set _path=None to prevent MagicMock auto-attribute creation)
     menu_item1 = MagicMock()
     menu_item1.name = "About"
-    menu_item1.url = "/about/"
+    menu_item1._path = None
+    menu_item1.href = "/about/"
     menu_item1.children = []
 
     menu_item2 = MagicMock()
     menu_item2.name = "Contact"
-    menu_item2.url = "/contact/"
+    menu_item2._path = None
+    menu_item2.href = "/contact/"
     menu_item2.children = []
 
     site.menu = {"main": [menu_item1, menu_item2]}
@@ -109,15 +113,17 @@ class TestMenuValidatorItemCount:
 
     def test_counts_nested_items(self, validator, mock_site):
         """Counts nested menu items correctly."""
-        # Add nested children
+        # Add nested children (set _path=None for proper attr access)
         child1 = MagicMock()
         child1.name = "Child 1"
-        child1.url = "/about/child1/"
+        child1._path = None
+        child1.href = "/about/child1/"
         child1.children = []
 
         child2 = MagicMock()
         child2.name = "Child 2"
-        child2.url = "/about/child2/"
+        child2._path = None
+        child2.href = "/about/child2/"
         child2.children = []
 
         mock_site.menu["main"][0].children = [child1, child2]
@@ -136,7 +142,8 @@ class TestMenuValidatorBrokenLinks:
         # Create menu item pointing to non-existent page
         broken_item = MagicMock()
         broken_item.name = "Broken"
-        broken_item.url = "/nonexistent/"
+        broken_item._path = None
+        broken_item.href = "/nonexistent/"
         broken_item.children = []
 
         mock_site.menu = {"main": [broken_item]}
@@ -149,7 +156,7 @@ class TestMenuValidatorBrokenLinks:
         """Does not flag external URLs as broken."""
         external_item = MagicMock()
         external_item.name = "External"
-        external_item.url = "https://example.com"
+        external_item.href = "https://example.com"
         external_item.children = []
 
         mock_site.menu = {"main": [external_item]}
@@ -164,7 +171,7 @@ class TestMenuValidatorBrokenLinks:
         """Does not flag protocol-relative URLs as broken."""
         proto_item = MagicMock()
         proto_item.name = "Protocol Relative"
-        proto_item.url = "//example.com/page"
+        proto_item.href = "//example.com/page"
         proto_item.children = []
 
         mock_site.menu = {"main": [proto_item]}
@@ -183,7 +190,8 @@ class TestMenuValidatorMultipleMenus:
         # Add second menu
         footer_item = MagicMock()
         footer_item.name = "Footer Link"
-        footer_item.url = "/contact/"
+        footer_item._path = None
+        footer_item.href = "/contact/"
         footer_item.children = []
 
         mock_site.menu["footer"] = [footer_item]
@@ -224,7 +232,8 @@ class TestMenuValidatorPrivateMethods:
         """_check_menu_urls finds broken URLs."""
         broken_item = MagicMock()
         broken_item.name = "Broken"
-        broken_item.url = "/nonexistent/"
+        broken_item._path = None
+        broken_item.href = "/nonexistent/"
         broken_item.children = []
 
         broken = validator._check_menu_urls(mock_site, [broken_item])
@@ -235,7 +244,7 @@ class TestMenuValidatorPrivateMethods:
         """_check_menu_urls skips external URLs."""
         external_item = MagicMock()
         external_item.name = "External"
-        external_item.url = "https://example.com"
+        external_item.href = "https://example.com"
         external_item.children = []
 
         broken = validator._check_menu_urls(mock_site, [external_item])

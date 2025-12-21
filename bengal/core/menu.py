@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 @dataclass
@@ -66,7 +66,7 @@ class MenuItem:
         menu_item = MenuItem(name="Home", url="/", weight=1)
 
         # From page frontmatter
-        menu_item = MenuItem(name=page.title, url=page.url, weight=page.metadata.get("weight", 0))
+        menu_item = MenuItem(name=page.title, url=page.href, weight=page.metadata.get("weight", 0))
 
         # With icon
         menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
@@ -99,6 +99,15 @@ class MenuItem:
         if self.identifier is None:
             # Convert name to slug-like identifier
             self.identifier = self.name.lower().replace(" ", "-").replace("_", "-")
+
+    @property
+    def href(self) -> str:
+        """
+        URL for templates. Alias for url property.
+
+        Return href property for unified URL model.
+        """
+        return self.url
 
     def add_child(self, child: MenuItem) -> None:
         """
@@ -203,7 +212,7 @@ class MenuItem:
         """
         return {
             "name": self.name,
-            "url": self.url,
+            "href": self.href,
             "icon": self.icon,
             "active": self.active,
             "active_trail": self.active_trail,
@@ -302,8 +311,8 @@ class MenuBuilder:
         """
         if item.identifier:
             self._seen_identifiers.add(item.identifier)
-        if item.url:
-            self._seen_urls.add(item.url.rstrip("/"))
+        if item.href:
+            self._seen_urls.add(item.href.rstrip("/"))
         if item.name:
             self._seen_names.add(item.name.lower())
 
@@ -371,7 +380,7 @@ class MenuBuilder:
                       Currently used for logging, all menus share same builder
             menu_config: Menu configuration dictionary from page frontmatter.
                         Should have: name (optional, defaults to page.title),
-                        url (optional, defaults to page.relative_url),
+                        url (optional, defaults to page._path),
                         weight (optional), parent (optional), identifier (optional)
 
         Examples:
@@ -383,9 +392,9 @@ class MenuBuilder:
             builder.add_from_page(page, "main", page.metadata.get("menu", {}).get("main", {}))
         """
         item_id = menu_config.get("identifier")
-        # Use relative_url for menu items (for comparison/activation)
+        # Use _path for menu items (for comparison/activation)
         # Templates apply baseurl via | absolute_url filter
-        item_url = page.relative_url.rstrip("/")
+        item_url = page._path.rstrip("/")
         item_name = menu_config.get("name", page.title).lower()
 
         # Skip if duplicate
@@ -401,7 +410,7 @@ class MenuBuilder:
 
         item = MenuItem(
             name=menu_config.get("name", page.title),
-            url=page.relative_url,  # Store relative URL for comparison
+            url=page._path,  # Store site-relative path for comparison
             weight=menu_config.get("weight", 0),
             parent=menu_config.get("parent"),
             identifier=menu_config.get("identifier"),

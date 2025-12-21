@@ -57,7 +57,7 @@ class OwnershipPolicyValidator(BaseValidator):
 
         # Check all pages for namespace violations
         for page in site.pages:
-            url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+            url = getattr(page, "_path", None) or getattr(page, "href", "/")
             source = str(getattr(page, "source_path", page.title))
 
             # Skip generated pages (they're allowed in reserved namespaces)
@@ -92,5 +92,3 @@ class OwnershipPolicyValidator(BaseValidator):
         # No success message - if no violations, silence is golden
 
         return results
-
-

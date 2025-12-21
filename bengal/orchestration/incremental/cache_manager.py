@@ -113,7 +113,7 @@ class CacheManager:
             self.cache = BuildCache.load(cache_path)
             cache_exists = cache_path.exists()
             try:
-                file_count = len(self.cache.file_hashes)
+                file_count = len(self.cache.file_fingerprints)
             except (AttributeError, TypeError):
                 file_count = 0
             logger.info(

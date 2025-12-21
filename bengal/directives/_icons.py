@@ -57,7 +57,9 @@ __all__ = [
 logger = get_logger(__name__)
 
 # Icon registry - maps icon names to SVG content (lazy loaded)
+# Limited to 200 entries to prevent memory leaks (icons are small but can accumulate)
 _icon_cache: dict[str, str] = {}
+_ICON_CACHE_MAX_SIZE = 200
 
 # Pre-compiled regex patterns for SVG manipulation
 _RE_WIDTH_HEIGHT = re.compile(r'\s+(width|height)="[^"]*"')
@@ -94,6 +96,10 @@ def _load_icon(name: str) -> str | None:
 
     try:
         svg_content = icon_path.read_text(encoding="utf-8")
+        # Evict oldest entry if cache is full (prevent memory leak)
+        if len(_icon_cache) >= _ICON_CACHE_MAX_SIZE:
+            oldest_key = next(iter(_icon_cache))
+            _icon_cache.pop(oldest_key, None)
         _icon_cache[name] = svg_content
         return svg_content
     except OSError:

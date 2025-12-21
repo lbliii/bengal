@@ -67,5 +67,3 @@ h1, h2, .display-text, .hero-title {
 .fonts-loaded .display-text {
   letter-spacing: var(--tracking-display);
 }
-
-

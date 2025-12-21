@@ -244,5 +244,3 @@ def render_marimo_cell(renderer: Any, html: str, cell_id: int, label: str = "") 
     """
     label_attr = f' data-label="{label}"' if label else ""
     return f'<div class="marimo-cell" data-cell-id="{cell_id}"{label_attr}>\n{html}\n</div>'
-
-

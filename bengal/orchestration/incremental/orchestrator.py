@@ -155,7 +155,7 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 "Cache not initialized - call initialize() first",
@@ -212,7 +212,7 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 "Cache not initialized - call initialize() first",
@@ -228,7 +228,6 @@ class IncrementalOrchestrator:
             verbose=verbose,
         )
 
-        # Convert ChangeSummary to legacy dict format for backwards compatibility
         summary_dict: dict[str, list[Any]] = {
             "Modified content": list(change_set.change_summary.modified_content),
             "Modified assets": list(change_set.change_summary.modified_assets),
@@ -245,7 +244,7 @@ class IncrementalOrchestrator:
         ⚠️  TEST BRIDGE ONLY - See docstring for details.
         """
         if not self.tracker:
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 "Tracker not initialized - call initialize() first",
@@ -379,7 +378,7 @@ class IncrementalOrchestrator:
         """
         Get the templates directory for the current theme.
 
-        Delegates to CacheManager for backwards compatibility.
+        Delegates to CacheManager.
 
         Returns:
             Path to theme templates or None if not found

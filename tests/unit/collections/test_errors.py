@@ -16,7 +16,7 @@ from bengal.collections.errors import (
     SchemaError,
     ValidationError,
 )
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 class TestValidationError:

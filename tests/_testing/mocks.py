@@ -9,7 +9,7 @@ Usage:
     from tests._testing.mocks import MockPage, MockSection, create_mock_xref_index
 
     def test_something():
-        page = MockPage(title="Test", url="/test/")
+        page = MockPage(title="Test", href="/test/")
         section = MockSection(name="docs", title="Documentation")
         xref_index = create_mock_xref_index([page])
 
@@ -44,7 +44,9 @@ class MockPage:
 
     Attributes:
         title: Page title (required)
-        url: Page URL path (default: "/")
+        href: Page URL with baseurl (default: "/")
+        _path: Page internal path (default: same as href)
+        url: Backward-compatible alias for href (deprecated, use href)
         source_path: Path to source file (default: Path("test.md"))
         metadata: Page metadata dict (default: empty)
         tags: List of tags (default: empty)
@@ -55,7 +57,7 @@ class MockPage:
         _section: Parent section reference (default: None)
 
     Example:
-        >>> page = MockPage(title="Getting Started", url="/docs/quickstart/")
+        >>> page = MockPage(title="Getting Started", href="/docs/quickstart/")
         >>> page.title
         'Getting Started'
         >>> page.metadata
@@ -63,14 +65,15 @@ class MockPage:
 
         >>> page = MockPage(
         ...     title="API Reference",
-        ...     url="/api/",
+        ...     href="/api/",
         ...     metadata={"description": "Complete API docs"},
         ...     tags=["api", "reference"]
         ... )
     """
 
     title: str = ""
-    url: str = "/"
+    href: str = "/"
+    _path: str = ""
     source_path: Path = field(default_factory=lambda: Path("test.md"))
     metadata: dict[str, Any] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
@@ -80,7 +83,6 @@ class MockPage:
     slug: str = ""
     _section: Any = None
     output_path: Path = field(default_factory=lambda: Path("output.html"))
-    relative_url: str = ""
     translations: dict[str, str] | None = None
     name: str = ""
 
@@ -88,8 +90,8 @@ class MockPage:
         """Initialize derived fields."""
         if not self.slug:
             self.slug = self.source_path.stem
-        if not self.relative_url:
-            self.relative_url = self.url
+        if not self._path:
+            self._path = self.href
         # Sync metadata with explicit fields
         if self.description and "description" not in self.metadata:
             self.metadata["description"] = self.description
@@ -116,13 +118,13 @@ class MockSection:
 
     Example:
         >>> section = MockSection(name="docs", title="Documentation")
-        >>> section.index_page.url
+        >>> section.index_page.href
         '/docs/'
 
         >>> section = MockSection(
         ...     name="guides",
         ...     title="User Guides",
-        ...     pages=[MockPage(title="Quickstart", url="/guides/quickstart/")]
+        ...     pages=[MockPage(title="Quickstart", href="/guides/quickstart/")]
         ... )
     """
 
@@ -138,7 +140,8 @@ class MockSection:
         """Initialize index page if not provided."""
         if self.index_page is None:
             self.index_page = Mock()
-            self.index_page.url = f"/{self.name}/"
+            self.index_page.href = f"/{self.name}/"
+            self.index_page._path = f"/{self.name}/"
             self.index_page.title = self.title
             self.index_page.metadata = self.metadata
 
@@ -163,7 +166,7 @@ class MockSite:
         output_dir: Build output directory (defaults to /dev/null/mock-output)
 
     Example:
-        >>> site = MockSite(pages=[MockPage(title="Home", url="/")])
+        >>> site = MockSite(pages=[MockPage(title="Home", href="/")])
         >>> len(site.pages)
         1
 
@@ -324,7 +327,7 @@ def create_mock_page_hierarchy(
             # Leaf page
             page = MockPage(
                 title=name.replace("-", " ").title(),
-                url=url,
+                href=url,
                 source_path=Path(f"{base_path.strip('/')}/{name}.md"),
             )
             pages.append(page)

@@ -4,7 +4,7 @@ Share Dropdown Component
 Extracted from page-hero-api.html - the LLM share dropdown with AI assistant links.
 
 Receives from parent context:
-- page: Page object with .url or .relative_url
+- page: Page object with .href or ._path
 
 Example:
 {% include 'partials/page-hero/_share-dropdown.html' %}
@@ -12,7 +12,7 @@ Example:
 
 {# Macro: Get page URL with fallback chain #}
 {% macro get_page_url(page) -%}
-{{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{{ page._path if page._path is defined else (page.href if page.href is defined else '/') }}
 {%- endmacro %}
 
 {# Actions: LLM Share Button #}

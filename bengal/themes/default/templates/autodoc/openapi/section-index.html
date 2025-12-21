@@ -75,7 +75,7 @@ This template receives:
           {% for subsection in section.sorted_subsections %}
           {% set desc = subsection.metadata.description | default('') | first_sentence %}
           {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-          <a href="{{ subsection.url }}" class="autodoc-card" data-card="resource">
+          <a href="{{ subsection.href }}" class="autodoc-card" data-card="resource">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
               <span class="autodoc-card-name">{{ subsection.name | title }}</span>
@@ -115,7 +115,7 @@ This template receives:
         <div class="autodoc-cards">
           {% for page in endpoint_pages %}
           {% set desc = page.metadata.description | default('') | first_sentence %}
-          <a href="{{ page.url }}" class="autodoc-card" data-card="endpoint">
+          <a href="{{ page.href }}" class="autodoc-card" data-card="endpoint">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
                 {%- if page.metadata.http_method -%}

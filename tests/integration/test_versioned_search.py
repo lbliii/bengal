@@ -126,7 +126,8 @@ class TestVersionedSearchIndexes:
         # Create a simple page
         page = Mock()
         page.title = "Test Page"
-        page.url = "/test/"
+        page.href = "/test/"
+        page._path = "/test/"  # Site-relative path
         page.content = "Content"
         page.plain_text = "Content"
         page.output_path = output_dir / "test/index.html"
@@ -152,5 +153,3 @@ class TestVersionedSearchIndexes:
         assert not v1_index.exists(), (
             "Unversioned site should not generate version-specific indexes"
         )
-
-

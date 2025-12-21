@@ -654,5 +654,69 @@ class Asset:
                 error=str(exc),
             )
 
+    @property
+    def href(self) -> str:
+        """
+        Asset URL for templates.
+
+        Wraps site._asset_url() logic which handles:
+        - Fingerprinting (style.css -> style.1234.css)
+        - Baseurl application
+        - file:// protocol relative path generation
+
+        Returns:
+            Asset URL with baseurl applied
+        """
+        if not self._site:
+            # Fallback if site not available
+            logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
+            return f"/assets/{logical_str}"
+
+        # Try to use template engine's _asset_url if available
+        # This handles fingerprinting and manifest lookup
+        try:
+            # Check if site has template_engine with _asset_url
+            if hasattr(self._site, "template_engine") and hasattr(
+                self._site.template_engine, "_asset_url"
+            ):
+                logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
+                return self._site.template_engine._asset_url(logical_str)
+        except Exception:
+            pass
+
+        # Fallback: simple baseurl application
+        logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
+        from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+        return with_baseurl(f"/assets/{logical_str}", self._site)
+
+    @property
+    def _path(self) -> str:
+        """
+        Internal logical path (e.g. 'assets/css/style.css').
+
+        Use for internal operations only:
+        - Cache keys
+        - Asset lookups
+        - Manifest entries
+
+        NEVER use in templates - use .href instead.
+        """
+        if self.logical_path:
+            return str(self.logical_path)
+        if self.output_path:
+            return str(self.output_path)
+        return self.source_path.name
+
+    @property
+    def absolute_href(self) -> str:
+        """
+        Fully-qualified URL for meta tags and sitemaps when available.
+
+        If baseurl is absolute, returns href. Otherwise returns href as-is
+        (root-relative) since no fully-qualified site origin is configured.
+        """
+        return self.href
+
     def __repr__(self) -> str:
         return f"Asset(type='{self.asset_type}', source='{self.source_path.name}')"

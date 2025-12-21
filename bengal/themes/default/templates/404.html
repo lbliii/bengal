@@ -43,7 +43,7 @@
       <ul>
         {% for item in nav_items[:5] %}
         <li>
-          <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+          <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
         </li>
         {% endfor %}
       </ul>

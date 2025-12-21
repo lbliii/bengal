@@ -108,7 +108,9 @@ class BuildSnapshot:
             BuildSnapshot capturing cached state
         """
         # Extract content pages from cache
-        pages = {path for path in cache.file_hashes if path.endswith((".md", ".markdown", ".rst"))}
+        pages = {
+            path for path in cache.file_fingerprints if path.endswith((".md", ".markdown", ".rst"))
+        }
 
         # Parse last build timestamp
         timestamp = datetime.now()
@@ -123,7 +125,7 @@ class BuildSnapshot:
             config_hash=cache.config_hash,
             metadata={
                 "cached_content": len(cache.parsed_content),
-                "tracked_files": len(cache.file_hashes),
+                "tracked_files": len(cache.file_fingerprints),
             },
         )
 

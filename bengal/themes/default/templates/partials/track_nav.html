@@ -24,7 +24,7 @@
             {% if prev_slug %}
             {% set prev_page = get_page(prev_slug) %}
             {% if prev_page %}
-            <a href="{{ prev_page.url }}" class="btn btn-outline-primary btn-sm">
+            <a href="{{ prev_page.href }}" class="btn btn-outline-primary btn-sm">
                 &larr; {{ prev_page.title }}
             </a>
             {% else %}
@@ -37,7 +37,7 @@
             {% if next_slug %}
             {% set next_page = get_page(next_slug) %}
             {% if next_page %}
-            <a href="{{ next_page.url }}" class="btn btn-primary btn-sm">
+            <a href="{{ next_page.href }}" class="btn btn-primary btn-sm">
                 {{ next_page.title }} &rarr;
             </a>
             {% else %}

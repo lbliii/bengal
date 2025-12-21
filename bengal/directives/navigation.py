@@ -8,7 +8,6 @@ Provides directives that leverage the pre-computed site tree:
 - related: Show related content based on tags
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     All directives access renderer._current_page to walk the object tree.
 """
 
@@ -248,7 +247,7 @@ class SiblingsDirective(BengalDirective):
 
         for page in siblings:
             title = getattr(page, "title", "Untitled")
-            url = getattr(page, "url", "/")
+            url = getattr(page, "href", "/")
             description = ""
             if show_description and hasattr(page, "metadata"):
                 description = page.metadata.get("description", "")
@@ -344,7 +343,7 @@ class PrevNextDirective(BengalDirective):
         parts = ['<nav class="prev-next">']
 
         if prev_page:
-            prev_url = getattr(prev_page, "url", "/")
+            prev_url = getattr(prev_page, "href", "/")
             prev_title = getattr(prev_page, "title", "Previous") if show_title else "Previous"
             parts.append(
                 f'  <a class="prev-next-link prev-link" href="{self.escape_html(prev_url)}">'
@@ -359,7 +358,7 @@ class PrevNextDirective(BengalDirective):
             parts.append('  <span class="prev-next-link prev-link disabled"></span>')
 
         if next_page:
-            next_url = getattr(next_page, "url", "/")
+            next_url = getattr(next_page, "href", "/")
             next_title = getattr(next_page, "title", "Next") if show_title else "Next"
             parts.append(
                 f'  <a class="prev-next-link next-link" href="{self.escape_html(next_url)}">'
@@ -465,7 +464,7 @@ class RelatedDirective(BengalDirective):
 
         for page in related:
             page_title = getattr(page, "title", "Untitled")
-            page_url = getattr(page, "url", "/")
+            page_url = getattr(page, "href", "/")
             page_tags = getattr(page, "tags", [])
 
             parts.append("    <li>")
@@ -493,35 +492,8 @@ class RelatedDirective(BengalDirective):
 def _get_section_url(section: Any) -> str:
     """Get URL for a section."""
     if hasattr(section, "index_page") and section.index_page:
-        return getattr(section.index_page, "url", "/")
+        return getattr(section.index_page, "href", "/")
     path = getattr(section, "path", None)
     if path:
         return f"/{path}/"
     return "/"
-
-
-# =============================================================================
-# Backward Compatibility Render Functions
-# =============================================================================
-
-
-def render_breadcrumbs(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return BreadcrumbsDirective().render(renderer, text, **attrs)
-
-
-def render_siblings(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return SiblingsDirective().render(renderer, text, **attrs)
-
-
-def render_prev_next(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return PrevNextDirective().render(renderer, text, **attrs)
-
-
-def render_related(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return RelatedDirective().render(renderer, text, **attrs)
-
-

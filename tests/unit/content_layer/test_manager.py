@@ -10,7 +10,7 @@ import pytest
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.manager import ContentLayerManager
 from bengal.content_layer.source import ContentSource
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 class MockSource(ContentSource):

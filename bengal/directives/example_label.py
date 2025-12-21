@@ -149,11 +149,3 @@ class ExampleLabelDirective(BengalDirective):
             )
 
         return f'<p class="{class_str}" role="heading" aria-level="6">{title_html}</p>\n'
-
-
-# Backward compatibility
-def render_example_label(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return ExampleLabelDirective().render(renderer, text, **attrs)
-
-

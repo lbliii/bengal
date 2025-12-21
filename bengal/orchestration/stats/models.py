@@ -35,7 +35,7 @@ class BuildWarning:
 
         from bengal.utils.paths import format_path_for_display
 
-        # Try CWD first for backward compatibility
+        # Try CWD first
         try:
             return str(Path(self.file_path).relative_to(Path.cwd()))
         except (ValueError, OSError):
@@ -151,7 +151,7 @@ class BuildStats:
         total_errors = sum(len(cat.errors) for cat in self.errors_by_category.values())
         total_warnings = sum(len(cat.warnings) for cat in self.errors_by_category.values())
 
-        # Also count template_errors for backward compatibility
+        # Also count template_errors
         if self.template_errors:
             total_errors += len(self.template_errors)
 
@@ -178,7 +178,7 @@ class BuildStats:
         # Check categorized errors
         if any(len(cat.errors) > 0 for cat in self.errors_by_category.values()):
             return True
-        # Check template_errors for backward compatibility
+        # Check template_errors
         return len(self.template_errors) > 0
 
     @property

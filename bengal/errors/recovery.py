@@ -45,7 +45,7 @@ def with_error_recovery(
         Exception: If strict_mode=True or no recovery function provided
 
     Example:
-        >>> from bengal.utils.error_recovery import with_error_recovery
+        >>> from bengal.errors import with_error_recovery
         >>>
         >>> def process_file(path):
         ...     # File processing logic
@@ -100,7 +100,7 @@ def error_recovery_context(
         logger: Logger instance for warnings
 
     Example:
-        >>> from bengal.utils.error_recovery import error_recovery_context
+        >>> from bengal.errors import error_recovery_context
         >>>
         >>> with error_recovery_context("processing files", strict_mode=strict_mode, logger=logger):
         ...     for file in files:
@@ -149,7 +149,7 @@ def recover_file_processing[T](
         Result of operation or None if error occurred and recovered
 
     Example:
-        >>> from bengal.utils.error_recovery import recover_file_processing
+        >>> from bengal.errors import recover_file_processing
         >>>
         >>> for file_path in files:
         ...     result = recover_file_processing(
@@ -179,8 +179,8 @@ def recover_file_processing[T](
 
         # Collect error in build stats if available
         if build_stats:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors.context import ErrorContext, enrich_error
+            from bengal.errors.exceptions import BengalDiscoveryError
 
             context = ErrorContext(
                 file_path=file_path if hasattr(file_path, "__fspath__") else None,
@@ -188,10 +188,8 @@ def recover_file_processing[T](
                 suggestion="Check file encoding, format, and permissions",
                 original_error=e,
             )
-            # Enrich error for better context (will be used in Phase 4)
+            # Enrich error for better context
             enrich_error(e, context, BengalDiscoveryError)
-            # Note: BuildStats doesn't have add_error yet, but will in Phase 4
-            # For now, just log
             if hasattr(build_stats, "add_warning"):
                 build_stats.add_warning(
                     str(file_path),

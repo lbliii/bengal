@@ -337,7 +337,7 @@ class TestSuggestionGenerationEdgeCases:
         suggestion = TemplateRenderError._generate_suggestion(error, "filter", mock_engine)
 
         assert suggestion is not None
-        assert "page.url" in suggestion
+        assert "page.href" in suggestion or "page._path" in suggestion
 
     def test_generate_suggestion_metadata_weight(self):
         """Test generating suggestion for metadata.weight undefined."""

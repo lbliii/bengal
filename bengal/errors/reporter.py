@@ -25,7 +25,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
         Formatted error report string
 
     Example:
-        >>> from bengal.utils.error_reporter import format_error_report
+        >>> from bengal.errors import format_error_report
         >>> report = format_error_report(stats, verbose=True)
         >>> print(report)
     """

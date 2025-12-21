@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

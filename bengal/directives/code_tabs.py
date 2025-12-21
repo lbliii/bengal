@@ -4,8 +4,6 @@ Code tabs directive for Mistune.
 Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
@@ -146,16 +144,9 @@ class CodeTabsDirective(BengalDirective):
 # Backward compatibility render functions
 
 
-def render_code_tabs(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return CodeTabsDirective().render(renderer, text, **attrs)
-
-
 def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     """Render code tab item marker (used internally)."""
     lang = attrs.get("lang", "text")
     code = attrs.get("code", "")
     code_escaped = html_lib.escape(code)
     return f'<div class="code-tab-item" data-lang="{lang}" data-code="{code_escaped}"></div>'
-
-

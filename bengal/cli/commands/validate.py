@@ -21,9 +21,9 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.errors.traceback import TracebackStyle
 from bengal.health import HealthCheck
 from bengal.utils.profile import BuildProfile
-from bengal.utils.traceback_config import TracebackStyle
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

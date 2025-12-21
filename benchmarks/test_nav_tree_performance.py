@@ -248,5 +248,3 @@ def test_nav_tree_flat_nodes_construction(benchmark, request, site_fixture, page
     # Verify flat_nodes is constructed
     assert len(result) > 0
     assert isinstance(result, dict)
-
-

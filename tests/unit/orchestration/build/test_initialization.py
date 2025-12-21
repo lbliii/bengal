@@ -253,7 +253,7 @@ class TestPhaseConfigCheck:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.file_hashes = {}
+        cache.file_fingerprints = {}
 
         orchestrator.incremental.check_config_changed.return_value = False
 
@@ -272,7 +272,7 @@ class TestPhaseConfigCheck:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.file_hashes = {"config": "oldhash"}
+        cache.file_fingerprints = {"config": {"hash": "oldhash", "mtime": 0, "size": 0}}
 
         # Create bengal.toml so config file is found
         config_file = tmp_path / "bengal.toml"
@@ -295,7 +295,7 @@ class TestPhaseConfigCheck:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.file_hashes = {}
+        cache.file_fingerprints = {}
 
         orchestrator.incremental.check_config_changed.return_value = True
 
@@ -308,7 +308,7 @@ class TestPhaseConfigCheck:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.file_hashes = {}
+        cache.file_fingerprints = {}
         cache_dir = tmp_path / ".bengal"
         cache_dir.mkdir()
 

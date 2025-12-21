@@ -481,7 +481,7 @@ class DependencyVisualizer(DebugTool):
             return graph
 
         # Add all files as nodes
-        for path in self.cache.file_hashes:
+        for path in self.cache.file_fingerprints:
             node_type = self._classify_file(path)
             graph.add_node(path, node_type)
 
@@ -597,5 +597,3 @@ class DependencyVisualizer(DebugTool):
             recommendations.append("Dependency structure looks healthy! ✅")
 
         return recommendations
-
-

@@ -56,15 +56,15 @@ def phase_postprocess(
 
 
 def phase_cache_save(
-    orchestrator: BuildOrchestrator, pages_to_build: list[Any], assets_to_process: list[Any]
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Any],
+    assets_to_process: list[Any],
+    cli: CLIOutput | None = None,
 ) -> None:
     """
     Phase 18: Save Cache.
 
     Persists build cache including URL claims for incremental build safety.
-    """
-    """
-    Phase 18: Save Cache.
 
     Saves build cache for future incremental builds.
 
@@ -72,13 +72,20 @@ def phase_cache_save(
         orchestrator: Build orchestrator instance
         pages_to_build: Pages that were built
         assets_to_process: Assets that were processed
+        cli: CLI output (optional) for timing display
     """
     with orchestrator.logger.phase("cache_save"):
+        start = time.perf_counter()
         orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+        duration_ms = (time.perf_counter() - start) * 1000
+        if cli is not None:
+            cli.phase("Cache save", duration_ms=duration_ms)
         orchestrator.logger.info("cache_saved")
 
 
-def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> None:
+def phase_collect_stats(
+    orchestrator: BuildOrchestrator, build_start: float, cli: CLIOutput | None = None
+) -> None:
     """
     Phase 19: Collect Final Stats.
 
@@ -87,7 +94,9 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
     Args:
         orchestrator: Build orchestrator instance
         build_start: Build start time for duration calculation
+        cli: CLI output (optional) for timing display
     """
+    start = time.perf_counter()
     orchestrator.stats.total_pages = len(orchestrator.site.pages)
     orchestrator.stats.regular_pages = len(orchestrator.site.regular_pages)
     orchestrator.stats.generated_pages = len(orchestrator.site.generated_pages)
@@ -107,6 +116,9 @@ def phase_collect_stats(orchestrator: BuildOrchestrator, build_start: float) -> 
     }
 
     _write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
+    duration_ms = (time.perf_counter() - start) * 1000
+    if cli is not None:
+        cli.phase("Stats", duration_ms=duration_ms)
 
 
 def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> None:
@@ -401,7 +413,7 @@ def run_health_check(
     # Fail build in strict mode if there are errors
     strict_mode = health_config.get("strict_mode", False)
     if strict_mode and report.has_errors():
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         raise BengalError(
             f"Build failed health checks: {report.total_errors} error(s) found. "

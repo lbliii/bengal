@@ -194,5 +194,3 @@ class TestPageVisibilityInCollections:
         assert regular.in_rss is True
         assert hidden.in_rss is False
         assert no_rss.in_rss is False
-
-

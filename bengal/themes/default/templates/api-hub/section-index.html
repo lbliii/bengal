@@ -32,7 +32,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
     {# Page Hero: Breadcrumbs + Title + Description #}
     <div class="page-hero">
       {# Breadcrumbs #}
-      {% if page.url != '/' %}
+      {% if page.href != '/' %}
       <nav class="page-hero__breadcrumbs" aria-label="Breadcrumb">
         {{ breadcrumbs(page) }}
       </nav>
@@ -82,7 +82,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
         {% set desc = subsection.metadata.get('description', '') | first_sentence %}
         {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
 
-        <a href="{{ subsection.url }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
+        <a href="{{ subsection.href }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
           <div class="autodoc-card-header">
             <span class="autodoc-card-icon">
               {# Icon based on autodoc type #}

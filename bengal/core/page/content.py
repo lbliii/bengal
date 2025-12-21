@@ -48,7 +48,7 @@ class PageContentMixin:
 
     # Fields from Page that this mixin accesses
     content: str
-    parsed_ast: Any  # Legacy field (actually HTML)
+    parsed_ast: Any  # Contains HTML (not AST)
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)

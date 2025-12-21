@@ -43,40 +43,6 @@ def normalize_columns(columns: str) -> str:
     return "auto"
 
 
-def convert_legacy_columns(title: str) -> str:
-    """Convert legacy column breakpoints to our format."""
-    if not title:
-        return "auto"
-
-    parts = title.strip().split()
-
-    if len(parts) == 1 and parts[0].isdigit():
-        return parts[0]
-
-    if len(parts) >= 2:
-        valid_parts = [p for p in parts if p.isdigit() and 1 <= int(p) <= 6]
-        if valid_parts:
-            return "-".join(valid_parts[:4])
-
-    return "auto"
-
-
-def convert_legacy_gutter(gutter: str) -> str:
-    """Convert legacy gutter to gap format."""
-    if not gutter:
-        return "medium"
-
-    parts = str(gutter).strip().split()
-    if parts and parts[0].isdigit():
-        num = int(parts[0])
-        if num <= 1:
-            return "small"
-        elif num >= 3:
-            return "large"
-
-    return "medium"
-
-
 def extract_octicon(title: str) -> tuple[str, str]:
     """Extract octicon from title."""
     pattern = r"\{octicon\}`([^;`]+)(?:;[^`]*)?`\s*"
@@ -201,8 +167,8 @@ def resolve_link_url(renderer: Any, link: str) -> str:
     current_page_dir = getattr(renderer, "_current_page_dir", None)
     page = resolve_page(xref_index, link, current_page_dir)
 
-    if page and hasattr(page, "url"):
-        return page.url
+    if page and hasattr(page, "href"):
+        return page.href
 
     return link
 
@@ -286,7 +252,7 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
                         page.metadata.get("description", "") if hasattr(page, "metadata") else ""
                     ),
                     "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
-                    "url": getattr(page, "url", ""),
+                    "url": getattr(page, "href", ""),
                     "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
                     "_has_explicit_weight": has_weight,
                 }
@@ -334,7 +300,7 @@ def warn_mixed_weights(children: list[dict[str, Any]], current_page: Any) -> Non
 def get_section_url(section: Any) -> str:
     """Get URL for a section."""
     if hasattr(section, "index_page") and section.index_page:
-        return getattr(section.index_page, "url", "/")
+        return getattr(section.index_page, "href", "/")
     path = getattr(section, "path", None)
     if path:
         return f"/{path}/"
@@ -398,29 +364,3 @@ def escape_html(text: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#x27;")
     )
-
-
-# =============================================================================
-# Backward Compatibility Render Functions
-# =============================================================================
-
-
-def render_cards_grid(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.cards_grid import CardsDirective
-
-    return CardsDirective().render(renderer, text, **attrs)
-
-
-def render_card(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.card import CardDirective
-
-    return CardDirective().render(renderer, text, **attrs)
-
-
-def render_child_cards(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.child_cards import ChildCardsDirective
-
-    return ChildCardsDirective().render(renderer, text, **attrs)

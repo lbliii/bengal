@@ -308,5 +308,3 @@ class ConnectivityReport:
             "total_pages": self.total_pages,
             "avg_score": round(self.avg_score, 2),
         }
-
-

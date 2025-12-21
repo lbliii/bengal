@@ -16,6 +16,7 @@ from bengal.cli.helpers import (
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
+from bengal.errors.traceback import TracebackStyle
 from bengal.orchestration.stats import (
     display_build_stats,
     show_building_indicator,
@@ -26,7 +27,6 @@ from bengal.utils.logger import (
     configure_logging,
     print_all_summaries,
 )
-from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.command(cls=BengalCommand)

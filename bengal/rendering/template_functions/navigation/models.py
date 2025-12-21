@@ -45,7 +45,7 @@ class BreadcrumbItem:
           {% if item.is_current %}
             <span>{{ item.title }}</span>
           {% else %}
-            <a href="{{ item.url }}">{{ item.title }}</a>
+            <a href="{{ item.href }}">{{ item.title }}</a>
           {% endif %}
         {% endfor %}
     """
@@ -85,7 +85,7 @@ class PaginationItem:
           {% elif item.is_current %}
             <strong>{{ item.num }}</strong>
           {% else %}
-            <a href="{{ item.url }}">{{ item.num }}</a>
+            <a href="{{ item.href }}">{{ item.num }}</a>
           {% endif %}
         {% endfor %}
     """
@@ -123,7 +123,7 @@ class PaginationInfo:
     Example (Jinja template):
         {% set p = get_pagination_items(current_page, total_pages, base_url) %}
         {% if p.prev %}
-          <a href="{{ p.prev.url }}">Previous</a>
+          <a href="{{ p.prev.href }}">Previous</a>
         {% endif %}
     """
 
@@ -208,7 +208,7 @@ class AutoNavItem:
     Example (Jinja template):
         {% set auto_items = get_auto_nav() %}
         {% for item in auto_items %}
-          <a href="{{ item.url }}"
+          <a href="{{ item.href }}"
              {% if item.icon %}class="icon-{{ item.icon }}"{% endif %}>
             {{ item.name }}
           </a>

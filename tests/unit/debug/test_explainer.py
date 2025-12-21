@@ -24,7 +24,7 @@ from bengal.debug.models import (
     SourceInfo,
     TemplateInfo,
 )
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 class TestSourceInfo:
@@ -116,7 +116,8 @@ class TestPageExplainer:
         page1.content = "# Guide\n\nSome content here.\n"
         page1.metadata = {"title": "Guide", "type": "doc", "tags": ["tutorial"]}
         page1.is_virtual = False
-        page1.url = "/docs/guide/"
+        page1.href = "/docs/guide/"
+        page1._path = "/docs/guide/"
         page1.output_path = Path("docs/guide/index.html")
         page1._section = None
         page1.core = MagicMock()
@@ -127,7 +128,8 @@ class TestPageExplainer:
         page2.content = "# Hello\n\n:::note\nA note\n:::\n"
         page2.metadata = {"title": "Hello", "type": "post"}
         page2.is_virtual = False
-        page2.url = "/posts/hello/"
+        page2.href = "/posts/hello/"
+        page2._path = "/posts/hello/"
         page2.output_path = Path("posts/hello/index.html")
         page2._section = None
         page2.core = MagicMock()

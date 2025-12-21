@@ -15,7 +15,7 @@ from bengal.cli.templates import (
     register_template,
 )
 
-# Legacy compatibility exports
+# Compatibility exports
 __all__ = [
     "SiteTemplate",
     "TemplateFile",

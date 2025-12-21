@@ -11,7 +11,7 @@ from typing import Any
 from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
-from bengal.utils.exceptions import BengalRenderingError
+from bengal.errors import BengalRenderingError
 from bengal.utils.logger import truncate_error
 
 
@@ -261,7 +261,7 @@ class TemplateRenderError(BengalRenderingError):
             if "in_section" in error_str:
                 return "Bengal doesn't have 'in_section' filter. Check if the page is in a section using: {% if page.parent %}"
             elif "is_ancestor" in error_str:
-                return "Use page comparison instead: {% if page.url == other_page.url %}"
+                return "Use page comparison instead: {% if page._path == other_page._path %}"
 
         elif error_type == "undefined":
             if "metadata.weight" in error_str:

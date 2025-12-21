@@ -1,9 +1,8 @@
 """
 Configuration deprecation handling.
 
-Provides warnings for deprecated config keys with migration guidance.
-Follows the principle of graceful degradation - deprecated keys still work,
-but users are informed of the preferred alternatives.
+Provides utilities for detecting, warning about, and migrating deprecated
+configuration keys to their new locations.
 """
 
 from __future__ import annotations
@@ -14,218 +13,133 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# =============================================================================
-# Deprecated Key Mappings
-# =============================================================================
-# Format: "old_key": ("new_section", "new_key", "migration_note")
-#
-# These keys are deprecated but still functional. Users will see a warning
-# suggesting they migrate to the new format.
-
+# Mapping of deprecated config keys to (section, new_key, note)
 DEPRECATED_KEYS: dict[str, tuple[str, str, str]] = {
-    # Assets - flat keys deprecated in favor of nested assets.* section
-    "minify_assets": (
-        "assets",
-        "minify",
-        "Use 'assets.minify: true' instead of 'minify_assets: true'",
-    ),
-    "optimize_assets": (
-        "assets",
-        "optimize",
-        "Use 'assets.optimize: true' instead of 'optimize_assets: true'",
-    ),
-    "fingerprint_assets": (
-        "assets",
-        "fingerprint",
-        "Use 'assets.fingerprint: true' instead of 'fingerprint_assets: true'",
-    ),
-    # Features - flat keys deprecated in favor of nested features.* section
-    "generate_sitemap": (
-        "features",
-        "sitemap",
-        "Use 'features.sitemap: true' instead of 'generate_sitemap: true'",
-    ),
-    "generate_rss": (
-        "features",
-        "rss",
-        "Use 'features.rss: true' instead of 'generate_rss: true'",
-    ),
-    # Markdown - legacy key names
-    "markdown_engine": (
-        "markdown",
-        "parser",
-        "Use 'markdown.parser: mistune' instead of 'markdown_engine: mistune'",
+    "minify_assets": ("assets", "minify", "Use `assets.minify: true` instead."),
+    "optimize_assets": ("assets", "optimize", "Use `assets.optimize: true` instead."),
+    "fingerprint_assets": ("assets", "fingerprint", "Use `assets.fingerprint: true` instead."),
+    "generate_sitemap": ("features", "sitemap", "Use `features.sitemap: true` instead."),
+    "generate_rss": ("features", "rss", "Use `features.rss: true` instead."),
+    "markdown_engine": ("content", "markdown_parser", "Use `content.markdown_parser` instead."),
+    "validate_links": (
+        "health.linkcheck",
+        "enabled",
+        "Use `health.linkcheck.enabled: true` instead.",
     ),
 }
 
-# Keys that have been renamed (not just restructured)
+# Mapping of renamed config keys to (new_key, note)
 RENAMED_KEYS: dict[str, tuple[str, str]] = {
-    # "old_key": ("new_key", "migration_note")
+    # "old_key": ("new_key", "Note about the rename.")
 }
 
 
 def check_deprecated_keys(
-    config: dict[str, Any],
-    source: str = "configuration",
-    warn: bool = True,
+    config: dict[str, Any], source: str | None = None, warn: bool = True
 ) -> list[tuple[str, str, str]]:
     """
-    Check for deprecated config keys and optionally warn.
+    Check for deprecated keys in the configuration and return a list of warnings.
 
     Args:
-        config: Configuration dictionary to check
-        source: Source description for log messages (e.g., "bengal.toml")
-        warn: Whether to emit warnings (default: True)
+        config: The configuration dictionary to check.
+        source: The source file of the configuration (e.g., "bengal.toml").
+        warn: If True, log warnings for deprecated keys.
 
     Returns:
-        List of (old_key, new_location, migration_note) tuples for deprecated keys found
-
-    Example:
-        >>> config = {"minify_assets": True, "title": "My Site"}
-        >>> deprecated = check_deprecated_keys(config)
-        >>> len(deprecated)
-        1
-        >>> deprecated[0][0]
-        'minify_assets'
+        A list of tuples, each containing (old_key, new_location, note).
     """
-    found_deprecated: list[tuple[str, str, str]] = []
-
+    found_deprecated = []
     for old_key, (section, new_key, note) in DEPRECATED_KEYS.items():
         if old_key in config:
             new_location = f"{section}.{new_key}"
             found_deprecated.append((old_key, new_location, note))
-
             if warn:
                 logger.warning(
-                    "config_key_deprecated",
+                    "config_deprecated_key",
                     old_key=old_key,
                     new_location=new_location,
+                    note=note,
                     source=source,
-                    migration=note,
                 )
-
-    for old_key, (new_key, note) in RENAMED_KEYS.items():
-        if old_key in config:
-            found_deprecated.append((old_key, new_key, note))
-
-            if warn:
-                logger.warning(
-                    "config_key_renamed",
-                    old_key=old_key,
-                    new_key=new_key,
-                    source=source,
-                    migration=note,
-                )
-
     return found_deprecated
 
 
 def print_deprecation_warnings(
-    deprecated: list[tuple[str, str, str]],
-    source: str = "configuration",
+    deprecated_keys: list[tuple[str, str, str]], source: str | None = None
 ) -> None:
     """
-    Print user-friendly deprecation warnings.
+    Print user-friendly deprecation warnings to the console.
 
     Args:
-        deprecated: List of (old_key, new_location, note) from check_deprecated_keys()
-        source: Source description for context
-
-    Example output:
-        ⚠️  Deprecated config keys in bengal.toml:
-
-          • minify_assets → assets.minify
-            Use 'assets.minify: true' instead of 'minify_assets: true'
-
-          • generate_sitemap → features.sitemap
-            Use 'features.sitemap: true' instead of 'generate_sitemap: true'
-
-        These keys still work but will be removed in a future version.
+        deprecated_keys: A list of tuples, each containing (old_key, new_location, note).
+        source: The source file of the configuration (e.g., "bengal.toml").
     """
-    if not deprecated:
+    if not deprecated_keys:
         return
 
-    print(f"\n⚠️  Deprecated config keys in {source}:\n")
+    source_str = f" in {source}" if source else ""
+    print(f"\n⚠️  Deprecated configuration keys found{source_str}:")
+    for old_key, new_location, note in deprecated_keys:
+        print(f"   - `{old_key}` is deprecated. Use `{new_location}` instead.")
+        print(f"     Note: {note}")
+    print("\nThese keys may be removed in a future version. Please update your configuration.")
+    print("See `bengal config deprecations` for a full list.")
 
-    for old_key, new_location, note in deprecated:
-        print(f"  • {old_key} → {new_location}")
-        print(f"    {note}\n")
 
-    print("  These keys still work but may be removed in a future version.\n")
-
-
-def migrate_deprecated_keys(
-    config: dict[str, Any],
-    in_place: bool = False,
-) -> dict[str, Any]:
+def migrate_deprecated_keys(config: dict[str, Any], in_place: bool = False) -> dict[str, Any]:
     """
-    Migrate deprecated keys to their new locations.
-
-    This function moves values from deprecated flat keys to their new
-    nested locations. The original keys are preserved for backward
-    compatibility unless in_place=True.
+    Migrate deprecated configuration keys to their new locations.
 
     Args:
-        config: Configuration dictionary
-        in_place: If True, remove old keys after migration
+        config: The configuration dictionary to migrate.
+        in_place: If True, modify the config dictionary in place and remove old keys.
+                  If False, return a new dictionary with migrations applied.
 
     Returns:
-        Updated configuration dictionary
-
-    Example:
-        >>> config = {"minify_assets": True}
-        >>> result = migrate_deprecated_keys(config)
-        >>> result["assets"]["minify"]
-        True
-        >>> "minify_assets" in result  # Preserved by default
-        True
+        The migrated configuration dictionary.
     """
-    result = dict(config) if not in_place else config
+    if not in_place:
+        config = config.copy()
+
+    from bengal.config.merge import get_nested_key, set_nested_key
 
     for old_key, (section, new_key, _) in DEPRECATED_KEYS.items():
         if old_key in config:
-            # Ensure section exists
-            if section not in result:
-                result[section] = {}
-            elif not isinstance(result[section], dict):
-                # Section exists but isn't a dict - skip migration
-                continue
-
-            # Only migrate if new key isn't already set
-            if new_key not in result[section]:
-                result[section][new_key] = config[old_key]
-
-            # Remove old key if in_place
-            if in_place and old_key in result:
-                del result[old_key]
-
-    return result
+            # Only migrate if the new key doesn't already exist
+            new_path = f"{section}.{new_key}"
+            if get_nested_key(config, new_path) is None:
+                set_nested_key(config, new_path, config[old_key])
+            if in_place:
+                del config[old_key]
+    return config
 
 
 def get_deprecation_summary() -> str:
     """
-    Get a summary of all deprecated keys for documentation.
+    Generate a markdown-formatted summary of all deprecated configuration keys.
 
     Returns:
-        Markdown-formatted summary of deprecated keys
+        A markdown string summarizing deprecated keys.
     """
-    lines = ["# Deprecated Configuration Keys\n"]
-    lines.append("The following config keys are deprecated:\n")
+    summary = ["# Deprecated Configuration Keys", ""]
+    summary.append(
+        "The following configuration keys are deprecated and will be removed in future versions."
+    )
+    summary.append("Please update your `bengal.toml` or `bengal.yaml` files accordingly.")
+    summary.append("")
+    summary.append("| Deprecated | Use Instead | Notes |")
+    summary.append("|------------|-------------|-------|")
 
-    lines.append("## Flat Keys → Nested Sections\n")
-    lines.append("| Deprecated | Use Instead | Notes |")
-    lines.append("|------------|-------------|-------|")
-
-    for old_key, (section, new_key, note) in sorted(DEPRECATED_KEYS.items()):
-        new_loc = f"`{section}.{new_key}`"
-        lines.append(f"| `{old_key}` | {new_loc} | {note} |")
+    for old_key, (section, new_key, note) in DEPRECATED_KEYS.items():
+        summary.append(f"| `{old_key}` | `{section}.{new_key}` | {note} |")
 
     if RENAMED_KEYS:
-        lines.append("\n## Renamed Keys\n")
-        lines.append("| Old Name | New Name | Notes |")
-        lines.append("|----------|----------|-------|")
+        summary.append("\n# Renamed Configuration Keys\n")
+        summary.append("The following configuration keys have been renamed:")
+        summary.append("")
+        summary.append("| Old Key | New Key | Notes |")
+        summary.append("|---------|---------|-------|")
+        for old_key, (new_key, note) in RENAMED_KEYS.items():
+            summary.append(f"| `{old_key}` | `{new_key}` | {note} |")
 
-        for old_key, (new_key, note) in sorted(RENAMED_KEYS.items()):
-            lines.append(f"| `{old_key}` | `{new_key}` | {note} |")
-
-    return "\n".join(lines)
+    return "\n".join(summary)

@@ -20,7 +20,7 @@ from bengal.directives import (
     ContractViolation,
     DirectiveContract,
 )
-from bengal.utils.exceptions import BengalRenderingError
+from bengal.errors import BengalRenderingError
 
 # =============================================================================
 # DirectiveContract Tests

@@ -31,5 +31,3 @@ def init_cli_output(
 
     _cli_output = CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
     return _cli_output
-
-

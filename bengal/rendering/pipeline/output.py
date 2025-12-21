@@ -162,7 +162,7 @@ def format_html(html: str, page: Page, site: Any) -> str:
     Respects page-level and site-level configuration:
     - page.metadata.no_format: Skip formatting
     - site.config.html_output.mode: 'minify', 'pretty', or 'raw'
-    - site.config.minify_html: Legacy option
+    - site.config.minify_html: Option
 
     Args:
         html: Rendered HTML content

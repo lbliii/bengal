@@ -226,7 +226,7 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
         if sorted_terms:
             terms = sorted(terms, key=lambda t: t.get("term", "").lower())
     else:
-        # Legacy: terms already loaded in parse phase
+        # Terms already loaded in parse phase
         terms = attrs.get("terms", [])
 
     show_tags = attrs.get("show_tags", False)
@@ -490,5 +490,3 @@ def _escape_html(text: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
-
-

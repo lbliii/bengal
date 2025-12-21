@@ -46,7 +46,7 @@ def mock_site():
     for url in ["/docs/", "/docs/guide/", "/docs/guide/advanced/", "/docs/api/"]:
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = url
+        page._path = url
         pages.append(page)
 
     # v1 (older) pages - note: /docs/guide/advanced/ doesn't exist in v1
@@ -54,7 +54,7 @@ def mock_site():
         page = MagicMock()
         page.version = "v1"
         # v1 pages have version prefix in URL when output
-        page.relative_url = url.replace("/docs/", "/docs/v1/")
+        page._path = url.replace("/docs/", "/docs/v1/")
         pages.append(page)
 
     site.pages = pages
@@ -84,7 +84,7 @@ class TestGetVersionTargetUrl:
         """When target is same version, return current URL."""
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/"
+        page._path = "/docs/guide/"
 
         result = get_version_target_url(page, v2_dict, mock_site)
 
@@ -94,7 +94,7 @@ class TestGetVersionTargetUrl:
         """When exact page exists in target version, return it."""
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/"
+        page._path = "/docs/guide/"
 
         result = get_version_target_url(page, v1_dict, mock_site)
 
@@ -105,7 +105,7 @@ class TestGetVersionTargetUrl:
         """When exact page missing, fall back to section index."""
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/advanced/"  # Doesn't exist in v1
+        page._path = "/docs/guide/advanced/"  # Doesn't exist in v1
 
         result = get_version_target_url(page, v1_dict, mock_site)
 
@@ -116,7 +116,7 @@ class TestGetVersionTargetUrl:
         """When section index also missing, fall back to version root."""
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/api/"  # /docs/api/ doesn't exist in v1
+        page._path = "/docs/api/"  # /docs/api/ doesn't exist in v1
 
         result = get_version_target_url(page, v1_dict, mock_site)
 
@@ -128,7 +128,7 @@ class TestGetVersionTargetUrl:
         """Switching from older to latest version."""
         page = MagicMock()
         page.version = "v1"
-        page.relative_url = "/docs/v1/guide/"
+        page._path = "/docs/v1/guide/"
 
         result = get_version_target_url(page, v2_dict, mock_site)
 
@@ -143,7 +143,7 @@ class TestGetVersionTargetUrl:
     def test_none_version_returns_root(self, mock_site):
         """None version returns root URL."""
         page = MagicMock()
-        page.relative_url = "/docs/guide/"
+        page._path = "/docs/guide/"
 
         result = get_version_target_url(page, None, mock_site)
         assert result == "/"
@@ -154,7 +154,7 @@ class TestGetVersionTargetUrl:
         site.versioning_enabled = False
 
         page = MagicMock()
-        page.relative_url = "/docs/guide/"
+        page._path = "/docs/guide/"
 
         result = get_version_target_url(page, {"id": "v1"}, site)
         assert result == "/docs/guide/"
@@ -333,7 +333,7 @@ class TestIntegration:
         # Page that doesn't exist anywhere in v1 except root
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/api/deep/nested/page/"
+        page._path = "/docs/api/deep/nested/page/"
 
         result = get_version_target_url(page, v1_dict, mock_site)
 
@@ -344,7 +344,7 @@ class TestIntegration:
         """Switching v2 → v1 → v2 should return to original (when page exists)."""
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/"
+        page._path = "/docs/guide/"
 
         # v2 → v1
         v1_url = get_version_target_url(page, v1_dict, mock_site)
@@ -353,7 +353,7 @@ class TestIntegration:
         # Create v1 page mock for return trip
         page_v1 = MagicMock()
         page_v1.version = "v1"
-        page_v1.relative_url = v1_url
+        page_v1._path = v1_url
 
         # v1 → v2
         v2_url = get_version_target_url(page_v1, v2_dict, mock_site)
@@ -366,14 +366,14 @@ class TestIntegration:
         # But /docs/guide/advanced/ does exist (we'll add it)
         advanced_page_v1 = MagicMock()
         advanced_page_v1.version = "v1"
-        advanced_page_v1.relative_url = "/docs/v1/guide/advanced/"
+        advanced_page_v1._path = "/docs/v1/guide/advanced/"
         mock_site.pages.append(advanced_page_v1)
         invalidate_version_page_index()
 
         # Page at /docs/guide/advanced/feature/ in v2
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/advanced/feature/"
+        page._path = "/docs/guide/advanced/feature/"
 
         result = get_version_target_url(page, v1_dict, mock_site)
 
@@ -385,7 +385,7 @@ class TestIntegration:
         # Add pages at different levels
         guide_page_v1 = MagicMock()
         guide_page_v1.version = "v1"
-        guide_page_v1.relative_url = "/docs/v1/guide/"
+        guide_page_v1._path = "/docs/v1/guide/"
         mock_site.pages.append(guide_page_v1)
         invalidate_version_page_index()
 
@@ -396,7 +396,7 @@ class TestIntegration:
         # /docs/v1/guide/ DOES exist
         page = MagicMock()
         page.version = "v2"
-        page.relative_url = "/docs/guide/advanced/feature/details/"
+        page._path = "/docs/guide/advanced/feature/details/"
 
         result = get_version_target_url(page, v1_dict, mock_site)
 

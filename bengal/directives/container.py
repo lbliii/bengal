@@ -9,8 +9,6 @@ Use cases:
 - Creating styled blocks without affecting heading hierarchy
 - Grouping related content with a common class
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
@@ -122,6 +120,3 @@ class ContainerDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_container(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return ContainerDirective().render(renderer, text, **attrs)

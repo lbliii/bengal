@@ -54,7 +54,7 @@ This template receives:
         <ul class="autodoc-server-list">
           {% for server in element.metadata.servers %}
           <li class="autodoc-server-item">
-            <code class="autodoc-server-url">{{ server.url if server.url is defined else server }}</code>
+            <code class="autodoc-server-url">{{ server.href if server.href is defined else server }}</code>
             {% if server.description is defined %}
             <span class="autodoc-server-desc">— {{ server.description }}</span>
             {% endif %}
@@ -121,7 +121,7 @@ This template receives:
         <h2 class="autodoc-section-title">Explore</h2>
         <div class="autodoc-cards">
           {# Use page URL as base - for overview page at /api/, links go to /api/endpoints/ etc. #}
-          {% set base_url = page.url | default('/api/') %}
+          {% set base_url = page.href | default('/api/') %}
           {% set base_url = base_url if base_url.endswith('/') else base_url ~ '/' %}
           <a href="{{ base_url }}endpoints/" class="autodoc-card" data-card="link">
             <div class="autodoc-card-header">

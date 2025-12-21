@@ -12,7 +12,7 @@ class TestBuildCache:
         """Test creating an empty cache."""
         cache = BuildCache()
 
-        assert cache.file_hashes == {}
+        assert cache.file_fingerprints == {}
         assert cache.dependencies == {}
         assert cache.output_sources == {}
         assert cache.taxonomy_deps == {}
@@ -49,8 +49,9 @@ class TestBuildCache:
         # Update file in cache
         cache.update_file(test_file)
 
-        assert str(test_file) in cache.file_hashes
-        assert len(cache.file_hashes[str(test_file)]) == 64
+        assert str(test_file) in cache.file_fingerprints
+        assert cache.file_fingerprints[str(test_file)].get("hash") is not None
+        assert len(cache.file_fingerprints[str(test_file)].get("hash", "")) == 64
 
     def test_is_changed_new_file(self, tmp_path):
         """Test detecting a new file."""
@@ -193,7 +194,7 @@ class TestBuildCache:
         # Invalidate the page
         cache.invalidate_file(page)
 
-        assert str(page) not in cache.file_hashes
+        assert str(page) not in cache.file_fingerprints
         assert str(page) not in cache.dependencies
 
     def test_clear(self, tmp_path):
@@ -209,7 +210,7 @@ class TestBuildCache:
 
         cache.clear()
 
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
         assert cache.last_build is None
 
@@ -236,7 +237,7 @@ class TestBuildCache:
         # Load cache
         loaded_cache = BuildCache.load(cache_file)
 
-        assert str(page) in loaded_cache.file_hashes
+        assert str(page) in loaded_cache.file_fingerprints
         assert str(page) in loaded_cache.dependencies
         assert str(template) in loaded_cache.dependencies[str(page)]
         assert "tag:python" in loaded_cache.taxonomy_deps
@@ -248,7 +249,7 @@ class TestBuildCache:
         cache = BuildCache.load(cache_file)
 
         # Should return empty cache
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
 
     def test_load_corrupted_cache(self, tmp_path):
@@ -259,7 +260,7 @@ class TestBuildCache:
         cache = BuildCache.load(cache_file)
 
         # Should return empty cache
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
 
     def test_get_stats(self, tmp_path):
         """Test getting cache statistics."""
@@ -331,7 +332,7 @@ class TestBuildCacheConfigHash:
         cache.update_file(test_file)
         cache.add_dependency(test_file, tmp_path / "template.html")
 
-        assert len(cache.file_hashes) > 0
+        assert len(cache.file_fingerprints) > 0
         assert len(cache.dependencies) > 0
 
         # Different hash should invalidate
@@ -339,7 +340,7 @@ class TestBuildCacheConfigHash:
 
         assert result is False
         # Cache should be cleared
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
         # New hash should be stored
         assert cache.config_hash == "new_hash_67890"
@@ -361,7 +362,7 @@ class TestBuildCacheConfigHash:
         cache.validate_config("new_hash")
 
         # All fields should be cleared
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
         assert len(cache.taxonomy_deps) == 0
         assert len(cache.page_tags) == 0
@@ -390,7 +391,7 @@ class TestBuildCacheConfigHash:
         cache_file = tmp_path / "cache.json"
         old_cache_data = {
             "version": 2,  # Old version before config_hash
-            "file_hashes": {},
+            "file_fingerprints": {},
             "dependencies": {},
             "output_sources": {},
             "taxonomy_deps": {},

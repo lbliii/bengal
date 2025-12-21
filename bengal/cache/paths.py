@@ -245,9 +245,9 @@ class BengalPaths:
 
 def migrate_template_cache(paths: BengalPaths, output_dir: Path) -> bool:
     """
-    Migrate template cache from legacy location to new location.
+    Migrate template cache from old location to new location.
 
-    Legacy location: output_dir/.bengal-cache/templates/
+    Old location: output_dir/.bengal-cache/templates/
     New location: .bengal/templates/
 
     Args:

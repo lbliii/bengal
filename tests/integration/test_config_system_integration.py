@@ -286,7 +286,7 @@ class TestErrorHandling:
         (default_dir / "site.yaml").write_text("invalid: yaml: syntax: error:")
 
         from bengal.config.directory_loader import ConfigLoadError
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         with pytest.raises(ConfigLoadError) as exc_info:
             Site.from_config(root)
@@ -344,7 +344,7 @@ class TestGitHubPagesDeployment:
         default_site = {
             "site": {
                 "title": "Bengal Documentation",
-                "baseurl": "",  # Empty allows env override
+                # baseurl missing allows platform detection to override
                 "description": "A modern Python SSG",
             }
         }

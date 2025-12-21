@@ -4,8 +4,7 @@ Icon directive for Mistune.
 Provides inline SVG icons from Bengal's icon library.
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
-    Note: Module-level icon cache preserved for performance.
+    Module-level icon cache preserved for performance.
 
 Syntax:
 
@@ -215,6 +214,3 @@ class IconDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_icon(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return IconDirective().render(renderer, text, **attrs)

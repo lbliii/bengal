@@ -167,5 +167,3 @@ class TestNavigationVisibilityFiltering:
         in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
 
         assert len(in_menu_pages) == 1
-
-

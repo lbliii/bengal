@@ -399,8 +399,7 @@ class AssetOrchestrator:
                             last_update_time = now
 
                 except Exception as e:
-                    from bengal.utils.error_context import ErrorContext, enrich_error
-                    from bengal.utils.exceptions import BengalError
+                    from bengal.errors import BengalError, ErrorContext, enrich_error
 
                     # Enrich error with context
                     asset_path = asset.source_path if hasattr(asset, "source_path") else None
@@ -445,8 +444,21 @@ class AssetOrchestrator:
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
+        from bengal.errors import (
+            BengalError,
+            ErrorAggregator,
+            ErrorContext,
+            enrich_error,
+            extract_error_context,
+            format_suggestion,
+        )
+
         assets_output = self.site.output_dir / "assets"
         completed = 0
+        total_assets = len(css_entries) + len(other_assets)
+
+        # Track errors for aggregation
+        aggregator = ErrorAggregator(total_items=total_assets)
 
         # Helper to handle single item
         def process_one(asset: Asset, is_css_entry: bool) -> None:
@@ -472,24 +484,40 @@ class AssetOrchestrator:
                         bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
-                from bengal.utils.error_context import ErrorContext, enrich_error
-                from bengal.utils.exceptions import BengalError
+                # Get actionable suggestion
+                suggestion = format_suggestion("asset", "processing_failed")
 
                 # Enrich error with context
-                context = ErrorContext(
+                error_context = ErrorContext(
                     file_path=asset.source_path,
                     operation="processing asset",
-                    suggestion="Check file permissions, encoding, and format",
+                    suggestion=suggestion or "Check file permissions, encoding, and format",
                     original_error=e,
                 )
-                enriched = enrich_error(e, context, BengalError)
-                self.logger.error(
-                    "asset_processing_failed",
-                    asset_path=str(asset.source_path),
-                    error=str(enriched),
-                    error_type=type(e).__name__,
-                    mode="sequential",
-                )
+                enriched = enrich_error(e, error_context, BengalError)
+
+                # Extract context for logging and aggregation
+                context = extract_error_context(e, asset)
+                context["operation"] = "processing asset"
+                context["mode"] = "sequential"
+                if suggestion:
+                    context["suggestion"] = suggestion
+
+                # Only log individual error if below threshold or first samples
+                threshold = 5
+                if aggregator.should_log_individual(e, context, threshold=threshold, max_samples=3):
+                    self.logger.error(
+                        "asset_processing_failed",
+                        asset_path=str(asset.source_path),
+                        error=str(enriched),
+                        error_type=type(e).__name__,
+                        mode="sequential",
+                        suggestion=suggestion,
+                    )
+
+                # Add to aggregator
+                aggregator.add_error(e, context=context)
+
                 # Collect error in build stats if available
                 if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
                     stats = self.site._last_build_stats
@@ -503,6 +531,9 @@ class AssetOrchestrator:
         # Process others
         for asset in other_assets:
             process_one(asset, False)
+
+        # Log aggregated summary if threshold exceeded
+        aggregator.log_summary(self.logger, threshold=5, error_type="assets")
 
     def _create_js_bundle(
         self, js_modules: list[Asset], assets_cfg: dict[str, Any]
@@ -553,7 +584,7 @@ class AssetOrchestrator:
                     rel_path = a.source_path.relative_to(js_dir)
                     rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
                     module_map[rel_path_str] = a.source_path
-                    # Also index by filename for backward compatibility
+                    # Also index by filename
                     if rel_path_str != a.source_path.name:
                         module_map[a.source_path.name] = a.source_path
                 else:
@@ -660,8 +691,7 @@ class AssetOrchestrator:
             css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
 
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(
@@ -702,8 +732,7 @@ class AssetOrchestrator:
 
             asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(

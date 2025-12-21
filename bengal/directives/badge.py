@@ -3,8 +3,6 @@ Badge directive for Mistune.
 
 Provides MyST-style badge directive: ```{badge} Text :class: badge-class```
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations
@@ -142,8 +140,3 @@ class BadgeDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_badge(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return BadgeDirective().render(renderer, text, **attrs)
-
-

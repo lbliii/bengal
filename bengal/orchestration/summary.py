@@ -415,7 +415,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
 
     # Row 5: Errors and warnings (if any)
     if stats.has_errors or stats.warnings:
-        from bengal.utils.error_reporter import format_error_report
+        from bengal.errors import format_error_report
 
         error_report = format_error_report(stats, verbose=True)
         if error_report != "✅ No errors or warnings":

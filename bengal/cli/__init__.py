@@ -45,8 +45,8 @@ from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.cli.commands.version import version_cli
+from bengal.errors.traceback import TracebackConfig
 from bengal.output import CLIOutput
-from bengal.utils.traceback_config import TracebackConfig
 
 # Import commands from new modular structure
 from .base import BengalCommand, BengalGroup

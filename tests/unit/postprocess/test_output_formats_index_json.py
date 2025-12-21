@@ -390,7 +390,8 @@ class TestSiteIndexJsonGeneration:
         """Create a mock Page instance."""
         page = Mock()
         page.title = title
-        page.url = url
+        page.href = url
+        page._path = url  # Site-relative path (used by get_page_relative_url)
         page.content = content
         page.parsed_ast = content  # Simplified for testing
         page.plain_text = content  # For AST-based extraction

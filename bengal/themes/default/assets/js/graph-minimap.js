@@ -165,7 +165,7 @@
                 .attr('stroke-width', 0.5)
                 .style('cursor', 'pointer')
                 .on('click', (event, d) => {
-                    if (d.url) window.location.href = d.url;
+                    if (d.href) window.location.href = d.href;
                 })
                 .on('mouseover', (event, d) => {
                     this.showTooltip(event, d);

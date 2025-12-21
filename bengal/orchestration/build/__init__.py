@@ -99,7 +99,6 @@ class BuildOrchestrator:
         self,
         options: BuildOptions | None = None,
         *,
-        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -135,12 +134,11 @@ class BuildOrchestrator:
             BuildStats object with build statistics
 
         Example:
-            >>> # Using BuildOptions (preferred)
             >>> from bengal.orchestration.build.options import BuildOptions
             >>> options = BuildOptions(parallel=True, strict=True)
             >>> stats = orchestrator.build(options)
             >>>
-            >>> # Using individual parameters (backward compatibility)
+            >>> # Or using individual parameters
             >>> stats = orchestrator.build(parallel=True, strict=True)
         """
         # Resolve options: use provided BuildOptions or construct from individual params
@@ -269,7 +267,7 @@ class BuildOrchestrator:
             try:
                 cache_path = self.site.paths.build_cache
                 cache_exists = cache_path.exists()
-                cached_files = len(getattr(cache, "file_hashes", {}) or {})
+                cached_files = len(cache.file_fingerprints)
                 if cache_exists and cached_files > 0:
                     incremental = True
                     auto_reason = "auto: cache present"
@@ -402,19 +400,19 @@ class BuildOrchestrator:
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
-        rendering.phase_update_site_pages(self, incremental, pages_to_build)
+        rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
 
         # Phase 16: Track Asset Dependencies
-        rendering.phase_track_assets(self, pages_to_build)
+        rendering.phase_track_assets(self, pages_to_build, cli=cli)
 
         # Phase 17: Post-processing
         finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
 
         # Phase 18: Save Cache
-        finalization.phase_cache_save(self, pages_to_build, assets_to_process)
+        finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
 
         # Phase 19: Collect Final Stats
-        finalization.phase_collect_stats(self, build_start)
+        finalization.phase_collect_stats(self, build_start, cli=cli)
 
         # Phase 20: Health Check
         with self.logger.phase("health_check"):
@@ -462,8 +460,7 @@ class BuildOrchestrator:
         cli.detail(f"Total:            {len(self.site.pages)} ✓", indent=1, icon="└─")
 
     # =========================================================================
-    # Phase Methods - Wrapper methods for backward compatibility
-    # These delegate to the modular phase functions
+    # Phase Methods - Wrapper methods that delegate to modular phase functions
     # =========================================================================
 
     def _phase_fonts(self, cli: CLIOutput) -> None:

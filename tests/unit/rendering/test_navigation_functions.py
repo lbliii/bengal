@@ -151,7 +151,7 @@ class TestGetPaginationItems:
         assert result["prev"] is None
         assert result["next"] is not None
         assert result["next"]["num"] == 2
-        assert result["next"]["url"] == "/blog/page/2/"
+        assert result["next"]["href"] == "/blog/page/2/"
         assert result["pages"][0]["is_current"]
 
     def test_last_page_of_many(self):
@@ -174,9 +174,9 @@ class TestGetPaginationItems:
         """Page 1 uses base URL, not /page/1/."""
         result = get_pagination_items(1, 10, "/blog/")
 
-        assert result["pages"][0]["url"] == "/blog/"
+        assert result["pages"][0]["href"] == "/blog/"
         # Page 2 should use /page/2/
-        assert result["pages"][1]["url"] == "/blog/page/2/"
+        assert result["pages"][1]["href"] == "/blog/page/2/"
 
     def test_ellipsis_markers(self):
         """Ellipsis markers are included when needed."""
@@ -217,7 +217,7 @@ class TestGetPaginationItems:
         result2 = get_pagination_items(2, 3, "/blog")
 
         # Both should generate same URLs
-        assert result1["pages"][1]["url"] == result2["pages"][1]["url"]
+        assert result1["pages"][1]["href"] == result2["pages"][1]["href"]
 
     def test_current_page_clamped(self):
         """Current page is clamped to valid range."""
@@ -271,8 +271,8 @@ class TestGetNavTree:
 
         # Create mock page
         current_page = Mock()
-        current_page.url = "/docs/page1/"
-        current_page.relative_url = "/docs/page1/"
+        current_page._path = "/docs/page1/"
+        current_page.href = "/docs/page1/"
         current_page.version = None
         current_page._section = None
         current_page._site = site
@@ -298,8 +298,8 @@ class TestGetNavTree:
 
         # Create mock page
         current_page = Mock()
-        current_page.url = "/docs/page1/"
-        current_page.relative_url = "/docs/page1/"
+        current_page._path = "/docs/page1/"
+        current_page.href = "/docs/page1/"
         current_page.version = None
         current_page._section = None
         current_page._site = site
@@ -317,7 +317,7 @@ class TestGetNavContext:
 
     def test_no_site_raises_error(self):
         """Page without site reference raises BengalRenderingError."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         current_page = Mock(spec=[])
         current_page._site = None
@@ -338,8 +338,8 @@ class TestGetNavContext:
 
         # Create mock page
         current_page = Mock()
-        current_page.url = "/docs/page1/"
-        current_page.relative_url = "/docs/page1/"
+        current_page._path = "/docs/page1/"
+        current_page.href = "/docs/page1/"
         current_page.version = None
         current_page._section = None
         current_page._site = site

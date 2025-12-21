@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 @dataclass
@@ -110,7 +110,7 @@ class Theme:
         # Get [theme] section
         theme_section = config.get("theme", {})
 
-        # Handle legacy config where theme was a string
+        # Handle config where theme was a string
         if isinstance(theme_section, str):
             theme_name = theme_section
         else:
@@ -182,7 +182,7 @@ class Theme:
                 },
             )
 
-        # Fall back to config dict (legacy or when theme.yaml doesn't exist)
+        # Fall back to config dict (when theme.yaml doesn't exist)
         if isinstance(theme_section, str):
             return cls(
                 name=theme_section,

@@ -547,30 +547,14 @@ class ConfigInspector(DebugTool):
                 action="skipping_environment_layer",
             )
 
-        # Check deprecation
-        deprecated = False
-        deprecation_message = None
-        from bengal.config.deprecation import DEPRECATED_KEYS
-
-        if key_path in DEPRECATED_KEYS:
-            deprecated = True
-            deprecated_info = DEPRECATED_KEYS.get(key_path)
-            if deprecated_info:
-                # deprecated_info is tuple[str, str, str] where third element is the message
-                deprecation_message = (
-                    deprecated_info[2] if len(deprecated_info) > 2 else "This key is deprecated"
-                )
-            else:
-                deprecation_message = "This key is deprecated"
-
         return KeyExplanation(
             key_path=key_path,
             effective_value=value,
             origin=origin,
             layer_values=layer_values,
             is_default=bool(origin and "_default" in origin),
-            deprecated=deprecated,
-            deprecation_message=deprecation_message,
+            deprecated=False,
+            deprecation_message=None,
         )
 
     def _load_defaults_only(self, defaults_dir: Path) -> dict[str, Any]:
@@ -626,23 +610,6 @@ class ConfigInspector(DebugTool):
         config = getattr(self.site, "config", {})
         if not config:
             return findings
-
-        # Check for deprecated keys
-        from bengal.config.deprecation import DEPRECATED_KEYS
-
-        for key_path in DEPRECATED_KEYS:
-            value = self._get_nested_value(config, key_path)
-            if value is not None:
-                # DEPRECATED_KEYS values are tuples: (section, new_key, note)
-                section, new_key, note = DEPRECATED_KEYS[key_path]
-                findings.append(
-                    DebugFinding(
-                        title=f"Deprecated key: {key_path}",
-                        description=note,
-                        severity=Severity.WARNING,
-                        suggestion=f"Use '{section}.{new_key}' instead",
-                    )
-                )
 
         # Check for common issues
         baseurl = config.get("baseurl", "")

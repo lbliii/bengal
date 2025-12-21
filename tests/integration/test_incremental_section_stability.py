@@ -276,7 +276,7 @@ def test_section_url_stability_across_rebuilds(test_site_dir):
     site.discover_content()
 
     # Get URLs from first build
-    urls_before = {p.source_path: p.url for p in site.pages}
+    urls_before = {p.source_path: p.href for p in site.pages}
 
     # Rebuild multiple times
     for _ in range(3):
@@ -284,7 +284,7 @@ def test_section_url_stability_across_rebuilds(test_site_dir):
         site.discover_content()
 
         # Verify URLs haven't changed
-        urls_after = {p.source_path: p.url for p in site.pages}
+        urls_after = {p.source_path: p.href for p in site.pages}
         assert urls_before == urls_after
 
 

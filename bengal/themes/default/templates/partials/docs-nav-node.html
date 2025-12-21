@@ -35,8 +35,8 @@ Usage:
     </span>
     {% endif %}
 
-    {% if item.url %}
-    <a href="{{ item.url }}"
+    {% if item.href %}
+    <a href="{{ item.href }}"
        class="docs-nav-group-title{% if item.is_current %} active{% endif %}"
        {% if item.is_current %}aria-current="page"{% endif %}>
       {{ item_title }}
@@ -71,8 +71,8 @@ Usage:
     </span>
     {% endif %}
 
-    {% if item.url %}
-    <a href="{{ item.url }}"
+    {% if item.href %}
+    <a href="{{ item.href }}"
        class="docs-nav-group-link{% if item.is_current %} active{% endif %}"
        {% if item.is_current %}aria-current="page"{% endif %}>
       {{ item_title }}
@@ -96,8 +96,8 @@ Usage:
 {% else %}
 {# ===== LEAF NODE (no children) ===== #}
 <div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
-  {% if item.url %}
-  <a href="{{ item.url }}"
+  {% if item.href %}
+  <a href="{{ item.href }}"
      class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}{% if item.is_current %} active{% endif %}"
      {% if item.is_current %}aria-current="page"{% endif %}>
     {% if show_nav_icons and item.is_section %}

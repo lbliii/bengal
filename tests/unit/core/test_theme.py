@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from bengal.core.theme import Theme
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 class TestThemeBasics:

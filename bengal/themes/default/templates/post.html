@@ -50,7 +50,7 @@
         <div class="related-posts-grid">
             {% for post in related %}
             <article class="related-post-card gradient-border fluid-combined">
-                <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
+                <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
                 {% endif %}

@@ -129,12 +129,12 @@ class NavigationValidator(BaseValidator):
 
                 # Validate ancestor exists in site's section tree when it looks like a Section
                 try:
-                    if getattr(ancestor, "url", None) and getattr(ancestor, "source_path", None):
+                    if getattr(ancestor, "href", None) and getattr(ancestor, "source_path", None):
                         # Consider it a Section-like object; verify membership by identity or URL
                         sections = getattr(site, "sections", []) or []
                         found = any(
                             (s is ancestor)
-                            or (getattr(s, "url", None) == getattr(ancestor, "url", None))
+                            or (getattr(s, "href", None) == getattr(ancestor, "href", None))
                             for s in sections
                         )
                         if not found:

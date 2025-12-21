@@ -23,7 +23,7 @@ class TestCacheMigration:
         public_dir.mkdir()
         old_cache = public_dir / ".bengal-cache.json"
         old_cache_data = {
-            "file_hashes": {"content/index.md": "abc123"},
+            "file_fingerprints": {"content/index.md": {"hash": "abc123", "mtime": 0, "size": 0}},
             "dependencies": {},
             "last_build": "2025-10-13T10:00:00",
         }
@@ -39,8 +39,8 @@ class TestCacheMigration:
         # Verify migration occurred
         new_cache_path = tmp_path / ".bengal" / "cache.json"
         assert new_cache_path.exists(), "New cache should be created"
-        assert len(cache.file_hashes) == 1, "Cache data should be migrated"
-        assert cache.file_hashes["content/index.md"] == "abc123"
+        assert len(cache.file_fingerprints) == 1, "Cache data should be migrated"
+        assert cache.file_fingerprints["content/index.md"].get("hash") == "abc123"
 
     def test_migration_preserves_cache_data(self, tmp_path):
         """Test that all cache fields are preserved during migration."""
@@ -53,7 +53,10 @@ class TestCacheMigration:
         # Create comprehensive old cache
         old_cache = public_dir / ".bengal-cache.json"
         old_cache_data = {
-            "file_hashes": {"content/index.md": "hash1", "content/about.md": "hash2"},
+            "file_fingerprints": {
+                "content/index.md": {"hash": "hash1", "mtime": 0, "size": 0},
+                "content/about.md": {"hash": "hash2", "mtime": 0, "size": 0},
+            },
             "dependencies": {"content/index.md": ["templates/base.html"]},
             "page_tags": {"content/index.md": ["tag1", "tag2"]},
             "tag_to_pages": {"tag1": ["content/index.md"]},
@@ -72,7 +75,7 @@ class TestCacheMigration:
         cache, tracker = incremental.initialize(enabled=True)
 
         # Verify all fields preserved
-        assert len(cache.file_hashes) == 2
+        assert len(cache.file_fingerprints) == 2
         assert "content/index.md" in cache.dependencies
         assert cache.page_tags["content/index.md"] == {"tag1", "tag2"}
         assert "tag1" in cache.known_tags
@@ -89,7 +92,12 @@ class TestCacheMigration:
         # Old cache (stale data)
         old_cache = public_dir / ".bengal-cache.json"
         old_cache.write_text(
-            json.dumps({"file_hashes": {"old": "data"}, "last_build": "2025-10-01T10:00:00"})
+            json.dumps(
+                {
+                    "file_fingerprints": {"old": {"hash": "data", "mtime": 0, "size": 0}},
+                    "last_build": "2025-10-01T10:00:00",
+                }
+            )
         )
 
         # New cache (current data)
@@ -97,7 +105,12 @@ class TestCacheMigration:
         new_cache_dir.mkdir()
         new_cache = new_cache_dir / "cache.json"
         new_cache.write_text(
-            json.dumps({"file_hashes": {"new": "data"}, "last_build": "2025-10-13T10:00:00"})
+            json.dumps(
+                {
+                    "file_fingerprints": {"new": {"hash": "data", "mtime": 0, "size": 0}},
+                    "last_build": "2025-10-13T10:00:00",
+                }
+            )
         )
 
         # Initialize
@@ -107,8 +120,8 @@ class TestCacheMigration:
         cache, tracker = incremental.initialize(enabled=True)
 
         # Verify new cache is used
-        assert "new" in cache.file_hashes
-        assert "old" not in cache.file_hashes
+        assert "new" in cache.file_fingerprints
+        assert "old" not in cache.file_fingerprints
 
     def test_migration_failure_falls_back_to_fresh_cache(self, tmp_path):
         """Test graceful fallback if migration fails."""
@@ -128,7 +141,7 @@ class TestCacheMigration:
         cache, tracker = incremental.initialize(enabled=True)
 
         # Should have fresh cache
-        assert len(cache.file_hashes) == 0
+        assert len(cache.file_fingerprints) == 0
 
     def test_cache_survives_clean_operation(self, tmp_path):
         """Test that cache persists after site.clean()."""
@@ -144,7 +157,9 @@ class TestCacheMigration:
         cache_dir = tmp_path / ".bengal"
         cache_dir.mkdir()
         cache_file = cache_dir / "cache.json"
-        cache_file.write_text(json.dumps({"file_hashes": {"test": "data"}}))
+        cache_file.write_text(
+            json.dumps({"file_fingerprints": {"test": {"hash": "data", "mtime": 0, "size": 0}}})
+        )
 
         # Create site and clean
         site = Site(root_path=tmp_path, config={"output_dir": "public"})
@@ -185,7 +200,7 @@ class TestCacheMigration:
         public_dir.mkdir()
 
         old_cache = public_dir / ".bengal-cache.json"
-        cache_data = {"file_hashes": {"test": "abc123"}}
+        cache_data = {"file_fingerprints": {"test": {"hash": "abc123", "mtime": 0, "size": 0}}}
         old_cache.write_text(json.dumps(cache_data))
 
         # Verify old cache exists
@@ -200,4 +215,6 @@ class TestCacheMigration:
         # Verify new cache was created with migrated data
         new_cache_path = tmp_path / ".bengal" / "cache.json"
         assert new_cache_path.exists(), "New cache should exist after migration"
-        assert cache.file_hashes["test"] == "abc123", "Cache data should be migrated"
+        assert cache.file_fingerprints["test"].get("hash") == "abc123", (
+            "Cache data should be migrated"
+        )

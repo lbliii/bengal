@@ -31,7 +31,6 @@ from typing import Any
 
 from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
 from bengal.core.page import Page
-from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -419,12 +418,12 @@ class Section:
             Set of URL strings for subsection index pages
 
         Example:
-            {% if page.relative_url not in section.subsection_index_urls %}
+            {% if page._path not in section.subsection_index_urls %}
               <a href="{{ url_for(page) }}">{{ page.title }}</a>
             {% endif %}
         """
         return {
-            subsection.index_page.relative_url
+            getattr(subsection.index_page, "_path", None)
             for subsection in self.subsections
             if subsection.index_page
         }
@@ -479,7 +478,7 @@ class Section:
         Example:
             {% set version_id = current_version.id if site.versioning_enabled else none %}
             {% for page in section.pages_for_version(version_id) %}
-              <a href="{{ page.url }}">{{ page.title }}</a>
+              <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
         if version_id is None:
@@ -561,58 +560,18 @@ class Section:
         return result
 
     @cached_property
-    def relative_url(self) -> str:
+    def href(self) -> str:
         """
-        Get relative URL without baseurl (for comparisons).
+        URL for template href attributes. Includes baseurl.
 
-        This is the identity URL - use for comparisons, menu activation, etc.
-        Always returns a relative path without baseurl.
-
-        For virtual sections, uses the _relative_url_override set during creation.
-        Virtual sections MUST have explicit URLs - they never fall back to construction.
-        """
-        from bengal.utils.url_normalization import join_url_paths, normalize_url
-
-        # Virtual sections MUST have explicit URL override
-        # This is a hard requirement - virtual sections are created with explicit URLs
-        if self._virtual:
-            if not self._relative_url_override:
-                raise BengalContentError(
-                    f"Virtual section '{self.name}' has no _relative_url_override set. "
-                    f"Virtual sections must have explicit URLs set during creation.",
-                    suggestion="Set _relative_url_override when creating virtual sections",
-                )
-            return self._relative_url_override
-
-        # If we have an index page with a proper output_path, use its relative_url
-        if (
-            self.index_page
-            and hasattr(self.index_page, "output_path")
-            and self.index_page.output_path
-        ):
-            url = self.index_page.relative_url
-            # Normalize to ensure consistency
-            return normalize_url(url, ensure_trailing_slash=True)
-
-        # Otherwise, construct from section hierarchy
-        # This handles regular sections (not virtual) before pages have output_paths set
-        parent_rel = self.parent.relative_url if self.parent else "/"
-        url = join_url_paths(parent_rel, self.name)
-        return url
-
-    @cached_property
-    def url(self) -> str:
-        """
-        Get URL with baseurl applied (cached after first access).
-
-        This is the primary URL property for templates - automatically includes
-        baseurl when available. Use .relative_url for comparisons.
+        Use this in templates for all links:
+            <a href="{{ section.href }}">
 
         Returns:
             URL path with baseurl prepended (if configured)
         """
-        # Get relative URL first
-        rel = self.relative_url or "/"
+        # Get site-relative path first
+        rel = self._path or "/"
 
         baseurl = ""
         try:
@@ -630,31 +589,122 @@ class Section:
         return f"{baseurl}{rel}"
 
     @cached_property
-    def permalink(self) -> str:
+    def _path(self) -> str:
         """
-        Alias for url (for backward compatibility).
+        Internal site-relative path. NO baseurl.
 
-        Both url and permalink now return the same value (with baseurl).
-        Use .relative_url for comparisons.
+        Use for internal operations only:
+        - Cache keys
+        - Active trail detection
+        - URL comparisons
+        - Link validation
+
+        NEVER use in templates - use .href instead.
+
+        For versioned content in _versions/<id>/, the path is transformed:
+        - _versions/v1/docs/about → /docs/v1/about/ (non-latest)
+        - _versions/v3/docs/about → /docs/about/ (latest)
         """
-        return self.url
+        from bengal.utils.url_normalization import join_url_paths, normalize_url
+
+        if self._virtual:
+            if not self._relative_url_override:
+                self._diagnostics.emit(
+                    self,
+                    "error",
+                    "virtual_section_missing_url",
+                    section_name=self.name,
+                    tip="Virtual sections must have a _relative_url_override set.",
+                )
+                return "/"
+            return normalize_url(self._relative_url_override)
+
+        if self.path is None:
+            return "/"
+
+        parent_rel = self.parent._path if self.parent else "/"
+        url = join_url_paths(parent_rel, self.name)
+
+        # Apply version path transformation for _versions/ content
+        url = self._apply_version_path_transform(url)
+
+        return url
+
+    def _apply_version_path_transform(self, url: str) -> str:
+        """
+        Transform versioned section URL to proper output structure.
+
+        For sections inside _versions/<id>/, transforms the URL:
+        - /_versions/v1/docs/about/ → /docs/v1/about/ (non-latest)
+        - /_versions/v3/docs/about/ → /docs/about/ (latest)
+
+        This matches the transformation applied to pages in URLStrategy.
+
+        Args:
+            url: Raw section URL (may contain _versions prefix)
+
+        Returns:
+            Transformed URL with version placed after section
+        """
+        # Fast path: not versioned content
+        if "/_versions/" not in url:
+            return url
+
+        # Get site and version config
+        site = getattr(self, "_site", None)
+        if not site or not getattr(site, "versioning_enabled", False):
+            return url
+
+        version_config = getattr(site, "version_config", None)
+        if not version_config:
+            return url
+
+        # Parse the URL: /_versions/<id>/<section>/...
+        # Split on /_versions/ to get parts after
+        parts = url.split("/_versions/", 1)
+        if len(parts) < 2:
+            return url
+
+        remainder = parts[1]  # e.g., "v1/docs/about/"
+        remainder_parts = remainder.strip("/").split("/")
+
+        if len(remainder_parts) < 2:
+            # Just /_versions/<id>/ with no section - shouldn't happen for real sections
+            return url
+
+        version_id = remainder_parts[0]  # e.g., "v1"
+        section_name = remainder_parts[1]  # e.g., "docs"
+        rest = remainder_parts[2:]  # e.g., ["about"]
+
+        # Check if this is the latest version
+        version_obj = version_config.get_version(version_id)
+        if not version_obj:
+            return url
+
+        if version_obj.latest:
+            # Latest version: strip version prefix entirely
+            # /_versions/v3/docs/about/ → /docs/about/
+            if rest:
+                return f"/{section_name}/" + "/".join(rest) + "/"
+            else:
+                return f"/{section_name}/"
+        else:
+            # Non-latest version: insert version after section
+            # /_versions/v1/docs/about/ → /docs/v1/about/
+            if rest:
+                return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
+            else:
+                return f"/{section_name}/{version_id}/"
 
     @property
-    def site_path(self) -> str:
+    def absolute_href(self) -> str:
         """
-        Alias for relative_url with explicit naming.
-
-        URL NAMING CONVENTION:
-        ======================
-        - site_path: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
-                     Use for: Internal lookups, comparisons, active trail detection
-        - url: Public URL WITH baseurl (e.g., "/bengal/docs/foo/")
-               Use for: Template href attributes, external links
-
-        This property exists to make the naming convention explicit and
-        prevent confusion about which URL property to use.
+        Fully-qualified URL for meta tags and sitemaps when available.
         """
-        return self.relative_url
+        if not self._site or not self._site.config.get("url"):
+            return self.href
+        site_url = self._site.config["url"].rstrip("/")
+        return f"{site_url}{self._path}"
 
     def add_page(self, page: Page) -> None:
         """
@@ -857,7 +907,7 @@ class Section:
 
         Example:
             {% for page in section.content_pages %}
-              <a href="{{ page.url }}">{{ page.title }}</a>
+              <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
         # sorted_pages already excludes index files, so this is a semantic alias
