@@ -97,6 +97,15 @@ class ContentOrchestrator:
         if content_dir is None:
             content_dir = self.site.root_path / "content"
 
+        # Ensure absolute path - relative paths break URL computation silently
+        if not content_dir.is_absolute():
+            content_dir = content_dir.resolve()
+            self.logger.debug(
+                "content_dir_resolved_to_absolute",
+                original=str(content_dir),
+                resolved=str(content_dir),
+            )
+
         if not content_dir.exists():
             self.logger.warning("content_dir_not_found", path=str(content_dir))
             return

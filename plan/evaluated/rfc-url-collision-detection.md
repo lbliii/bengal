@@ -8,10 +8,10 @@
 
 Debugging autodoc navigation issues is extremely difficult because:
 
-1. **URL collisions are silent** - when two pages output to the same URL, the last one wins with no warning
-2. **No integration tests** for autodoc navigation specifically
-3. **Complex multi-system interaction** - autodoc → sections → pages → NavTree → templates
-4. **No visibility into NavTree building** - node overwrites happen silently
+1. **URL collisions are silent** - when two pages output to the same URL, the last one wins with no warning. The `NavTree._flat_nodes` index (a dictionary comprehension) silently overwrites previous entries during build.
+2. **Post-build detection is too late** - While `SitemapValidator` detects duplicates, it runs during Phase 17 (Post-processing), after the build has already "succeeded" with broken navigation.
+3. **Complex multi-system interaction** - autodoc → sections → pages → NavTree → templates.
+4. **No visibility into NavTree building** - node overwrites happen silently in memory.
 
 ### Evidence: The Bug We Just Fixed
 
@@ -21,13 +21,9 @@ Debugging autodoc navigation issues is extremely difficult because:
 1. CLI section index page (`__virtual__/cli/section-index.md`)
 2. Root CLI command page (`cli.md` for "bengal" command)
 
-**Time to Diagnose**: ~2 hours of tracing through multiple systems
+**Current Status**: A manual guard was added to `bengal/autodoc/orchestration/section_builders.py` to skip the root command group, but this is a reactive fix that doesn't protect other subsystems.
 
-**Why It Was Hard**:
-- No error or warning when both pages claimed `/cli/`
-- NavTree silently overwrote section node with page node in `_flat_nodes`
-- Had to manually trace: pages → sections → NavTree → template rendering
-- False leads: thought it was relative vs absolute paths, section hierarchy, etc.
+**Time to Diagnose**: ~2 hours of tracing through multiple systems. With proactive detection, this would be < 5 minutes.
 
 ## Goals
 
@@ -103,41 +99,25 @@ if url in self._flat_nodes:
 - Doesn't prevent the problem, just surfaces it
 - Easy to miss in logs
 
-### Option C: URL Registry (Architectural Change)
+### Option C: URL Registry (Architectural Solution)
 
-**Create a central registry that all systems must register URLs with:**
+**Create a central registry that all systems must register URLs with. This registry should be consulted during Phase 12 (Update Pages List) of the build.**
 
 ```python
 class URLRegistry:
-    """Central registry for all output URLs."""
+    """Central registry for all output URLs with priority handling."""
 
     def __init__(self):
         self._urls: dict[str, URLClaim] = {}
 
     def claim(self, url: str, source: str, priority: int = 0) -> None:
         """
-        Claim a URL for output.
-
-        Args:
-            url: The URL being claimed (e.g., "/cli/")
-            source: Description of claimer (e.g., "autodoc:cli:section-index")
-            priority: Higher priority wins collisions (section > page)
-
-        Raises:
-            URLCollisionError: If URL already claimed with same/higher priority
+        Priority levels:
+        - 100: Manual content (explicit overrides)
+        - 50:  Structural indexes (_index.md)
+        - 10:  Generated autodoc content
         """
-        if url in self._urls:
-            existing = self._urls[url]
-            if existing.priority >= priority:
-                raise URLCollisionError(
-                    url=url,
-                    existing=existing,
-                    new=URLClaim(source=source, priority=priority),
-                )
-            # New claim has higher priority, log and replace
-            logger.info("url_claim_override", url=url, old=existing.source, new=source)
-
-        self._urls[url] = URLClaim(source=source, priority=priority)
+        # ... logic ...
 ```
 
 **Usage:**
