@@ -96,7 +96,7 @@
                                 const currentUrl = this.normalizeUrl(this.options.currentPageUrl);
                                 this.filteredData.nodes.forEach(node => {
                                     delete node.isCurrent;
-                                    const nodeUrl = this.normalizeUrl(node.url);
+                                    const nodeUrl = this.normalizeUrl(node.href);
                                     if (nodeUrl === currentUrl) {
                                         node.isCurrent = true;
                                     }
@@ -160,7 +160,7 @@
 
             const currentUrl = this.normalizeUrl(this.options.currentPageUrl);
             const currentNode = this.data.nodes.find(node => {
-                const nodeUrl = this.normalizeUrl(node.url);
+                const nodeUrl = this.normalizeUrl(node.href);
                 return nodeUrl === currentUrl;
             });
 
@@ -226,7 +226,7 @@
             if (!previousPageUrl) return;
 
             nodes.forEach(node => {
-                const nodeUrl = this.normalizeUrl(node.url);
+                const nodeUrl = this.normalizeUrl(node.href);
                 if (pathTracker.isPreviousPage(nodeUrl)) {
                     node.isPreviousPage = true;
                 }
@@ -360,8 +360,8 @@
                 .on('click', (event, d) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (d.url && !d.isCurrent) {
-                        let targetUrl = d.url;
+                    if (d.href && !d.isCurrent) {
+                        let targetUrl = d.href;
                         if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                             try {
                                 targetUrl = new URL(targetUrl).pathname;

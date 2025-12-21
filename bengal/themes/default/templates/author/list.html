@@ -70,7 +70,7 @@ Context variables:
         'location': child.metadata.get('location'),
         'github': child.metadata.get('social', {}).get('github'),
         'post_count': post_count,
-        'url': child.url
+        'url': child.href
       }) %}
     {% endif %}
   {% endfor %}
@@ -79,7 +79,7 @@ Context variables:
   <div class="authors-grid">
     {% for author in authors_list | sort(attribute='name') %}
     <article class="author-card">
-      <a href="{{ author.url }}" class="author-card-link">
+      <a href="{{ author.href }}" class="author-card-link">
         {% if author.avatar %}
         <img src="{{ author.avatar }}"
              alt="{{ author.name }}"

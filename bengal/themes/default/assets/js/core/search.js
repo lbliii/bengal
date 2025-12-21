@@ -323,7 +323,7 @@
             data.pages.forEach(page => {
                 if (!page.search_exclude && !page.draft) {
                     this.add({
-                        objectID: page.objectID || page.url,  // Use objectID for unique tracking
+                        objectID: page.objectID || page.href,  // Use objectID for unique tracking
                         title: page.title || '',
                         description: page.description || '',
                         content: page.content || page.excerpt || '',
@@ -450,13 +450,13 @@
             results = results.map(result => {
                 // Match by objectID (which is the URI/relative path)
                 const page = searchData.pages.find(p =>
-                    (p.objectID || p.uri || p.url) === result.ref
+                    (p.objectID || p.uri || p.href) === result.ref
                 );
                 if (page) {
                     return {
                         ...page,
                         // Use url (includes baseurl) for navigation
-                        href: page.url || page.uri,
+                        href: page.href || page.uri,
                         score: result.score,
                         matchData: result.matchData,
                     };
@@ -1118,7 +1118,7 @@
         item.setAttribute('data-index', index);
 
         // Build HTML
-        const href = result.href || result.uri || result.url;
+        const href = result.href || result.uri || result.href;
         const title = result.highlightedTitle || result.title || 'Untitled';
         // Prefer frontmatter description over generated excerpt
         const description = result.description || result.highlightedExcerpt || result.excerpt || '';
@@ -1756,7 +1756,7 @@
         item.setAttribute('aria-selected', 'false');
         item.setAttribute('data-index', index);
 
-        const href = result.href || result.uri || result.url;
+        const href = result.href || result.uri || result.href;
         const title = result.highlightedTitle || result.title || 'Untitled';
         const description = result.description || result.highlightedExcerpt || result.excerpt || '';
         const section = result.section || '';

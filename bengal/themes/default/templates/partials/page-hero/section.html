@@ -20,13 +20,13 @@ Usage:
 #}
 
 {# Determine section type from explicit context, page type, or URL sniffing (fallback) #}
-{# Priority: 1. hero_context.is_cli, 2. page.type == 'autodoc-cli', 3. '/cli' in page.url #}
+{# Priority: 1. hero_context.is_cli, 2. page.type == 'autodoc-cli', 3. '/cli' in page.href #}
 {% set is_cli = false %}
 {% if hero_context is defined and hero_context and hero_context.is_cli is defined %}
   {% set is_cli = hero_context.is_cli %}
 {% elif page.type is defined and page.type == 'autodoc-cli' %}
   {% set is_cli = true %}
-{% elif page.url is defined and '/cli' in page.url %}
+{% elif page.href is defined and '/cli' in page.href %}
   {% set is_cli = true %}
 {% endif %}
 

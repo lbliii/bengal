@@ -31,7 +31,7 @@
                 {% if page.metadata.get('cta_buttons') %}
                 <div class="hero__actions">
                     {% for button in page.metadata.get('cta_buttons') %}
-                    <a href="{{ button.url | absolute_url }}"
+                    <a href="{{ button.href | absolute_url }}"
                         class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
                         {{ button.text }}
                     </a>
@@ -54,7 +54,7 @@
                 <h3 class="feature-title">{{ feature.title }}</h3>
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
-                <a href="{{ feature.link.url | absolute_url }}" class="feature-link">
+                <a href="{{ feature.link.href | absolute_url }}" class="feature-link">
                     {{ feature.link.text | default('Learn more') }}
                     <span aria-hidden="true">→</span>
                 </a>
@@ -76,7 +76,7 @@
         <h2>Quick Links</h2>
         <div class="quick-links-grid">
             {% for link in page.metadata.get('quick_links') %}
-            <a href="{{ link.url | absolute_url }}" class="quick-link-card">
+            <a href="{{ link.href | absolute_url }}" class="quick-link-card">
                 {% if link.icon %}
                 <div class="quick-link-icon" aria-hidden="true">{{ link.icon }}</div>
                 {% endif %}
@@ -120,7 +120,7 @@
     {% set blog_posts = [] %}
     {% for p in site.pages %}
     {# Use relative_url for comparisons (without baseurl) #}
-    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.relative_url %}
+    {% if p.metadata.get('type') == 'blog' or '/blog/' in p._path %}
     {% set _ = blog_posts.append(p) %}
     {% endif %}
     {% endfor %}
@@ -137,14 +137,14 @@
             <article class="post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="post-card-image">
-                    <a href="{{ post.url }}">
+                    <a href="{{ post.href }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
                 <div class="post-card-content">
-                    <h3 class="post-card-title"><a href="{{ post.url }}">{{ post.title }}</a></h3>
+                    <h3 class="post-card-title"><a href="{{ post.href }}">{{ post.title }}</a></h3>
                     {% if post.date %}
                     <time datetime="{{ post.date | date_iso }}" class="post-card-date">
                         {{ post.date | dateformat('%B %d, %Y') }}
@@ -155,7 +155,7 @@
                         {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
                     </p>
                     {% endif %}
-                    <a href="{{ post.url }}" class="read-more">Read more →</a>
+                    <a href="{{ post.href }}" class="read-more">Read more →</a>
                 </div>
             </article>
             {% endfor %}

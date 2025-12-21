@@ -132,7 +132,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             {%- endif -%}
           </div>
           <h2 class="api-hub-tile__title">
-            <a href="{{ subsection.url }}">{{ subsection.title }}</a>
+            <a href="{{ subsection.href }}">{{ subsection.title }}</a>
           </h2>
         </div>
 
@@ -192,7 +192,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
             {%- endif -%}
           </span>
-          <a href="{{ subsection.url }}" class="api-hub-tile__button">
+          <a href="{{ subsection.href }}" class="api-hub-tile__button">
             Explore
             {{ icon('arrow-right', size=16) }}
           </a>

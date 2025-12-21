@@ -129,7 +129,7 @@ Context variables:
                 {% if page.metadata.get('author_links') %}
                 <div class="author-links">
                     {% for link in page.metadata.get('author_links') %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
+                    <a href="{{ link.href }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -140,25 +140,25 @@ Context variables:
             <div class="blog-social-share">
                 <h4>Share this post</h4>
                 <div class="share-buttons">
-                    <a href="https://twitter.com/intent/tweet?url={{ page.url | urlencode }}&text={{ page.title | urlencode }}"
+                    <a href="https://twitter.com/intent/tweet?url={{ page.href | urlencode }}&text={{ page.title | urlencode }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-twitter"
                         aria-label="Share on Twitter">
                         {{ icon('twitter-logo', size=20) }}
                         Twitter
                     </a>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.url | urlencode }}"
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.href | urlencode }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-linkedin"
                         aria-label="Share on LinkedIn">
                         {{ icon('linkedin-logo', size=20) }}
                         LinkedIn
                     </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.url | urlencode }}" target="_blank"
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.href | urlencode }}" target="_blank"
                         rel="noopener noreferrer" class="share-button share-facebook" aria-label="Share on Facebook">
                         {{ icon('facebook-logo', size=20) }}
                         Facebook
                     </a>
                     <button class="share-button share-copy"
-                        onclick="navigator.clipboard.writeText('{{ page.url }}'); this.innerHTML = '✓ Copied!'"
+                        onclick="navigator.clipboard.writeText('{{ page.href }}'); this.innerHTML = '✓ Copied!'"
                         aria-label="Copy link">
                         {{ icon('link', size=20) }}
                         Copy Link
@@ -209,7 +209,7 @@ Context variables:
             <article class="blog-post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
-                    <a href="{{ post.url }}">
+                    <a href="{{ post.href }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
@@ -217,7 +217,7 @@ Context variables:
                 {% endif %}
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
-                        <a href="{{ post.url }}">{{ post.title }}</a>
+                        <a href="{{ post.href }}">{{ post.title }}</a>
                     </h3>
                     {% if post.metadata.get('description') or post.excerpt %}
                     <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) |

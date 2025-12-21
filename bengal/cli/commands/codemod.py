@@ -61,24 +61,27 @@ def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
         bengal codemod-urls --path site/themes/
     """
     cli = CLIOutput()
-    cli.print("[bold]Codemod: URL Property Migration[/bold]")
-    cli.print(f"Path: {path}")
-    cli.print(f"Mode: {'DRY RUN' if dry_run else 'APPLY CHANGES'}")
+    cli.info("Codemod: URL Property Migration")
+    cli.detail(f"Path: {path}")
+    cli.detail(f"Mode: {'DRY RUN' if dry_run else 'APPLY CHANGES'}")
     cli.blank()
 
     # File extensions to process
-    extensions = {".html", ".py", ".jinja2", ".j2"}
+    extensions = {".html", ".py", ".jinja2", ".j2", ".js"}
 
-    # Find all matching files
+    # Find all matching files (exclude vendor directories)
     files_to_process: list[Path] = []
     for ext in extensions:
-        files_to_process.extend(path.rglob(f"*{ext}"))
+        for file_path in path.rglob(f"*{ext}"):
+            # Skip vendor directories (third-party libraries)
+            if "vendor" not in file_path.parts:
+                files_to_process.append(file_path)
 
     if not files_to_process:
-        cli.print("[yellow]No matching files found.[/yellow]")
+        cli.warning("No matching files found.")
         return
 
-    cli.print(f"Found [bold]{len(files_to_process)}[/bold] files to process")
+    cli.info(f"Found {len(files_to_process)} files to process")
     cli.blank()
 
     # Replacement patterns
@@ -122,9 +125,9 @@ def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
                 changes_count = sum(int(count) for _, count in file_changes)
                 total_changes += changes_count
 
-                cli.print(f"[green]✓[/green] {file_path.relative_to(path)}")
+                cli.detail(f"✓ {file_path.relative_to(path)}", icon="✓")
                 for desc, count in file_changes:
-                    cli.print(f"    {desc}: {count} occurrences")
+                    cli.detail(f"  {desc}: {count} occurrences", indent=2)
 
                 if diff:
                     cli.blank()
@@ -135,17 +138,18 @@ def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
                     file_path.write_text(modified_content, encoding="utf-8")
 
         except Exception as e:
-            cli.print(f"[red]✗[/red] {file_path}: {e}")
+            cli.error(f"✗ {file_path}: {e}")
 
     cli.blank()
-    cli.print("[bold]Summary:[/bold]")
-    cli.print(f"  Files processed: {len(files_to_process)}")
-    cli.print(f"  Files changed: {files_changed}")
-    cli.print(f"  Total replacements: {total_changes}")
+    cli.info("Summary:")
+    cli.detail(f"Files processed: {len(files_to_process)}", indent=1)
+    cli.detail(f"Files changed: {files_changed}", indent=1)
+    cli.detail(f"Total replacements: {total_changes}", indent=1)
 
     if dry_run:
-        cli.print("\n[yellow]DRY RUN - No files were modified.[/yellow]")
-        cli.print("Run without --dry-run to apply changes.")
+        cli.blank()
+        cli.warning("DRY RUN - No files were modified.")
+        cli.detail("Run without --dry-run to apply changes.", indent=1)
 
 
 def _show_diff(cli: CLIOutput, original: str, modified: str, file_path: Path) -> None:
@@ -163,14 +167,15 @@ def _show_diff(cli: CLIOutput, original: str, modified: str, file_path: Path) ->
         lineterm="",
     )
 
+    # Use console directly for diff output (supports rich formatting)
     for line in diff:
         if line.startswith("---") or line.startswith("+++"):
-            cli.print(f"[dim]{line}[/dim]")
+            cli.console.print(line, style="dim")
         elif line.startswith("@@"):
-            cli.print(f"[cyan]{line}[/cyan]")
+            cli.console.print(line, style="cyan")
         elif line.startswith("-"):
-            cli.print(f"[red]{line}[/red]")
+            cli.console.print(line, style="red")
         elif line.startswith("+"):
-            cli.print(f"[green]{line}[/green]")
+            cli.console.print(line, style="green")
         else:
-            cli.print(line)
+            cli.console.print(line)

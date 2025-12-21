@@ -24,12 +24,12 @@ Args:
 {% if menu %}
 {% for item in menu %}
 <li class="{{ 'has-submenu' if (is_mobile and item.children) else '' }} {{ 'active' if item.active else '' }} {{ 'active-trail' if (not is_mobile and item.active_trail) else '' }}">
-    <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+    <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
     {% if item.children %}
     <ul class="submenu">
         {% for child in item.children %}
         <li class="{{ 'active' if child.active else '' }}">
-            <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
+            <a href="{{ child.href | absolute_url }}">{{ child.name }}</a>
         </li>
         {% endfor %}
     </ul>
@@ -53,8 +53,8 @@ Args:
     <a href="{{ '/' | absolute_url }}">Home</a>
 </li>
 {% for item in auto_nav %}
-<li class="{{ 'active' if (page_url is string and item.relative_url is string and page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
-    <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+<li class="{{ 'active' if (page_url is string and item._path is string and page_url.startswith(item._path) and item._path != '/') else '' }}">
+    <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
 </li>
 {% endfor %}
 {% endif %}

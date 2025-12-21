@@ -62,7 +62,7 @@ Example:
     </div>
 
     <h2 class="article-card-title">
-      <a href="{{ article.url }}">{{ article.title }}</a>
+      <a href="{{ article.href }}">{{ article.title }}</a>
     </h2>
 
     <div class="article-card-meta">
@@ -152,7 +152,7 @@ Example:
   'group': 'children',
   'obj': subsection,
   'title': subsection.title,
-  'url': subsection.url,
+  'url': subsection.href,
   'description': subsection.metadata.get('description', '') if subsection.metadata and subsection.metadata.get('description', '') else '',
   'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
   'page_count': subsection.pages | length if subsection.pages else 0,
@@ -165,13 +165,13 @@ Example:
 {% if children %}
 {% for post in children %}
 {# Skip the current page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
+{% if not ((page is defined and page) and (post._path == page._path)) %}
 {% set _ = all_items.append({
   'type': 'page',
   'group': 'children',
   'obj': post,
   'title': post.title,
-  'url': post.url,
+  'url': post.href,
   'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else (post.content | strip_html | excerpt(120) if post.content else ''),
   'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
   'date': post.date if post.date else none,
@@ -195,20 +195,20 @@ Example:
 {# Build a set of URLs already in children for O(1) lookup #}
 {% set children_urls = [] %}
 {% for item in all_items %}
-  {% set _ = children_urls.append(item.url) %}
+  {% set _ = children_urls.append(item.href) %}
 {% endfor %}
 
 {% for rel_page in related_pages %}
 {# Skip current page and any pages already in children #}
-{% set is_current = (page is defined and page) and (rel_page.relative_url == page.relative_url) %}
-{% set is_duplicate = rel_page.url in children_urls %}
+{% set is_current = (page is defined and page) and (rel_page._path == page._path) %}
+{% set is_duplicate = rel_page.href in children_urls %}
 {% if not is_current and not is_duplicate %}
 {% set _ = all_items.append({
   'type': 'related',
   'group': 'related',
   'obj': rel_page,
   'title': rel_page.title,
-  'url': rel_page.url,
+  'url': rel_page.href,
   'description': rel_page.metadata.get('description', '') if rel_page.metadata and rel_page.metadata.get('description', '') else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
   'weight': 999999,
   'date': rel_page.date if rel_page.date else none,
@@ -245,7 +245,7 @@ Example:
       </div>
       {% endif %}
       <h3 class="content-tile-card-title">
-        <a href="{{ item.url }}">{{ item.title }}</a>
+        <a href="{{ item.href }}">{{ item.title }}</a>
       </h3>
       {% if show_descriptions and item.description %}
       <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
@@ -268,7 +268,7 @@ Example:
   <ul class="content-tiles-minimal">
     {% for item in sorted_items %}
     <li class="{% if item.type == 'related' %}content-tile--related{% endif %}">
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.href }}">{{ item.title }}</a>
       {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% endif %}
     </li>
     {% endfor %}
@@ -300,7 +300,7 @@ Example:
       {% endif %}
       <div class="content-tile-content">
         <span class="content-tile-title">
-          <a href="{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.href }}">{{ item.title }}</a>
           {% if show_descriptions and item.description %}
           <span class="content-tile-description">{{ item.description }}</span>
           {% endif %}
@@ -350,7 +350,7 @@ Example:
 'type': 'section',
 'obj': subsection,
 'title': subsection.title,
-'url': subsection.url,
+'url': subsection.href,
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
@@ -364,12 +364,12 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
+{% if not ((page is defined and page) and (post._path == page._path)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
 'title': post.title,
-'url': post.url,
+'url': post.href,
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
@@ -403,7 +403,7 @@ subsection.metadata.get('description', '') else '',
 
       <div class="child-item-content">
         <span class="child-item-title">
-          <a href="{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.href }}">{{ item.title }}</a>
 
           {% if item.description %}
           <span class="child-item-description">{{ item.description }}</span>
@@ -450,7 +450,7 @@ Usage:
 #}
 {% macro for_each_item_excluding_current(items) %}
 {%- for item in items -%}
-{%- if not (page and item.relative_url == page.relative_url) -%}
+{%- if not (page and item._path == page._path) -%}
 {{ caller(item) }}
 {%- endif -%}
 {%- endfor -%}
@@ -551,7 +551,7 @@ Example:
     {% for post in random_posts %}
     <article class="random-post-item">
       <h4>
-        <a href="{{ post.url }}">{{ post.title }}</a>
+        <a href="{{ post.href }}">{{ post.title }}</a>
       </h4>
       {% if post.date %}
       <time datetime="{{ post.date | date_iso }}">

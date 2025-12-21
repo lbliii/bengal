@@ -31,7 +31,7 @@
     {% if toc %}
     <aside class="page-sidebar">
         {# Contextual Graph Minimap - shows connections to current page #}
-        <div class="graph-contextual" data-page-url="{{ page.url }}">
+        <div class="graph-contextual" data-page-url="{{ page.href }}">
           {# Placeholder - will be replaced by JavaScript #}
           <div class="graph-contextual-container graph-loading"
             style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
@@ -63,7 +63,7 @@
         <div class="related-posts-grid">
             {% for post in related %}
             <article class="related-post-card gradient-border fluid-combined">
-                <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
+                <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
                 {% endif %}

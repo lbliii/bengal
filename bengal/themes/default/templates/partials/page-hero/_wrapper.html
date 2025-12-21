@@ -27,7 +27,7 @@ Usage:
             <ol class="page-hero__breadcrumbs">
                 {% for item in breadcrumb_items[:-1] %}
                 <li>
-                    <a href="{{ item.url | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+                    <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
                 </li>
                 {% endfor %}
             </ol>

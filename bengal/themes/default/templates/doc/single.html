@@ -63,7 +63,7 @@ Or set `type: doc` to auto-select this template
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
     {# Contextual Graph Minimap - shows connections to current page #}
-    <div class="graph-contextual" data-page-url="{{ page.url }}">
+    <div class="graph-contextual" data-page-url="{{ page.href }}">
       {# Placeholder - will be replaced by JavaScript #}
       <div class="graph-contextual-container graph-loading"
         style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">

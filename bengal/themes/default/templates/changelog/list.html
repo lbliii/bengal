@@ -55,7 +55,7 @@ Supports two modes:
             {% if page and page.metadata.get('cta_buttons') %}
             <div class="hero__actions">
                 {% for button in page.metadata.get('cta_buttons') %}
-                <a href="{{ button.url | absolute_url }}"
+                <a href="{{ button.href | absolute_url }}"
                     class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
                     {{ button.text }}
                 </a>
@@ -268,7 +268,7 @@ Supports two modes:
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h2 class="timeline-title">
-                            <a href="{{ release.url }}">{{ release.title }}</a>
+                            <a href="{{ release.href }}">{{ release.title }}</a>
                         </h2>
                         {% if release.metadata.get('name') %}
                         <p class="timeline-subtitle">{{ release.metadata.get('name') }}</p>
@@ -329,7 +329,7 @@ Supports two modes:
                 </div>
                 {% endif %}
 
-                <a href="{{ release.url }}" class="changelog-read-more">
+                <a href="{{ release.href }}" class="changelog-read-more">
                     View full release notes →
                 </a>
             </div>

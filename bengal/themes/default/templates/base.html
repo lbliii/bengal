@@ -12,7 +12,7 @@ See: plan/active/rfc-template-performance-optimization.md
 {% set _page = page if page is defined else none %}
 {% set _has_page = _page is not none %}
 {% set _page_title = _page.title if (_has_page and _page.title is defined) else '' %}
-{% set _page_url = _page.relative_url if (_has_page and _page.relative_url is defined) else '/' %}
+{% set _page_url = _page._path if (_has_page and _page._path is defined) else '/' %}
 {% set _current_lang = current_lang() %}
 {% set _main_menu = get_menu_lang('main', _current_lang) %}
 {% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -243,12 +243,12 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% if _main_menu %}
                     {% for item in _main_menu %}
                     <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
-                        <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                         {% if item.children %}
                         <ul class="submenu">
                             {% for child in item.children %}
                             <li class="{{ 'active' if child.active else '' }}">
-                                <a href="{{ child.url | absolute_url }}">
+                                <a href="{{ child.href | absolute_url }}">
                                     {%- if child.get('icon') -%}
                                     <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
                                     {%- endif -%}
@@ -270,8 +270,8 @@ See: plan/active/rfc-template-performance-optimization.md
                     </li>
                     {% for item in _auto_nav %}
                     <li
-                        class="{{ 'active' if (_page_url is string and item.relative_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
-                        <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                        class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
+                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                     </li>
                     {% endfor %}
                     {% endif %}
@@ -367,12 +367,12 @@ See: plan/active/rfc-template-performance-optimization.md
             {% if _main_menu %}
             {% for item in _main_menu %}
             <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
-                <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                 {% if item.children %}
                 <ul class="submenu">
                     {% for child in item.children %}
                     <li class="{{ 'active' if child.active else '' }}">
-                        <a href="{{ child.url | absolute_url }}">
+                        <a href="{{ child.href | absolute_url }}">
                             {%- if child.get('icon') -%}
                             <span class="submenu-icon">{{ icon(child.get('icon'), size=16) }}</span>
                             {%- endif -%}
@@ -394,8 +394,8 @@ See: plan/active/rfc-template-performance-optimization.md
             </li>
             {% for item in _auto_nav %}
             <li
-                class="{{ 'active' if (_page_url is string and item.relative_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
-                <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+                class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
+                <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}
             {% endif %}
@@ -446,7 +446,7 @@ See: plan/active/rfc-template-performance-optimization.md
                     {% if _footer_menu %}
                     <ul class="footer-links">
                         {% for item in _footer_menu %}
-                        <li><a href="{{ item.url | absolute_url }}">{{ item.name }}</a></li>
+                        <li><a href="{{ item.href | absolute_url }}">{{ item.name }}</a></li>
                         {% endfor %}
                     </ul>
                     {% endif %}

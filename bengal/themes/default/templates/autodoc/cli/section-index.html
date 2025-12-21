@@ -42,7 +42,7 @@ This template receives:
           {% if subsection.name %}
           {% set desc = subsection.metadata.description | default('') | first_sentence %}
           {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-          <a href="{{ subsection.url }}" class="autodoc-card" data-card="group">
+          <a href="{{ subsection.href }}" class="autodoc-card" data-card="group">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
               <span class="autodoc-card-name">{{ subsection.name }}</span>
@@ -83,7 +83,7 @@ This template receives:
         <div class="autodoc-cards">
           {% for page in command_pages %}
           {% set desc = page.metadata.description | default('') | first_sentence %}
-          <a href="{{ page.url }}" class="autodoc-card" data-card="{{ page.metadata.element_type | default('command') }}">
+          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ page.metadata.element_type | default('command') }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
                 {%- if page.metadata.element_type == 'group' -%}

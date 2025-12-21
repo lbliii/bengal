@@ -145,7 +145,7 @@ Context variables:
                 <ul class="recent-list">
                     {% for post in recent_posts %}
                     <li>
-                        <a href="{{ post.url }}">{{ post.title }}</a>
+                        <a href="{{ post.href }}">{{ post.title }}</a>
                         {% if post.date %}
                         <time datetime="{{ post.date | date_iso }}">
                             {{ post.date | time_ago }}

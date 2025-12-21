@@ -41,7 +41,7 @@ Usage: Set `template: tracks/list.html` in frontmatter
         </div>
         <h2 class="track-card-title">
           {% if track_page %}
-          <a href="{{ track_page.url }}">{{ track.title }}</a>
+          <a href="{{ track_page.href }}">{{ track.title }}</a>
           {% else %}
           {{ track.title }}
           {% endif %}
@@ -90,7 +90,7 @@ Usage: Set `template: tracks/list.html` in frontmatter
       {# Card Footer #}
       <div class="track-card-footer">
         {% if track_page %}
-        <a href="{{ track_page.url }}" class="track-card-button">
+        <a href="{{ track_page.href }}" class="track-card-button">
           Start Learning
           {{ icon('arrow-right', size=16) }}
         </a>
@@ -98,7 +98,7 @@ Usage: Set `template: tracks/list.html` in frontmatter
         {% set first_slug = track.items[0] %}
         {% set first_page = get_page(first_slug) %}
         {% if first_page %}
-        <a href="{{ first_page.url }}" class="track-card-button">
+        <a href="{{ first_page.href }}" class="track-card-button">
           Start Learning
           {{ icon('arrow-right', size=16) }}
         </a>

@@ -29,7 +29,7 @@ Configuration:
   {# Feature: graph.contextual (enabled by default for docs) #}
   {% set show_graph = site.theme_config.features is not defined or 'graph.contextual' in site.theme_config.features %}
   {% if show_graph %}
-  <div class="graph-contextual" data-page-url="{{ page.url }}">
+  <div class="graph-contextual" data-page-url="{{ page.href }}">
     {# Placeholder - will be replaced by JavaScript #}
     <div class="graph-contextual-container graph-loading"
       style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">

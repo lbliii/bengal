@@ -51,8 +51,8 @@ Usage:
           </span>
           {% endif %}
 
-          {% if root_item.url %}
-          <a href="{{ root_item.url }}"
+          {% if root_item.href %}
+          <a href="{{ root_item.href }}"
              class="docs-nav-group-title{% if root_item.is_current %} active{% endif %}"
              {% if root_item.is_current %}aria-current="page"{% endif %}>
             {{ root_item.title }}

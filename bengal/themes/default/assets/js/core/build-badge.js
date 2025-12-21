@@ -108,7 +108,7 @@
     valueEl.textContent = human;
 
     badgeEl.classList.add('bengal-build-time--ready');
-    badgeEl.setAttribute('href', resolved.url.toString());
+    badgeEl.setAttribute('href', resolved.href.toString());
     badgeEl.setAttribute('rel', 'noopener');
     badgeEl.setAttribute('aria-label', `${label} ${human}`);
     badgeEl.setAttribute('title', formatTitle(payload) || `${label} ${human}`);

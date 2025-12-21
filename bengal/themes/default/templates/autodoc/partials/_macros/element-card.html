@@ -26,8 +26,8 @@ trim('/') %}
 {% set python_prefix = (python_config.output_prefix if python_config is not none and python_config.output_prefix else
 'api') | trim('/') %}
 {# Build URL based on element type - match project patterns #}
-{% if child.url %}
-{% set child_url = child.url %}
+{% if child.href %}
+{% set child_url = child.href %}
 {% elif child_type in ['command', 'command-group'] %}
 {# Drop the first segment of qualified_name (the root command name) to get the correct path #}
 {% set qualified_parts = child.qualified_name.split('.') %}
