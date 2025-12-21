@@ -17,8 +17,6 @@ from bengal.directives.button import ButtonDirective
 from bengal.directives.cards import (
     CardDirective,
     CardsDirective,
-    GridDirective,
-    GridItemCardDirective,
 )
 from bengal.directives.checklist import ChecklistDirective
 from bengal.directives.code_tabs import CodeTabsDirective
@@ -45,8 +43,6 @@ class TestDirectiveRegistration:
         assert CodeTabsDirective is not None
         assert DataTableDirective is not None
         assert DropdownDirective is not None
-        assert GridDirective is not None
-        assert GridItemCardDirective is not None
         assert ListTableDirective is not None
         assert RubricDirective is not None
         assert TabItemDirective is not None
@@ -165,8 +161,6 @@ class TestDirectiveModuleConsistency:
             CodeTabsDirective,
             DataTableDirective,
             DropdownDirective,
-            GridDirective,
-            GridItemCardDirective,
             ListTableDirective,
             RubricDirective,
             TabItemDirective,

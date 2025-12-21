@@ -77,8 +77,6 @@ def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
     return obj.href
 
 
-
-
 def with_baseurl(path: str, site: Site) -> str:
     """
     Apply baseurl prefix to a site-relative path.
@@ -110,6 +108,9 @@ def with_baseurl(path: str, site: Site) -> str:
     # Get baseurl from config
     try:
         baseurl_value = (site.config.get("baseurl", "") or "").rstrip("/")
+        # Treat "/" as empty (root-relative)
+        if baseurl_value == "/":
+            baseurl_value = ""
     except Exception as e:
         logger.debug(
             "with_baseurl_config_access_failed",

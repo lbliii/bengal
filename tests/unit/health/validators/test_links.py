@@ -29,25 +29,29 @@ def mock_site():
     site.config = {"validate_links": True}
     site.root_path = Path("/project")
 
-    # Create mock pages with URLs that exist in the site
+    # Create mock pages with hrefs that exist in the site
     page1 = MagicMock()
-    page1.url = "/docs/"
+    page1.href = "/docs/"
+    page1.url = "/docs/"  # Backward compatibility
     page1.source_path = Path("/project/content/docs/_index.md")
     page1.links = ["/about/", "/contact/"]  # Links that will resolve to valid pages
 
     page2 = MagicMock()
-    page2.url = "/blog/"
+    page2.href = "/blog/"
+    page2.url = "/blog/"  # Backward compatibility
     page2.source_path = Path("/project/content/blog/_index.md")
     page2.links = ["/docs/"]
 
     # Add pages for the links to resolve to
     about_page = MagicMock()
-    about_page.url = "/about/"
+    about_page.href = "/about/"
+    about_page.url = "/about/"  # Backward compatibility
     about_page.source_path = Path("/project/content/about/_index.md")
     about_page.links = []
 
     contact_page = MagicMock()
-    contact_page.url = "/contact/"
+    contact_page.href = "/contact/"
+    contact_page.url = "/contact/"  # Backward compatibility
     contact_page.source_path = Path("/project/content/contact/_index.md")
     contact_page.links = []
 

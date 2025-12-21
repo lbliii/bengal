@@ -177,10 +177,14 @@ class PageMetadataMixin:
             emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
+        # Normalize baseurl: treat "/" and "" as empty
+        baseurl = (baseurl or "").rstrip("/")
+        if baseurl == "/":
+            baseurl = ""
+
         if not baseurl:
             result = rel
         else:
-            baseurl = baseurl.rstrip("/")
             rel = "/" + rel.lstrip("/")
             result = f"{baseurl}{rel}"
 

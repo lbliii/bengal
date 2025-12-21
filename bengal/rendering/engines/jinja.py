@@ -424,6 +424,12 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
     def _url_for(self, page: Any) -> str:
         """Generate URL for a page with base URL support."""
+        # If page has _path, use it to apply baseurl (for MockPage and similar)
+        # Otherwise, use href property which should already include baseurl
+        if hasattr(page, "_path") and page._path:
+            from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+            return with_baseurl(page._path, self.site)
         return href_for(page, self.site)
 
     def _with_baseurl(self, path: str) -> str:

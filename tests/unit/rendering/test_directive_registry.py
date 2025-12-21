@@ -178,8 +178,6 @@ class TestDirectiveClassesCompleteness:
             "CardsDirective",
             "CardDirective",
             "ChildCardsDirective",
-            "GridDirective",
-            "GridItemCardDirective",
             "TabSetDirective",
             "TabItemDirective",
             "DropdownDirective",

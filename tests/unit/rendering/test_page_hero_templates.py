@@ -620,7 +620,7 @@ class TestAPISectionIndexPageHero:
                 ),
                 MockPage(
                     title="site",
-                    url="/api/core/site/",
+                    href="/api/core/site/",
                     source_path=Path("site.md"),
                 ),
             ],
