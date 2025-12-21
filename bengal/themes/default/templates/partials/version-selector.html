@@ -32,15 +32,6 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
 {% set page_is_versioned = page.version is defined and page.version is not none %}
 {% if versioning_enabled and versions | length > 1 and page_is_versioned and not is_autodoc %}
 <div class="version-selector">
-  <label for="version-select" class="version-selector__label">
-    <span class="visually-hidden">Documentation Version</span>
-    {# Icon for version indicator #}
-    <svg class="version-selector__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-        stroke-linejoin="round" />
-    </svg>
-  </label>
-
   {#
   Smart Version Selector with Pre-computed Fallback URLs
 

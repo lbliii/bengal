@@ -42,6 +42,87 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   flex-direction: column;
 }
 
+/* ============================================================================
+   ROOT NAVIGATION GROUP (depth 0)
+   Static header, no toggle - reduces nesting by 1 level
+   ============================================================================ */
+
+.docs-nav-group--root {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Root group header - similar to toggle-wrapper but without toggle button */
+.docs-nav-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Root group title styling */
+.docs-nav-group-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.docs-nav-group-title:hover {
+  color: var(--color-primary);
+}
+
+.docs-nav-group-title.active,
+.docs-nav-group-title[aria-current="page"] {
+  color: var(--color-primary);
+}
+
+/* Root group children - always expanded, no animation needed */
+.docs-nav-group--root > .docs-nav-group-items {
+  display: flex;
+  opacity: 1;
+  transform: none;
+  padding-left: 0;
+  margin-top: 0;
+}
+
+/* Root icon styling */
+.docs-nav-group-header .docs-nav-icon {
+  color: var(--color-text-tertiary);
+}
+
+.docs-nav-group-header:hover .docs-nav-icon {
+  color: var(--color-primary);
+}
+
+/* Active root icon - subtle glow */
+.docs-nav-group-header:has(.docs-nav-group-title.active) .docs-nav-icon,
+.docs-nav-group-header:has(.docs-nav-group-title[aria-current="page"]) .docs-nav-icon {
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
+}
+
+/* Dark mode root header adjustments */
+[data-theme="dark"] .docs-nav-group-header {
+  border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .docs-nav-group-header .docs-nav-icon {
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .docs-nav-group-header:hover .docs-nav-icon {
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .docs-nav-group-header:has(.docs-nav-group-title.active) .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group-header:has(.docs-nav-group-title[aria-current="page"]) .docs-nav-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
+}
+
 /* Wrapper containing toggle button + link */
 .docs-nav-group-toggle-wrapper {
   display: flex;

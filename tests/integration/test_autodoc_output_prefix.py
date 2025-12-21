@@ -188,7 +188,8 @@ paths:
         assert "/cli/bengal/theme/swizzle/" not in page_urls
 
         # Verify the CLI section exists (represents the root command group)
-        section_urls = {s.url for s in sections.values()}
+        # sections is a list of Section objects
+        section_urls = {s.url for s in sections}
         assert "/cli/" in section_urls, "CLI section should exist at /cli/"
 
 

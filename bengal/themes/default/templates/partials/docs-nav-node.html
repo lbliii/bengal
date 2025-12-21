@@ -25,7 +25,38 @@ Usage:
 {% set item_icon = item.icon %}
 
 {% if item.has_children %}
-{# ===== EXPANDABLE NODE (has children) ===== #}
+{# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
+{% if depth == 0 %}
+<div class="docs-nav-group docs-nav-group--root{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
+  <div class="docs-nav-group-header">
+    {% if show_nav_icons %}
+    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
+      {{ icon(item_icon or 'folder', size=16) }}
+    </span>
+    {% endif %}
+
+    {% if item.url %}
+    <a href="{{ item.url }}"
+       class="docs-nav-group-title{% if item.is_current %} active{% endif %}"
+       {% if item.is_current %}aria-current="page"{% endif %}>
+      {{ item_title }}
+    </a>
+    {% else %}
+    <span class="docs-nav-group-title">{{ item_title }}</span>
+    {% endif %}
+  </div>
+
+  <div class="docs-nav-group-items is-expanded expanded">
+    {% for child in item.children %}
+      {% set item = child %}
+      {% set depth = depth + 1 %}
+      {% include 'partials/docs-nav-node.html' %}
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+{# ===== EXPANDABLE NODE (has children, depth > 0) ===== #}
 <div class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
   <div class="docs-nav-group-toggle-wrapper">
     <button class="docs-nav-group-toggle"
@@ -60,6 +91,7 @@ Usage:
     {% endfor %}
   </div>
 </div>
+{% endif %}
 
 {% else %}
 {# ===== LEAF NODE (no children) ===== #}

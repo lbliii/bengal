@@ -68,24 +68,7 @@
 .version-selector {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
   font-size: var(--text-sm);
-}
-
-.version-selector__label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.version-selector__icon {
-  width: 1rem;
-  height: 1rem;
-  color: var(--color-text-muted);
 }
 
 .version-selector__select {
