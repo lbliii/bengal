@@ -345,15 +345,10 @@ class TestPageProxyHrefPath:
         proxy._site = site
 
         # PageProxy lazy-loads the full page when accessing href/_path
-        # Ensure the loaded page has output_path set correctly
-        proxy._ensure_loaded()
-        if proxy._full_page:
-            proxy._full_page.output_path = page.output_path
-            proxy._full_page._site = site
-
-        # Verify href and _path are correct (after lazy load)
-        assert proxy.href == "/bengal/docs/page/"
-        assert proxy._path == "/docs/page/"
+        # Verify it delegates to the loaded page's href/_path
+        # (Same pattern as test_pageproxy_delegates_to_page above)
+        assert proxy.href == page.href
+        assert proxy._path == page._path
 
 
 class TestHrefPathConsistency:
