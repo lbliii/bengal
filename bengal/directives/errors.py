@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bengal.utils.exceptions import BengalRenderingError
 
-class DirectiveError(Exception):
+
+class DirectiveError(BengalRenderingError):
     """
     Rich error for directive parsing failures.
 
@@ -18,6 +20,8 @@ class DirectiveError(Exception):
     - File path and line number
     - Content snippet showing the problem
     - Helpful suggestions for fixing
+
+    Extends BengalRenderingError for consistent error handling.
     """
 
     def __init__(
@@ -28,6 +32,8 @@ class DirectiveError(Exception):
         line_number: int | None = None,
         content_snippet: str | None = None,
         suggestion: str | None = None,
+        *,
+        original_error: Exception | None = None,
     ):
         """
         Initialize directive error.
@@ -39,16 +45,21 @@ class DirectiveError(Exception):
             line_number: Line number where directive starts
             content_snippet: Snippet of content showing the problem
             suggestion: Helpful suggestion for fixing the issue
+            original_error: Original exception that caused this error (for chaining)
         """
-        self.directive_type = directive_type
-        self.error_message = error_message
-        self.file_path = file_path
-        self.line_number = line_number
-        self.content_snippet = content_snippet
-        self.suggestion = suggestion
+        # Set base class fields
+        super().__init__(
+            message=error_message,
+            file_path=file_path,
+            line_number=line_number,
+            suggestion=suggestion,
+            original_error=original_error,
+        )
 
-        # Build the full error message
-        super().__init__(self._format_error())
+        # Set directive-specific fields
+        self.directive_type = directive_type
+        self.error_message = error_message  # Keep for backward compatibility
+        self.content_snippet = content_snippet
 
     def _format_error(self) -> str:
         """Format a rich error message for display."""

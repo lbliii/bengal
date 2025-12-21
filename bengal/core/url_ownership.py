@@ -27,6 +27,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.exceptions import BengalContentError
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -63,12 +65,14 @@ class URLClaim:
         return f"URLClaim({', '.join(parts)}, source={self.source})"
 
 
-class URLCollisionError(Exception):
+class URLCollisionError(BengalContentError):
     """
     Exception raised when URL collision detected at claim time.
 
     Provides detailed diagnostics including both claims, priority comparison,
     and suggested fixes.
+
+    Extends BengalContentError for consistent error handling.
     """
 
     def __init__(
@@ -78,6 +82,10 @@ class URLCollisionError(Exception):
         new_owner: str,
         new_source: str,
         new_priority: int,
+        *,
+        file_path: Path | None = None,
+        suggestion: str | None = None,
+        original_error: Exception | None = None,
     ) -> None:
         """
         Initialize collision error with diagnostic context.
@@ -88,6 +96,9 @@ class URLCollisionError(Exception):
             new_owner: Owner attempting to claim URL
             new_source: Source of new claim
             new_priority: Priority of new claim
+            file_path: Path to file causing collision (if applicable)
+            suggestion: Custom suggestion (defaults to standard tip)
+            original_error: Original exception that caused this error
         """
         self.url = url
         self.existing = existing
@@ -109,11 +120,21 @@ class URLCollisionError(Exception):
             f"    Source: {existing.source}\n"
             f"  New claim: {new_owner} (priority {new_priority})\n"
             f"    Source: {new_source}\n"
-            f"  Priority: {priority_msg}\n"
-            f"  Tip: Check for duplicate slugs, conflicting autodoc output, or namespace violations"
+            f"  Priority: {priority_msg}"
         )
 
-        super().__init__(msg)
+        # Use provided suggestion or default
+        if suggestion is None:
+            suggestion = (
+                "Check for duplicate slugs, conflicting autodoc output, or namespace violations"
+            )
+
+        super().__init__(
+            message=msg,
+            file_path=file_path or Path(new_source) if new_source else None,
+            suggestion=suggestion,
+            original_error=original_error,
+        )
 
 
 class URLRegistry:

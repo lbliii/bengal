@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
@@ -371,29 +372,65 @@ class SiteIndexGenerator:
 
         return summary
 
+    def _is_json_serializable(self, value: Any) -> bool:
+        """Check if value is JSON serializable (excluding Mock objects)."""
+        if isinstance(value, Mock):
+            return False
+        try:
+            json.dumps(value)
+            return True
+        except (TypeError, ValueError):
+            return False
+
+    def _safe_get_metadata_value(self, metadata: dict[str, Any], key: str) -> Any | None:
+        """Safely get metadata value, ensuring it's JSON-serializable."""
+        value = metadata.get(key)
+        if value is None:
+            return None
+        # Filter out Mock objects and non-serializable values
+        if isinstance(value, Mock):
+            return None
+        if isinstance(value, (list, tuple)):
+            # Filter out Mock objects from lists
+            filtered = [
+                v for v in value if not isinstance(v, Mock) and self._is_json_serializable(v)
+            ]
+            return filtered if filtered else None
+        if isinstance(value, dict):
+            # Recursively filter dict values
+            filtered = {
+                k: v
+                for k, v in value.items()
+                if not isinstance(v, Mock) and self._is_json_serializable(v)
+            }
+            return filtered if filtered else None
+        if self._is_json_serializable(value):
+            return value
+        return None
+
     def _add_enhanced_metadata(self, summary: dict[str, Any], metadata: dict[str, Any]) -> None:
-        """Add enhanced metadata fields to summary."""
+        """Add enhanced metadata fields to summary, ensuring JSON serializability."""
         # Content type and layout
-        if metadata.get("type"):
-            summary["type"] = metadata["type"]
-        if metadata.get("layout"):
-            summary["layout"] = metadata["layout"]
+        if value := self._safe_get_metadata_value(metadata, "type"):
+            summary["type"] = value
+        if value := self._safe_get_metadata_value(metadata, "layout"):
+            summary["layout"] = value
 
         # Authorship
-        if metadata.get("author"):
-            summary["author"] = metadata["author"]
-        if metadata.get("authors"):
-            summary["authors"] = metadata["authors"]
+        if value := self._safe_get_metadata_value(metadata, "author"):
+            summary["author"] = value
+        if value := self._safe_get_metadata_value(metadata, "authors"):
+            summary["authors"] = value
 
         # Categories
-        if metadata.get("category"):
-            summary["category"] = metadata["category"]
-        if metadata.get("categories"):
-            summary["categories"] = metadata["categories"]
+        if value := self._safe_get_metadata_value(metadata, "category"):
+            summary["category"] = value
+        if value := self._safe_get_metadata_value(metadata, "categories"):
+            summary["categories"] = value
 
         # Weight for sorting
-        if metadata.get("weight") is not None:
-            summary["weight"] = metadata["weight"]
+        if value := self._safe_get_metadata_value(metadata, "weight"):
+            summary["weight"] = value
 
         # Status flags
         if metadata.get("draft"):
@@ -402,43 +439,42 @@ class SiteIndexGenerator:
             summary["featured"] = True
 
         # Search-specific
-        if metadata.get("search_keywords"):
-            summary["search_keywords"] = metadata["search_keywords"]
+        if value := self._safe_get_metadata_value(metadata, "search_keywords"):
+            summary["search_keywords"] = value
         if metadata.get("search_exclude"):
             summary["search_exclude"] = True
 
         # Visibility system integration
         # Check hidden frontmatter or visibility.search setting
+        visibility = self._safe_get_metadata_value(metadata, "visibility")
         if metadata.get("hidden", False) or (
-            isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True)
+            isinstance(visibility, dict) and not visibility.get("search", True)
         ):
             summary["search_exclude"] = True
 
         # API/CLI specific
-        if metadata.get("cli_name"):
-            summary["cli_name"] = metadata["cli_name"]
-        if metadata.get("api_module"):
-            summary["api_module"] = metadata["api_module"]
+        if value := self._safe_get_metadata_value(metadata, "cli_name"):
+            summary["cli_name"] = value
+        if value := self._safe_get_metadata_value(metadata, "api_module"):
+            summary["api_module"] = value
 
         # Difficulty/level
-        if metadata.get("difficulty"):
-            summary["difficulty"] = metadata["difficulty"]
-        if metadata.get("level"):
-            summary["level"] = metadata["level"]
+        if value := self._safe_get_metadata_value(metadata, "difficulty"):
+            summary["difficulty"] = value
+        if value := self._safe_get_metadata_value(metadata, "level"):
+            summary["level"] = value
 
         # Related content
-        if metadata.get("related"):
-            summary["related"] = metadata["related"]
+        if value := self._safe_get_metadata_value(metadata, "related"):
+            summary["related"] = value
 
         # Last modified
-        if metadata.get("lastmod"):
-            lastmod = metadata["lastmod"]
-            if hasattr(lastmod, "isoformat"):
-                summary["lastmod"] = lastmod.isoformat()
+        if value := self._safe_get_metadata_value(metadata, "lastmod"):
+            if hasattr(value, "isoformat"):
+                summary["lastmod"] = value.isoformat()
             else:
-                summary["lastmod"] = str(lastmod)
+                summary["lastmod"] = str(value)
 
         # Source file path
-        if metadata.get("source_file"):
-            summary["source_file"] = metadata["source_file"]
+        if value := self._safe_get_metadata_value(metadata, "source_file"):
+            summary["source_file"] = value

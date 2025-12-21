@@ -180,16 +180,17 @@ def create_pages(
             # We don't use add_page() because it relies on filename stem for index detection
             target_section.index_page = page
             target_section.pages.append(page)
+            # NOTE: Do NOT add to page_data - index pages are added via section.pages
+            # Adding to both would cause URL collision (duplicate page in site.pages)
         else:
             # Regular page - add to parent section
             parent_section.add_page(page)
+            # Store page for return (no HTML rendering yet - deferred to rendering phase)
+            page_data.append(page)
 
         # Track source file → autodoc page dependency for incremental builds
         if source_file_for_tracking:
             result.add_dependency(str(source_file_for_tracking), source_id)
-
-        # Store page for return (no HTML rendering yet - deferred to rendering phase)
-        page_data.append(page)
 
     # Note: HTML rendering is now DEFERRED to the rendering phase
     # This ensures menus and full template context are available.

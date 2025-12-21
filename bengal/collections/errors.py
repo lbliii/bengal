@@ -7,9 +7,11 @@ helpful error messages including file locations and fix suggestions.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -36,16 +38,16 @@ class ValidationError:
         return f"{self.field}: {self.message}"
 
 
-@dataclass
-class ContentValidationError(Exception):
+class ContentValidationError(BengalContentError):
     """
     Raised when content fails schema validation.
 
     Provides detailed error information including file location,
     specific field errors, and suggestions for fixing.
 
+    Extends BengalContentError for consistent error handling.
+
     Attributes:
-        message: Summary error message
         path: Path to the content file that failed validation
         errors: List of specific field validation errors
         collection_name: Name of the collection (if known)
@@ -60,14 +62,39 @@ class ContentValidationError(Exception):
           └─ date: Cannot parse 'not-a-date' as datetime
     """
 
-    message: str
-    path: Path
-    errors: list[ValidationError] = field(default_factory=list)
-    collection_name: str | None = None
+    def __init__(
+        self,
+        message: str,
+        path: Path,
+        errors: list[ValidationError] | None = None,
+        collection_name: str | None = None,
+        *,
+        suggestion: str | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
+        """
+        Initialize content validation error.
 
-    def __post_init__(self) -> None:
-        """Initialize Exception with message."""
-        super().__init__(self.message)
+        Args:
+            message: Summary error message
+            path: Path to the content file that failed validation
+            errors: List of specific field validation errors
+            collection_name: Name of the collection (if known)
+            suggestion: Helpful suggestion for fixing
+            original_error: Original exception that caused this error
+        """
+        # Set base class fields
+        super().__init__(
+            message=message,
+            file_path=path,
+            suggestion=suggestion,
+            original_error=original_error,
+        )
+
+        # Set content-specific fields
+        self.path = path  # Keep for backward compatibility
+        self.errors = errors or []
+        self.collection_name = collection_name
 
     def __str__(self) -> str:
         """Format error with file location and field details."""
@@ -113,16 +140,24 @@ class ContentValidationError(Exception):
         }
 
 
-class CollectionNotFoundError(Exception):
+class CollectionNotFoundError(BengalContentError):
     """
     Raised when a referenced collection does not exist.
+
+    Extends BengalContentError for consistent error handling.
 
     Attributes:
         collection_name: Name of the missing collection
         available: List of available collection names
     """
 
-    def __init__(self, collection_name: str, available: list[str] | None = None):
+    def __init__(
+        self,
+        collection_name: str,
+        available: list[str] | None = None,
+        *,
+        suggestion: str | None = None,
+    ) -> None:
         self.collection_name = collection_name
         self.available = available or []
 
@@ -130,21 +165,43 @@ class CollectionNotFoundError(Exception):
         if self.available:
             message += f"\nAvailable collections: {', '.join(sorted(self.available))}"
 
-        super().__init__(message)
+        # Generate suggestion if not provided
+        if suggestion is None and self.available:
+            suggestion = f"Available collections: {', '.join(sorted(self.available))}"
+
+        super().__init__(
+            message=message,
+            suggestion=suggestion,
+        )
 
 
-class SchemaError(Exception):
+class SchemaError(BengalContentError):
     """
     Raised when a schema definition is invalid.
 
     This indicates a problem with how the schema was defined,
     not with the content being validated against it.
 
+    Extends BengalContentError for consistent error handling.
+
     Attributes:
         schema_name: Name of the schema class
-        message: Description of the schema problem
     """
 
-    def __init__(self, schema_name: str, message: str):
+    def __init__(
+        self,
+        schema_name: str,
+        message: str,
+        *,
+        file_path: Path | None = None,
+        suggestion: str | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
         self.schema_name = schema_name
-        super().__init__(f"Invalid schema '{schema_name}': {message}")
+        error_message = f"Invalid schema '{schema_name}': {message}"
+        super().__init__(
+            message=error_message,
+            file_path=file_path,
+            suggestion=suggestion,
+            original_error=original_error,
+        )

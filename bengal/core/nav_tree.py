@@ -113,23 +113,48 @@ class NavTree:
     _urls: set[str] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        """Initialize lookup indices with collision detection."""
+        """Initialize lookup indices with collision detection and merging."""
         self._flat_nodes = {}
         for node in self.root.walk():
             url = node.url
             if url in self._flat_nodes:
                 existing = self._flat_nodes[url]
-                # Log collision at debug level - this helps diagnose navigation issues
-                logger.warning(
-                    "NavTree URL collision detected: url=%s | "
-                    "existing_id=%s (type=%s) | new_id=%s (type=%s) | "
-                    "Tip: Check for duplicate slugs or conflicting autodoc output",
-                    url,
-                    existing.id,
-                    "section" if existing.section else "page",
-                    node.id,
-                    "section" if node.section else "page",
-                )
+
+                # When a section and page share the same URL, merge them:
+                # - Section + Page → Section wins (page becomes section's content)
+                # - Page + Section → Section wins (same as above)
+                # This is expected for autodoc-generated pages that document
+                # CLI command groups (e.g., /cli/assets/ is both a section and a page)
+                existing_is_section = existing.section is not None
+                new_is_section = node.section is not None
+
+                if existing_is_section and not new_is_section:
+                    # Existing is section, new is page - merge page into section
+                    # Section keeps priority, but inherit page reference if missing
+                    if existing.page is None:
+                        existing.page = node.page
+                    # Skip adding the page node (section already represents this URL)
+                    continue
+                elif new_is_section and not existing_is_section:
+                    # New is section, existing is page - section takes over
+                    # Merge the page into the section node
+                    if node.page is None:
+                        node.page = existing.page
+                    # Replace with section node
+                    self._flat_nodes[url] = node
+                    continue
+                else:
+                    # Both are same type (section+section or page+page) - real collision
+                    logger.warning(
+                        "NavTree URL collision detected: url=%s | "
+                        "existing_id=%s (type=%s) | new_id=%s (type=%s) | "
+                        "Tip: Check for duplicate slugs or conflicting autodoc output",
+                        url,
+                        existing.id,
+                        "section" if existing_is_section else "page",
+                        node.id,
+                        "section" if new_is_section else "page",
+                    )
             self._flat_nodes[url] = node
         self._urls = set(self._flat_nodes.keys())
 
@@ -294,6 +319,14 @@ class NavTree:
 
             # Use relative_url for nav tree (without baseurl) for consistent lookups
             page_url = getattr(page, "relative_url", page.url)
+
+            # Skip pages with the same URL as the section (they're section index content)
+            # This prevents section+page collisions from autodoc-generated content
+            if page_url == node_url:
+                # Merge page into section node (section represents this URL)
+                node.page = page
+                continue
+
             page_node = NavNode(
                 id=f"page-{page_url}",
                 title=getattr(page, "nav_title", page.title),

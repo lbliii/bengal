@@ -691,6 +691,9 @@ class TaxonomyOrchestrator:
             },
         )
 
+        # Set site reference BEFORE output_path for correct URL computation
+        tag_index._site = self.site
+
         # Compute output path using centralized logic (i18n-aware via site.current_language)
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
 
@@ -712,6 +715,9 @@ class TaxonomyOrchestrator:
                 "_tags": tags,
             },
         )
+
+        # Set site reference BEFORE output_path for correct URL computation
+        tag_index._site = self.site
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
 
         # Claim URL in registry for ownership enforcement
@@ -779,6 +785,9 @@ class TaxonomyOrchestrator:
                 },
             )
 
+            # Set site reference BEFORE output_path for correct URL computation
+            tag_page._site = self.site
+
             # Compute output path using centralized logic (i18n-aware via site.current_language)
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
                 tag_slug=tag_slug, page_num=page_num, site=self.site
@@ -836,6 +845,9 @@ class TaxonomyOrchestrator:
                     "_page_num": page_num,
                 },
             )
+
+            # Set site reference BEFORE output_path for correct URL computation
+            tag_page._site = self.site
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
                 tag_slug=tag_slug, page_num=page_num, site=self.site
             )

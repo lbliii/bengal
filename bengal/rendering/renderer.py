@@ -300,10 +300,8 @@ class Renderer:
                             error_type=type(traceback_error).__name__,
                         )
                         pass
-                # Wrap in RuntimeError for consistent error handling
-                raise RuntimeError(
-                    f"Template error in strict mode: {rich_error.message[:200]}"
-                ) from e
+                # Raise TemplateRenderError directly (now extends Exception)
+                raise rich_error from e
 
             # In production mode, collect error and continue
             if self.build_stats:

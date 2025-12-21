@@ -141,19 +141,28 @@ class PageMetadataMixin:
 
         return self.source_path.stem
 
-    @cached_property
+    @property
     def relative_url(self) -> str:
         """
         Get relative URL without baseurl (for comparisons).
 
         This is the identity URL - use for comparisons, menu activation, etc.
         Always returns a relative path without baseurl.
+
+        Note: This property uses manual caching that only stores the result when
+        computed from output_path (not fallback). This prevents caching incorrect
+        URLs when called before output_path or _site are set.
         """
-        # Fallback if no output path set
+        # Check for cached value (stored in __dict__ to avoid recursion)
+        cached = self.__dict__.get("_relative_url_cache")
+        if cached is not None:
+            return cached
+
+        # Fallback if no output path set - DON'T cache this
         if not self.output_path:
             return self._fallback_url()
 
-        # Need site reference to compute relative path
+        # Need site reference to compute relative path - DON'T cache fallback
         if not self._site:
             return self._fallback_url()
 
@@ -175,6 +184,7 @@ class PageMetadataMixin:
                 output_dir=str(self._site.output_dir),
                 page_source=str(getattr(self, "source_path", "unknown")),
             )
+            # DON'T cache fallback - output_path might be fixed later
             return self._fallback_url()
 
         # Convert Path to URL components
@@ -191,17 +201,18 @@ class PageMetadataMixin:
         # Construct URL with leading and trailing slashes
         if not url_parts:
             # Root index page
-            return "/"
+            url = "/"
+        else:
+            url = "/" + "/".join(url_parts)
+            # Ensure trailing slash for directory-like URLs
+            if not url.endswith("/"):
+                url += "/"
 
-        url = "/" + "/".join(url_parts)
-
-        # Ensure trailing slash for directory-like URLs
-        if not url.endswith("/"):
-            url += "/"
-
+        # Cache the successfully computed URL
+        self.__dict__["_relative_url_cache"] = url
         return url
 
-    @cached_property
+    @property
     def url(self) -> str:
         """
         Get URL with baseurl applied (cached after first access).
@@ -211,7 +222,15 @@ class PageMetadataMixin:
 
         Returns:
             URL path with baseurl prepended (if configured)
+
+        Note: Uses manual caching that only stores when relative_url is properly
+        computed (not from fallback).
         """
+        # Check for cached value
+        cached = self.__dict__.get("_url_cache")
+        if cached is not None:
+            return cached
+
         # Get relative URL first
         rel = self.relative_url or "/"
 
@@ -224,11 +243,17 @@ class PageMetadataMixin:
             baseurl = ""
 
         if not baseurl:
-            return rel
+            result = rel
+        else:
+            baseurl = baseurl.rstrip("/")
+            rel = "/" + rel.lstrip("/")
+            result = f"{baseurl}{rel}"
 
-        baseurl = baseurl.rstrip("/")
-        rel = "/" + rel.lstrip("/")
-        return f"{baseurl}{rel}"
+        # Only cache if relative_url was properly computed (has its own cache)
+        if "_relative_url_cache" in self.__dict__:
+            self.__dict__["_url_cache"] = result
+
+        return result
 
     @cached_property
     def permalink(self) -> str:

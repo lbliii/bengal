@@ -98,14 +98,21 @@ class BuildStats:
 
     # Warnings and errors
     warnings: list[Any] = field(default_factory=list)
-    template_errors: list[Any] = field(default_factory=list)  # Rich template errors
+    template_errors: list[Any] = field(
+        default_factory=list
+    )  # Rich template errors (TemplateRenderError instances)
 
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""
         self.warnings.append(BuildWarning(file_path, message, warning_type))
 
     def add_template_error(self, error: Any) -> None:
-        """Add a rich template error."""
+        """
+        Add a rich template error.
+
+        Args:
+            error: TemplateRenderError instance (or compatible exception)
+        """
         self.template_errors.append(error)
 
     def add_directive(self, directive_type: str) -> None:

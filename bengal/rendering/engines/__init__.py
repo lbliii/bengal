@@ -25,9 +25,9 @@ from typing import TYPE_CHECKING
 from bengal.rendering.engines.errors import (
     TemplateError,
     TemplateNotFoundError,
-    TemplateRenderError,
 )
 from bengal.rendering.engines.protocol import TemplateEngineProtocol
+from bengal.rendering.errors import TemplateRenderError
 
 if TYPE_CHECKING:
     from bengal.core import Site

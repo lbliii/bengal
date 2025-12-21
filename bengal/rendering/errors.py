@@ -11,6 +11,7 @@ from typing import Any
 from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
+from bengal.utils.exceptions import BengalRenderingError
 from bengal.utils.logger import truncate_error
 
 
@@ -45,23 +46,64 @@ class InclusionChain:
         return "\n".join(chain)
 
 
-@dataclass
-class TemplateRenderError:
+class TemplateRenderError(BengalRenderingError):
     """
     Rich template error with all debugging information.
 
     This replaces the simple string error messages with structured data
     that can be displayed beautifully and used for IDE integration.
+
+    Extends BengalRenderingError to provide consistent error handling
+    while maintaining rich context for template debugging.
     """
 
-    error_type: str  # 'syntax', 'undefined', 'filter', 'runtime'
-    message: str
-    template_context: TemplateErrorContext
-    inclusion_chain: InclusionChain | None
-    page_source: Path | None
-    suggestion: str | None
-    available_alternatives: list[str]  # For unknown filters/variables
-    search_paths: list[Path] | None = None  # Template directories searched
+    def __init__(
+        self,
+        error_type: str,
+        message: str,
+        template_context: TemplateErrorContext,
+        inclusion_chain: InclusionChain | None = None,
+        page_source: Path | None = None,
+        suggestion: str | None = None,
+        available_alternatives: list[str] | None = None,
+        search_paths: list[Path] | None = None,
+        *,
+        file_path: Path | None = None,
+        line_number: int | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
+        """
+        Initialize template render error.
+
+        Args:
+            error_type: Type of error ('syntax', 'undefined', 'filter', 'runtime')
+            message: Error message
+            template_context: Template error context
+            inclusion_chain: Template inclusion chain (if applicable)
+            page_source: Source page path (if applicable)
+            suggestion: Helpful suggestion for fixing
+            available_alternatives: List of alternative filters/variables
+            search_paths: Template search paths
+            file_path: File path (defaults to template_context.template_path)
+            line_number: Line number (defaults to template_context.line_number)
+            original_error: Original exception that caused this error
+        """
+        # Set base class fields (use template context if not provided)
+        super().__init__(
+            message=message,
+            file_path=file_path or template_context.template_path,
+            line_number=line_number or template_context.line_number,
+            suggestion=suggestion,
+            original_error=original_error,
+        )
+
+        # Set rich context fields
+        self.error_type = error_type
+        self.template_context = template_context
+        self.inclusion_chain = inclusion_chain
+        self.page_source = page_source
+        self.available_alternatives = available_alternatives or []
+        self.search_paths = search_paths
 
     @classmethod
     def from_jinja2_error(
@@ -114,6 +156,7 @@ class TemplateRenderError:
             suggestion=suggestion,
             available_alternatives=alternatives,
             search_paths=search_paths,
+            original_error=error,
         )
 
     @staticmethod

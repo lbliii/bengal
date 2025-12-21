@@ -22,13 +22,18 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
+from bengal.utils.exceptions import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class ConfigLoadError(Exception):
-    """Raised when config loading fails."""
+class ConfigLoadError(BengalConfigError):
+    """
+    Raised when config loading fails.
+
+    Extends BengalConfigError for consistent error handling.
+    """
 
     pass
 

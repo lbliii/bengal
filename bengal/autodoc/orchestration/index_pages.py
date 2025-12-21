@@ -39,6 +39,19 @@ def create_index_pages(
         # output_path must be absolute for correct URL generation
         output_path = site.output_dir / f"{section_path}/index.html"
 
+        # Check if URL is already claimed by another autodoc page
+        # This prevents collisions when autodoc generates both a command group
+        # page (e.g., cli/assets.md) and a section index for the same path
+        if hasattr(site, "url_registry") and site.url_registry:
+            from bengal.utils.url_strategy import URLStrategy
+
+            url = URLStrategy.url_from_output_path(output_path, site)
+            existing_claim = site.url_registry.get_claim(url)
+            if existing_claim is not None:
+                # URL already claimed - skip creating section index
+                # The existing page will serve as the section's content
+                continue
+
         # Determine template and page type based on section metadata
         # Page type controls CSS styling, template dir may differ
         section_type = section.metadata.get("type", "autodoc-python")

@@ -14,6 +14,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from bengal.utils.exceptions import BengalRenderingError
+
 
 @dataclass
 class TemplateError:
@@ -35,28 +37,39 @@ class TemplateError:
         return f"{self.template}{loc}: {self.message}"
 
 
-class TemplateNotFoundError(Exception):
+class TemplateNotFoundError(BengalRenderingError):
     """
     Raised when a template cannot be found.
 
     MUST be raised by render_template() when template doesn't exist.
+
+    Extends BengalRenderingError for consistent error handling.
     """
 
-    def __init__(self, name: str, search_paths: list[Path]) -> None:
+    def __init__(
+        self,
+        name: str,
+        search_paths: list[Path],
+        *,
+        suggestion: str | None = None,
+        original_error: Exception | None = None,
+    ) -> None:
         self.name = name
         self.search_paths = search_paths
         paths_str = "\n  ".join(str(p) for p in search_paths)
-        super().__init__(f"Template not found: '{name}'\nSearched in:\n  {paths_str}")
+        message = f"Template not found: '{name}'\nSearched in:\n  {paths_str}"
+
+        # Generate suggestion if not provided
+        if suggestion is None:
+            suggestion = "Check template name and search paths. Ensure template exists in one of the search directories."
+
+        super().__init__(
+            message=message,
+            suggestion=suggestion,
+            original_error=original_error,
+        )
 
 
-class TemplateRenderError(Exception):
-    """
-    Raised when template rendering fails.
-
-    MUST be raised by render_template() for runtime errors.
-    """
-
-    def __init__(self, name: str, cause: Exception) -> None:
-        self.name = name
-        self.cause = cause
-        super().__init__(f"Error rendering '{name}': {cause}")
+# TemplateRenderError moved to bengal.rendering.errors
+# Import from there instead:
+#   from bengal.rendering.errors import TemplateRenderError
