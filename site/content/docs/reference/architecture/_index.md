@@ -23,7 +23,13 @@ icon: folder
 ---
 # Architecture Overview
 
-Bengal SSG follows a modular architecture with clear separation of concerns to avoid "God objects" and maintain high performance even with large sites.
+Bengal is organized as a set of small subsystems with clear boundaries. Use this section to orient yourself and then jump to the specific subsystem you are changing.
+
+## How to use this section
+
+- Start with the overview diagram on this page.
+- Use the cards to jump to a subsystem.
+- Prefer subsystem pages over repeating context here.
 
 :::{child-cards}
 :columns: 2
@@ -48,7 +54,7 @@ graph TB
     end
 
     subgraph "Object Model"
-        Site[Site<br/>bengal/core/site.py]
+        Site[Site<br/>bengal/core/site/]
         Pages[Pages<br/>bengal/core/page/]
         Sections[Sections<br/>bengal/core/section.py]
         Assets[Assets<br/>bengal/core/asset/]
@@ -95,17 +101,11 @@ graph TB
     Debug -.->|"diagnostics"| Site
 ```
 
-**Key Flows:**
-1. **Build**: CLI → Site → Discovery → Orchestration → [Menus + Rendering] → Post-Process
-2. **Menu Building**: Orchestration builds menus → Rendering uses menus in templates
-3. **Navigation Tree**: Site builds NavTree from sections → Cached per version → Rendering uses for O(1) template access
-4. **Cache**: Build Cache checks file changes and dependencies before rebuilding
-5. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
-6. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
-7. **Collections**: Type-safe content schemas → validate frontmatter during discovery
-8. **Content Layer**: Unified API for local/remote content → integrates with Collections
-9. **CLI Output**: Centralized terminal output → profile-aware formatting for all commands
-10. **Debug Tools**: Diagnostic utilities → explain builds, analyze dependencies, debug incremental issues
+::::{dropdown} Key flows (overview)
+1. **Build**: CLI → Site → Discovery → Orchestration → Rendering → Post-process
+2. **Dev server**: watch → incremental rebuild → serve output
+3. **Template context**: Site + Page + NavTree → Rendering
+::::
 
 ## Module Overview
 
@@ -140,18 +140,8 @@ graph TB
 - **`services/`**: Service interfaces and implementations
 - **`assets/`**: Asset processing pipeline and manifest generation
 
-## Object Model Relationships
+## Pointers
 
-### NavTree ↔ Section Relationship
-
-`NavTree` is built from the site's `Section` hierarchy:
-
-- **NavTree.build()** traverses `site.sections` and creates `NavNode` structures
-- Each `NavNode` can reference a `Section` (via `node.section`) or a `Page` (via `node.page`)
-- Version filtering uses `Section.pages_for_version()` and `Section.subsections_for_version()`
-- The tree is cached per version for O(1) template access
-
-**Benefits:**
-- Pre-computed structure eliminates template-side version filtering overhead
-- Immutable cached trees preserve thread safety
-- Active trail computation happens once per page render (via `NavTreeContext`)
+- **Object model**: refer to [Object Model](core/object-model/)
+- **Rendering pipeline**: refer to [Rendering Pipeline](rendering/rendering/)
+- **Build orchestration**: refer to [Orchestration](core/orchestration/)

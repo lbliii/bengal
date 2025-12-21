@@ -33,9 +33,9 @@ flowchart LR
     E --> Customization
 ```
 
-## Coverage
+## Scope
 
-| Area | Coverage | Approach |
+| Area | What this section covers | Approach |
 |------|----------|----------|
 | **Testing** | Unit + Integration | pytest, fixture-based |
 | **Performance** | Benchmarked | Build time, memory, incremental |

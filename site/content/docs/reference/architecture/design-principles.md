@@ -97,7 +97,7 @@ keywords:
 ## 7. Testing Strategy
 
 ### Comprehensive Coverage
-- Unit tests for all utilities (90%+ coverage)
+- Unit tests for core utilities
 - Integration tests for workflows
 - Performance benchmarks
 - Example sites as e2e tests

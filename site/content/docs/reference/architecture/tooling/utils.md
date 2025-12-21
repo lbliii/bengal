@@ -23,11 +23,11 @@ keywords:
 - consolidation
 ---
 
-Bengal provides a comprehensive set of utility modules that consolidate common operations across the codebase, eliminating duplication and providing consistent, well-tested implementations.
+Utility modules shared across subsystems.
 
 ## Text Utilities (`bengal/utils/text.py`)
 - **Purpose**: Text processing and manipulation
-- **Functions (12 total)**:
+- **Functions**:
   - `slugify()` - URL-safe slug generation with configurable separators
   - `strip_html()` - Remove HTML tags and decode entities
   - `truncate_words()` - Intelligent word-based truncation
@@ -41,11 +41,10 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
   - `humanize_bytes()` - Format bytes as KB/MB/GB
   - `humanize_number()` - Format numbers with thousand separators
 - **Usage**: Used by template functions, parser, and throughout rendering pipeline
-- **Coverage**: 91% with 74 comprehensive tests
 
 ## File I/O Utilities (`bengal/utils/file_io.py`)
 - **Purpose**: Robust file reading/writing with consistent error handling
-- **Functions (7 total)**:
+- **Functions**:
   - `read_text_file()` - Read text with UTF-8/latin-1 fallback
   - `load_json()` - Load JSON with validation
   - `load_yaml()` - Load YAML with graceful PyYAML detection
@@ -59,11 +58,10 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
   - Structured logging with context
   - Atomic writes for data integrity
 - **Usage**: Used by config loader, content discovery, template functions
-- **Coverage**: 23-91% (increases as adoption grows)
 
 ## Date Utilities (`bengal/utils/dates.py`)
 - **Purpose**: Date parsing, formatting, and manipulation
-- **Functions (8 total)**:
+- **Functions**:
   - `parse_date()` - Unified date parsing (datetime, date, str, None)
   - `format_date_iso()` - Format as ISO 8601
   - `format_date_rfc822()` - Format as RFC 822 (RSS feeds)
@@ -78,7 +76,6 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
   - Multiple error handling strategies
   - Type-safe with DateLike type alias
 - **Usage**: Used by template functions, frontmatter parsing, RSS generation
-- **Coverage**: 91% with 56 comprehensive tests
 
 ## Paginator (`bengal/utils/pagination.py`)
 - **Purpose**: Generic pagination utility for splitting long lists
@@ -88,15 +85,6 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
   - Template context generation
   - Type-safe generic implementation
 - **Usage**: Used for archive pages and tag pages
-- **Coverage**: 96% with 10 tests
-
-## Impact of Utility Consolidation
-- **Code Reduction**: Eliminated 311 lines of duplicate code across 9 files
-- **Test Coverage**: Added 184+ comprehensive tests
-- **Consistency**: Single source of truth for text, files, and dates
-- **Maintainability**: Fix once in utility module vs 4+ places
-- **Type Safety**: Full type hints with type aliases
-- **Error Handling**: Consistent strategies across all utilities
 
 ## Build Utilities
 
@@ -261,30 +249,11 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
 2. **No Business Logic**: Utilities are reusable helpers, not business logic
 3. **Type Safety**: Full type hints throughout
 4. **Error Handling**: Consistent error handling patterns
-5. **Testing**: High test coverage (70-96% across modules)
+5. **Testing**: Covered by unit and integration tests
 6. **Documentation**: Docstrings and examples for all utilities
-
-## Utility Adoption Pattern
-
-When functionality is duplicated across multiple files:
-1. Extract to utility module
-2. Add comprehensive tests
-3. Update all call sites
-4. Document in architecture docs
-
-**Example**: Text utilities extracted from 9 files, reducing code by 311 lines and adding 74 tests.
-
-## Benefits of Utility Consolidation
-
-- **Code Reduction**: Eliminate duplication
-- **Consistency**: Single implementation
-- **Testability**: Test once, use everywhere
-- **Maintainability**: Fix once, benefit everywhere
-- **Type Safety**: Centralized type checking
-- **Performance**: Optimize once
 
 ## Related Documentation
 
-- [Design Principles](/docs/reference/architecture/design-principles/) - Overall design patterns
-- [File Organization](/docs/reference/architecture/meta/file-organization/) - Directory structure
-- [Testing](/docs/reference/architecture/meta/testing/) - Testing strategy and coverage
+- [Design Principles](../design-principles/) - Overall design patterns
+- [File Organization](../meta/file-organization/) - Directory structure
+- [Testing](../meta/testing/) - Testing strategy

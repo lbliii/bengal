@@ -9,7 +9,7 @@ icon: bengal-rosette
 ---
 # Core Architecture
 
-The brain of Bengal — foundational data models and build coordination.
+Foundational data models and build coordination.
 
 ## Data Model Overview
 
@@ -34,7 +34,7 @@ graph TB
 
 | Component | Responsibility | Module |
 |-----------|----------------|--------|
-| **Site** | Central container, holds all content | `bengal/core/site.py` |
+| **Site** | Central container, holds all content | `bengal/core/site/` |
 | **Page** | Single content page with metadata | `bengal/core/page/` |
 | **Section** | Directory container, holds children | `bengal/core/section.py` |
 | **Asset** | Static file with processing metadata | `bengal/core/asset/` |
