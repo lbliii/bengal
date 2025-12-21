@@ -131,9 +131,21 @@ class NavTree:
         """Find a node by URL in O(1) time."""
         return self._flat_nodes.get(url)
 
-    def with_active_trail(self, page: Page) -> NavTreeContext:
-        """Return a context overlay with active trail for the given page."""
-        return NavTreeContext(self, page)
+    def context(
+        self,
+        page: Page,
+        *,
+        mark_active_trail: bool = True,
+        root_node: NavNode | None = None,
+    ) -> NavTreeContext:
+        """
+        Create a per-page context overlay for this tree.
+
+        This preserves immutability of the cached NavTree while providing:
+        - Optional active trail state (is_in_trail / is_expanded)
+        - Optional root scoping (useful for docs-only sidebars)
+        """
+        return NavTreeContext(self, page, mark_active_trail=mark_active_trail, root_node=root_node)
 
     @classmethod
     def build(cls, site: Site, version_id: str | None = None) -> NavTree:
@@ -245,14 +257,24 @@ class NavTreeContext:
     page-specific state like 'is_current' and 'is_in_trail'.
     """
 
-    def __init__(self, tree: NavTree, page: Page):
+    def __init__(
+        self,
+        tree: NavTree,
+        page: Page,
+        *,
+        mark_active_trail: bool = True,
+        root_node: NavNode | None = None,
+    ):
         self.tree = tree
         self.page = page
         self.current_url = page.url
+        self._mark_active_trail = mark_active_trail
+        self._root_node = root_node or tree.root
 
         # Pre-compute active trail
         self.active_trail_urls: set[str] = set()
-        self._compute_active_trail()
+        if self._mark_active_trail:
+            self._compute_active_trail()
 
     def _compute_active_trail(self) -> None:
         """Compute the set of URLs in the active trail for the current page."""
@@ -267,6 +289,8 @@ class NavTreeContext:
 
     def is_active(self, node: NavNode) -> bool:
         """True if the node is in the active trail."""
+        if not self._mark_active_trail:
+            return False
         return node.url in self.active_trail_urls
 
     def is_current(self, node: NavNode) -> bool:
@@ -283,7 +307,7 @@ class NavTreeContext:
     def __getitem__(self, key: str) -> Any:
         """Allow nav['root'] access by delegating to tree or computing state."""
         if key == "root":
-            return self._wrap_node(self.tree.root)
+            return self._wrap_node(self._root_node)
         return getattr(self.tree, key)
 
     def _wrap_node(self, node: NavNode) -> NavNodeProxy:

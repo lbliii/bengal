@@ -200,6 +200,12 @@ class MistuneParser(BaseMarkdownParser):
             html = self._inline_icon_plugin._substitute_icons(html)
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
+                # Set current page version for version-aware anchor resolution
+                # Try to get version from metadata (page object may not be available)
+                page_version = (
+                    metadata.get("version") or metadata.get("_version") if metadata else None
+                )
+                self._xref_plugin.current_version = page_version
                 html = self._xref_plugin._substitute_xrefs(html)
             return html
         except Exception as e:
@@ -234,6 +240,10 @@ class MistuneParser(BaseMarkdownParser):
 
         # Stage 1.6: Post-process cross-references if enabled
         if self._xref_enabled and self._xref_plugin:
+            # Set current page version for version-aware anchor resolution
+            # Try to get version from metadata (page object may not be available)
+            page_version = metadata.get("version") or metadata.get("_version") if metadata else None
+            self._xref_plugin.current_version = page_version
             html = self._xref_plugin._substitute_xrefs(html)
 
         # Stage 2: Inject heading anchors (IDs only; theme adds copy-link anchors)
@@ -354,6 +364,15 @@ class MistuneParser(BaseMarkdownParser):
 
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
+                # Set current page version for version-aware anchor resolution
+                if current_page and hasattr(current_page, "version"):
+                    self._xref_plugin.current_version = current_page.version
+                else:
+                    # Fall back to metadata if page object not available
+                    page_version = (
+                        metadata.get("version") or metadata.get("_version") if metadata else None
+                    )
+                    self._xref_plugin.current_version = page_version
                 html = self._xref_plugin._substitute_xrefs(html)
             return html
         except Exception as e:
@@ -527,6 +546,12 @@ class MistuneParser(BaseMarkdownParser):
             html = self._badge_plugin._substitute_badges(html)
             html = self._inline_icon_plugin._substitute_icons(html)
             if self._xref_enabled and self._xref_plugin:
+                # Set current page version for version-aware anchor resolution
+                # Try to get version from metadata (page object may not be available)
+                page_version = (
+                    metadata.get("version") or metadata.get("_version") if metadata else None
+                )
+                self._xref_plugin.current_version = page_version
                 html = self._xref_plugin._substitute_xrefs(html)
 
             # Inject heading anchors and extract TOC

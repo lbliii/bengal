@@ -308,12 +308,12 @@ class TestNavTree:
         not_found = tree.find("/nonexistent/")
         assert not_found is None
 
-    def test_with_active_trail(self, simple_site):
-        """Test with_active_trail() creates NavTreeContext."""
+    def test_context(self, simple_site):
+        """Test context() creates NavTreeContext."""
         tree = NavTree.build(simple_site)
         page = simple_site.pages[0]  # Get first page
 
-        context = tree.with_active_trail(page)
+        context = tree.context(page)
 
         assert isinstance(context, NavTreeContext)
         assert context.tree == tree
@@ -600,6 +600,9 @@ class TestGetTargetUrl:
         # Create a mock page
         page = Mock(spec=Page)
         page.url = "/v1/docs/guide/"
+        # Version URL logic uses relative_url (baseurl-stripped) for transformations.
+        # In unit tests, keep it identical to url for simplicity.
+        page.relative_url = "/v1/docs/guide/"
         page.version = "v1"
         page._site = site
 
