@@ -28,7 +28,6 @@ The .href property automatically includes baseurl when configured.
 HELPER FUNCTIONS:
 -----------------
 - href_for(obj, site): Get public URL for any page-like object (preferred)
-- url_for(page, site): Legacy function (deprecated, use href_for or obj.href)
 - with_baseurl(path, site): Apply baseurl to a site-relative path
 
 Related Modules:
@@ -78,35 +77,6 @@ def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
     return obj.href
 
 
-def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
-    """
-    Generate public URL for a page with baseurl applied.
-
-    Deprecated: Prefer href_for() or obj.href directly.
-
-    This function is kept for backward compatibility. New code should use:
-    - obj.href for Page/Section/Asset objects
-    - href_for() for generic objects
-
-    Args:
-        page: Page object, PageProxy, NavNode, or dict-like object with url/slug
-
-    Returns:
-        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
-
-    Example:
-        # In template function
-        return url_for(related_page, site)  # Returns "/bengal/docs/related/"
-
-    Note:
-        For Page objects, prefer page.href directly, which already
-        includes baseurl. This function is useful for handling various
-        page-like objects consistently.
-    """
-    # Use _path (internal path without baseurl)
-    url = page._path
-
-    return with_baseurl(url, site)
 
 
 def with_baseurl(path: str, site: Site) -> str:

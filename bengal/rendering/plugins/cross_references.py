@@ -189,7 +189,7 @@ class CrossReferencePlugin:
                 f'title="Page not found: {path}">[{text or path}]</span>'
             )
 
-        url = page.href if hasattr(page, "href") else (page._path if hasattr(page, "_path") else f"/{page.slug}/")
+        url = page.href
         full_url = f"{url}{anchor_fragment}"
 
         logger.debug(
@@ -226,7 +226,7 @@ class CrossReferencePlugin:
         logger.debug("xref_resolved", ref=f"id:{ref_id}", type="id", target=page.title)
 
         link_text = text or page.title
-        url = page.href if hasattr(page, "href") else (page._path if hasattr(page, "_path") else f"/{page.slug}/")
+        url = page.href
         return f'<a href="{url}">{link_text}</a>'
 
     def _resolve_target(self, anchor_id: str, text: str | None = None) -> str:
@@ -288,7 +288,7 @@ class CrossReferencePlugin:
             else None,
         )
         link_text = text or anchor_id.replace("-", " ").title()
-        url = page.href if hasattr(page, "href") else (page._path if hasattr(page, "_path") else f"/{page.slug}/")
+        url = page.href
         return f'<a href="{url}#{anchor_id_resolved}">{link_text}</a>'
 
     def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
@@ -342,7 +342,7 @@ class CrossReferencePlugin:
                 else None,
             )
             link_text = text or anchor_key.replace("-", " ").title()
-            url = page.href if hasattr(page, "href") else (page._path if hasattr(page, "_path") else f"/{page.slug}/")
+            url = page.href
             return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
         # Fall back to heading text lookup
@@ -374,7 +374,7 @@ class CrossReferencePlugin:
         )
 
         link_text = text or anchor.lstrip("#").replace("-", " ").title()
-        url = page.href if hasattr(page, "href") else (page._path if hasattr(page, "_path") else f"/{page.slug}/")
+        url = page.href
         return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
     def _resolve_version_link(self, ref: str, text: str | None = None) -> str:

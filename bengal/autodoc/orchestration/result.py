@@ -144,8 +144,7 @@ class PageContext:
         self.title = title
         self.metadata = metadata
         self.tags = tags or []
-        self.relative_url = relative_url
-        self._path = relative_url  # Alias for unified URL model
+        self._path = relative_url
         self.variant = variant
         self.source_path = source_path
 

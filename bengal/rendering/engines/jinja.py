@@ -30,7 +30,7 @@ from bengal.rendering.template_engine.environment import (
 )
 from bengal.rendering.template_engine.manifest import ManifestHelpersMixin
 from bengal.rendering.template_engine.menu import MenuHelpersMixin
-from bengal.rendering.template_engine.url_helpers import url_for, with_baseurl
+from bengal.rendering.template_engine.url_helpers import href_for, with_baseurl
 from bengal.rendering.template_profiler import (
     ProfiledTemplate,
     TemplateProfiler,
@@ -430,7 +430,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
     def _url_for(self, page: Any) -> str:
         """Generate URL for a page with base URL support."""
-        return url_for(page, self.site)
+        return href_for(page, self.site)
 
     def _with_baseurl(self, path: str) -> str:
         """Apply base URL prefix to a path."""

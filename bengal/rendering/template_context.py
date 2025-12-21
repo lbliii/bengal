@@ -58,7 +58,6 @@ class TemplatePageWrapper:
         wrapped = TemplatePageWrapper(page, baseurl="/bengal")
         wrapped.url  # Returns "/bengal/docs/page/" (with baseurl)
         wrapped.title  # Delegates to page.title
-        wrapped.permalink  # Still works (returns same as url)
     """
 
     def __init__(self, page: Any, baseurl: str = ""):
@@ -105,25 +104,6 @@ class TemplatePageWrapper:
         base_path = "/" + baseurl.lstrip("/")
         return f"{base_path}{rel}"
 
-    @property
-    def permalink(self) -> str:
-        """
-        Alias for url (for backward compatibility).
-
-        Both url and permalink now return the same value (with baseurl).
-        This maintains compatibility with existing templates that use permalink.
-        """
-        return self.url
-
-    @property
-    def relative_url(self) -> str:
-        """
-        Relative URL without baseurl (for comparisons).
-
-        Use this when you need the relative URL for comparisons or logic.
-        For display URLs, use .url (which includes baseurl).
-        """
-        return self._page._path
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -199,15 +179,6 @@ class TemplateSectionWrapper:
         base_path = "/" + baseurl.lstrip("/")
         return f"{base_path}{rel}"
 
-    @property
-    def permalink(self) -> str:
-        """Alias for url (for backward compatibility)."""
-        return self.url
-
-    @property
-    def relative_url(self) -> str:
-        """Relative URL without baseurl (for comparisons)."""
-        return self._section._path
 
     @property
     def pages(self) -> list[TemplatePageWrapper]:
@@ -258,7 +229,7 @@ class TemplateSiteWrapper:
     Wraps Site object to auto-wrap pages/sections when accessed from templates.
 
     When templates access site.pages or site.sections, the pages/sections
-    are automatically wrapped so they have .relative_url and .url includes baseurl.
+    are automatically wrapped so they have .url with baseurl applied.
     """
 
     def __init__(self, site: Any, baseurl: str = ""):
@@ -314,18 +285,18 @@ def wrap_for_template(obj: Any, baseurl: str = "") -> Any:
     if isinstance(obj, (TemplatePageWrapper, TemplateSectionWrapper, TemplateSiteWrapper)):
         return obj
 
-    # Check if it has a url or href attribute (Page, Section, or SimpleNamespace from special pages)
-    if hasattr(obj, "url") or hasattr(obj, "href") or hasattr(obj, "_path"):
+    # Check if it has href or _path attribute (Page, Section, or SimpleNamespace from special pages)
+    if hasattr(obj, "href") or hasattr(obj, "_path"):
         # Check if it's a Section (has index_page attribute)
         if hasattr(obj, "index_page"):
             return TemplateSectionWrapper(obj, baseurl)
 
-        # Check if it's a Page-like object (has permalink property)
-        if hasattr(obj, "permalink"):
+        # Check if it's a Page-like object (has _path property)
+        if hasattr(obj, "_path"):
             return TemplatePageWrapper(obj, baseurl)
 
         # Check if it's a SimpleNamespace (special pages like 404, search, graph)
-        # These have url but no permalink, so we create a simple wrapper
+        # These might have href or _path, so we create a simple wrapper
         from types import SimpleNamespace
 
         if isinstance(obj, SimpleNamespace):

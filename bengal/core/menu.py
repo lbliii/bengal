@@ -380,7 +380,7 @@ class MenuBuilder:
                       Currently used for logging, all menus share same builder
             menu_config: Menu configuration dictionary from page frontmatter.
                         Should have: name (optional, defaults to page.title),
-                        url (optional, defaults to page.relative_url),
+                        url (optional, defaults to page._path),
                         weight (optional), parent (optional), identifier (optional)
 
         Examples:
