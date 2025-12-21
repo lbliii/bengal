@@ -22,10 +22,17 @@ def register(env: Environment, site: Site) -> None:
     def absolute_url_with_site(url: str) -> str:
         return absolute_url(url, site.config.get("baseurl", ""))
 
+    def href_filter(path: str) -> str:
+        """Apply baseurl to path. For manual paths in templates."""
+        from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+        return with_baseurl(path, site)
+
     env.filters.update(
         {
             "absolute_url": absolute_url_with_site,
             "url": absolute_url_with_site,
+            "href": href_filter,
             "url_encode": url_encode,
             "url_decode": url_decode,
         }
