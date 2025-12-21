@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Documentation Cleanup ✅
+- **plan**: remove completed RFCs and plans (template-functions-robustness, template-error-collection, version-aware-section-methods) - work documented in changelog
+
 ### Navigation Tree Architecture ✅
 - **core(nav_tree)**: add `NavTree` - pre-computed, cached navigation structure for O(1) template access
 - **core(nav_tree)**: add `NavNode` - memory-efficient navigation node with dict-like Jinja access (~200 bytes per node)
