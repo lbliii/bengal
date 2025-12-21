@@ -600,6 +600,10 @@ class Section:
         - Link validation
 
         NEVER use in templates - use .href instead.
+
+        For versioned content in _versions/<id>/, the path is transformed:
+        - _versions/v1/docs/about → /docs/v1/about/ (non-latest)
+        - _versions/v3/docs/about → /docs/about/ (latest)
         """
         from bengal.utils.url_normalization import join_url_paths, normalize_url
 
@@ -620,7 +624,77 @@ class Section:
 
         parent_rel = self.parent._path if self.parent else "/"
         url = join_url_paths(parent_rel, self.name)
+
+        # Apply version path transformation for _versions/ content
+        url = self._apply_version_path_transform(url)
+
         return url
+
+    def _apply_version_path_transform(self, url: str) -> str:
+        """
+        Transform versioned section URL to proper output structure.
+
+        For sections inside _versions/<id>/, transforms the URL:
+        - /_versions/v1/docs/about/ → /docs/v1/about/ (non-latest)
+        - /_versions/v3/docs/about/ → /docs/about/ (latest)
+
+        This matches the transformation applied to pages in URLStrategy.
+
+        Args:
+            url: Raw section URL (may contain _versions prefix)
+
+        Returns:
+            Transformed URL with version placed after section
+        """
+        # Fast path: not versioned content
+        if "/_versions/" not in url:
+            return url
+
+        # Get site and version config
+        site = getattr(self, "_site", None)
+        if not site or not getattr(site, "versioning_enabled", False):
+            return url
+
+        version_config = getattr(site, "version_config", None)
+        if not version_config:
+            return url
+
+        # Parse the URL: /_versions/<id>/<section>/...
+        # Split on /_versions/ to get parts after
+        parts = url.split("/_versions/", 1)
+        if len(parts) < 2:
+            return url
+
+        remainder = parts[1]  # e.g., "v1/docs/about/"
+        remainder_parts = remainder.strip("/").split("/")
+
+        if len(remainder_parts) < 2:
+            # Just /_versions/<id>/ with no section - shouldn't happen for real sections
+            return url
+
+        version_id = remainder_parts[0]  # e.g., "v1"
+        section_name = remainder_parts[1]  # e.g., "docs"
+        rest = remainder_parts[2:]  # e.g., ["about"]
+
+        # Check if this is the latest version
+        version_obj = version_config.get_version(version_id)
+        if not version_obj:
+            return url
+
+        if version_obj.latest:
+            # Latest version: strip version prefix entirely
+            # /_versions/v3/docs/about/ → /docs/about/
+            if rest:
+                return f"/{section_name}/" + "/".join(rest) + "/"
+            else:
+                return f"/{section_name}/"
+        else:
+            # Non-latest version: insert version after section
+            # /_versions/v1/docs/about/ → /docs/v1/about/
+            if rest:
+                return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
+            else:
+                return f"/{section_name}/{version_id}/"
 
     @property
     def absolute_href(self) -> str:
