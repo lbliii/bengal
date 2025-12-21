@@ -155,7 +155,12 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            raise RuntimeError("Cache not initialized - call initialize() first")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                "Cache not initialized - call initialize() first",
+                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+            )
 
         # Lazy initialization of change detector
         if self._change_detector is None:
@@ -207,7 +212,12 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            raise RuntimeError("Cache not initialized - call initialize() first")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                "Cache not initialized - call initialize() first",
+                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+            )
 
         # Lazy initialization of change detector
         if self._change_detector is None:
