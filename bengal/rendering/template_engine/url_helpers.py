@@ -107,24 +107,8 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
         includes baseurl. This function is useful for handling various
         page-like objects consistently.
     """
-    url = None
-
-    # Use the page's _path property (doesn't include baseurl) - preferred
-    try:
-        if hasattr(page, "_path"):
-            url = page._path
-    except Exception as e:
-        logger.debug(
-            "url_for_path_access_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="trying_relative_url_fallback",
-        )
-        pass
-
     # Use _path (internal path without baseurl)
-    if url is None:
-        url = page._path
+    url = page._path
                 error=str(e),
                 error_type=type(e).__name__,
                 action="trying_dict_fallback",
