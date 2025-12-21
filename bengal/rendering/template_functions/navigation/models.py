@@ -151,6 +151,15 @@ class NavTreeItem:
     """
     Item in hierarchical navigation tree.
 
+    .. deprecated:: 0.2.0
+       Use :class:`bengal.core.nav_tree.NavNode` and
+       :class:`bengal.core.nav_tree.NavNodeProxy` instead.
+       NavTreeItem will be removed in version 2.0.
+
+       Migration: Replace direct NavTreeItem construction with
+       :func:`bengal.rendering.template_functions.navigation.get_nav_tree`
+       which returns NavNodeProxy objects with the same interface.
+
     Attributes:
         title: Display title for navigation
         url: Link URL

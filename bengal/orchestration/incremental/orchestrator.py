@@ -13,6 +13,7 @@ Related Modules:
     - bengal.orchestration.incremental.cache_manager: Cache operations
     - bengal.orchestration.incremental.change_detector: Change detection
     - bengal.orchestration.incremental.cleanup: Deleted file cleanup
+    - bengal.core.nav_tree: NavTreeCache for cached navigation
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.nav_tree import NavTreeCache
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cache_manager import CacheManager
 from bengal.orchestration.incremental.change_detector import ChangeDetector
@@ -102,14 +104,22 @@ class IncrementalOrchestrator:
         """
         Check if configuration has changed (requires full rebuild).
 
-        Delegates to CacheManager for config validation.
+        Delegates to CacheManager for config validation. If config changed,
+        invalidates NavTreeCache since navigation structure may be affected.
 
         Returns:
             True if config changed (cache was invalidated)
         """
         # Sync cache state with cache manager
         self._cache_manager.cache = self.cache
-        return self._cache_manager.check_config_changed()
+        config_changed = self._cache_manager.check_config_changed()
+
+        if config_changed:
+            # Config change may affect navigation (versioning, menus, etc.)
+            NavTreeCache.invalidate()
+            logger.debug("nav_tree_cache_invalidated", reason="config_changed")
+
+        return config_changed
 
     def find_work_early(
         self,
@@ -122,6 +132,11 @@ class IncrementalOrchestrator:
 
         This is called BEFORE taxonomies/menus are generated, so it only checks
         content/asset changes. Generated pages will be determined later.
+
+        Invalidates NavTreeCache when structural changes are detected:
+        - New pages added
+        - Pages deleted
+        - Navigation-affecting metadata changed (title, weight, icon)
 
         Args:
             verbose: Whether to collect detailed change information
@@ -144,6 +159,15 @@ class IncrementalOrchestrator:
             forced_changed_sources=forced_changed_sources,
             nav_changed_sources=nav_changed_sources,
         )
+
+        # Invalidate NavTreeCache if structural changes detected
+        # Structural changes: new/deleted pages or nav-affecting metadata
+        has_structural_changes = bool(change_set.change_summary.modified_content) or bool(
+            nav_changed_sources
+        )
+        if has_structural_changes:
+            NavTreeCache.invalidate()
+            logger.debug("nav_tree_cache_invalidated", reason="structural_changes")
 
         return (
             change_set.pages_to_build,
