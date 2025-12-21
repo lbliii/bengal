@@ -226,7 +226,7 @@ class Site(
         if isinstance(theme_section, dict):
             self.theme = theme_section.get("name", "default")
         else:
-            # Fallback for legacy config where theme was a string
+            # Fallback for config where theme was a string
             self.theme = theme_section if isinstance(theme_section, str) else "default"
 
         self._theme_obj = Theme.from_config(

@@ -30,7 +30,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.cache.build_cache.autodoc_tracking import AutodocTrackingMixin
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
@@ -39,6 +39,9 @@ from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMi
 from bengal.cache.build_cache.taxonomy_index_mixin import TaxonomyIndexMixin
 from bengal.cache.build_cache.validation_cache import ValidationCacheMixin
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    pass
 
 logger = get_logger(__name__)
 

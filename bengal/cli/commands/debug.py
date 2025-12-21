@@ -93,7 +93,7 @@ def incremental(
     # Load cache
     cache = BuildCache.load(site.paths.build_cache)
 
-    cli.info(f"Loaded cache with {len(cache.file_hashes)} tracked files")
+    cli.info(f"Loaded cache with {len(cache.file_fingerprints)} tracked files")
 
     # Create debugger
     debugger = IncrementalBuildDebugger(site=site, cache=cache, root_path=site.root_path)

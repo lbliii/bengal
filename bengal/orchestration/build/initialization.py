@@ -374,7 +374,7 @@ def phase_config_check(
         config_file = next((f for f in config_files if f.exists()), None)
 
         # Check if config was previously cached
-        if config_file and str(config_file) not in cache.file_hashes:
+        if config_file and str(config_file) not in cache.file_fingerprints:
             cli.info("  Config not in cache - performing full rebuild")
             cli.detail("(This is normal for the first incremental build)", indent=1)
         else:
@@ -452,7 +452,7 @@ def phase_incremental_filter(
                     nav_changed_sources=nav_changed_sources,
                 )
             )
-            # Convert ChangeSummary to dict for backward compatibility with existing code
+            # Convert ChangeSummary to dict
             change_summary = change_summary_obj.to_dict()
 
             # Track which pages changed (for taxonomy updates)

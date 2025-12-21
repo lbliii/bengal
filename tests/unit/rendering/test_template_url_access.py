@@ -365,7 +365,7 @@ class TestTemplateAccessPatterns:
 
         # Even if page.next isn't set up, test the URL access pattern
         for article in articles:
-            url = article.url
+            url = article.href
             # Simulating what happens if template tries: page.next.url
             # (The URL should already be correct on the page object)
             assert url.startswith("/articles/"), f"Conditional access wrong: {url}"

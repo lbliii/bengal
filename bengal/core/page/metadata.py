@@ -404,9 +404,9 @@ class PageMetadataMixin:
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from core (preferred) or legacy layout/hero_style fields.
+        Get visual variant from core (preferred) or layout/hero_style fields.
 
-        This normalizes 'layout' and 'hero_style' into the new Component Model 'variant'.
+        Normalizes 'layout' and 'hero_style' into the Component Model 'variant'.
 
         Component Model: Mode.
 
@@ -416,7 +416,7 @@ class PageMetadataMixin:
         if self.core is not None and self.core.variant:
             return self.core.variant
 
-        # Legacy fallbacks
+        # Fallbacks
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
     @property

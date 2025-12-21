@@ -306,7 +306,7 @@ class ContentOrchestrator:
                         )
                         return pages, sections
 
-            # Tolerate both 2-tuple (legacy) and 3-tuple (new) return values
+            # Tolerate both 2-tuple and 3-tuple return values
             result = orchestrator.generate()
             if len(result) == 3:
                 pages, sections, run_result = result
@@ -372,7 +372,7 @@ class ContentOrchestrator:
                             error_type=type(e).__name__,
                         )
             else:
-                # Legacy 2-tuple return
+                # 2-tuple return
                 pages, sections = result
                 run_result = None
 

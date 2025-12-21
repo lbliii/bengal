@@ -112,7 +112,7 @@ paths:
 
         root = sections[0]
         child_names = [s.name for s in root.subsections]
-        child_urls = [s.relative_url for s in root.subsections]
+        child_urls = [s._path for s in root.subsections]
 
         assert "python" in child_names
         assert "rest" in child_names

@@ -376,4 +376,12 @@ class ConfigDirectoryLoader:
                 if key not in flat:
                     flat[key] = value
 
+        # Extract assets section to top level with _assets suffix (for backward compatibility)
+        # assets.minify → minify_assets, assets.optimize → optimize_assets, etc.
+        if "assets" in config and isinstance(config["assets"], dict):
+            for key, value in config["assets"].items():
+                flat_key = f"{key}_assets"
+                if flat_key not in flat:
+                    flat[flat_key] = value
+
         return flat

@@ -3,15 +3,12 @@ Cards directive system for Bengal SSG.
 
 Provides a modern, simple card grid system with auto-layout and responsive columns.
 
-This is a package containing the cards, card, and child-cards directives,
-as well as legacy grid compatibility layers.
+This is a package containing the cards, card, and child-cards directives.
 
 Components:
     - CardsDirective: Grid container for cards
     - CardDirective: Individual card with optional link, icon, image
     - ChildCardsDirective: Auto-generate cards from child sections/pages
-    - GridDirective: Legacy grid compatibility
-    - GridItemCardDirective: Legacy grid-item-card compatibility
 
 Syntax (preferred - named closers):
 
@@ -36,7 +33,6 @@ from __future__ import annotations
 from bengal.directives.cards.card import CardDirective, CardOptions
 from bengal.directives.cards.cards_grid import CardsDirective, CardsOptions
 from bengal.directives.cards.child_cards import ChildCardsDirective, ChildCardsOptions
-from bengal.directives.cards.legacy import GridDirective, GridItemCardDirective
 from bengal.directives.cards.utils import (
     VALID_COLORS,
     VALID_GAPS,
@@ -49,9 +45,6 @@ __all__ = [
     "CardsDirective",
     "CardDirective",
     "ChildCardsDirective",
-    # Legacy compatibility
-    "GridDirective",
-    "GridItemCardDirective",
     # Options classes
     "CardsOptions",
     "CardOptions",

@@ -28,7 +28,7 @@ STANDARD_FIELDS = {
     "authors",
     "category",
     # Layout
-    "layout",  # Legacy, normalized to variant
+    "layout",  # Normalized to variant
     "type",
     "template",
     "variant",

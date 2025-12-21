@@ -112,11 +112,11 @@ class Skeleton:
         content = data.pop("content", None)
         cascade = data.pop("cascade", {})
 
-        # Legacy normalization (layout/hero_style -> variant)
+        # Normalize layout/hero_style to variant
         if not variant:
             variant = data.pop("layout", None) or data.pop("hero_style", None)
 
-        # Legacy normalization (metadata -> props)
+        # Normalize metadata to props
         props = data.pop("props", {})
         metadata = data.pop("metadata", {})
         if metadata:

@@ -222,6 +222,3 @@ class ButtonDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_button(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return ButtonDirective().render(renderer, text, **attrs)

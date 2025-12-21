@@ -327,7 +327,7 @@ class IncrementalBuildDebugger(DebugTool):
         path_str = str(page_path)
 
         # Check if file is in cache
-        if path_str not in self.cache.file_hashes and path_str not in self.cache.file_fingerprints:
+        if path_str not in self.cache.file_fingerprints:
             explanation.reasons.append(RebuildReason.NEW_FILE)
             explanation.cache_status = "not_in_cache"
             return explanation
@@ -336,14 +336,11 @@ class IncrementalBuildDebugger(DebugTool):
 
         # Check if content changed
         path = Path(page_path)
-        if path.exists():
-            if self.cache.is_changed(path):
-                explanation.reasons.append(RebuildReason.CONTENT_CHANGED)
-                # Get timestamps
-                stat = path.stat()
-                explanation.timestamps["file_mtime"] = datetime.fromtimestamp(
-                    stat.st_mtime
-                ).isoformat()
+        if path.exists() and self.cache.is_changed(path):
+            explanation.reasons.append(RebuildReason.CONTENT_CHANGED)
+            # Get timestamps
+            stat = path.stat()
+            explanation.timestamps["file_mtime"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
 
         # Check dependencies
         deps = self.cache.dependencies.get(path_str, set())
@@ -432,7 +429,7 @@ class IncrementalBuildDebugger(DebugTool):
             return report
 
         # Check file fingerprints
-        all_cached = set(self.cache.file_fingerprints.keys()) | set(self.cache.file_hashes.keys())
+        all_cached = set(self.cache.file_fingerprints.keys())
         report.total_entries = len(all_cached)
 
         for path_str in all_cached:
@@ -486,7 +483,7 @@ class IncrementalBuildDebugger(DebugTool):
                 would_rebuild.append(page_path)
 
         # Check taxonomy dependencies
-        for term, pages in self.cache.taxonomy_deps.items():
+        for _term, pages in self.cache.taxonomy_deps.items():
             for page in pages:
                 if page not in would_rebuild:
                     # Check if this page's tags include pages affected
@@ -529,10 +526,11 @@ class IncrementalBuildDebugger(DebugTool):
 
         # Check for pages with no dependencies (suspicious)
         pages_without_deps = []
-        for path in self.cache.file_hashes:
-            if path.endswith((".md", ".markdown")):
-                if path not in self.cache.dependencies or not self.cache.dependencies[path]:
-                    pages_without_deps.append(path)
+        for path in self.cache.file_fingerprints:
+            if path.endswith((".md", ".markdown")) and (
+                path not in self.cache.dependencies or not self.cache.dependencies[path]
+            ):
+                pages_without_deps.append(path)
 
         if pages_without_deps:
             findings.append(

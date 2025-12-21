@@ -192,9 +192,3 @@ class TargetDirective(BengalDirective):
         # Invisible anchor element - no visual output
         # The class allows CSS to add scroll-margin-top for fixed headers
         return f'<span id="{self.escape_html(anchor_id)}" class="target-anchor"></span>\n'
-
-
-# Backward compatibility
-def render_target(renderer: Any, text: str, **attrs: Any) -> str:
-    """Render target directive."""
-    return TargetDirective().render(renderer, text, **attrs)

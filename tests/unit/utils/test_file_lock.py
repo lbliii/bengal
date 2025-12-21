@@ -234,7 +234,7 @@ class TestBuildCacheWithLocking:
         from bengal.cache.build_cache import BuildCache
 
         cache = BuildCache()
-        cache.file_hashes["test.md"] = "abc123"
+        cache.file_fingerprints["test.md"] = {"hash": "abc123", "mtime": 0, "size": 0}
 
         cache_path = tmp_path / ".bengal" / "cache.json"
         cache.save(cache_path, use_lock=True)
@@ -256,13 +256,13 @@ class TestBuildCacheWithLocking:
 
         # Save initial cache
         cache = BuildCache()
-        cache.file_hashes["test.md"] = "abc123"
+        cache.file_fingerprints["test.md"] = {"hash": "abc123", "mtime": 0, "size": 0}
         cache.save(cache_path, use_lock=True)
 
         # Load with lock
         loaded = BuildCache.load(cache_path, use_lock=True)
 
-        assert loaded.file_hashes.get("test.md") == "abc123"
+        assert loaded.file_fingerprints.get("test.md", {}).get("hash") == "abc123"
 
     def test_concurrent_cache_writes(self, tmp_path: Path) -> None:
         """Test that concurrent cache writes don't corrupt data."""
@@ -278,7 +278,11 @@ class TestBuildCacheWithLocking:
             try:
                 cache = BuildCache()
                 # Each writer adds a unique file
-                cache.file_hashes[f"file_{writer_id}.md"] = f"hash_{writer_id}"
+                cache.file_fingerprints[f"file_{writer_id}.md"] = {
+                    "hash": f"hash_{writer_id}",
+                    "mtime": 0,
+                    "size": 0,
+                }
                 cache.save(cache_path, use_lock=True)
                 results.append(writer_id)
             except Exception as e:
@@ -299,7 +303,7 @@ class TestBuildCacheWithLocking:
         loaded = BuildCache.load(cache_path, use_lock=True)
         assert loaded is not None
         # Last writer's data should be present
-        assert any(f"file_{i}.md" in loaded.file_hashes for i in range(5)), (
+        assert any(f"file_{i}.md" in loaded.file_fingerprints for i in range(5)), (
             "At least one write should persist"
         )
 
@@ -312,7 +316,11 @@ class TestBuildCacheWithLocking:
 
         # Create initial cache
         initial_cache = BuildCache()
-        initial_cache.file_hashes["initial.md"] = "initial_hash"
+        initial_cache.file_fingerprints["initial.md"] = {
+            "hash": "initial_hash",
+            "mtime": 0,
+            "size": 0,
+        }
         initial_cache.save(cache_path, use_lock=True)
 
         write_started = threading.Event()
@@ -322,7 +330,7 @@ class TestBuildCacheWithLocking:
         def slow_write():
             """Simulates a slow write operation."""
             cache = BuildCache()
-            cache.file_hashes["new.md"] = "new_hash"
+            cache.file_fingerprints["new.md"] = {"hash": "new_hash", "mtime": 0, "size": 0}
             write_started.set()
             cache.save(cache_path, use_lock=True)
 

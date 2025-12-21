@@ -615,7 +615,7 @@ class TestAPISectionIndexPageHero:
             pages=[
                 MockPage(
                     title="Index",
-                    url="/api/core/",
+                    href="/api/core/",
                     source_path=Path("_index.md"),
                 ),
                 MockPage(
@@ -745,12 +745,12 @@ class TestCLISectionIndexPageHero:
             pages=[
                 MockPage(
                     title="build",
-                    url="/cli/build/",
+                    href="/cli/build/",
                     source_path=Path("build.md"),
                 ),
                 MockPage(
                     title="serve",
-                    url="/cli/serve/",
+                    href="/cli/serve/",
                     source_path=Path("serve.md"),
                 ),
             ],
@@ -774,7 +774,7 @@ class TestCLISectionIndexPageHero:
             pages=[
                 MockPage(
                     title="cmd1",
-                    url="/cli/group/subgroup/cmd1/",
+                    href="/cli/group/subgroup/cmd1/",
                     source_path=Path("cmd1.md"),
                 ),
             ],
@@ -799,7 +799,7 @@ class TestCLISectionIndexPageHero:
             pages=[
                 MockPage(
                     title="utils",
-                    url="/api/utils/",
+                    href="/api/utils/",
                     source_path=Path("utils.md"),
                 ),
             ],

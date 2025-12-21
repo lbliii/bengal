@@ -140,6 +140,3 @@ class BadgeDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_badge(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return BadgeDirective().render(renderer, text, **attrs)

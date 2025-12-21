@@ -310,7 +310,7 @@ class TestPageInitializer:
         initializer.ensure_initialized(page)
 
         # URL should be valid
-        assert page.url == "/test/"
+        assert page.href == "/test/"
 
     # =========================================================================
     # Generated Page Tests

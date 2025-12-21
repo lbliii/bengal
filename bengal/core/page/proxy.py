@@ -187,11 +187,11 @@ class PageProxy:
         """
         Get visual variant from cached metadata (Mode).
 
-        Falls back to legacy layout/hero_style fields in props if not set.
+        Falls back to layout/hero_style fields in props if not set.
         """
         if self.core.variant:
             return self.core.variant
-        # Legacy fallback via metadata
+        # Fallback via metadata
         props = self.metadata  # Triggers metadata build (but not full page)
         return props.get("layout") or props.get("hero_style")
 

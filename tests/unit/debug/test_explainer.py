@@ -369,4 +369,4 @@ class TestPageExplanation:
         assert len(explanation.dependencies.templates) == 2
         assert len(explanation.shortcodes) == 1
         assert explanation.cache.status == "HIT"
-        assert explanation.output.href == "/test/"
+        assert explanation.output.url == "/test/"

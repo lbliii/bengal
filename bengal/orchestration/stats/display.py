@@ -150,7 +150,7 @@ def display_build_stats(
                         cli.info(f"   {line}")
             cli.blank()
 
-    # Also display warnings using existing function for backward compatibility
+    # Also display warnings using existing function
     if stats.warnings and not stats.has_errors:
         display_warnings(stats)
 

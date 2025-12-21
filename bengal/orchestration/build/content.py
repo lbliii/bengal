@@ -409,5 +409,5 @@ def phase_update_pages_list(
             if should_include:
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
 
-    # Convert back to list for rendering (preserves compatibility)
+    # Convert back to list for rendering
     return list(pages_to_build_set)

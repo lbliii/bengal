@@ -201,6 +201,9 @@ class Page(
 
         # Component Model: variant (normalized from layout/hero_style)
         variant = standard_fields.get("variant")
+        # Normalize legacy fields to variant
+        if not variant:
+            variant = standard_fields.get("layout") or custom_props.get("hero_style")
 
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially

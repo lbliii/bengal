@@ -120,6 +120,3 @@ class ContainerDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_container(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return ContainerDirective().render(renderer, text, **attrs)

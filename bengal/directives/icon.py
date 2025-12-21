@@ -214,6 +214,3 @@ class IconDirective(BengalDirective):
 
 
 # Backward compatibility
-def render_icon(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return IconDirective().render(renderer, text, **attrs)

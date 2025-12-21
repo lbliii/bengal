@@ -38,8 +38,6 @@ from bengal.directives.cards import (
     CardDirective,
     CardsDirective,
     ChildCardsDirective,
-    GridDirective,
-    GridItemCardDirective,
 )
 from bengal.directives.checklist import ChecklistDirective
 from bengal.directives.code_tabs import CodeTabsDirective
@@ -140,8 +138,6 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 CardsDirective(),  # Modern card grid system
                 CardDirective(),  # Individual cards
                 ChildCardsDirective(),  # Auto-generate cards from children
-                GridDirective(),  # Grid layout compatibility
-                GridItemCardDirective(),  # Grid item compatibility
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
                 ContainerDirective(),  # Generic wrapper div with CSS class

@@ -267,7 +267,7 @@ class BuildOrchestrator:
             try:
                 cache_path = self.site.paths.build_cache
                 cache_exists = cache_path.exists()
-                cached_files = len(getattr(cache, "file_hashes", {}) or {})
+                cached_files = len(cache.file_fingerprints)
                 if cache_exists and cached_files > 0:
                     incremental = True
                     auto_reason = "auto: cache present"

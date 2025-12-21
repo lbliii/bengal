@@ -144,11 +144,6 @@ class CodeTabsDirective(BengalDirective):
 # Backward compatibility render functions
 
 
-def render_code_tabs(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return CodeTabsDirective().render(renderer, text, **attrs)
-
-
 def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     """Render code tab item marker (used internally)."""
     lang = attrs.get("lang", "text")

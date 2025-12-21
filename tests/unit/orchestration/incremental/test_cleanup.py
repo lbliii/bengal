@@ -25,7 +25,7 @@ def mock_cache():
     """Create a mock BuildCache."""
     cache = Mock(spec=BuildCache)
     cache.output_sources = {}
-    cache.file_hashes = {}
+    cache.file_fingerprints = {}
     cache.page_tags = {}
     cache.parsed_content = {}
     cache.file_fingerprints = {}
@@ -94,8 +94,8 @@ class TestCleanupDeletedFiles:
         mock_cache.output_sources = {
             "page/index.html": str(source_path),
         }
-        mock_cache.file_hashes = {
-            str(source_path): "abc123",
+        mock_cache.file_fingerprints = {
+            str(source_path): {"hash": "abc123", "mtime": 0, "size": 0},
         }
         mock_cache.page_tags = {
             str(source_path): {"python"},
@@ -112,7 +112,7 @@ class TestCleanupDeletedFiles:
         cleanup_deleted_files(mock_site, mock_cache)
 
         # All cache entries for deleted source should be removed
-        assert str(source_path) not in mock_cache.file_hashes
+        assert str(source_path) not in mock_cache.file_fingerprints
         assert str(source_path) not in mock_cache.page_tags
         assert str(source_path) not in mock_cache.parsed_content
 

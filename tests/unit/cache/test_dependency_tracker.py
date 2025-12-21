@@ -67,7 +67,7 @@ class TestDependencyTracker:
         assert str(page) in cache.dependencies
         assert str(template) in cache.dependencies[str(page)]
         # Check template hash was recorded
-        assert str(template) in cache.file_hashes
+        assert str(template) in cache.file_fingerprints
 
     def test_track_partial(self, tmp_path):
         """Test tracking partial dependency."""
@@ -118,7 +118,7 @@ class TestDependencyTracker:
         tracker.track_asset(asset)
 
         # Check asset hash was recorded
-        assert str(asset) in cache.file_hashes
+        assert str(asset) in cache.file_fingerprints
 
     def test_track_taxonomy(self, tmp_path):
         """Test tracking taxonomy dependencies."""

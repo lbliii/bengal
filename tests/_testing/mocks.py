@@ -9,7 +9,7 @@ Usage:
     from tests._testing.mocks import MockPage, MockSection, create_mock_xref_index
 
     def test_something():
-        page = MockPage(title="Test", url="/test/")
+        page = MockPage(title="Test", href="/test/")
         section = MockSection(name="docs", title="Documentation")
         xref_index = create_mock_xref_index([page])
 
@@ -166,7 +166,7 @@ class MockSite:
         output_dir: Build output directory (defaults to /dev/null/mock-output)
 
     Example:
-        >>> site = MockSite(pages=[MockPage(title="Home", url="/")])
+        >>> site = MockSite(pages=[MockPage(title="Home", href="/")])
         >>> len(site.pages)
         1
 
@@ -327,7 +327,7 @@ def create_mock_page_hierarchy(
             # Leaf page
             page = MockPage(
                 title=name.replace("-", " ").title(),
-                url=url,
+                href=url,
                 source_path=Path(f"{base_path.strip('/')}/{name}.md"),
             )
             pages.append(page)

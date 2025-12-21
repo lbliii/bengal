@@ -243,24 +243,3 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
         warn_missing_icon(icon_name, directive="dropdown", context=dropdown_title)
 
     return icon_html
-
-
-# =============================================================================
-# Render Function
-# =============================================================================
-
-
-def render_dropdown(renderer: Any, text: str, **attrs: Any) -> str:
-    """
-    Render dropdown directive.
-
-    Args:
-        renderer: Mistune renderer instance
-        text: Pre-rendered children HTML
-        **attrs: Token attributes
-
-    Returns:
-        HTML string
-    """
-    # Delegate to a static instance
-    return DropdownDirective().render(renderer, text, **attrs)

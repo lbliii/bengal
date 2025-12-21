@@ -197,10 +197,3 @@ def _render_admonition_icon(icon_name: str) -> str:
 
 
 # Backward compatibility
-def render_admonition(
-    renderer: Any, text: str, admon_type: str, title: str, extra_class: str = ""
-) -> str:
-    """Legacy render function for backward compatibility."""
-    return AdmonitionDirective().render(
-        renderer, text, admon_type=admon_type, title=title, extra_class=extra_class
-    )

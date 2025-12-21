@@ -166,7 +166,7 @@ def report(
             # Connectivity distribution
             "distribution": dist,
             "percentages": {k: round(v, 1) for k, v in pct.items()},
-            # Legacy orphan fields (for backward compat)
+            # Orphan fields
             "orphan_count": dist["isolated"],
             "orphan_percentage": round(pct["isolated"], 1),
             "lightly_linked_count": dist["lightly_linked"],

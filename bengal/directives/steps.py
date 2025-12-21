@@ -451,18 +451,3 @@ class StepsDirective(BengalDirective):
         if "<li>" in text or "<li " in text:
             return f'<div class="{class_str}"{style_attr}>\n<ol{start_attr}>\n{text}</ol>\n</div>\n'
         return f'<div class="{class_str}">\n{text}</div>\n'
-
-
-# =============================================================================
-# Backward Compatibility
-# =============================================================================
-
-
-def render_step(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return StepDirective().render(renderer, text, **attrs)
-
-
-def render_steps(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return StepsDirective().render(renderer, text, **attrs)

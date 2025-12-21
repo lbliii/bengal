@@ -43,40 +43,6 @@ def normalize_columns(columns: str) -> str:
     return "auto"
 
 
-def convert_legacy_columns(title: str) -> str:
-    """Convert legacy column breakpoints to our format."""
-    if not title:
-        return "auto"
-
-    parts = title.strip().split()
-
-    if len(parts) == 1 and parts[0].isdigit():
-        return parts[0]
-
-    if len(parts) >= 2:
-        valid_parts = [p for p in parts if p.isdigit() and 1 <= int(p) <= 6]
-        if valid_parts:
-            return "-".join(valid_parts[:4])
-
-    return "auto"
-
-
-def convert_legacy_gutter(gutter: str) -> str:
-    """Convert legacy gutter to gap format."""
-    if not gutter:
-        return "medium"
-
-    parts = str(gutter).strip().split()
-    if parts and parts[0].isdigit():
-        num = int(parts[0])
-        if num <= 1:
-            return "small"
-        elif num >= 3:
-            return "large"
-
-    return "medium"
-
-
 def extract_octicon(title: str) -> tuple[str, str]:
     """Extract octicon from title."""
     pattern = r"\{octicon\}`([^;`]+)(?:;[^`]*)?`\s*"

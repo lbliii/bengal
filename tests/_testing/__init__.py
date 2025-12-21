@@ -10,7 +10,7 @@ Usage in conftest.py:
 Mock Objects:
     from tests._testing.mocks import MockPage, MockSection, MockSite
 
-    page = MockPage(title="Test", url="/test/")
+    page = MockPage(title="Test", href="/test/")
     site = MockSite(pages=[page])
 
 Progress Reporting:
