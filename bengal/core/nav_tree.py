@@ -208,6 +208,13 @@ class NavTree:
             if page == section.index_page:
                 continue
 
+            # Skip autodoc pages (excluded from navigation by default)
+            # This centralizes exclusion logic so themes don't need to filter
+            from bengal.utils.autodoc import is_autodoc_page
+
+            if is_autodoc_page(page):
+                continue
+
             page_node = NavNode(
                 id=f"page-{page.url}",
                 title=getattr(page, "nav_title", page.title),
@@ -228,65 +235,6 @@ class NavTree:
         node.children.sort(key=lambda n: (n.weight, n.title))
 
         return node
-
-    def get_target_url(self, page: Page, target_version_id: str) -> str:
-        """
-        Calculate the best fallback URL for a page in this version's tree.
-
-        Fallback Cascade:
-        1. Exact page match in this version
-        2. Section index match
-        3. Version root URL
-        """
-        # Construction logic similar to _construct_version_url
-        current_url = page.url
-        current_version_id = getattr(page, "version", None)
-
-        # If target is same as current, return current URL
-        if current_version_id == target_version_id:
-            return current_url
-
-        # This implementation requires site context or pre-computed mapping.
-        # For Phase 1, we delegate to the existing utility but use NavTree's O(1) lookup.
-        from bengal.rendering.template_functions.version_url import (
-            _construct_version_url,
-            _get_section_index_url,
-            _get_version_root_url,
-        )
-
-        # We need site to construct URLs (it has version_config)
-        site = NavTreeCache._site
-        if not site:
-            return "/"
-
-        # 1. Exact page match
-        target_version = None
-        if site.versioning_enabled:
-            target_version_obj = site.version_config.get_version(target_version_id)
-            if target_version_obj:
-                target_version = {
-                    "id": target_version_id,
-                    "latest": target_version_obj.latest,
-                    "url_prefix": target_version_obj.url_prefix,
-                }
-
-        if not target_version:
-            return "/"
-
-        target_url = _construct_version_url(
-            current_url, current_version_id, target_version_id, target_version["latest"], site
-        )
-
-        if target_url in self._urls:
-            return target_url
-
-        # 2. Section index match
-        section_index_url = _get_section_index_url(target_url)
-        if section_index_url and section_index_url in self._urls:
-            return section_index_url
-
-        # 3. Version root URL
-        return _get_version_root_url(target_version_id, target_version["latest"], site)
 
 
 class NavTreeContext:

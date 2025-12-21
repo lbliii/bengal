@@ -119,6 +119,14 @@ class IncrementalOrchestrator:
             NavTreeCache.invalidate()
             logger.debug("nav_tree_cache_invalidated", reason="config_changed")
 
+            # Also invalidate version page index cache
+            from bengal.rendering.template_functions.version_url import (
+                invalidate_version_page_index,
+            )
+
+            invalidate_version_page_index()
+            logger.debug("version_page_index_cache_invalidated", reason="config_changed")
+
         return config_changed
 
     def find_work_early(
@@ -168,6 +176,14 @@ class IncrementalOrchestrator:
         if has_structural_changes:
             NavTreeCache.invalidate()
             logger.debug("nav_tree_cache_invalidated", reason="structural_changes")
+
+            # Also invalidate version page index cache (used by version URL fallback)
+            from bengal.rendering.template_functions.version_url import (
+                invalidate_version_page_index,
+            )
+
+            invalidate_version_page_index()
+            logger.debug("version_page_index_cache_invalidated", reason="structural_changes")
 
         return (
             change_set.pages_to_build,

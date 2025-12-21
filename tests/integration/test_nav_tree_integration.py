@@ -159,7 +159,6 @@ class TestNavTreeVersionedSite:
 
         # Get all version trees
         tree_v1 = NavTree.build(site, version_id="v1")
-        tree_v2 = NavTree.build(site, version_id="v2")
         tree_v3 = NavTree.build(site, version_id="v3")
 
         # For each version, check that switching to other versions produces valid URLs
@@ -174,26 +173,35 @@ class TestNavTreeVersionedSite:
 
         assert v2_guide_page is not None
 
-        # Test get_target_url for v2 page switching to v1
-        # This should find v1 equivalent or fallback to section index or version root
-        target_v1 = tree_v2.get_target_url(v2_guide_page, "v1")
+        # Test version switching using Site API (public contract)
+        # Get v1 version dict from site
+        v1_version = next((v for v in site.versions if v["id"] == "v1"), None)
+        assert v1_version is not None
+
+        target_v1 = site.get_version_target_url(v2_guide_page, v1_version)
         assert target_v1 is not None
         assert isinstance(target_v1, str)
         assert len(target_v1) > 0
 
-        # Target URL should exist in v1 tree (or be a valid fallback)
-        # Valid fallbacks: exact match, section index, or version root
+        # Target URL should be a valid fallback (exact match, section index, or version root)
+        # Note: The Site API guarantees the URL exists, but it may not be in NavTree
+        # if the page doesn't exist in that version (fallback cascade)
         v1_tree_urls = tree_v1.urls
         is_valid_fallback = (
-            target_v1 in v1_tree_urls  # Exact match
+            target_v1 in v1_tree_urls  # Exact match in tree
             or target_v1 == "/docs/v1/"  # Section index
             or target_v1 == "/docs/v1"  # Section index (no trailing slash)
             or target_v1 == "/"  # Root fallback
+            or target_v1.startswith(
+                "/docs/v1/"
+            )  # Valid v1 URL (may not be in tree if page doesn't exist)
         )
-        assert is_valid_fallback, f"Target URL {target_v1} should be valid in v1 tree"
+        assert is_valid_fallback, f"Target URL {target_v1} should be a valid fallback URL"
 
         # Test switching to v3 (latest)
-        target_v3 = tree_v2.get_target_url(v2_guide_page, "v3")
+        v3_version = next((v for v in site.versions if v["id"] == "v3"), None)
+        assert v3_version is not None
+        target_v3 = site.get_version_target_url(v2_guide_page, v3_version)
         assert target_v3 is not None
         assert isinstance(target_v3, str)
         assert len(target_v3) > 0

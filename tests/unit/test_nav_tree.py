@@ -592,17 +592,21 @@ class TestGetTargetUrl:
         )
         return site
 
-    def test_get_target_url_requires_site_context(self, versioned_site_with_fallback):
-        """Test that get_target_url requires site context."""
-        tree = NavTree.build(versioned_site_with_fallback, version_id="v1")
+    def test_version_switching_uses_site_api(self, versioned_site_with_fallback):
+        """Test that version switching uses Site API (public contract)."""
+        site = versioned_site_with_fallback
+        site.discover_content()
 
         # Create a mock page
         page = Mock(spec=Page)
         page.url = "/v1/docs/guide/"
         page.version = "v1"
+        page._site = site
 
-        # This will fail without site context set in cache
-        # For now, we test that the method exists and accepts parameters
-        # Full testing requires proper site setup
-        assert hasattr(tree, "get_target_url")
-        assert callable(tree.get_target_url)
+        # Version switching should use Site API, not NavTree method
+        # (NavTree.get_target_url was removed to eliminate core → rendering coupling)
+        v2_version = {"id": "v2", "latest": False, "url_prefix": "/v2"}
+        target_url = site.get_version_target_url(page, v2_version)
+
+        assert isinstance(target_url, str)
+        assert len(target_url) > 0
