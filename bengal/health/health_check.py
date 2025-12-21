@@ -142,12 +142,14 @@ class HealthCheck:
             SitemapValidator,
             TaxonomyValidator,
             TrackValidator,
+            URLCollisionValidator,
         )
 
         # Register in logical order (fast validators first)
         # Phase 1: Basic validation
         self.register(ConfigValidatorWrapper())
         self.register(OutputValidator())
+        self.register(URLCollisionValidator())  # Catch URL collisions early
 
         # Phase 2: Content validation
         self.register(RenderingValidator())

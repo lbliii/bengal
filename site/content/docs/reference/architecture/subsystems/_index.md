@@ -24,12 +24,20 @@ graph TB
         Analysis[Analysis]
         Health[Health]
         Fonts[Fonts]
+        Collections[Collections]
+        ContentLayer[Content Layer]
+        Output[CLI Output]
+        Debug[Debug Tools]
     end
 
     Autodoc -.->|generates| Site
     Analysis -.->|analyzes| Site
     Health -.->|validates| Render
     Fonts -.->|provides| Render
+    Collections -.->|validates| Discovery
+    ContentLayer -.->|fetches| Collections
+    Output -.->|formats| CLI
+    Debug -.->|diagnoses| Site
 ```
 
 ## Feature Matrix

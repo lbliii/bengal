@@ -370,6 +370,13 @@ class BuildOrchestrator:
             self, incremental, pages_to_build, affected_tags
         )
 
+        # Phase 12.5: URL Collision Detection (proactive validation)
+        # See: plan/drafted/rfc-url-collision-detection.md
+        collisions = self.site.validate_no_url_collisions(strict=options.strict)
+        if collisions:
+            for msg in collisions:
+                self.logger.warning("url_collision_detected", message=msg)
+
         # Phase 13: Process Assets
         assets_to_process = rendering.phase_assets(
             self, cli, incremental, parallel, assets_to_process

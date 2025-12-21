@@ -113,8 +113,24 @@ class NavTree:
     _urls: set[str] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        """Initialize lookup indices."""
-        self._flat_nodes = {node.url: node for node in self.root.walk()}
+        """Initialize lookup indices with collision detection."""
+        self._flat_nodes = {}
+        for node in self.root.walk():
+            url = node.url
+            if url in self._flat_nodes:
+                existing = self._flat_nodes[url]
+                # Log collision at debug level - this helps diagnose navigation issues
+                logger.warning(
+                    "NavTree URL collision detected: url=%s | "
+                    "existing_id=%s (type=%s) | new_id=%s (type=%s) | "
+                    "Tip: Check for duplicate slugs or conflicting autodoc output",
+                    url,
+                    existing.id,
+                    "section" if existing.section else "page",
+                    node.id,
+                    "section" if node.section else "page",
+                )
+            self._flat_nodes[url] = node
         self._urls = set(self._flat_nodes.keys())
 
     @property

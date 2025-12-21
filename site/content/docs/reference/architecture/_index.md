@@ -63,6 +63,10 @@ graph TB
         Config[Config<br/>bengal/config/]
         Analysis[Analysis<br/>bengal/analysis/]
         Fonts[Fonts<br/>bengal/fonts/]
+        Collections[Collections<br/>bengal/collections/]
+        ContentLayer[Content Layer<br/>bengal/content_layer/]
+        Output[CLI Output<br/>bengal/output/]
+        Debug[Debug Tools<br/>bengal/debug/]
     end
 
     CLI --> Site
@@ -85,6 +89,10 @@ graph TB
     Config -.->|"configuration"| Site
     Analysis -.->|"analyzes"| Site
     Fonts -.->|"downloads/generates"| Assets
+    Collections -.->|"schema validation"| Discovery
+    ContentLayer -.->|"remote sources"| Collections
+    Output -.->|"terminal output"| CLI
+    Debug -.->|"diagnostics"| Site
 ```
 
 **Key Flows:**
@@ -94,6 +102,40 @@ graph TB
 4. **Cache**: Build Cache checks file changes and dependencies before rebuilding
 5. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
 6. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
+7. **Collections**: Type-safe content schemas → validate frontmatter during discovery
+8. **Content Layer**: Unified API for local/remote content → integrates with Collections
+9. **CLI Output**: Centralized terminal output → profile-aware formatting for all commands
+10. **Debug Tools**: Diagnostic utilities → explain builds, analyze dependencies, debug incremental issues
+
+## Module Overview
+
+### Core Modules
+- **`core/`**: Passive data models (Site, Page, Section, Asset, Menu, NavTree)
+- **`orchestration/`**: Build coordination via specialized orchestrators
+- **`rendering/`**: Template engine, Markdown parsing, directive system
+- **`discovery/`**: Content and asset discovery from filesystem or remote sources
+
+### Supporting Modules
+- **`cache/`**: Build cache, dependency tracking, query indexes
+- **`collections/`**: Type-safe content schemas with validation
+- **`content_layer/`**: Unified API for local/remote content sources
+- **`content_types/`**: Content strategies (Blog, Docs, Portfolio)
+- **`directives/`**: MyST-style directives for markdown (cards, tabs, navigation, etc.)
+- **`postprocess/`**: Sitemap, RSS, link validation
+- **`health/`**: Content validation and health checks
+- **`config/`**: Configuration loading and validation
+- **`cli/`**: Command-line interface
+- **`output/`**: Centralized CLI output system
+- **`server/`**: Development server with live reload
+- **`utils/`**: Shared utilities
+
+### Feature Subsystems
+- **`autodoc/`**: Generate docs from Python, CLI, OpenAPI
+- **`analysis/`**: Graph analysis, PageRank, link suggestions
+- **`fonts/`**: Google Fonts download and self-hosting
+- **`debug/`**: Diagnostic tools for understanding builds
+- **`services/`**: Service interfaces and implementations
+- **`assets/`**: Asset processing pipeline and manifest generation
 
 ## Object Model Relationships
 

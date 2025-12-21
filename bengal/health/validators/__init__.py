@@ -50,6 +50,7 @@ from bengal.health.validators.sitemap import SitemapValidator
 from bengal.health.validators.taxonomy import TaxonomyValidator
 from bengal.health.validators.templates import TemplateValidator, validate_templates
 from bengal.health.validators.tracks import TrackValidator
+from bengal.health.validators.url_collisions import URLCollisionValidator
 
 __all__ = [
     # Anchor validation (RFC: plan/active/rfc-explicit-anchor-targets.md)
@@ -81,6 +82,8 @@ __all__ = [
     # Template validation (consolidated from rendering/)
     "TemplateValidator",
     "TrackValidator",
+    # URL collision detection (RFC: plan/drafted/rfc-url-collision-detection.md)
+    "URLCollisionValidator",
     # Convenience functions
     "validate_links",
     "validate_templates",

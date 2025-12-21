@@ -568,3 +568,73 @@ class Site(
         sections = len(self.sections)
         assets = len(self.assets)
         return f"Site(pages={pages}, sections={sections}, assets={assets})"
+
+    # =========================================================================
+    # VALIDATION METHODS
+    # =========================================================================
+
+    def validate_no_url_collisions(self, *, strict: bool = False) -> list[str]:
+        """
+        Detect when multiple pages output to the same URL.
+
+        This method catches URL collisions early during the build process,
+        preventing silent overwrites that cause broken navigation.
+
+        Args:
+            strict: If True, raise ValueError on collision instead of warning.
+                   Set to True when site config has strict_mode=True.
+
+        Returns:
+            List of collision warning messages (empty if no collisions)
+
+        Raises:
+            ValueError: If strict=True and collisions are detected
+
+        Example:
+            >>> collisions = site.validate_no_url_collisions()
+            >>> if collisions:
+            ...     for msg in collisions:
+            ...         print(f"Warning: {msg}")
+
+        Note:
+            This is a proactive check during Phase 12 (Update Pages List) that
+            catches issues before they cause broken navigation. Previously,
+            collisions were only detected in Phase 17 (Post-processing) by
+            SitemapValidator, after the build had already "succeeded".
+
+        See Also:
+            - bengal/health/validators/url_collisions.py: Health check validator
+            - plan/drafted/rfc-url-collision-detection.md: Design rationale
+        """
+        urls_seen: dict[str, str] = {}  # url -> source description
+        collisions: list[str] = []
+
+        for page in self.pages:
+            url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+            source = str(getattr(page, "source_path", page.title))
+
+            if url in urls_seen:
+                msg = (
+                    f"URL collision detected: {url}\n"
+                    f"  Already claimed by: {urls_seen[url]}\n"
+                    f"  Also claimed by: {source}\n"
+                    f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                )
+                collisions.append(msg)
+
+                # Emit diagnostic for orchestrators to surface
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    "url_collision",
+                    url=url,
+                    first_source=urls_seen[url],
+                    second_source=source,
+                )
+            else:
+                urls_seen[url] = source
+
+        if collisions and strict:
+            raise ValueError("URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions))
+
+        return collisions
