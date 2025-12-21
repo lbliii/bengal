@@ -58,7 +58,7 @@ def section_pages(path: str, site: Site, recursive: bool = False) -> list[Page]:
 
     Example:
         {% for page in section_pages('docs') | sort_by('weight') %}
-          <a href="{{ page.url }}">{{ page.title }}</a>
+          <a href="{{ page.href }}">{{ page.title }}</a>
         {% endfor %}
     """
     section = get_section(path, site)

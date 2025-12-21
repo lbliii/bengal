@@ -31,9 +31,9 @@
                 {% if page.metadata.get('cta_buttons') %}
                 <div class="hero__actions">
                     {% for button in page.metadata.get('cta_buttons') %}
-                    <a href="{{ button.href | absolute_url }}"
-                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
-                        {{ button.text }}
+                    <a href="{{ button.get('href') or button.get('url') | absolute_url }}"
+                        class="hero__button hero__button--{{ button.get('style', 'primary') }} {% if button.get('style') != 'primary' %}gradient-border{% endif %}">
+                        {{ button.get('text') }}
                     </a>
                     {% endfor %}
                 </div>
@@ -54,8 +54,8 @@
                 <h3 class="feature-title">{{ feature.title }}</h3>
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
-                <a href="{{ feature.link.href | absolute_url }}" class="feature-link">
-                    {{ feature.link.text | default('Learn more') }}
+                <a href="{{ feature.link.get('href') or feature.link.get('url') | absolute_url }}" class="feature-link">
+                    {{ feature.link.get('text', 'Learn more') }}
                     <span aria-hidden="true">→</span>
                 </a>
                 {% endif %}
@@ -76,13 +76,13 @@
         <h2>Quick Links</h2>
         <div class="quick-links-grid">
             {% for link in page.metadata.get('quick_links') %}
-            <a href="{{ link.href | absolute_url }}" class="quick-link-card">
-                {% if link.icon %}
-                <div class="quick-link-icon" aria-hidden="true">{{ link.icon }}</div>
+            <a href="{{ link.get('href') or link.get('url') | absolute_url }}" class="quick-link-card">
+                {% if link.get('icon') %}
+                <div class="quick-link-icon" aria-hidden="true">{{ link.get('icon') }}</div>
                 {% endif %}
-                <h3>{{ link.title }}</h3>
-                {% if link.description %}
-                <p>{{ link.description }}</p>
+                <h3>{{ link.get('title') }}</h3>
+                {% if link.get('description') %}
+                <p>{{ link.get('description') }}</p>
                 {% endif %}
             </a>
             {% endfor %}

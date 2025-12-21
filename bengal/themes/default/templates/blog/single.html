@@ -129,7 +129,7 @@ Context variables:
                 {% if page.metadata.get('author_links') %}
                 <div class="author-links">
                     {% for link in page.metadata.get('author_links') %}
-                    <a href="{{ link.href }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
+                    <a href="{{ link.get('href') or link.get('url') }}" target="_blank" rel="noopener noreferrer">{{ link.get('text') }}</a>
                     {% endfor %}
                 </div>
                 {% endif %}

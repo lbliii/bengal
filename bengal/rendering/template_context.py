@@ -81,8 +81,8 @@ class TemplatePageWrapper:
         It automatically includes baseurl, so theme developers don't need
         to remember to use permalink or filters.
         """
-        # Get relative URL from wrapped page
-        rel = self._page.href
+        # Get site-relative path from wrapped page (without baseurl)
+        rel = self._page._path
 
         # Normalize relative URL
         if not rel:

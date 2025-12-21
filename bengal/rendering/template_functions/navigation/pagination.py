@@ -73,7 +73,7 @@ def get_pagination_items(
               {% if item.is_ellipsis %}
                 <span class="page-link">...</span>
               {% else %}
-                <a class="page-link" href="{{ item.url }}">{{ item.num }}</a>
+                <a class="page-link" href="{{ item.href }}">{{ item.num }}</a>
               {% endif %}
             </li>
           {% endfor %}
