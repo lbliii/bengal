@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### AI-Friendly Docstring Standards ✅
+- **docs(core)**: adopt AI-friendly docstring standards across core modules - module docstrings include Key Concepts, Related Modules, See Also sections
+- **docs(core)**: add Creation patterns, Attributes, Relationships, Thread Safety to class docstrings
+- **docs(core)**: add Performance notes, Examples, See Also to function docstrings
+- **docs(page_core)**: add comprehensive module docstring with architecture, DO/DON'T guidelines, step-by-step field addition instructions
+- **plan**: remove completed docstring-standards.md - work documented in changelog
+
 ### Dev Server Modernization ✅
 - **server**: add process-isolated builds via `BuildExecutor` - builds run in subprocess for resilience (crashes don't take down server)
 - **server**: add `watchfiles` integration - Rust-based file watcher for 10-50x faster change detection
