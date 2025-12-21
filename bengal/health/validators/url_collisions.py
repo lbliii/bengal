@@ -72,12 +72,22 @@ class URLCollisionValidator(BaseValidator):
         collisions = {url: sources for url, sources in urls_seen.items() if len(sources) > 1}
 
         if collisions:
-            # Format collision details
+            # Format collision details with ownership context from registry
             details = []
             for url, sources in list(collisions.items())[:5]:  # Limit to first 5
                 detail_lines = [f"URL: {url}"]
+
+                # Get ownership context from registry if available
+                claim = None
+                if hasattr(site, "url_registry") and site.url_registry:
+                    claim = site.url_registry.get_claim(url)
+
                 for i, src in enumerate(sources):
-                    detail_lines.append(f"  Page {i + 1}: {src}")
+                    owner_info = ""
+                    if claim and i == 0:  # Show ownership for first source
+                        owner_info = f" ({claim.owner}, priority {claim.priority})"
+                    detail_lines.append(f"  Page {i + 1}: {src}{owner_info}")
+
                 details.append("\n".join(detail_lines))
 
             results.append(

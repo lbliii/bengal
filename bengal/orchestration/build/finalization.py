@@ -61,6 +61,11 @@ def phase_cache_save(
     """
     Phase 18: Save Cache.
 
+    Persists build cache including URL claims for incremental build safety.
+    """
+    """
+    Phase 18: Save Cache.
+
     Saves build cache for future incremental builds.
 
     Args:

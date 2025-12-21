@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -300,3 +300,37 @@ class URLRegistry:
     def clear(self) -> None:
         """Clear all claims (useful for testing or reset)."""
         self._claims.clear()
+
+    def to_dict(self) -> dict[str, dict[str, Any]]:
+        """
+        Serialize all claims to dictionary format for caching.
+
+        Returns:
+            Dict mapping normalized URLs to claim dictionaries
+        """
+        return {
+            url: {
+                "owner": claim.owner,
+                "source": claim.source,
+                "priority": claim.priority,
+                "version": claim.version,
+                "lang": claim.lang,
+            }
+            for url, claim in self._claims.items()
+        }
+
+    def load_from_dict(self, claims_dict: dict[str, dict[str, Any]]) -> None:
+        """
+        Load claims from dictionary format (from cache).
+
+        Args:
+            claims_dict: Dict mapping URLs to claim dictionaries
+        """
+        for url, claim_data in claims_dict.items():
+            self._claims[url] = URLClaim(
+                owner=claim_data["owner"],
+                source=claim_data["source"],
+                priority=claim_data["priority"],
+                version=claim_data.get("version"),
+                lang=claim_data.get("lang"),
+            )

@@ -128,6 +128,11 @@ class BuildCache(
     # Enables selective rebuilding of autodoc pages when their sources change
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
+    # URL ownership claims: url → URLClaim dict
+    # Persists URL claims for incremental build safety (prevents shadowing by new content)
+    # Structure: {url: {owner: str, source: str, priority: int, version: str | None, lang: str | None}}
+    url_claims: dict[str, dict[str, Any]] = field(default_factory=dict)
+
     # Config hash for auto-invalidation when configuration changes
     # Hash of resolved config dict (captures env vars, profiles, split configs)
     config_hash: str | None = None
@@ -291,6 +296,10 @@ class BuildCache(
             if "synthetic_pages" not in data or not isinstance(data["synthetic_pages"], dict):
                 data["synthetic_pages"] = {}
 
+            # URL claims (new, tolerate missing)
+            if "url_claims" not in data or not isinstance(data["url_claims"], dict):
+                data["url_claims"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -412,6 +421,7 @@ class BuildCache(
             },  # Autodoc source → pages
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
+            "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }

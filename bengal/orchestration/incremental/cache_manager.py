@@ -219,6 +219,22 @@ class CacheManager:
         for asset in assets_processed:
             self.cache.update_file(asset.source_path)
 
+        # Save URL claims to cache for incremental build safety
+        if hasattr(self.site, "url_registry") and self.site.url_registry:
+            try:
+                self.cache.url_claims = self.site.url_registry.to_dict()
+                logger.debug(
+                    "url_claims_saved_to_cache",
+                    claim_count=len(self.cache.url_claims),
+                )
+            except Exception as e:
+                logger.debug(
+                    "url_claims_cache_save_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="continuing_without_caching_claims",
+                )
+
         # Update template hashes (even if not changed, to track them)
         theme_templates_dir = self._get_theme_templates_dir()
         if theme_templates_dir and theme_templates_dir.exists():

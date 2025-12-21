@@ -225,6 +225,24 @@ def phase_discovery(
                 )
                 # Continue without cache - will do full discovery
 
+        # Load cached URL claims for incremental build safety
+        # Pre-populate registry with claims from pages not being rebuilt
+        if incremental and build_cache and hasattr(build_cache, "url_claims"):
+            try:
+                if orchestrator.site.url_registry and build_cache.url_claims:
+                    orchestrator.site.url_registry.load_from_dict(build_cache.url_claims)
+                    orchestrator.logger.debug(
+                        "url_claims_loaded_from_cache",
+                        claim_count=len(build_cache.url_claims),
+                    )
+            except Exception as e:
+                orchestrator.logger.debug(
+                    "url_claims_cache_load_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="continuing_without_cached_claims",
+                )
+
         # Discover content and assets.
         # We time these separately so the Discovery phase can report a useful breakdown.
         content_start = time.time()

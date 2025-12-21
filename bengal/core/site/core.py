@@ -590,6 +590,9 @@ class Site(
         This method catches URL collisions early during the build process,
         preventing silent overwrites that cause broken navigation.
 
+        Uses URLRegistry if available for enhanced ownership context, otherwise
+        falls back to page iteration for backward compatibility.
+
         Args:
             strict: If True, raise ValueError on collision instead of warning.
                    Set to True when site config has strict_mode=True.
@@ -615,34 +618,71 @@ class Site(
         See Also:
             - bengal/health/validators/url_collisions.py: Health check validator
             - plan/drafted/rfc-url-collision-detection.md: Design rationale
+            - plan/drafted/plan-url-ownership-architecture.md: URL ownership system
         """
-        urls_seen: dict[str, str] = {}  # url -> source description
         collisions: list[str] = []
 
-        for page in self.pages:
-            url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
-            source = str(getattr(page, "source_path", page.title))
+        # Use registry if available (provides ownership context)
+        if hasattr(self, "url_registry") and self.url_registry:
+            # Check for duplicate URLs in pages (registry tracks all claims, including non-page)
+            urls_seen: dict[str, str] = {}  # url -> source description
 
-            if url in urls_seen:
-                msg = (
-                    f"URL collision detected: {url}\n"
-                    f"  Already claimed by: {urls_seen[url]}\n"
-                    f"  Also claimed by: {source}\n"
-                    f"Tip: Check for duplicate slugs or conflicting autodoc output"
-                )
-                collisions.append(msg)
+            for page in self.pages:
+                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                source = str(getattr(page, "source_path", page.title))
 
-                # Emit diagnostic for orchestrators to surface
-                emit_diagnostic(
-                    self,
-                    "warning",
-                    "url_collision",
-                    url=url,
-                    first_source=urls_seen[url],
-                    second_source=source,
-                )
-            else:
-                urls_seen[url] = source
+                if url in urls_seen:
+                    # Get ownership context from registry
+                    claim = self.url_registry.get_claim(url)
+                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
+
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}{owner_info}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
+        else:
+            # Fallback: iterate pages (backward compatibility)
+            urls_seen: dict[str, str] = {}  # url -> source description
+
+            for page in self.pages:
+                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                source = str(getattr(page, "source_path", page.title))
+
+                if url in urls_seen:
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
 
         if collisions and strict:
             raise ValueError("URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions))
