@@ -377,7 +377,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     # Skip if build was skipped
     if stats.skipped:
         console.print()
-        console.print("[info]✨ No changes detected - build skipped![/info]")
+        console.print("[info]No changes detected - build skipped![/info]")
         console.print()
         return
 
@@ -385,9 +385,9 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     advisor = PerformanceAdvisor(stats, environment)
     advisor.analyze()
 
-    # Header
+    # Header (keep cat branding - it's identity, not decoration)
     console.print()
-    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build Complete![/success]")
+    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete![/success]")
     console.print()
 
     # Main content
@@ -418,7 +418,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
         from bengal.errors import format_error_report
 
         error_report = format_error_report(stats, verbose=True)
-        if error_report != "✅ No errors or warnings":
+        if error_report not in ("✅ No errors or warnings", "No errors or warnings"):
             from rich.panel import Panel
 
             console.print(
@@ -433,7 +433,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
 
     # Footer: Output location
     if hasattr(stats, "output_dir") and stats.output_dir:
-        console.print("[header]📂 Output:[/header]")
+        console.print("[header]Output:[/header]")
         console.print(f"   [cyan]↪[/cyan] [white bold]{stats.output_dir}[/white bold]")
         console.print()
 
