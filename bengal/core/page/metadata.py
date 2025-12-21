@@ -5,7 +5,6 @@ Page Metadata Mixin - Basic properties and type checking.
 from __future__ import annotations
 
 from datetime import datetime
-from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
@@ -140,7 +139,6 @@ class PageMetadataMixin:
             return self.source_path.parent.name
 
         return self.source_path.stem
-
 
     @property
     def href(self) -> str:
@@ -319,7 +317,7 @@ class PageMetadataMixin:
               <h1>Welcome to the home page!</h1>
             {% endif %}
         """
-        return self.url == "/" or self.slug in ("index", "_index", "home")
+        return self._path == "/" or self.slug in ("index", "_index", "home")
 
     @property
     def is_section(self) -> bool:

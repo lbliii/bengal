@@ -201,8 +201,8 @@ def resolve_link_url(renderer: Any, link: str) -> str:
     current_page_dir = getattr(renderer, "_current_page_dir", None)
     page = resolve_page(xref_index, link, current_page_dir)
 
-    if page and hasattr(page, "url"):
-        return page.url
+    if page and hasattr(page, "href"):
+        return page.href
 
     return link
 

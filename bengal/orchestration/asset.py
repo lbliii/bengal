@@ -445,8 +445,16 @@ class AssetOrchestrator:
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
+        from bengal.utils.error_aggregation import ErrorAggregator, extract_error_context
+        from bengal.utils.error_context import ErrorContext, enrich_error
+        from bengal.utils.exceptions import BengalError
+
         assets_output = self.site.output_dir / "assets"
         completed = 0
+        total_assets = len(css_entries) + len(other_assets)
+
+        # Track errors for aggregation
+        aggregator = ErrorAggregator(total_items=total_assets)
 
         # Helper to handle single item
         def process_one(asset: Asset, is_css_entry: bool) -> None:
@@ -472,17 +480,21 @@ class AssetOrchestrator:
                         bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
-                from bengal.utils.error_context import ErrorContext, enrich_error
-                from bengal.utils.exceptions import BengalError
-
                 # Enrich error with context
-                context = ErrorContext(
+                error_context = ErrorContext(
                     file_path=asset.source_path,
                     operation="processing asset",
                     suggestion="Check file permissions, encoding, and format",
                     original_error=e,
                 )
-                enriched = enrich_error(e, context, BengalError)
+                enriched = enrich_error(e, error_context, BengalError)
+
+                # Extract context for logging and aggregation
+                context = extract_error_context(e, asset)
+                context["operation"] = "processing asset"
+                context["mode"] = "sequential"
+
+                # Log individual error
                 self.logger.error(
                     "asset_processing_failed",
                     asset_path=str(asset.source_path),
@@ -490,6 +502,10 @@ class AssetOrchestrator:
                     error_type=type(e).__name__,
                     mode="sequential",
                 )
+
+                # Add to aggregator
+                aggregator.add_error(e, context=context)
+
                 # Collect error in build stats if available
                 if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
                     stats = self.site._last_build_stats
@@ -503,6 +519,9 @@ class AssetOrchestrator:
         # Process others
         for asset in other_assets:
             process_one(asset, False)
+
+        # Log aggregated summary if threshold exceeded
+        aggregator.log_summary(self.logger, threshold=5, error_type="assets")
 
     def _create_js_bundle(
         self, js_modules: list[Asset], assets_cfg: dict[str, Any]

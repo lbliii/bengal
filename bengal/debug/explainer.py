@@ -495,7 +495,7 @@ class PageExplainer:
     def _get_output_info(self, page: Page) -> OutputInfo:
         """Get output information for a page."""
         # Get URL
-        url = page.url if hasattr(page, "url") else "/"
+        url = page.href if hasattr(page, "href") else "/"
 
         # Get output path
         output_path = page.output_path
@@ -546,7 +546,7 @@ class PageExplainer:
 
                 # Check if target page exists
                 target_exists = any(
-                    p.url == link_target or p.url == link_target.rstrip("/")
+                    p._path == link_target or p._path == link_target.rstrip("/")
                     for p in self.site.pages
                 )
                 if not target_exists and not link_target.startswith(("#", "http")):

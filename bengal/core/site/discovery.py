@@ -107,7 +107,7 @@ class ContentDiscoveryMixin:
         Set output paths for all discovered pages.
 
         This must be called after discovery and cascade application but before
-        any code tries to access page.url (which depends on output_path).
+        any code tries to access page.href (which depends on output_path).
         """
         from bengal.utils.url_strategy import URLStrategy
 

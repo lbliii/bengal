@@ -60,13 +60,13 @@ class PageProxy:
        - Iterates over site.pages (now updated with fresh Pages)
        - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
          * output_path (for finding where to write .txt/.json)
-         * url, permalink (for generating index.json)
+         * href, _path, permalink (for generating index.json)
          * title, date, tags (for content in output files)
 
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
-    - **Templates**: Implements .url, .href, .title, etc.
+    - **Templates**: Implements .href, ._path, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
 

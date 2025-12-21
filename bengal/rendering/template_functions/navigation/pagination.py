@@ -64,7 +64,7 @@ def get_pagination_items(
         <ul class="pagination">
           {% if p.prev %}
             <li class="page-item">
-              <a class="page-link" href="{{ p.prev.url }}">Previous</a>
+              <a class="page-link" href="{{ p.prev.href }}">Previous</a>
             </li>
           {% endif %}
 
@@ -80,7 +80,7 @@ def get_pagination_items(
 
           {% if p.next %}
             <li class="page-item">
-              <a class="page-link" href="{{ p.next.url }}">Next</a>
+              <a class="page-link" href="{{ p.next.href }}">Next</a>
             </li>
           {% endif %}
         </ul>

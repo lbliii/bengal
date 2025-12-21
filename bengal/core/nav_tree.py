@@ -7,19 +7,19 @@ URL NAMING CONVENTION (CRITICAL):
 =================================
 This module uses explicit naming to prevent path/URL confusion:
 
-- `site_path`: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
-               Used for: Internal lookups, active trail detection, caching
-               Stored in: NavNode.url field (for historical reasons)
+- `_path`: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
+           Used for: Internal lookups, active trail detection, caching
+           Stored in: NavNode._path field
 
-- `url`: Public URL WITH baseurl applied (e.g., "/bengal/docs/foo/")
-         Used for: Template href attributes, external links
-         Provided by: NavNodeProxy.url property
+- `href`: Public URL WITH baseurl applied (e.g., "/bengal/docs/foo/")
+          Used for: Template href attributes, external links
+          Provided by: NavNodeProxy.href property
 
 WHY THIS MATTERS:
 -----------------
 When baseurl is configured (e.g., "/bengal" for GitHub Pages), all public
 URLs must include it. NavNodeProxy automatically applies baseurl when
-templates access .url, ensuring links work correctly in all deployment
+templates access .href, ensuring links work correctly in all deployment
 scenarios:
   - Local dev: "/" → "/docs/foo/"
   - GitHub Pages: "/bengal" → "/bengal/docs/foo/"
@@ -30,14 +30,14 @@ TEMPLATE USAGE:
 Always use NavNodeProxy (returned by get_nav_tree()) in templates:
 
     {% for item in get_nav_tree(page) %}
-      <a href="{{ item.url }}">{{ item.title }}</a>  {# ✓ Correct: uses public URL #}
+      <a href="{{ item.href }}">{{ item.title }}</a>  {# ✓ Correct: uses public URL #}
     {% endfor %}
 
 INTERNAL USAGE:
 ---------------
-For lookups and comparisons, use site_path:
+For lookups and comparisons, use _path:
 
-    if page.site_path in nav_tree.active_trail_urls:  {# ✓ Correct: uses site path #}
+    if page._path in nav_tree.active_trail_urls:  {# ✓ Correct: uses site path #}
         mark_active()
 """
 
@@ -349,7 +349,9 @@ class NavTree:
     def _build_node_recursive(cls, section: Section, version_id: str | None, depth: int) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
-        node_url = getattr(section, "_path", None) or getattr(section, "relative_url", f"/{section.name}/")
+        node_url = getattr(section, "_path", None) or getattr(
+            section, "relative_url", f"/{section.name}/"
+        )
         node_title = section.nav_title
         node_icon = section.icon
 
@@ -376,7 +378,11 @@ class NavTree:
                 continue
 
             # Use relative_url for nav tree (without baseurl) for consistent lookups
-            page_url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "href", "/")
+            page_url = (
+                getattr(page, "_path", None)
+                or getattr(page, "relative_url", None)
+                or getattr(page, "href", "/")
+            )
 
             # Skip pages with the same URL as the section (they're section index content)
             # This prevents section+page collisions from autodoc-generated content
@@ -426,7 +432,11 @@ class NavTreeContext:
         self.tree = tree
         self.page = page
         # Use _path for consistent matching with nav tree nodes
-        self.current_url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "href", "/")
+        self.current_url = (
+            getattr(page, "_path", None)
+            or getattr(page, "relative_url", None)
+            or getattr(page, "href", "/")
+        )
         self._mark_active_trail = mark_active_trail
         self._root_node = root_node or tree.root
 
@@ -443,7 +453,10 @@ class NavTreeContext:
         # Walk up from current section (use _section - the private attribute)
         section = getattr(self.page, "_section", None)
         while section:
-            self.active_trail_urls.add(getattr(section, "_path", None) or getattr(section, "relative_url", f"/{section.name}/"))
+            self.active_trail_urls.add(
+                getattr(section, "_path", None)
+                or getattr(section, "relative_url", f"/{section.name}/")
+            )
             section = section.parent
 
     def is_active(self, node: NavNode) -> bool:
@@ -572,7 +585,6 @@ class NavNodeProxy:
         """
         return self._node._path
 
-
     @property
     def absolute_href(self) -> str:
         """
@@ -643,11 +655,16 @@ class NavNodeProxy:
 class NavTreeCache:
     """
     Thread-safe cache for NavTree instances.
+
+    Memory leak prevention: Cache is limited to 20 entries. When limit is reached,
+    oldest entries are evicted (FIFO). This prevents unbounded growth if many
+    version_ids are created.
     """
 
     _trees: dict[str | None, NavTree] = {}
     _lock = threading.Lock()
     _site: Site | None = None
+    _MAX_CACHE_SIZE = 20
 
     @classmethod
     def get(cls, site: Site, version_id: str | None = None) -> NavTree:
@@ -671,6 +688,10 @@ class NavTreeCache:
         with cls._lock:
             # Double-check if another thread built it while we were building
             if version_id not in cls._trees:
+                # Evict oldest entry if cache is full (prevent memory leak)
+                if len(cls._trees) >= cls._MAX_CACHE_SIZE:
+                    oldest_key = next(iter(cls._trees))
+                    cls._trees.pop(oldest_key, None)
                 cls._trees[version_id] = tree
             return cls._trees[version_id]
 

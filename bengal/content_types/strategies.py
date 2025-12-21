@@ -51,7 +51,7 @@ class BlogStrategy(ContentTypeStrategy):
         if page is None:
             return self.default_template
 
-        is_home = page.is_home or page.url == "/"
+        is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
         # Helper to check template existence
@@ -113,7 +113,7 @@ class DocsStrategy(ContentTypeStrategy):
         if page is None:
             return self.default_template
 
-        is_home = page.is_home or page.url == "/"
+        is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
         # Helper to check template existence
@@ -179,7 +179,7 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         if page is None:
             return self.default_template
 
-        is_home = page.is_home or page.url == "/"
+        is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
         # Helper to check template existence
@@ -242,7 +242,7 @@ class CliReferenceStrategy(ContentTypeStrategy):
         if page is None:
             return self.default_template
 
-        is_home = page.is_home or page.url == "/"
+        is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
         # Helper to check template existence

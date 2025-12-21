@@ -1,12 +1,12 @@
 """
 Template context wrappers for ergonomic URL handling.
 
-Wraps Page and Section objects so that .url automatically includes baseurl
+Wraps Page and Section objects so that .href automatically includes baseurl
 in templates, making it impossible to forget baseurl in href/src attributes.
 Provides transparent delegation to wrapped objects while adding baseurl handling.
 
 Key Concepts:
-    - Auto-baseurl: Automatically applies baseurl to .url property
+    - Auto-baseurl: Automatically applies baseurl to .href property
     - Transparent delegation: All other properties delegate to wrapped object
     - Multiple baseurl formats: Supports path, absolute, file, and S3 URLs
     - Template ergonomics: Simplifies template code by removing baseurl handling
@@ -28,7 +28,7 @@ from typing import Any
 
 class TemplatePageWrapper:
     """
-    Wraps Page objects to auto-apply baseurl to .url in templates.
+    Wraps Page objects to auto-apply baseurl to .href in templates.
 
     Provides transparent wrapper that automatically applies baseurl to page URLs,
     making templates ergonomic. All other page properties delegate to the wrapped
@@ -56,7 +56,7 @@ class TemplatePageWrapper:
 
     Examples:
         wrapped = TemplatePageWrapper(page, baseurl="/bengal")
-        wrapped.url  # Returns "/bengal/docs/page/" (with baseurl)
+        wrapped.href  # Returns "/bengal/docs/page/" (with baseurl)
         wrapped.title  # Delegates to page.title
     """
 
@@ -72,7 +72,7 @@ class TemplatePageWrapper:
         self._baseurl = (baseurl or "").rstrip("/")
 
     @property
-    def url(self) -> str:
+    def href(self) -> str:
         """
         URL with baseurl applied (for templates).
 
@@ -104,7 +104,6 @@ class TemplatePageWrapper:
         base_path = "/" + baseurl.lstrip("/")
         return f"{base_path}{rel}"
 
-
     def __getattr__(self, name: str) -> Any:
         """
         Delegate all other attributes to wrapped page.
@@ -120,7 +119,7 @@ class TemplatePageWrapper:
 
 class TemplateSectionWrapper:
     """
-    Wraps Section objects to auto-apply baseurl to .url in templates.
+    Wraps Section objects to auto-apply baseurl to .href in templates.
 
     Provides transparent wrapper that automatically applies baseurl to section URLs,
     similar to TemplatePageWrapper. Also wraps pages and subsections when accessed
@@ -143,7 +142,7 @@ class TemplateSectionWrapper:
 
     Examples:
         wrapped = TemplateSectionWrapper(section, baseurl="/bengal")
-        wrapped.url  # Returns "/bengal/docs/section/" (with baseurl)
+        wrapped.href  # Returns "/bengal/docs/section/" (with baseurl)
         wrapped.pages  # Returns wrapped pages with baseurl
     """
 
@@ -159,7 +158,7 @@ class TemplateSectionWrapper:
         self._baseurl = (baseurl or "").rstrip("/")
 
     @property
-    def url(self) -> str:
+    def href(self) -> str:
         """URL with baseurl applied (for templates)."""
         rel = self._section._path
 
@@ -178,7 +177,6 @@ class TemplateSectionWrapper:
 
         base_path = "/" + baseurl.lstrip("/")
         return f"{base_path}{rel}"
-
 
     @property
     def pages(self) -> list[TemplatePageWrapper]:
@@ -229,7 +227,7 @@ class TemplateSiteWrapper:
     Wraps Site object to auto-wrap pages/sections when accessed from templates.
 
     When templates access site.pages or site.sections, the pages/sections
-    are automatically wrapped so they have .url with baseurl applied.
+    are automatically wrapped so they have .href with baseurl applied.
     """
 
     def __init__(self, site: Any, baseurl: str = ""):

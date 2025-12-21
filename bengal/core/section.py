@@ -31,7 +31,6 @@ from typing import Any
 
 from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
 from bengal.core.page import Page
-from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -424,7 +423,8 @@ class Section:
             {% endif %}
         """
         return {
-            getattr(subsection.index_page, "_path", None) or getattr(subsection.index_page, "relative_url", None)
+            getattr(subsection.index_page, "_path", None)
+            or getattr(subsection.index_page, "relative_url", None)
             for subsection in self.subsections
             if subsection.index_page
         }
@@ -479,7 +479,7 @@ class Section:
         Example:
             {% set version_id = current_version.id if site.versioning_enabled else none %}
             {% for page in section.pages_for_version(version_id) %}
-              <a href="{{ page.url }}">{{ page.title }}</a>
+              <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
         if version_id is None:
@@ -559,7 +559,6 @@ class Section:
         for subsection in self.subsections:
             result.extend(subsection.regular_pages_recursive)
         return result
-
 
     @cached_property
     def href(self) -> str:
@@ -835,7 +834,7 @@ class Section:
 
         Example:
             {% for page in section.content_pages %}
-              <a href="{{ page.url }}">{{ page.title }}</a>
+              <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
         # sorted_pages already excludes index files, so this is a semantic alias

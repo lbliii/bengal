@@ -272,7 +272,9 @@ def _get_version_root_url(version_id: str, is_latest: bool, site: Site) -> str:
 
 
 # Module-level cache for version page index (keyed by id(site))
+# Limited to 10 entries to prevent memory leaks when Site objects are recreated
 _version_page_index_cache: dict[int, dict[str, set[str]]] = {}
+_VERSION_INDEX_CACHE_MAX_SIZE = 10
 
 
 def _build_version_page_index(site: Site) -> dict[str, set[str]]:
@@ -282,12 +284,22 @@ def _build_version_page_index(site: Site) -> dict[str, set[str]]:
     Uses a module-level cache keyed by site id to avoid rebuilding
     the index on every call. Cache is invalidated via invalidate_version_page_index().
 
+    Memory leak prevention: Cache is limited to 10 entries. When limit is reached,
+    oldest entries are evicted (FIFO). This prevents unbounded growth when Site
+    objects are recreated frequently (e.g., in dev server).
+
     Returns:
         Dict mapping version_id to set of relative URLs
     """
     site_id = id(site)
     if site_id in _version_page_index_cache:
         return _version_page_index_cache[site_id]
+
+    # Evict oldest entry if cache is full (prevent memory leak)
+    if len(_version_page_index_cache) >= _VERSION_INDEX_CACHE_MAX_SIZE:
+        # Remove first (oldest) entry
+        oldest_key = next(iter(_version_page_index_cache))
+        _version_page_index_cache.pop(oldest_key, None)
 
     index: dict[str, set[str]] = {}
 
