@@ -515,13 +515,14 @@ class Section:
 
         A section has content for a version if:
         - Its index_page exists and matches the version, OR
-        - Any of its sorted_pages match the version
+        - Any of its sorted_pages match the version, OR
+        - Any of its subsections recursively have content for the version
 
         Args:
             version_id: Version to check, or None (always returns True)
 
         Returns:
-            True if section has matching index page or any matching pages
+            True if section has matching content at any level
 
         Example:
             {% if section.has_content_for_version(current_version.id) %}
@@ -535,8 +536,12 @@ class Section:
         if self.index_page and getattr(self.index_page, "version", None) == version_id:
             return True
 
-        # Check any regular page
-        return any(getattr(p, "version", None) == version_id for p in self.sorted_pages)
+        # Check any regular page in this section
+        if any(getattr(p, "version", None) == version_id for p in self.sorted_pages):
+            return True
+
+        # Recursively check subsections (needed for versioned content in _versions/<id>/...)
+        return any(s.has_content_for_version(version_id) for s in self.subsections)
 
     @property
     def regular_pages_recursive(self) -> list[Page]:

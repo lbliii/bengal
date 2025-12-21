@@ -104,7 +104,7 @@ class ConfigDirectoryLoader:
         # Layer 1: Base defaults from _default/
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
-            default_config = self._load_directory(defaults_dir, origin_prefix="_default")
+            default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
             config = deep_merge(config, default_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(default_config, "_default")

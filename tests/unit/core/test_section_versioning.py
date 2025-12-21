@@ -254,6 +254,45 @@ class TestHasContentForVersion:
         # This should be fast due to short-circuit
         assert section.has_content_for_version("v1") is True
 
+    def test_recursively_checks_subsections(self, tmp_path):
+        """Returns True if any subsection recursively has content for version.
+
+        This is critical for versioned docs where the version container section
+        (e.g., 'v1') has no direct pages but its subsections (e.g., 'docs') do.
+        """
+        # Structure: v1/ -> docs/ -> page.md (version="v1")
+        v1_section = Section(name="v1", path=tmp_path / "v1")
+        # v1 has no direct pages
+        v1_section.pages = []
+
+        docs_section = Section(name="docs", path=tmp_path / "v1/docs")
+        docs_section.pages = [make_page(tmp_path, "guide", version="v1")]
+
+        v1_section.subsections = [docs_section]
+
+        # v1 should report having content for v1 because docs subsection has v1 pages
+        assert v1_section.has_content_for_version("v1") is True
+        assert v1_section.has_content_for_version("v2") is False
+
+    def test_deeply_nested_subsection_content(self, tmp_path):
+        """Recursion works through multiple levels of nesting."""
+        # Structure: root/ -> level1/ -> level2/ -> page.md (version="v1")
+        root = Section(name="root", path=tmp_path / "root")
+        level1 = Section(name="level1", path=tmp_path / "root/level1")
+        level2 = Section(name="level2", path=tmp_path / "root/level1/level2")
+
+        level2.pages = [make_page(tmp_path, "deep_page", version="v1")]
+        level1.subsections = [level2]
+        root.subsections = [level1]
+
+        # All levels should report having content for v1
+        assert level2.has_content_for_version("v1") is True
+        assert level1.has_content_for_version("v1") is True
+        assert root.has_content_for_version("v1") is True
+
+        # None should have content for v2
+        assert root.has_content_for_version("v2") is False
+
 
 class TestVersionFilteringIntegration:
     """Integration tests for version filtering across nested sections."""
