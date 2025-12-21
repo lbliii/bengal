@@ -612,10 +612,9 @@ class Renderer:
 
         Priority order:
         1. Explicit template in frontmatter (`template: doc.html`)
-        2. Layout field as template fallback (if contains `/`, e.g., `tracks/list`)
-        3. Content type strategy (delegates to strategy.get_template())
-        4. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
-        5. Default fallback (`page.html` or `index.html`)
+        2. Content type strategy (delegates to strategy.get_template())
+        3. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
+        4. Default fallback (`page.html` or `index.html`)
 
         Note: We use a simple, explicit template selection strategy without
         complex type/kind/layout hierarchies.
@@ -630,20 +629,7 @@ class Renderer:
         if "template" in page.metadata:
             return str(page.metadata["template"])
 
-        # 2. Layout field as template fallback (for backward compatibility with tracks pages)
-        # Only treat layout as template if it contains '/' (template path pattern)
-        # This distinguishes template paths like 'tracks/list' from variant names like 'grid'
-        layout = page.metadata.get("layout")
-        if layout and "/" in str(layout):
-            layout_str = str(layout)
-            # Ensure it ends with .html (or add it if missing)
-            if not layout_str.endswith(".html"):
-                layout_str = f"{layout_str}.html"
-            # Verify template exists before using it
-            if self._template_exists(layout_str):
-                return layout_str
-
-        # 3. Get content type strategy and delegate
+        # 2. Get content type strategy and delegate
         page_type = page.metadata.get("type")
         content_type = None
 
@@ -697,7 +683,7 @@ class Renderer:
                 if self._template_exists(template_name):
                     return template_name
 
-        # 5. Simple default fallback (no type/kind complexity)
+        # 4. Simple default fallback (no type/kind complexity)
         if is_section_index:
             # Section index without custom template
             return "index.html"

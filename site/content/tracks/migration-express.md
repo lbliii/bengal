@@ -1,7 +1,7 @@
 ---
 title: Migration Express
 description: Migrate your existing static site to Bengal while preserving URLs.
-layout: tracks/single
+template: tracks/single.html
 track_id: migration-express
 ---
 

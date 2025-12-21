@@ -358,3 +358,47 @@ class TestIntegration:
         # v1 → v2
         v2_url = get_version_target_url(page_v1, v2_dict, mock_site)
         assert v2_url == "/docs/guide/"
+
+    def test_progressive_parent_directory_fallback(self, mock_site, v1_dict):
+        """Test progressive parent directory fallback preserves location better."""
+        # Add a page that exists at parent level but not at exact path
+        # /docs/guide/advanced/feature/ doesn't exist in v1
+        # But /docs/guide/advanced/ does exist (we'll add it)
+        advanced_page_v1 = MagicMock()
+        advanced_page_v1.version = "v1"
+        advanced_page_v1.relative_url = "/docs/v1/guide/advanced/"
+        mock_site.pages.append(advanced_page_v1)
+        invalidate_version_page_index()
+
+        # Page at /docs/guide/advanced/feature/ in v2
+        page = MagicMock()
+        page.version = "v2"
+        page.relative_url = "/docs/guide/advanced/feature/"
+
+        result = get_version_target_url(page, v1_dict, mock_site)
+
+        # Should fall back to parent /docs/v1/guide/advanced/ (not section index or root)
+        assert result == "/docs/v1/guide/advanced/"
+
+    def test_progressive_fallback_stops_at_first_existing_parent(self, mock_site, v1_dict):
+        """Test that progressive fallback stops at first existing parent."""
+        # Add pages at different levels
+        guide_page_v1 = MagicMock()
+        guide_page_v1.version = "v1"
+        guide_page_v1.relative_url = "/docs/v1/guide/"
+        mock_site.pages.append(guide_page_v1)
+        invalidate_version_page_index()
+
+        # Page at /docs/guide/advanced/feature/details/ in v2
+        # /docs/v1/guide/advanced/feature/details/ doesn't exist
+        # /docs/v1/guide/advanced/feature/ doesn't exist
+        # /docs/v1/guide/advanced/ doesn't exist
+        # /docs/v1/guide/ DOES exist
+        page = MagicMock()
+        page.version = "v2"
+        page.relative_url = "/docs/guide/advanced/feature/details/"
+
+        result = get_version_target_url(page, v1_dict, mock_site)
+
+        # Should fall back to /docs/v1/guide/ (first existing parent)
+        assert result == "/docs/v1/guide/"

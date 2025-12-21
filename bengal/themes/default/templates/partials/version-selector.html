@@ -22,7 +22,15 @@
     engine (Jinja2, Mako, or BYORenderer). No global function dependency.
 #}
 
-{% if versioning_enabled and versions | length > 1 %}
+{# Only show version selector if:
+   1. Versioning is enabled
+   2. There are multiple versions
+   3. The current page is actually versioned (has a version attribute)
+   4. The page is not an autodoc page (autodoc pages are not versioned)
+#}
+{% set is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
+{% set page_is_versioned = page.version is not none if page.version is defined else false %}
+{% if versioning_enabled and versions | length > 1 and page_is_versioned and not is_autodoc %}
 <div class="version-selector">
   <label for="version-select" class="version-selector__label">
     <span class="visually-hidden">Documentation Version</span>

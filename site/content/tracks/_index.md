@@ -2,7 +2,7 @@
 title: Learning Tracks
 nav_title: Tracks
 description: Goal-oriented learning journeys through Bengal documentation
-layout: tracks/list
+template: tracks/list.html
 weight: 5
 icon: pin
 ---

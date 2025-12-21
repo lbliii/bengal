@@ -277,6 +277,199 @@ class TestNavTree:
         assert "v1" in tree_v1.versions
         assert "v2" in tree_v1.versions
 
+    def test_nav_tree_includes_sections_with_only_index_pages(self, tmp_path):
+        """Test that sections with only index pages are included in navigation."""
+
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "title": "Test Site",
+                "versioning": {"enabled": True, "versions": ["v1"]},
+            },
+        )
+
+        # Create a section with only an index page for v1
+        section = Section(name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs")
+        section._site = site
+
+        index_page = Page(
+            source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "_index.md",
+            content="# Docs",
+            metadata={"title": "Docs"},
+        )
+        index_page.url = "/docs/v1/"
+        index_page.version = "v1"
+        index_page._section_path = section.path
+        index_page._site = site
+
+        section.index_page = index_page
+        section.pages = [index_page]
+
+        # Mock version-aware methods
+        def pages_for_version(version_id):
+            if version_id == "v1":
+                return [index_page]
+            return []
+
+        def subsections_for_version(version_id):
+            return []
+
+        def has_content_for_version(version_id):
+            if version_id == "v1":
+                return True  # Has index page
+            return False
+
+        section.pages_for_version = pages_for_version
+        section.subsections_for_version = subsections_for_version
+        section.has_content_for_version = has_content_for_version
+
+        site.sections = [section]
+        site.pages = [index_page]
+
+        # Build nav tree for v1
+        tree_v1 = NavTree.build(site, version_id="v1")
+
+        # Section should be included even though it only has an index page
+        assert len(tree_v1.root.children) > 0
+        docs_node = tree_v1.find("/docs/v1/")
+        assert docs_node is not None, "Section with only index page should be in nav tree"
+
+    def test_nav_tree_filters_empty_sections(self, tmp_path):
+        """Test that sections with no content for a version are excluded."""
+
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "title": "Test Site",
+                "versioning": {"enabled": True, "versions": ["v1", "v2"]},
+            },
+        )
+
+        # Create section with content only for v1
+        section_v1_only = Section(
+            name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs"
+        )
+        section_v1_only._site = site
+
+        page_v1 = Page(
+            source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
+            content="# Guide",
+            metadata={"title": "Guide"},
+        )
+        page_v1.url = "/docs/v1/guide/"
+        page_v1.version = "v1"
+        page_v1._section_path = section_v1_only.path
+        page_v1._site = site
+
+        section_v1_only.pages = [page_v1]
+
+        # Mock version-aware methods
+        def pages_for_version(version_id):
+            if version_id == "v1":
+                return [page_v1]
+            return []
+
+        def subsections_for_version(version_id):
+            return []
+
+        def has_content_for_version(version_id):
+            return version_id == "v1"
+
+        section_v1_only.pages_for_version = pages_for_version
+        section_v1_only.subsections_for_version = subsections_for_version
+        section_v1_only.has_content_for_version = has_content_for_version
+
+        site.sections = [section_v1_only]
+        site.pages = [page_v1]
+
+        # Build nav tree for v1 - should include section
+        tree_v1 = NavTree.build(site, version_id="v1")
+        assert len(tree_v1.root.children) > 0
+
+        # Build nav tree for v2 - should exclude section (no content)
+        tree_v2 = NavTree.build(site, version_id="v2")
+        assert len(tree_v2.root.children) == 0, "Section with no v2 content should be excluded"
+
+    def test_nav_tree_includes_sections_with_subsections_only(self, tmp_path):
+        """Test that sections with only subsections (no direct pages) are included."""
+
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "title": "Test Site",
+                "versioning": {"enabled": True, "versions": ["v1"]},
+            },
+        )
+
+        # Create parent section
+        parent_section = Section(
+            name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs"
+        )
+        parent_section._site = site
+
+        # Create subsection with a page
+        subsection = Section(
+            name="guide", path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide"
+        )
+        subsection._site = site
+        subsection.parent = parent_section
+
+        page = Page(
+            source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
+            content="# Page",
+            metadata={"title": "Page"},
+        )
+        page.url = "/docs/v1/guide/page/"
+        page.version = "v1"
+        page._section_path = subsection.path
+        page._site = site
+
+        subsection.pages = [page]
+        parent_section.subsections = [subsection]
+
+        # Mock version-aware methods for parent
+        def parent_pages_for_version(version_id):
+            return []  # No direct pages
+
+        def parent_subsections_for_version(version_id):
+            if version_id == "v1":
+                return [subsection]
+            return []
+
+          def parent_has_content_for_version(version_id):
+              return version_id == "v1"  # Has subsection with content
+
+        # Mock version-aware methods for subsection
+        def subsection_pages_for_version(version_id):
+            if version_id == "v1":
+                return [page]
+            return []
+
+        def subsection_subsections_for_version(version_id):
+            return []
+
+        def subsection_has_content_for_version(version_id):
+            return version_id == "v1"
+
+        parent_section.pages_for_version = parent_pages_for_version
+        parent_section.subsections_for_version = parent_subsections_for_version
+        parent_section.has_content_for_version = parent_has_content_for_version
+
+        subsection.pages_for_version = subsection_pages_for_version
+        subsection.subsections_for_version = subsection_subsections_for_version
+        subsection.has_content_for_version = subsection_has_content_for_version
+
+        site.sections = [parent_section]
+        site.pages = [page]
+
+        # Build nav tree for v1
+        tree_v1 = NavTree.build(site, version_id="v1")
+
+        # Parent section should be included (has subsection with content)
+        assert len(tree_v1.root.children) > 0
+        docs_node = tree_v1.find("/docs/v1/")
+        assert docs_node is not None, "Section with subsections should be in nav tree"
+
     def test_flat_nodes_property(self, simple_site):
         """Test flat_nodes cached property."""
         tree = NavTree.build(simple_site)

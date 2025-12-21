@@ -2,7 +2,7 @@
 title: Theme Developer Journey
 nav_title: Theme Dev
 description: From CSS tweaks to building complete custom themes.
-layout: tracks/single
+template: tracks/single.html
 track_id: theme-developer
 ---
 

@@ -35,6 +35,24 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
+def is_autodoc_page(page: Any) -> bool:
+    """
+    Check if a page is autodoc-generated (template helper).
+
+    This is a template-friendly wrapper around bengal.utils.autodoc.is_autodoc_page
+    that can be used in Jinja templates.
+
+    Args:
+        page: Page object to check
+
+    Returns:
+        True if page is autodoc-generated
+    """
+    from bengal.utils.autodoc import is_autodoc_page as _is_autodoc_page
+
+    return _is_autodoc_page(page)
+
+
 def register(env: Environment, site: Site) -> None:
     """Register autodoc template functions with Jinja2 environment."""
     env.filters.update(
@@ -48,6 +66,8 @@ def register(env: Environment, site: Site) -> None:
             "children_by_type": children_by_type,
             "public_only": public_only,
             "private_only": private_only,
+            # Page detection
+            "is_autodoc_page": is_autodoc_page,
         }
     )
 
@@ -62,6 +82,8 @@ def register(env: Environment, site: Site) -> None:
             "children_by_type": children_by_type,
             "public_only": public_only,
             "private_only": private_only,
+            # Page detection
+            "is_autodoc_page": is_autodoc_page,
         }
     )
 

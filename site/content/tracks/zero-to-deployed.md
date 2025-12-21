@@ -1,7 +1,7 @@
 ---
 title: Zero to Deployed
 description: Build and deploy your first Bengal site in under an hour.
-layout: tracks/single
+template: tracks/single.html
 track_id: zero-to-deployed
 ---
 

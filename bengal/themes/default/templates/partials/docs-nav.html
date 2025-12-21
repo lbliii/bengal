@@ -23,13 +23,22 @@ Usage:
 {# Control icon visibility - defaults to true #}
 {% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
 
+{# Check if page is autodoc - autodoc pages should use scoped navigation #}
+{% set is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
+
+{# Get root section for scoped navigation (autodoc sections have nav_root: true) #}
+{% set root_section = page._section.root if page._section and (is_autodoc or page._section.metadata.get('nav_root')) else none %}
+
 <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
-  {# Version Selector #}
-  {% include 'partials/version-selector.html' %}
+  {# Version Selector - only show if page is versioned (not autodoc) #}
+  {% if not is_autodoc %}
+    {% include 'partials/version-selector.html' %}
+  {% endif %}
 
   {# Navigation Tree - uses cached NavTree infrastructure #}
+  {# Scope to root_section for autodoc pages to show only autodoc navigation #}
   <div class="docs-nav-tree">
-    {% set nav_items = get_nav_tree(page) %}
+    {% set nav_items = get_nav_tree(page, root_section=root_section) %}
 
     {% for item in nav_items %}
       {% set depth = 0 %}
