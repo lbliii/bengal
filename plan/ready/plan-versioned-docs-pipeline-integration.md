@@ -1,10 +1,11 @@
 # Plan: Versioned Documentation Pipeline Integration
 
-**Status**: Ready  
+**Status**: In Progress (Phase 1 Complete ✅, Phase 2-3 Pending)  
 **Created**: 2025-12-19  
-**RFC**: `plan/drafted/rfc-versioned-docs-pipeline-integration.md`  
+**Last Updated**: 2025-01-XX  
+**RFC**: `plan/drafted/rfc-versioned-docs-pipeline-integration.md` (not found - may have been deleted)  
 **Confidence**: 88% 🟢  
-**Estimated Effort**: ~26 hours across 3 phases
+**Estimated Effort**: ~16 hours remaining (Phase 1: ✅ Complete, Phase 2: ~9h, Phase 3: ~7h)
 
 ---
 
@@ -12,11 +13,28 @@
 
 Integrate versioned documentation with Bengal's incremental build system, dev server, and dependency tracking. Changes to `_shared/` content should cascade to all versions; changes to `_versions/v2/` should only rebuild v2.
 
+### Current Status
+
+**Phase 1: ✅ COMPLETE** - Core fixes for incremental builds and dev server are implemented:
+- Shared content change detection and cascade
+- Version-affected path detection
+- Version config change detection
+- Test infrastructure and integration tests
+
+**Phase 2: ⏳ PENDING** - Cross-version link dependency tracking (~9 hours)
+- Track `[[v2:path]]` style cross-version links
+- Cascade rebuilds when cross-version targets change
+
+**Phase 3: ⏳ PENDING** - Version-scoped dev server (~7 hours)
+- `--version` flag for focused development
+- Scoped rebuilds to only affected versions
+
 ---
 
-## Phase 1: Core Fixes (P1) — ~10 hours
+## Phase 1: Core Fixes (P1) — ✅ COMPLETE
 
-**Goal**: Fix critical gaps in incremental builds and dev server for versioned sites.
+**Goal**: Fix critical gaps in incremental builds and dev server for versioned sites.  
+**Status**: All tasks implemented and tested.
 
 ### 1.1 Add Shared Content Change Detection to IncrementalOrchestrator
 
@@ -51,8 +69,10 @@ def _check_shared_content_changes(self) -> bool:
 **Integration Point**: Call in `find_work_early()` after line 513 (after `nav_changed` setup).
 
 **Verification**:
-- [ ] Unit test: shared content change cascades to all versioned pages
-- [ ] Existing incremental tests still pass
+- [x] Unit test: shared content change cascades to all versioned pages
+- [x] Existing incremental tests still pass
+
+**Status**: ✅ **IMPLEMENTED** in `bengal/orchestration/incremental/orchestrator.py:328`
 
 **Commit**: `orchestration(incremental): add shared content cascade for versioned sites; detect _shared/ changes and rebuild all version pages`
 
@@ -85,8 +105,10 @@ def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
 **Integration Point**: Add check in `_needs_full_rebuild()` after line 263 (SVG check).
 
 **Verification**:
-- [ ] Dev server triggers full rebuild on `_shared/` file change
-- [ ] Non-versioned sites unaffected
+- [x] Dev server triggers full rebuild on `_shared/` file change
+- [x] Non-versioned sites unaffected
+
+**Status**: ✅ **IMPLEMENTED** in `bengal/server/build_trigger.py:280`
 
 **Commit**: `server(build_trigger): detect shared content changes and trigger full rebuild for versioned sites`
 
@@ -130,8 +152,10 @@ def _get_affected_versions(self, changed_paths: set[Path]) -> set[str]:
 ```
 
 **Verification**:
-- [ ] Unit test: correctly identifies affected versions from paths
-- [ ] Unit test: returns empty set for non-versioned sites
+- [x] Unit test: correctly identifies affected versions from paths
+- [x] Unit test: returns empty set for non-versioned sites
+
+**Status**: ✅ **IMPLEMENTED** in `bengal/server/build_trigger.py:307`
 
 **Commit**: `server(build_trigger): add version-affected detection for path changes; enable scoped rebuilds`
 
@@ -162,8 +186,10 @@ def _is_version_config_change(self, changed_paths: set[Path]) -> bool:
 **Integration Point**: Add check in `_needs_full_rebuild()` after shared content check.
 
 **Verification**:
-- [ ] Dev server triggers full rebuild on `versioning.yaml` change
-- [ ] Adding/removing versions handled correctly
+- [x] Dev server triggers full rebuild on `versioning.yaml` change
+- [x] Adding/removing versions handled correctly
+
+**Status**: ✅ **IMPLEMENTED** in `bengal/server/build_trigger.py:357`
 
 **Commit**: `server(build_trigger): detect versioning.yaml changes and trigger full rebuild`
 
@@ -223,6 +249,8 @@ shared:
 ```
 
 **Commit**: `tests: add test-versioned root for versioned documentation integration tests`
+
+**Status**: ✅ **IMPLEMENTED** - Test root exists at `tests/roots/test-versioned/`
 
 ---
 
@@ -301,6 +329,8 @@ class TestVersionedIncrementalBuilds:
 ```
 
 **Commit**: `tests(integration): add versioned documentation incremental build tests`
+
+**Status**: ✅ **IMPLEMENTED** - Tests exist in `tests/integration/test_versioned_builds.py`
 
 ---
 
@@ -610,11 +640,13 @@ Phase 3 (Version-scoped - sequential):
 ## Verification Checklist
 
 ### Phase 1 Complete When:
-- [ ] `_shared/` content changes trigger rebuilds for all versioned pages
-- [ ] Changes to `_versions/v2/` are detected correctly
-- [ ] `versioning.yaml` changes trigger full rebuild
-- [ ] All tests pass with `test-versioned` root
-- [ ] No regression for non-versioned sites
+- [x] `_shared/` content changes trigger rebuilds for all versioned pages ✅
+- [x] Changes to `_versions/v2/` are detected correctly ✅
+- [x] `versioning.yaml` changes trigger full rebuild ✅
+- [x] All tests pass with `test-versioned` root ✅
+- [x] No regression for non-versioned sites ✅
+
+**Phase 1 Status**: ✅ **COMPLETE** - All core fixes implemented and tested.
 
 ### Phase 2 Complete When:
 - [ ] Cross-version links tracked as dependencies
@@ -630,15 +662,22 @@ Phase 3 (Version-scoped - sequential):
 
 ---
 
-## Success Criteria (from RFC)
+## Success Criteria
 
-- [ ] `_shared/` content changes trigger rebuilds for all versioned pages
-- [ ] Changes to `_versions/v2/` only rebuild v2
-- [ ] Dev server correctly detects version-affecting changes
-- [ ] `versioning.yaml` changes trigger full rebuild
-- [ ] Cross-version links tracked as dependencies (Phase 2)
-- [ ] All tests pass with versioned test root (`test-versioned`)
-- [ ] No performance regression for non-versioned sites
+### Phase 1 (Complete ✅):
+- [x] `_shared/` content changes trigger rebuilds for all versioned pages ✅
+- [x] Dev server correctly detects version-affecting changes ✅
+- [x] `versioning.yaml` changes trigger full rebuild ✅
+- [x] All tests pass with versioned test root (`test-versioned`) ✅
+- [x] No performance regression for non-versioned sites ✅
+
+### Phase 2 (Pending):
+- [ ] Cross-version links tracked as dependencies
+- [ ] Changes to cross-version targets rebuild linking pages
+
+### Phase 3 (Pending):
+- [ ] `bengal serve --version=v2` works
+- [ ] Changes to `_versions/v2/` only rebuild v2 when scoped
 
 ---
 
@@ -654,10 +693,30 @@ Phase 3 (Version-scoped - sequential):
 
 ---
 
+## Implementation Notes
+
+### Phase 1 Implementation Details
+
+**Shared Content Cascade**:
+- Implemented in `bengal/orchestration/incremental/orchestrator.py:328` (`_check_shared_content_changes`)
+- Integrated via `RebuildFilter.apply_shared_content_cascade()` in change detection pipeline
+- Tests: `tests/integration/test_versioned_builds.py`
+
+**Build Trigger Detection**:
+- `_is_shared_content_change()`: `bengal/server/build_trigger.py:280`
+- `_get_affected_versions()`: `bengal/server/build_trigger.py:307`
+- `_is_version_config_change()`: `bengal/server/build_trigger.py:357`
+- All methods integrated into `_needs_full_rebuild()` logic
+
+**Test Infrastructure**:
+- Test root: `tests/roots/test-versioned/` (complete with 3 versions)
+- Integration tests: `tests/integration/test_versioned_builds.py` (comprehensive coverage)
+
 ## References
 
-- RFC: `plan/drafted/rfc-versioned-docs-pipeline-integration.md`
+- RFC: `plan/drafted/rfc-versioned-docs-pipeline-integration.md` (referenced but not found)
 - Versioning RFC: `plan/drafted/rfc-versioned-documentation.md`
-- Incremental builds: `bengal/orchestration/incremental.py`
+- Incremental builds: `bengal/orchestration/incremental/orchestrator.py`
 - Build trigger: `bengal/server/build_trigger.py`
 - Dependency tracker: `bengal/cache/dependency_tracker.py`
+- Rebuild filter: `bengal/orchestration/incremental/rebuild_filter.py`
