@@ -116,10 +116,10 @@ class PostprocessOrchestrator:
             reporter = build_context.reporter
 
         if not progress_manager:
-            if reporter:
-                reporter.log("\n🔧 Post-processing:")
-            else:
-                print("\n🔧 Post-processing:")
+            from bengal.output import CLIOutput
+
+            cli = CLIOutput()
+            cli.section("Post-processing")
 
         # Collect enabled tasks
         tasks = []
