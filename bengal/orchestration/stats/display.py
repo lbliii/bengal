@@ -163,28 +163,28 @@ def display_build_stats(
                 "[info]┌─────────────────────────────────────────────────────┐[/info]"
             )
             cli.console.print(
-                "[info]│[/info][warning]         ⚠️  BUILD COMPLETE (WITH WARNINGS)          [/warning][info]│[/info]"
+                f"[info]│[/info][warning]         {cli.icons.warning}  Build complete (with warnings)          [/warning][info]│[/info]"
             )
             cli.console.print(
                 "[info]└─────────────────────────────────────────────────────┘[/info]"
             )
         else:
             cli.blank()
-            cli.warning("         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ")
+            cli.warning(f"         {cli.icons.warning}  Build complete (with warnings)          ")
     else:
         cli.blank()
         if show_art:
             if cli.use_rich:
-                cli.console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]BUILD COMPLETE[/success]")
+                cli.console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete[/success]")
             else:
-                cli.info("    ᓚᘏᗢ  BUILD COMPLETE")
+                cli.info("    ᓚᘏᗢ  Build complete")
         else:
-            cli.success("    BUILD COMPLETE")
+            cli.success("    Build complete")
 
     # Content stats
     cli.blank()
     if cli.use_rich:
-        cli.console.print("[header]📊 Content Statistics:[/header]")
+        cli.console.print("[header]Content statistics:[/header]")
         cli.console.print(
             f"   [info]├─[/info] Pages:       [success]{stats.total_pages}[/success] "
             f"({stats.regular_pages} regular + {stats.generated_pages} generated)"
@@ -211,7 +211,7 @@ def display_build_stats(
             f"   [info]└─[/info] Taxonomies:  [success]{stats.taxonomies_count}[/success]"
         )
     else:
-        cli.info("📊 Content Statistics:")
+        cli.info("Content statistics:")
         cli.info(
             f"   ├─ Pages:       {stats.total_pages} "
             f"({stats.regular_pages} regular + {stats.generated_pages} generated)"
@@ -241,31 +241,31 @@ def display_build_stats(
     mode_text = " + ".join(mode_parts)
 
     if cli.use_rich:
-        cli.console.print("[header]⚙️  Build Configuration:[/header]")
+        cli.console.print("[header]Build configuration:[/header]")
         cli.console.print(f"   [info]└─[/info] Mode:        [warning]{mode_text}[/warning]")
     else:
-        cli.info("⚙️  Build Configuration:")
+        cli.info("Build configuration:")
         cli.info(f"   └─ Mode:        {mode_text}")
 
     # Performance stats
     cli.blank()
     total_time_str = format_time(stats.build_time_ms)
 
-    # Determine time styling
+    # Determine time styling and grade token (ASCII by default)
     if stats.build_time_ms < 100:
         time_token = "success"
-        emoji = "🚀"
+        grade = cli.icons.grade_excellent
     elif stats.build_time_ms < 1000:
         time_token = "warning"
-        emoji = "⚡"
+        grade = cli.icons.grade_fast
     else:
         time_token = "error"
-        emoji = "🐌"
+        grade = cli.icons.grade_slow
 
     if cli.use_rich:
-        cli.console.print("[header]⏱️  Performance:[/header]")
+        cli.console.print("[header]Performance:[/header]")
         cli.console.print(
-            f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {emoji}"
+            f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {grade}"
         )
 
         # Phase breakdown (only if we have phase data)
@@ -294,8 +294,8 @@ def display_build_stats(
                 f"   [info]└─[/info] Health:      {format_time(stats.health_check_time_ms)}"
             )
     else:
-        cli.info("⏱️  Performance:")
-        cli.info(f"   ├─ Total:       {total_time_str} {emoji}")
+        cli.info("Performance:")
+        cli.info(f"   ├─ Total:       {total_time_str} {grade}")
 
         if stats.discovery_time_ms > 0:
             cli.info(f"   ├─ Discovery:   {format_time(stats.discovery_time_ms)}")
@@ -318,12 +318,12 @@ def display_build_stats(
         if pages_per_sec > 0:
             cli.blank()
             if cli.use_rich:
-                cli.console.print("[header]📈 Throughput:[/header]")
+                cli.console.print("[header]Throughput:[/header]")
                 cli.console.print(
                     f"   [info]└─[/info] [highlight]{pages_per_sec:.1f}[/highlight] pages/second"
                 )
             else:
-                cli.info("📈 Throughput:")
+                cli.info("Throughput:")
                 cli.info(f"   └─ {pages_per_sec:.1f} pages/second")
 
     # Output location
