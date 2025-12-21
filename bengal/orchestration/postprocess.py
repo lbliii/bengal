@@ -119,6 +119,7 @@ class PostprocessOrchestrator:
             from bengal.output import CLIOutput
 
             cli = CLIOutput()
+            cli.blank()
             cli.section("Post-processing")
 
         # Collect enabled tasks

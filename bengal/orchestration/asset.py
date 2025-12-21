@@ -250,13 +250,17 @@ class AssetOrchestrator:
             from bengal.output import CLIOutput
 
             cli = CLIOutput()
+            cli.blank()
             cli.section("Assets")
-            print(f"   {cli.icons.tree_end} Discovered: {total_discovered} files")
+            cli.detail(f"{cli.icons.tree_end} Discovered: {total_discovered} files", indent=1)
             if css_modules:
-                print(
-                    f"   {cli.icons.tree_end} CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled"
+                cli.detail(
+                    f"{cli.icons.tree_end} CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled",
+                    indent=1,
                 )
-            print(f"   {cli.icons.tree_end} Output: {total_output} files {cli.icons.success}")
+            cli.detail(
+                f"{cli.icons.tree_end} Output: {total_output} files {cli.icons.success}", indent=1
+            )
 
         minify = self.site.config.get("minify_assets", True)
         optimize = self.site.config.get("optimize_assets", True)

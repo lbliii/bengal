@@ -84,13 +84,11 @@ def clean(
     if not force:
         # Interactive mode: ask for confirmation (with warning icon for destructive operation)
         if clean_cache:
-            cli.warning("Delete output AND cache?")
-            if cli.use_rich:
-                cli.detail("This will force a complete rebuild on next build", indent=1)
+            cli.warning(" Delete output AND cache?")
+            cli.detail("This will force a complete rebuild on next build", indent=0)
         else:
-            cli.warning("Delete output files?")
-            if cli.use_rich:
-                cli.detail("Cache will be preserved for incremental builds", indent=1)
+            cli.warning(" Delete output files?")
+            cli.detail("Cache will be preserved for incremental builds", indent=0)
 
         if not cli.confirm("Proceed", default=False):
             cli.warning("Cancelled")
@@ -103,15 +101,15 @@ def clean(
     if clean_cache and site.paths.state_dir.exists():
         # Use the same robust removal that Site.clean() uses
         site._rmtree_robust(site.paths.state_dir)
-        cli.info("   ✓ Removed cache directory")
+        cli.detail(f"{cli.icons.success} Removed cache directory", indent=1)
 
     # Show success
     cli.blank()
     if clean_cache:
-        cli.success("Clean complete! (output + cache)", icon="✓")
-        cli.info("   Next build will be a cold build (no cache)")
+        cli.success("Clean complete! (output + cache)")
+        cli.detail("Next build will be a cold build (no cache)", indent=1)
     else:
-        cli.success("Clean complete! (cache preserved)", icon="✓")
+        cli.success("Clean complete! (cache preserved)")
         cli.tip("Run 'bengal clean --cache' for cold build testing")
     cli.blank()
 
