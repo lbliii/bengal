@@ -92,26 +92,18 @@ def get_page_relative_url(page: Page, site: Any) -> str:
 
 
 def get_page_public_url(page: Page, site: Site) -> str:
-    if not output_path:
-        return f"/{getattr(page, 'slug', page.source_path.stem)}/"
+    """
+    Get the page's public URL including baseurl.
 
-    # Handle invalid output paths
-    if str(output_path) in (".", "..") or output_path.name == "":
-        return f"/{getattr(page, 'slug', page.source_path.stem)}/"
+    Args:
+        page: Page to get URL for
+        site: Site instance
 
-    try:
-        output_dir = getattr(site, "output_dir", None)
-        if output_dir:
-            rel_path = output_path.relative_to(output_dir)
-            url = f"/{rel_path}".replace("\\", "/")
-            # Clean up /index.html
-            url = url.replace("/index.html", "/")
-            return url
-    except ValueError:
-        # output_path is not relative to output_dir; fall back to slug-based URL below
-        pass
-
-    return f"/{getattr(page, 'slug', page.source_path.stem)}/"
+    Returns:
+        Full public URL including baseurl
+    """
+    # page.href already includes baseurl
+    return page.href
 
 
 def get_page_url(page: Page, site: Any) -> str:
@@ -125,36 +117,8 @@ def get_page_url(page: Page, site: Any) -> str:
     Returns:
         Full public URL including baseurl
     """
-    # Get the page's public URL (relative to site root)
-    page_url = page.href
-
-    # Ensure page_url starts with /
-    if page_url and not page_url.startswith("/"):
-        page_url = "/" + page_url
-
-    # Get baseurl from site
-    baseurl = ""
-    if hasattr(site, "config") and isinstance(site.config, dict):
-        baseurl = site.config.get("site", {}).get("baseurl", "")
-    elif hasattr(site, "baseurl"):
-        baseurl = site.baseurl or ""
-
-    # Clean baseurl
-    if baseurl and baseurl != "/":
-        baseurl = baseurl.rstrip("/")
-        if not baseurl.startswith("/"):
-            baseurl = "/" + baseurl
-    elif baseurl == "/":
-        baseurl = ""
-
-    # Combine baseurl and page_url
-    if baseurl and page_url:
-        # Avoid double slashes
-        if page_url.startswith("/"):
-            return baseurl + page_url
-        return f"{baseurl}/{page_url}"
-
-    return page_url or "/"
+    # page.href already includes baseurl
+    return page.href
 
 
 def get_page_json_path(page: Page) -> Path | None:
