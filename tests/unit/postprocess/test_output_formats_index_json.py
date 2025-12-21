@@ -408,3 +408,154 @@ class TestSiteIndexJsonGeneration:
             page._section = None
 
         return page
+
+    def test_index_json_includes_version_field_when_present(self, tmp_path):
+        """Test that version field is included in page summaries when page has version."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Versioned Page",
+            url="/docs/v1/guide/",
+            content="Content",
+            output_path=output_dir / "docs/v1/guide/index.html",
+        )
+        # Set version attribute
+        page.version = "v1"
+        mock_site.pages = [page]
+
+        config = {"enabled": True, "per_page": [], "site_wide": ["index_json"]}
+        generator = OutputFormatsGenerator(mock_site, config)
+        generator.generate()
+
+        # Load and validate
+        index_path = output_dir / "index.json"
+        data = json.loads(index_path.read_text())
+
+        page_data = data["pages"][0]
+        assert page_data["version"] == "v1", (
+            "Version field should be included when page has version"
+        )
+
+    def test_index_json_omits_version_field_when_none(self, tmp_path):
+        """Test that version field is omitted when page has no version."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unversioned Page",
+            url="/guide/",
+            content="Content",
+            output_path=output_dir / "guide/index.html",
+        )
+        # No version attribute
+        page.version = None
+        mock_site.pages = [page]
+
+        config = {"enabled": True, "per_page": [], "site_wide": ["index_json"]}
+        generator = OutputFormatsGenerator(mock_site, config)
+        generator.generate()
+
+        # Load and validate
+        index_path = output_dir / "index.json"
+        data = json.loads(index_path.read_text())
+
+        page_data = data["pages"][0]
+        assert "version" not in page_data, (
+            "Version field should be omitted when page has no version"
+        )
+
+    def test_index_generator_groups_pages_by_version(self, tmp_path):
+        """Test that pages are correctly grouped by version."""
+        from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
+
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        # Mock versioning_enabled
+        mock_site.versioning_enabled = True
+
+        # Create pages with different versions
+        pages = []
+        for version_id in ["v1", "v2", None]:
+            page = self._create_mock_page(
+                title=f"Page {version_id or 'unversioned'}",
+                url=f"/docs/{version_id or ''}/page/",
+                content="Content",
+                output_path=output_dir / f"docs/{version_id or ''}/page/index.html",
+            )
+            page.version = version_id
+            pages.append(page)
+
+        generator = SiteIndexGenerator(mock_site)
+        by_version = generator._group_by_version(pages)
+
+        # Assert grouping
+        assert len(by_version["v1"]) == 1, "Should have 1 v1 page"
+        assert len(by_version["v2"]) == 1, "Should have 1 v2 page"
+        assert len(by_version[None]) == 1, "Should have 1 unversioned page"
+        assert by_version["v1"][0].version == "v1"
+        assert by_version["v2"][0].version == "v2"
+        assert by_version[None][0].version is None
+
+    def test_index_generator_generates_per_version_indexes_when_versioning_enabled(self, tmp_path):
+        """Test that generate() returns list of paths when versioning is enabled."""
+        from bengal.core.version import Version, VersionConfig
+        from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
+
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        mock_site.versioning_enabled = True
+
+        # Create version config with v3 (latest) and v1
+        version_config = VersionConfig(
+            enabled=True,
+            versions=[
+                Version(id="v3", latest=True),
+                Version(id="v1", latest=False),
+            ],
+        )
+        mock_site.version_config = version_config
+
+        # Create pages with different versions
+        pages = []
+        # v3 page (latest)
+        page_v3 = self._create_mock_page(
+            title="Page v3",
+            url="/docs/guide/",
+            content="Content v3",
+            output_path=output_dir / "docs/guide/index.html",
+        )
+        page_v3.version = "v3"
+        pages.append(page_v3)
+
+        # v1 page
+        page_v1 = self._create_mock_page(
+            title="Page v1",
+            url="/docs/v1/guide/",
+            content="Content v1",
+            output_path=output_dir / "docs/v1/guide/index.html",
+        )
+        page_v1.version = "v1"
+        pages.append(page_v1)
+
+        generator = SiteIndexGenerator(mock_site)
+        result = generator.generate(pages)
+
+        # Should return list of paths
+        assert isinstance(result, list), "Should return list when versioning enabled"
+        assert len(result) == 2, "Should generate 2 indexes (latest + v1)"
+
+        # Check that indexes exist
+        index_paths = [Path(p) for p in result]
+        assert any(p.name == "index.json" and p.parent == output_dir for p in index_paths), (
+            "Latest version index should be at root"
+        )
+        assert any(p.name == "index.json" and "docs/v1" in str(p) for p in index_paths), (
+            "v1 index should be in docs/v1/"
+        )
