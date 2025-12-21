@@ -523,7 +523,7 @@ class RenderOrchestrator:
             }
 
             # Track errors for aggregation
-            error_counts: dict[str, int] = defaultdict(int)
+            aggregator = ErrorAggregator(total_items=len(pages))
             
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):
@@ -531,11 +531,12 @@ class RenderOrchestrator:
                 try:
                     future.result()
                 except Exception as e:
-                    _log_page_error(e, page, error_counts)
+                    context = extract_error_context(e, page)
+                    logger.error("page_rendering_error", **context)
+                    aggregator.add_error(e, context=context)
             
-            # Log aggregated summary if we have many similar errors
-            if error_counts and sum(error_counts.values()) > 5:
-                _log_aggregated_errors(error_counts, len(pages))
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
     def _render_sequential_with_progress(
         self,
@@ -584,18 +585,19 @@ class RenderOrchestrator:
             task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
             
             # Track errors for aggregation
-            error_counts: dict[str, int] = defaultdict(int)
+            aggregator = ErrorAggregator(total_items=len(pages))
 
             for page in pages:
                 try:
                     pipeline.process_page(page)
                 except Exception as e:
-                    _log_page_error(e, page, error_counts)
+                    context = extract_error_context(e, page)
+                    logger.error("page_rendering_error", **context)
+                    aggregator.add_error(e, context=context)
                 progress.update(task, advance=1)
             
-            # Log aggregated summary if we have many similar errors
-            if error_counts and sum(error_counts.values()) > 5:
-                _log_aggregated_errors(error_counts, len(pages))
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
     def _render_parallel_with_live_progress(
         self,
@@ -678,7 +680,7 @@ class RenderOrchestrator:
             }
 
             # Track errors for aggregation
-            error_counts: dict[str, int] = defaultdict(int)
+            aggregator = ErrorAggregator(total_items=len(pages))
             
             # Wait for all to complete
             for future in concurrent.futures.as_completed(future_to_page):
@@ -686,11 +688,12 @@ class RenderOrchestrator:
                 try:
                     future.result()
                 except Exception as e:
-                    _log_page_error(e, page, error_counts)
+                    context = extract_error_context(e, page)
+                    logger.error("page_rendering_error", **context)
+                    aggregator.add_error(e, context=context)
             
-            # Log aggregated summary if we have many similar errors
-            if error_counts and sum(error_counts.values()) > 5:
-                _log_aggregated_errors(error_counts, len(pages))
+            # Log aggregated summary if threshold exceeded
+            aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
             # Final update to ensure progress shows 100%
             if progress_manager:
@@ -766,7 +769,7 @@ class RenderOrchestrator:
                 futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
 
                 # Track errors for aggregation
-                error_counts: dict[str, int] = defaultdict(int)
+                aggregator = ErrorAggregator(total_items=len(pages))
                 
                 # Wait for all to complete and update progress
                 for future in concurrent.futures.as_completed(futures):
@@ -775,12 +778,13 @@ class RenderOrchestrator:
                     except Exception as e:
                         # Get page from future if possible (may not be available)
                         page = None
-                        _log_page_error(e, page, error_counts)
+                        context = extract_error_context(e, page)
+                        logger.error("page_rendering_error", **context)
+                        aggregator.add_error(e, context=context)
                     progress.update(task, advance=1)
                 
-                # Log aggregated summary if we have many similar errors
-                if error_counts and sum(error_counts.values()) > 5:
-                    _log_aggregated_errors(error_counts, len(pages))
+                # Log aggregated summary if threshold exceeded
+                aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
     def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
         """

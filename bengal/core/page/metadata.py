@@ -143,15 +143,6 @@ class PageMetadataMixin:
 
 
     @property
-    def url(self) -> str:
-        """
-        URL for template href attributes. Includes baseurl.
-        
-        This is an alias for href. Templates can use page.url or page.href.
-        """
-        return self.href
-
-    @property
     def href(self) -> str:
         """
         URL for template href attributes. Includes baseurl.
