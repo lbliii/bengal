@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.template_functions.navigation_models import (
+from bengal.rendering.template_functions.navigation.models import (
     AutoNavItem,
     BreadcrumbItem,
     NavTreeItem,
