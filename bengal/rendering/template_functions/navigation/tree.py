@@ -41,7 +41,7 @@ def get_nav_tree(
 
     Example:
         {% for item in get_nav_tree(page) %}
-          <a href="{{ item.url }}"
+          <a href="{{ item.href }}"
              class="{{ 'active' if item.is_current }}
                     {{ 'in-trail' if item.is_in_trail }}">
             {{ item.title }}
@@ -72,7 +72,7 @@ def get_nav_tree(
     # If root_section is provided, scope navigation to only that section and its descendants.
     root_node = None
     if root_section is not None:
-        root_url = root_section.relative_url
+        root_url = getattr(root_section, "_path", None) or getattr(root_section, "relative_url", f"/{root_section.name}/")
         root_node = tree.find(root_url)
         if root_node is None:
             return []
@@ -123,7 +123,7 @@ def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeC
     tree = NavTreeCache.get(site, version_id)
     root_node = None
     if root_section is not None:
-        root_url = root_section.relative_url
+        root_url = getattr(root_section, "_path", None) or getattr(root_section, "relative_url", f"/{root_section.name}/")
         root_node = tree.find(root_url)
         if root_node is None:
             from bengal.utils.exceptions import BengalRenderingError

@@ -43,7 +43,7 @@ Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
       {% for subsection in section.sorted_subsections %}
       {% set desc = subsection.metadata.description | default('') | first_sentence %}
       {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-      <a href="{{ subsection.relative_url }}" class="api-card api-card--link api-card--package">
+      <a href="{{ subsection.href }}" class="api-card api-card--link api-card--package">
         <div class="api-card__header">
           <span class="api-card__icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
           <span class="api-card__title">{{ subsection.name | title }}</span>
@@ -81,7 +81,7 @@ Uses Bengal's SVG icon system via {{ icon("name", size=N) }}.
     <div class="api-grid api-grid--modules">
       {% for page in module_pages %}
       {% set desc = page.metadata.description | default('') | first_sentence %}
-      <a href="{{ page.relative_url }}" class="api-card api-card--link">
+      <a href="{{ page.href }}" class="api-card api-card--link">
         <div class="api-card__header">
           <span class="api-card__icon">
             {%- if page.metadata.element_type == 'class' -%}

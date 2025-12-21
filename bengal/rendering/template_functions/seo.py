@@ -138,7 +138,7 @@ def canonical_url(
         Full canonical URL (pointing to latest version for versioned pages)
 
     Example:
-        <link rel="canonical" href="{{ canonical_url(page.url, page=page) }}">
+        <link rel="canonical" href="{{ canonical_url(page.href, page=page) }}">
     """
     if not path:
         return base_url or ""

@@ -115,8 +115,8 @@ class PageInitializer:
                     f"Warning: output_path {page.output_path} is not under output directory {self.site.output_dir}; "
                     f"falling back to slug-based URL"
                 )
-            # Use relative_url for validation since page.url includes baseurl
-            rel_url = page.relative_url
+            # Use _path for validation (site-relative path without baseurl)
+            rel_url = getattr(page, "_path", None) or getattr(page, "relative_url", f"/{page.slug}/")
             if not rel_url.startswith("/"):
                 from bengal.utils.exceptions import BengalContentError
 

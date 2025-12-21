@@ -139,9 +139,15 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     # Fallback to page.url/href if _path/relative_url not available
     if url is None:
         try:
-            # Prefer href (new convention), fallback to url (legacy)
-            if hasattr(page, "href"):
+            # Prefer _path (internal path without baseurl), then href (with baseurl), fallback to url (legacy)
+            if hasattr(page, "_path"):
+                url = page._path
+            elif hasattr(page, "href"):
                 url = page.href
+                # If href includes baseurl, extract relative part
+                baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+                if baseurl and url.startswith(baseurl):
+                    url = url[len(baseurl) :] or "/"
             elif hasattr(page, "url"):
                 url = page.url
             # If url already includes baseurl, extract relative part

@@ -60,7 +60,7 @@ def absolute_url(url: str, base_url: str) -> str:
         Absolute URL
 
     Example:
-        {{ page.url | absolute_url }}
+        {{ page.href | absolute_url }}
         # Output: https://example.com/posts/my-post/
         {{ '/index.json' | absolute_url }}
         # Output: /index.json (no trailing slash for file URLs)

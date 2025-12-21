@@ -121,7 +121,7 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
         {% set auto_items = get_auto_nav() %}
         {% if auto_items %}
           {% for item in auto_items %}
-            <a href="{{ item.url }}">{{ item.name }}</a>
+            <a href="{{ item.href }}">{{ item.name }}</a>
           {% endfor %}
         {% endif %}
 

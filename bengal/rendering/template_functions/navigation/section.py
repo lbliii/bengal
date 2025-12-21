@@ -32,7 +32,7 @@ def get_section(path: str, site: Site) -> Section | None:
         {% set docs = get_section('docs') %}
         {% if docs %}
           {% for page in docs.pages | sort_by('weight') %}
-            <a href="{{ page.url }}">{{ page.title }}</a>
+            <a href="{{ page.href }}">{{ page.title }}</a>
           {% endfor %}
         {% endif %}
     """

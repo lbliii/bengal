@@ -38,7 +38,7 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
           {% if item.is_current %}
             <span>{{ item.title }}</span>
           {% else %}
-            <a href="{{ item.url }}">{{ item.title }}</a>
+            <a href="{{ item.href }}">{{ item.title }}</a>
           {% endif %}
         {% endfor %}
 
@@ -50,7 +50,7 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
                 {% if item.is_current %}
                   {{ item.title }}
                 {% else %}
-                  <a href="{{ item.url }}">{{ item.title }}</a>
+                  <a href="{{ item.href }}">{{ item.title }}</a>
                 {% endif %}
               </li>
             {% endfor %}
@@ -68,7 +68,7 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
               "@type": "ListItem",
               "position": {{ loop.index }},
               "name": "{{ item.title }}",
-              "item": "{{ item.url | absolute_url }}"
+              "item": "{{ item.href | absolute_url }}"
             }{{ "," if not loop.last else "" }}
             {% endfor %}
           ]
@@ -79,21 +79,21 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
 
     # Handle tag index page (dynamically generated, no ancestors)
     if hasattr(page, "metadata") and page.metadata.get("type") == "tag-index":
-        items.append({"title": "Home", "url": "/", "is_current": False})
-        items.append({"title": "Tags", "url": "/tags/", "is_current": True})
+        items.append({"title": "Home", "href": "/", "is_current": False})
+        items.append({"title": "Tags", "href": "/tags/", "is_current": True})
         return items
 
     # Handle tag pages (dynamically generated, no ancestors)
     if hasattr(page, "metadata") and page.metadata.get("type") == "tag":
         tag_name = page.metadata.get("_tag", "Tag")
-        items.append({"title": "Home", "url": "/", "is_current": False})
-        items.append({"title": "Tags", "url": "/tags/", "is_current": False})
+        items.append({"title": "Home", "href": "/", "is_current": False})
+        items.append({"title": "Tags", "href": "/tags/", "is_current": False})
         page_url = (
-            page.relative_url
-            if hasattr(page, "relative_url")
+            getattr(page, "_path", None) or getattr(page, "relative_url", None)
+            if hasattr(page, "_path") or hasattr(page, "relative_url")
             else f"/tags/{page.metadata.get('_tag_slug', '')}/"
         )
-        items.append({"title": tag_name, "url": page_url, "is_current": True})
+        items.append({"title": tag_name, "href": page_url, "is_current": True})
         return items
 
     # Handle pages without ancestors (fallback)
@@ -102,19 +102,21 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         # Check for actual string values, not just attribute existence
         has_title = hasattr(page, "title") and isinstance(getattr(page, "title", None), str)
         has_url = (
-            hasattr(page, "relative_url")
-            and isinstance(getattr(page, "relative_url", None), str)
-            and getattr(page, "relative_url", "")
+            (hasattr(page, "_path") or hasattr(page, "relative_url"))
+            and isinstance(getattr(page, "_path", None) or getattr(page, "relative_url", None), str)
+            and (getattr(page, "_path", None) or getattr(page, "relative_url", "") or "")
         )
         if not (has_title and has_url):
             return []
         # If page has a title and URL, add Home and the page
-        items.append({"title": "Home", "url": "/", "is_current": False})
+        items.append({"title": "Home", "href": "/", "is_current": False})
         page_url = (
-            page.relative_url if hasattr(page, "relative_url") else f"/{getattr(page, 'slug', '')}/"
+            getattr(page, "_path", None) or getattr(page, "relative_url", None)
+            if hasattr(page, "_path") or hasattr(page, "relative_url")
+            else f"/{getattr(page, 'slug', '')}/"
         )
         page_title = _derive_title(page, page_url)
-        items.append({"title": page_title, "url": page_url, "is_current": True})
+        items.append({"title": page_title, "href": page_url, "is_current": True})
         return items
 
     # Get ancestors in reverse order (root to current)
@@ -131,15 +133,16 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
     last_ancestor = reversed_ancestors[-1] if reversed_ancestors else None
     is_section_index = False
 
-    if last_ancestor and hasattr(page, "relative_url"):
-        # Use relative_url for comparison (without baseurl)
-        if hasattr(last_ancestor, "relative_url"):
-            ancestor_url = last_ancestor.relative_url
+    if last_ancestor and (hasattr(page, "_path") or hasattr(page, "relative_url")):
+        # Use _path for comparison (without baseurl)
+        if hasattr(last_ancestor, "_path") or hasattr(last_ancestor, "relative_url"):
+            ancestor_url = getattr(last_ancestor, "_path", None) or getattr(last_ancestor, "relative_url", None) or f"/{getattr(last_ancestor, 'slug', '')}/"
         else:
             # Fallback to slug-based URL
             ancestor_url = f"/{getattr(last_ancestor, 'slug', '')}/"
 
-        is_section_index = ancestor_url == page.relative_url
+        page_path = getattr(page, "_path", None) or getattr(page, "relative_url", None) or f"/{getattr(page, 'slug', '')}/"
+        is_section_index = ancestor_url == page_path
 
     # Add all ancestors
     for i, ancestor in enumerate(reversed_ancestors):
@@ -148,8 +151,8 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
 
         # Get ancestor URL (relative, without baseurl - templates apply | absolute_url)
         url = (
-            ancestor.relative_url
-            if hasattr(ancestor, "relative_url")
+            getattr(ancestor, "_path", None) or getattr(ancestor, "relative_url", None)
+            if hasattr(ancestor, "_path") or hasattr(ancestor, "relative_url")
             else f"/{getattr(ancestor, 'slug', '')}/"
         )
 
@@ -159,16 +162,20 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         items.append(
             {
                 "title": ancestor_title,
-                "url": url,
+                "href": url,
                 "is_current": is_current_item,
             }
         )
 
     # Only add the current page if it's not a section index
     if not is_section_index:
-        page_url = page.relative_url if hasattr(page, "relative_url") else f"/{page.slug}/"
+        page_url = (
+            getattr(page, "_path", None) or getattr(page, "relative_url", None)
+            if hasattr(page, "_path") or hasattr(page, "relative_url")
+            else f"/{page.slug}/"
+        )
         page_title = _derive_title(page, page_url)
-        items.append({"title": page_title, "url": page_url, "is_current": True})
+        items.append({"title": page_title, "href": page_url, "is_current": True})
 
     return items
 

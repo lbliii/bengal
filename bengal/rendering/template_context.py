@@ -81,8 +81,13 @@ class TemplatePageWrapper:
         It automatically includes baseurl, so theme developers don't need
         to remember to use permalink or filters.
         """
-        # Get relative URL from wrapped page
-        rel = self._page.url if hasattr(self._page, "url") else "/"
+        # Get relative URL from wrapped page (prefer href, fallback to _path)
+        rel = (
+            getattr(self._page, "href", None)
+            or getattr(self._page, "_path", None)
+            or getattr(self._page, "url", None)
+            or "/"
+        )
 
         # Normalize relative URL
         if not rel:
@@ -123,7 +128,12 @@ class TemplatePageWrapper:
         Use this when you need the relative URL for comparisons or logic.
         For display URLs, use .url (which includes baseurl).
         """
-        return self._page.url if hasattr(self._page, "url") else "/"
+        return (
+            getattr(self._page, "_path", None)
+            or getattr(self._page, "relative_url", None)
+            or getattr(self._page, "url", None)
+            or "/"
+        )
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -314,8 +324,8 @@ def wrap_for_template(obj: Any, baseurl: str = "") -> Any:
     if isinstance(obj, (TemplatePageWrapper, TemplateSectionWrapper, TemplateSiteWrapper)):
         return obj
 
-    # Check if it has a url attribute (Page, Section, or SimpleNamespace from special pages)
-    if hasattr(obj, "url"):
+    # Check if it has a url or href attribute (Page, Section, or SimpleNamespace from special pages)
+    if hasattr(obj, "url") or hasattr(obj, "href") or hasattr(obj, "_path"):
         # Check if it's a Section (has index_page attribute)
         if hasattr(obj, "index_page"):
             return TemplateSectionWrapper(obj, baseurl)

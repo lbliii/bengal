@@ -40,7 +40,7 @@ def get_pagination_items(
 
         <nav class="pagination">
           {% if pagination.prev %}
-            <a href="{{ pagination.prev.url }}">← Prev</a>
+            <a href="{{ pagination.prev.href }}">← Prev</a>
           {% endif %}
 
           {% for item in pagination.pages %}
@@ -49,12 +49,12 @@ def get_pagination_items(
             {% elif item.is_current %}
               <strong>{{ item.num }}</strong>
             {% else %}
-              <a href="{{ item.url }}">{{ item.num }}</a>
+              <a href="{{ item.href }}">{{ item.num }}</a>
             {% endif %}
           {% endfor %}
 
           {% if pagination.next %}
-            <a href="{{ pagination.next.url }}">Next →</a>
+            <a href="{{ pagination.next.href }}">Next →</a>
           {% endif %}
         </nav>
 
@@ -103,11 +103,11 @@ def get_pagination_items(
     if total_pages == 1:
         # Single page - just return it
         return {
-            "pages": [{"num": 1, "url": page_url(1), "is_current": True, "is_ellipsis": False}],
+            "pages": [{"num": 1, "href": page_url(1), "is_current": True, "is_ellipsis": False}],
             "prev": None,
             "next": None,
-            "first": {"num": 1, "url": page_url(1)},
-            "last": {"num": 1, "url": page_url(1)},
+            "first": {"num": 1, "href": page_url(1)},
+            "last": {"num": 1, "href": page_url(1)},
         }
 
     # Calculate range
@@ -116,7 +116,7 @@ def get_pagination_items(
 
     # First page (always shown)
     pages.append(
-        {"num": 1, "url": page_url(1), "is_current": current_page == 1, "is_ellipsis": False}
+        {"num": 1, "href": page_url(1), "is_current": current_page == 1, "is_ellipsis": False}
     )
 
     # Ellipsis after first page if needed
@@ -128,7 +128,7 @@ def get_pagination_items(
         pages.append(
             {
                 "num": page_num,
-                "url": page_url(page_num),
+                "href": page_url(page_num),
                 "is_current": page_num == current_page,
                 "is_ellipsis": False,
             }
@@ -143,7 +143,7 @@ def get_pagination_items(
         pages.append(
             {
                 "num": total_pages,
-                "url": page_url(total_pages),
+                "href": page_url(total_pages),
                 "is_current": current_page == total_pages,
                 "is_ellipsis": False,
             }
@@ -152,11 +152,11 @@ def get_pagination_items(
     # Previous/next links
     prev_info = None
     if current_page > 1:
-        prev_info = {"num": current_page - 1, "url": page_url(current_page - 1)}
+        prev_info = {"num": current_page - 1, "href": page_url(current_page - 1)}
 
     next_info = None
     if current_page < total_pages:
-        next_info = {"num": current_page + 1, "url": page_url(current_page + 1)}
+        next_info = {"num": current_page + 1, "href": page_url(current_page + 1)}
 
     return {
         "pages": pages,

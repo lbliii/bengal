@@ -145,6 +145,7 @@ class PageContext:
         self.metadata = metadata
         self.tags = tags or []
         self.relative_url = relative_url
+        self._path = relative_url  # Alias for unified URL model
         self.variant = variant
         self.source_path = source_path
 
@@ -159,8 +160,15 @@ class PageContext:
         self._section = section
         self.section = section
 
+    @property
+    def href(self) -> str:
+        """URL with baseurl for templates."""
+        # PageContext doesn't have site reference, so return _path as-is
+        # Templates should apply baseurl via | absolute_url filter
+        return self._path
+
     def __repr__(self) -> str:
-        return f"PageContext(title={self.title!r}, relative_url={self.relative_url!r})"
+        return f"PageContext(title={self.title!r}, _path={self._path!r})"
 
 
 # Backward compatibility alias

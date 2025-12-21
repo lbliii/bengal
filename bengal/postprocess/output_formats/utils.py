@@ -130,11 +130,18 @@ def get_page_relative_url(page: Page, site: Any) -> str:
             return result
 
     # Fallback: try url/href property, but STRIP baseurl if present
-    # page.url/href may include baseurl, so we need to remove it
-    if hasattr(page, "href"):
+    # page.href may include baseurl, so we need to remove it
+    # Prefer _path (internal path without baseurl)
+    if hasattr(page, "_path"):
+        url: str | None = page._path
+    elif hasattr(page, "href"):
+        # href includes baseurl, need to strip it
         url: str | None = page.href
-    elif hasattr(page, "url"):
-        url: str | None = page.url
+        baseurl = site.config.get("baseurl", "").rstrip("/")
+        if baseurl and url and url.startswith(baseurl):
+            url = url[len(baseurl):] or "/"
+    elif hasattr(page, "relative_url"):
+        url: str | None = page.relative_url
     else:
         url = None
         if callable(url):

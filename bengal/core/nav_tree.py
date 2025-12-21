@@ -349,7 +349,7 @@ class NavTree:
     def _build_node_recursive(cls, section: Section, version_id: str | None, depth: int) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
-        node_url = section.relative_url
+        node_url = getattr(section, "_path", None) or getattr(section, "relative_url", f"/{section.name}/")
         node_title = section.nav_title
         node_icon = section.icon
 
@@ -443,7 +443,7 @@ class NavTreeContext:
         # Walk up from current section (use _section - the private attribute)
         section = getattr(self.page, "_section", None)
         while section:
-            self.active_trail_urls.add(section.relative_url)
+            self.active_trail_urls.add(getattr(section, "_path", None) or getattr(section, "relative_url", f"/{section.name}/"))
             section = section.parent
 
     def is_active(self, node: NavNode) -> bool:

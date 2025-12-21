@@ -100,6 +100,16 @@ class MenuItem:
             # Convert name to slug-like identifier
             self.identifier = self.name.lower().replace(" ", "-").replace("_", "-")
 
+    @property
+    def href(self) -> str:
+        """
+        URL for templates. Alias for url property.
+
+        This property provides backward compatibility with the unified URL model
+        where templates use .href instead of .url.
+        """
+        return self.url
+
     def add_child(self, child: MenuItem) -> None:
         """
         Add a child menu item and sort children by weight.
