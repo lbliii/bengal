@@ -166,8 +166,13 @@ def create_pages(
 
         elif doc_type == "cli" and element.element_type == "command-group":
             # Section path format from create_cli_sections: {prefix}/part1/part2
-            section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            target_section = sections.get(section_path)
+            # resolve_cli_url_path strips the root command (e.g., "bengal.assets" → "assets")
+            from bengal.autodoc.utils import resolve_cli_url_path
+
+            group_path = resolve_cli_url_path(element.qualified_name)
+            if group_path:  # Skip root command group (empty path)
+                section_path = f"{prefix}/{group_path}"
+                target_section = sections.get(section_path)
 
         # Add to section
         if target_section:

@@ -223,25 +223,25 @@ class ContentDiscovery:
                 if section.pages or section.subsections:
                     self.sections.append(section)
             # Resolve any pending page futures (top-level pages not in a section)
+            from bengal.utils.error_recovery import with_error_recovery
+
+            strict_mode = self._strict_validation
+
             for fut in pending_pages:
-                try:
-                    page = fut.result()
+
+                def get_page_result(f=fut):  # Capture fut in closure
+                    return f.result()
+
+                page = with_error_recovery(
+                    get_page_result,
+                    on_error=lambda e: None,  # Skip failed pages, continue processing others
+                    error_types=(Exception,),
+                    strict_mode=strict_mode,
+                    logger=self.logger,
+                )
+                if page is not None:
                     self.pages.append(page)
                     produced_pages.append(page)
-                except Exception as e:  # pragma: no cover - guarded logging
-                    # Import here to avoid circular dependency
-                    from bengal.collections.errors import ContentValidationError
-
-                    # Re-raise validation errors in strict mode
-                    if isinstance(e, ContentValidationError) and self._strict_validation:
-                        raise
-
-                    self.logger.error(
-                        "page_future_failed",
-                        path=str(item_path),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
 
             return produced_pages
 
@@ -569,25 +569,25 @@ class ContentDiscovery:
                     # should be in self.sections. Subsections are accessible via parent.subsections
 
         # Resolve parallel page futures and attach to section
+        from bengal.utils.error_recovery import with_error_recovery
+
+        strict_mode = self._strict_validation
+
         for fut in file_futures:
-            try:
-                page = fut.result()
+
+            def get_page_result(f=fut):  # Capture fut in closure
+                return f.result()
+
+            page = with_error_recovery(
+                get_page_result,
+                on_error=lambda e: None,  # Skip failed pages, continue processing others
+                error_types=(Exception,),
+                strict_mode=strict_mode,
+                logger=self.logger,
+            )
+            if page is not None:
                 parent_section.add_page(page)
                 self.pages.append(page)
-            except Exception as e:  # pragma: no cover - guarded logging
-                # Import here to avoid circular dependency
-                from bengal.collections.errors import ContentValidationError
-
-                # Re-raise validation errors in strict mode
-                if isinstance(e, ContentValidationError) and self._strict_validation:
-                    raise
-
-                self.logger.error(
-                    "page_future_failed",
-                    path=str(directory),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
 
     def _is_content_file(self, file_path: Path) -> bool:
         """
