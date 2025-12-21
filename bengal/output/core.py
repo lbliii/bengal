@@ -3,6 +3,11 @@ Core CLI output manager.
 
 Provides the main CLIOutput class for all terminal output with profile-aware
 formatting, consistent spacing, and automatic TTY detection.
+
+Icon Policy:
+    - ASCII-first by default (✓, !, x, etc.)
+    - Cat (ᓚᘏᗢ) for success headers, mouse (ᘛ⁐̤ᕐᐷ) for error headers
+    - Emoji opt-in via BENGAL_EMOJI=1 environment variable
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from rich.table import Table
 
 from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
+from bengal.output.icons import IconSet, get_icon_set
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +104,16 @@ class CLIOutput(DevServerOutputMixin):
         # Spacing and indentation rules
         self.indent_char = " "
         self.indent_size = 2
+
+        # Icon set (ASCII by default, emoji opt-in via BENGAL_EMOJI=1)
+        from bengal.utils.rich_console import should_use_emoji
+
+        self._icons = get_icon_set(use_emoji=should_use_emoji())
+
+    @property
+    def icons(self) -> IconSet:
+        """Get the current icon set."""
+        return self._icons
 
     def should_show(self, level: MessageLevel) -> bool:
         """Determine if message should be shown based on level and settings."""
@@ -188,13 +204,36 @@ class CLIOutput(DevServerOutputMixin):
         if trailing_blank:
             self.blank()
 
+    def section(self, title: str, icon: str | None = None) -> None:
+        """
+        Print a section header (e.g., 'Post-processing:').
+
+        Uses sentence case for consistency. Section icon is empty by default
+        in ASCII mode for clean headers.
+
+        Args:
+            title: Section title (will have ':' appended)
+            icon: Optional icon to display before title
+        """
+        if not self.should_show(MessageLevel.INFO):
+            return
+
+        # Use section icon from icon set (empty by default in ASCII mode)
+        section_icon = icon if icon is not None else self.icons.section
+        icon_str = f"{section_icon} " if section_icon else ""
+
+        if self.use_rich:
+            self.console.print(f"\n[header]{icon_str}{title}:[/header]")
+        else:
+            click.echo(f"\n{icon_str}{title}:")
+
     def phase(
         self,
         name: str,
         status: str = "Done",
         duration_ms: float | None = None,
         details: str | None = None,
-        icon: str = "✓",
+        icon: str | None = None,
     ) -> None:
         """
         Print a phase status line.
@@ -207,7 +246,8 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
-        parts = [f"[success]{icon}[/success]", f"[phase]{name}[/phase]"]
+        phase_icon = icon if icon is not None else self.icons.success
+        parts = [f"[success]{phase_icon}[/success]", f"[phase]{name}[/phase]"]
 
         if duration_ms is not None and self._show_timing():
             parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
@@ -240,17 +280,18 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(line)
 
-    def success(self, text: str, icon: str = "✨") -> None:
+    def success(self, text: str, icon: str | None = None) -> None:
         """Print a success message."""
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
+        success_icon = icon if icon is not None else self.icons.success
         if self.use_rich:
             self.console.print()
-            self.console.print(f"{icon} [success]{text}[/success]")
+            self.console.print(f"{success_icon} [success]{text}[/success]")
             self.console.print()
         else:
-            click.echo(f"\n{icon} {text}\n", color=True)
+            click.echo(f"\n{success_icon} {text}\n", color=True)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
@@ -264,35 +305,38 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(f"{icon_str}{text}")
 
-    def warning(self, text: str, icon: str = "⚠️") -> None:
+    def warning(self, text: str, icon: str | None = None) -> None:
         """Print a warning message."""
         if not self.should_show(MessageLevel.WARNING):
             return
 
+        warning_icon = icon if icon is not None else self.icons.warning
         if self.use_rich:
-            self.console.print(f"{icon}  [warning]{text}[/warning]")
+            self.console.print(f"{warning_icon}  [warning]{text}[/warning]")
         else:
-            click.echo(click.style(f"{icon}  {text}", fg="yellow"))
+            click.echo(click.style(f"{warning_icon}  {text}", fg="yellow"))
 
-    def error(self, text: str, icon: str = "❌") -> None:
+    def error(self, text: str, icon: str | None = None) -> None:
         """Print an error message."""
         if not self.should_show(MessageLevel.ERROR):
             return
 
+        error_icon = icon if icon is not None else self.icons.error
         if self.use_rich:
-            self.console.print(f"{icon} [error]{text}[/error]")
+            self.console.print(f"{error_icon} [error]{text}[/error]")
         else:
-            click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
+            click.echo(click.style(f"{error_icon} {text}", fg="red", bold=True))
 
-    def tip(self, text: str, icon: str = "💡") -> None:
+    def tip(self, text: str, icon: str | None = None) -> None:
         """Print a subtle tip/instruction line."""
         if not self.should_show(MessageLevel.INFO):
             return
 
+        tip_icon = icon if icon is not None else self.icons.tip
         if self.use_rich:
-            self.console.print(f"{icon} [tip]{text}[/tip]")
+            self.console.print(f"{tip_icon} [tip]{text}[/tip]")
         else:
-            click.echo(f"{icon} {text}")
+            click.echo(f"{tip_icon} {text}")
 
     def error_header(self, text: str, mouse: bool = True) -> None:
         """
@@ -318,19 +362,23 @@ class CLIOutput(DevServerOutputMixin):
             mouse_str = "ᘛ⁐̤ᕐᐷ  " if mouse else ""
             click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
 
-    def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
-        """Print a path with icon and label."""
+    def path(self, path: str, icon: str | None = None, label: str = "Output") -> None:
+        """Print a path with optional icon and label."""
         if not self.should_show(MessageLevel.INFO):
             return
 
         display_path = self._format_path(path)
 
+        # Use section icon from icon set (empty by default in ASCII mode)
+        path_icon = icon if icon is not None else self.icons.section
+        icon_prefix = f"{path_icon} " if path_icon else ""
+
         if self.use_rich:
-            self.console.print(f"{icon} {label}:")
-            self.console.print(f"   ↪ [path]{display_path}[/path]")
+            self.console.print(f"{icon_prefix}{label}:")
+            self.console.print(f"   {self.icons.arrow} [path]{display_path}[/path]")
         else:
-            click.echo(f"{icon} {label}:")
-            click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
+            click.echo(f"{icon_prefix}{label}:")
+            click.echo(click.style(f"   {self.icons.arrow} {display_path}", fg="cyan"))
 
     def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None:
         """Print a metric with label and optional unit."""
