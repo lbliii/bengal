@@ -75,7 +75,7 @@ def extract_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
         node: Function definition AST node
 
     Returns:
-        List of argument dicts with 'name', 'annotation', 'default' keys
+        List of argument dicts with 'name', 'type', 'default' keys
     """
     args = []
 
@@ -83,7 +83,7 @@ def extract_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
         args.append(
             {
                 "name": arg.arg,
-                "annotation": annotation_to_string(arg.annotation) if arg.annotation else None,
+                "type": annotation_to_string(arg.annotation) if arg.annotation else None,
                 "default": None,  # Will be filled in with defaults
             }
         )
