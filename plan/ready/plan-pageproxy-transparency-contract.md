@@ -1,8 +1,9 @@
 # Plan: Close PageProxy transparency gaps for output formats
 
 **RFC**: `plan/ready/rfc-pageproxy-transparency-contract.md`  
-**Status**: Ready  
+**Status**: Implemented ✅  
 **Created**: 2025-12-21  
+**Completed**: 2025-12-21  
 **Priority**: P0 (Correctness)  
 **Confidence**: 90% 🟢  
 
@@ -187,10 +188,10 @@ def test_output_formats_succeed_with_pageproxy_in_pages(site, build_site):
 
 After completing all tasks:
 
-- [ ] Run unit tests: `pytest tests/unit/core/test_page_proxy.py -v`
-- [ ] Run integration tests: `pytest tests/integration/test_incremental_output_formats.py -v`
-- [ ] Run linter: `ruff check bengal/core/page/proxy.py`
-- [ ] Verify no type errors: `mypy bengal/core/page/proxy.py`
+- [x] Run unit tests: `pytest tests/unit/core/test_page_proxy.py -v`
+- [x] Run integration tests: `pytest tests/integration/test_incremental_output_formats.py -v`
+- [x] Run linter: `ruff check bengal/core/page/proxy.py`
+- [x] Verify no type errors: `mypy bengal/core/page/proxy.py`
 
 ---
 
