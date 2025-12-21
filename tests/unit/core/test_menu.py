@@ -85,7 +85,7 @@ class TestMenuItem:
 
         data = parent.to_dict()
         assert data["name"] == "Docs"
-        assert data["url"] == "/docs/"
+        assert data["href"] == "/docs/"  # to_dict uses href not url
         assert data["active"] is False
         assert data["active_trail"] is False
         assert len(data["children"]) == 1
@@ -151,7 +151,7 @@ class TestMenuBuilder:
     def test_add_from_page(self):
         """Test adding menu items from page frontmatter."""
         builder = MenuBuilder()
-        page = MockPage(title="Contact Page", url="/contact/", relative_url="/contact/")
+        page = MockPage(title="Contact Page", href="/contact/")
 
         # Test with explicit name
         menu_data = {"name": "Contact", "weight": 5}
@@ -160,13 +160,13 @@ class TestMenuBuilder:
 
         assert len(menu) == 1
         assert menu[0].name == "Contact"
-        assert menu[0].url == "/contact/"
+        assert menu[0].href == "/contact/"
         assert menu[0].weight == 5
 
     def test_add_from_page_uses_title_fallback(self):
         """Test that page title is used if name not provided."""
         builder = MenuBuilder()
-        page = MockPage(title="My Page Title", url="/my-page/", relative_url="/my-page/")
+        page = MockPage(title="My Page Title", href="/my-page/")
         menu_data = {"weight": 10}  # No name provided
 
         builder.add_from_page(page, "main", menu_data)

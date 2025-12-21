@@ -573,6 +573,24 @@ class NavNodeProxy:
         return self._node._path
 
     @property
+    def url(self) -> str:
+        """
+        Backward-compatible alias for href.
+
+        Deprecated: Use .href for templates, ._path for internal code.
+        """
+        return self.href
+
+    @property
+    def site_path(self) -> str:
+        """
+        Backward-compatible alias for _path.
+
+        Deprecated: Use ._path instead.
+        """
+        return self._path
+
+    @property
     def absolute_href(self) -> str:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
@@ -604,9 +622,13 @@ class NavNodeProxy:
         return [self._context._wrap_node(child) for child in self._node.children]
 
     def __getattr__(self, name: str) -> Any:
-        # Don't delegate 'href', 'url', '_path', 'site_path' - we provide our own
+        # These attributes have @property implementations above, so __getattr__
+        # should only be called if there's an issue accessing them. Delegate
+        # directly to the node to avoid recursion.
         if name in ("href", "url", "_path", "site_path", "absolute_href"):
-            return getattr(self, name)
+            # Should not reach here - these are @property methods.
+            # Return node's _path as safe fallback.
+            return self._node._path
         return getattr(self._node, name)
 
     def __getitem__(self, key: str) -> Any:
@@ -614,8 +636,8 @@ class NavNodeProxy:
             return self.href
         if key == "_path":
             return self._path
-        if key == "href":
-            return self.href
+        if key == "url":
+            return self.url  # Backward-compat: alias for href (includes baseurl)
         if key == "site_path":
             return self.site_path
         if key == "absolute_href":

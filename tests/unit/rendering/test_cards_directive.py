@@ -600,7 +600,7 @@ class TestCardPullWithXrefIndex:
         """Create a mock page object for testing using shared MockPage."""
         return MockPage(
             title=title,
-            url=url,
+            href=url,  # Use href (the canonical field) not url
             metadata={"description": description, "icon": icon},
             tags=tags or [],
         )

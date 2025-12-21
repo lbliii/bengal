@@ -68,7 +68,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    page = MockPage(title="Module", url="/api/module/", slug="module")
+    page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should prepend the base URL
@@ -103,7 +103,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    page = MockPage(title="Module", url="/api/module/", slug="module")
+    page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should prepend the absolute base URL
@@ -145,7 +145,7 @@ output_dir = "public"
     site = Site.from_config(site_dir)
     engine = TemplateEngine(site)
 
-    page = MockPage(title="Module", url="/api/module/", slug="module")
+    page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)
 
     # Assert: url_for should return the URL as-is

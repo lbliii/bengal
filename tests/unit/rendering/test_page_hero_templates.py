@@ -122,11 +122,21 @@ class MockPage:
     """Mock page object for template testing."""
 
     title: str = "Test Page"
-    url: str = "/test/"
-    relative_url: str = "/test/"
+    href: str = "/test/"
+    _path: str = "/test/"
     source_path: Path = field(default_factory=lambda: Path("content/test.md"))
     metadata: dict[str, Any] = field(default_factory=dict)
     type: str | None = None  # page.type for template access
+
+    @property
+    def url(self) -> str:
+        """Backward-compatible alias for href."""
+        return self.href
+
+    @property
+    def relative_url(self) -> str:
+        """Backward-compatible alias for _path."""
+        return self._path
 
     def get(self, key: str, default: Any = None) -> Any:
         """Support dict-like access for page.metadata.get()."""

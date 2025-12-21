@@ -31,7 +31,7 @@ class TestNavNode:
         return NavNode(
             id="test-node",
             title="Test Node",
-            url="/test/",
+            _path="/test/",
             icon="test-icon",
             weight=10,
         )
@@ -42,19 +42,19 @@ class TestNavNode:
         parent = NavNode(
             id="parent",
             title="Parent",
-            url="/parent/",
+            _path="/parent/",
             weight=0,
         )
         child1 = NavNode(
             id="child1",
             title="Child 1",
-            url="/parent/child1/",
+            _path="/parent/child1/",
             weight=1,
         )
         child2 = NavNode(
             id="child2",
             title="Child 2",
-            url="/parent/child2/",
+            _path="/parent/child2/",
             weight=2,
         )
         parent.children = [child1, child2]
