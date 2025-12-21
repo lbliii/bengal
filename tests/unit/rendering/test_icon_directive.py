@@ -231,3 +231,5 @@ class TestGetAvailableIcons:
         # Should be cached
         assert result1 == result2
         assert "terminal" in _icon_cache
+
+

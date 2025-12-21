@@ -273,3 +273,5 @@ def render_dropdown(renderer: Any, text: str, **attrs: Any) -> str:
     """
     # Delegate to a static instance
     return DropdownDirective().render(renderer, text, **attrs)
+
+

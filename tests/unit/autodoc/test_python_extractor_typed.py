@@ -388,3 +388,5 @@ class TestTypedMetadataMatchesUntyped:
 
         # return type should match
         assert func.typed_metadata.return_type == func.metadata.get("returns")
+
+

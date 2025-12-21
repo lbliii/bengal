@@ -119,3 +119,5 @@ def render_ast(ast: list[dict[str, Any]]) -> str:
             error_type=type(e).__name__,
         )
         return ""
+
+

@@ -231,3 +231,5 @@ class TestBuildOptionsDataclassBehavior:
 
         # Other instance should not be affected
         assert len(options2.changed_sources) == 0
+
+

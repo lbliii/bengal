@@ -53,3 +53,5 @@ def extract_nav_metadata(metadata: dict) -> dict:
     if not metadata:
         return {}
     return {k: v for k, v in metadata.items() if k.lower() in NAV_AFFECTING_KEYS}
+
+

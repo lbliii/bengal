@@ -205,3 +205,5 @@ def render_admonition(
     return AdmonitionDirective().render(
         renderer, text, admon_type=admon_type, title=title, extra_class=extra_class
     )
+
+

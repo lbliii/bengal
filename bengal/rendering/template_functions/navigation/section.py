@@ -65,3 +65,5 @@ def section_pages(path: str, site: Site, recursive: bool = False) -> list[Page]:
     if not section:
         return []
     return list(section.get_all_pages(recursive=True)) if recursive else list(section.pages)
+
+

@@ -39,3 +39,5 @@ HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 # Pattern for explicit heading anchor syntax: ## Title {#custom-id}
 # MyST Markdown compatible - allows letters, numbers, hyphens, underscores
 EXPLICIT_ID_PATTERN = re.compile(r"\s*\{#([a-zA-Z][a-zA-Z0-9_-]*)\}\s*$")
+
+

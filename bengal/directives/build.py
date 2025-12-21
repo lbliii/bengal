@@ -281,3 +281,5 @@ def _resolve_output_root_for_page(site: Any, page: Any) -> Path:
         return output_dir / maybe_lang
 
     return output_dir
+
+

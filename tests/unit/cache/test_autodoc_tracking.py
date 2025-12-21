@@ -163,3 +163,5 @@ class TestAutodocDependencySerialization:
         cache.clear()
 
         assert cache.autodoc_dependencies == {}
+
+

@@ -380,3 +380,5 @@ class ChangedDirective(BengalDirective):
         else:
             # Inline badge for simple change notice
             return badge_html
+
+

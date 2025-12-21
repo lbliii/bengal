@@ -293,3 +293,5 @@ def display_path(path: Path, relative_to: Path | None = None, style: str = "shor
 ## Changelog
 
 - **2025-12-21**: Initial draft
+
+

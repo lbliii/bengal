@@ -116,3 +116,5 @@ def synthesize_inherited_members(
             )
             class_elem.children.append(inherited_member)
             existing_members.add(member.name)
+
+

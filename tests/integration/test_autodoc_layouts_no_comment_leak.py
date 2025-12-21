@@ -28,3 +28,5 @@ def test_autodoc_layout_does_not_leak_template_comment_closers(site, build_site)
     # `.page-hero` must be inside `.docs-main` (layout contract for docs grid).
     within_main = html[docs_main_open : docs_main_open + 2000]
     assert 'class="page-hero' in within_main
+
+

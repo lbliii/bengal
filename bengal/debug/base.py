@@ -386,3 +386,5 @@ class DebugRegistry:
         if tool_class:
             return tool_class(site=site, cache=cache, **kwargs)
         return None
+
+

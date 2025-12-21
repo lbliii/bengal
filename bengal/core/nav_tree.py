@@ -1,3 +1,46 @@
+"""
+Navigation Tree Models
+
+Provides hierarchical navigation with O(1) lookups and baseurl-aware URLs.
+
+URL NAMING CONVENTION (CRITICAL):
+=================================
+This module uses explicit naming to prevent path/URL confusion:
+
+- `site_path`: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
+               Used for: Internal lookups, active trail detection, caching
+               Stored in: NavNode.url field (for historical reasons)
+
+- `url`: Public URL WITH baseurl applied (e.g., "/bengal/docs/foo/")
+         Used for: Template href attributes, external links
+         Provided by: NavNodeProxy.url property
+
+WHY THIS MATTERS:
+-----------------
+When baseurl is configured (e.g., "/bengal" for GitHub Pages), all public
+URLs must include it. NavNodeProxy automatically applies baseurl when
+templates access .url, ensuring links work correctly in all deployment
+scenarios:
+  - Local dev: "/" → "/docs/foo/"
+  - GitHub Pages: "/bengal" → "/bengal/docs/foo/"
+  - Custom domain: "https://example.com" → "https://example.com/docs/foo/"
+
+TEMPLATE USAGE:
+---------------
+Always use NavNodeProxy (returned by get_nav_tree()) in templates:
+
+    {% for item in get_nav_tree(page) %}
+      <a href="{{ item.url }}">{{ item.title }}</a>  {# ✓ Correct: uses public URL #}
+    {% endfor %}
+
+INTERNAL USAGE:
+---------------
+For lookups and comparisons, use site_path:
+
+    if page.site_path in nav_tree.active_trail_urls:  {# ✓ Correct: uses site path #}
+        mark_active()
+"""
+
 from __future__ import annotations
 
 import logging
@@ -20,11 +63,15 @@ class NavNode:
     Hierarchical navigation node for pre-computed trees.
 
     Designed for memory efficiency and Jinja2 compatibility.
+
+    IMPORTANT: The `url` field stores site_path (WITHOUT baseurl) for cache
+    efficiency and internal lookups. Templates should use NavNodeProxy.url
+    which applies baseurl automatically.
     """
 
     id: str
     title: str
-    url: str
+    url: str  # NOTE: This is site_path (without baseurl). See NavNodeProxy.url for public URL.
     icon: str | None = None
     weight: int = 0
     children: list[NavNode] = field(default_factory=list)
@@ -429,7 +476,22 @@ class NavNodeProxy:
 
     Used during template rendering to avoid mutating the cached NavTree.
 
-    Properties:
+    URL CONVENTION:
+    ===============
+    NavNodeProxy provides two URL properties with distinct purposes:
+
+    - `url`: Public URL with baseurl applied (for template href attributes)
+             Example: "/bengal/docs/getting-started/" on GitHub Pages
+             USE THIS IN TEMPLATES: <a href="{{ item.url }}">
+
+    - `site_path`: Site-relative path WITHOUT baseurl (for internal lookups)
+                   Example: "/docs/getting-started/"
+                   USE THIS FOR: Active trail detection, URL comparisons
+
+    The cached NavTree stores site_path internally for efficient lookups,
+    but templates should always use .url for href attributes.
+
+    Other Properties:
     - `is_current`: True if this node is the current page
     - `is_in_trail`: True if this node is in the path to current page
     - `is_expanded`: True if this node should be expanded
@@ -439,6 +501,58 @@ class NavNodeProxy:
 
     _node: NavNode
     _context: NavTreeContext
+
+    @property
+    def url(self) -> str:
+        """
+        Get public URL with baseurl applied.
+
+        This is the URL for template href attributes. Automatically includes
+        baseurl when configured (e.g., "/bengal/docs/foo/" for GitHub Pages).
+
+        For internal comparisons or lookups, use site_path instead.
+        """
+        site_path = self._node.url  # NavNode stores site-relative path
+
+        # Get site from page context
+        site = getattr(self._context.page, "_site", None)
+        if not site:
+            return site_path
+
+        # Get baseurl from config
+        try:
+            baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+        except Exception:
+            return site_path
+
+        if not baseurl:
+            return site_path
+
+        # Ensure site_path starts with /
+        if not site_path.startswith("/"):
+            site_path = "/" + site_path
+
+        # Handle absolute baseurl (e.g., https://example.com/subpath)
+        if baseurl.startswith(("http://", "https://", "file://")):
+            return f"{baseurl}{site_path}"
+
+        # Path-only baseurl (e.g., /bengal)
+        base_path = "/" + baseurl.lstrip("/")
+        return f"{base_path}{site_path}"
+
+    @property
+    def site_path(self) -> str:
+        """
+        Get site-relative path WITHOUT baseurl.
+
+        This is the canonical path for internal operations:
+        - Active trail detection
+        - URL comparisons
+        - Cache lookups
+
+        For template href attributes, use .url instead.
+        """
+        return self._node.url
 
     @property
     def is_current(self) -> bool:
@@ -462,9 +576,16 @@ class NavNodeProxy:
         return [self._context._wrap_node(child) for child in self._node.children]
 
     def __getattr__(self, name: str) -> Any:
+        # Don't delegate 'url' - we provide our own with baseurl
+        if name == "url":
+            return self.url
         return getattr(self._node, name)
 
     def __getitem__(self, key: str) -> Any:
+        if key == "url":
+            return self.url
+        if key == "site_path":
+            return self.site_path
         if key == "is_current":
             return self.is_current
         if key == "is_in_trail":

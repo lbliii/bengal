@@ -389,3 +389,5 @@ def _extract_tab_items(text: str) -> list[TabItemData]:
             pos = match.end()
 
     return matches
+
+

@@ -117,3 +117,5 @@ def _escape_xml(text: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&apos;")
     )
+
+

@@ -315,3 +315,5 @@ class TestPythonAliasMetadata:
         meta = PythonAliasMetadata(alias_of="test")
         with pytest.raises(AttributeError):
             meta.alias_of = "other"  # type: ignore[misc]
+
+

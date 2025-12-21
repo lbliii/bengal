@@ -171,3 +171,5 @@ class TestSiteRootPathAbsolute:
         site = Site.from_config(tmp_path)
         assert site.root_path.is_absolute()
         assert site.root_path == tmp_path
+
+

@@ -174,3 +174,5 @@ class TestPermissionErrorHandling:
         finally:
             # Restore permission for cleanup
             no_access.chmod(0o755)
+
+

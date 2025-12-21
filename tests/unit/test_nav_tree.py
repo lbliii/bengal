@@ -612,6 +612,139 @@ class TestNavTreeContext:
         assert tree.flat_nodes == tree.flat_nodes  # Same object
 
 
+class TestNavNodeProxy:
+    """Test NavNodeProxy URL handling with baseurl.
+
+    Critical for GitHub Pages and subdirectory deployments.
+    NavNodeProxy.url should apply baseurl, while site_path should not.
+    """
+
+    @pytest.fixture
+    def tree_with_baseurl(self, tmp_path):
+        """Create a tree with baseurl configured for testing."""
+        # Create site with baseurl configured (simulates GitHub Pages)
+        config = {
+            "title": "Test Site",
+            "baseurl": "/bengal",  # GitHub Pages subdirectory
+        }
+        site = Site(root_path=tmp_path, config=config)
+
+        # Create a simple section with an index page
+        docs_path = tmp_path / "content" / "docs"
+        docs_path.mkdir(parents=True)
+        (docs_path / "_index.md").write_text("---\ntitle: Docs\n---\n# Docs")
+
+        section = Section(name="docs", path=docs_path)
+        section._site = site
+        section.__dict__["relative_url"] = "/docs/"
+
+        # Create a page in the section
+        page_path = docs_path / "getting-started.md"
+        page_path.write_text("---\ntitle: Getting Started\n---\n# Getting Started")
+        page = Page(source_path=page_path)
+        page._site = site
+        page._section = section
+        page.metadata = {"title": "Getting Started"}
+        # Simulate output path being set
+        page.output_path = tmp_path / "public" / "docs" / "getting-started" / "index.html"
+        site.output_dir = tmp_path / "public"
+        # Set relative_url directly for test
+        page.__dict__["relative_url"] = "/docs/getting-started/"
+
+        section.add_page(page)
+        site.sections = [section]
+
+        tree = NavTree.build(site)
+        return tree, page, site
+
+    def test_proxy_url_includes_baseurl(self, tree_with_baseurl):
+        """Test that NavNodeProxy.url includes baseurl for templates."""
+        tree, current_page, site = tree_with_baseurl
+        context = NavTreeContext(tree, current_page)
+
+        # Get the wrapped root node (NavNodeProxy)
+        root_proxy = context._wrap_node(tree.root)
+
+        # The proxy's .url should include baseurl
+        # The internal site_path is "/docs/" but public URL is "/bengal/docs/"
+        assert root_proxy.url.startswith("/bengal/"), (
+            f"NavNodeProxy.url should include baseurl. "
+            f"Got: {root_proxy.url}, expected to start with /bengal/"
+        )
+
+    def test_proxy_site_path_excludes_baseurl(self, tree_with_baseurl):
+        """Test that NavNodeProxy.site_path does NOT include baseurl."""
+        tree, current_page, site = tree_with_baseurl
+        context = NavTreeContext(tree, current_page)
+
+        # Get the wrapped root node (NavNodeProxy)
+        root_proxy = context._wrap_node(tree.root)
+
+        # site_path should NOT include baseurl (used for internal lookups)
+        assert not root_proxy.site_path.startswith("/bengal/"), (
+            f"NavNodeProxy.site_path should NOT include baseurl. Got: {root_proxy.site_path}"
+        )
+        # Should start with / but not /bengal/
+        assert root_proxy.site_path.startswith("/"), (
+            f"site_path should start with /. Got: {root_proxy.site_path}"
+        )
+
+    def test_proxy_url_no_baseurl_returns_site_path(self, tmp_path):
+        """Test that NavNodeProxy.url returns site_path when no baseurl configured."""
+        # Create site WITHOUT baseurl (local development)
+        site = Site(root_path=tmp_path, config={"title": "Test Site"})
+
+        # Create minimal section
+        docs_path = tmp_path / "content" / "docs"
+        docs_path.mkdir(parents=True)
+        (docs_path / "_index.md").write_text("---\ntitle: Docs\n---\n")
+
+        section = Section(name="docs", path=docs_path)
+        section._site = site
+        section.__dict__["relative_url"] = "/docs/"
+        site.sections = [section]
+
+        # Create a page
+        page_path = docs_path / "test.md"
+        page_path.write_text("---\ntitle: Test\n---\n")
+        page = Page(source_path=page_path)
+        page._site = site
+        page.metadata = {"title": "Test"}
+        page.__dict__["relative_url"] = "/docs/test/"
+
+        section.add_page(page)
+
+        tree = NavTree.build(site)
+        context = NavTreeContext(tree, page)
+        root_proxy = context._wrap_node(tree.root)
+
+        # Without baseurl, url and site_path should be the same
+        assert root_proxy.url == root_proxy.site_path, "Without baseurl, url should equal site_path"
+
+    def test_proxy_dict_access_url_includes_baseurl(self, tree_with_baseurl):
+        """Test that dict-style access ['url'] also includes baseurl."""
+        tree, current_page, site = tree_with_baseurl
+        context = NavTreeContext(tree, current_page)
+        root_proxy = context._wrap_node(tree.root)
+
+        # Templates often use item['url'] - should also include baseurl
+        assert root_proxy["url"].startswith("/bengal/"), (
+            f"Dict access ['url'] should include baseurl. Got: {root_proxy['url']}"
+        )
+
+    def test_proxy_children_also_have_baseurl(self, tree_with_baseurl):
+        """Test that child proxies also have baseurl applied."""
+        tree, current_page, site = tree_with_baseurl
+        context = NavTreeContext(tree, current_page)
+        root_proxy = context._wrap_node(tree.root)
+
+        # Check children if any
+        for child in root_proxy.children:
+            assert child.url.startswith("/bengal/"), (
+                f"Child proxy URL should include baseurl. Got: {child.url}"
+            )
+
+
 class TestNavTreeCache:
     """Test NavTreeCache caching and invalidation."""
 

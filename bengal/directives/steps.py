@@ -467,3 +467,5 @@ def render_step(renderer: Any, text: str, **attrs: Any) -> str:
 def render_steps(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return StepsDirective().render(renderer, text, **attrs)
+
+

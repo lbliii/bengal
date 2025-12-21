@@ -523,3 +523,5 @@ def render_prev_next(renderer: Any, text: str, **attrs: Any) -> str:
 def render_related(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return RelatedDirective().render(renderer, text, **attrs)
+
+

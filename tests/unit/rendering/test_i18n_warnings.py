@@ -140,3 +140,5 @@ class TestI18nMissingTranslationWarning:
 
             # Should NOT log warning
             mock_logger.debug.assert_not_called()
+
+

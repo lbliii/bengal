@@ -299,3 +299,5 @@ class TestDefaults:
         assert features["rss"] is True
         assert features["sitemap"] is True
         assert features["search"] is True
+
+

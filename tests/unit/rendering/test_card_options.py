@@ -256,3 +256,5 @@ More details here.
         assert "The second amazing feature" in result
         assert "New" in result
         assert "Updated" in result
+
+

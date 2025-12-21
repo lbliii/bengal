@@ -163,3 +163,5 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
             pass
 
     return dirs
+
+

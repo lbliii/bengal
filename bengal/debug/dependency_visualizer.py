@@ -597,3 +597,5 @@ class DependencyVisualizer(DebugTool):
             recommendations.append("Dependency structure looks healthy! ✅")
 
         return recommendations
+
+

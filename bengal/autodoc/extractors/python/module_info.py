@@ -199,3 +199,5 @@ def get_output_path(
             # No grouping - use qualified_name directly
             module_path = ".".join(module_parts)
             return Path(f"{module_path.replace('.', '/')}.md")
+
+

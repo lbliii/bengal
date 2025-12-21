@@ -32,3 +32,5 @@ def get_nav_title(obj: Any, fallback: str = "Untitled") -> str:
     if title:
         return str(title)
     return fallback
+
+

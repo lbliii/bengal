@@ -674,3 +674,5 @@ Bengal's angle: You're not locked into a platform. Use any hosting for productio
 - [Netlify CLI](https://docs.netlify.com/cli/get-started/) - Deploy from command line
 - [Cloudflare R2](https://developers.cloudflare.com/r2/) - S3-compatible object storage
 - [Vercel CLI](https://vercel.com/docs/cli) - Instant deployments
+
+

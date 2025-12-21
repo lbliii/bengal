@@ -231,3 +231,5 @@ class CardDirective(BengalDirective):
         parts.append(f"</{card_tag}>")
 
         return "\n".join(parts) + "\n"
+
+

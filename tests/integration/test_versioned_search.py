@@ -152,3 +152,5 @@ class TestVersionedSearchIndexes:
         assert not v1_index.exists(), (
             "Unversioned site should not generate version-specific indexes"
         )
+
+

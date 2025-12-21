@@ -3,8 +3,36 @@ URL generation helpers for template engine.
 
 Provides URL generation functions for pages and assets with baseurl support.
 
+URL NAMING CONVENTION:
+======================
+Bengal uses explicit naming to prevent path/URL confusion across the codebase:
+
+- `site_path` / `relative_url`: Site-relative path WITHOUT baseurl
+  Example: "/docs/getting-started/"
+  Use for: Internal lookups, comparisons, active trail detection, caching
+
+- `url` (on Page/Section/NavNodeProxy): Public URL WITH baseurl applied
+  Example: "/bengal/docs/getting-started/" (when baseurl="/bengal")
+  Use for: Template href attributes, external links
+
+TEMPLATE USAGE:
+---------------
+In templates, always use .url for href attributes:
+
+    <a href="{{ page.url }}">{{ page.title }}</a>          {# Correct #}
+    <a href="{{ item.url }}">{{ item.title }}</a>          {# Correct #}
+
+The .url property automatically includes baseurl when configured.
+
+HELPER FUNCTIONS:
+-----------------
+- url_for(page, site): Get public URL for any page-like object
+- with_baseurl(path, site): Apply baseurl to a site-relative path
+
 Related Modules:
-    - bengal.rendering.template_engine.core: Uses these helpers
+    - bengal.core.nav_tree: NavNodeProxy applies baseurl via .url property
+    - bengal.core.page: Page.url includes baseurl, Page.site_path does not
+    - bengal.core.section: Same pattern as Page
 """
 
 from __future__ import annotations
@@ -24,14 +52,25 @@ logger = get_logger(__name__)
 
 def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
-    Generate URL for a page with base URL support.
+    Generate public URL for a page with baseurl applied.
+
+    This is the recommended way to get URLs in template functions and filters.
+    The returned URL includes baseurl and is ready for use in href attributes.
 
     Args:
-        page: Page object
-        site: Site instance
+        page: Page object, PageProxy, NavNode, or dict-like object with url/slug
 
     Returns:
-        URL path (clean, without index.html) with base URL prefix if configured
+        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
+
+    Example:
+        # In template function
+        return url_for(related_page, site)  # Returns "/bengal/docs/related/"
+
+    Note:
+        For Page objects, you can also use page.url directly, which already
+        includes baseurl. This function is useful for handling various
+        page-like objects consistently.
     """
     url = None
 
@@ -109,14 +148,27 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
 
 def with_baseurl(path: str, site: Site) -> str:
     """
-    Apply base URL prefix to a path.
+    Apply baseurl prefix to a site-relative path.
+
+    Converts a site_path (without baseurl) to a public URL (with baseurl).
 
     Args:
-        path: Relative path starting with '/'
-        site: Site instance
+        path: Site-relative path starting with '/' (e.g., "/docs/page/")
+        site: Site instance for baseurl config lookup
 
     Returns:
-        Path with base URL prefix (absolute or path-only)
+        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
+
+    Example:
+        # Convert site_path to public URL
+        public_url = with_baseurl("/docs/getting-started/", site)
+        # Returns "/bengal/docs/getting-started/" when baseurl="/bengal"
+
+    Note:
+        Handles all baseurl formats:
+        - Path-only: "/bengal" → "/bengal/docs/page/"
+        - Absolute: "https://example.com" → "https://example.com/docs/page/"
+        - Empty: "" → "/docs/page/" (no change)
     """
     # Ensure path starts with '/'
     if not path.startswith("/"):

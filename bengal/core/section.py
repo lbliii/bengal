@@ -639,6 +639,23 @@ class Section:
         """
         return self.url
 
+    @property
+    def site_path(self) -> str:
+        """
+        Alias for relative_url with explicit naming.
+
+        URL NAMING CONVENTION:
+        ======================
+        - site_path: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
+                     Use for: Internal lookups, comparisons, active trail detection
+        - url: Public URL WITH baseurl (e.g., "/bengal/docs/foo/")
+               Use for: Template href attributes, external links
+
+        This property exists to make the naming convention explicit and
+        prevent confusion about which URL property to use.
+        """
+        return self.relative_url
+
     def add_page(self, page: Page) -> None:
         """
         Add a page to this section.
