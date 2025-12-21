@@ -205,7 +205,7 @@ class ContentOrchestrator:
         self.logger.debug("cascades_applied")
 
         # Set output paths for all pages immediately after discovery
-        # This ensures page.url works correctly before rendering
+        # This ensures page.href and page._path work correctly before rendering
         t0 = time.perf_counter()
         self.site._set_output_paths()
         breakdown_ms["output_paths"] = (time.perf_counter() - t0) * 1000

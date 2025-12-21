@@ -172,7 +172,7 @@ class MenuOrchestrator:
                         "path": str(page.source_path),
                         "menu": page.metadata["menu"],
                         "title": page.title,
-                        "url": page.url,
+                        "url": getattr(page, "href", None) or getattr(page, "url", "/"),
                     }
                 )
 
@@ -488,7 +488,7 @@ class MenuOrchestrator:
         Args:
             current_page: Page currently being rendered
         """
-        # Use relative_url for comparison (menu items store relative URLs)
-        current_url = current_page.relative_url
+        # Use _path for comparison (menu items store site-relative paths)
+        current_url = getattr(current_page, "_path", None) or getattr(current_page, "relative_url", "/")
         for menu_name, builder in self.site.menu_builders.items():
             builder.mark_active_items(current_url, self.site.menu[menu_name])

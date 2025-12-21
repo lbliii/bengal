@@ -7,31 +7,33 @@ URL NAMING CONVENTION:
 ======================
 Bengal uses explicit naming to prevent path/URL confusion across the codebase:
 
-- `site_path` / `relative_url`: Site-relative path WITHOUT baseurl
+- `_path`: Site-relative path WITHOUT baseurl (internal use only)
   Example: "/docs/getting-started/"
   Use for: Internal lookups, comparisons, active trail detection, caching
+  Note: Underscore prefix signals "internal only" to AI assistants
 
-- `url` (on Page/Section/NavNodeProxy): Public URL WITH baseurl applied
+- `href`: Public URL WITH baseurl applied (for templates)
   Example: "/bengal/docs/getting-started/" (when baseurl="/bengal")
   Use for: Template href attributes, external links
 
 TEMPLATE USAGE:
 ---------------
-In templates, always use .url for href attributes:
+In templates, always use .href for href attributes:
 
-    <a href="{{ page.url }}">{{ page.title }}</a>          {# Correct #}
-    <a href="{{ item.url }}">{{ item.title }}</a>          {# Correct #}
+    <a href="{{ page.href }}">{{ page.title }}</a>          {# Correct #}
+    <a href="{{ item.href }}">{{ item.title }}</a>          {# Correct #}
 
-The .url property automatically includes baseurl when configured.
+The .href property automatically includes baseurl when configured.
 
 HELPER FUNCTIONS:
 -----------------
-- url_for(page, site): Get public URL for any page-like object
+- href_for(obj, site): Get public URL for any page-like object (preferred)
+- url_for(page, site): Legacy function (deprecated, use href_for or obj.href)
 - with_baseurl(path, site): Apply baseurl to a site-relative path
 
 Related Modules:
-    - bengal.core.nav_tree: NavNodeProxy applies baseurl via .url property
-    - bengal.core.page: Page.url includes baseurl, Page.site_path does not
+    - bengal.core.nav_tree: NavNodeProxy provides .href (with baseurl) and ._path (without)
+    - bengal.core.page: Page.href includes baseurl, Page._path does not
     - bengal.core.section: Same pattern as Page
 """
 
@@ -107,27 +109,44 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
     url = None
 
-    # Use the page's relative_url property (doesn't include baseurl)
+    # Use the page's _path property (doesn't include baseurl) - preferred
     try:
-        if hasattr(page, "relative_url"):
-            url = page.relative_url
+        if hasattr(page, "_path"):
+            url = page._path
     except Exception as e:
         logger.debug(
-            "url_for_relative_url_access_failed",
+            "url_for_path_access_failed",
             error=str(e),
             error_type=type(e).__name__,
-            action="trying_url_fallback",
+            action="trying_relative_url_fallback",
         )
         pass
 
-    # Fallback to page.url if relative_url not available
+    # Fallback to relative_url (legacy)
     if url is None:
         try:
-            if hasattr(page, "url"):
+            if hasattr(page, "relative_url"):
+                url = page.relative_url
+        except Exception as e:
+            logger.debug(
+                "url_for_relative_url_access_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="trying_url_fallback",
+            )
+            pass
+
+    # Fallback to page.url/href if _path/relative_url not available
+    if url is None:
+        try:
+            # Prefer href (new convention), fallback to url (legacy)
+            if hasattr(page, "href"):
+                url = page.href
+            elif hasattr(page, "url"):
                 url = page.url
-                # If url already includes baseurl, extract relative part
-                baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
-                if baseurl and url.startswith(baseurl):
+            # If url already includes baseurl, extract relative part
+            baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+            if baseurl and url.startswith(baseurl):
                     url = url[len(baseurl) :] or "/"
         except Exception as e:
             logger.debug(

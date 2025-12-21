@@ -87,7 +87,28 @@ def get_page_relative_url(page: Page, site: Any) -> str:
     Returns:
         Relative URL string (without baseurl)
     """
-    # Prefer relative_url for postprocessing (guaranteed to be without baseurl)
+    # Prefer _path for postprocessing (guaranteed to be without baseurl)
+    if hasattr(page, "_path"):
+        path = page._path
+        if callable(path):
+            try:
+                result = path()
+                if isinstance(result, str):
+                    return result
+            except Exception as e:
+                # Ignore exceptions from _path() to allow fallback to other URL methods
+                logger.debug(
+                    "output_format_path_failed",
+                    page=str(page.source_path) if hasattr(page, "source_path") else None,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="trying_relative_url_fallback",
+                )
+                pass
+        elif isinstance(result := path, str):
+            return result
+
+    # Fallback: try relative_url (legacy)
     if hasattr(page, "relative_url"):
         relative_url = page.relative_url
         if callable(relative_url):
@@ -108,10 +129,14 @@ def get_page_relative_url(page: Page, site: Any) -> str:
         elif isinstance(result := relative_url, str):
             return result
 
-    # Fallback: try url property, but STRIP baseurl if present
-    # page.url may include baseurl, so we need to remove it
-    if hasattr(page, "url"):
+    # Fallback: try url/href property, but STRIP baseurl if present
+    # page.url/href may include baseurl, so we need to remove it
+    if hasattr(page, "href"):
+        url: str | None = page.href
+    elif hasattr(page, "url"):
         url: str | None = page.url
+    else:
+        url = None
         if callable(url):
             try:
                 url = url()
