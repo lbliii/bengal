@@ -1118,7 +1118,7 @@
         item.setAttribute('data-index', index);
 
         // Build HTML
-        const href = result.href || result.uri || result.href;
+        const href = result.href || result.uri;
         const title = result.highlightedTitle || result.title || 'Untitled';
         // Prefer frontmatter description over generated excerpt
         const description = result.description || result.highlightedExcerpt || result.excerpt || '';
@@ -1756,7 +1756,7 @@
         item.setAttribute('aria-selected', 'false');
         item.setAttribute('data-index', index);
 
-        const href = result.href || result.uri || result.href;
+        const href = result.href || result.uri;
         const title = result.highlightedTitle || result.title || 'Untitled';
         const description = result.description || result.highlightedExcerpt || result.excerpt || '';
         const section = result.section || '';
