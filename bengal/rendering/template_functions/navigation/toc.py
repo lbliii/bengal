@@ -146,5 +146,3 @@ def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[
                 )
 
     return combined
-
-

@@ -97,5 +97,3 @@ class CLIGroupMetadata:
 
     callback: str | None = None
     command_count: int = 0
-
-

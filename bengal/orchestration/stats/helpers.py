@@ -91,5 +91,3 @@ def display_template_errors(stats: BuildStats) -> None:
                 cli.console.print("[info]" + "─" * 80 + "[/info]")
             else:
                 cli.info("─" * 80)
-
-

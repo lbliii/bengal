@@ -257,5 +257,3 @@ class TestRenamedKeys:
             new_key, note = value
             assert isinstance(new_key, str)
             assert isinstance(note, str)
-
-

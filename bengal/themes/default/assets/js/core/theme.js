@@ -74,6 +74,19 @@
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: resolved } }));
   }
 
+  /**
+   * Update resolved theme without changing localStorage preference
+   * Used when system preference changes but user wants to keep 'system' selected
+   */
+  function updateResolvedTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === THEMES.SYSTEM || !stored) {
+      const resolved = getTheme();
+      document.documentElement.setAttribute('data-theme', resolved);
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: resolved } }));
+    }
+  }
+
   function getPalette() {
     return localStorage.getItem(PALETTE_KEY) || '';
   }
@@ -235,7 +248,8 @@
         mediaQuery.addEventListener('change', function (e) {
           // Only auto-switch if user prefers system appearance
           if ((localStorage.getItem(THEME_KEY) || THEMES.SYSTEM) === THEMES.SYSTEM) {
-            setTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
+            // Update resolved theme without changing localStorage (keep 'system' preference)
+            updateResolvedTheme();
           }
         });
       }
@@ -243,7 +257,8 @@
       else if (mediaQuery.addListener) {
         mediaQuery.addListener(function (e) {
           if ((localStorage.getItem(THEME_KEY) || THEMES.SYSTEM) === THEMES.SYSTEM) {
-            setTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
+            // Update resolved theme without changing localStorage (keep 'system' preference)
+            updateResolvedTheme();
           }
         });
       }
@@ -314,5 +329,3 @@
   log('[BengalTheme] Initialized');
 
 })();
-
-

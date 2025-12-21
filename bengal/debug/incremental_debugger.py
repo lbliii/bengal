@@ -594,5 +594,3 @@ class IncrementalBuildDebugger(DebugTool):
             recommendations.append("Incremental build configuration looks healthy! ✅")
 
         return recommendations
-
-

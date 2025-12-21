@@ -90,5 +90,3 @@ def extract_all_exports(tree: ast.Module) -> list[str] | None:
                             exports.append(elt.value)
                     return exports
     return None
-
-

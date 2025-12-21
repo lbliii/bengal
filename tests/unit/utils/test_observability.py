@@ -291,5 +291,3 @@ class TestFormatPhaseStats:
         # 500ms is fast with 1000ms threshold
         result = format_phase_stats("Test", 500, MockComponent(), slow_threshold_ms=1000)
         assert result is None
-
-

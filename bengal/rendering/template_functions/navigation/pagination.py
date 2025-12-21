@@ -165,5 +165,3 @@ def get_pagination_items(
         "first": {"num": 1, "url": page_url(1)},
         "last": {"num": total_pages, "url": page_url(total_pages)},
     }
-
-

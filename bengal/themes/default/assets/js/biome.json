@@ -81,5 +81,3 @@
     "ignore": ["vendor/**", "*.min.js"]
   }
 }
-
-

@@ -110,5 +110,3 @@ class RubricDirective(BengalDirective):
 def render_rubric(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return RubricDirective().render(renderer, text, **attrs)
-
-

@@ -155,5 +155,3 @@ class ExampleLabelDirective(BengalDirective):
 def render_example_label(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return ExampleLabelDirective().render(renderer, text, **attrs)
-
-

@@ -234,5 +234,3 @@ def extract_toc(html: str) -> str:
         # On any error, return empty TOC (safe fallback)
         logger.warning("toc_extraction_error", error=str(e), error_type=type(e).__name__)
         return ""
-
-

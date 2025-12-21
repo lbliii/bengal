@@ -92,5 +92,3 @@ class OwnershipPolicyValidator(BaseValidator):
         # No success message - if no violations, silence is golden
 
         return results
-
-

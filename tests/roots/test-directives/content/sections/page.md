@@ -19,5 +19,3 @@ This is a regular page within a section, useful for testing:
 ## Cross-Reference Test
 
 See [[cards]] for card examples.
-
-

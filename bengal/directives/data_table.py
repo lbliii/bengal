@@ -433,5 +433,3 @@ def render_data_table(renderer: Any, text: str, **attrs: Any) -> str:
     html_parts.append("</div>")
 
     return "\n".join(html_parts)
-
-

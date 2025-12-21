@@ -262,5 +262,3 @@ class ChecklistDirective(BengalDirective):
 def render_checklist(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return ChecklistDirective().render(renderer, text, **attrs)
-
-

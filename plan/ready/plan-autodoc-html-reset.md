@@ -603,5 +603,3 @@ bengal/themes/default/assets/css/components/autodoc/_table.css
 29. css(autodoc): delete legacy CSS files (7,044 lines removed)
 30. docs: document autodoc skeleton and partial system
 ```
-
-

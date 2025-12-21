@@ -198,5 +198,3 @@ class TargetDirective(BengalDirective):
 def render_target(renderer: Any, text: str, **attrs: Any) -> str:
     """Legacy render function for backward compatibility."""
     return TargetDirective().render(renderer, text, **attrs)
-
-

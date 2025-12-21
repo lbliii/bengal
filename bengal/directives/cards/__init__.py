@@ -69,5 +69,3 @@ __all__ = [
     "render_card",
     "render_child_cards",
 ]
-
-

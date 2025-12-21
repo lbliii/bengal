@@ -199,5 +199,3 @@ def _derive_title(obj: Any, url: str) -> str:
         return url_parts[-1].replace("-", " ").replace("_", " ").title()
 
     return "Untitled"
-
-

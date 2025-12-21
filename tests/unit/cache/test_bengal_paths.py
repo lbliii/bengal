@@ -309,5 +309,3 @@ class TestBengalPaths:
         assert paths1.state_dir != paths2.state_dir
         assert str(paths1.build_cache).startswith("/site1")
         assert str(paths2.build_cache).startswith("/site2")
-
-

@@ -40,5 +40,3 @@ __all__ = [
     "show_error",
     "show_welcome",
 ]
-
-

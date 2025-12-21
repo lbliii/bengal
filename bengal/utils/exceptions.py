@@ -108,5 +108,3 @@ class BengalCacheError(BengalError):
     """Cache-related errors."""
 
     pass
-
-

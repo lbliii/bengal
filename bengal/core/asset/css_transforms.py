@@ -244,5 +244,3 @@ def lossless_minify_css(css: str) -> str:
         i += 1
 
     return "".join(result)
-
-

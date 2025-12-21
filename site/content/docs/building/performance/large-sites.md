@@ -414,5 +414,3 @@ batch_size = 100
 - [[docs/building/commands|Build Commands]]
 - [[docs/theming/templating|Template Optimization]]
 :::
-
-

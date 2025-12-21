@@ -105,5 +105,3 @@ def should_skip(path: Path, exclude_patterns: list[str]) -> bool:
             return True
 
     return False
-
-

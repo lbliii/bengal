@@ -716,5 +716,3 @@ class SelfHostedVideoDirective(VideoDirective):
             f"  </video>\n"
             f"</figure>\n"
         )
-
-

@@ -9,5 +9,3 @@ weight: 20
 Latest posts and articles.
 
 This section has flat structure (no subsections) for testing different navigation patterns.
-
-

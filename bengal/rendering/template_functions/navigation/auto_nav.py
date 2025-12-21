@@ -195,5 +195,3 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     nav_items.sort(key=lambda x: (x["weight"], x["name"]))
 
     return nav_items
-
-

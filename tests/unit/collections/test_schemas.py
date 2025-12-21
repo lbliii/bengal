@@ -260,5 +260,3 @@ class TestSchemaAliases:
         from bengal.collections import API
 
         assert API is APIReference
-
-

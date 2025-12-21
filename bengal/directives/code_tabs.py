@@ -157,5 +157,3 @@ def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     code = attrs.get("code", "")
     code_escaped = html_lib.escape(code)
     return f'<div class="code-tab-item" data-lang="{lang}" data-code="{code_escaped}"></div>'
-
-

@@ -198,5 +198,3 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
         md.renderer.block_code = highlighted_block_code
 
     return plugin_syntax_highlighting
-
-

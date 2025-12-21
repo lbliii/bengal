@@ -273,5 +273,3 @@ More details about the introduction.
 
         # TOC should use explicit heading anchor
         assert 'href="#intro"' in toc
-
-

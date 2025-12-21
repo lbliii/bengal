@@ -160,5 +160,3 @@ class TemplateEngineProtocol(Protocol):
             - MUST validate syntax only (not runtime errors)
         """
         ...
-
-
