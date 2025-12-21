@@ -11,6 +11,7 @@ Data Models:
     - Asset: Static assets (CSS, JS, images)
     - Menu: Navigation menus
     - Version: Documentation versioning support
+    - NavTree: Pre-computed, cached navigation tree
 
 Organization Pattern:
     - Simple models (< 400 lines): Single file (e.g., section.py)
@@ -40,6 +41,7 @@ from __future__ import annotations
 
 from bengal.core.asset import Asset
 from bengal.core.menu import MenuBuilder, MenuItem
+from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeCache, NavTreeContext
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
@@ -55,6 +57,11 @@ __all__ = [
     "Asset",
     "MenuBuilder",
     "MenuItem",
+    "NavNode",
+    "NavNodeProxy",
+    "NavTree",
+    "NavTreeCache",
+    "NavTreeContext",
     "Page",
     "Section",
     "Site",

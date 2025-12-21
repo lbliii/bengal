@@ -141,17 +141,43 @@ class NavTree:
         Build a NavTree from the site's section hierarchy.
 
         Handles version filtering and shared content injection.
-        """
-        # Get root section
-        root_section = site.root_section
 
-        # Build node tree recursively
-        nav_root = cls._build_node_recursive(root_section, version_id, depth=0)
+        Args:
+            site: Site with discovered content (sections must be populated)
+            version_id: Optional version ID for version-aware navigation
+
+        Returns:
+            NavTree with root node containing all top-level sections
+        """
+        # Create synthetic root node containing all top-level sections
+        nav_root = NavNode(
+            id="nav-root",
+            title=site.title or "Site",
+            url="/",
+            is_index=True,
+            _depth=0,
+        )
+
+        # Add top-level sections
+        for section in site.sections:
+            # Filter by version if applicable - skip empty sections
+            if version_id is not None:
+                has_pages = section.pages_for_version(version_id)
+                has_subsections = section.subsections_for_version(version_id)
+                if not has_pages and not has_subsections:
+                    continue
+
+            section_node = cls._build_node_recursive(section, version_id, depth=1)
+            nav_root.children.append(section_node)
+
+        # Sort top-level by weight, then title
+        nav_root.children.sort(key=lambda n: (n.weight, n.title))
 
         # Get all versions for the version switcher
+        # site.versions returns list of dicts with 'id' key
         versions = []
         if site.versioning_enabled:
-            versions = [v.id for v in site.versions]
+            versions = [v["id"] for v in site.versions]
 
         return cls(
             root=nav_root, version_id=version_id, versions=versions, current_version=version_id
@@ -285,8 +311,8 @@ class NavTreeContext:
         # Start with current page
         self.active_trail_urls.add(self.current_url)
 
-        # Walk up from current section
-        section = self.page.section
+        # Walk up from current section (use _section - the private attribute)
+        section = getattr(self.page, "_section", None)
         while section:
             self.active_trail_urls.add(section.relative_url)
             section = section.parent
