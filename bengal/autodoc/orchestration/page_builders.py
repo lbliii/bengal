@@ -185,8 +185,9 @@ def create_pages(
             # We don't use add_page() because it relies on filename stem for index detection
             target_section.index_page = page
             target_section.pages.append(page)
-            # NOTE: Do NOT add to page_data - index pages are added via section.pages
-            # Adding to both would cause URL collision (duplicate page in site.pages)
+            # Also add to page_data so it gets returned and rendered
+            # (same pattern as create_index_pages which adds to both section.pages AND return list)
+            page_data.append(page)
         else:
             # Regular page - add to parent section
             parent_section.add_page(page)

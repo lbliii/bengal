@@ -36,13 +36,47 @@ Usage:
   {% endif %}
 
   {# Navigation Tree - uses cached NavTree infrastructure #}
-  {# Scope to root_section for autodoc pages to show only autodoc navigation #}
   <div class="docs-nav-tree">
-    {% set nav_items = get_nav_tree(page, root_section=root_section) %}
+    {% if root_section %}
+      {# Scoped navigation (autodoc, nav_root sections): include root section as header #}
+      {% set nav_context = get_nav_context(page, root_section=root_section) %}
+      {% set root_item = nav_context['root'] %}
 
-    {% for item in nav_items %}
-      {% set depth = 0 %}
-      {% include 'partials/docs-nav-node.html' %}
-    {% endfor %}
+      {# Render root section as static header with its children #}
+      <div class="docs-nav-group docs-nav-group--root{% if root_item.is_in_trail %} is-in-trail{% endif %}" data-depth="0">
+        <div class="docs-nav-group-header">
+          {% if show_nav_icons %}
+          <span class="docs-nav-icon" {% if not root_item.icon %}data-default="true"{% endif %}>
+            {{ icon(root_item.icon or 'folder', size=16) }}
+          </span>
+          {% endif %}
+
+          {% if root_item.url %}
+          <a href="{{ root_item.url }}"
+             class="docs-nav-group-title{% if root_item.is_current %} active{% endif %}"
+             {% if root_item.is_current %}aria-current="page"{% endif %}>
+            {{ root_item.title }}
+          </a>
+          {% else %}
+          <span class="docs-nav-group-title">{{ root_item.title }}</span>
+          {% endif %}
+        </div>
+
+        <div class="docs-nav-group-items is-expanded expanded">
+          {% for item in root_item.children %}
+            {% set depth = 1 %}
+            {% include 'partials/docs-nav-node.html' %}
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      {# Regular navigation: render all top-level items #}
+      {% set nav_items = get_nav_tree(page) %}
+
+      {% for item in nav_items %}
+        {% set depth = 0 %}
+        {% include 'partials/docs-nav-node.html' %}
+      {% endfor %}
+    {% endif %}
   </div>
 </nav>
