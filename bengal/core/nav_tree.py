@@ -172,15 +172,18 @@ class NavTree:
 
         # Add top-level sections
         for section in site.sections:
-            # Filter by version if applicable - skip empty sections
-            if version_id is not None:
-                has_pages = section.pages_for_version(version_id)
-                has_subsections = section.subsections_for_version(version_id)
-                if not has_pages and not has_subsections:
-                    continue
+            # Filter by version if applicable - use has_content_for_version for accurate filtering
+            if version_id is not None and not section.has_content_for_version(version_id):
+                # Check if section has any content for this version (index page, pages, or subsections)
+                continue
 
             section_node = cls._build_node_recursive(section, version_id, depth=1)
-            nav_root.children.append(section_node)
+            # Only add section node if it has children (pages or subsections) or is an index page
+            # This ensures we show sections even if they only have an index page for this version
+            if section_node.children or (
+                section.index_page and getattr(section.index_page, "version", None) == version_id
+            ):
+                nav_root.children.append(section_node)
 
         # Sort top-level by weight, then title
         nav_root.children.sort(key=lambda n: (n.weight, n.title))

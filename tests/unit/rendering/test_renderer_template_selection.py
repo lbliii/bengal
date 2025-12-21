@@ -312,6 +312,49 @@ class TestTemplateSelection:
         blog_home.url = "/"
         assert renderer._get_template_name(blog_home) == "blog/home.html"
 
+    def test_layout_field_as_template_fallback(self):
+        """Test that layout field can be used as template fallback when it contains '/'."""
+        # Setup
+        engine = MockTemplateEngine(
+            available_templates=["tracks/list.html", "tracks/single.html", "docs.html", "page.html"]
+        )
+        renderer = Renderer(engine)
+
+        # Test track list page using layout field
+        track_list = self._setup_page_with_section(
+            Path("/content/tracks/_index.md"), {"layout": "tracks/list"}, "tracks"
+        )
+        assert renderer._get_template_name(track_list) == "tracks/list.html"
+
+        # Test track single page using layout field
+        track_single = self._setup_page_with_section(
+            Path("/content/tracks/getting-started.md"),
+            {"layout": "tracks/single"},
+            "tracks",
+        )
+        assert renderer._get_template_name(track_single) == "tracks/single.html"
+
+        # Test that layout without '/' is NOT treated as template (variant name)
+        variant_page = self._setup_page_with_section(
+            Path("/content/docs/page.md"), {"layout": "grid"}, "docs"
+        )
+        # Should fall back to section-based detection (docs.html), not use "grid" as template
+        assert renderer._get_template_name(variant_page) == "docs.html"
+
+    def test_explicit_template_overrides_layout(self):
+        """Test that explicit template field takes priority over layout field."""
+        # Setup
+        engine = MockTemplateEngine(available_templates=["custom.html", "tracks/list.html"])
+        renderer = Renderer(engine)
+
+        # Page with both template and layout - template should win
+        page = self._setup_page_with_section(
+            Path("/content/tracks/_index.md"),
+            {"template": "custom.html", "layout": "tracks/list"},
+            "tracks",
+        )
+        assert renderer._get_template_name(page) == "custom.html"
+
 
 class TestTemplateExists:
     """Tests for Renderer._template_exists() helper."""

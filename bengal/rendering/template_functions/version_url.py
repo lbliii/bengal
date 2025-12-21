@@ -150,12 +150,22 @@ def get_version_target_url(
     if page_exists_in_version(target_url, target_version_id, site):
         return target_url
 
-    # Fallback 1: Try section index
+    # Fallback 1: Try parent directories progressively (preserve location better)
+    # This helps retain user's position in the hierarchy
+    path_parts = target_url.rstrip("/").split("/")
+    for i in range(len(path_parts) - 1, 0, -1):
+        parent_url = "/".join(path_parts[:i]) + "/"
+        if parent_url == "/":
+            break
+        if page_exists_in_version(parent_url, target_version_id, site):
+            return parent_url
+
+    # Fallback 2: Try section index (original fallback)
     section_index_url = _get_section_index_url(target_url)
     if section_index_url and page_exists_in_version(section_index_url, target_version_id, site):
         return section_index_url
 
-    # Fallback 2: Version root
+    # Fallback 3: Version root
     version_root = _get_version_root_url(target_version_id, target_is_latest, site)
     return version_root
 
