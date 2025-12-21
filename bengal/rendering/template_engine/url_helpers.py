@@ -74,12 +74,8 @@ def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
         includes baseurl. This function is useful for handling various
         page-like objects consistently.
     """
-    # Prefer href property if available
-    if hasattr(obj, "href"):
-        return obj.href
-
-    # Fallback to url_for for backward compatibility
-    return url_for(obj, site)
+    # Use href property
+    return obj.href
 
 
 def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
@@ -109,49 +105,6 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
     # Use _path (internal path without baseurl)
     url = page._path
-                error=str(e),
-                error_type=type(e).__name__,
-                action="trying_dict_fallback",
-            )
-            pass
-
-    # Support dict-like contexts (component preview/demo data)
-    if url is None:
-        try:
-            if isinstance(page, Mapping):
-                if "url" in page:
-                    url = str(page["url"])
-                elif "relative_url" in page:
-                    url = str(page["relative_url"])
-                elif "slug" in page:
-                    url = f"/{page['slug']}/"
-        except Exception as e:
-            logger.debug(
-                "url_for_dict_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="trying_slug_fallback",
-            )
-            pass
-
-    # Fallback to slug-based URL for objects
-    if url is None:
-        try:
-            if hasattr(page, "slug"):
-                url = f"/{page.slug}/"
-        except Exception as e:
-            logger.debug(
-                "url_for_slug_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_root_fallback",
-            )
-            if url is None:
-                url = "/"
-
-    # Ensure url is never None (type narrowing)
-    if url is None:
-        url = "/"
 
     return with_baseurl(url, site)
 
