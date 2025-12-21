@@ -376,7 +376,7 @@ class NavTree:
                 continue
 
             # Use relative_url for nav tree (without baseurl) for consistent lookups
-            page_url = getattr(page, "relative_url", page.url)
+            page_url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "href", "/")
 
             # Skip pages with the same URL as the section (they're section index content)
             # This prevents section+page collisions from autodoc-generated content
@@ -425,8 +425,8 @@ class NavTreeContext:
     ):
         self.tree = tree
         self.page = page
-        # Use relative_url for consistent matching with nav tree nodes
-        self.current_url = getattr(page, "relative_url", page.url)
+        # Use _path for consistent matching with nav tree nodes
+        self.current_url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "href", "/")
         self._mark_active_trail = mark_active_trail
         self._root_node = root_node or tree.root
 
@@ -572,23 +572,6 @@ class NavNodeProxy:
         """
         return self._node._path
 
-    @property
-    def url(self) -> str:
-        """
-        Backward-compatible alias for href.
-
-        Deprecated: Use .href for templates.
-        """
-        return self.href
-
-    @property
-    def site_path(self) -> str:
-        """
-        Backward-compatible alias for _path.
-
-        Deprecated: Use ._path for internal code.
-        """
-        return self._path
 
     @property
     def absolute_href(self) -> str:
@@ -630,10 +613,10 @@ class NavNodeProxy:
     def __getitem__(self, key: str) -> Any:
         if key == "href":
             return self.href
-        if key == "url":
-            return self.url
         if key == "_path":
             return self._path
+        if key == "href":
+            return self.href
         if key == "site_path":
             return self.site_path
         if key == "absolute_href":

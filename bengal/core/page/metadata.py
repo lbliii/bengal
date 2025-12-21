@@ -141,82 +141,6 @@ class PageMetadataMixin:
 
         return self.source_path.stem
 
-    @property
-    def relative_url(self) -> str:
-        """
-        Get relative URL without baseurl (for comparisons).
-
-        This is the identity URL - use for comparisons, menu activation, etc.
-        Always returns a relative path without baseurl.
-
-        Note: This property uses manual caching that only stores the result when
-        computed from output_path (not fallback). This prevents caching incorrect
-        URLs when called before output_path or _site are set.
-        """
-        # Check for manually-set value first (tests use this pattern)
-        # This allows __dict__['relative_url'] = '/path/' to work
-        manual_value = self.__dict__.get("relative_url")
-        if manual_value is not None:
-            return manual_value
-
-        # Check for cached computed value
-        cached = self.__dict__.get("_relative_url_cache")
-        if cached is not None:
-            return cached
-
-        # Fallback if no output path set - DON'T cache this
-        if not self.output_path:
-            return self._fallback_url()
-
-        # Need site reference to compute relative path - DON'T cache fallback
-        if not self._site:
-            return self._fallback_url()
-
-        try:
-            # Compute relative path from actual output directory
-            rel_path = self.output_path.relative_to(self._site.output_dir)
-        except ValueError:
-            # output_path not under output_dir - can happen during page initialization
-            # when output_path hasn't been properly set yet, or for pages with unusual
-            # configurations. Fall back to slug-based URL silently.
-            #
-            # Only log at debug level since this is a known/expected edge case during
-            # page construction (PageInitializer checks URL generation early).
-            emit_diagnostic(
-                self,
-                "debug",
-                "page_output_path_fallback",
-                output_path=str(self.output_path),
-                output_dir=str(self._site.output_dir),
-                page_source=str(getattr(self, "source_path", "unknown")),
-            )
-            # DON'T cache fallback - output_path might be fixed later
-            return self._fallback_url()
-
-        # Convert Path to URL components
-        url_parts = list(rel_path.parts)
-
-        # Remove 'index.html' from end (it's implicit in URLs)
-        if url_parts and url_parts[-1] == "index.html":
-            url_parts = url_parts[:-1]
-        elif url_parts and url_parts[-1].endswith(".html"):
-            # For non-index pages, remove .html extension
-            # e.g., about.html -> about
-            url_parts[-1] = url_parts[-1][:-5]
-
-        # Construct URL with leading and trailing slashes
-        if not url_parts:
-            # Root index page
-            url = "/"
-        else:
-            url = "/" + "/".join(url_parts)
-            # Ensure trailing slash for directory-like URLs
-            if not url.endswith("/"):
-                url += "/"
-
-        # Cache the successfully computed URL
-        self.__dict__["_relative_url_cache"] = url
-        return url
 
     @property
     def href(self) -> str:
@@ -230,7 +154,7 @@ class PageMetadataMixin:
         Returns:
             URL path with baseurl prepended (if configured)
 
-        Note: Uses manual caching that only stores when relative_url is properly
+        Note: Uses manual caching that only stores when _path is properly
         computed (not from fallback).
         """
         # Check for manually-set value first (tests use this pattern)
@@ -244,8 +168,8 @@ class PageMetadataMixin:
         if cached is not None:
             return cached
 
-        # Get relative URL first
-        rel = self.relative_url or "/"
+        # Get site-relative path first
+        rel = self._path or "/"
 
         # Best-effort baseurl lookup; remain robust if site/config is missing
         baseurl = ""
@@ -262,8 +186,8 @@ class PageMetadataMixin:
             rel = "/" + rel.lstrip("/")
             result = f"{baseurl}{rel}"
 
-        # Only cache if relative_url was properly computed (has its own cache)
-        if "_relative_url_cache" in self.__dict__:
+        # Only cache if _path was properly computed (has its own cache)
+        if "_path_cache" in self.__dict__:
             self.__dict__["_href_cache"] = result
 
         return result
@@ -281,16 +205,49 @@ class PageMetadataMixin:
 
         NEVER use in templates - use .href instead.
         """
-        return self.relative_url
+        # Check for manually-set value first (tests use this pattern)
+        manual_value = self.__dict__.get("_path")
+        if manual_value is not None:
+            return manual_value
 
-    @property
-    def url(self) -> str:
-        """
-        Backward-compatible alias for href.
+        cached = self.__dict__.get("_path_cache")
+        if cached is not None:
+            return cached
 
-        Deprecated: Use .href for templates.
-        """
-        return self.href
+        if not self.output_path:
+            return self._fallback_url()
+
+        if not self._site:
+            return self._fallback_url()
+
+        try:
+            rel_path = self.output_path.relative_to(self._site.output_dir)
+        except ValueError:
+            emit_diagnostic(
+                self,
+                "debug",
+                "page_output_path_fallback",
+                output_path=str(self.output_path),
+                output_dir=str(self._site.output_dir),
+                page_source=str(getattr(self, "source_path", "unknown")),
+            )
+            return self._fallback_url()
+
+        url_parts = list(rel_path.parts)
+        if url_parts and url_parts[-1] == "index.html":
+            url_parts = url_parts[:-1]
+        elif url_parts and url_parts[-1].endswith(".html"):
+            url_parts[-1] = url_parts[-1][:-5]
+
+        if not url_parts:
+            url = "/"
+        else:
+            url = "/" + "/".join(url_parts)
+            if not url.endswith("/"):
+                url += "/"
+
+        self.__dict__["_path_cache"] = url
+        return url
 
     @property
     def absolute_href(self) -> str:
@@ -306,25 +263,10 @@ class PageMetadataMixin:
         Otherwise, this falls back to `href` (root-relative) because no fully-qualified
         site origin is configured.
         """
-        return self.href
-
-    @cached_property
-    def permalink(self) -> str:
-        """
-        Backward-compatible alias for href.
-
-        Deprecated: Use .href for templates.
-        """
-        return self.href
-
-    @property
-    def site_path(self) -> str:
-        """
-        Backward-compatible alias for _path.
-
-        Deprecated: Use ._path for internal code.
-        """
-        return self._path
+        if not self._site or not self._site.config.get("url"):
+            return self.href
+        site_url = self._site.config["url"].rstrip("/")
+        return f"{site_url}{self._path}"
 
     def _fallback_url(self) -> str:
         """

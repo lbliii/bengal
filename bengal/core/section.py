@@ -419,12 +419,12 @@ class Section:
             Set of URL strings for subsection index pages
 
         Example:
-            {% if page.relative_url not in section.subsection_index_urls %}
+            {% if page._path not in section.subsection_index_urls %}
               <a href="{{ url_for(page) }}">{{ page.title }}</a>
             {% endif %}
         """
         return {
-            subsection.index_page.relative_url
+            getattr(subsection.index_page, "_path", None) or getattr(subsection.index_page, "relative_url", None)
             for subsection in self.subsections
             if subsection.index_page
         }
@@ -560,45 +560,6 @@ class Section:
             result.extend(subsection.regular_pages_recursive)
         return result
 
-    @cached_property
-    def relative_url(self) -> str:
-        """
-        Get relative URL without baseurl (for comparisons).
-
-        This is the identity URL - use for comparisons, menu activation, etc.
-        Always returns a relative path without baseurl.
-
-        For virtual sections, uses the _relative_url_override set during creation.
-        Virtual sections MUST have explicit URLs - they never fall back to construction.
-        """
-        from bengal.utils.url_normalization import join_url_paths, normalize_url
-
-        # Virtual sections MUST have explicit URL override
-        # This is a hard requirement - virtual sections are created with explicit URLs
-        if self._virtual:
-            if not self._relative_url_override:
-                raise BengalContentError(
-                    f"Virtual section '{self.name}' has no _relative_url_override set. "
-                    f"Virtual sections must have explicit URLs set during creation.",
-                    suggestion="Set _relative_url_override when creating virtual sections",
-                )
-            return self._relative_url_override
-
-        # If we have an index page with a proper output_path, use its relative_url
-        if (
-            self.index_page
-            and hasattr(self.index_page, "output_path")
-            and self.index_page.output_path
-        ):
-            url = self.index_page.relative_url
-            # Normalize to ensure consistency
-            return normalize_url(url, ensure_trailing_slash=True)
-
-        # Otherwise, construct from section hierarchy
-        # This handles regular sections (not virtual) before pages have output_paths set
-        parent_rel = self.parent.relative_url if self.parent else "/"
-        url = join_url_paths(parent_rel, self.name)
-        return url
 
     @cached_property
     def href(self) -> str:
@@ -611,8 +572,8 @@ class Section:
         Returns:
             URL path with baseurl prepended (if configured)
         """
-        # Get relative URL first
-        rel = self.relative_url or "/"
+        # Get site-relative path first
+        rel = self._path or "/"
 
         baseurl = ""
         try:
@@ -642,44 +603,36 @@ class Section:
 
         NEVER use in templates - use .href instead.
         """
-        return self.relative_url
+        from bengal.utils.url_normalization import join_url_paths, normalize_url
+
+        if self._virtual:
+            if not self._relative_url_override:
+                self._diagnostics.emit(
+                    self,
+                    "error",
+                    "virtual_section_missing_url",
+                    section_name=self.name,
+                    tip="Virtual sections must have a _relative_url_override set.",
+                )
+                return "/"
+            return normalize_url(self._relative_url_override)
+
+        if self.path is None:
+            return "/"
+
+        parent_rel = self.parent._path if self.parent else "/"
+        url = join_url_paths(parent_rel, self.name)
+        return url
 
     @property
     def absolute_href(self) -> str:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
-
-        If baseurl is absolute, returns href. Otherwise returns href as-is
-        (root-relative) since no fully-qualified site origin is configured.
         """
-        return self.href
-
-    @cached_property
-    def url(self) -> str:
-        """
-        Backward-compatible alias for href.
-
-        Deprecated: Use .href for templates.
-        """
-        return self.href
-
-    @cached_property
-    def permalink(self) -> str:
-        """
-        Backward-compatible alias for href.
-
-        Deprecated: Use .href for templates.
-        """
-        return self.href
-
-    @property
-    def site_path(self) -> str:
-        """
-        Backward-compatible alias for _path.
-
-        Deprecated: Use ._path for internal code.
-        """
-        return self._path
+        if not self._site or not self._site.config.get("url"):
+            return self.href
+        site_url = self._site.config["url"].rstrip("/")
+        return f"{site_url}{self._path}"
 
     def add_page(self, page: Page) -> None:
         """

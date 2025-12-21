@@ -66,7 +66,7 @@ class MenuItem:
         menu_item = MenuItem(name="Home", url="/", weight=1)
 
         # From page frontmatter
-        menu_item = MenuItem(name=page.title, url=page.url, weight=page.metadata.get("weight", 0))
+        menu_item = MenuItem(name=page.title, url=getattr(page, "href", None) or getattr(page, "url", "/"), weight=page.metadata.get("weight", 0))
 
         # With icon
         menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
@@ -383,9 +383,9 @@ class MenuBuilder:
             builder.add_from_page(page, "main", page.metadata.get("menu", {}).get("main", {}))
         """
         item_id = menu_config.get("identifier")
-        # Use relative_url for menu items (for comparison/activation)
+        # Use _path for menu items (for comparison/activation)
         # Templates apply baseurl via | absolute_url filter
-        item_url = page.relative_url.rstrip("/")
+        item_url = (getattr(page, "_path", None) or getattr(page, "relative_url", "/")).rstrip("/")
         item_name = menu_config.get("name", page.title).lower()
 
         # Skip if duplicate
@@ -401,7 +401,7 @@ class MenuBuilder:
 
         item = MenuItem(
             name=menu_config.get("name", page.title),
-            url=page.relative_url,  # Store relative URL for comparison
+            url=getattr(page, "_path", None) or getattr(page, "relative_url", "/"),  # Store site-relative path for comparison
             weight=menu_config.get("weight", 0),
             parent=menu_config.get("parent"),
             identifier=menu_config.get("identifier"),

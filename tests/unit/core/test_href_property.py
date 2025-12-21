@@ -53,8 +53,8 @@ class TestPageHrefPath:
         assert page.href == expected_href
         assert page._path == expected_path
 
-    def test_href_backward_compatibility(self):
-        """Test that url, relative_url, site_path, permalink still work."""
+    def test_href_and_path_properties(self):
+        """Test that href and _path properties work correctly."""
         site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
         site.output_dir = Path("/site/public")
 
@@ -65,15 +65,9 @@ class TestPageHrefPath:
         )
         page._site = site
 
-        # New properties
+        # Verify href and _path are correct
         assert page.href == "/bengal/docs/page/"
         assert page._path == "/docs/page/"
-
-        # Backward compatibility
-        assert page.url == page.href
-        assert page.relative_url == page._path
-        assert page.site_path == page._path
-        assert page.permalink == page.href
 
     def test_absolute_href(self):
         """Test absolute_href property."""
@@ -135,21 +129,15 @@ class TestSectionHrefPath:
         assert section.href == expected_href
         assert section._path == expected_path
 
-    def test_href_backward_compatibility(self):
-        """Test that url, relative_url, site_path, permalink still work."""
+    def test_href_and_path_properties(self):
+        """Test that href and _path properties work correctly."""
         site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
         section = Section(name="docs", path=Path("/content/docs"))
         section._site = site
 
-        # New properties
+        # Verify href and _path are correct
         assert section.href == "/bengal/docs/"
         assert section._path == "/docs/"
-
-        # Backward compatibility
-        assert section.url == section.href
-        assert section.relative_url == section._path
-        assert section.site_path == section._path
-        assert section.permalink == section.href
 
 
 class TestNavNodeHrefPath:
@@ -165,7 +153,7 @@ class TestNavNodeHrefPath:
 
         assert node._path == "/test/"
         # Backward compatibility
-        assert node.url == "/test/"
+        assert node._path == "/test/"
 
     def test_navnodeproxy_href_includes_baseurl(self):
         """Test NavNodeProxy.href includes baseurl."""
@@ -196,8 +184,8 @@ class TestNavNodeHrefPath:
         assert proxy.href == "/bengal/docs/page/"
         assert proxy._path == "/docs/page/"
 
-    def test_navnodeproxy_backward_compatibility(self):
-        """Test NavNodeProxy backward compatibility."""
+    def test_navnodeproxy_href_and_path(self):
+        """Test NavNodeProxy href and _path properties."""
         node = NavNode(
             id="test",
             title="Test",
@@ -220,13 +208,9 @@ class TestNavNodeHrefPath:
         context = NavTreeContext(tree, page, mark_active_trail=False)
         proxy = NavNodeProxy(node, context)
 
-        # New properties
+        # Verify href and _path are correct
         assert proxy.href == "/bengal/docs/page/"
         assert proxy._path == "/docs/page/"
-
-        # Backward compatibility
-        assert proxy.url == proxy.href
-        assert proxy.site_path == proxy._path
 
     def test_navnodeproxy_absolute_href(self):
         """Test NavNodeProxy.absolute_href."""
@@ -333,8 +317,8 @@ class TestPageProxyHrefPath:
         assert proxy._path == page._path
         assert proxy.absolute_href == page.absolute_href
 
-    def test_pageproxy_backward_compatibility(self):
-        """Test PageProxy backward compatibility."""
+    def test_pageproxy_href_and_path(self):
+        """Test PageProxy href and _path properties."""
         site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
         site.output_dir = Path("/site/public")
 
@@ -360,11 +344,9 @@ class TestPageProxyHrefPath:
         )
         proxy._site = site
 
-        # Backward compatibility
-        assert proxy.url == proxy.href
-        assert proxy.relative_url == proxy._path
-        assert proxy.site_path == proxy._path
-        assert proxy.permalink == proxy.href
+        # Verify href and _path are correct
+        assert proxy.href == "/bengal/docs/page/"
+        assert proxy._path == "/docs/page/"
 
 
 class TestHrefPathConsistency:
