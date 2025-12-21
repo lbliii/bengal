@@ -86,15 +86,21 @@ Jinja2-based engine with 75+ custom functions.
 :::
 
 :::{tab-item} Pipeline
-**Pipeline Coordinator** (`rendering/pipeline.py`)
+**Pipeline Coordinator** (`rendering/pipeline/`)
 
-Orchestrates the flow for each page.
+Orchestrates the flow for each page. Organized as a package with focused modules:
+- `core.py`: Main RenderingPipeline class
+- `thread_local.py`: Thread-local parser management
+- `toc.py`: TOC extraction utilities
+- `transforms.py`: Content transformations
+- `output.py`: Output handling
 
 **Responsibilities:**
 - Manages the 3-stage process
 - Handles output path determination
 - Tracks template dependencies
 - Writes atomic output
+- Thread-local parser instances for performance
 :::
 ::::
 

@@ -110,17 +110,18 @@ full_content = false  # true for full HTML, false for excerpts
 </rss>
 ```
 
-## Link Validator (`bengal/rendering/link_validator.py`)
+## Link Validator (`bengal/health/validators/links.py`)
 
 ### Purpose
 Validates internal and external links
 
 ### Features
-- Validates internal and external links
-- Reports broken links
-- Can be extended for comprehensive validation
-- Configurable checking depth
-- Supports link ignoring patterns
+- Validates internal links resolve to existing pages
+- Handles relative paths and fragments
+- Supports trailing slash variations
+- Caches validation results for performance
+- Integrates with health check system
+- External link checking handled separately via `bengal health linkcheck` command
 
 ### Configuration
 
