@@ -398,6 +398,7 @@ class TestSiteIndexJsonGeneration:
         page.date = None
         page.metadata = metadata or {}
         page.source_path = Path("content/test.md")
+        page.version = None  # Prevent Mock auto-creation for JSON serialization
 
         # Mock section
         if section_name:

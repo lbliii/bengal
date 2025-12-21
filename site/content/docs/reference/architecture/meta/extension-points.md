@@ -60,7 +60,7 @@ ContentTypeRegistry.register('custom', CustomStrategy)
 strategy = "custom"
 ```
 
-**Documentation**: Refer to [Content Types](../core/content-types/)
+**Documentation**: Refer to [[docs/reference/architecture/core/content-types|Content Types]]
 
 ## 2. Custom Markdown Parsers
 
@@ -179,7 +179,7 @@ class CustomValidator(BaseValidator):
 custom = true
 ```
 
-**Documentation**: Refer to [Health Checks](../subsystems/health/)
+**Documentation**: Refer to [[docs/reference/architecture/subsystems/health|Health Checks]]
 
 ## 6. Custom Themes
 
@@ -366,7 +366,7 @@ When plugin system arrives:
 
 ## Related Documentation
 
-- [Content Types](../core/content-types/) - Custom content strategies
-- [Rendering](../rendering/) - Template and parser customization
-- [Health Checks](../subsystems/health/) - Custom validators
-- [Design Principles](../design-principles/) - Extension design patterns
+- [[docs/reference/architecture/core/content-types|Content Types]] - Custom content strategies
+- [[docs/reference/architecture/rendering|Rendering]] - Template and parser customization
+- [[docs/reference/architecture/subsystems/health|Health Checks]] - Custom validators
+- [[docs/reference/architecture/design-principles|Design Principles]] - Extension design patterns

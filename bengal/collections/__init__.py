@@ -71,16 +71,33 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any
+
+# Re-export commonly used items (placed here to satisfy E402)
+from bengal.collections.errors import ContentValidationError, ValidationError
+from bengal.collections.loader import (
+    get_collection_for_path,
+    load_collections,
+    validate_collections_config,
+)
+from bengal.collections.schemas import (
+    API,
+    APIReference,
+    BlogPost,
+    Changelog,
+    Doc,
+    DocPage,
+    Post,
+    Tutorial,
+)
+from bengal.collections.validator import SchemaValidator, ValidationResult
 
 if TYPE_CHECKING:
     from bengal.content_layer.source import ContentSource
 
-T = TypeVar("T")
-
 
 @dataclass
-class CollectionConfig(Generic[T]):
+class CollectionConfig[T]:
     """
     Configuration for a content collection.
 
@@ -111,10 +128,13 @@ class CollectionConfig(Generic[T]):
             self.directory = Path(self.directory)
 
         # Validate: must have either directory or loader
+        from bengal.utils.exceptions import BengalConfigError
+
         if self.directory is None and self.loader is None:
-            raise ValueError(
+            raise BengalConfigError(
                 "CollectionConfig requires either 'directory' (for local content) "
-                "or 'loader' (for remote content)"
+                "or 'loader' (for remote content)",
+                suggestion="Set either 'directory' for local content or 'loader' for remote content",
             )
 
     @property
@@ -130,7 +150,7 @@ class CollectionConfig(Generic[T]):
         return "local"
 
 
-def define_collection(
+def define_collection[T](
     schema: type[T],
     directory: str | Path | None = None,
     *,
@@ -229,25 +249,6 @@ def define_collection(
         loader=loader,
     )
 
-
-# Re-export commonly used items
-from bengal.collections.errors import ContentValidationError, ValidationError
-from bengal.collections.loader import (
-    get_collection_for_path,
-    load_collections,
-    validate_collections_config,
-)
-from bengal.collections.schemas import (
-    API,
-    APIReference,
-    BlogPost,
-    Changelog,
-    Doc,
-    DocPage,
-    Post,
-    Tutorial,
-)
-from bengal.collections.validator import SchemaValidator, ValidationResult
 
 __all__ = [
     # Core API

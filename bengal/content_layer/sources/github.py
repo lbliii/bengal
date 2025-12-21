@@ -69,8 +69,13 @@ class GitHubSource(ContentSource):
         """
         super().__init__(name, config)
 
+        from bengal.utils.exceptions import BengalConfigError
+
         if "repo" not in config:
-            raise ValueError(f"GitHubSource '{name}' requires 'repo' in config")
+            raise BengalConfigError(
+                f"GitHubSource '{name}' requires 'repo' in config",
+                suggestion="Add 'repo' to GitHubSource configuration",
+            )
 
         self.repo = config["repo"]
         self.branch = config.get("branch", "main")

@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from bengal.utils.exceptions import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -110,9 +111,10 @@ class AppearanceConfig:
         """Validate appearance configuration."""
         valid_modes = {"light", "dark", "system"}
         if self.default_mode not in valid_modes:
-            raise ValueError(
+            raise BengalConfigError(
                 f"Invalid default_mode '{self.default_mode}'. "
-                f"Must be one of: {', '.join(valid_modes)}"
+                f"Must be one of: {', '.join(valid_modes)}",
+                suggestion=f"Set default_mode to one of: {', '.join(valid_modes)}",
             )
 
     @classmethod
@@ -216,7 +218,12 @@ class ThemeConfig:
             with yaml_path.open(encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML in {yaml_path}: {e}") from e
+            raise BengalConfigError(
+                f"Invalid YAML in {yaml_path}: {e}",
+                file_path=yaml_path,
+                suggestion="Check YAML syntax and indentation",
+                original_error=e,
+            ) from e
 
         # Extract top-level fields
         name = data.get("name", "default")

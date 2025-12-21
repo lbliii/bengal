@@ -84,8 +84,13 @@ class AutoFixer:
             consistent behavior regardless of working directory.
             See: plan/implemented/rfc-path-resolution-architecture.md
         """
+        from bengal.utils.exceptions import BengalError
+
         if not site_root:
-            raise ValueError("site_root is required for AutoFixer")
+            raise BengalError(
+                "site_root is required for AutoFixer",
+                suggestion="Provide an absolute site root path",
+            )
         if not site_root.is_absolute():
             site_root = site_root.resolve()
         self.report = report

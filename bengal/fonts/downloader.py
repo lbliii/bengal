@@ -75,8 +75,13 @@ class GoogleFontsDownloader:
             output_dir must be explicit - no fallback to Path.cwd() to ensure
             consistent behavior. See: plan/implemented/rfc-path-resolution-architecture.md
         """
+        from bengal.utils.exceptions import BengalError
+
         if output_dir is None:
-            raise ValueError("output_dir is required for download_font")
+            raise BengalError(
+                "output_dir is required for download_font",
+                suggestion="Provide an absolute output directory path",
+            )
         styles = styles or ["normal"]
         output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -70,5 +70,5 @@ bengal
 - Single-letter aliases: `bengal b`, `bengal s`, `bengal c`, `bengal v`
 
 :::{tip}
-The CLI is fully documented via autodoc. See [CLI Reference](/cli/) for complete command documentation.
+The CLI is fully documented. See [[docs/reference/architecture/tooling/cli|CLI Reference]] for complete command documentation.
 :::

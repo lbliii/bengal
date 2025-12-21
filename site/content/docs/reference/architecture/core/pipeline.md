@@ -398,6 +398,6 @@ result = pipeline.run()
 - `ChangeType` - Change type enum
 
 :::{seealso}
-- [Orchestration](../core/orchestration/) - Build coordination
-- [Cache](../core/cache/) - Cache system details
+- [[docs/reference/architecture/core/orchestration|Orchestration]] - Build coordination
+- [[docs/reference/architecture/core/cache|Cache]] - Cache system details
 :::

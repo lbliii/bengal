@@ -71,8 +71,13 @@ class NotionSource(ContentSource):
         """
         super().__init__(name, config)
 
+        from bengal.utils.exceptions import BengalConfigError
+
         if "database_id" not in config:
-            raise ValueError(f"NotionSource '{name}' requires 'database_id' in config")
+            raise BengalConfigError(
+                f"NotionSource '{name}' requires 'database_id' in config",
+                suggestion="Add 'database_id' to NotionSource configuration",
+            )
 
         self.database_id = config["database_id"]
         self.token = config.get("token") or os.environ.get("NOTION_TOKEN")
@@ -84,10 +89,13 @@ class NotionSource(ContentSource):
         self.sorts = config.get("sorts")
 
         if not self.token:
-            raise ValueError(
+            from bengal.utils.exceptions import BengalConfigError
+
+            raise BengalConfigError(
                 f"NotionSource '{name}' requires a token.\n"
                 "Set NOTION_TOKEN environment variable or pass 'token' in config.\n"
-                "Create an integration at https://www.notion.so/my-integrations"
+                "Create an integration at https://www.notion.so/my-integrations",
+                suggestion="Set NOTION_TOKEN environment variable or add 'token' to config",
             )
 
         self.api_base = "https://api.notion.com/v1"

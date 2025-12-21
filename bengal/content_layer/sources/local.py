@@ -91,8 +91,13 @@ class LocalSource(ContentSource):
         """
         super().__init__(name, config)
 
+        from bengal.utils.exceptions import BengalConfigError
+
         if "directory" not in config:
-            raise ValueError(f"LocalSource '{name}' requires 'directory' in config")
+            raise BengalConfigError(
+                f"LocalSource '{name}' requires 'directory' in config",
+                suggestion="Add 'directory' to LocalSource configuration",
+            )
 
         self.directory = Path(config["directory"])
         self.glob_pattern = config.get("glob", "**/*.md")

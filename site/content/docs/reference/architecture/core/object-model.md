@@ -298,7 +298,5 @@ URL collision detected: /about/
 
 ### See Also
 
-- [URL Ownership RFC](../../../../plan/evaluated/rfc-url-ownership-architecture.md) - Design rationale
-- [URL Ownership Plan](../../../../plan/drafted/plan-url-ownership-architecture.md) - Implementation details
 - `bengal/core/url_ownership.py` - URLRegistry implementation
 - `bengal/config/url_policy.py` - Reserved namespace definitions

@@ -121,10 +121,13 @@ class PageExplainer:
         """
         page = self._find_page(page_path)
         if page is None:
-            raise ValueError(
+            from bengal.utils.exceptions import BengalContentError
+
+            raise BengalContentError(
                 f"Page not found: {page_path}\n"
                 f"Searched in {len(self.site.pages)} pages\n"
-                f"Tip: Run 'bengal site build' first to discover content"
+                f"Tip: Run 'bengal site build' first to discover content",
+                suggestion="Run 'bengal site build' first to discover content, or check the page path",
             )
 
         explanation = PageExplanation(
@@ -386,9 +389,8 @@ class PageExplainer:
                     if dep.endswith((".html", ".jinja2", ".jinja")):
                         if dep not in deps.templates:
                             deps.templates.append(dep)
-                    elif dep.endswith((".yaml", ".yml", ".json", ".toml")):
-                        if dep not in deps.data:
-                            deps.data.append(dep)
+                    elif dep.endswith((".yaml", ".yml", ".json", ".toml")) and dep not in deps.data:
+                        deps.data.append(dep)
 
         return deps
 
