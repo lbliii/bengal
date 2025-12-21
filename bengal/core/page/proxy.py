@@ -415,6 +415,16 @@ class PageProxy:
         """
         return False
 
+    def normalize_core_paths(self) -> None:
+        """
+        Normalize PageCore paths to be relative (for cache consistency).
+
+        For PageProxy, this is a no-op since the paths are already normalized
+        (they were loaded from the cache which stores relative paths).
+        """
+        # PageProxy paths are already relative from cache - no normalization needed
+        pass
+
     @property
     def related_posts(self) -> list[Page]:
         """Get related posts (lazy-loaded)."""
