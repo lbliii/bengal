@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
+from bengal.utils.exceptions import BengalConfigError
 
 
 @pytest.fixture
@@ -148,6 +149,12 @@ class TestConfigDirectoryLoader:
 
         with pytest.raises(ConfigLoadError, match="not found"):
             loader.load(tmp_path / "nonexistent")
+
+        # Verify it extends BengalConfigError
+        try:
+            loader.load(tmp_path / "nonexistent")
+        except ConfigLoadError as e:
+            assert isinstance(e, BengalConfigError)
 
     def test_load_file_not_directory(self, tmp_path):
         """Test loading from file (not directory) raises error."""

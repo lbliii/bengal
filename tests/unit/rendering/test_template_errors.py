@@ -16,6 +16,7 @@ from bengal.rendering.errors import (
     TemplateRenderError,
     display_template_error,
 )
+from bengal.utils.exceptions import BengalError, BengalRenderingError
 
 
 class MockTemplateEngine:
@@ -224,6 +225,37 @@ class TestErrorDisplay:
         assert "Suggestion" in captured.out
         assert "Did you mean" in captured.out
         assert "markdown" in captured.out
+
+    def test_template_render_error_extends_bengal_rendering_error(self) -> None:
+        """Test that TemplateRenderError extends BengalRenderingError."""
+        error = TemplateRenderError(
+            error_type="syntax",
+            message="Test error",
+            template_context=TemplateErrorContext(
+                template_name="test.html",
+                line_number=10,
+                column=None,
+                source_line="",
+                surrounding_lines=[],
+                template_path=None,
+            ),
+            inclusion_chain=None,
+            page_source=None,
+            suggestion="Fix syntax",
+            available_alternatives=[],
+        )
+
+        assert isinstance(error, Exception)
+        assert isinstance(error, BengalRenderingError)
+        assert isinstance(error, BengalError)
+
+        # Can be raised and caught
+        with pytest.raises(TemplateRenderError):
+            raise error
+        with pytest.raises(BengalRenderingError):
+            raise error
+        with pytest.raises(BengalError):
+            raise error
 
 
 class TestIntegration:
