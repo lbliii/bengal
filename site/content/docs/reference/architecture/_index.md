@@ -110,12 +110,14 @@ graph TB
 ## Module Overview
 
 ### Core Modules
+
 - **`core/`**: Passive data models (Site, Page, Section, Asset, Menu, NavTree)
 - **`orchestration/`**: Build coordination via specialized orchestrators
 - **`rendering/`**: Template engine, Markdown parsing, directive system
 - **`discovery/`**: Content and asset discovery from filesystem or remote sources
 
 ### Supporting Modules
+
 - **`cache/`**: Build cache, dependency tracking, query indexes
 - **`collections/`**: Type-safe content schemas with validation
 - **`content_layer/`**: Unified API for local/remote content sources
@@ -130,6 +132,7 @@ graph TB
 - **`utils/`**: Shared utilities
 
 ### Feature Subsystems
+
 - **`autodoc/`**: Generate docs from Python, CLI, OpenAPI
 - **`analysis/`**: Graph analysis, PageRank, link suggestions
 - **`fonts/`**: Google Fonts download and self-hosting
