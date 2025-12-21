@@ -61,7 +61,7 @@ class URLCollisionValidator(BaseValidator):
         urls_seen: dict[str, list[str]] = {}  # url -> [source1, source2, ...]
 
         for page in site.pages:
-            url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "url", "/")
+            url = page._path
             source = str(getattr(page, "source_path", page.title))
 
             if url not in urls_seen:
@@ -117,7 +117,7 @@ class URLCollisionValidator(BaseValidator):
         results: list[CheckResult] = []
 
         # Build set of section URLs
-        section_urls = {getattr(s, "_path", None) or getattr(s, "relative_url", "/") for s in site.sections}
+        section_urls = {s._path for s in site.sections}
 
         # Find pages that conflict with sections
         conflicts = []
