@@ -65,16 +65,16 @@ class LogEvent:
         """Format for console output using Rich markup."""
         indent = "  " * self.phase_depth
 
-        # Level colors (Rich markup styles)
-        level_styles = {
-            "DEBUG": "cyan",
-            "INFO": "green",
-            "WARNING": "yellow",
-            "ERROR": "red",
-            "CRITICAL": "magenta",
+        # Level colors and indicators
+        level_config = {
+            "DEBUG": ("cyan", "·", ""),
+            "INFO": ("green", "·", ""),
+            "WARNING": ("yellow", "!", "Warning:"),
+            "ERROR": ("red", "x", "Error:"),
+            "CRITICAL": ("magenta", "x", "Critical:"),
         }
 
-        style = level_styles.get(self.level, "white")
+        style, icon, label = level_config.get(self.level, ("white", "·", ""))
 
         # Phase markers
         phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
@@ -93,8 +93,9 @@ class LogEvent:
 
         metrics_str = f" [dim]({', '.join(metrics)})[/dim]" if metrics else ""
 
-        # Basic format with Rich markup
-        base = f"{indent}[{style}]●[/{style}]{phase_marker} {self.message}{metrics_str}"
+        # Build prefix with label for warnings/errors
+        label_str = f" {label}" if label else ""
+        base = f"{indent}[{style}]{icon}{label_str}[/{style}]{phase_marker} {self.message}{metrics_str}"
 
         # Always show context for warnings and errors (actionable issues)
         # In verbose mode, show context for all levels
