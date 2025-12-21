@@ -44,7 +44,7 @@ class TestSeparateSectionTrees:
     def test_python_and_openapi_create_distinct_sections(self, mock_site, tmp_path):
         """Test that Python and OpenAPI create separate root sections."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         # Create minimal Python source
         src_dir = tmp_path / "src"
@@ -122,7 +122,7 @@ paths:
     def test_cli_output_prefix_drops_root_name(self, mock_site, tmp_path):
         """Test that CLI output prefix drops the root command name ('bengal')."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         # Configure CLI
         mock_site.config["autodoc"] = {
@@ -172,8 +172,10 @@ paths:
         # Check page URLs
         page_urls = {p.url for p in pages}
 
-        # Root command group should be at /cli/ (the prefix)
-        assert "/cli/" in page_urls
+        # Root command group is NOT a separate page - the section index represents it
+        # (see page_builders.py: "Skip root command-groups - the section index page represents them")
+        # So we verify that root URL is NOT in pages (it's the section index instead)
+        assert "/cli/" not in page_urls, "Root command group should be section index, not a page"
 
         # Subcommands should drop 'bengal'
         # bengal.build -> /cli/build/
@@ -184,6 +186,11 @@ paths:
         # qualified names should NOT appear in URLs if they include root
         assert "/cli/bengal/build/" not in page_urls
         assert "/cli/bengal/theme/swizzle/" not in page_urls
+
+        # Verify the CLI section exists (represents the root command group)
+        # sections is a list of Section objects
+        section_urls = {s.url for s in sections}
+        assert "/cli/" in section_urls, "CLI section should exist at /cli/"
 
 
 class TestBackwardsCompatibility:
@@ -204,7 +211,7 @@ class TestBackwardsCompatibility:
     def test_python_only_with_api_prefix(self, mock_site, tmp_path):
         """Test Python-only config with 'api' prefix works unchanged."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {
@@ -250,7 +257,7 @@ class TestBackwardsCompatibility:
     def test_openapi_only_with_api_prefix(self, mock_site, tmp_path):
         """Test OpenAPI-only config with explicit 'api' prefix works unchanged."""
         from bengal.autodoc.base import DocElement
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {
@@ -303,7 +310,7 @@ paths: {}
 
     def test_default_prefixes_when_not_specified(self, mock_site, tmp_path):
         """Test that default prefixes are used when not explicitly configured."""
-        from bengal.autodoc.virtual_orchestrator import VirtualAutodocOrchestrator
+        from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
         mock_site.config = {
             "autodoc": {

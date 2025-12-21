@@ -17,7 +17,8 @@ import pytest
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
-from bengal.utils.page_initializer import PageInitializer
+from bengal.discovery.page_factory import PageInitializer
+from bengal.utils.exceptions import BengalContentError
 
 
 class TestPageInitializer:
@@ -109,7 +110,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         # No output_path set
 
-        with pytest.raises(ValueError, match="has no output_path"):
+        with pytest.raises(BengalContentError, match="has no output_path"):
             initializer.ensure_initialized(page)
 
     def test_ensure_initialized_none_output_path(self, initializer, tmp_path):
@@ -117,7 +118,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         page.output_path = None
 
-        with pytest.raises(ValueError, match="has no output_path"):
+        with pytest.raises(BengalContentError, match="has no output_path"):
             initializer.ensure_initialized(page)
 
     def test_ensure_initialized_relative_output_path(self, initializer, tmp_path):
@@ -125,7 +126,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         page.output_path = Path("public/test/index.html")  # Relative!
 
-        with pytest.raises(ValueError, match="relative output_path"):
+        with pytest.raises(BengalContentError, match="relative output_path"):
             initializer.ensure_initialized(page)
 
     def test_ensure_initialized_absolute_path_works(self, initializer, mock_site, tmp_path):
@@ -229,7 +230,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         # No output_path
 
-        with pytest.raises(ValueError, match="has no output_path"):
+        with pytest.raises(BengalContentError, match="has no output_path"):
             initializer.ensure_initialized_for_section(page, section)
 
     def test_ensure_initialized_for_section_handles_path_outside_dir(
@@ -259,7 +260,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "My Important Page"})
         # No output_path
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(BengalContentError) as exc_info:
             initializer.ensure_initialized(page)
 
         error_msg = str(exc_info.value)
@@ -272,7 +273,7 @@ class TestPageInitializer:
         )
         # No output_path
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(BengalContentError) as exc_info:
             initializer.ensure_initialized(page)
 
         error_msg = str(exc_info.value)
@@ -282,7 +283,7 @@ class TestPageInitializer:
         """Test that missing output_path error is actionable."""
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(BengalContentError) as exc_info:
             initializer.ensure_initialized(page)
 
         error_msg = str(exc_info.value)
@@ -294,7 +295,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         page.output_path = Path("relative/path.html")
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(BengalContentError) as exc_info:
             initializer.ensure_initialized(page)
 
         error_msg = str(exc_info.value)
@@ -506,7 +507,7 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
 
         # Should fail immediately
-        with pytest.raises(ValueError, match="output_path"):
+        with pytest.raises(BengalContentError, match="output_path"):
             initializer.ensure_initialized(page)
 
     def test_fails_before_setting_site_on_relative_path(self, initializer, tmp_path):
@@ -518,7 +519,7 @@ class TestPageInitializer:
         original_site = page._site
         assert original_site is None
 
-        with pytest.raises(ValueError, match="relative"):
+        with pytest.raises(BengalContentError, match="relative"):
             initializer.ensure_initialized(page)
 
         # Site reference should have been set before failing

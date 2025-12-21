@@ -100,11 +100,10 @@ def clean(
     site.clean()
 
     # Clean cache if requested
-    if clean_cache:
-        if site.paths.state_dir.exists():
-            # Use the same robust removal that Site.clean() uses
-            site._rmtree_robust(site.paths.state_dir)
-            cli.info("   ✓ Removed cache directory")
+    if clean_cache and site.paths.state_dir.exists():
+        # Use the same robust removal that Site.clean() uses
+        site._rmtree_robust(site.paths.state_dir)
+        cli.info("   ✓ Removed cache directory")
 
     # Show success
     cli.blank()
@@ -120,8 +119,8 @@ def clean(
 def cleanup(force: bool, port: int, source: str) -> None:
     """Clean up stale Bengal server processes."""
     try:
+        from bengal.output import CLIOutput
         from bengal.server.pid_manager import PIDManager
-        from bengal.utils.cli_output import CLIOutput
 
         cli = CLIOutput()
         root_path = Path(source).resolve()

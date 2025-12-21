@@ -19,7 +19,7 @@ class TestDirectiveNamesConsistency:
 
     def test_all_directive_classes_have_directive_names(self):
         """Every class in DIRECTIVE_CLASSES has DIRECTIVE_NAMES attribute."""
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         missing = []
         for cls in DIRECTIVE_CLASSES:
@@ -30,7 +30,7 @@ class TestDirectiveNamesConsistency:
 
     def test_directive_names_not_empty(self):
         """Every DIRECTIVE_NAMES attribute is non-empty."""
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         empty = []
         for cls in DIRECTIVE_CLASSES:
@@ -41,7 +41,7 @@ class TestDirectiveNamesConsistency:
 
     def test_cached_known_names_matches_function(self):
         """Cached KNOWN_DIRECTIVE_NAMES matches get_known_directive_names()."""
-        from bengal.rendering.plugins.directives import (
+        from bengal.directives import (
             KNOWN_DIRECTIVE_NAMES,
             get_known_directive_names,
         )
@@ -55,13 +55,13 @@ class TestDirectiveNamesConsistency:
 
     def test_known_directive_names_is_frozenset(self):
         """KNOWN_DIRECTIVE_NAMES is a frozenset for immutability."""
-        from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
+        from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
         assert isinstance(KNOWN_DIRECTIVE_NAMES, frozenset)
 
     def test_no_unexpected_duplicates(self):
         """Check for unintentional duplicate directive names across classes."""
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         # Collect all names with their source classes
         name_to_classes: dict[str, list[str]] = {}
@@ -89,7 +89,7 @@ class TestDirectiveNamesConsistency:
 
     def test_directive_names_lowercase_hyphenated(self):
         """Directive names follow naming convention (lowercase, hyphenated)."""
-        from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
+        from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
         # Allowed exceptions: code_tabs is an underscore alias for code-tabs
         allowed_exceptions = {"code_tabs"}
@@ -130,7 +130,7 @@ class TestDirectiveRegistration:
 
             renderer = None
 
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         mismatches = []
         for cls in DIRECTIVE_CLASSES:
@@ -159,10 +159,14 @@ class TestDirectiveClassesCompleteness:
 
     def test_directive_classes_matches_directives_list(self):
         """DIRECTIVE_CLASSES matches directives_list in create_documentation_directives()."""
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import register_all
+        from bengal.directives.registry import get_directive_classes
 
-        # Get the class names from DIRECTIVE_CLASSES
-        registry_classes = {cls.__name__ for cls in DIRECTIVE_CLASSES}
+        # Register all directives first (lazy loading)
+        register_all()
+
+        # Get the class names from the registry
+        registry_classes = {cls.__name__ for cls in get_directive_classes()}
 
         # Expected classes based on create_documentation_directives()
         # Note: This list should match the directives_list in create_documentation_directives
@@ -293,7 +297,7 @@ class TestKnownDirectiveNamesContent:
     )
     def test_expected_directive_present(self, directive_name: str):
         """Each expected directive is present in KNOWN_DIRECTIVE_NAMES."""
-        from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
+        from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
         assert directive_name in KNOWN_DIRECTIVE_NAMES, (
             f"Expected directive '{directive_name}' not in KNOWN_DIRECTIVE_NAMES"
@@ -301,7 +305,7 @@ class TestKnownDirectiveNamesContent:
 
     def test_known_directive_names_count(self):
         """KNOWN_DIRECTIVE_NAMES has expected count."""
-        from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
+        from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
         # 10 admonitions + 2 badges + 1 button + 5 cards + 4 tabs (tab-set, tabs, tab-item, tab) + 2 code-tabs
         # + 2 dropdowns + 2 tables + 1 glossary + 1 checklist + 2 steps + 1 rubric

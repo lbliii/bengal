@@ -15,6 +15,21 @@ tags:
 
 ## General
 
+:::{dropdown} Does Bengal guarantee backwards compatibility?
+:icon: alert
+**No.** Bengal prioritizes correctness and clarity over long-term compatibility.
+
+Each release represents the best solution we know how to deliver. When existing behavior no longer reflects the best design, it may be changed or removed. Breaking changes produce clear error messages, not silent degradation.
+
+**What this means for you:**
+
+- Read release notes before upgrading
+- Expect to make changes when upgrading major versions
+- Pin your version if you need stability
+
+See [[docs/about/philosophy|Project Philosophy]] for the full rationale.
+:::
+
 :::{dropdown} Is Bengal free?
 :icon: star
 **Yes!** Bengal is open-source software released under the MIT License. You can use it for personal and commercial projects for free.

@@ -64,7 +64,7 @@ Bengal includes a comprehensive health check system that validates builds across
 
 ## Validators (`bengal/health/validators/`)
 
-**All Validators (14 total)**:
+**Validators**:
 
 **Basic Validation:**
 | Validator | Validates |
@@ -89,7 +89,7 @@ Bengal includes a comprehensive health check system that validates builds across
 | **CacheValidator** | Incremental build cache integrity and consistency |
 | **PerformanceValidator** | Build performance metrics and bottleneck detection |
 
-**Production-Ready Validation:**
+**Output artifacts:**
 | Validator | Validates |
 |-----------|-----------|
 | **RSSValidator** | RSS feed quality, XML validity, URL formatting |
@@ -111,13 +111,13 @@ The Connectivity Validator uses a **semantic link model** with weighted scoring 
 | **Topical** | 0.5 | Section hierarchy (parent → child) |
 | **Sequential** | 0.25 | Next/prev navigation |
 
-**Connectivity Levels:**
+**Connectivity levels:**
 | Level | Score Range | Status |
 |-------|-------------|--------|
-| 🟢 Well-Connected | ≥ 2.0 | No action needed |
-| 🟡 Adequately Linked | 1.0 - 2.0 | Could improve |
-| 🟠 Lightly Linked | 0.25 - 1.0 | Should improve (only structural links) |
-| 🔴 Isolated | < 0.25 | Needs attention |
+| Well-connected | ≥ 2.0 | No action needed |
+| Adequately linked | 1.0 - 2.0 | Could improve |
+| Lightly linked | 0.25 - 1.0 | Should improve (only structural links) |
+| Isolated | < 0.25 | Needs attention |
 
 **Configuration:**
 ```toml
@@ -160,23 +160,23 @@ validate_build = true
 
 # Per-validator configuration (all enabled by default)
 [health_check.validators]
-# Phase 1: Basic
+# Basic
 configuration = true
 output = true
 navigation_menus = true
 links = true
 
-# Phase 2: Content
+# Content
 navigation = true
 taxonomies = true
 rendering = true
 directives = true
 
-# Phase 3: Advanced
+# Advanced
 cache_integrity = true
 performance = true
 
-# Phase 4: Production-ready
+# Output artifacts
 rss_feed = true
 sitemap = true
 fonts = true

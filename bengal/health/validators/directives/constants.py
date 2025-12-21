@@ -9,7 +9,7 @@ from __future__ import annotations
 
 # Import from the single source of truth (rendering/plugins/directives/__init__.py)
 # This ensures the health check stays in sync with actually registered directives.
-from bengal.rendering.plugins.directives import (
+from bengal.directives import (
     ADMONITION_TYPES,
     CODE_BLOCK_DIRECTIVES,
     KNOWN_DIRECTIVE_NAMES,

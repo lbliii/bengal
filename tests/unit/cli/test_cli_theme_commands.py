@@ -33,7 +33,7 @@ def test_theme_list_and_info(tmp_path, monkeypatch):
 
     from importlib import metadata
 
-    from bengal.utils.theme_registry import clear_theme_cache
+    from bengal.core.theme import clear_theme_cache
 
     def fake_entry_points(group=None):
         if group == "bengal.themes":
@@ -64,7 +64,7 @@ def test_theme_discover_lists_templates(tmp_path, monkeypatch):
 
     from importlib import metadata
 
-    from bengal.utils.theme_registry import clear_theme_cache
+    from bengal.core.theme import clear_theme_cache
 
     def fake_entry_points(group=None):
         if group == "bengal.themes":

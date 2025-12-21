@@ -246,6 +246,7 @@ class SectionRegistryMixin:
             # Also register in path registry using URL path as key (for backward compatibility)
             rel_url_path = rel_url.strip("/") if rel_url else section.name
             self._section_registry[Path(rel_url_path)] = section
+
         else:
             # Register regular section by normalized path
             normalized = self._normalize_section_path(section.path)

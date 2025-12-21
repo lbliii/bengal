@@ -23,7 +23,13 @@ icon: folder
 ---
 # Architecture Overview
 
-Bengal SSG follows a modular architecture with clear separation of concerns to avoid "God objects" and maintain high performance even with large sites.
+Bengal is organized as a set of small subsystems with clear boundaries. Use this section to orient yourself and then jump to the specific subsystem you are changing.
+
+## How to use this section
+
+- Start with the overview diagram on this page.
+- Use the cards to jump to a subsystem.
+- Prefer subsystem pages over repeating context here.
 
 :::{child-cards}
 :columns: 2
@@ -48,11 +54,12 @@ graph TB
     end
 
     subgraph "Object Model"
-        Site[Site<br/>bengal/core/site.py]
+        Site[Site<br/>bengal/core/site/]
         Pages[Pages<br/>bengal/core/page/]
         Sections[Sections<br/>bengal/core/section.py]
         Assets[Assets<br/>bengal/core/asset/]
         Menus[Menus<br/>bengal/core/menu.py]
+        NavTree[NavTree<br/>bengal/core/nav_tree.py]
     end
 
     subgraph "Supporting Systems"
@@ -62,6 +69,10 @@ graph TB
         Config[Config<br/>bengal/config/]
         Analysis[Analysis<br/>bengal/analysis/]
         Fonts[Fonts<br/>bengal/fonts/]
+        Collections[Collections<br/>bengal/collections/]
+        ContentLayer[Content Layer<br/>bengal/content_layer/]
+        Output[CLI Output<br/>bengal/output/]
+        Debug[Debug Tools<br/>bengal/debug/]
     end
 
     CLI --> Site
@@ -73,7 +84,10 @@ graph TB
     Site --> Orchestration
     Orchestration --> Menus
     Orchestration --> Rendering
+    Site --> NavTree
+    Sections -.->|"builds from"| NavTree
     Menus -.->|"used by"| Rendering
+    NavTree -.->|"used by"| Rendering
     Rendering --> PostProcess
     Cache -.->|"cache checks"| Orchestration
     Health -.->|"validation"| PostProcess
@@ -81,11 +95,53 @@ graph TB
     Config -.->|"configuration"| Site
     Analysis -.->|"analyzes"| Site
     Fonts -.->|"downloads/generates"| Assets
+    Collections -.->|"schema validation"| Discovery
+    ContentLayer -.->|"remote sources"| Collections
+    Output -.->|"terminal output"| CLI
+    Debug -.->|"diagnostics"| Site
 ```
 
-**Key Flows:**
-1. **Build**: CLI → Site → Discovery → Orchestration → [Menus + Rendering] → Post-Process
-2. **Menu Building**: Orchestration builds menus → Rendering uses menus in templates
-3. **Cache**: Build Cache checks file changes and dependencies before rebuilding
-4. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
-5. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
+::::{dropdown} Key flows (overview)
+1. **Build**: CLI → Site → Discovery → Orchestration → Rendering → Post-process
+2. **Dev server**: watch → incremental rebuild → serve output
+3. **Template context**: Site + Page + NavTree → Rendering
+::::
+
+## Module Overview
+
+### Core Modules
+
+- **`core/`**: Passive data models (Site, Page, Section, Asset, Menu, NavTree)
+- **`orchestration/`**: Build coordination via specialized orchestrators
+- **`rendering/`**: Template engine, Markdown parsing, directive system
+- **`discovery/`**: Content and asset discovery from filesystem or remote sources
+
+### Supporting Modules
+
+- **`cache/`**: Build cache, dependency tracking, query indexes
+- **`collections/`**: Type-safe content schemas with validation
+- **`content_layer/`**: Unified API for local/remote content sources
+- **`content_types/`**: Content strategies (Blog, Docs, Portfolio)
+- **`directives/`**: MyST-style directives for markdown (cards, tabs, navigation, etc.)
+- **`postprocess/`**: Sitemap, RSS, link validation
+- **`health/`**: Content validation and health checks
+- **`config/`**: Configuration loading and validation
+- **`cli/`**: Command-line interface
+- **`output/`**: Centralized CLI output system
+- **`server/`**: Development server with live reload
+- **`utils/`**: Shared utilities
+
+### Feature Subsystems
+
+- **`autodoc/`**: Generate docs from Python, CLI, OpenAPI
+- **`analysis/`**: Graph analysis, PageRank, link suggestions
+- **`fonts/`**: Google Fonts download and self-hosting
+- **`debug/`**: Diagnostic tools for understanding builds
+- **`services/`**: Service interfaces and implementations
+- **`assets/`**: Asset processing pipeline and manifest generation
+
+## Pointers
+
+- **Object model**: refer to [Object Model](core/object-model/)
+- **Rendering pipeline**: refer to [Rendering Pipeline](rendering/rendering/)
+- **Build orchestration**: refer to [Orchestration](core/orchestration/)

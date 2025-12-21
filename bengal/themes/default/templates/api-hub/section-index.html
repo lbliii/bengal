@@ -39,10 +39,10 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% endif %}
 
       {# Title #}
-      <h1 class="page-hero__title">{{ section.title }}</h1>
+      <h1 class="page-hero__title">{{ section.title if section else 'API Documentation' }}</h1>
 
       {# Description #}
-      {% set desc = section.metadata.get('description', '') %}
+      {% set desc = section.metadata.get('description', '') if section else '' %}
       {% if desc %}
       <div class="page-hero__description page-hero__description--prose">
         {{ desc | markdownify | safe }}
@@ -52,7 +52,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% endif %}
 
       {# Stats showing child count #}
-      {% if section.sorted_subsections | length > 0 %}
+      {% if section and section.sorted_subsections | length > 0 %}
       <div class="page-hero__footer">
         <div class="page-hero__stats">
           <span class="page-hero__stat">
@@ -75,7 +75,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% endif %}
 
       {# API Hub Card Grid #}
-      {% if section.sorted_subsections %}
+      {% if section and section.sorted_subsections %}
       <div class="autodoc-cards autodoc-cards--hub">
         {% for subsection in section.sorted_subsections %}
         {% set sub_type = subsection.metadata.get('type', 'python-reference') %}

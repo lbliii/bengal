@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
 
@@ -58,6 +58,11 @@ def phase_postprocess(
 def phase_cache_save(
     orchestrator: BuildOrchestrator, pages_to_build: list[Any], assets_to_process: list[Any]
 ) -> None:
+    """
+    Phase 18: Save Cache.
+
+    Persists build cache including URL claims for incremental build safety.
+    """
     """
     Phase 18: Save Cache.
 
@@ -124,8 +129,8 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
 
     from pathlib import Path
 
+    from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
     from bengal.utils.atomic_write import AtomicFile
-    from bengal.utils.build_badge import build_shields_like_badge_svg, format_duration_ms_compact
 
     duration_ms = float(last_build_stats.get("build_time_ms") or 0)
     duration_text = format_duration_ms_compact(duration_ms)
@@ -320,7 +325,7 @@ def run_health_check(
     health_config = get_feature_config(orchestrator.site.config, "health_check")
 
     # Get CLI output early for timing display
-    from bengal.utils.cli_output import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
 
@@ -396,9 +401,12 @@ def run_health_check(
     # Fail build in strict mode if there are errors
     strict_mode = health_config.get("strict_mode", False)
     if strict_mode and report.has_errors():
-        raise Exception(
+        from bengal.utils.exceptions import BengalError
+
+        raise BengalError(
             f"Build failed health checks: {report.total_errors} error(s) found. "
-            "Review output or disable strict_mode."
+            "Review output or disable strict_mode.",
+            suggestion="Review the health check report above and fix the errors, or set health_check.strict_mode=false",
         )
 
 

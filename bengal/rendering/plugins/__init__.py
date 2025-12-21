@@ -40,9 +40,10 @@ For detailed documentation on each plugin, see:
 
 from __future__ import annotations
 
+# Import from new bengal.directives package (directive system extraction)
+from bengal.directives import create_documentation_directives
 from bengal.rendering.plugins.badges import BadgePlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
-from bengal.rendering.plugins.directives import create_documentation_directives
 from bengal.rendering.plugins.inline_icon import InlineIconPlugin
 from bengal.rendering.plugins.term import TermPlugin
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin

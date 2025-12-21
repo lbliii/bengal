@@ -136,18 +136,22 @@ class HealthCheck:
             MenuValidator,
             NavigationValidator,
             OutputValidator,
+            OwnershipPolicyValidator,
             PerformanceValidator,
             RenderingValidator,
             RSSValidator,
             SitemapValidator,
             TaxonomyValidator,
             TrackValidator,
+            URLCollisionValidator,
         )
 
         # Register in logical order (fast validators first)
         # Phase 1: Basic validation
         self.register(ConfigValidatorWrapper())
         self.register(OutputValidator())
+        self.register(URLCollisionValidator())  # Catch URL collisions early
+        self.register(OwnershipPolicyValidator())  # Validate namespace ownership policy
 
         # Phase 2: Content validation
         self.register(RenderingValidator())

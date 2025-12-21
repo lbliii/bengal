@@ -10,16 +10,16 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
-from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
 
 
 def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
@@ -109,6 +109,8 @@ def phase_template_validation(
         orchestrator.logger.debug("template_validation_skipped", reason="disabled in config")
         return []
 
+    from bengal.utils.exceptions import BengalRenderingError
+
     with orchestrator.logger.phase("template_validation"):
         validation_start = time.time()
 
@@ -143,9 +145,12 @@ def phase_template_validation(
 
                 # In strict mode, fail the build
                 if strict:
-                    raise RuntimeError(
+                    from bengal.utils.exceptions import BengalRenderingError
+
+                    raise BengalRenderingError(
                         f"Template validation failed with {len(errors)} error(s). "
-                        "Fix template syntax errors or disable strict mode."
+                        "Fix template syntax errors or disable strict mode.",
+                        suggestion="Review template errors above and fix syntax issues, or set build.strict_mode=false",
                     )
             else:
                 cli.phase("Templates", duration_ms=validation_time_ms, details="validated")
@@ -157,8 +162,8 @@ def phase_template_validation(
 
             return errors
 
-        except RuntimeError:
-            # Re-raise RuntimeError (strict mode failure)
+        except (RuntimeError, BengalRenderingError):
+            # Re-raise strict mode failures
             raise
         except Exception as e:
             # Log other errors but don't fail build
@@ -224,6 +229,24 @@ def phase_discovery(
                     error=str(e),
                 )
                 # Continue without cache - will do full discovery
+
+        # Load cached URL claims for incremental build safety
+        # Pre-populate registry with claims from pages not being rebuilt
+        if incremental and build_cache and hasattr(build_cache, "url_claims"):
+            try:
+                if orchestrator.site.url_registry and build_cache.url_claims:
+                    orchestrator.site.url_registry.load_from_dict(build_cache.url_claims)
+                    orchestrator.logger.debug(
+                        "url_claims_loaded_from_cache",
+                        claim_count=len(build_cache.url_claims),
+                    )
+            except Exception as e:
+                orchestrator.logger.debug(
+                    "url_claims_cache_load_failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="continuing_without_cached_claims",
+                )
 
         # Discover content and assets.
         # We time these separately so the Discovery phase can report a useful breakdown.

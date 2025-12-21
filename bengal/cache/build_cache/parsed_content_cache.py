@@ -83,7 +83,7 @@ class ParsedContentCacheMixin:
             parser_version: Parser version string (e.g., "mistune-3.0-toc2")
             ast: True AST tokens from parser (optional, for Phase 3)
         """
-        from bengal.utils.incremental_constants import extract_nav_metadata
+        from bengal.orchestration.constants import extract_nav_metadata
 
         # Hash full metadata to detect any changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)

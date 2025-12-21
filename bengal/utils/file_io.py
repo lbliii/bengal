@@ -125,7 +125,13 @@ def read_text_file(
             caller=caller or "file_io",
         )
         if on_error == "raise":
-            raise ValueError(f"Path is not a file: {file_path}")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                f"Path is not a file: {file_path}",
+                file_path=file_path,
+                suggestion="Ensure the path points to a file, not a directory",
+            )
         return "" if on_error == "return_empty" else None
 
     # Try reading with primary encoding
@@ -477,7 +483,12 @@ def load_data_file(
         )
 
         if on_error == "raise":
-            raise ValueError(f"Unsupported file format: {suffix}")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                f"Unsupported file format: {suffix}",
+                suggestion="Use .json, .yaml, .yml, or .toml file format",
+            )
         return {} if on_error == "return_empty" else None
 
 

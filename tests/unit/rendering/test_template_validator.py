@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from jinja2 import Environment
 
-from bengal.rendering.validator import TemplateValidator, validate_templates
+from bengal.health.validators.templates import TemplateValidator, validate_templates
 
 
 class MockTemplateEngine:

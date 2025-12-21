@@ -32,6 +32,12 @@ Bengal is a high-performance static site generator built in Python for Python 3.
 | **Flexible Theming** | Theme inheritance, template swizzling, and 200+ CSS design tokens |
 | **Content First** | Markdown with MyST directives, YAML/TOML front matter, and cascading config |
 
+## Philosophy
+
+Bengal prioritizes **correctness and clarity over backwards compatibility**. Each release represents the best solution we know how to deliver—when existing behavior no longer reflects the best design, it may be changed.
+
+This keeps the codebase healthy and enables rapid evolution. See [[docs/about/philosophy|Project Philosophy]] for details.
+
 ---
 
 :::{child-cards}

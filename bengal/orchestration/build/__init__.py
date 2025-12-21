@@ -22,11 +22,12 @@ from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
+from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
-from bengal.utils.build_stats import BuildStats
 from bengal.utils.logger import get_logger
 
 from . import content, finalization, initialization, rendering
+from .options import BuildOptions
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,8 +36,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
+    from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.performance_collector import PerformanceCollector
     from bengal.utils.profile import BuildProfile
 
@@ -96,6 +97,9 @@ class BuildOrchestrator:
 
     def build(
         self,
+        options: BuildOptions | None = None,
+        *,
+        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -113,6 +117,8 @@ class BuildOrchestrator:
         Execute full build pipeline.
 
         Args:
+            options: BuildOptions dataclass with all build configuration.
+                    If provided, individual parameters are ignored.
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show verbose console logs during build (default: False, logs go to file)
@@ -127,9 +133,48 @@ class BuildOrchestrator:
 
         Returns:
             BuildStats object with build statistics
+
+        Example:
+            >>> # Using BuildOptions (preferred)
+            >>> from bengal.orchestration.build.options import BuildOptions
+            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> stats = orchestrator.build(options)
+            >>>
+            >>> # Using individual parameters (backward compatibility)
+            >>> stats = orchestrator.build(parallel=True, strict=True)
         """
+        # Resolve options: use provided BuildOptions or construct from individual params
+        if options is None:
+            options = BuildOptions(
+                parallel=parallel,
+                incremental=incremental,
+                verbose=verbose,
+                quiet=quiet,
+                profile=profile,
+                memory_optimized=memory_optimized,
+                strict=strict,
+                full_output=full_output,
+                profile_templates=profile_templates,
+                changed_sources=changed_sources or set(),
+                nav_changed_sources=nav_changed_sources or set(),
+                structural_changed=structural_changed,
+            )
+
+        # Extract values from options for use in build phases
+        parallel = options.parallel
+        incremental = options.incremental
+        verbose = options.verbose
+        quiet = options.quiet
+        profile = options.profile
+        memory_optimized = options.memory_optimized
+        strict = options.strict
+        full_output = options.full_output
+        profile_templates = options.profile_templates
+        changed_sources = options.changed_sources or None
+        nav_changed_sources = options.nav_changed_sources or None
+        structural_changed = options.structural_changed
         # Import profile utilities
-        from bengal.utils.cli_output import init_cli_output
+        from bengal.output import init_cli_output
         from bengal.utils.profile import BuildProfile
 
         # Use default profile if not provided
@@ -325,6 +370,13 @@ class BuildOrchestrator:
             self, incremental, pages_to_build, affected_tags
         )
 
+        # Phase 12.5: URL Collision Detection (proactive validation)
+        # See: plan/drafted/rfc-url-collision-detection.md
+        collisions = self.site.validate_no_url_collisions(strict=options.strict)
+        if collisions:
+            for msg in collisions:
+                self.logger.warning(msg, event="url_collision_detected")
+
         # Phase 13: Process Assets
         assets_to_process = rendering.phase_assets(
             self, cli, incremental, parallel, assets_to_process
@@ -375,7 +427,7 @@ class BuildOrchestrator:
 
     def _print_rendering_summary(self) -> None:
         """Print summary of rendered pages (quiet mode)."""
-        from bengal.utils.cli_output import get_cli_output
+        from bengal.output import get_cli_output
 
         cli = get_cli_output()
 

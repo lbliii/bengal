@@ -11,24 +11,23 @@ import inspect
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
-from bengal.rendering.plugins.directives import (
-    AdmonitionDirective,
-    BuildDirective,
-    ButtonDirective,
+from bengal.directives.admonitions import AdmonitionDirective
+from bengal.directives.build import BuildDirective
+from bengal.directives.button import ButtonDirective
+from bengal.directives.cards import (
     CardDirective,
     CardsDirective,
-    ChecklistDirective,
-    CodeTabsDirective,
-    DataTableDirective,
-    DropdownDirective,
     GridDirective,
     GridItemCardDirective,
-    ListTableDirective,
-    RubricDirective,
-    TabItemDirective,
-    TabSetDirective,
 )
+from bengal.directives.checklist import ChecklistDirective
+from bengal.directives.code_tabs import CodeTabsDirective
+from bengal.directives.data_table import DataTableDirective
+from bengal.directives.dropdown import DropdownDirective
+from bengal.directives.list_table import ListTableDirective
+from bengal.directives.rubric import RubricDirective
+from bengal.directives.tabs import TabItemDirective, TabSetDirective
+from bengal.rendering.parsers import MistuneParser
 
 
 class TestDirectiveRegistration:
@@ -144,12 +143,12 @@ class TestDirectiveModuleConsistency:
     def test_create_documentation_directives_includes_all_imports(self):
         """
         Verify that create_documentation_directives() includes all directive
-        classes that are imported in __init__.py.
+        classes that are imported in bengal.directives.factory.
+
+        Note: Directive classes have moved to bengal.directives.
         """
         # Import the module to inspect its source
-
-        # Get the source of create_documentation_directives
-        from bengal.rendering.plugins.directives import create_documentation_directives
+        from bengal.directives import create_documentation_directives
 
         # Initialize the plugin (ensures registration code runs)
         create_documentation_directives()
@@ -174,10 +173,10 @@ class TestDirectiveModuleConsistency:
             TabSetDirective,
         ]
 
-        # Read the source code of __init__.py to verify directives are in the list
-        import bengal.rendering.plugins.directives as directives_init
+        # Read the source code of factory.py to verify directives are in the list
+        import bengal.directives.factory as factory_module
 
-        source = inspect.getsource(directives_init)
+        source = inspect.getsource(factory_module)
 
         # Check each directive class is instantiated in directives_list
         for directive_cls in directive_classes:

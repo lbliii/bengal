@@ -17,6 +17,7 @@ import pytest
 
 from bengal.core.section import Section
 from bengal.core.site import Site
+from bengal.utils.exceptions import BengalContentError
 from bengal.utils.url_strategy import URLStrategy
 
 
@@ -295,14 +296,14 @@ class TestURLStrategy:
         """Test error when path is not under output directory."""
         output_path = tmp_path / "other" / "page.html"
 
-        with pytest.raises(ValueError, match="not under output directory"):
+        with pytest.raises(BengalContentError, match="not under output directory"):
             url_strategy.url_from_output_path(output_path, mock_site)
 
     def test_url_from_output_path_outside_root(self, url_strategy, mock_site, tmp_path):
         """Test error when path is completely outside project."""
         output_path = Path("/tmp/external/page.html")
 
-        with pytest.raises(ValueError, match="not under output directory"):
+        with pytest.raises(BengalContentError, match="not under output directory"):
             url_strategy.url_from_output_path(output_path, mock_site)
 
     # =========================================================================

@@ -84,6 +84,34 @@ class MinimalStats:
     postprocess_time_ms: float = 0.0
     health_check_time_ms: float = 0.0
 
+    @property
+    def has_errors(self) -> bool:
+        """
+        Check if build has any errors.
+
+        MinimalStats doesn't track errors (subprocess builds report
+        success/failure via BuildResult.success), so this always
+        returns False for successfully completed subprocess builds.
+        """
+        return False
+
+    def get_error_summary(self) -> dict[str, Any]:
+        """
+        Get summary of all errors.
+
+        MinimalStats doesn't track errors, so this returns an empty
+        summary. Error handling for subprocess builds is done via
+        BuildResult.success and BuildResult.error_message.
+
+        Returns:
+            Dictionary with zero error/warning counts
+        """
+        return {
+            "total_errors": 0,
+            "total_warnings": 0,
+            "by_category": {},
+        }
+
     @classmethod
     def from_build_result(
         cls,

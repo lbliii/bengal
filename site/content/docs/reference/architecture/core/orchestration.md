@@ -232,13 +232,63 @@ Coordinates page rendering.
 :::
 
 :::{tab-item} Incremental
-**IncrementalOrchestrator** (`incremental.py`)
+**IncrementalOrchestrator** (`incremental/orchestrator.py`)
 
-The decision maker.
-- **Detects** file changes (SHA256)
-- **Queries** dependency graph
+The decision maker. Coordinates incremental build logic through specialized components.
+- **Component Delegation**: Uses CacheManager, ChangeDetector, and cleanup modules
+- **Detects** file changes (SHA256) via ChangeDetector
+- **Queries** dependency graph for affected pages
 - **Filters** work to minimal set
-- **Updates** cache on success
+- **Updates** cache on success via CacheManager
+- **Modular Structure**: Organized into `incremental/` package with focused modules
+:::
+
+:::{tab-item} Section
+**SectionOrchestrator** (`section.py`)
+
+Ensures section structure is valid.
+- **Validates** section hierarchy
+- **Ensures** sections have index pages
+- **Handles** section-level operations
+:::
+
+:::{tab-item} Taxonomy
+**TaxonomyOrchestrator** (`taxonomy.py`)
+
+Manages taxonomies and dynamic pages.
+- **Collects** tags and categories
+- **Generates** taxonomy pages
+- **Incremental-aware** processing
+- **Persists** taxonomy indexes
+:::
+
+:::{tab-item} Menu
+**MenuOrchestrator** (`menu.py`)
+
+Builds navigation menus.
+- **Constructs** hierarchical menus
+- **Marks** active items
+- **Integrates** config and frontmatter
+:::
+
+:::{tab-item} Asset
+**AssetOrchestrator** (`asset.py`)
+
+Processes static assets.
+- **Minifies** CSS/JS
+- **Optimizes** images
+- **Fingerprints** assets (cache busting)
+- **Copies** to output directory
+:::
+
+:::{tab-item} Postprocess
+**PostprocessOrchestrator** (`postprocess.py`)
+
+Post-build processing.
+- **Generates** sitemap.xml
+- **Generates** RSS feeds
+- **Validates** links
+- **Runs** health checks
 :::
 :::{/tab-set}
 

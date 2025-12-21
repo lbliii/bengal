@@ -495,7 +495,13 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    raise RuntimeError(f"Python extraction failed in strict mode: {e}") from e
+                    from bengal.utils.exceptions import BengalDiscoveryError
+
+                    raise BengalDiscoveryError(
+                        f"Python extraction failed in strict mode: {e}",
+                        suggestion="Fix Python source code issues or disable strict mode",
+                        original_error=e,
+                    ) from e
 
         # 2. Extract CLI documentation
         # Virtual pages are now the default (and only) option
@@ -532,7 +538,13 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    raise RuntimeError(f"CLI extraction failed in strict mode: {e}") from e
+                    from bengal.utils.exceptions import BengalDiscoveryError
+
+                    raise BengalDiscoveryError(
+                        f"CLI extraction failed in strict mode: {e}",
+                        suggestion="Fix CLI source code issues or disable strict mode",
+                        original_error=e,
+                    ) from e
 
         # 3. Extract OpenAPI documentation
         # Pass existing sections so OpenAPI can reuse "api" section if Python already created it
@@ -572,14 +584,23 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    raise RuntimeError(f"OpenAPI extraction failed in strict mode: {e}") from e
+                    from bengal.utils.exceptions import BengalDiscoveryError
+
+                    raise BengalDiscoveryError(
+                        f"OpenAPI extraction failed in strict mode: {e}",
+                        suggestion="Fix OpenAPI specification issues or disable strict mode",
+                        original_error=e,
+                    ) from e
 
         if not all_elements:
             logger.info("autodoc_no_elements_found")
             if strict_mode and result.failed_extract > 0:
-                raise RuntimeError(
+                from bengal.utils.exceptions import BengalDiscoveryError
+
+                raise BengalDiscoveryError(
                     f"Autodoc strict mode: {result.failed_extract} extraction failures, "
-                    f"no elements produced"
+                    f"no elements produced",
+                    suggestion="Fix extraction errors above or disable strict mode",
                 )
             return [], [], result
 
@@ -594,9 +615,12 @@ class VirtualAutodocOrchestrator:
 
         # Check strict mode after all processing
         if strict_mode and result.has_failures():
-            raise RuntimeError(
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            raise BengalDiscoveryError(
                 f"Autodoc strict mode: {result.failed_extract} extraction failures, "
-                f"{result.failed_render} rendering failures"
+                f"{result.failed_render} rendering failures",
+                suggestion="Fix extraction/rendering errors above or disable strict mode",
             )
 
         logger.info(
@@ -621,12 +645,13 @@ class VirtualAutodocOrchestrator:
         root_section_keys.update(aggregating_keys)
 
         # Then add individual type sections that aren't children of aggregating sections
+        # NOTE: Use default=True to match the generation logic above
         for doc_type, config in [
             ("python", self.python_config),
             ("openapi", self.openapi_config),
             ("cli", self.cli_config),
         ]:
-            if not config.get("enabled", False):
+            if not config.get("enabled", True):
                 continue
             prefix = self._resolve_output_prefix(doc_type)
             if prefix not in all_sections:

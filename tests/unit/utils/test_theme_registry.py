@@ -1,12 +1,13 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import bengal.core.theme.registry as theme_registry_module
+from bengal.core.theme import get_installed_themes, get_theme_package
+
 
 def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
     """Test theme discovery via entry points - mocked to avoid sys.path manipulation"""
     from importlib import metadata
-
-    import bengal.utils.theme_registry
 
     # Create a real directory structure for the mock to reference
     theme_root = tmp_path / "mock_theme"
@@ -52,7 +53,7 @@ def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
 
     # Mock ThemePackage constructor
     monkeypatch.setattr(
-        bengal.utils.theme_registry,
+        theme_registry_module,
         "ThemePackage",
         lambda slug, package, distribution, version: create_mock_pkg(
             slug, package, distribution, version
@@ -60,11 +61,11 @@ def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
     )
 
     # Test discovery
-    themes = bengal.utils.theme_registry.get_installed_themes()
+    themes = get_installed_themes()
     assert "acme" in themes
 
     # Test retrieval
-    pkginfo = bengal.utils.theme_registry.get_theme_package("acme")
+    pkginfo = get_theme_package("acme")
     assert pkginfo is not None
     assert pkginfo.package == "bengal_themes.acme"
 

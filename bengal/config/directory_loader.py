@@ -22,13 +22,18 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
+from bengal.utils.exceptions import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class ConfigLoadError(Exception):
-    """Raised when config loading fails."""
+class ConfigLoadError(BengalConfigError):
+    """
+    Raised when config loading fails.
+
+    Extends BengalConfigError for consistent error handling.
+    """
 
     pass
 
@@ -85,10 +90,18 @@ class ConfigDirectoryLoader:
             ConfigLoadError: If config loading fails
         """
         if not config_dir.exists():
-            raise ConfigLoadError(f"Config directory not found: {config_dir}")
+            raise ConfigLoadError(
+                f"Config directory not found: {config_dir}",
+                file_path=config_dir,
+                suggestion="Ensure config directory exists or run 'bengal init' to create site structure",
+            )
 
         if not config_dir.is_dir():
-            raise ConfigLoadError(f"Not a directory: {config_dir}")
+            raise ConfigLoadError(
+                f"Not a directory: {config_dir}",
+                file_path=config_dir,
+                suggestion="Ensure path points to a directory, not a file",
+            )
 
         # Initialize origin tracker if needed
         if self.track_origins:
@@ -104,7 +117,7 @@ class ConfigDirectoryLoader:
         # Layer 1: Base defaults from _default/
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
-            default_config = self._load_directory(defaults_dir, origin_prefix="_default")
+            default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
             config = deep_merge(config, default_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(default_config, "_default")
@@ -167,13 +180,13 @@ class ConfigDirectoryLoader:
 
             print_deprecation_warnings(self.deprecated_keys)
 
-    def _load_directory(self, directory: Path, origin_prefix: str = "") -> dict[str, Any]:
+    def _load_directory(self, directory: Path, _origin_prefix: str = "") -> dict[str, Any]:
         """
         Load all YAML files in directory and merge.
 
         Args:
             directory: Directory to load from
-            origin_prefix: Prefix for origin tracking
+            _origin_prefix: Reserved for future origin tracking (currently unused)
 
         Returns:
             Merged configuration from all files
@@ -187,6 +200,9 @@ class ConfigDirectoryLoader:
         # Load .yaml and .yml files in sorted order (deterministic)
         yaml_files = sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml"))
 
+        from bengal.utils.error_context import ErrorContext, enrich_error
+        from bengal.utils.exceptions import BengalConfigError
+
         for yaml_file in yaml_files:
             try:
                 file_config = self._load_yaml(yaml_file)
@@ -198,20 +214,36 @@ class ConfigDirectoryLoader:
                     keys=list(file_config.keys()),
                 )
             except ConfigLoadError:
-                # Re-raise config errors immediately
+                # Re-raise config errors immediately (critical)
                 raise
             except Exception as e:
+                # Enrich error with context for better error messages
+                context = ErrorContext(
+                    file_path=yaml_file,
+                    operation="loading config file",
+                    suggestion="Check YAML syntax and file encoding (must be UTF-8)",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalConfigError)
                 logger.warning(
                     "config_file_load_failed",
                     file=str(yaml_file),
-                    error=str(e),
+                    error=str(enriched),
+                    error_type=type(e).__name__,
                 )
-                errors.append((yaml_file, e))
+                errors.append((yaml_file, enriched))
 
-        # If any errors occurred, raise
+        # If any errors occurred, raise with better context
         if errors:
             error_msg = "; ".join([f"{f}: {e}" for f, e in errors])
-            raise ConfigLoadError(f"Failed to load config files: {error_msg}")
+            # Use first error's file path for context
+            first_file, first_error = errors[0]
+            raise ConfigLoadError(
+                message=f"Failed to load config files: {error_msg}",
+                file_path=first_file,
+                suggestion="Check YAML syntax and file encoding (must be UTF-8). Failed files were skipped.",
+                original_error=first_error if isinstance(first_error, Exception) else None,
+            )
 
         return config
 
@@ -289,9 +321,27 @@ class ConfigDirectoryLoader:
                 content = yaml.safe_load(f)
                 return content or {}
         except yaml.YAMLError as e:
-            raise ConfigLoadError(f"Invalid YAML in {path}: {e}") from e
+            # Extract line number from YAML error if available
+            line_number = getattr(e, "problem_mark", None)
+            if line_number and hasattr(line_number, "line"):
+                line_num = line_number.line + 1  # YAML line numbers are 0-based
+            else:
+                line_num = None
+
+            raise ConfigLoadError(
+                f"Invalid YAML in {path}: {e}",
+                file_path=path,
+                line_number=line_num,
+                suggestion="Check YAML syntax, indentation, and ensure all quotes are properly closed",
+                original_error=e,
+            ) from e
         except Exception as e:
-            raise ConfigLoadError(f"Failed to load {path}: {e}") from e
+            raise ConfigLoadError(
+                f"Failed to load {path}: {e}",
+                file_path=path,
+                suggestion="Check file permissions and encoding (must be UTF-8)",
+                original_error=e,
+            ) from e
 
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """

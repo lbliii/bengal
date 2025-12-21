@@ -124,7 +124,25 @@ def create_cli_sections(
     site: Site,
     resolve_output_prefix: callable,
 ) -> dict[str, Section]:
-    """Create CLI section hierarchy."""
+    """
+    Create CLI section hierarchy.
+
+    Creates sections for:
+    - /{prefix}/ (root CLI section, e.g., /cli/)
+    - /{prefix}/<group>/ (for each command group)
+    - /{prefix}/<group>/<subgroup>/ (nested command groups)
+
+    This mirrors the hierarchical approach used by create_python_sections(),
+    ensuring proper NavTree navigation with nested subsections.
+
+    Args:
+        elements: List of DocElements (commands and command-groups) to process
+        site: Site instance
+        resolve_output_prefix: Function to resolve output prefix for doc type
+
+    Returns:
+        Dictionary mapping section path to Section object
+    """
     sections: dict[str, Section] = {}
 
     # Resolve output prefix for CLI docs
@@ -165,29 +183,59 @@ def create_cli_sections(
             else:
                 standalone_commands.append(element)
 
-    # Create sections for command groups
-    for group_name, commands in command_groups.items():
-        if not commands:
+    # Create sections for ALL command groups with proper hierarchy
+    # Empty groups still need sections for navigation and index pages
+    for group_name in command_groups:
+        # Build URL path components (drops root command, e.g., "bengal.utils" → "utils")
+        group_path = resolve_cli_url_path(group_name)
+
+        # Skip the root command group (e.g., "bengal") - its section is already
+        # created above as cli_section. Otherwise we'd overwrite it and lose subsections.
+        if not group_path:
             continue
 
-        # Build URL path components
-        group_path = resolve_cli_url_path(group_name)
-        section_path = f"{prefix}/{group_path}" if group_path else prefix
-        group_parts = group_path.split("/") if group_path else []
+        # Split into path parts for hierarchical section creation
+        # e.g., "utils/assets" → ["utils", "assets"]
+        group_parts = group_path.split("/")
 
-        group_section = Section.create_virtual(
-            name=group_name.split(".")[-1],
-            relative_url=join_url_paths(prefix, *group_parts),
-            title=group_name.split(".")[-1].replace("_", " ").title(),
-            metadata={
-                "type": "autodoc-cli",
-                "qualified_name": group_name,
-            },
-        )
-        cli_section.add_subsection(group_section)
-        sections[section_path] = group_section
+        # Walk down the hierarchy, creating intermediate sections as needed
+        # This ensures e.g., /cli/utils/ exists before /cli/utils/assets/
+        current_section = cli_section
+        section_path = prefix
 
-    logger.debug("autodoc_sections_created", count=len(sections), type="cli")
+        for i, part in enumerate(group_parts):
+            section_path = f"{section_path}/{part}"
+
+            if section_path not in sections:
+                # Build qualified name for this level
+                # Original qualified_name is like "bengal.utils.assets"
+                # We need to reconstruct partial qualified names for intermediate levels
+                group_name_parts = group_name.split(".")
+                # Find how many parts from the original name correspond to this level
+                # group_path has i+1 parts at this point, plus 1 for the root we skipped
+                partial_qualified_name = ".".join(group_name_parts[: i + 2])
+
+                group_section = Section.create_virtual(
+                    name=part,
+                    relative_url=join_url_paths(prefix, *group_parts[: i + 1]),
+                    title=part.replace("_", " ").title(),
+                    metadata={
+                        "type": "autodoc-cli",
+                        "qualified_name": partial_qualified_name,
+                    },
+                )
+                current_section.add_subsection(group_section)
+                sections[section_path] = group_section
+                current_section = group_section
+            else:
+                current_section = sections[section_path]
+
+    logger.debug(
+        "autodoc_sections_created",
+        count=len(sections),
+        type="cli",
+        subsection_count=len(cli_section.subsections),
+    )
     return sections
 
 
@@ -195,11 +243,11 @@ def create_openapi_sections(
     elements: list[DocElement],
     site: Site,
     resolve_output_prefix: callable,
-    existing_sections: dict[str, Section] | None = None,
+    _existing_sections: dict[str, Section] | None = None,
 ) -> dict[str, Section]:
     """Create OpenAPI section hierarchy."""
     sections: dict[str, Section] = {}
-    # Note: existing_sections parameter kept for API compatibility but no longer used
+    # Note: _existing_sections parameter kept for API compatibility but no longer used
     # Each autodoc type now creates its own distinct section tree
 
     # Resolve output prefix for OpenAPI docs

@@ -151,6 +151,28 @@ class SpecialPagesGenerator:
 
             # Write to output directory only if content changed (avoid churn)
             output_path = self.site.output_dir / "404.html"
+
+            # Claim URL in registry before writing (claim-before-write pattern)
+            # Priority 10 = special pages (fallback utility pages)
+            if hasattr(self.site, "url_registry") and self.site.url_registry:
+                try:
+                    self.site.url_registry.claim_output_path(
+                        output_path=output_path,
+                        site=self.site,
+                        owner="special_pages",
+                        source="404.html",
+                        priority=10,  # Special pages
+                    )
+                except Exception as e:
+                    # Registry rejected claim (higher priority content exists)
+                    logger.debug(
+                        "special_page_conflict",
+                        page="404",
+                        reason=f"URL already claimed by higher priority content: {e}",
+                        action="skipping_generation",
+                    )
+                    return False
+
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             try:
@@ -208,14 +230,6 @@ class SpecialPagesGenerator:
             if not raw_path.endswith("/"):
                 raw_path = raw_path + "/"
 
-            # If a user-authored page exists (content/search.md or matching slug), skip generation
-            # Basic check: common override file at content/search.md
-            content_dir = getattr(self.site, "content_dir", None)
-            if content_dir:
-                user_search_md = content_dir / "search.md"
-                if user_search_md.exists():
-                    return False
-
             from bengal.rendering.engines import create_engine
 
             # Get template engine (reuse site's if available)
@@ -266,6 +280,28 @@ class SpecialPagesGenerator:
             # Determine output path: /search/index.html by default
             # raw_path always ends with '/'
             output_path = self.site.output_dir / raw_path.strip("/") / "index.html"
+
+            # Claim URL in registry before writing (claim-before-write pattern)
+            # Priority 10 = special pages (fallback utility pages)
+            if hasattr(self.site, "url_registry") and self.site.url_registry:
+                try:
+                    self.site.url_registry.claim_output_path(
+                        output_path=output_path,
+                        site=self.site,
+                        owner="special_pages",
+                        source="search.html",
+                        priority=10,  # Special pages
+                    )
+                except Exception as e:
+                    # Registry rejected claim (higher priority content exists, e.g., user content)
+                    logger.debug(
+                        "special_page_conflict",
+                        page="search",
+                        reason=f"URL already claimed by higher priority content: {e}",
+                        action="skipping_generation",
+                    )
+                    return False
+
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(rendered_html)
@@ -313,13 +349,6 @@ class SpecialPagesGenerator:
             if not raw_path.endswith("/"):
                 raw_path = raw_path + "/"
 
-            # If a user-authored page exists (content/graph.md or matching slug), skip generation
-            content_dir = getattr(self.site, "content_dir", None)
-            if content_dir:
-                user_graph_md = content_dir / "graph.md"
-                if user_graph_md.exists():
-                    return False
-
             # Try to get cached graph from build context first
             from bengal.analysis.graph_visualizer import GraphVisualizer
 
@@ -345,6 +374,28 @@ class SpecialPagesGenerator:
             # Determine output path: /graph/index.html by default
             # raw_path always ends with '/'
             output_path = self.site.output_dir / raw_path.strip("/") / "index.html"
+
+            # Claim URL in registry before writing (claim-before-write pattern)
+            # Priority 10 = special pages (fallback utility pages)
+            if hasattr(self.site, "url_registry") and self.site.url_registry:
+                try:
+                    self.site.url_registry.claim_output_path(
+                        output_path=output_path,
+                        site=self.site,
+                        owner="special_pages",
+                        source="graph.html",
+                        priority=10,  # Special pages
+                    )
+                except Exception as e:
+                    # Registry rejected claim (higher priority content exists, e.g., user content)
+                    logger.debug(
+                        "special_page_conflict",
+                        page="graph",
+                        reason=f"URL already claimed by higher priority content: {e}",
+                        action="skipping_generation",
+                    )
+                    return False
+
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(html, encoding="utf-8")
 

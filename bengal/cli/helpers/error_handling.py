@@ -9,7 +9,7 @@ from typing import Any, TypeVar
 
 import click
 
-from bengal.utils.build_stats import show_error
+from bengal.orchestration.stats import show_error
 from bengal.utils.traceback_config import TracebackConfig
 
 F = TypeVar("F", bound=Callable[..., Any])

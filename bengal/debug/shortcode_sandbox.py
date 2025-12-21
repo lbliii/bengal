@@ -141,7 +141,7 @@ class ShortcodeSandbox(DebugTool):
     def _get_known_directives(self) -> frozenset[str]:
         """Get set of known directive names."""
         if self._known_directives is None:
-            from bengal.rendering.plugins.directives import KNOWN_DIRECTIVE_NAMES
+            from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
             self._known_directives = KNOWN_DIRECTIVE_NAMES
         return self._known_directives
@@ -437,11 +437,8 @@ class ShortcodeSandbox(DebugTool):
             result = self.render(content)
 
             # Check expected output if provided
-            if expected and result.success:
-                if expected not in result.html:
-                    result.warnings.append(
-                        f"Expected content not found in output: {expected[:50]}..."
-                    )
+            if expected and result.success and expected not in result.html:
+                result.warnings.append(f"Expected content not found in output: {expected[:50]}...")
 
             results.append(result)
 
@@ -454,7 +451,7 @@ class ShortcodeSandbox(DebugTool):
         Returns:
             List of directive info dicts
         """
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         directives: list[dict[str, str]] = []
         for cls in DIRECTIVE_CLASSES:
@@ -486,7 +483,7 @@ class ShortcodeSandbox(DebugTool):
         Returns:
             Help text or None if not found
         """
-        from bengal.rendering.plugins.directives import DIRECTIVE_CLASSES
+        from bengal.directives import DIRECTIVE_CLASSES
 
         for cls in DIRECTIVE_CLASSES:
             names = getattr(cls, "DIRECTIVE_NAMES", [])

@@ -276,7 +276,7 @@ class ContentMigrator(DebugTool):
                         LinkUpdate(
                             file_path=page_path,
                             old_link=link_target,
-                            new_link=self._update_link(link_target, source_url, dest_url),
+                            new_link=self._update_link(link_target, dest_url),
                             line=line,
                             context=match.group(0),
                         )
@@ -658,7 +658,7 @@ class ContentMigrator(DebugTool):
 
         return link_normalized == target_normalized
 
-    def _update_link(self, old_link: str, old_url: str, new_url: str) -> str:
+    def _update_link(self, old_link: str, new_url: str) -> str:
         """Update a link to point to new location."""
         # Preserve any anchors or query params
         if "#" in old_link:

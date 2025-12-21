@@ -255,8 +255,8 @@ Example:
         <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
         {% elif item.type == 'related' %}
         <span class="content-tile-badge">Related</span>
-        {% elif item.date %}
-        <span>{{ item.date | time_ago }}</span>
+        {% elif 'date' in item and item['date'] %}
+        <span>{{ item['date'] | time_ago }}</span>
         {% endif %}
       </div>
     </article>
@@ -309,8 +309,8 @@ Example:
             <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
             {% elif item.type == 'related' %}
             <span class="meta-item content-tile-badge">Related</span>
-            {% elif item.date %}
-            <span class="meta-item">{{ item.date | time_ago }}</span>
+            {% elif 'date' in item and item['date'] %}
+            <span class="meta-item">{{ item['date'] | time_ago }}</span>
             {% endif %}
           </span>
         </span>

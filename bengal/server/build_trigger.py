@@ -28,11 +28,11 @@ from typing import Any
 
 import yaml
 
+from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
+from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
-from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
-from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 from bengal.utils.stats_minimal import MinimalStats
 
@@ -390,7 +390,7 @@ class BuildTrigger:
         if needs_full_rebuild:
             return set()
 
-        from bengal.utils.incremental_constants import NAV_AFFECTING_KEYS
+        from bengal.orchestration.constants import NAV_AFFECTING_KEYS
 
         nav_changed: set[Path] = set()
 
@@ -556,13 +556,17 @@ class BuildTrigger:
             logger.debug("build_state_signal_failed", error=str(e))
 
     def _clear_html_cache(self) -> None:
-        """Clear HTML cache after rebuild."""
+        """Clear HTML and Site caches after rebuild."""
         try:
             from bengal.server.request_handler import BengalRequestHandler
 
+            # Clear HTML injection cache
             with BengalRequestHandler._html_cache_lock:
                 cache_size = len(BengalRequestHandler._html_cache)
                 BengalRequestHandler._html_cache.clear()
+
+            # Clear static Site cache (component preview)
+            BengalRequestHandler.clear_cached_site()
 
             if cache_size > 0:
                 logger.debug("html_cache_cleared", entries=cache_size)

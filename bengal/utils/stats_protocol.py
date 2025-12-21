@@ -75,6 +75,10 @@ class DisplayableStats(CoreStats, Protocol):
         assets_time_ms: Asset processing phase duration
         postprocess_time_ms: Post-processing phase duration
         health_check_time_ms: Health check phase duration
+
+    Methods:
+        has_errors: Property that returns True if build has errors
+        get_error_summary: Returns dict with error/warning counts
     """
 
     # Core counts
@@ -100,3 +104,13 @@ class DisplayableStats(CoreStats, Protocol):
     assets_time_ms: float
     postprocess_time_ms: float
     health_check_time_ms: float
+
+    # Error tracking
+    @property
+    def has_errors(self) -> bool:
+        """Check if build has any errors."""
+        ...
+
+    def get_error_summary(self) -> dict[str, Any]:
+        """Get summary of all errors."""
+        ...

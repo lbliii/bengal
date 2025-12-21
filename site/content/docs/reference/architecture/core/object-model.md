@@ -1,39 +1,28 @@
 ---
 title: Object Model
-description: Site, Page, Section, and Asset data models
+description: Site, Page, Section, and Asset data models.
 weight: 10
 category: core
-tags:
-- core
-- data-models
-- object-model
-- site
-- page
-- section
-- asset
-- menu
-keywords:
-- object model
-- data models
-- site
-- page
-- section
-- asset
-- menu
-- relationships
+tags: [core, data-models, object-model, site, page, section, asset, menu]
+keywords: [object model, data models, site, page, section, asset, menu, relationships]
 ---
 
 # Object Model
 
-Bengal's object model provides a rich, hierarchical representation of site content with clear relationships and responsibilities.
+Bengal’s object model defines how `Site`, `Page`, `Section`, `Asset`, and `Menu` relate, and where cacheable metadata lives (`PageCore`).
+
+## Read this first
+
+- **If you want the object graph**: start with “Core Objects”, then “Object Model Relationships”.
+- **If you want the cache contract**: start with “PageCore” (and refer to `bengal/core/page/page_core.py`).
 
 ## Core Objects
 
-:::{tab-set}
+::::{tab-set}
 :::{tab-item} Site
-**Central Data Container** (`bengal/core/site.py`)
+**Central data container** (`bengal/core/site/`)
 
-Holds all site content and delegates build coordination. It is a passive data container, not a "God object".
+Holds all site content and delegates build coordination to orchestrators.
 
 **Key Attributes:**
 - `pages`: List of all Page objects
@@ -82,7 +71,7 @@ Represents folder-based grouping of pages with hierarchical organization.
 :::
 
 :::{tab-item} Asset
-**Static Resource** (`bengal/core/asset/`)
+**Static Resource** (`bengal/core/asset.py`)
 
 Handles static files (images, CSS, JS) with optimization.
 
@@ -102,116 +91,30 @@ Provides hierarchical navigation menus built from config + frontmatter.
 - `MenuItem`: Nested item with active state
 - `MenuBuilder`: Constructs hierarchy and marks active items
 :::
-:::{/tab-set}
+::::
 
-## PageCore Architecture (Implemented in 0.1.4)
+## PageCore
 
-Bengal uses the **PageCore composition pattern** to enforce cache-proxy contract safety and enable fast incremental builds.
+`PageCore` is the single cacheable metadata structure shared by:
 
-### The Problem It Solves
+- **`Page`**: via `page.core` and property delegates
+- **`PageMetadata`**: a type alias of `PageCore` used by caches
+- **`PageProxy`**: wraps `PageCore` and lazy-loads only non-core fields
 
-To enable incremental builds, we cache page metadata and lazy-load full content only when needed. Previously, this required manually keeping three representations in sync:
-- `Page` (live object with full content)
-- `PageMetadata` (cached metadata for navigation)
-- `PageProxy` (lazy-loading wrapper)
+Refer to:
+- `bengal/core/page/page_core.py`
+- `bengal/cache/page_discovery_cache.py`
+- `bengal/core/page/proxy.py`
 
-**Risk**: Forgetting to update one representation caused cache bugs.
+::::{dropdown} Contributor notes: adding fields and deciding what belongs in PageCore
+When you add a cacheable field:
 
-### The Solution: PageCore
+1. Add it to `PageCore` (`bengal/core/page/page_core.py`)
+2. Add a property delegate to `Page` (`bengal/core/page/__init__.py`)
+3. Add a property delegate to `PageProxy` (`bengal/core/page/proxy.py`)
 
-`PageCore` is the **single source of truth** for all cacheable page metadata. Any field added to `PageCore` automatically becomes available in all three representations.
-
-```python
-@dataclass
-class PageCore(Cacheable):
-    """Cacheable page metadata shared between Page, PageMetadata, and PageProxy."""
-    source_path: str  # String, not Path (JSON compatibility)
-    title: str
-    date: datetime | None = None
-    tags: list[str] = field(default_factory=list)
-    slug: str | None = None
-    weight: int | None = None
-    type: str | None = None
-    section: str | None = None  # Path as string (stable reference)
-    file_hash: str | None = None
-```
-
-### Architecture
-
-```python
-# Composition: Page contains PageCore
-class Page:
-    core: PageCore  # Cacheable metadata
-    content: str    # Non-cacheable (requires parsing)
-    rendered_html: str  # Build artifact
-
-    @property
-    def title(self) -> str:
-        return self.core.title  # Property delegate
-
-# Type alias: PageMetadata IS PageCore
-PageMetadata = PageCore
-
-# Wrapper: PageProxy wraps PageCore
-class PageProxy:
-    _core: PageCore  # Direct access, no lazy load needed
-
-    @property
-    def title(self) -> str:
-        return self._core.title  # Direct from core
-```
-
-### Benefits
-
-1. **Type Safety**: Compiler enforces all three representations stay in sync
-2. **Simplified Caching**: `asdict(page.core)` serializes all cacheable fields
-3. **Performance**: Core fields accessible without lazy loading
-4. **Maintainability**: Adding new field requires only 3 changes (PageCore + 2 property delegates)
-
-### Adding New Cacheable Fields
-
-When adding a new cacheable field, update three locations:
-
-1. **Add to PageCore** (`bengal/core/page/page_core.py`):
-```python
-@dataclass
-class PageCore(Cacheable):
-    # ... existing fields ...
-    author: str | None = None  # NEW
-```
-
-2. **Add property delegate to Page** (`bengal/core/page/__init__.py`):
-```python
-@property
-def author(self) -> str | None:
-    return self.core.author
-```
-
-3. **Add property delegate to PageProxy** (`bengal/core/page/proxy.py`):
-```python
-@property
-def author(self) -> str | None:
-    return self._core.author
-```
-
-That's it! The field is now available in Page, PageMetadata, and PageProxy. The compiler will catch any missing implementations.
-
-### What Goes in PageCore?
-
-**✅ DO Include If:**
-- Field comes from frontmatter (title, date, tags, slug, etc.)
-- Field is computed without full content parsing (URL path components)
-- Field needs to be accessible in templates without lazy loading
-- Field is cascaded from section `_index.md` (type, layout, etc.)
-- Field is used for navigation (section reference as path)
-
-**❌ DO NOT Include If:**
-- Field requires full content parsing (toc, excerpt, meta_description)
-- Field is a build artifact (output_path, links, rendered_html)
-- Field changes every build (timestamp, render_time)
-- Field is computed from other non-cacheable fields
-
-See: `bengal/core/page/page_core.py` for implementation details.
+Include fields that are stable, JSON-serializable, and useful without full content parsing. Keep build artifacts and parsed-content-derived fields out of `PageCore`.
+::::
 
 ## Stable Section References
 
@@ -241,10 +144,8 @@ class Site:
 
 - Sections stored as path strings in `PageCore.section` (not Section objects)
 - Registry built during `Site.register_sections()`
-- Dev server forces full rebuild on file create/delete/move to preserve relationships
-- Performance regression tests validate no slowdown (`tests/integration/test_full_build_performance.py`)
 
-See: `bengal/core/site.py` for implementation details.
+Refer to `bengal/core/site/section_registry.py` for the registry implementation.
 
 ## Object Model Relationships
 
@@ -298,74 +199,104 @@ classDiagram
     }
 ```
 
-## Object Tree Access in Directives
+## URL Ownership
 
-As of v0.1.5, the object tree is directly accessible to MyST directives during markdown parsing. This enables powerful navigation directives like `{child-cards}`, `{breadcrumbs}`, `{siblings}`, and `{prev-next}`.
+Bengal uses a **URL ownership system** with claim-time enforcement to prevent URL collisions and ensure explicit ownership policy across all content producers.
 
-### How It Works
+### URLRegistry
 
-During markdown rendering, the `MistuneParser` sets `renderer._current_page` to the page being rendered:
+The `URLRegistry` on `Site` is the central authority for URL claims. It enforces ownership at claim time (before file writes), preventing invalid states from being created.
 
+**Key Features**:
+- **Claim-time enforcement**: URLs are claimed before any file is written
+- **Priority-based resolution**: Higher priority claims win conflicts
+- **Ownership context**: All claims include owner, source, and priority metadata
+- **Incremental safety**: Claims are cached and loaded for incremental builds
+
+**Usage**:
 ```python
-# In MistuneParser.parse_with_context
-self._shared_renderer._current_page = current_page
+# Claim a URL (done automatically by orchestrators)
+site.url_registry.claim(
+    url="/about/",
+    owner="content",
+    source="content/about.md",
+    priority=100,  # User content (highest priority)
+)
+
+# Claim via output path (for direct file writers)
+url = site.url_registry.claim_output_path(
+    output_path=Path("public/about/index.html"),
+    site=site,
+    owner="content",
+    source="content/about.md",
+    priority=100,
+)
 ```
 
-Directives can then access the full object tree:
+### Priority Levels
 
-```python
-# In a directive
-current_page = getattr(renderer, "_current_page", None)
-if current_page:
-    section = current_page._section  # Parent section
-    subsections = section.subsections  # Child sections
-    pages = section.pages  # Sibling pages
+URL claims use priority levels to resolve conflicts:
+
+| Priority | Owner | Rationale |
+|----------|-------|-----------|
+| 100 | User content | User intent always wins |
+| 90 | Autodoc sections | Explicitly configured by user |
+| 80 | Autodoc pages | Derived from sections |
+| 50 | Section indexes | Structural authority |
+| 40 | Taxonomy | Auto-generated |
+| 10 | Special pages | Fallback utility pages |
+| 5 | Redirects | Should never shadow actual content |
+
+**Conflict Resolution**:
+- Higher priority wins (user content can override generated content)
+- Same priority + same source = idempotent (allowed)
+- Same priority + different source = collision error
+
+### Reserved Namespaces
+
+Certain URL namespaces are reserved for specific generators:
+
+- `/tags/` - Reserved for taxonomy (priority 40)
+- `/search/`, `/404.html`, `/graph/` - Reserved for special pages (priority 10)
+- Autodoc prefixes (e.g., `/cli/`, `/api/python/`) - Reserved for autodoc output (priority 90/80)
+
+The `OwnershipPolicyValidator` warns when user content lands in reserved namespaces.
+
+### Integration Points
+
+URLRegistry is integrated across all content producers:
+
+- **ContentDiscovery**: Claims URLs for user content (priority 100)
+- **SectionOrchestrator**: Claims section index URLs (priority 50)
+- **TaxonomyOrchestrator**: Claims taxonomy URLs (priority 40)
+- **AutodocOrchestrator**: Claims autodoc URLs (priority 90/80)
+- **RedirectGenerator**: Claims redirect URLs (priority 5)
+- **SpecialPagesGenerator**: Claims special page URLs (priority 10)
+
+### Incremental Build Safety
+
+URL claims are persisted in `BuildCache` and loaded during incremental builds. This prevents new content from shadowing existing URLs that weren't rebuilt in the current build.
+
+**Cache Integration**:
+- Claims are saved to `BuildCache.url_claims` after build completes
+- Cached claims are loaded during discovery phase for incremental builds
+- Registry is pre-populated with claims from pages not being rebuilt
+
+### Error Handling
+
+When a collision is detected, `URLCollisionError` is raised with diagnostic information:
+
+```
+URL collision detected: /about/
+  Existing claim: content (priority 100)
+    Source: content/about.md
+  New claim: taxonomy (priority 40)
+    Source: tags/about
+  Priority: Existing claim has higher priority (100 > 40) - new claim rejected
+  Tip: Check for duplicate slugs, conflicting autodoc output, or namespace violations
 ```
 
-### Performance Characteristics
+### See Also
 
-| Access Pattern | Complexity | Notes |
-|---------------|------------|-------|
-| `page._section` | O(1) | Direct reference |
-| `section.subsections` | O(1) | Pre-computed list |
-| `section.pages` | O(1) | Pre-computed list |
-| `page.ancestors` | O(depth) | Walks up tree |
-| `page.related_posts` | O(n) | Tag matching |
-
-### Available on Page Object
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `_section` | Section | Parent section |
-| `metadata` | dict | Frontmatter values |
-| `title` | str | Page title |
-| `url` | str | Page URL |
-| `ancestors` | list | Parent sections to root |
-| `prev_in_section` | Page | Previous page |
-| `next_in_section` | Page | Next page |
-| `related_posts` | list | Pages with matching tags |
-
-### Available on Section Object
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `name` | str | Section name |
-| `index_page` | Page | Section's `_index.md` |
-| `pages` | list | Direct child pages |
-| `subsections` | list | Child sections |
-| `sorted_pages` | list | Pages sorted by weight/date |
-
-### Writer Usage
-
-Writers use navigation directives in markdown without knowing the implementation:
-
-```markdown
-:::{child-cards}
-:columns: 2
-:include: sections
-:::
-```
-
-The directive walks `page._section.subsections` to generate cards automatically.
-
-See [Navigation Directives](/docs/reference/directives/navigation/) for full reference.
+- `bengal/core/url_ownership.py` - URLRegistry implementation
+- `bengal/config/url_policy.py` - Reserved namespace definitions

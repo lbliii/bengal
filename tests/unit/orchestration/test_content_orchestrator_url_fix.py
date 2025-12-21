@@ -243,8 +243,8 @@ class TestContentOrchestratorOutputPathSetting:
         # Save original output paths
         original_paths = {page.source_path: page.output_path for page in test_site.pages}
 
-        # Call _set_output_paths again (shouldn't change anything)
-        orchestrator._set_output_paths()
+        # Call _set_output_paths again via site (shouldn't change anything)
+        test_site._set_output_paths()
 
         # Verify paths unchanged
         for page in test_site.pages:

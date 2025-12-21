@@ -1,3 +1,20 @@
+## [Unreleased]
+
+### Navigation Tree Architecture ✅
+- **core(nav_tree)**: add `NavTree` - pre-computed, cached navigation structure for O(1) template access
+- **core(nav_tree)**: add `NavNode` - memory-efficient navigation node with dict-like Jinja access (~200 bytes per node)
+- **core(nav_tree)**: add `NavTreeCache` - thread-safe per-version caching with site-level invalidation
+- **core(nav_tree)**: add `NavTreeContext` - per-page active trail overlay preserving cache immutability
+- **rendering(nav)**: refactor `get_nav_tree()` to delegate to `NavTreeCache`; preserve backward compatibility
+- **themes(docs)**: simplify `docs-nav.html` from 161 to ~50 lines using NavTree API
+- **rendering(nav)**: deprecate `NavTreeItem` in favor of `core.NavNode` (scheduled removal in v2.0)
+- **orchestration(incremental)**: invalidate `NavTreeCache` on structural changes
+- **tests(nav)**: add 26 unit tests for NavNode, NavTree, NavTreeContext, NavTreeCache
+- **tests(nav)**: add 9 integration tests for versioned site navigation
+- **perf(nav)**: add NavTree benchmarks; verify O(1) cache lookup (~232ns) and <1ms render overhead (~83μs)
+- **docs(architecture)**: add NavTree to object model documentation
+- **docs(themes)**: add NavTree migration guide for custom themes
+
 ## 0.1.5-rc1 - 2025-12-10
 
 ### Page Hero Template Separation ✅

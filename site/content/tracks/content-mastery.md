@@ -2,7 +2,6 @@
 title: Content Author Mastery
 nav_title: Content Mastery
 description: Master advanced Markdown features, directives, and content reuse.
-layout: tracks/single
 track_id: content-mastery
 ---
 

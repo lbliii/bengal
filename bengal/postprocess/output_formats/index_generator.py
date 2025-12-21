@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
@@ -62,16 +63,40 @@ class SiteIndexGenerator:
         self.json_indent = json_indent
         self.include_full_content = include_full_content
 
-    def generate(self, pages: list[Page]) -> Path:
+    def generate(self, pages: list[Page]) -> Path | list[Path]:
         """
         Generate site-wide index.json.
+
+        When versioning is enabled, generates per-version indexes:
+        - Latest version: output_dir/index.json
+        - Older versions: output_dir/docs/v1/index.json, etc.
 
         Args:
             pages: List of pages to include
 
         Returns:
-            Path to the generated index.json file
+            Path to the generated index.json file (single index)
+            or list of Paths (per-version indexes)
         """
+        # Check if versioning is enabled
+        versioning_enabled = getattr(self.site, "versioning_enabled", False)
+
+        if not versioning_enabled:
+            # Single index (unchanged behavior)
+            return self._generate_single_index(pages)
+
+        # Per-version indexes
+        generated = []
+        by_version = self._group_by_version(pages)
+
+        for version_id, version_pages in by_version.items():
+            path = self._generate_version_index(version_id, version_pages)
+            generated.append(path)
+
+        return generated
+
+    def _generate_single_index(self, pages: list[Page]) -> Path:
+        """Generate single index.json (original behavior)."""
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
@@ -136,6 +161,94 @@ class SiteIndexGenerator:
         )
 
         return index_path
+
+    def _generate_version_index(self, version_id: str | None, pages: list[Page]) -> Path:
+        """Generate index for a specific version."""
+        logger.debug(
+            "generating_version_index",
+            version_id=version_id or "latest",
+            page_count=len(pages),
+        )
+
+        # Build site metadata
+        site_metadata = {
+            "title": self.site.config.get("title", "Bengal Site"),
+            "description": self.site.config.get("description", ""),
+            "baseurl": self.site.config.get("baseurl", ""),
+        }
+
+        # Only include build_time in production builds
+        if not self.site.dev_mode:
+            site_metadata["build_time"] = datetime.now().isoformat()
+
+        site_data: dict[str, Any] = {
+            "site": site_metadata,
+            "pages": [],
+            "sections": {},
+            "tags": {},
+        }
+
+        # Add each page (summary only, no full content)
+        for page in pages:
+            page_summary = self.page_to_summary(page)
+            site_data["pages"].append(page_summary)
+
+            # Count sections
+            section = page_summary.get("section", "")
+            if section:
+                site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
+
+            # Count tags
+            for tag in page_summary.get("tags", []):
+                site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
+
+        # Convert counts to lists
+        site_data["sections"] = [
+            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
+        ]
+        site_data["tags"] = [
+            {"name": name, "count": count}
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
+        ]
+
+        # Determine output path
+        if version_id is None or self._is_latest_version(version_id):
+            # Latest version: output_dir/index.json
+            index_path = self._get_index_path()
+        else:
+            # Older version: output_dir/docs/v1/index.json
+            index_path = self.site.output_dir / "docs" / version_id / "index.json"
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write only if content changed
+        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False)
+        self._write_if_changed(index_path, new_json_str)
+
+        logger.debug(
+            "version_index_json_written",
+            version_id=version_id or "latest",
+            path=str(index_path),
+            size_kb=index_path.stat().st_size / 1024,
+        )
+
+        return index_path
+
+    def _group_by_version(self, pages: list[Page]) -> dict[str | None, list[Page]]:
+        """Group pages by version ID (None for unversioned)."""
+        by_version: dict[str | None, list[Page]] = {}
+        for page in pages:
+            version = getattr(page, "version", None)
+            by_version.setdefault(version, []).append(page)
+        return by_version
+
+    def _is_latest_version(self, version_id: str) -> bool:
+        """Check if version_id is the latest version."""
+        if not hasattr(self.site, "version_config") or not self.site.version_config:
+            return True
+        if not self.site.version_config.enabled:
+            return True
+        version = self.site.version_config.get_version(version_id)
+        return version is not None and version.latest
 
     def _get_index_path(self) -> Path:
         """Get the output path for index.json, handling i18n prefixes."""
@@ -253,31 +366,71 @@ class SiteIndexGenerator:
         if is_autodoc_page(page):
             summary["isAutodoc"] = True
 
+        # Version field for version-scoped search
+        if hasattr(page, "version") and page.version:
+            summary["version"] = page.version
+
         return summary
 
+    def _is_json_serializable(self, value: Any) -> bool:
+        """Check if value is JSON serializable (excluding Mock objects)."""
+        if isinstance(value, Mock):
+            return False
+        try:
+            json.dumps(value)
+            return True
+        except (TypeError, ValueError):
+            return False
+
+    def _safe_get_metadata_value(self, metadata: dict[str, Any], key: str) -> Any | None:
+        """Safely get metadata value, ensuring it's JSON-serializable."""
+        value = metadata.get(key)
+        if value is None:
+            return None
+        # Filter out Mock objects and non-serializable values
+        if isinstance(value, Mock):
+            return None
+        if isinstance(value, (list, tuple)):
+            # Filter out Mock objects from lists
+            filtered = [
+                v for v in value if not isinstance(v, Mock) and self._is_json_serializable(v)
+            ]
+            return filtered if filtered else None
+        if isinstance(value, dict):
+            # Recursively filter dict values
+            filtered = {
+                k: v
+                for k, v in value.items()
+                if not isinstance(v, Mock) and self._is_json_serializable(v)
+            }
+            return filtered if filtered else None
+        if self._is_json_serializable(value):
+            return value
+        return None
+
     def _add_enhanced_metadata(self, summary: dict[str, Any], metadata: dict[str, Any]) -> None:
-        """Add enhanced metadata fields to summary."""
+        """Add enhanced metadata fields to summary, ensuring JSON serializability."""
         # Content type and layout
-        if metadata.get("type"):
-            summary["type"] = metadata["type"]
-        if metadata.get("layout"):
-            summary["layout"] = metadata["layout"]
+        if value := self._safe_get_metadata_value(metadata, "type"):
+            summary["type"] = value
+        if value := self._safe_get_metadata_value(metadata, "layout"):
+            summary["layout"] = value
 
         # Authorship
-        if metadata.get("author"):
-            summary["author"] = metadata["author"]
-        if metadata.get("authors"):
-            summary["authors"] = metadata["authors"]
+        if value := self._safe_get_metadata_value(metadata, "author"):
+            summary["author"] = value
+        if value := self._safe_get_metadata_value(metadata, "authors"):
+            summary["authors"] = value
 
         # Categories
-        if metadata.get("category"):
-            summary["category"] = metadata["category"]
-        if metadata.get("categories"):
-            summary["categories"] = metadata["categories"]
+        if value := self._safe_get_metadata_value(metadata, "category"):
+            summary["category"] = value
+        if value := self._safe_get_metadata_value(metadata, "categories"):
+            summary["categories"] = value
 
         # Weight for sorting
-        if metadata.get("weight") is not None:
-            summary["weight"] = metadata["weight"]
+        if value := self._safe_get_metadata_value(metadata, "weight"):
+            summary["weight"] = value
 
         # Status flags
         if metadata.get("draft"):
@@ -286,43 +439,42 @@ class SiteIndexGenerator:
             summary["featured"] = True
 
         # Search-specific
-        if metadata.get("search_keywords"):
-            summary["search_keywords"] = metadata["search_keywords"]
+        if value := self._safe_get_metadata_value(metadata, "search_keywords"):
+            summary["search_keywords"] = value
         if metadata.get("search_exclude"):
             summary["search_exclude"] = True
 
         # Visibility system integration
         # Check hidden frontmatter or visibility.search setting
+        visibility = self._safe_get_metadata_value(metadata, "visibility")
         if metadata.get("hidden", False) or (
-            isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True)
+            isinstance(visibility, dict) and not visibility.get("search", True)
         ):
             summary["search_exclude"] = True
 
         # API/CLI specific
-        if metadata.get("cli_name"):
-            summary["cli_name"] = metadata["cli_name"]
-        if metadata.get("api_module"):
-            summary["api_module"] = metadata["api_module"]
+        if value := self._safe_get_metadata_value(metadata, "cli_name"):
+            summary["cli_name"] = value
+        if value := self._safe_get_metadata_value(metadata, "api_module"):
+            summary["api_module"] = value
 
         # Difficulty/level
-        if metadata.get("difficulty"):
-            summary["difficulty"] = metadata["difficulty"]
-        if metadata.get("level"):
-            summary["level"] = metadata["level"]
+        if value := self._safe_get_metadata_value(metadata, "difficulty"):
+            summary["difficulty"] = value
+        if value := self._safe_get_metadata_value(metadata, "level"):
+            summary["level"] = value
 
         # Related content
-        if metadata.get("related"):
-            summary["related"] = metadata["related"]
+        if value := self._safe_get_metadata_value(metadata, "related"):
+            summary["related"] = value
 
         # Last modified
-        if metadata.get("lastmod"):
-            lastmod = metadata["lastmod"]
-            if hasattr(lastmod, "isoformat"):
-                summary["lastmod"] = lastmod.isoformat()
+        if value := self._safe_get_metadata_value(metadata, "lastmod"):
+            if hasattr(value, "isoformat"):
+                summary["lastmod"] = value.isoformat()
             else:
-                summary["lastmod"] = str(lastmod)
+                summary["lastmod"] = str(value)
 
         # Source file path
-        if metadata.get("source_file"):
-            summary["source_file"] = metadata["source_file"]
+        if value := self._safe_get_metadata_value(metadata, "source_file"):
+            summary["source_file"] = value

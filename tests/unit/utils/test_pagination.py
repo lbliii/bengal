@@ -2,6 +2,7 @@
 
 import pytest
 
+from bengal.utils.exceptions import BengalError
 from bengal.utils.pagination import Paginator
 
 
@@ -38,10 +39,10 @@ class TestPaginator:
         items = list(range(10))
         paginator = Paginator(items, per_page=10)
 
-        with pytest.raises(ValueError, match="out of range"):
+        with pytest.raises(BengalError, match="out of range"):
             paginator.page(2)
 
-        with pytest.raises(ValueError, match="out of range"):
+        with pytest.raises(BengalError, match="out of range"):
             paginator.page(0)
 
     def test_page_context(self):

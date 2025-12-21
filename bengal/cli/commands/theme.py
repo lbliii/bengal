@@ -14,9 +14,9 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.core.theme import get_installed_themes, get_theme_package
 from bengal.utils.logger import get_logger
 from bengal.utils.swizzle import SwizzleManager
-from bengal.utils.theme_registry import get_installed_themes, get_theme_package
 
 logger = get_logger(__name__)
 
@@ -350,8 +350,8 @@ def debug(source: str, template: str | None) -> None:
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    from bengal.core.theme import resolve_theme_chain
     from bengal.rendering.engines import create_engine
-    from bengal.utils.theme_resolution import resolve_theme_chain
 
     engine = create_engine(site)
 
@@ -425,7 +425,7 @@ def debug(source: str, template: str | None) -> None:
 
 def _get_theme_extends(site_root: Path, theme_name: str) -> str | None:
     """Get the theme that a theme extends."""
-    from bengal.utils.theme_resolution import _read_theme_extends
+    from bengal.core.theme import _read_theme_extends
 
     return _read_theme_extends(site_root, theme_name)
 
@@ -433,7 +433,7 @@ def _get_theme_extends(site_root: Path, theme_name: str) -> str | None:
 def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
     """Validate theme chain and return list of issues."""
     issues: list[str] = []
-    from bengal.utils.theme_resolution import _read_theme_extends
+    from bengal.core.theme import _read_theme_extends
 
     # Check for circular inheritance by walking the chain manually
     visited: set[str] = set()
@@ -461,7 +461,7 @@ def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str
         issues.append(f"Theme inheritance depth exceeds maximum ({MAX_DEPTH})")
 
     # Check for missing themes in the resolved chain
-    from bengal.utils.theme_resolution import resolve_theme_chain
+    from bengal.core.theme import resolve_theme_chain
 
     chain = resolve_theme_chain(site_root, active_theme)
     for theme_name in chain:
@@ -543,7 +543,7 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
 
     # Installed theme (check if it's in a package)
     try:
-        from bengal.utils.theme_registry import get_installed_themes
+        from bengal.core.theme import get_installed_themes
 
         installed = get_installed_themes()
         for theme_slug, pkg in installed.items():

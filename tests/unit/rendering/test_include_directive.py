@@ -8,13 +8,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
-from bengal.rendering.plugins.directives.include import (
+from bengal.directives.include import (
     MAX_INCLUDE_DEPTH,
     MAX_INCLUDE_SIZE,
     IncludeDirective,
     render_include,
 )
+from bengal.rendering.parsers import MistuneParser
 
 
 @pytest.fixture

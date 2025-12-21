@@ -14,7 +14,7 @@ Key Features:
 Related Modules:
     - bengal.health.base: BaseValidator interface
     - bengal.health.report: CheckResult for reporting
-    - bengal.rendering.plugins.directives.target: Target directive
+    - bengal.directives.target: Target directive
     - bengal.rendering.parsers.mistune: Heading {#id} syntax
 
 See Also:

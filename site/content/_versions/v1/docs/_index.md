@@ -11,7 +11,7 @@ cascade:
 # Bengal v1.0 Documentation
 
 :::{note}
-This is legacy documentation for Bengal v1.0. For the latest features and improvements, see the [current documentation](/docs/).
+This is legacy documentation for Bengal v1.0. For the latest features and improvements, see the [[latest:docs|current documentation]].
 :::
 
 Welcome to Bengal v1.0! This version introduced the core static site generation features.

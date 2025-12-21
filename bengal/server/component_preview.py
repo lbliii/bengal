@@ -346,7 +346,7 @@ class ComponentPreviewServer:
 
             # installed theme support
             try:
-                from bengal.utils.theme_registry import get_theme_package
+                from bengal.core.theme import get_theme_package
 
                 pkg = get_theme_package(theme_name)
                 if pkg:
@@ -387,9 +387,3 @@ class ComponentPreviewServer:
         return dirs
 
     # (No coercion needed; Jinja supports dict attribute/key fallback)
-
-
-# Backwards-compatible function export for tests
-def discover_components(site: Site) -> list[dict[str, Any]]:
-    """Discover components using a temporary server instance (compat shim)."""
-    return ComponentPreviewServer(site).discover_components()

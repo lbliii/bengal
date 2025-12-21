@@ -48,18 +48,27 @@ flowchart TB
 
 ## CLI Architecture
 
-The CLI uses [Typer](https://typer.tiangolo.com/) with command groups:
+The CLI uses [Click](https://click.palletsprojects.com/) with command groups and aliases:
 
 ```
 bengal
-├── build      # Build site
-├── serve      # Dev server
-├── new        # Scaffolding
-├── validate   # Health checks
-├── autodoc    # Documentation generation
-└── analyze    # Site analysis
+├── build      # Build site (also: b)
+├── serve      # Dev server (also: s, dev)
+├── clean      # Clean output (also: c)
+├── validate   # Health checks (also: v, check)
+├── new        # Scaffolding (site, page, layout, etc.)
+├── config     # Configuration management
+├── collections # Content collections
+├── health     # Health check commands
+├── debug      # Debug tools
+├── explain    # Page explanation
+└── ...        # Many more commands
 ```
 
+**Alias System**: Bengal supports intuitive command aliases:
+- Top-level shortcuts: `bengal build`, `bengal serve`, `bengal dev`
+- Single-letter aliases: `bengal b`, `bengal s`, `bengal c`, `bengal v`
+
 :::{tip}
-The CLI is fully documented via autodoc. See [CLI Reference](/cli/) for complete command documentation.
+The CLI is fully documented. See [[docs/reference/architecture/tooling/cli|CLI Reference]] for complete command documentation.
 :::

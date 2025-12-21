@@ -22,7 +22,7 @@ from .wizard import run_init_wizard, should_run_init_wizard
 
 if TYPE_CHECKING:
     from bengal.cli.templates.base import SiteTemplate
-    from bengal.utils.cli_output import CLIOutput
+    from bengal.output import CLIOutput
 
 # .gitignore content for new sites
 GITIGNORE_CONTENT = """# Bengal build outputs

@@ -10,13 +10,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from bengal.utils.exceptions import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class ConfigValidationError(ValueError):
-    """Raised when configuration validation fails."""
+class ConfigValidationError(BengalConfigError, ValueError):
+    """
+    Raised when configuration validation fails.
+
+    Extends both BengalConfigError and ValueError for backward compatibility
+    with code that catches ValueError.
+    """
 
     pass
 

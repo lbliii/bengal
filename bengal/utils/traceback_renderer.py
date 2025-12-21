@@ -11,7 +11,7 @@ import traceback as _traceback
 from dataclasses import dataclass
 from typing import Any
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 from bengal.utils.error_handlers import get_context_aware_help
 from bengal.utils.logger import get_logger
 

@@ -89,7 +89,7 @@ class TestCLIOutputInitialization:
 
     def test_cli_output_has_themed_console(self):
         """Test CLIOutput initializes with bengal_theme."""
-        from bengal.utils.cli_output import CLIOutput
+        from bengal.output import CLIOutput
 
         cli = CLIOutput(use_rich=True)
 
@@ -106,7 +106,7 @@ class TestCLIOutputInitialization:
 
     def test_cli_output_header_doesnt_crash(self):
         """Test header method doesn't crash with style error."""
-        from bengal.utils.cli_output import CLIOutput
+        from bengal.output import CLIOutput
 
         cli = CLIOutput(use_rich=True)
 
@@ -120,7 +120,7 @@ class TestCLIOutputInitialization:
 
     def test_cli_output_all_message_types_work(self):
         """Test all message types work without style errors."""
-        from bengal.utils.cli_output import CLIOutput
+        from bengal.output import CLIOutput
 
         cli = CLIOutput(use_rich=True)
 
@@ -160,7 +160,7 @@ class TestThemeConsistency:
 
     def test_cli_output_uses_get_console(self):
         """Test CLIOutput uses get_console() not raw Console()."""
-        from bengal.utils.cli_output import CLIOutput
+        from bengal.output import CLIOutput
         from bengal.utils.rich_console import get_console
 
         cli = CLIOutput(use_rich=True)

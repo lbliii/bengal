@@ -363,4 +363,4 @@ All commands support multiple output formats:
 - **Autodoc Filtering**: API reference pages are excluded by default for cleaner analysis
 - **Multiple Export Formats**: Export results for further analysis or reporting
 
-See [Graph Analysis](/docs/content/analysis/graph/) for detailed usage examples and workflows.
+Refer to [Graph Analysis](../../content/analysis/graph/) for usage examples and workflows.

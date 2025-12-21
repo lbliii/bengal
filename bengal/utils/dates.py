@@ -93,7 +93,12 @@ def parse_date(
 
     # Couldn't parse
     if on_error == "raise":
-        raise ValueError(f"Could not parse date from: {value!r}")
+        from bengal.utils.exceptions import BengalError
+
+        raise BengalError(
+            f"Could not parse date from: {value!r}",
+            suggestion="Use ISO 8601 format (YYYY-MM-DD) or common date formats",
+        )
     elif on_error == "return_original":
         return value  # type: ignore
     else:  # 'return_none'

@@ -12,7 +12,7 @@ This test suite verifies:
 import pytest
 from rich.console import Console
 
-from bengal.utils.cli_output import CLIOutput, MessageLevel
+from bengal.output import CLIOutput, MessageLevel
 
 
 class TestColorTheming:

@@ -309,8 +309,44 @@ class TestTemplateSelection:
             Path("/content/_index.md"), {"type": "blog"}, "root"
         )
         # Set url to "/" to make it a home page (is_home checks url == "/")
-        blog_home.url = "/"
+        # Use __dict__ since url is a read-only property
+        blog_home.__dict__["url"] = "/"
         assert renderer._get_template_name(blog_home) == "blog/home.html"
+
+    def test_track_pages_use_type_from_cascade(self):
+        """Test that track pages use type from cascade to select templates."""
+        # Setup
+        engine = MockTemplateEngine(
+            available_templates=["tracks/list.html", "tracks/single.html", "docs.html", "page.html"]
+        )
+        renderer = Renderer(engine)
+
+        # Test track list page (section index) - uses type from cascade
+        track_list = self._setup_page_with_section(
+            Path("/content/tracks/_index.md"), {"type": "track"}, "tracks"
+        )
+        assert renderer._get_template_name(track_list) == "tracks/list.html"
+
+        # Test track single page - uses type from cascade
+        track_single = self._setup_page_with_section(
+            Path("/content/tracks/getting-started.md"),
+            {"type": "track"},
+            "tracks",
+        )
+        assert renderer._get_template_name(track_single) == "tracks/single.html"
+
+    def test_layout_field_not_used_as_template(self):
+        """Test that layout field is NOT used for template selection (only for visual variant)."""
+        # Setup
+        engine = MockTemplateEngine(available_templates=["docs.html", "page.html"])
+        renderer = Renderer(engine)
+
+        # Layout field should be ignored for template selection
+        variant_page = self._setup_page_with_section(
+            Path("/content/docs/page.md"), {"layout": "grid"}, "docs"
+        )
+        # Should fall back to section-based detection (docs.html), not use "grid" as template
+        assert renderer._get_template_name(variant_page) == "docs.html"
 
 
 class TestTemplateExists:

@@ -9,7 +9,7 @@ Covers:
 
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -67,68 +67,81 @@ class TestDefaultTemplateValidationService:
 
     def test_validate_returns_integer(self):
         """validate() returns integer error count."""
-        service = DefaultTemplateValidationService()
+        mock_engine = MagicMock()
+        mock_validator = MagicMock(return_value=0)
 
-        # Mock the imports within validate() - patch where they're looked up
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
-        ):
-            mock_validate.return_value = 0
-            mock_site = MagicMock()
+        service = DefaultTemplateValidationService(
+            engine_factory=lambda site: mock_engine,
+            validator=mock_validator,
+        )
+        mock_site = MagicMock()
 
-            result = service.validate(mock_site)
+        result = service.validate(mock_site)
 
-            assert isinstance(result, int)
-            assert result == 0
-            MockEngine.assert_called_once_with(mock_site)
-            mock_validate.assert_called_once()
+        assert isinstance(result, int)
+        assert result == 0
+        mock_validator.assert_called_once_with(mock_engine)
 
     def test_validate_propagates_error_count(self):
         """validate() returns error count from underlying validator."""
-        service = DefaultTemplateValidationService()
+        mock_validator = MagicMock(return_value=5)
 
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
-        ):
-            mock_validate.return_value = 5  # 5 errors
-            mock_site = MagicMock()
+        service = DefaultTemplateValidationService(
+            engine_factory=lambda site: MagicMock(),
+            validator=mock_validator,
+        )
+        mock_site = MagicMock()
 
-            result = service.validate(mock_site)
+        result = service.validate(mock_site)
 
-            assert result == 5
+        assert result == 5
 
-    def test_validate_creates_template_engine_with_site(self):
-        """validate() creates TemplateEngine with provided site."""
-        service = DefaultTemplateValidationService()
+    def test_validate_creates_engine_with_site(self):
+        """validate() passes site to engine factory."""
+        captured_site = None
 
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates"),
-        ):
-            mock_site = MagicMock()
-            mock_site.config = {"theme": "default"}
+        def capturing_factory(site):
+            nonlocal captured_site
+            captured_site = site
+            return MagicMock()
 
-            service.validate(mock_site)
+        service = DefaultTemplateValidationService(
+            engine_factory=capturing_factory,
+            validator=lambda engine: 0,
+        )
+        mock_site = MagicMock()
+        mock_site.config = {"theme": "default"}
 
-            MockEngine.assert_called_once_with(mock_site)
+        service.validate(mock_site)
+
+        assert captured_site is mock_site
 
     def test_validate_passes_engine_to_validator(self):
-        """validate() passes created engine to validate_templates."""
+        """validate() passes created engine to validator."""
+        mock_engine = MagicMock()
+        captured_engine = None
+
+        def capturing_validator(engine):
+            nonlocal captured_engine
+            captured_engine = engine
+            return 0
+
+        service = DefaultTemplateValidationService(
+            engine_factory=lambda site: mock_engine,
+            validator=capturing_validator,
+        )
+        mock_site = MagicMock()
+
+        service.validate(mock_site)
+
+        assert captured_engine is mock_engine
+
+    def test_default_factories_are_callable(self):
+        """Default engine_factory and validator are set to callable defaults."""
         service = DefaultTemplateValidationService()
 
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine") as MockEngine,
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
-        ):
-            mock_engine_instance = MagicMock()
-            MockEngine.return_value = mock_engine_instance
-            mock_site = MagicMock()
-
-            service.validate(mock_site)
-
-            mock_validate.assert_called_once_with(mock_engine_instance)
+        assert callable(service.engine_factory)
+        assert callable(service.validator)
 
 
 class TestMockValidationService:
@@ -225,25 +238,28 @@ class TestValidationServiceIntegration:
     def test_validation_with_strict_mode(self, mock_site):
         """Test validation behavior with strict mode."""
         mock_site.config["strict_mode"] = True
+        mock_validator = MagicMock(return_value=2)
 
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates") as mock_validate,
-        ):
-            mock_validate.return_value = 2  # 2 errors
+        service = DefaultTemplateValidationService(
+            strict=True,
+            engine_factory=lambda site: MagicMock(),
+            validator=mock_validator,
+        )
+        error_count = service.validate(mock_site)
 
-            service = DefaultTemplateValidationService(strict=True)
-            error_count = service.validate(mock_site)
-
-            # Should return error count regardless of strict mode
-            # (strict mode handling is at CLI level, not service level)
-            assert error_count == 2
+        # Should return error count regardless of strict mode
+        # (strict mode handling is at CLI level, not service level)
+        assert error_count == 2
 
     def test_validation_can_be_swapped(self, mock_site):
         """Test that validation service can be easily swapped."""
 
-        # Original service
-        original = DefaultTemplateValidationService()
+        # Original service with mock dependencies
+        mock_validator = MagicMock(return_value=3)
+        original = DefaultTemplateValidationService(
+            engine_factory=lambda site: MagicMock(),
+            validator=mock_validator,
+        )
 
         # Custom no-op service for testing
         @dataclass
@@ -255,12 +271,8 @@ class TestValidationServiceIntegration:
         def validate_site(service: TemplateValidationService, site: Any) -> int:
             return service.validate(site)
 
-        with (
-            patch("bengal.rendering.template_engine.TemplateEngine"),
-            patch("bengal.rendering.validator.validate_templates", return_value=3),
-        ):
-            # Original service returns actual validation result
-            assert validate_site(original, mock_site) == 3
+        # Original service returns actual validation result
+        assert validate_site(original, mock_site) == 3
 
         # Custom service bypasses validation
         custom = NoOpService()

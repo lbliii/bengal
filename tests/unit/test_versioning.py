@@ -705,7 +705,7 @@ class TestVersionDirectives:
 
     def test_since_directive_badge(self) -> None:
         """Test since directive renders as badge with icon."""
-        from bengal.rendering.plugins.directives.versioning import SinceDirective
+        from bengal.directives.versioning import SinceDirective
 
         directive = SinceDirective()
         html = directive.render(None, "", version="v2.0", has_content=False)
@@ -716,7 +716,7 @@ class TestVersionDirectives:
 
     def test_since_directive_with_content(self) -> None:
         """Test since directive with content renders as full directive container."""
-        from bengal.rendering.plugins.directives.versioning import SinceDirective
+        from bengal.directives.versioning import SinceDirective
 
         directive = SinceDirective()
         html = directive.render(
@@ -735,7 +735,7 @@ class TestVersionDirectives:
 
     def test_deprecated_directive_badge(self) -> None:
         """Test deprecated directive renders as inline badge (no content)."""
-        from bengal.rendering.plugins.directives.versioning import DeprecatedDirective
+        from bengal.directives.versioning import DeprecatedDirective
 
         directive = DeprecatedDirective()
         html = directive.render(None, "", version="v3.0", has_content=False)
@@ -747,7 +747,7 @@ class TestVersionDirectives:
 
     def test_deprecated_directive_with_migration(self) -> None:
         """Test deprecated directive with migration content."""
-        from bengal.rendering.plugins.directives.versioning import DeprecatedDirective
+        from bengal.directives.versioning import DeprecatedDirective
 
         directive = DeprecatedDirective()
         html = directive.render(
@@ -765,7 +765,7 @@ class TestVersionDirectives:
 
     def test_changed_directive_badge(self) -> None:
         """Test changed directive renders as inline badge (no content)."""
-        from bengal.rendering.plugins.directives.versioning import ChangedDirective
+        from bengal.directives.versioning import ChangedDirective
 
         directive = ChangedDirective()
         html = directive.render(None, "", version="v2.5", has_content=False)
@@ -777,7 +777,7 @@ class TestVersionDirectives:
 
     def test_changed_directive_with_details(self) -> None:
         """Test changed directive with change details."""
-        from bengal.rendering.plugins.directives.versioning import ChangedDirective
+        from bengal.directives.versioning import ChangedDirective
 
         directive = ChangedDirective()
         html = directive.render(

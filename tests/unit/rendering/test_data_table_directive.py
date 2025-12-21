@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from bengal.rendering.plugins.directives.data_table import (
+from bengal.directives.data_table import (
     DataTableDirective,
     render_data_table,
 )

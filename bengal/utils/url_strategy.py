@@ -286,8 +286,11 @@ class URLStrategy:
         try:
             rel_path = output_path.relative_to(site.output_dir)
         except ValueError:
-            raise ValueError(
-                f"Output path {output_path} is not under output directory {site.output_dir}"
+            from bengal.utils.exceptions import BengalContentError
+
+            raise BengalContentError(
+                f"Output path {output_path} is not under output directory {site.output_dir}",
+                suggestion="Ensure output paths are within the site's output directory",
             ) from None
 
         # Convert to URL parts

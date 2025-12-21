@@ -42,10 +42,12 @@ from bengal.core.site.properties import SitePropertiesMixin
 from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
+from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
-from bengal.utils.build_stats import BuildStats
+from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
+    from bengal.orchestration.build.options import BuildOptions
     from bengal.utils.profile import BuildProfile
 
 
@@ -156,6 +158,10 @@ class Site(
     # See: plan/active/rfc-page-section-reference-contract.md
     _section_url_registry: dict[str, Section] = field(default_factory=dict, repr=False, init=False)
 
+    # URL ownership registry for claim-time enforcement
+    # See: plan/drafted/plan-url-ownership-architecture.md
+    url_registry: URLRegistry = field(default_factory=URLRegistry, init=False)
+
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
@@ -255,8 +261,16 @@ class Site(
         if self._asset_manifest_fallbacks_lock is None:
             self._asset_manifest_fallbacks_lock = Lock()
 
+        # Initialize URL registry for claim-time ownership enforcement
+        # See: plan/drafted/plan-url-ownership-architecture.md
+        if not hasattr(self, "url_registry") or self.url_registry is None:
+            self.url_registry = URLRegistry()
+
     def build(
         self,
+        options: BuildOptions | None = None,
+        *,
+        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -276,6 +290,8 @@ class Site(
         Delegates to BuildOrchestrator for actual build process.
 
         Args:
+            options: BuildOptions dataclass with all build configuration.
+                    If provided, individual parameters are ignored.
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
@@ -290,24 +306,38 @@ class Site(
 
         Returns:
             BuildStats object with build statistics
+
+        Example:
+            >>> # Using BuildOptions (preferred)
+            >>> from bengal.orchestration.build.options import BuildOptions
+            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> stats = site.build(options)
+            >>>
+            >>> # Using individual parameters (backward compatibility)
+            >>> stats = site.build(parallel=True, strict=True)
         """
         from bengal.orchestration import BuildOrchestrator
+        from bengal.orchestration.build.options import BuildOptions as _BuildOptions
+
+        # Resolve options: use provided BuildOptions or construct from individual params
+        if options is None:
+            options = _BuildOptions(
+                parallel=parallel,
+                incremental=incremental,
+                verbose=verbose,
+                quiet=quiet,
+                profile=profile,
+                memory_optimized=memory_optimized,
+                strict=strict,
+                full_output=full_output,
+                profile_templates=profile_templates,
+                changed_sources=changed_sources or set(),
+                nav_changed_sources=nav_changed_sources or set(),
+                structural_changed=structural_changed,
+            )
 
         orchestrator = BuildOrchestrator(self)
-        result = orchestrator.build(
-            parallel=parallel,
-            incremental=incremental,
-            verbose=verbose,
-            quiet=quiet,
-            profile=profile,
-            memory_optimized=memory_optimized,
-            strict=strict,
-            full_output=full_output,
-            profile_templates=profile_templates,
-            changed_sources=changed_sources,
-            nav_changed_sources=nav_changed_sources,
-            structural_changed=structural_changed,
-        )
+        result = orchestrator.build(options)
         # Ensure we return BuildStats (orchestrator.build returns Any)
         # BuildStats is already imported at top of file
         if isinstance(result, BuildStats):
@@ -418,11 +448,20 @@ class Site(
                 self.xref_index: dict[str, Any] = {}
 
         # Cached properties
-        self.invalidate_regular_pages_cache()
+        self.invalidate_page_caches()
 
         # Section registries (rebuilt from sections)
         self._section_registry = {}
         self._section_url_registry = {}
+
+        # Reset query registry
+        self._query_registry = None
+
+        # Reset lookup maps
+        self._page_lookup_maps = None
+
+        # Reset theme if needed (will be reloaded on first access)
+        self._theme_obj = None
 
         # Runtime caches (Phase B fields)
         self._bengal_theme_chain_cache = None
@@ -439,8 +478,218 @@ class Site(
         # Note: Don't reset _asset_manifest_previous (needed for incremental asset comparison)
         # Note: Don't reset _asset_manifest_fallbacks_lock (thread lock should persist)
 
+    # =========================================================================
+    # ERGONOMIC HELPER METHODS (for theme developers)
+    # =========================================================================
+
+    def get_section_by_name(self, name: str) -> Section | None:
+        """
+        Get a section by its name.
+
+        Searches top-level sections for a matching name. Returns the first
+        match or None if not found.
+
+        Args:
+            name: Section name to find (e.g., 'blog', 'docs', 'api')
+
+        Returns:
+            Section if found, None otherwise
+
+        Example:
+            {% set blog = site.get_section_by_name('blog') %}
+            {% if blog %}
+              {{ blog.title }} has {{ blog.pages | length }} posts
+            {% endif %}
+        """
+        for section in self.sections:
+            if section.name == name:
+                return section
+        return None
+
+    def pages_by_section(self, section_name: str) -> list[Page]:
+        """
+        Get all pages belonging to a section by name.
+
+        Filters site.pages to return only pages whose section matches
+        the given name. Useful for archive and taxonomy templates.
+
+        Args:
+            section_name: Section name to filter by (e.g., 'blog', 'docs')
+
+        Returns:
+            List of pages in that section (empty list if section not found)
+
+        Example:
+            {% set blog_posts = site.pages_by_section('blog') %}
+            {% for post in blog_posts %}
+              <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        return [
+            p
+            for p in self.pages
+            if getattr(p, "_section", None) and p._section.name == section_name
+        ]
+
+    def get_version_target_url(
+        self, page: Page | None, target_version: dict[str, Any] | None
+    ) -> str:
+        """
+        Get the best URL for a page in the target version.
+
+        Computes a fallback cascade at build time:
+        1. If exact equivalent page exists → return that URL
+        2. If section index exists → return section index URL
+        3. Otherwise → return version root URL
+
+        This is engine-agnostic and works with any template engine (Jinja2,
+        Mako, or any BYORenderer).
+
+        Args:
+            page: Current page object (may be None for edge cases)
+            target_version: Target version dict with 'id', 'url_prefix', 'latest' keys
+
+        Returns:
+            Best URL to navigate to (guaranteed to exist, never 404)
+
+        Example (Jinja2):
+            {% for v in versions %}
+            <option data-target="{{ site.get_version_target_url(page, v) }}">
+              {{ v.label }}
+            </option>
+            {% endfor %}
+
+        Example (Mako):
+            % for v in versions:
+            <option data-target="${site.get_version_target_url(page, v)}">
+              ${v['label']}
+            </option>
+            % endfor
+        """
+        # Delegate to core logic (engine-agnostic pure Python)
+        from bengal.rendering.template_functions.version_url import (
+            get_version_target_url as _get_version_target_url,
+        )
+
+        return _get_version_target_url(page, target_version, self)
+
     def __repr__(self) -> str:
         pages = len(self.pages)
         sections = len(self.sections)
         assets = len(self.assets)
         return f"Site(pages={pages}, sections={sections}, assets={assets})"
+
+    # =========================================================================
+    # VALIDATION METHODS
+    # =========================================================================
+
+    def validate_no_url_collisions(self, *, strict: bool = False) -> list[str]:
+        """
+        Detect when multiple pages output to the same URL.
+
+        This method catches URL collisions early during the build process,
+        preventing silent overwrites that cause broken navigation.
+
+        Uses URLRegistry if available for enhanced ownership context, otherwise
+        falls back to page iteration for backward compatibility.
+
+        Args:
+            strict: If True, raise ValueError on collision instead of warning.
+                   Set to True when site config has strict_mode=True.
+
+        Returns:
+            List of collision warning messages (empty if no collisions)
+
+        Raises:
+            ValueError: If strict=True and collisions are detected
+
+        Example:
+            >>> collisions = site.validate_no_url_collisions()
+            >>> if collisions:
+            ...     for msg in collisions:
+            ...         print(f"Warning: {msg}")
+
+        Note:
+            This is a proactive check during Phase 12 (Update Pages List) that
+            catches issues before they cause broken navigation. Previously,
+            collisions were only detected in Phase 17 (Post-processing) by
+            SitemapValidator, after the build had already "succeeded".
+
+        See Also:
+            - bengal/health/validators/url_collisions.py: Health check validator
+            - plan/drafted/rfc-url-collision-detection.md: Design rationale
+            - plan/drafted/plan-url-ownership-architecture.md: URL ownership system
+        """
+        collisions: list[str] = []
+
+        # Use registry if available (provides ownership context)
+        if hasattr(self, "url_registry") and self.url_registry:
+            # Check for duplicate URLs in pages (registry tracks all claims, including non-page)
+            urls_seen: dict[str, str] = {}  # url -> source description
+
+            for page in self.pages:
+                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                source = str(getattr(page, "source_path", page.title))
+
+                if url in urls_seen:
+                    # Get ownership context from registry
+                    claim = self.url_registry.get_claim(url)
+                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
+
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}{owner_info}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
+        else:
+            # Fallback: iterate pages (backward compatibility)
+            urls_seen: dict[str, str] = {}  # url -> source description
+
+            for page in self.pages:
+                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                source = str(getattr(page, "source_path", page.title))
+
+                if url in urls_seen:
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
+
+        if collisions and strict:
+            from bengal.utils.exceptions import BengalContentError
+
+            raise BengalContentError(
+                "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
+                suggestion="Check for duplicate slugs, conflicting autodoc output, or use different URLs for conflicting pages",
+            )
+
+        return collisions

@@ -55,9 +55,15 @@ flowchart LR
 
 Parses source code into `DocElement` objects.
 
-- **Python**: Uses `ast` module to parse classes, functions, and type hints.
-- **CLI**: Extracts commands and options from Click apps.
-- **OpenAPI**: (Planned) Extracts endpoints from OpenAPI specs.
+- **Python** (`extractors/python/`): Package with modular components:
+  - `extractor.py`: Main `PythonExtractor` class using AST for classes, functions, and type hints
+  - `signature.py`: Function signature and argument extraction
+  - `module_info.py`: Module name inference and path resolution
+  - `inheritance.py`: Inherited member synthesis
+  - `skip_logic.py`: Exclusion pattern matching
+  - `aliases.py`: Module alias detection
+- **CLI** (`extractors/cli.py`): Extracts commands and options from Click apps.
+- **OpenAPI** (`extractors/openapi.py`): Extracts endpoints from OpenAPI specs.
 :::
 
 :::{tab-item} Model
@@ -70,14 +76,15 @@ Parses source code into `DocElement` objects.
 - **Serializable**: Can be cached to disk
 :::
 
-:::{tab-item} Generator
-**Markdown Generation** (`generator.py`)
+:::{tab-item} Orchestration
+**Virtual Page Generation** (`orchestration/`)
 
-Converts models into Markdown using templates.
+Generates API documentation as virtual Page objects.
 
-- **Two-Pass**: Generates Markdown first, then Bengal renders it
-- **Parallel**: Runs extraction and generation concurrently
-- **Caching**: Smart caching of generated content
+- **VirtualAutodocOrchestrator**: Main coordinator for autodoc generation
+- **Page Builders**: Creates virtual pages from DocElements
+- **Template Integration**: Renders directly via theme templates
+- **No Intermediate Files**: Docs generate as virtual pages, not markdown files
 :::
 ::::
 

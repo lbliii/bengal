@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from bengal.utils.sections import resolve_page_section_path
+from bengal.core.section import resolve_page_section_path
 
 
 class TestResolvePageSectionPath:

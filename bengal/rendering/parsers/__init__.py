@@ -59,6 +59,9 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
                 "Install with: pip install markdown"
             ) from None
     else:
-        raise ValueError(
-            f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'"
+        from bengal.utils.exceptions import BengalConfigError
+
+        raise BengalConfigError(
+            f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'",
+            suggestion="Set markdown.engine to 'python-markdown' or 'mistune' in config",
         )

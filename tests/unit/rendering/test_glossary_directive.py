@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
-from bengal.rendering.plugins.directives.glossary import (
+from bengal.directives.glossary import (
     GlossaryDirective,
     render_glossary,
 )

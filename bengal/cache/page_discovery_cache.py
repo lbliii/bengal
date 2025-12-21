@@ -127,9 +127,20 @@ class PageDiscoveryCache:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalCacheError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=self.cache_path,
+                operation="loading page discovery cache",
+                suggestion="Cache file may be corrupted. It will be rebuilt automatically.",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalCacheError)
             logger.warning(
                 "page_discovery_cache_load_failed",
-                error=str(e),
+                error=str(enriched),
                 path=str(self.cache_path),
             )
             self.pages = {}

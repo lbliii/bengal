@@ -34,9 +34,9 @@ from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.site import Site
-    from bengal.utils.live_progress import LiveProgressManager
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
@@ -399,7 +399,24 @@ class AssetOrchestrator:
                             last_update_time = now
 
                 except Exception as e:
-                    errors.append(str(e))
+                    from bengal.utils.error_context import ErrorContext, enrich_error
+                    from bengal.utils.exceptions import BengalError
+
+                    # Enrich error with context
+                    asset_path = asset.source_path if hasattr(asset, "source_path") else None
+                    context = ErrorContext(
+                        file_path=asset_path,
+                        operation="processing asset",
+                        suggestion="Check file permissions, encoding, and format",
+                        original_error=e,
+                    )
+                    enriched = enrich_error(e, context, BengalError)
+                    errors.append(str(enriched))
+                    # Collect error in build stats if available
+                    if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
+                        stats = self.site._last_build_stats
+                        if stats:
+                            stats.add_error(enriched, category="assets")
 
         # Final progress update for any remaining pending updates
         if progress_manager and pending_updates > 0:
@@ -455,13 +472,29 @@ class AssetOrchestrator:
                         bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
+                from bengal.utils.error_context import ErrorContext, enrich_error
+                from bengal.utils.exceptions import BengalError
+
+                # Enrich error with context
+                context = ErrorContext(
+                    file_path=asset.source_path,
+                    operation="processing asset",
+                    suggestion="Check file permissions, encoding, and format",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalError)
                 self.logger.error(
                     "asset_processing_failed",
                     asset_path=str(asset.source_path),
-                    error=str(e),
+                    error=str(enriched),
                     error_type=type(e).__name__,
                     mode="sequential",
                 )
+                # Collect error in build stats if available
+                if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
+                    stats = self.site._last_build_stats
+                    if stats:
+                        stats.add_error(enriched, category="assets")
 
         # Process CSS
         for entry in css_entries:
@@ -627,8 +660,19 @@ class AssetOrchestrator:
             css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
 
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=css_entry.source_path,
+                operation="processing CSS entry",
+                suggestion="Check CSS syntax, file encoding, and dependencies",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalError)
             # Re-raise with context so caller can handle logging/error collection
-            raise Exception(f"Failed to process CSS entry {css_entry.source_path.name}: {e}") from e
+            raise enriched from e
 
     def _process_single_asset(
         self, asset: Asset, assets_output: Path, minify: bool, optimize: bool, fingerprint: bool
@@ -658,8 +702,19 @@ class AssetOrchestrator:
 
             asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=asset.source_path,
+                operation="processing asset",
+                suggestion="Check file permissions, encoding, and format",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalError)
             # Re-raise with asset context for better error messages
-            raise Exception(f"Failed to process {asset.source_path}: {e}") from e
+            raise enriched from e
 
     def _write_asset_manifest(self, assets: list[Asset]) -> None:
         """

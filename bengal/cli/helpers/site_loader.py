@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -63,23 +63,26 @@ def _check_parent_project_conflict(root_path: Path, cli: CLIOutput) -> None:
                 # Both have config - this is likely intentional (nested site)
                 logger.debug(
                     "nested_bengal_project_detected",
-                    current=str(root_path),
-                    parent=str(parent),
+                    current=root_path.name,
+                    parent=parent.name,
                     note="Both have config files, assuming intentional nesting",
                 )
             else:
                 # Current doesn't have config but parent does - likely mistake
-                cli.warning(f"⚠️  Parent directory has Bengal project: {parent.name}/")
+                cli.warning(f"Parent directory has Bengal project: {parent.name}/")
                 cli.warning(
-                    f"   Current directory ({root_path.name}/) may not be the intended site root."
+                    f"   Current directory ({root_path.name}/) may not be the intended site root.",
+                    icon="",
                 )
-                cli.warning("   If this is wrong, cd to the correct directory and try again.")
+                cli.warning(
+                    "   If this is wrong, cd to the correct directory and try again.", icon=""
+                )
                 cli.blank()
 
                 logger.warning(
                     "parent_bengal_project_detected",
-                    current=str(root_path),
-                    parent=str(parent),
+                    current=root_path.name,
+                    parent=parent.name,
                     hint="You may be running from wrong directory",
                 )
             break
@@ -142,31 +145,33 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
             if not current_content.exists():
                 # Current has no content at all
                 cli.warning(
-                    f"⚠️  Subdirectory '{subdir_name}/' appears to be a Bengal site with content."
+                    f"Subdirectory '{subdir_name}/' appears to be a Bengal site with content."
                 )
-                cli.warning(f"   Did you mean to run: cd {subdir_name} && bengal serve")
+                cli.warning(f"   Did you mean to run: cd {subdir_name} && bengal serve", icon="")
                 cli.blank()
 
                 logger.warning(
                     "subdirectory_site_detected",
-                    current=str(root_path),
-                    subdirectory=str(subdir),
+                    current=root_path.name,
+                    subdirectory=subdir_name,
                     hint=f"cd {subdir_name} && bengal serve",
                 )
             elif significantly_more:
                 # Subdirectory has way more content
                 cli.warning(
-                    f"⚠️  Subdirectory '{subdir_name}/' has significantly more content "
+                    f"Subdirectory '{subdir_name}/' has significantly more content "
                     f"({subdir_md_count} vs {current_md_count} markdown files)."
                 )
-                cli.warning(f"   If you meant to build that site: cd {subdir_name} && bengal serve")
+                cli.warning(
+                    f"   If you meant to build that site: cd {subdir_name} && bengal serve", icon=""
+                )
                 cli.blank()
 
                 logger.warning(
                     "larger_subdirectory_site_detected",
-                    current=str(root_path),
+                    current=root_path.name,
                     current_md_count=current_md_count,
-                    subdirectory=str(subdir),
+                    subdirectory=subdir_name,
                     subdir_md_count=subdir_md_count,
                     hint=f"cd {subdir_name} && bengal serve",
                 )

@@ -153,21 +153,21 @@ Create visual navigation or feature highlights:
 
 :::{card} Getting Started
 :icon: rocket
-:link: /docs/get-started/
+:link: docs/get-started
 
 New to Bengal? Start here.
 :::{/card}
 
 :::{card} Tutorials
 :icon: book
-:link: /docs/tutorials/
+:link: docs/tutorials
 
 Learn by building.
 :::{/card}
 
 :::{card} Reference
 :icon: list
-:link: /docs/reference/
+:link: docs/reference
 
 Complete API docs.
 :::{/card}
@@ -209,7 +209,7 @@ Add call-to-action buttons:
 
 ```markdown
 :::{button} Get Started
-:link: /docs/get-started/
+:link: docs/get-started
 :color: primary
 :::
 

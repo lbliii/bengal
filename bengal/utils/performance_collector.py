@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.utils.build_stats import BuildStats
+    from bengal.orchestration.stats import BuildStats
 
 logger = get_logger(__name__)
 

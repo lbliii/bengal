@@ -349,20 +349,18 @@ Fingerprinted paths available in templates:
 - No stale cache issues
 - Automatic invalidation on changes
 
-## Asset Manifest System (0.1.4+)
+## Asset manifest
 
-Bengal generates a deterministic `asset-manifest.json` file that maps logical asset names to their fingerprinted output files. This ensures reliable asset resolution and eliminates stale fingerprinted assets.
+Bengal writes `asset-manifest.json` to map logical asset paths (for example, `css/style.css`) to final output paths (for example, `assets/css/style.<fingerprint>.css`).
 
-### Purpose
+**Generation**:
+- Written by the assets phase (refer to `bengal/orchestration/asset.py`)
 
-The asset manifest solves several problems:
-- **Stale Assets**: Prevents old fingerprinted files (e.g., `style.95230091.css`) from persisting after updates
-- **Dev/Prod Sync**: Ensures development and production CSS stay in sync
-- **Reliable Resolution**: Provides deterministic asset resolution without glob matching
-- **Cache Busting**: Enables long cache TTLs with automatic invalidation
+**Template resolution**:
+- `asset_url()` prefers the manifest when present
+- Falls back to output-directory scanning and then a direct `/assets/...` URL when the manifest entry is missing (refer to `bengal/rendering/template_engine/asset_url.py`)
 
-### Manifest Format
-
+::::{dropdown} Manifest format (example)
 The manifest is written to `public/asset-manifest.json`:
 
 ```json
@@ -384,171 +382,16 @@ The manifest is written to `public/asset-manifest.json`:
   }
 }
 ```
+::::
 
-### Manifest-Driven Resolution
+::::{dropdown} Debugging and clean builds
+- Inspect mappings: `bengal assets status`
+- Remove stale output files before building: `bengal build --clean-output`
+::::
 
-The `asset_url()` template helper consults the manifest first:
+## Integration points
 
-```python
-def asset_url(logical_path: str) -> str:
-    """Resolve logical asset path to fingerprinted output."""
-    # 1. Check manifest first (deterministic)
-    manifest = AssetManifest.load(site.output_dir / "asset-manifest.json")
-    if manifest:
-        entry = manifest.get(logical_path)
-        if entry:
-            return f"/{entry.output_path}"
-
-    # 2. Fallback to glob matching (backward compatibility)
-    return glob_find_asset(logical_path)
-```
-
-### Stale Fingerprint Cleanup
-
-Before writing new fingerprinted files, Bengal:
-1. Loads existing manifest (if present)
-2. Identifies stale fingerprinted files (not in new manifest)
-3. Removes stale files from output directory
-4. Writes new manifest with updated mappings
-
-This ensures only current assets exist in the output directory.
-
-### CLI Inspection
-
-Use `bengal assets status` to inspect asset mappings:
-
-```bash
-$ bengal assets status
-Asset Manifest
-css/style.css → /assets/css/style.a1b2c3.css (fingerprint: a1b2c3)
-js/app.js → /assets/js/app.d4e5f6.js (fingerprint: d4e5f6)
-```
-
-This helps debug asset issues and verify manifest correctness.
-
-### Integration with Build Process
-
-The manifest is generated during asset processing:
-
-```python
-class AssetOrchestrator:
-    def process(self):
-        # ... process assets ...
-
-        # Generate manifest
-        manifest = AssetManifest()
-        for asset in processed_assets:
-            manifest.set_entry(
-                logical_path=asset.logical_path,
-                output_path=asset.output_path,
-                fingerprint=asset.fingerprint,
-                size_bytes=asset.size_bytes,
-            )
-
-        # Write manifest
-        manifest.write(site.output_dir / "asset-manifest.json")
-```
-
-### Clean Output Builds
-
-Use `--clean-output` flag to ensure clean builds:
-
-```bash
-bengal build --clean-output
-```
-
-This removes all output files (including stale fingerprinted assets) before building, ensuring deterministic builds. Perfect for CI/CD pipelines.
-
-### Benefits
-
-- **Deterministic**: Same logical path always resolves to same fingerprinted file
-- **Reliable**: No glob matching fallback needed (though still supported for backward compatibility)
-- **Debuggable**: Manifest provides visibility into asset mappings
-- **Clean**: Stale assets automatically removed
-- **Fast**: O(1) lookup via dictionary
-
-See: `bengal/assets/manifest.py` for implementation details.
-
-## Performance
-
-### Parallel Processing
-Assets are processed in parallel using a **unified worker pool** when:
-- 5+ assets to process OR mixed workload (CSS + other assets)
-- Parallel mode enabled (default)
-- Worker pool available
-
-**Optimization (2025-11)**: CSS bundling and static asset processing (images, JS) now run concurrently in the same thread pool. This eliminates the "hang" where the build would wait for CSS to finish before starting image optimization.
-
-**Measured speedup**: 2-3x for 10+ assets
-
-### Incremental Builds
-Only changed assets are reprocessed:
-- File content hash comparison
-- Dependency tracking for imports
-- Cache invalidation on changes
-
-**Measured speedup**: 15-30x for single asset changes
-
-### Optimization Trade-offs
-Image optimization is slowest operation (~100-500ms per image). Can be disabled for dev builds:
-
-```toml
-[assets]
-optimize_images = false  # Dev mode
-```
-
-## Integration Points
-
-### With Discovery
-- AssetDiscovery finds assets
-- AssetOrchestrator processes them
-- Asset objects created and tracked
-
-### With Incremental Builds
-- BuildCache tracks asset file hashes
-- AssetDependencyMap tracks imports
-- Only changed assets reprocessed
-
-### With Templates
-- `asset_url()` function resolves asset paths
-- Fingerprinted paths handled automatically
-- Theme asset resolution
-
-### With Themes
-- Theme assets discovered automatically
-- Theme assets override site assets
-- Fallback chain: site → theme → default
-
-## Health Validation
-
-AssetValidator checks:
-- All referenced assets exist
-- Minification completed (if enabled)
-- Optimization completed (if enabled)
-- File sizes reasonable
-- No broken asset references
-
-```bash
-bengal build
-# Asset validation runs automatically
-# Reports missing assets, oversized files, etc.
-```
-
-## Future Enhancements
-
-1. **Responsive Images**: Generate multiple sizes automatically
-2. **Modern Format Support**: AVIF, WebP with fallbacks
-3. **CSS Purging**: Remove unused CSS automatically
-4. **Sprite Generation**: Combine small images into sprites
-5. **CDN Integration**: Upload assets to CDN automatically
-6. **Source Maps**: Generate source maps for minified files
-7. **Preprocessor Support**: Built-in SCSS/Less compilation
-
-## Testing
-
-Asset pipeline testing:
-- Unit tests: `tests/unit/test_asset.py`
-- Integration tests: `tests/integration/test_asset_pipeline.py`
-- Performance tests: `tests/performance/test_asset_processing.py`
-
-**Coverage**: ~75% for asset processing
+- **Asset processing + manifest writing**: `bengal/orchestration/asset.py`
+- **Template lookup (`asset_url`)**: `bengal/rendering/template_engine/asset_url.py`, `bengal/rendering/template_engine/manifest.py`
+- **Manifest data model**: `bengal/assets/manifest.py`
+- **Health validation**: `bengal/health/validators/assets.py`

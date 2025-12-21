@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from bengal.core.site import Site
 
-from bengal.rendering.plugins.directives._icons import ICON_MAP
+from bengal.directives._icons import ICON_MAP
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

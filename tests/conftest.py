@@ -303,7 +303,7 @@ def reset_bengal_state():
 
     # 3. Clear theme cache (forces fresh discovery)
     try:
-        from bengal.utils.theme_registry import clear_theme_cache
+        from bengal.core.theme import clear_theme_cache
 
         clear_theme_cache()
     except ImportError:

@@ -6,11 +6,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
-from bengal.rendering.plugins.directives.literalinclude import (
+from bengal.directives.literalinclude import (
     LiteralIncludeDirective,
     render_literalinclude,
 )
+from bengal.rendering.parsers import MistuneParser
 
 
 @pytest.fixture

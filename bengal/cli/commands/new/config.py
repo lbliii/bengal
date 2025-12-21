@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 def create_config_directory(

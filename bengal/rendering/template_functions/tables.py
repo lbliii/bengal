@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from jinja2 import pass_environment
 from markupsafe import Markup
 
-from bengal.rendering.plugins.directives.data_table import (
+from bengal.directives.data_table import (
     DataTableDirective,
     render_data_table,
 )

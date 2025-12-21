@@ -21,6 +21,7 @@ See Also:
 
 from __future__ import annotations
 
+import contextlib
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -32,7 +33,7 @@ from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.site import Site
-    from bengal.utils.build_stats import BuildStats
+    from bengal.orchestration.stats import BuildStats
 
 
 @dataclass
@@ -112,10 +113,8 @@ class BuildSnapshot:
         # Parse last build timestamp
         timestamp = datetime.now()
         if cache.last_build:
-            try:
+            with contextlib.suppress(ValueError):
                 timestamp = datetime.fromisoformat(cache.last_build)
-            except ValueError:
-                pass
 
         return cls(
             timestamp=timestamp,
@@ -309,10 +308,7 @@ class BuildDelta:
         """Format time change with color indicators."""
         sign = "+" if ms > 0 else ""
 
-        if abs(ms) < 1000:
-            time_str = f"{sign}{ms:.0f}ms"
-        else:
-            time_str = f"{sign}{ms / 1000:.2f}s"
+        time_str = f"{sign}{ms:.0f}ms" if abs(ms) < 1000 else f"{sign}{ms / 1000:.2f}s"
 
         if abs(pct) >= 5:
             emoji = "🐌" if pct > 0 else "🚀"

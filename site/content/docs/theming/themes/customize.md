@@ -368,6 +368,95 @@ bengal new theme my-theme
 - Hard refresh: `Cmd+Shift+R`
 :::
 
+## Navigation with NavTree
+
+Bengal provides a pre-computed navigation tree (`NavTree`) for efficient template rendering. Use `get_nav_tree(page)` to access the navigation structure.
+
+### Basic Usage
+
+```jinja2
+{% set nav = get_nav_tree(page) %}
+
+<nav class="sidebar">
+  {% for item in nav.root.children %}
+    <a href="{{ item.url }}"
+       {% if item.is_current %}class="active"{% endif %}
+       {% if item.is_in_trail %}class="in-trail"{% endif %}>
+      {{ item.title }}
+    </a>
+
+    {% if item.has_children %}
+      <ul>
+        {% for child in item.children %}
+          <li>
+            <a href="{{ child.url }}">{{ child.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endfor %}
+</nav>
+```
+
+### NavTree Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `nav.root` | `NavNode` | Root node containing all top-level sections |
+| `nav.root.children` | `list[NavNode]` | Top-level navigation items |
+| `nav.version_id` | `str \| None` | Current version ID (for versioned sites) |
+| `nav.versions` | `list[str]` | All available versions |
+
+### NavNode Properties
+
+Each navigation node (`NavNode`) provides:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `item.title` | `str` | Display title |
+| `item.url` | `str` | Page URL |
+| `item.icon` | `str \| None` | Icon identifier |
+| `item.weight` | `int` | Sort weight |
+| `item.children` | `list[NavNode]` | Child navigation items |
+| `item.is_current` | `bool` | True if this is the current page |
+| `item.is_in_trail` | `bool` | True if in active trail to current page |
+| `item.is_expanded` | `bool` | True if node should be expanded |
+| `item.has_children` | `bool` | True if node has children |
+| `item.depth` | `int` | Nesting level (0 = top level) |
+
+### Migration from Direct Section Access
+
+**Before (direct section access):**
+```jinja2
+{% set current_version_id = current_version.id if current_version else None %}
+{% set version_filter = current_version_id if site.versioning_enabled else None %}
+{% set sorted_pages = root_section.pages_for_version(version_filter) %}
+
+{% for page in sorted_pages %}
+  <a href="{{ page.url }}">{{ page.title }}</a>
+{% endfor %}
+```
+
+**After (using NavTree):**
+```jinja2
+{% set nav = get_nav_tree(page) %}
+
+{% for item in nav.root.children %}
+  <a href="{{ item.url }}">{{ item.title }}</a>
+{% endfor %}
+```
+
+### Benefits
+
+- **Performance**: O(1) lookup via cached structure (<1ms render overhead)
+- **Simplicity**: Single function call replaces version-filtering boilerplate
+- **Consistency**: Pre-computed structure ensures consistent navigation across pages
+- **Version-aware**: Automatic version filtering and shared content injection
+
+:::{tip}
+**Backward Compatible**: The `get_nav_tree()` function signature is preserved, so existing templates continue to work. The function now returns a `NavTreeContext` object instead of a list, but it's backward compatible for most use cases.
+:::
+
 :::{seealso}
 - [Templating](/docs/theming/templating/) — Template basics
 - [Assets](/docs/theming/assets/) — Asset pipeline

@@ -286,9 +286,13 @@ class TestErrorHandling:
         (default_dir / "site.yaml").write_text("invalid: yaml: syntax: error:")
 
         from bengal.config.directory_loader import ConfigLoadError
+        from bengal.utils.exceptions import BengalConfigError
 
-        with pytest.raises(ConfigLoadError):
+        with pytest.raises(ConfigLoadError) as exc_info:
             Site.from_config(root)
+
+        # Verify it extends BengalConfigError
+        assert isinstance(exc_info.value, BengalConfigError)
 
     def test_missing_config_graceful(self, tmp_path: Path):
         """Missing config directory should not crash."""

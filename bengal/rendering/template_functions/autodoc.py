@@ -11,6 +11,14 @@ Functions:
     - param_count(element): Count of parameters (excluding self/cls)
     - return_type(element): Return type string or 'None'
     - get_element_stats(element): Get display stats for element children
+
+Ergonomic Helpers (Tier 3 - Portable Context Globals):
+    - children_by_type(children, element_type): Filter children by type
+    - public_only(members): Filter to public members (no underscore prefix)
+    - private_only(members): Filter to private members (underscore prefix)
+
+These helper functions are registered as both Jinja filters and globals,
+making them portable across any Python-based template engine.
 """
 
 from __future__ import annotations
@@ -27,6 +35,24 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
+def is_autodoc_page(page: Any) -> bool:
+    """
+    Check if a page is autodoc-generated (template helper).
+
+    This is a template-friendly wrapper around bengal.utils.autodoc.is_autodoc_page
+    that can be used in Jinja templates.
+
+    Args:
+        page: Page object to check
+
+    Returns:
+        True if page is autodoc-generated
+    """
+    from bengal.utils.autodoc import is_autodoc_page as _is_autodoc_page
+
+    return _is_autodoc_page(page)
+
+
 def register(env: Environment, site: Site) -> None:
     """Register autodoc template functions with Jinja2 environment."""
     env.filters.update(
@@ -36,6 +62,12 @@ def register(env: Environment, site: Site) -> None:
             "return_type": return_type,
             "get_return_info": get_return_info,
             "get_element_stats": get_element_stats,
+            # Ergonomic helpers (Tier 3)
+            "children_by_type": children_by_type,
+            "public_only": public_only,
+            "private_only": private_only,
+            # Page detection
+            "is_autodoc_page": is_autodoc_page,
         }
     )
 
@@ -46,6 +78,12 @@ def register(env: Environment, site: Site) -> None:
             "return_type": return_type,
             "get_return_info": get_return_info,
             "get_element_stats": get_element_stats,
+            # Ergonomic helpers (Tier 3) - Portable context globals
+            "children_by_type": children_by_type,
+            "public_only": public_only,
+            "private_only": private_only,
+            # Page detection
+            "is_autodoc_page": is_autodoc_page,
         }
     )
 
@@ -197,3 +235,100 @@ def get_element_stats(element: DocElement) -> list[dict[str, Any]]:
             )
 
     return stats
+
+
+# =========================================================================
+# ERGONOMIC HELPER FUNCTIONS (Tier 3 from RFC)
+#
+# These functions simplify common template patterns for filtering autodoc
+# elements. They are registered as both filters and globals to work with
+# any Python-based template engine (portable context globals).
+# =========================================================================
+
+
+def children_by_type(children: list[Any], element_type: str) -> list[Any]:
+    """
+    Filter children by element_type.
+
+    This replaces verbose Jinja filter chains like:
+        {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
+
+    With a simple function call:
+        {% set methods = children_by_type(children, 'method') %}
+
+    Note: This function is portable across template engines because it's
+    pure Python and can be injected as a context global in any renderer.
+
+    Args:
+        children: List of child elements (DocElement or similar)
+        element_type: Type to filter (method, function, class, attribute, etc.)
+
+    Returns:
+        List of children matching the type (empty list if none match)
+
+    Example:
+        {% set children = element.children or [] %}
+        {% set methods = children_by_type(children, 'method') %}
+        {% set functions = children_by_type(children, 'function') %}
+        {% set classes = children_by_type(children, 'class') %}
+        {% set attributes = children_by_type(children, 'attribute') %}
+    """
+    if not children:
+        return []
+    return [c for c in children if getattr(c, "element_type", None) == element_type]
+
+
+def public_only(members: list[Any]) -> list[Any]:
+    """
+    Filter to members not starting with underscore.
+
+    This replaces verbose Jinja filter chains like:
+        {% set public = members | rejectattr('name', 'startswith', '_') | list %}
+
+    With a simple function call:
+        {% set public = public_only(members) %}
+
+    Note: This function is portable across template engines because it's
+    pure Python and can be injected as a context global in any renderer.
+
+    Args:
+        members: List of elements with a 'name' attribute
+
+    Returns:
+        List of members whose name does not start with underscore
+
+    Example:
+        {% set methods = children_by_type(element.children, 'method') %}
+        {% set public_methods = public_only(methods) %}
+    """
+    if not members:
+        return []
+    return [m for m in members if not getattr(m, "name", "").startswith("_")]
+
+
+def private_only(members: list[Any]) -> list[Any]:
+    """
+    Filter to members starting with underscore (internal).
+
+    This replaces verbose Jinja filter chains like:
+        {% set private = members | selectattr('name', 'startswith', '_') | list %}
+
+    With a simple function call:
+        {% set private = private_only(members) %}
+
+    Note: This function is portable across template engines because it's
+    pure Python and can be injected as a context global in any renderer.
+
+    Args:
+        members: List of elements with a 'name' attribute
+
+    Returns:
+        List of members whose name starts with underscore
+
+    Example:
+        {% set methods = children_by_type(element.children, 'method') %}
+        {% set private_methods = private_only(methods) %}
+    """
+    if not members:
+        return []
+    return [m for m in members if getattr(m, "name", "").startswith("_")]

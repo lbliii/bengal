@@ -44,6 +44,7 @@ from . import (
     taxonomies,
     theme,
     urls,
+    version_url,
 )
 
 logger = get_logger(__name__)
@@ -101,7 +102,10 @@ def register_all(env: Environment, site: Site) -> None:
     # Phase 8: Template tests (match, draft, featured, etc.)
     template_tests.register(env, site)
 
-    logger.debug("template_functions_registered", count=19)
+    # Phase 9: Version URL functions (smart fallback for version switching)
+    version_url.register(env, site)
+
+    logger.debug("template_functions_registered", count=20)
 
 
 __all__ = [
@@ -128,4 +132,5 @@ __all__ = [
     "template_tests",
     "theme",
     "urls",
+    "version_url",
 ]

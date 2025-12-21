@@ -47,7 +47,7 @@ Container for multiple cards with responsive column layout. Use `:::{/cards}` to
 
 :::{card} Card Title
 :icon: book
-:link: /docs/
+:link: docs/getting-started
 :color: blue
 :image: /hero.jpg
 :footer: Updated 2025
@@ -79,7 +79,7 @@ Single card within a cards container.
 ```markdown
 :::{card} Card Title
 :icon: book
-:link: /docs/
+:link: docs/getting-started
 :color: blue
 :image: /hero.jpg
 :footer: Footer text
@@ -121,21 +121,21 @@ Footer content
 
 :::{card} Getting Started
 :icon: rocket
-:link: /docs/get-started/
+:link: docs/get-started
 
 Learn the basics
 :::
 
 :::{card} API Reference
 :icon: code
-:link: /api/
+:link: docs/reference/api
 
 Complete API docs
 :::
 
 :::{card} Tutorials
 :icon: book
-:link: /docs/tutorials/
+:link: docs/tutorials
 
 Step-by-step tutorials
 :::
@@ -205,7 +205,7 @@ Use `:pull:` to automatically fetch metadata from linked pages, reducing content
 :::
 
 :::{card} Custom Title
-:link: /docs/contributor/
+:link: docs/get-started/quickstart-contributor
 :pull: description
 
 Custom content overrides pulled description.
@@ -472,7 +472,7 @@ Compatibility layer for Sphinx-Design grid syntax.
 :gutter: 1
 
 :::{grid-item-card} Title
-:link: /docs/
+:link: docs/getting-started
 
 Content
 :::

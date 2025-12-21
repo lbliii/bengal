@@ -31,6 +31,7 @@ from typing import Any
 
 from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
 from bengal.core.page import Page
+from bengal.utils.exceptions import BengalContentError
 
 
 @dataclass
@@ -458,6 +459,91 @@ class Section:
         """
         return bool(self.sorted_pages or self.sorted_subsections)
 
+    # Version-aware navigation methods
+
+    def pages_for_version(self, version_id: str | None) -> list[Page]:
+        """
+        Get pages matching the specified version.
+
+        Filters sorted_pages to return only pages whose version attribute
+        matches the given version_id. If version_id is None, returns all
+        sorted pages (useful when versioning is disabled).
+
+        Args:
+            version_id: Version to filter by (e.g., "v1", "latest"), or None
+                        to return all pages
+
+        Returns:
+            Sorted list of pages matching the version
+
+        Example:
+            {% set version_id = current_version.id if site.versioning_enabled else none %}
+            {% for page in section.pages_for_version(version_id) %}
+              <a href="{{ page.url }}">{{ page.title }}</a>
+            {% endfor %}
+        """
+        if version_id is None:
+            return self.sorted_pages
+        return [p for p in self.sorted_pages if getattr(p, "version", None) == version_id]
+
+    def subsections_for_version(self, version_id: str | None) -> list[Section]:
+        """
+        Get subsections that have content for the specified version.
+
+        A subsection is included if has_content_for_version returns True,
+        meaning either its index page matches the version or it contains
+        pages matching the version.
+
+        Args:
+            version_id: Version to filter by, or None to return all subsections
+
+        Returns:
+            Sorted list of subsections with content for the version
+
+        Example:
+            {% set version_id = current_version.id if site.versioning_enabled else none %}
+            {% for subsection in section.subsections_for_version(version_id) %}
+              <h3>{{ subsection.title }}</h3>
+            {% endfor %}
+        """
+        if version_id is None:
+            return self.sorted_subsections
+        return [s for s in self.sorted_subsections if s.has_content_for_version(version_id)]
+
+    def has_content_for_version(self, version_id: str | None) -> bool:
+        """
+        Check if this section has any content for the specified version.
+
+        A section has content for a version if:
+        - Its index_page exists and matches the version, OR
+        - Any of its sorted_pages match the version, OR
+        - Any of its subsections recursively have content for the version
+
+        Args:
+            version_id: Version to check, or None (always returns True)
+
+        Returns:
+            True if section has matching content at any level
+
+        Example:
+            {% if section.has_content_for_version(current_version.id) %}
+              {# Show this section in navigation #}
+            {% endif %}
+        """
+        if version_id is None:
+            return True
+
+        # Check index page first
+        if self.index_page and getattr(self.index_page, "version", None) == version_id:
+            return True
+
+        # Check any regular page in this section
+        if any(getattr(p, "version", None) == version_id for p in self.sorted_pages):
+            return True
+
+        # Recursively check subsections (needed for versioned content in _versions/<id>/...)
+        return any(s.has_content_for_version(version_id) for s in self.subsections)
+
     @property
     def regular_pages_recursive(self) -> list[Page]:
         """
@@ -491,9 +577,10 @@ class Section:
         # This is a hard requirement - virtual sections are created with explicit URLs
         if self._virtual:
             if not self._relative_url_override:
-                raise ValueError(
+                raise BengalContentError(
                     f"Virtual section '{self.name}' has no _relative_url_override set. "
-                    f"Virtual sections must have explicit URLs set during creation."
+                    f"Virtual sections must have explicit URLs set during creation.",
+                    suggestion="Set _relative_url_override when creating virtual sections",
                 )
             return self._relative_url_override
 
@@ -731,6 +818,80 @@ class Section:
 
         return sections
 
+    # =========================================================================
+    # ERGONOMIC HELPER METHODS (for theme developers)
+    # =========================================================================
+
+    @cached_property
+    def content_pages(self) -> list[Page]:
+        """
+        Get content pages (regular pages excluding index).
+
+        This is useful for listing a section's pages without
+        including the section's own index page in the list.
+
+        Note:
+            `sorted_pages` already excludes `_index.md`/`index.md` files
+            (see sorted_pages implementation). This property is effectively
+            an alias but provides semantic clarity for theme developers.
+
+        Returns:
+            Sorted list of pages, excluding the section's index page
+
+        Example:
+            {% for page in section.content_pages %}
+              <a href="{{ page.url }}">{{ page.title }}</a>
+            {% endfor %}
+        """
+        # sorted_pages already excludes index files, so this is a semantic alias
+        return self.sorted_pages
+
+    def recent_pages(self, limit: int = 10) -> list[Page]:
+        """
+        Get most recent pages by date.
+
+        Returns pages that have a date, sorted newest first.
+        Pages without dates are excluded.
+
+        Args:
+            limit: Maximum number of pages to return (default: 10)
+
+        Returns:
+            List of pages sorted by date descending
+
+        Example:
+            {% for post in section.recent_pages(5) %}
+              <article>{{ post.title }} - {{ post.date }}</article>
+            {% endfor %}
+        """
+        dated_pages = [p for p in self.sorted_pages if getattr(p, "date", None)]
+        dated_pages.sort(key=lambda p: p.date, reverse=True)
+        return dated_pages[:limit]
+
+    def pages_with_tag(self, tag: str) -> list[Page]:
+        """
+        Get pages containing a specific tag.
+
+        Filters sorted_pages to return only pages that have the given tag.
+        Matching is case-insensitive.
+
+        Args:
+            tag: Tag to filter by (case-insensitive)
+
+        Returns:
+            Sorted list of pages with the tag
+
+        Example:
+            {% set python_posts = section.pages_with_tag('python') %}
+            {% for post in python_posts %}
+              <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        tag_lower = tag.lower()
+        return [
+            p for p in self.sorted_pages if tag_lower in [t.lower() for t in getattr(p, "tags", [])]
+        ]
+
     def __hash__(self) -> int:
         """
         Hash based on section path (or name for virtual sections) for stable identity.
@@ -778,3 +939,65 @@ class Section:
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"
+
+
+# =========================================================================
+# MODULE-LEVEL HELPER FUNCTIONS
+# =========================================================================
+# These were relocated from utils/sections.py during architecture refactoring.
+
+
+def resolve_page_section_path(page: Any) -> str | None:
+    """
+    Resolve a page's section path as a string, handling multiple representations.
+
+    The page may expose its section association in different ways depending on
+    build phase or caching:
+    - `page.section` may be a `Section` object with a `.path` attribute
+    - `page.section` may already be a string path
+    - It may be missing or falsy for root-level pages
+
+    Args:
+        page: Page-like object which may have a `section` attribute
+
+    Returns:
+        String path to the section (e.g., "docs/tutorials") or None if not set.
+    """
+    from bengal.utils.logger import get_logger
+
+    logger = get_logger(__name__)
+
+    if page is None:
+        return None
+
+    # Some page proxies may raise on getattr; guard with try/except
+    try:
+        section_value = getattr(page, "section", None)
+    except Exception as e:
+        logger.debug(
+            "sections_getattr_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_none_section",
+        )
+        section_value = None
+
+    if not section_value:
+        return None
+
+    # If it's a Section-like object with a `.path`, return its string form
+    if hasattr(section_value, "path"):
+        try:
+            return str(section_value.path)
+        except Exception as e:
+            # Fallback to str(section_value) if `.path` isn't convertible
+            logger.debug(
+                "sections_path_convert_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_string_fallback",
+            )
+            return str(section_value)
+
+    # Already a string or stringable value
+    return str(section_value)

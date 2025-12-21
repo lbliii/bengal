@@ -11,6 +11,7 @@ import pytest
 from bengal.cache import BuildCache
 from bengal.core.page import Page
 from bengal.orchestration.incremental import IncrementalOrchestrator
+from bengal.utils.exceptions import BengalError
 from bengal.utils.hashing import hash_str
 
 
@@ -173,7 +174,7 @@ class TestIncrementalOrchestrator:
 
         # Cache with matching nav_metadata_hash (including nav_metadata_hash for Phase 3)
         cache = BuildCache()
-        from bengal.utils.incremental_constants import extract_nav_metadata
+        from bengal.orchestration.constants import extract_nav_metadata
 
         nav_meta = extract_nav_metadata(metadata)
         cache.parsed_content[str(nav_path)] = {
@@ -308,7 +309,7 @@ class TestIncrementalOrchestrator:
 
     def test_find_work_early_without_cache(self, orchestrator):
         """Test find_work_early raises error without cache."""
-        with pytest.raises(RuntimeError, match="Cache not initialized"):
+        with pytest.raises(BengalError, match="Cache not initialized"):
             orchestrator.find_work_early()
 
     def test_find_work_early_no_changes(self, orchestrator, mock_site):

@@ -72,5 +72,5 @@ bengal serve --help
 ```
 
 :::{seealso}
-For comprehensive flag references, see the auto-generated [CLI Reference](/cli/).
+For comprehensive flag references, see [[docs/reference/architecture/tooling/cli|CLI Reference]].
 :::

@@ -4,6 +4,7 @@ Unit tests for SpecialPagesGenerator (404 + search page).
 
 from pathlib import Path
 
+from bengal.core.url_ownership import URLRegistry
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 
 
@@ -41,6 +42,7 @@ class DummySite:
         self.theme = "default"
         self.template_engine = DummyTemplateEngine(available_templates or [])
         self.pages = []
+        self.url_registry = URLRegistry()
 
 
 def test_search_generated_by_default(tmp_path):
@@ -70,6 +72,13 @@ def test_search_skips_when_user_page_exists(tmp_path):
     )
     # create user override content
     (site.content_dir / "search.md").write_text("---\ntitle: Search\n---\n")
+    # Claim URL in registry to simulate content discovery (priority 100 = user content)
+    site.url_registry.claim(
+        url="/search/",
+        owner="content",
+        source="content/search.md",
+        priority=100,  # User content always wins
+    )
     gen = SpecialPagesGenerator(site)
     gen.generate()
     assert not (site.output_dir / "search" / "index.html").exists()

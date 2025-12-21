@@ -165,9 +165,7 @@ def test_discover_components_theme_override(tmp_path: Path):
     site = Site.from_config(tmp_path)
 
     # Mock discovery
-    from bengal.server.component_preview import discover_components
-
-    components = discover_components(site)
+    components = ComponentPreviewServer(site).discover_components()
 
     button_comp = next((c for c in components if c["component"] == "button"), None)
     assert button_comp is not None

@@ -90,7 +90,7 @@ class BuildCache(
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 5  # Bumped for FileFingerprint (RFC: orchestrator-performance-improvements)
+    VERSION: int = 6  # Bumped for Sprint 4 incremental package refactor
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
@@ -127,6 +127,11 @@ class BuildCache(
     # Autodoc dependency tracking: source_file → set[autodoc_page_paths]
     # Enables selective rebuilding of autodoc pages when their sources change
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
+
+    # URL ownership claims: url → URLClaim dict
+    # Persists URL claims for incremental build safety (prevents shadowing by new content)
+    # Structure: {url: {owner: str, source: str, priority: int, version: str | None, lang: str | None}}
+    url_claims: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     # Config hash for auto-invalidation when configuration changes
     # Hash of resolved config dict (captures env vars, profiles, split configs)
@@ -291,6 +296,10 @@ class BuildCache(
             if "synthetic_pages" not in data or not isinstance(data["synthetic_pages"], dict):
                 data["synthetic_pages"] = {}
 
+            # URL claims (new, tolerate missing)
+            if "url_claims" not in data or not isinstance(data["url_claims"], dict):
+                data["url_claims"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -376,10 +385,21 @@ class BuildCache(
                 self._save_to_file(cache_path)
 
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalCacheError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=cache_path,
+                operation="saving build cache",
+                suggestion="Check disk space and permissions. Cache will be rebuilt on next build.",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalCacheError)
             logger.error(
                 "cache_save_failed",
                 cache_path=str(cache_path),
-                error=str(e),
+                error=str(enriched),
                 error_type=type(e).__name__,
                 impact="incremental_builds_disabled",
             )
@@ -412,6 +432,7 @@ class BuildCache(
             },  # Autodoc source → pages
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
+            "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }

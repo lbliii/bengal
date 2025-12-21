@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 def get_cli_output(quiet: bool = False, verbose: bool = False) -> CLIOutput:

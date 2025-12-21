@@ -8,7 +8,7 @@ from typing import Any
 import click
 
 from bengal.cli.helpers.cli_output import get_cli_output
-from bengal.utils.cli_output import CLIOutput
+from bengal.output import CLIOutput
 
 
 def load_cli_app(

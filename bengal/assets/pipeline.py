@@ -263,7 +263,13 @@ class NodePipeline:
         logger.debug("pipeline_exec", cmd=" ".join(cmd))
         proc = subprocess.run(cmd, check=False, cwd=str(cwd), capture_output=True, text=True)
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or proc.stdout.strip())
+            from bengal.utils.exceptions import BengalError
+
+            error_msg = proc.stderr.strip() or proc.stdout.strip()
+            raise BengalError(
+                f"Asset pipeline command failed: {error_msg}",
+                suggestion="Check command output and ensure required tools are installed",
+            )
 
 
 def from_site(site: Site) -> NodePipeline:

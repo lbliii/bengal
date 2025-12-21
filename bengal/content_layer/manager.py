@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.async_compat import run_async
+from bengal.utils.exceptions import BengalConfigError, BengalError
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -94,10 +95,11 @@ class ContentLayerManager:
 
         if source_type not in SOURCE_REGISTRY:
             available = ", ".join(sorted(SOURCE_REGISTRY.keys()))
-            raise ValueError(
+            raise BengalConfigError(
                 f"Unknown source type: {source_type!r}\n"
                 f"Available types: {available}\n"
-                f"For remote sources, install extras: pip install bengal[{source_type}]"
+                f"For remote sources, install extras: pip install bengal[{source_type}]",
+                suggestion=f"Use one of the available source types: {available}",
             )
 
         source_class = SOURCE_REGISTRY[source_type]
@@ -190,7 +192,10 @@ class ContentLayerManager:
             if cached:
                 logger.warning(f"Using stale cache for '{name}' (offline mode)")
                 return cached
-            raise RuntimeError(f"Cannot fetch from '{name}' in offline mode (no cache available)")
+            raise BengalError(
+                f"Cannot fetch from '{name}' in offline mode (no cache available)",
+                suggestion="Run with online mode or ensure cache is available",
+            )
 
         # Fetch fresh content
         logger.info(f"Fetching content from '{name}' ({source.source_type})...")

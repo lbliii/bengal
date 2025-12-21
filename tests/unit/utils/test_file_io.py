@@ -57,8 +57,10 @@ class TestReadTextFile:
         assert result is None
 
     def test_path_is_directory_raise(self, tmp_path):
-        """Test ValueError when path is a directory."""
-        with pytest.raises(ValueError, match="not a file"):
+        """Test BengalError when path is a directory."""
+        from bengal.utils.exceptions import BengalError
+
+        with pytest.raises(BengalError, match="not a file"):
             read_text_file(tmp_path, on_error="raise")
 
     def test_path_is_directory_return_empty(self, tmp_path):
@@ -311,11 +313,13 @@ class TestLoadDataFile:
         assert result["format"] == "toml"
 
     def test_unsupported_extension_raise(self, tmp_path):
-        """Test ValueError for unsupported format."""
+        """Test BengalError for unsupported format."""
+        from bengal.utils.exceptions import BengalError
+
         file_path = tmp_path / "data.xml"
         file_path.write_text("<data/>")
 
-        with pytest.raises(ValueError, match="Unsupported file format"):
+        with pytest.raises(BengalError, match="Unsupported file format"):
             load_data_file(file_path, on_error="raise")
 
     def test_unsupported_extension_return_empty(self, tmp_path):

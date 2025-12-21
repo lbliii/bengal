@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from bengal.core.theme import Theme
+from bengal.utils.exceptions import BengalConfigError
 
 
 class TestThemeBasics:
@@ -37,8 +38,8 @@ class TestThemeBasics:
         assert theme.config == {"custom_key": "value"}
 
     def test_invalid_appearance_raises_error(self):
-        """Test that invalid appearance raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid default_appearance"):
+        """Test that invalid appearance raises BengalConfigError."""
+        with pytest.raises(BengalConfigError, match="Invalid default_appearance"):
             Theme(default_appearance="invalid")
 
     def test_valid_appearances(self):

@@ -11,4 +11,3 @@ This is shared content that appears in all versions.
 - Added new feature X
 - Fixed bug Y
 - Improved documentation
-

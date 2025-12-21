@@ -652,6 +652,13 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         return super().list_directory(path)
 
     @classmethod
+    def clear_cached_site(cls) -> None:
+        """Clear the cached Site instance (used for component preview)."""
+        cls._cached_site = None
+        cls._cached_site_root = None
+        logger.debug("handler_site_cache_cleared")
+
+    @classmethod
     def set_build_in_progress(cls, in_progress: bool) -> None:
         """
         Set the build-in-progress state.

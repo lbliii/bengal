@@ -10,6 +10,7 @@ import pytest
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.manager import ContentLayerManager
 from bengal.content_layer.source import ContentSource
+from bengal.utils.exceptions import BengalConfigError
 
 
 class MockSource(ContentSource):
@@ -63,7 +64,7 @@ class TestContentLayerManager:
         """Test registering unknown source type raises error."""
         manager = ContentLayerManager(cache_dir=tmp_path / "cache")
 
-        with pytest.raises(ValueError, match="Unknown source type"):
+        with pytest.raises(BengalConfigError, match="Unknown source type"):
             manager.register_source("test", "unknown_type", {})
 
     def test_register_local_source(self, tmp_path: Path) -> None:

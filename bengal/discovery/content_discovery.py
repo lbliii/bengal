@@ -198,6 +198,22 @@ class ContentDiscovery:
                         self._executor.submit(self._create_page, item_path, current_lang, None)
                     )
             elif item_path.is_dir():
+                # Skip _versions and _shared directories themselves - they're versioning infrastructure
+                # Their contents (like _versions/v1/docs/) will be discovered as separate sections
+                if item_path.name in ("_versions", "_shared"):
+                    # Still walk the directory to discover content inside, but don't add _versions/_shared as a section
+                    section = Section(
+                        name=item_path.name,
+                        path=item_path,
+                        _site=self.site,
+                    )
+                    self._walk_directory(item_path, section, current_lang=current_lang)
+                    # Don't add _versions/_shared itself as a section
+                    # BUT we need to add its nested content sections (e.g., _versions/v1/docs) to self.sections
+                    # so they're accessible for version-filtered navigation
+                    self._add_versioned_sections_recursive(section)
+                    return produced_pages
+
                 section = Section(
                     name=item_path.name,
                     path=item_path,
@@ -207,25 +223,25 @@ class ContentDiscovery:
                 if section.pages or section.subsections:
                     self.sections.append(section)
             # Resolve any pending page futures (top-level pages not in a section)
+            from bengal.utils.error_recovery import with_error_recovery
+
+            strict_mode = self._strict_validation
+
             for fut in pending_pages:
-                try:
-                    page = fut.result()
+
+                def get_page_result(f=fut):  # Capture fut in closure
+                    return f.result()
+
+                page = with_error_recovery(
+                    get_page_result,
+                    on_error=lambda e: None,  # Skip failed pages, continue processing others
+                    error_types=(Exception,),
+                    strict_mode=strict_mode,
+                    logger=self.logger,
+                )
+                if page is not None:
                     self.pages.append(page)
                     produced_pages.append(page)
-                except Exception as e:  # pragma: no cover - guarded logging
-                    # Import here to avoid circular dependency
-                    from bengal.collections.errors import ContentValidationError
-
-                    # Re-raise validation errors in strict mode
-                    if isinstance(e, ContentValidationError) and self._strict_validation:
-                        raise
-
-                    self.logger.error(
-                        "page_future_failed",
-                        path=str(item_path),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
 
             return produced_pages
 
@@ -422,6 +438,40 @@ class ContentDiscovery:
         page_section_str = str(page._section_path) if page._section_path else None
         return bool(page_section_str == cached_metadata.section)
 
+    def _add_versioned_sections_recursive(self, version_container: Section) -> None:
+        """
+        Extract content sections from _versions hierarchy and add to self.sections.
+
+        The _versions directory structure is:
+            _versions/
+                v1/
+                    docs/           <- This is a content section (add to self.sections)
+                        about/      <- This is a subsection (already linked via docs)
+                v2/
+                    docs/
+
+        We skip _versions itself and version-id directories (v1, v2), but add their
+        content sections (docs, etc.) to self.sections so they're accessible for
+        version-filtered navigation.
+
+        Args:
+            version_container: The _versions or _shared section after walking
+        """
+        # version_container is _versions - iterate its subsections (v1, v2, etc.)
+        for version_section in version_container.subsections:
+            # version_section is v1, v2, etc. - iterate its content sections
+            for content_section in version_section.subsections:
+                # content_section is docs, tutorials, etc. - add to self.sections
+                if content_section.pages or content_section.subsections:
+                    self.sections.append(content_section)
+                    self.logger.debug(
+                        "versioned_section_added",
+                        section_name=content_section.name,
+                        version=version_section.name,
+                        page_count=len(content_section.pages),
+                        subsection_count=len(content_section.subsections),
+                    )
+
     def _walk_directory(
         self, directory: Path, parent_section: Section, current_lang: str | None = None
     ) -> None:
@@ -519,25 +569,25 @@ class ContentDiscovery:
                     # should be in self.sections. Subsections are accessible via parent.subsections
 
         # Resolve parallel page futures and attach to section
+        from bengal.utils.error_recovery import with_error_recovery
+
+        strict_mode = self._strict_validation
+
         for fut in file_futures:
-            try:
-                page = fut.result()
+
+            def get_page_result(f=fut):  # Capture fut in closure
+                return f.result()
+
+            page = with_error_recovery(
+                get_page_result,
+                on_error=lambda e: None,  # Skip failed pages, continue processing others
+                error_types=(Exception,),
+                strict_mode=strict_mode,
+                logger=self.logger,
+            )
+            if page is not None:
                 parent_section.add_page(page)
                 self.pages.append(page)
-            except Exception as e:  # pragma: no cover - guarded logging
-                # Import here to avoid circular dependency
-                from bengal.collections.errors import ContentValidationError
-
-                # Re-raise validation errors in strict mode
-                if isinstance(e, ContentValidationError) and self._strict_validation:
-                    raise
-
-                self.logger.error(
-                    "page_future_failed",
-                    path=str(directory),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
 
     def _is_content_file(self, file_path: Path) -> bool:
         """
@@ -821,6 +871,18 @@ class ContentDiscovery:
 
         except yaml.YAMLError as e:
             # YAML syntax error in frontmatter - use debug to avoid noise
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            context = ErrorContext(
+                file_path=file_path,
+                operation="parsing frontmatter",
+                suggestion="Fix frontmatter YAML syntax",
+                original_error=e,
+            )
+            # Enrich error for better error messages (context captured for logging)
+            enrich_error(e, context, BengalDiscoveryError)
+
             self.logger.debug(
                 "frontmatter_parse_failed",
                 file_path=str(file_path),
@@ -846,7 +908,23 @@ class ContentDiscovery:
             return content, metadata
 
         except Exception as e:
-            # Unexpected error
+            # Unexpected error - enrich with context
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            context = ErrorContext(
+                file_path=file_path,
+                operation="parsing content file",
+                suggestion="Check file encoding and format",
+                original_error=e,
+            )
+            # Enrich error and collect in build stats if available
+            enriched_error = enrich_error(e, context, BengalDiscoveryError)
+            if self._build_context and hasattr(self._build_context, "build_stats"):
+                build_stats = self._build_context.build_stats
+                if build_stats:
+                    build_stats.add_error(enriched_error, category="discovery")
+
             self.logger.warning(
                 "content_parse_unexpected_error",
                 file_path=str(file_path),

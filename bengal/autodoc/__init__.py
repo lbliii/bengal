@@ -16,7 +16,7 @@ from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.openapi import OpenAPIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
-from bengal.autodoc.virtual_orchestrator import AutodocRunResult, VirtualAutodocOrchestrator
+from bengal.autodoc.orchestration import AutodocRunResult, VirtualAutodocOrchestrator
 
 __all__ = [
     "AutodocRunResult",

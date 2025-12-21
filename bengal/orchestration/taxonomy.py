@@ -691,6 +691,9 @@ class TaxonomyOrchestrator:
             },
         )
 
+        # Set site reference BEFORE output_path for correct URL computation
+        tag_index._site = self.site
+
         # Compute output path using centralized logic (i18n-aware via site.current_language)
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
 
@@ -712,7 +715,27 @@ class TaxonomyOrchestrator:
                 "_tags": tags,
             },
         )
+
+        # Set site reference BEFORE output_path for correct URL computation
+        tag_index._site = self.site
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
+
+        # Claim URL in registry for ownership enforcement
+        # Priority 40 = taxonomy (auto-generated)
+        if hasattr(self.site, "url_registry") and self.site.url_registry:
+            try:
+                url = self.url_strategy.url_from_output_path(tag_index.output_path, self.site)
+                source = str(tag_index.source_path)
+                self.site.url_registry.claim(
+                    url=url,
+                    owner="taxonomy",
+                    source=source,
+                    priority=40,  # Taxonomy pages
+                )
+            except Exception:
+                # Don't fail taxonomy generation on registry errors (graceful degradation)
+                pass
+
         return tag_index
 
     def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
@@ -762,10 +785,29 @@ class TaxonomyOrchestrator:
                 },
             )
 
+            # Set site reference BEFORE output_path for correct URL computation
+            tag_page._site = self.site
+
             # Compute output path using centralized logic (i18n-aware via site.current_language)
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
                 tag_slug=tag_slug, page_num=page_num, site=self.site
             )
+
+            # Claim URL in registry for ownership enforcement
+            # Priority 40 = taxonomy (auto-generated)
+            if hasattr(self.site, "url_registry") and self.site.url_registry:
+                try:
+                    url = self.url_strategy.url_from_output_path(tag_page.output_path, self.site)
+                    source = str(tag_page.source_path)
+                    self.site.url_registry.claim(
+                        url=url,
+                        owner="taxonomy",
+                        source=source,
+                        priority=40,  # Taxonomy pages
+                    )
+                except Exception:
+                    # Don't fail taxonomy generation on registry errors (graceful degradation)
+                    pass
 
             pages_to_create.append(tag_page)
 
@@ -803,6 +845,9 @@ class TaxonomyOrchestrator:
                     "_page_num": page_num,
                 },
             )
+
+            # Set site reference BEFORE output_path for correct URL computation
+            tag_page._site = self.site
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
                 tag_slug=tag_slug, page_num=page_num, site=self.site
             )

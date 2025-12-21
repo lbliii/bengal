@@ -16,6 +16,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.utils.exceptions import BengalRenderingError
 
 
 class TestTemplateErrorCollection:
@@ -193,7 +194,7 @@ Content
         orchestrator = BuildOrchestrator(site)
 
         # Should raise exception in strict mode
-        with pytest.raises((RuntimeError, ValueError)):
+        with pytest.raises(BengalRenderingError):
             orchestrator.build(parallel=False, verbose=False, strict=True)
 
     def test_error_contains_rich_information(self, temp_site):

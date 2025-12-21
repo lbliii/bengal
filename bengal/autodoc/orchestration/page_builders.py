@@ -88,7 +88,20 @@ def create_pages(
 
         # Create page metadata without rendering HTML yet
         template_name, url_path, page_type = get_element_metadata(element, doc_type)
-        source_id = f"{doc_type}/{url_path}.md"
+
+        # Skip root command-groups - the section index page represents them
+        # resolve_cli_url_path("bengal") returns "" which becomes just the prefix
+        # This would output to /cli/index.html, same as the section index page
+        prefix = resolve_output_prefix(doc_type)
+        if doc_type == "cli" and url_path == prefix:
+            logger.debug(
+                "cli_root_group_skipped",
+                element=element.qualified_name,
+                reason="Section index page represents root command-group",
+            )
+            continue
+        # Note: url_path already includes the prefix (e.g., "cli/assets/build")
+        source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"
 
         # Create page with deferred rendering - HTML rendered in rendering phase
@@ -117,6 +130,27 @@ def create_pages(
         # Set section reference via setter (handles virtual sections with URL-based lookup)
         page._section = parent_section
 
+        # Claim URL in registry for ownership enforcement
+        # Priority 80 = autodoc pages (derived from sections)
+        if hasattr(site, "url_registry") and site.url_registry:
+            try:
+                from bengal.utils.url_strategy import URLStrategy
+
+                url = URLStrategy.url_from_output_path(output_path, site)
+                source = str(page.source_path)
+                # Extract section_id from prefix (e.g., "api/python" -> "python")
+                section_id = prefix.split("/")[-1] if "/" in prefix else prefix
+                owner = f"autodoc:{section_id}"
+                site.url_registry.claim(
+                    url=url,
+                    owner=owner,
+                    source=source,
+                    priority=80,  # Autodoc pages
+                )
+            except Exception:
+                # Don't fail autodoc generation on registry errors (graceful degradation)
+                pass
+
         # Check if this element corresponds to an existing section (e.g. it's a package)
         # If so, this page should be the index page of that section
         target_section = None
@@ -132,8 +166,13 @@ def create_pages(
 
         elif doc_type == "cli" and element.element_type == "command-group":
             # Section path format from create_cli_sections: {prefix}/part1/part2
-            section_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-            target_section = sections.get(section_path)
+            # resolve_cli_url_path strips the root command (e.g., "bengal.assets" → "assets")
+            from bengal.autodoc.utils import resolve_cli_url_path
+
+            group_path = resolve_cli_url_path(element.qualified_name)
+            if group_path:  # Skip root command group (empty path)
+                section_path = f"{prefix}/{group_path}"
+                target_section = sections.get(section_path)
 
         # Add to section
         if target_section:
@@ -146,16 +185,18 @@ def create_pages(
             # We don't use add_page() because it relies on filename stem for index detection
             target_section.index_page = page
             target_section.pages.append(page)
+            # Also add to page_data so it gets returned and rendered
+            # (same pattern as create_index_pages which adds to both section.pages AND return list)
+            page_data.append(page)
         else:
             # Regular page - add to parent section
             parent_section.add_page(page)
+            # Store page for return (no HTML rendering yet - deferred to rendering phase)
+            page_data.append(page)
 
         # Track source file → autodoc page dependency for incremental builds
         if source_file_for_tracking:
             result.add_dependency(str(source_file_for_tracking), source_id)
-
-        # Store page for return (no HTML rendering yet - deferred to rendering phase)
-        page_data.append(page)
 
     # Note: HTML rendering is now DEFERRED to the rendering phase
     # This ensures menus and full template context are available.

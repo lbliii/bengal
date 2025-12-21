@@ -42,13 +42,11 @@ logger = get_logger(__name__)
 # Check if lunr is available (optional dependency)
 try:
     from lunr import lunr  # type: ignore[import-untyped]
-    from lunr.index import Index  # type: ignore[import-untyped]
 
     LUNR_AVAILABLE = True
 except ImportError:
     LUNR_AVAILABLE = False
     lunr = None
-    Index = None
 
 
 class LunrIndexGenerator:
@@ -164,7 +162,7 @@ class LunrIndexGenerator:
             )
 
             # Serialize and write
-            output_path = self._get_output_path()
+            output_path = self._get_output_path(index_json_path)
             serialized = idx.serialize()
 
             output_path.write_text(
@@ -260,8 +258,24 @@ class LunrIndexGenerator:
                 return Path(self.site.output_dir) / str(current_lang) / "index.json"
         return Path(self.site.output_dir) / "index.json"
 
-    def _get_output_path(self) -> Path:
-        """Get the output path for search-index.json, handling i18n prefixes."""
+    def _get_output_path(self, index_json_path: Path | None = None) -> Path:
+        """
+        Get the output path for search-index.json.
+
+        If index_json_path is provided, generates search-index.json alongside it.
+        Otherwise, uses default location handling i18n prefixes.
+
+        Args:
+            index_json_path: Optional path to index.json (for version-specific paths)
+
+        Returns:
+            Path to search-index.json
+        """
+        # If index path provided, generate search-index.json alongside it
+        if index_json_path is not None:
+            return index_json_path.parent / "search-index.json"
+
+        # Default behavior: handle i18n prefixes
         i18n = self.site.config.get("i18n", {}) or {}
         if i18n.get("strategy") == "prefix":
             current_lang = getattr(self.site, "current_language", None) or i18n.get(

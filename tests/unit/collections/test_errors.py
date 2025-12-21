@@ -16,6 +16,7 @@ from bengal.collections.errors import (
     SchemaError,
     ValidationError,
 )
+from bengal.utils.exceptions import BengalContentError
 
 
 class TestValidationError:
@@ -188,9 +189,12 @@ class TestContentValidationError:
         )
 
         assert isinstance(error, Exception)
+        assert isinstance(error, BengalContentError)  # Should extend BengalContentError
 
         # Can be raised and caught
         with pytest.raises(ContentValidationError):
+            raise error
+        with pytest.raises(BengalContentError):  # Can also catch as base class
             raise error
 
 
@@ -221,8 +225,11 @@ class TestCollectionNotFoundError:
         error = CollectionNotFoundError("missing")
 
         assert isinstance(error, Exception)
+        assert isinstance(error, BengalContentError)  # Should extend BengalContentError
 
         with pytest.raises(CollectionNotFoundError):
+            raise error
+        with pytest.raises(BengalContentError):  # Can also catch as base class
             raise error
 
 
@@ -242,6 +249,9 @@ class TestSchemaError:
         error = SchemaError("TestSchema", "Invalid definition")
 
         assert isinstance(error, Exception)
+        assert isinstance(error, BengalContentError)  # Should extend BengalContentError
 
         with pytest.raises(SchemaError):
+            raise error
+        with pytest.raises(BengalContentError):  # Can also catch as base class
             raise error

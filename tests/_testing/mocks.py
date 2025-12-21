@@ -151,24 +151,36 @@ class MockSite:
     Provides a lightweight site implementation for validator
     and health check tests.
 
+    WARNING: This is a mock - do not use for actual file I/O operations.
+    The default paths use /dev/null parent to prevent accidental file creation.
+    For tests that need real file I/O, pass explicit tmp_path-based paths.
+
     Attributes:
         pages: List of pages in site
         sections: List of top-level sections
         config: Site configuration dict
-        root_path: Site root directory
-        output_dir: Build output directory
+        root_path: Site root directory (defaults to /dev/null/mock-site)
+        output_dir: Build output directory (defaults to /dev/null/mock-output)
 
     Example:
         >>> site = MockSite(pages=[MockPage(title="Home", url="/")])
         >>> len(site.pages)
         1
+
+        # For tests needing real paths:
+        >>> site = MockSite(
+        ...     pages=[page],
+        ...     root_path=tmp_path,
+        ...     output_dir=tmp_path / "public"
+        ... )
     """
 
     pages: list[MockPage] = field(default_factory=list)
     sections: list[MockSection] = field(default_factory=list)
     config: dict[str, Any] = field(default_factory=dict)
-    root_path: Path = field(default_factory=lambda: Path("."))
-    output_dir: Path = field(default_factory=lambda: Path("public"))
+    # Use non-existent paths to prevent accidental file I/O at project root
+    root_path: Path = field(default_factory=lambda: Path("/dev/null/mock-site"))
+    output_dir: Path = field(default_factory=lambda: Path("/dev/null/mock-output"))
 
 
 @dataclass(eq=False)

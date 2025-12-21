@@ -26,7 +26,7 @@ keywords:
 
 # Rendering Pipeline
 
-The rendering pipeline is the heart of Bengal, transforming source content into final HTML output.
+The rendering pipeline transforms source content into final HTML output.
 
 ## Overview
 
@@ -66,7 +66,7 @@ flowchart TD
 :::{tab-item} Parser
 **Markdown Parser** (`rendering/parsers/`)
 
-We use **Mistune** by default for high performance (2x faster than Python-Markdown).
+Mistune is the default markdown engine (unless overridden by configuration).
 
 **Features:**
 - **Variable Substitution**: `{{ page.title }}` in content
@@ -75,9 +75,9 @@ We use **Mistune** by default for high performance (2x faster than Python-Markdo
 :::
 
 :::{tab-item} Templates
-**Template Engine** (`rendering/template_engine.py`)
+**Template Engine** (`rendering/template_engine/`)
 
-Jinja2-based engine with 75+ custom functions.
+Jinja2-based engine with project-specific helpers.
 
 **Capabilities:**
 - **Theme Support**: Overridable templates (Site > Theme > Default)
@@ -86,21 +86,27 @@ Jinja2-based engine with 75+ custom functions.
 :::
 
 :::{tab-item} Pipeline
-**Pipeline Coordinator** (`rendering/pipeline.py`)
+**Pipeline Coordinator** (`rendering/pipeline/`)
 
-Orchestrates the flow for each page.
+Orchestrates the flow for each page. Organized as a package with focused modules:
+- `core.py`: Main RenderingPipeline class
+- `thread_local.py`: Thread-local parser management
+- `toc.py`: TOC extraction utilities
+- `transforms.py`: Content transformations
+- `output.py`: Output handling
 
 **Responsibilities:**
 - Manages the 3-stage process
 - Handles output path determination
 - Tracks template dependencies
 - Writes atomic output
+- Thread-local parser instances for performance
 :::
 ::::
 
 ## Mistune Directives
 
-Bengal extends Markdown with powerful directives using `:::{name}` syntax.
+Bengal extends Markdown with directives using `:::{name}` syntax.
 
 ::::{cards}
 :columns: 3
@@ -140,12 +146,7 @@ Call-to-action buttons.
 
 ## Performance
 
-We benchmarked parser performance on a 78-page site:
-
-| Parser | Time | Throughput | Notes |
-|--------|------|------------|-------|
-| Python-Markdown | 3.78s | 20.6 pages/s | Feature-rich legacy |
-| **Mistune** | **2.18s** | **35.8 pages/s** | **42% Faster** |
+For benchmarks and reproducible measurements, refer to [Performance](../meta/performance/) and the `benchmarks/` directory.
 
 ## Template Functions
 

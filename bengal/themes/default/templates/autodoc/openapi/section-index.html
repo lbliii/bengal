@@ -33,27 +33,31 @@ This template receives:
 
       {# Header #}
       <header class="autodoc-header">
-        <h1 class="autodoc-title">{{ section.title }}</h1>
-        {% if section.metadata.get('description') %}
+        <h1 class="autodoc-title">{{ section.title if section else 'API Reference' }}</h1>
+        {% if section and section.metadata.get('description') %}
         <div class="autodoc-description">
           <p>{{ section.metadata.get('description') | first_sentence }}</p>
         </div>
-        {% else %}
+        {% elif section %}
         <div class="autodoc-description">
           <p>Browse {{ section.name }} resources and endpoints.</p>
+        </div>
+        {% else %}
+        <div class="autodoc-description">
+          <p>Browse API resources and endpoints.</p>
         </div>
         {% endif %}
       </header>
 
       {# Quick Stats #}
       <div class="autodoc-stats">
-        {% if section.subsections %}
+        {% if section and section.subsections %}
         <span class="autodoc-stat">
           <span class="autodoc-stat-value">{{ section.subsections | length }}</span>
           <span class="autodoc-stat-label">Resources</span>
         </span>
         {% endif %}
-        {% set endpoint_pages = section.sorted_pages | selectattr('metadata.element_type', 'defined') | list %}
+        {% set endpoint_pages = (section.sorted_pages if section else []) | selectattr('metadata.element_type', 'defined') | list %}
         {% if endpoint_pages %}
         <span class="autodoc-stat">
           <span class="autodoc-stat-value">{{ endpoint_pages | length }}</span>
@@ -63,7 +67,7 @@ This template receives:
       </div>
 
       {# Subsections (Resource Groups) - Card Grid #}
-      {% if section.sorted_subsections %}
+      {% if section and section.sorted_subsections %}
       <section class="autodoc-section" data-section="resources">
         <h2 class="autodoc-section-title">Resources</h2>
 
@@ -96,11 +100,13 @@ This template receives:
 
       {# Endpoint Pages - Card Grid #}
       {% set endpoint_pages = [] %}
+      {% if section %}
       {% for page in section.sorted_pages %}
         {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
           {% set _ = endpoint_pages.append(page) %}
         {% endif %}
       {% endfor %}
+      {% endif %}
 
       {% if endpoint_pages %}
       <section class="autodoc-section" data-section="endpoints">
@@ -141,7 +147,7 @@ This template receives:
       {% endif %}
 
       {# Empty State #}
-      {% if not section.subsections and not endpoint_pages %}
+      {% if not section or (not section.subsections and not endpoint_pages) %}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No documentation available in this section yet.</p>

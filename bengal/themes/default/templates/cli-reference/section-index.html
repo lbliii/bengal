@@ -33,7 +33,7 @@ This template receives:
     <article data-autodoc data-type="cli" data-element="section-index" class="autodoc docs-content">
 
       {# Subsections (Command Groups) - Card Grid #}
-      {% if section.sorted_subsections %}
+      {% if section and section.sorted_subsections %}
       <section class="autodoc-section" data-section="groups">
         <h2 class="autodoc-section-title">Command Groups</h2>
 
@@ -68,11 +68,13 @@ This template receives:
 
       {# Command Pages - Card Grid #}
       {% set command_pages = [] %}
+      {% if section %}
       {% for page in section.sorted_pages %}
         {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
           {% set _ = command_pages.append(page) %}
         {% endif %}
       {% endfor %}
+      {% endif %}
 
       {% if command_pages %}
       <section class="autodoc-section" data-section="commands">
@@ -109,7 +111,7 @@ This template receives:
       {% endif %}
 
       {# Empty State #}
-      {% if not section.subsections and not command_pages %}
+      {% if not section or (not section.subsections and not command_pages) %}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No CLI documentation available in this section yet.</p>

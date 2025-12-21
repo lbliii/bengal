@@ -39,6 +39,19 @@ def create_index_pages(
         # output_path must be absolute for correct URL generation
         output_path = site.output_dir / f"{section_path}/index.html"
 
+        # Check if URL is already claimed by another autodoc page
+        # This prevents collisions when autodoc generates both a command group
+        # page (e.g., cli/assets.md) and a section index for the same path
+        if hasattr(site, "url_registry") and site.url_registry:
+            from bengal.utils.url_strategy import URLStrategy
+
+            url = URLStrategy.url_from_output_path(output_path, site)
+            existing_claim = site.url_registry.get_claim(url)
+            if existing_claim is not None:
+                # URL already claimed - skip creating section index
+                # The existing page will serve as the section's content
+                continue
+
         # Determine template and page type based on section metadata
         # Page type controls CSS styling, template dir may differ
         section_type = section.metadata.get("type", "autodoc-python")
@@ -78,6 +91,27 @@ def create_index_pages(
         index_page._site = site
         # Set section reference via setter (handles virtual sections with URL-based lookup)
         index_page._section = section
+
+        # Claim URL in registry for ownership enforcement
+        # Priority 90 = autodoc sections (explicitly configured by user)
+        if hasattr(site, "url_registry") and site.url_registry:
+            try:
+                from bengal.utils.url_strategy import URLStrategy
+
+                url = URLStrategy.url_from_output_path(output_path, site)
+                source = str(index_page.source_path)
+                # Extract section_id from section_path (e.g., "api/python" -> "python")
+                section_id = section_path.split("/")[-1] if "/" in section_path else section_path
+                owner = f"autodoc:{section_id}"
+                site.url_registry.claim(
+                    url=url,
+                    owner=owner,
+                    source=source,
+                    priority=90,  # Autodoc sections
+                )
+            except Exception:
+                # Don't fail autodoc generation on registry errors (graceful degradation)
+                pass
 
         # Set as section index directly (don't use add_page which would
         # trigger index collision detection)
