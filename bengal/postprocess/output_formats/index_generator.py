@@ -62,16 +62,40 @@ class SiteIndexGenerator:
         self.json_indent = json_indent
         self.include_full_content = include_full_content
 
-    def generate(self, pages: list[Page]) -> Path:
+    def generate(self, pages: list[Page]) -> Path | list[Path]:
         """
         Generate site-wide index.json.
+
+        When versioning is enabled, generates per-version indexes:
+        - Latest version: output_dir/index.json
+        - Older versions: output_dir/docs/v1/index.json, etc.
 
         Args:
             pages: List of pages to include
 
         Returns:
-            Path to the generated index.json file
+            Path to the generated index.json file (single index)
+            or list of Paths (per-version indexes)
         """
+        # Check if versioning is enabled
+        versioning_enabled = getattr(self.site, "versioning_enabled", False)
+
+        if not versioning_enabled:
+            # Single index (unchanged behavior)
+            return self._generate_single_index(pages)
+
+        # Per-version indexes
+        generated = []
+        by_version = self._group_by_version(pages)
+
+        for version_id, version_pages in by_version.items():
+            path = self._generate_version_index(version_id, version_pages)
+            generated.append(path)
+
+        return generated
+
+    def _generate_single_index(self, pages: list[Page]) -> Path:
+        """Generate single index.json (original behavior)."""
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
@@ -136,6 +160,94 @@ class SiteIndexGenerator:
         )
 
         return index_path
+
+    def _generate_version_index(self, version_id: str | None, pages: list[Page]) -> Path:
+        """Generate index for a specific version."""
+        logger.debug(
+            "generating_version_index",
+            version_id=version_id or "latest",
+            page_count=len(pages),
+        )
+
+        # Build site metadata
+        site_metadata = {
+            "title": self.site.config.get("title", "Bengal Site"),
+            "description": self.site.config.get("description", ""),
+            "baseurl": self.site.config.get("baseurl", ""),
+        }
+
+        # Only include build_time in production builds
+        if not self.site.dev_mode:
+            site_metadata["build_time"] = datetime.now().isoformat()
+
+        site_data: dict[str, Any] = {
+            "site": site_metadata,
+            "pages": [],
+            "sections": {},
+            "tags": {},
+        }
+
+        # Add each page (summary only, no full content)
+        for page in pages:
+            page_summary = self.page_to_summary(page)
+            site_data["pages"].append(page_summary)
+
+            # Count sections
+            section = page_summary.get("section", "")
+            if section:
+                site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
+
+            # Count tags
+            for tag in page_summary.get("tags", []):
+                site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
+
+        # Convert counts to lists
+        site_data["sections"] = [
+            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
+        ]
+        site_data["tags"] = [
+            {"name": name, "count": count}
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
+        ]
+
+        # Determine output path
+        if version_id is None or self._is_latest_version(version_id):
+            # Latest version: output_dir/index.json
+            index_path = self._get_index_path()
+        else:
+            # Older version: output_dir/docs/v1/index.json
+            index_path = self.site.output_dir / "docs" / version_id / "index.json"
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write only if content changed
+        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False)
+        self._write_if_changed(index_path, new_json_str)
+
+        logger.debug(
+            "version_index_json_written",
+            version_id=version_id or "latest",
+            path=str(index_path),
+            size_kb=index_path.stat().st_size / 1024,
+        )
+
+        return index_path
+
+    def _group_by_version(self, pages: list[Page]) -> dict[str | None, list[Page]]:
+        """Group pages by version ID (None for unversioned)."""
+        by_version: dict[str | None, list[Page]] = {}
+        for page in pages:
+            version = getattr(page, "version", None)
+            by_version.setdefault(version, []).append(page)
+        return by_version
+
+    def _is_latest_version(self, version_id: str) -> bool:
+        """Check if version_id is the latest version."""
+        if not hasattr(self.site, "version_config") or not self.site.version_config:
+            return True
+        if not self.site.version_config.enabled:
+            return True
+        version = self.site.version_config.get_version(version_id)
+        return version is not None and version.latest
 
     def _get_index_path(self) -> Path:
         """Get the output path for index.json, handling i18n prefixes."""
@@ -252,6 +364,10 @@ class SiteIndexGenerator:
         # Only set when True to keep index.json smaller
         if is_autodoc_page(page):
             summary["isAutodoc"] = True
+
+        # Version field for version-scoped search
+        if hasattr(page, "version") and page.version:
+            summary["version"] = page.version
 
         return summary
 

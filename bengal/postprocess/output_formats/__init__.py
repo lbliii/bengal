@@ -237,9 +237,19 @@ class OutputFormatsGenerator:
                 json_indent=json_indent,
                 include_full_content=include_full_content,
             )
-            index_path = index_gen.generate(pages)
-            generated.append("index.json")
-            logger.debug("generated_site_index_json")
+            index_result = index_gen.generate(pages)
+
+            # Handle both single Path and list[Path] return
+            if isinstance(index_result, list):
+                # Per-version indexes
+                index_paths = index_result
+                generated.extend([f"index.json ({len(index_paths)} versions)"])
+                logger.debug("generated_versioned_index_json", count=len(index_paths))
+            else:
+                # Single index
+                index_paths = [index_result]
+                generated.append("index.json")
+                logger.debug("generated_site_index_json")
 
             # Generate pre-built Lunr index if enabled
             search_config = self.site.config.get("search", {})
@@ -249,10 +259,12 @@ class OutputFormatsGenerator:
             if prebuilt_enabled:
                 lunr_gen = LunrIndexGenerator(self.site)
                 if lunr_gen.is_available():
-                    lunr_path = lunr_gen.generate(index_path)
-                    if lunr_path:
-                        generated.append("search-index.json")
-                        logger.debug("generated_prebuilt_lunr_index")
+                    # Generate Lunr index for each version index
+                    for index_path in index_paths:
+                        lunr_path = lunr_gen.generate(index_path)
+                        if lunr_path:
+                            generated.append("search-index.json")
+                            logger.debug("generated_prebuilt_lunr_index", path=str(lunr_path))
                 else:
                     logger.debug(
                         "lunr_prebuilt_skipped",

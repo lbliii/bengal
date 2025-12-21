@@ -117,6 +117,36 @@
     }
 
     /**
+     * Detect current version from meta tag or URL
+     */
+    function detectCurrentVersion() {
+        // Meta tag (authoritative)
+        const meta = document.querySelector('meta[name="bengal:version"]');
+        if (meta) {
+            return meta.getAttribute('content');
+        }
+
+        // Fallback: parse URL pattern /docs/v1/...
+        const match = window.location.pathname.match(/\/docs\/(v\d+)\//);
+        return match ? match[1] : null;
+    }
+
+    /**
+     * Build versioned index URL
+     */
+    function buildVersionedIndexUrl(baseurl) {
+        const version = detectCurrentVersion();
+
+        if (!version) {
+            // Unversioned or latest
+            return buildIndexUrl('index.json', baseurl);
+        }
+
+        // Version-specific: /docs/v1/index.json
+        return buildIndexUrl(`docs/${version}/index.json`, baseurl);
+    }
+
+    /**
      * Load search index - prefers pre-built index, falls back to runtime building
      */
     async function loadSearchIndex() {
@@ -183,7 +213,17 @@
                 return false;
             }
 
-            const prebuiltUrl = metaTag.getAttribute('content') || '';
+            // Build versioned pre-built index URL
+            const version = detectCurrentVersion();
+            let prebuiltUrl = '';
+            if (version) {
+                // Version-specific: /docs/v1/search-index.json
+                prebuiltUrl = buildIndexUrl(`docs/${version}/search-index.json`, baseurl);
+            } else {
+                // Use meta tag URL for latest/unversioned
+                prebuiltUrl = metaTag.getAttribute('content') || '';
+            }
+
             if (!prebuiltUrl) {
                 return false;
             }
@@ -206,7 +246,7 @@
             searchIndex = lunr.Index.load(prebuiltData);
 
             // Still need to load index.json for page data (pre-built index only has search index)
-            const indexUrl = buildIndexUrl('index.json', baseurl);
+            const indexUrl = buildVersionedIndexUrl(baseurl);
             const dataResponse = await fetch(indexUrl);
 
             if (!dataResponse.ok) {
@@ -243,7 +283,7 @@
         } catch (e) { /* no-op */ }
 
         if (!indexUrl) {
-            indexUrl = buildIndexUrl('index.json', baseurl);
+            indexUrl = buildVersionedIndexUrl(baseurl);
         }
 
         const response = await fetch(indexUrl);

@@ -97,6 +97,10 @@ See: plan/active/rfc-template-performance-optimization.md
     {% if bengal.capabilities.prebuilt_search %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
     {% endif %}
+    {# Version meta tag for version-scoped search #}
+    {% if _has_page and _page.version is defined and _page.version %}
+    <meta name="bengal:version" content="{{ _page.version }}">
+    {% endif %}
 
     {# Canonical URL #}
     {% if site.config.baseurl %}
