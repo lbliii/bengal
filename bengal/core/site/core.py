@@ -438,11 +438,20 @@ class Site(
                 self.xref_index: dict[str, Any] = {}
 
         # Cached properties
-        self.invalidate_regular_pages_cache()
+        self.invalidate_page_caches()
 
         # Section registries (rebuilt from sections)
         self._section_registry = {}
         self._section_url_registry = {}
+
+        # Reset query registry
+        self._query_registry = None
+
+        # Reset lookup maps
+        self._page_lookup_maps = None
+
+        # Reset theme if needed (will be reloaded on first access)
+        self._theme_obj = None
 
         # Runtime caches (Phase B fields)
         self._bengal_theme_chain_cache = None

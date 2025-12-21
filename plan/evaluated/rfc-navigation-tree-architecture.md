@@ -34,7 +34,7 @@ Bengal already has navigation helpers in `bengal/rendering/template_functions/na
 | `get_nav_tree()` | `tree.py:17-178` | Builds flat list with depth | **Replaced** by cached NavTree |
 | `get_breadcrumbs()` | `breadcrumbs.py` | Breadcrumb trail | Unchanged |
 | `get_auto_nav()` | `auto_nav.py` | Auto-discovered nav items | Unchanged |
-| `get_version_target_url()` | `../version_url.py:106` | Smart version fallback | **Integrated** into NavTree API |
+| `get_version_target_url()` | `version_url.py` | Smart version fallback | **Integrated** into NavTree API |
 
 ### Recently Implemented: Version-Aware Section Methods
 
