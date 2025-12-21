@@ -2,7 +2,6 @@
 title: API Documentation Specialist
 nav_title: API Docs
 description: Auto-generate API documentation from source code and specs.
-template: tracks/single.html
 track_id: api-docs-specialist
 ---
 

@@ -17,6 +17,7 @@ from .strategies import (
     CliReferenceStrategy,
     DocsStrategy,
     PageStrategy,
+    TrackStrategy,
     TutorialStrategy,
 )
 
@@ -33,6 +34,7 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "autodoc-python": ApiReferenceStrategy(),
     "autodoc-cli": CliReferenceStrategy(),
     "tutorial": TutorialStrategy(),
+    "track": TrackStrategy(),
     "page": PageStrategy(),
     "list": PageStrategy(),  # Alias for generic lists
 }

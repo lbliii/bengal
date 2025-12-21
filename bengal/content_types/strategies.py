@@ -309,6 +309,35 @@ class ChangelogStrategy(ContentTypeStrategy):
         return name in ("changelog", "releases", "release-notes", "releasenotes", "changes")
 
 
+class TrackStrategy(ContentTypeStrategy):
+    """Strategy for learning track content."""
+
+    default_template = "tracks/list.html"
+    allows_pagination = False
+
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
+        """Sort by weight, then title."""
+        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+
+    def detect_from_section(self, section: Section) -> bool:
+        """Detect track sections by name."""
+        name = section.name.lower()
+        return name == "tracks"
+
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """Track-specific template selection."""
+        # Backward compatibility
+        if page is None:
+            return self.default_template
+
+        is_section_index = page.source_path.stem == "_index"
+
+        if is_section_index:
+            return "tracks/list.html"
+        else:
+            return "tracks/single.html"
+
+
 class PageStrategy(ContentTypeStrategy):
     """Default strategy for generic pages."""
 

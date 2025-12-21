@@ -312,24 +312,24 @@ class TestTemplateSelection:
         blog_home.url = "/"
         assert renderer._get_template_name(blog_home) == "blog/home.html"
 
-    def test_track_pages_use_explicit_template(self):
-        """Test that track pages use explicit template field correctly."""
+    def test_track_pages_use_type_from_cascade(self):
+        """Test that track pages use type from cascade to select templates."""
         # Setup
         engine = MockTemplateEngine(
             available_templates=["tracks/list.html", "tracks/single.html", "docs.html", "page.html"]
         )
         renderer = Renderer(engine)
 
-        # Test track list page using template field
+        # Test track list page (section index) - uses type from cascade
         track_list = self._setup_page_with_section(
-            Path("/content/tracks/_index.md"), {"template": "tracks/list.html"}, "tracks"
+            Path("/content/tracks/_index.md"), {"type": "track"}, "tracks"
         )
         assert renderer._get_template_name(track_list) == "tracks/list.html"
 
-        # Test track single page using template field
+        # Test track single page - uses type from cascade
         track_single = self._setup_page_with_section(
             Path("/content/tracks/getting-started.md"),
-            {"template": "tracks/single.html"},
+            {"type": "track"},
             "tracks",
         )
         assert renderer._get_template_name(track_single) == "tracks/single.html"
