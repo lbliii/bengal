@@ -246,6 +246,43 @@ class PageJSONGenerator:
 
         return data
 
+    def _build_graph_indexes(self, graph_data: dict[str, Any]) -> None:
+        """
+        Build indexes for O(1) graph lookups.
+
+        Creates:
+        - node_url_index: normalized URL -> node (for finding current page)
+        - edge_index: node_id -> [edges] (for finding connected edges)
+
+        Args:
+            graph_data: Full graph data with nodes and edges
+        """
+        # Build URL -> node index for O(1) node lookup
+        self._node_url_index = {}
+        for node in graph_data.get("nodes", []):
+            url = normalize_url(node.get("url", ""))
+            if url:
+                self._node_url_index[url] = node
+
+        # Build node_id -> edges index for O(1) edge lookup
+        self._edge_index = {}
+        for edge in graph_data.get("edges", []):
+            source_id = (
+                edge.get("source", {}).get("id")
+                if isinstance(edge.get("source"), dict)
+                else edge.get("source")
+            )
+            target_id = (
+                edge.get("target", {}).get("id")
+                if isinstance(edge.get("target"), dict)
+                else edge.get("target")
+            )
+
+            if source_id:
+                self._edge_index.setdefault(source_id, []).append(edge)
+            if target_id and target_id != source_id:
+                self._edge_index.setdefault(target_id, []).append(edge)
+
     def _get_page_connections(
         self, page: Page, graph_data: dict[str, Any], max_connections: int = 15
     ) -> dict[str, Any] | None:
@@ -264,16 +301,16 @@ class PageJSONGenerator:
         if not graph_data or not graph_data.get("nodes") or not graph_data.get("edges"):
             return None
 
+        # Build indexes on first use (lazy initialization)
+        if self._node_url_index is None or self._edge_index is None:
+            self._build_graph_indexes(graph_data)
+
         # Get page URL for matching
         page_url = get_page_url(page, self.site)
         page_url_normalized = normalize_url(page_url)
 
-        # Find current page node
-        current_node = None
-        for node in graph_data["nodes"]:
-            if normalize_url(node.get("url", "")) == page_url_normalized:
-                current_node = node
-                break
+        # Find current page node: O(1) lookup instead of O(nodes)
+        current_node = self._node_url_index.get(page_url_normalized)
 
         if not current_node:
             # Page not in graph (might be excluded from analysis)
@@ -282,9 +319,10 @@ class PageJSONGenerator:
         # Collect connected node IDs
         connected_node_ids = {current_node["id"]}
 
-        # Find all edges connected to current page
-        connected_edges = []
-        for edge in graph_data["edges"]:
+        # Find all edges connected to current page: O(1) lookup instead of O(edges)
+        connected_edges = self._edge_index.get(current_node["id"], [])
+
+        for edge in connected_edges:
             source_id = (
                 edge.get("source", {}).get("id")
                 if isinstance(edge.get("source"), dict)
@@ -296,12 +334,10 @@ class PageJSONGenerator:
                 else edge.get("target")
             )
 
-            if source_id == current_node["id"] or target_id == current_node["id"]:
-                connected_edges.append(edge)
-                if source_id == current_node["id"]:
-                    connected_node_ids.add(target_id)
-                else:
-                    connected_node_ids.add(source_id)
+            if source_id == current_node["id"]:
+                connected_node_ids.add(target_id)
+            else:
+                connected_node_ids.add(source_id)
 
         # Get connected nodes
         connected_nodes = [node for node in graph_data["nodes"] if node["id"] in connected_node_ids]
