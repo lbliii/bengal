@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from unittest.mock import Mock
 
+import pytest
+
 from bengal.rendering.template_functions.navigation import (
+    get_nav_context,
     get_nav_tree,
     get_pagination_items,
     get_toc_grouped,
@@ -307,3 +310,46 @@ class TestGetNavTree:
         result = get_nav_tree(current_page, mark_active_trail=False)
 
         assert result == []
+
+
+class TestGetNavContext:
+    """Test the get_nav_context() function for scoped navigation."""
+
+    def test_no_site_raises_error(self):
+        """Page without site reference raises BengalRenderingError."""
+        from bengal.utils.exceptions import BengalRenderingError
+
+        current_page = Mock(spec=[])
+        current_page._site = None
+
+        with pytest.raises(BengalRenderingError, match="no site reference"):
+            get_nav_context(current_page)
+
+    def test_returns_nav_tree_context(self):
+        """Returns NavTreeContext with root node."""
+        from bengal.core.nav_tree import NavTreeCache
+
+        # Create mock site with empty sections
+        site = Mock()
+        site.versioning_enabled = False
+        site.sections = []
+        site.title = "Test Site"
+        site.versions = []
+
+        # Create mock page
+        current_page = Mock()
+        current_page.url = "/docs/page1/"
+        current_page.relative_url = "/docs/page1/"
+        current_page.version = None
+        current_page._section = None
+        current_page._site = site
+
+        # Clear the cache
+        NavTreeCache.invalidate()
+
+        result = get_nav_context(current_page)
+
+        # Should return a dict-like context with 'root' key
+        assert "root" in result
+        # Root should have children attribute (empty for empty site)
+        assert hasattr(result["root"], "children")
