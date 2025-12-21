@@ -628,7 +628,7 @@ class Site(
             urls_seen: dict[str, str] = {}  # url -> source description
 
             for page in self.pages:
-                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                url = page._path
                 source = str(getattr(page, "source_path", page.title))
 
                 if url in urls_seen:
@@ -660,7 +660,7 @@ class Site(
             urls_seen: dict[str, str] = {}  # url -> source description
 
             for page in self.pages:
-                url = getattr(page, "relative_url", None) or getattr(page, "url", "/")
+                url = page._path
                 source = str(getattr(page, "source_path", page.title))
 
                 if url in urls_seen:

@@ -122,7 +122,7 @@ class URLCollisionValidator(BaseValidator):
         # Find pages that conflict with sections
         conflicts = []
         for page in site.pages:
-            url = getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "url", "/")
+            url = page._path
             source = str(getattr(page, "source_path", page.title))
 
             # Skip index pages - they're supposed to be at section URLs
