@@ -63,7 +63,7 @@ class TestNavNode:
     def test_dict_like_access(self, simple_node):
         """Test dict-like access via __getitem__."""
         assert simple_node["title"] == "Test Node"
-        assert simple_node["url"] == "/test/"
+        assert simple_node["_path"] == "/test/"
         assert simple_node["icon"] == "test-icon"
         assert simple_node["weight"] == 10
 
@@ -83,7 +83,7 @@ class TestNavNode:
         keys = simple_node.keys()
         assert "id" in keys
         assert "title" in keys
-        assert "url" in keys
+        assert "_path" in keys
         assert "has_children" in keys
         assert "depth" in keys
 
@@ -143,7 +143,7 @@ class TestNavTree:
         section1.metadata["nav_title"] = "Docs"
         section2.metadata["nav_title"] = "Blog"
 
-        # Create pages with proper relative_url setup
+        # Create pages with proper _path setup
         # cached_property stores value in __dict__ once computed, so we set it there
         page1 = Page(
             source_path=tmp_path / "content" / "docs" / "page1.md",
@@ -151,8 +151,7 @@ class TestNavTree:
             metadata={"title": "Page 1", "weight": 1},
         )
         page1._site = site
-        page1.__dict__["relative_url"] = "/docs/page1/"
-        page1.__dict__["url"] = "/docs/page1/"
+        page1.__dict__["_path"] = "/docs/page1/"
 
         page2 = Page(
             source_path=tmp_path / "content" / "docs" / "page2.md",
@@ -160,8 +159,7 @@ class TestNavTree:
             metadata={"title": "Page 2", "weight": 2},
         )
         page2._site = site
-        page2.__dict__["relative_url"] = "/docs/page2/"
-        page2.__dict__["url"] = "/docs/page2/"
+        page2.__dict__["_path"] = "/docs/page2/"
 
         page3 = Page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
@@ -169,16 +167,15 @@ class TestNavTree:
             metadata={"title": "Post 1"},
         )
         page3._site = site
-        page3.__dict__["relative_url"] = "/blog/post1/"
-        page3.__dict__["url"] = "/blog/post1/"
+        page3.__dict__["_path"] = "/blog/post1/"
 
         # Associate pages with sections
         section1.pages = [page1, page2]
         section2.pages = [page3]
 
-        # Set relative_url for sections via __dict__ (cached_property override)
-        section1.__dict__["relative_url"] = "/docs/"
-        section2.__dict__["relative_url"] = "/blog/"
+        # Set _path for sections via __dict__ (cached_property override)
+        section1.__dict__["_path"] = "/docs/"
+        section2.__dict__["_path"] = "/blog/"
 
         # Set up site structure
         site.sections = [section1, section2]
@@ -208,8 +205,7 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v1.__dict__["relative_url"] = "/v1/docs/guide/"
-        page_v1.__dict__["url"] = "/v1/docs/guide/"
+        page_v1.__dict__["_path"] = "/v1/docs/guide/"
         page_v1.version = "v1"
         section_v1.pages = [page_v1]
 
@@ -221,8 +217,7 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v2.__dict__["relative_url"] = "/v2/docs/guide/"
-        page_v2.__dict__["url"] = "/v2/docs/guide/"
+        page_v2.__dict__["_path"] = "/v2/docs/guide/"
         page_v2.version = "v2"
         section_v2.pages = [page_v2]
 
@@ -253,7 +248,7 @@ class TestNavTree:
 
         assert tree.root.id == "nav-root"
         assert tree.root.title == "Test Site"
-        assert tree.root.url == "/"
+        assert tree.root._path == "/"
         assert len(tree.root.children) == 2  # docs and blog sections
 
     def test_build_versioned_site(self, versioned_site):
@@ -289,17 +284,16 @@ class TestNavTree:
             content="# Docs",
             metadata={"title": "Docs"},
         )
-        index_page.__dict__["relative_url"] = "/docs/"
-        index_page.__dict__["url"] = "/docs/"
+        index_page.__dict__["_path"] = "/docs/"
         index_page.version = "v1"
         index_page._section_path = section.path
         index_page._site = site
 
         section.index_page = index_page
         section.pages = [index_page]
-        # Set nav_title via metadata and relative_url via __dict__ (cached_property)
+        # Set nav_title via metadata and _path via __dict__ (cached_property)
         section.metadata["nav_title"] = "Docs"
-        section.__dict__["relative_url"] = "/docs/"
+        section.__dict__["_path"] = "/docs/"
 
         # Mock version-aware methods
         def pages_for_version(version_id):
@@ -350,8 +344,7 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v1.__dict__["relative_url"] = "/docs/v1/guide/"
-        page_v1.__dict__["url"] = "/docs/v1/guide/"
+        page_v1.__dict__["_path"] = "/docs/v1/guide/"
         page_v1.version = "v1"
         page_v1._section_path = section_v1_only.path
         page_v1._site = site
@@ -402,7 +395,7 @@ class TestNavTree:
         )
         parent_section._site = site
         parent_section.metadata["nav_title"] = "Docs"
-        parent_section.__dict__["relative_url"] = "/docs/"
+        parent_section.__dict__["_path"] = "/docs/"
 
         # Create subsection with a page
         subsection = Section(
@@ -411,15 +404,14 @@ class TestNavTree:
         subsection._site = site
         subsection.parent = parent_section
         subsection.metadata["nav_title"] = "Guide"
-        subsection.__dict__["relative_url"] = "/docs/guide/"
+        subsection.__dict__["_path"] = "/docs/guide/"
 
         page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
             content="# Page",
             metadata={"title": "Page"},
         )
-        page.__dict__["relative_url"] = "/docs/guide/page/"
-        page.__dict__["url"] = "/docs/guide/page/"
+        page.__dict__["_path"] = "/docs/guide/page/"
         page.version = "v1"
         page._section_path = subsection.path
         page._site = site
@@ -525,21 +517,20 @@ class TestNavTreeContext:
         # Create nested sections
         root_section = Section(name="docs", path=tmp_path / "content" / "docs")
         root_section._site = site
-        root_section.__dict__["relative_url"] = "/docs/"
+        root_section.__dict__["_path"] = "/docs/"
         subsection = Section(name="guide", path=tmp_path / "content" / "docs" / "guide")
         subsection._site = site
         subsection.parent = root_section
-        subsection.__dict__["relative_url"] = "/docs/guide/"
+        subsection.__dict__["_path"] = "/docs/guide/"
 
-        # Create pages with proper url and relative_url
+        # Create pages with proper _path
         root_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             content="# Docs",
             metadata={"title": "Docs"},
         )
         root_page._site = site
-        root_page.__dict__["relative_url"] = "/docs/"
-        root_page.__dict__["url"] = "/docs/"
+        root_page.__dict__["_path"] = "/docs/"
         root_section.index_page = root_page
 
         sub_page = Page(
@@ -548,8 +539,7 @@ class TestNavTreeContext:
             metadata={"title": "Page"},
         )
         sub_page._site = site
-        sub_page.__dict__["relative_url"] = "/docs/guide/page/"
-        sub_page.__dict__["url"] = "/docs/guide/page/"
+        sub_page.__dict__["_path"] = "/docs/guide/page/"
 
         root_section.pages = [root_page]
         subsection.pages = [sub_page]
@@ -574,9 +564,9 @@ class TestNavTreeContext:
         tree, current_page = tree_with_pages
         context = NavTreeContext(tree, current_page)
 
-        # Current page should be active (NavTree uses relative_url)
-        current_node = tree.find(current_page.relative_url)
-        assert current_node is not None, f"Page {current_page.relative_url} should be in nav tree"
+        # Current page should be active (NavTree uses _path)
+        current_node = tree.find(current_page._path)
+        assert current_node is not None, f"Page {current_page._path} should be in nav tree"
         assert context.is_active(current_node) is True
 
         # Parent section should be active
@@ -589,9 +579,9 @@ class TestNavTreeContext:
         tree, current_page = tree_with_pages
         context = NavTreeContext(tree, current_page)
 
-        # Current page should be current (NavTree uses relative_url)
-        current_node = tree.find(current_page.relative_url)
-        assert current_node is not None, f"Page {current_page.relative_url} should be in nav tree"
+        # Current page should be current (NavTree uses _path)
+        current_node = tree.find(current_page._path)
+        assert current_node is not None, f"Page {current_page._path} should be in nav tree"
         assert context.is_current(current_node) is True
 
         # Parent should not be current
@@ -616,7 +606,7 @@ class TestNavNodeProxy:
     """Test NavNodeProxy URL handling with baseurl.
 
     Critical for GitHub Pages and subdirectory deployments.
-    NavNodeProxy.url should apply baseurl, while site_path should not.
+    NavNodeProxy.href should apply baseurl, while _path should not.
     """
 
     @pytest.fixture
@@ -636,7 +626,7 @@ class TestNavNodeProxy:
 
         section = Section(name="docs", path=docs_path)
         section._site = site
-        section.__dict__["relative_url"] = "/docs/"
+        section.__dict__["_path"] = "/docs/"
 
         # Create a page in the section
         page_path = docs_path / "getting-started.md"
@@ -648,8 +638,8 @@ class TestNavNodeProxy:
         # Simulate output path being set
         page.output_path = tmp_path / "public" / "docs" / "getting-started" / "index.html"
         site.output_dir = tmp_path / "public"
-        # Set relative_url directly for test
-        page.__dict__["relative_url"] = "/docs/getting-started/"
+        # Set _path directly for test
+        page.__dict__["_path"] = "/docs/getting-started/"
 
         section.add_page(page)
         site.sections = [section]
@@ -665,32 +655,32 @@ class TestNavNodeProxy:
         # Get the wrapped root node (NavNodeProxy)
         root_proxy = context._wrap_node(tree.root)
 
-        # The proxy's .url should include baseurl
-        # The internal site_path is "/docs/" but public URL is "/bengal/docs/"
-        assert root_proxy.url.startswith("/bengal/"), (
-            f"NavNodeProxy.url should include baseurl. "
-            f"Got: {root_proxy.url}, expected to start with /bengal/"
+        # The proxy's .href should include baseurl
+        # The internal _path is "/docs/" but public URL is "/bengal/docs/"
+        assert root_proxy.href.startswith("/bengal/"), (
+            f"NavNodeProxy.href should include baseurl. "
+            f"Got: {root_proxy.href}, expected to start with /bengal/"
         )
 
-    def test_proxy_site_path_excludes_baseurl(self, tree_with_baseurl):
-        """Test that NavNodeProxy.site_path does NOT include baseurl."""
+    def test_proxy_path_excludes_baseurl(self, tree_with_baseurl):
+        """Test that NavNodeProxy._path does NOT include baseurl."""
         tree, current_page, site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
 
         # Get the wrapped root node (NavNodeProxy)
         root_proxy = context._wrap_node(tree.root)
 
-        # site_path should NOT include baseurl (used for internal lookups)
-        assert not root_proxy.site_path.startswith("/bengal/"), (
-            f"NavNodeProxy.site_path should NOT include baseurl. Got: {root_proxy.site_path}"
+        # _path should NOT include baseurl (used for internal lookups)
+        assert not root_proxy._path.startswith("/bengal/"), (
+            f"NavNodeProxy._path should NOT include baseurl. Got: {root_proxy._path}"
         )
         # Should start with / but not /bengal/
-        assert root_proxy.site_path.startswith("/"), (
-            f"site_path should start with /. Got: {root_proxy.site_path}"
+        assert root_proxy._path.startswith("/"), (
+            f"_path should start with /. Got: {root_proxy._path}"
         )
 
-    def test_proxy_url_no_baseurl_returns_site_path(self, tmp_path):
-        """Test that NavNodeProxy.url returns site_path when no baseurl configured."""
+    def test_proxy_href_no_baseurl_equals_path(self, tmp_path):
+        """Test that NavNodeProxy.href equals _path when no baseurl configured."""
         # Create site WITHOUT baseurl (local development)
         site = Site(root_path=tmp_path, config={"title": "Test Site"})
 
@@ -701,7 +691,7 @@ class TestNavNodeProxy:
 
         section = Section(name="docs", path=docs_path)
         section._site = site
-        section.__dict__["relative_url"] = "/docs/"
+        section.__dict__["_path"] = "/docs/"
         site.sections = [section]
 
         # Create a page
@@ -710,7 +700,7 @@ class TestNavNodeProxy:
         page = Page(source_path=page_path)
         page._site = site
         page.metadata = {"title": "Test"}
-        page.__dict__["relative_url"] = "/docs/test/"
+        page.__dict__["_path"] = "/docs/test/"
 
         section.add_page(page)
 
@@ -718,18 +708,18 @@ class TestNavNodeProxy:
         context = NavTreeContext(tree, page)
         root_proxy = context._wrap_node(tree.root)
 
-        # Without baseurl, url and site_path should be the same
-        assert root_proxy.url == root_proxy.site_path, "Without baseurl, url should equal site_path"
+        # Without baseurl, href and _path should be the same
+        assert root_proxy.href == root_proxy._path, "Without baseurl, href should equal _path"
 
-    def test_proxy_dict_access_url_includes_baseurl(self, tree_with_baseurl):
-        """Test that dict-style access ['url'] also includes baseurl."""
+    def test_proxy_dict_access_href_includes_baseurl(self, tree_with_baseurl):
+        """Test that dict-style access ['href'] also includes baseurl."""
         tree, current_page, site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
         root_proxy = context._wrap_node(tree.root)
 
-        # Templates often use item['url'] - should also include baseurl
-        assert root_proxy["url"].startswith("/bengal/"), (
-            f"Dict access ['url'] should include baseurl. Got: {root_proxy['url']}"
+        # Templates often use item['href'] - should also include baseurl
+        assert root_proxy["href"].startswith("/bengal/"), (
+            f"Dict access ['href'] should include baseurl. Got: {root_proxy['href']}"
         )
 
     def test_proxy_children_also_have_baseurl(self, tree_with_baseurl):
@@ -740,8 +730,8 @@ class TestNavNodeProxy:
 
         # Check children if any
         for child in root_proxy.children:
-            assert child.url.startswith("/bengal/"), (
-                f"Child proxy URL should include baseurl. Got: {child.url}"
+            assert child.href.startswith("/bengal/"), (
+                f"Child proxy href should include baseurl. Got: {child.href}"
             )
 
 
@@ -886,10 +876,8 @@ class TestGetTargetUrl:
 
         # Create a mock page
         page = Mock(spec=Page)
-        page.url = "/v1/docs/guide/"
-        # Version URL logic uses relative_url (baseurl-stripped) for transformations.
-        # In unit tests, keep it identical to url for simplicity.
-        page.relative_url = "/v1/docs/guide/"
+        page._path = "/v1/docs/guide/"
+        page.href = "/v1/docs/guide/"
         page.version = "v1"
         page._site = site
 

@@ -49,11 +49,11 @@ output_dir = "public"
         # Create mock page with mock ancestors for breadcrumbs
         docs_section = Mock()
         docs_section.title = "Documentation"
-        docs_section.relative_url = "/docs/"  # Relative URL (identity)
+        docs_section._path = "/docs/"  # Site-relative path (identity)
 
         page = Mock()
         page.title = "User Guide"
-        page.relative_url = "/docs/guide/"  # Relative URL (identity)
+        page._path = "/docs/guide/"  # Site-relative path (identity)
         page.ancestors = [docs_section]
 
         # Render template with breadcrumbs macro
@@ -101,7 +101,7 @@ output_dir = "public"
         # Create mock page with ancestors
         section = Mock()
         section.title = "Documentation"
-        section.relative_url = "/docs/"
+        section._path = "/docs/"
 
         page = Mock()
         page.title = "User Guide"
@@ -231,7 +231,7 @@ output_dir = "public"
         # Create mock page with breadcrumbs
         section = Mock()
         section.title = "Documentation"
-        section.relative_url = "/docs/"
+        section._path = "/docs/"
 
         page = Mock()
         page.title = "User Guide"
@@ -295,7 +295,7 @@ output_dir = "public"
 
         # Create mock page at /docs/
         page = Mock()
-        page.url = "/docs/"  # Relative URL (identity)
+        page._path = "/docs/"  # Site-relative path (identity)
         page.title = "Documentation"
         page.metadata = {}
         page.keywords = []

@@ -46,6 +46,7 @@ class MockPage:
         title: Page title (required)
         href: Page URL with baseurl (default: "/")
         _path: Page internal path (default: same as href)
+        url: Backward-compatible alias for href (deprecated, use href)
         source_path: Path to source file (default: Path("test.md"))
         metadata: Page metadata dict (default: empty)
         tags: List of tags (default: empty)

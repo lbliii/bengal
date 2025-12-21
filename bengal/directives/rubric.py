@@ -5,8 +5,6 @@ Provides styled text that looks like a heading but isn't part of the
 document hierarchy or table of contents. Perfect for API documentation
 section labels like "Parameters:", "Returns:", "Raises:", etc.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations

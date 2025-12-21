@@ -99,7 +99,6 @@ class BuildOrchestrator:
         self,
         options: BuildOptions | None = None,
         *,
-        # Legacy parameters (backward compatibility - prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -135,12 +134,11 @@ class BuildOrchestrator:
             BuildStats object with build statistics
 
         Example:
-            >>> # Using BuildOptions (preferred)
             >>> from bengal.orchestration.build.options import BuildOptions
             >>> options = BuildOptions(parallel=True, strict=True)
             >>> stats = orchestrator.build(options)
             >>>
-            >>> # Using individual parameters (backward compatibility)
+            >>> # Or using individual parameters
             >>> stats = orchestrator.build(parallel=True, strict=True)
         """
         # Resolve options: use provided BuildOptions or construct from individual params
@@ -462,8 +460,7 @@ class BuildOrchestrator:
         cli.detail(f"Total:            {len(self.site.pages)} ✓", indent=1, icon="└─")
 
     # =========================================================================
-    # Phase Methods - Wrapper methods for backward compatibility
-    # These delegate to the modular phase functions
+    # Phase Methods - Wrapper methods that delegate to modular phase functions
     # =========================================================================
 
     def _phase_fonts(self, cli: CLIOutput) -> None:

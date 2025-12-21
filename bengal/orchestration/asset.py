@@ -584,7 +584,7 @@ class AssetOrchestrator:
                     rel_path = a.source_path.relative_to(js_dir)
                     rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
                     module_map[rel_path_str] = a.source_path
-                    # Also index by filename for backward compatibility
+                    # Also index by filename
                     if rel_path_str != a.source_path.name:
                         module_map[a.source_path.name] = a.source_path
                 else:

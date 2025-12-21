@@ -270,7 +270,7 @@ class Site(
         self,
         options: BuildOptions | None = None,
         *,
-        # Legacy parameters (backward compatibility - prefer using BuildOptions)
+        # Individual parameters (prefer using BuildOptions)
         parallel: bool = True,
         incremental: bool | None = None,
         verbose: bool = False,
@@ -313,7 +313,7 @@ class Site(
             >>> options = BuildOptions(parallel=True, strict=True)
             >>> stats = site.build(options)
             >>>
-            >>> # Using individual parameters (backward compatibility)
+            >>> # Or using individual parameters
             >>> stats = site.build(parallel=True, strict=True)
         """
         from bengal.orchestration import BuildOrchestrator
@@ -400,7 +400,7 @@ class Site(
         Remove directory tree with retry logic for transient filesystem errors.
 
         Delegates to bengal.utils.file_io.rmtree_robust for the actual
-        implementation. This method exists for backward compatibility.
+        implementation.
 
         Args:
             path: Directory to remove
@@ -591,7 +591,7 @@ class Site(
         preventing silent overwrites that cause broken navigation.
 
         Uses URLRegistry if available for enhanced ownership context, otherwise
-        falls back to page iteration for backward compatibility.
+        falls back to page iteration if URLRegistry is not available.
 
         Args:
             strict: If True, raise ValueError on collision instead of warning.
@@ -611,9 +611,7 @@ class Site(
 
         Note:
             This is a proactive check during Phase 12 (Update Pages List) that
-            catches issues before they cause broken navigation. Previously,
-            collisions were only detected in Phase 17 (Post-processing) by
-            SitemapValidator, after the build had already "succeeded".
+            catches issues before they cause broken navigation.
 
         See Also:
             - bengal/health/validators/url_collisions.py: Health check validator
@@ -656,7 +654,7 @@ class Site(
                 else:
                     urls_seen[url] = source
         else:
-            # Fallback: iterate pages (backward compatibility)
+            # Fallback: iterate pages
             urls_seen: dict[str, str] = {}  # url -> source description
 
             for page in self.pages:

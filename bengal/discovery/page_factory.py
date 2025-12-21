@@ -3,8 +3,6 @@ Page Factory - Ensures pages are correctly initialized.
 
 Validates that pages have all required references set before use.
 Helps prevent bugs like missing _site references or output_paths.
-
-Formerly known as page_initializer (utils/page_initializer.py).
 """
 
 from __future__ import annotations

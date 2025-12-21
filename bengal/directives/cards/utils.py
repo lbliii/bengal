@@ -398,29 +398,3 @@ def escape_html(text: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#x27;")
     )
-
-
-# =============================================================================
-# Backward Compatibility Render Functions
-# =============================================================================
-
-
-def render_cards_grid(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.cards_grid import CardsDirective
-
-    return CardsDirective().render(renderer, text, **attrs)
-
-
-def render_card(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.card import CardDirective
-
-    return CardDirective().render(renderer, text, **attrs)
-
-
-def render_child_cards(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    from bengal.directives.cards.child_cards import ChildCardsDirective
-
-    return ChildCardsDirective().render(renderer, text, **attrs)

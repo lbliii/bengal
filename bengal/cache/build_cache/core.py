@@ -73,7 +73,6 @@ class BuildCache(
     - AssetDependencyEntry (bengal/cache/asset_dependency_map.py)
 
     Attributes:
-        file_hashes: Mapping of file paths to their SHA256 hashes
         file_fingerprints: Mapping of file paths to {mtime, size, hash} dicts
         dependencies: Mapping of pages to their dependencies (templates, partials, etc.)
         output_sources: Mapping of output files to their source files
@@ -95,10 +94,7 @@ class BuildCache(
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
 
-    # Legacy: file_hashes for backward compatibility (migrated to file_fingerprints)
-    file_hashes: dict[str, str] = field(default_factory=dict)
-
-    # New: file_fingerprints for fast mtime+size change detection
+    # file_fingerprints for fast mtime+size change detection
     # Structure: {path: {mtime: float, size: int, hash: str | None}}
     file_fingerprints: dict[str, dict[str, Any]] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
@@ -167,17 +163,6 @@ class BuildCache(
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
         # Validation results are already in dict format (no conversion needed)
-
-        # Migrate legacy file_hashes to file_fingerprints (VERSION < 5 compatibility).
-        # Legacy hashes become fingerprints with hash only (mtime/size will be updated
-        # on next check).
-        if self.file_hashes and not self.file_fingerprints:
-            logger.debug(
-                "migrating_file_hashes_to_fingerprints",
-                file_count=len(self.file_hashes),
-            )
-            for path, hash_value in self.file_hashes.items():
-                self.file_fingerprints[path] = {"mtime": 0.0, "size": 0, "hash": hash_value}
 
     @classmethod
     def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache:
@@ -416,8 +401,7 @@ class BuildCache(
         # Convert sets to lists for JSON serialization
         data = {
             "version": self.VERSION,
-            "file_hashes": self.file_hashes,  # Keep for backward compatibility
-            "file_fingerprints": self.file_fingerprints,  # New: mtime+size+hash
+            "file_fingerprints": self.file_fingerprints,
             "dependencies": {k: list(v) for k, v in self.dependencies.items()},
             "output_sources": self.output_sources,
             "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
@@ -446,7 +430,7 @@ class BuildCache(
             logger.debug(
                 "cache_saved_compressed",
                 cache_path=str(compressed_path),
-                tracked_files=len(self.file_hashes),
+                tracked_files=len(self.file_fingerprints),
                 dependencies=len(self.dependencies),
                 cached_content=len(self.parsed_content),
             )
@@ -460,14 +444,13 @@ class BuildCache(
             logger.debug(
                 "cache_saved",
                 cache_path=str(cache_path),
-                tracked_files=len(self.file_hashes),
+                tracked_files=len(self.file_fingerprints),
                 dependencies=len(self.dependencies),
                 cached_content=len(self.parsed_content),
             )
 
     def clear(self) -> None:
         """Clear all cache data."""
-        self.file_hashes.clear()
         self.file_fingerprints.clear()
         self.dependencies.clear()
         self.output_sources.clear()
@@ -574,7 +557,7 @@ class BuildCache(
             Dictionary with cache stats
         """
         stats = {
-            "tracked_files": len(self.file_hashes),
+            "tracked_files": len(self.file_fingerprints),
             "dependencies": sum(len(deps) for deps in self.dependencies.values()),
             "taxonomy_terms": len(self.taxonomy_deps),
             "cached_content_pages": len(self.parsed_content),

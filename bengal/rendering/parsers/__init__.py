@@ -20,7 +20,7 @@ try:
 except Exception:
     pass
 
-# Legacy alias for backwards compatibility
+# Alias for convenience
 MarkdownParser = PythonMarkdownParser
 
 __all__ = [

@@ -18,7 +18,7 @@ Engine-Agnostic Access:
         site.get_version_target_url(page, version)
 
     This works with any template engine (Jinja2, Mako, BYORenderer).
-    The Jinja2 global function is provided for backward compatibility only.
+    The Jinja2 global function is also available.
 
     Example (Jinja2):
         {{ site.get_version_target_url(page, v) }}
@@ -46,8 +46,7 @@ def register(env: Environment, site: Site) -> None:
     """
     Register version URL functions with Jinja2 environment.
 
-    Note: This registration is provided for backward compatibility with templates
-    using the global function syntax: {{ get_version_target_url(page, v) }}
+    Registers global functions for template use: {{ get_version_target_url(page, v) }}
 
     The preferred engine-agnostic approach is to use the Site method:
         {{ site.get_version_target_url(page, v) }}

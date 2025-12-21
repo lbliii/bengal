@@ -4,8 +4,6 @@ Code tabs directive for Mistune.
 Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations

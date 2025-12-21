@@ -7,12 +7,7 @@ Tests that templates using href produce correct output for:
 - Custom domain (baseurl="https://example.com")
 """
 
-from pathlib import Path
-
 import pytest
-
-from bengal.core.page import Page
-from bengal.core.site import Site
 
 
 @pytest.mark.bengal(testroot="test-basic")
@@ -25,7 +20,8 @@ class TestHrefTemplateRendering:
         template_content = """
         <a href="{{ page.href }}">{{ page.title }}</a>
         """
-        template_path = site.theme_dir / "templates" / "test_href.html"
+        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
+        template_path = theme_templates_dir / "test_href.html"
         template_path.parent.mkdir(parents=True, exist_ok=True)
         template_path.write_text(template_content)
 
@@ -42,7 +38,8 @@ class TestHrefTemplateRendering:
         template_content = """
         <a href="{{ section.href }}">{{ section.title }}</a>
         """
-        template_path = site.theme_dir / "templates" / "test_section_href.html"
+        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
+        template_path = theme_templates_dir / "test_section_href.html"
         template_path.parent.mkdir(parents=True, exist_ok=True)
         template_path.write_text(template_content)
 
@@ -57,7 +54,8 @@ class TestHrefTemplateRendering:
           <a href="{{ item.href }}">{{ item.title }}</a>
         {% endfor %}
         """
-        template_path = site.theme_dir / "templates" / "test_nav_href.html"
+        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
+        template_path = theme_templates_dir / "test_nav_href.html"
         template_path.parent.mkdir(parents=True, exist_ok=True)
         template_path.write_text(template_content)
 
@@ -77,8 +75,12 @@ class TestHrefGitHubPagesDeployment:
         pages = [p for p in site.pages if p.source_path.name != "_index.md"]
         if pages:
             page = pages[0]
-            assert page.href.startswith("/bengal/"), f"href should include baseurl, got: {page.href}"
-            assert page._path.startswith("/"), f"_path should not include baseurl, got: {page._path}"
+            assert page.href.startswith("/bengal/"), (
+                f"href should include baseurl, got: {page.href}"
+            )
+            assert page._path.startswith("/"), (
+                f"_path should not include baseurl, got: {page._path}"
+            )
             assert not page._path.startswith("/bengal/"), "_path should not include baseurl"
 
     def test_section_href_includes_baseurl(self, site, build_site):
@@ -87,8 +89,12 @@ class TestHrefGitHubPagesDeployment:
 
         if site.sections:
             section = site.sections[0]
-            assert section.href.startswith("/bengal/"), f"href should include baseurl, got: {section.href}"
-            assert section._path.startswith("/"), f"_path should not include baseurl, got: {section._path}"
+            assert section.href.startswith("/bengal/"), (
+                f"href should include baseurl, got: {section.href}"
+            )
+            assert section._path.startswith("/"), (
+                f"_path should not include baseurl, got: {section._path}"
+            )
             assert not section._path.startswith("/bengal/"), "_path should not include baseurl"
 
     def test_href_filter_works(self, site, build_site):
@@ -97,7 +103,8 @@ class TestHrefGitHubPagesDeployment:
         template_content = """
         <a href="{{ '/about/' | href }}">About</a>
         """
-        template_path = site.theme_dir / "templates" / "test_href_filter.html"
+        theme_templates_dir = site.root_path / "themes" / site.theme / "templates"
+        template_path = theme_templates_dir / "test_href_filter.html"
         template_path.parent.mkdir(parents=True, exist_ok=True)
         template_path.write_text(template_content)
 
@@ -133,6 +140,9 @@ class TestHrefCustomDomain:
         pages = [p for p in site.pages if p.source_path.name != "_index.md"]
         if pages:
             page = pages[0]
-            assert page.href.startswith("https://example.com/"), f"href should include absolute baseurl, got: {page.href}"
-            assert page._path.startswith("/"), f"_path should not include baseurl, got: {page._path}"
-
+            assert page.href.startswith("https://example.com/"), (
+                f"href should include absolute baseurl, got: {page.href}"
+            )
+            assert page._path.startswith("/"), (
+                f"_path should not include baseurl, got: {page._path}"
+            )

@@ -810,7 +810,7 @@ class TestChildCardsDirective:
 
         page = Mock()
         page.title = title
-        page.url = url
+        page.href = url
         page.source_path = Path(source_path)
         page.metadata = metadata or {"description": description}
         return page
@@ -826,7 +826,7 @@ class TestChildCardsDirective:
         section.metadata = metadata or {"description": description}
         section.path = Path(name)
         section.index_page = Mock()
-        section.index_page.url = url
+        section.index_page.href = url
         return section
 
     def test_child_cards_renders_subsections(self, parser):
@@ -989,7 +989,7 @@ class TestChildCardsDirective:
         subsection.title = "Organization"
         subsection.path = Path("org")
         subsection.index_page = Mock()
-        subsection.index_page.url = "/docs/org/"
+        subsection.index_page.href = "/docs/org/"
         # Use a real dict for metadata so .get() works correctly
         subsection.metadata = {"description": "Organize stuff", "icon": "folder", "weight": 0}
 

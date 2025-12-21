@@ -8,9 +8,6 @@ This package provides the 'bengal new' command group with subcommands:
 - partial: Create a new partial template
 - theme: Create a new theme scaffold
 
-Refactored from single 1,088-line file into focused modules.
-See RFC: plan/active/rfc-code-quality-improvements.md
-
 Structure:
 - presets.py: Preset definitions for wizard
 - config.py: Configuration directory generation

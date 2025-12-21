@@ -175,7 +175,7 @@ def set_effective_style_from_cli(style_value: str | None) -> None:
 
 
 def map_debug_flag_to_traceback(debug: bool, current: str | None = None) -> None:
-    """Map legacy --debug flag to traceback=full unless user explicitly set one."""
+    """Map --debug flag to traceback=full unless user explicitly set one."""
     if debug and not (current and current.strip()):
         os.environ["BENGAL_TRACEBACK"] = TracebackStyle.FULL.value
 

@@ -3,8 +3,6 @@ Badge directive for Mistune.
 
 Provides MyST-style badge directive: ```{badge} Text :class: badge-class```
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations

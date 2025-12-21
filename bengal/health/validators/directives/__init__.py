@@ -8,9 +8,6 @@ This package validates:
 - Nesting depth reasonable
 - Performance warnings for directive-heavy pages
 
-Refactored from single 1,094-line file into focused modules.
-See RFC: plan/active/rfc-code-quality-improvements.md
-
 Structure:
 - constants.py: Known directives, thresholds, configuration
 - analysis.py: DirectiveAnalyzer for extracting and analyzing directives

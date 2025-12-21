@@ -19,8 +19,7 @@ def site_cli() -> None:
     pass
 
 
-# Deprecated: bengal site new → use bengal new site instead
-# Hidden from help but still functional for backwards compatibility
+# Hidden from help (use 'bengal new site' instead)
 @site_cli.command("new", hidden=True)
 @command_metadata(
     category="content",

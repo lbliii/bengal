@@ -4,8 +4,6 @@ Checklist directive for Mistune.
 Provides styled checklist containers for bullet lists and task lists
 with optional titles and custom styling.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 
 Syntax (preferred - named closers):
     :::{checklist} Prerequisites

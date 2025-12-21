@@ -4,8 +4,7 @@ Steps directive for Mistune.
 Provides visual step-by-step guides using nested directives.
 
 Architecture:
-    Migrated to BengalDirective base class with DirectiveContract validation.
-    This demonstrates the contract system for enforcing valid nesting:
+    Uses DirectiveContract validation for enforcing valid nesting:
     - StepsDirective: requires_children=["step"]
     - StepDirective: requires_parent=["steps"]
 
@@ -25,7 +24,7 @@ Syntax (preferred - named closers, no colon counting):
     :::{/step}
     :::{/steps}
 
-Legacy syntax (fence-depth counting - still works):
+Alternative syntax (fence-depth counting):
     ::::{steps}
     :::{step} Step Title
     Step 1 content

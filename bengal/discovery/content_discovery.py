@@ -70,7 +70,7 @@ class ContentDiscovery:
         self.sections: list[Section] = []
         self.pages: list[Page] = []
         self.logger = get_logger(__name__)
-        # Deprecated: do not store mutable current section on the instance; pass explicitly
+        # Do not store mutable current section on the instance; pass explicitly
         self.current_section: Section | None = None
         # Symlink loop detection: track visited (device, inode) pairs
         self._visited_inodes: set[tuple[int, int]] = set()

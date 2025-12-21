@@ -73,7 +73,7 @@ class MistuneParser(BaseMarkdownParser):
 
         Args:
             enable_highlighting: Enable Pygments syntax highlighting for code blocks
-                                (defaults to True for backward compatibility)
+                                (defaults to True)
 
         Parser Instances:
             This parser is typically created via thread-local caching.
@@ -142,8 +142,7 @@ class MistuneParser(BaseMarkdownParser):
         # :pull: directive) is automatically available to ALL parsing operations,
         # regardless of which internal Markdown instance is used.
         #
-        # Previously, each Markdown instance created its own renderer, requiring
-        # manual state synchronization that was error-prone and easy to forget.
+        # Shared renderer ensures consistent state across all Markdown instances.
         #
         # escape=False allows raw HTML (e.g., <br>) inside table cells and inline
         # content. This is required for GFM tables to support line breaks.
@@ -338,7 +337,7 @@ class MistuneParser(BaseMarkdownParser):
         site = context.get("site")
         self._shared_renderer._site = site  # type: ignore[attr-defined]
 
-        # Also store content-relative path for backward compatibility
+        # Also store content-relative path
         if current_page and hasattr(current_page, "source_path"):
             page_source = current_page.source_path
             source_str = str(page_source)

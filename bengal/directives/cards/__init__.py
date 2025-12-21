@@ -42,9 +42,6 @@ from bengal.directives.cards.utils import (
     VALID_GAPS,
     VALID_LAYOUTS,
     VALID_STYLES,
-    render_card,
-    render_cards_grid,
-    render_child_cards,
 )
 
 __all__ = [
@@ -64,8 +61,4 @@ __all__ = [
     "VALID_GAPS",
     "VALID_LAYOUTS",
     "VALID_STYLES",
-    # Render functions (for backward compatibility)
-    "render_cards_grid",
-    "render_card",
-    "render_child_cards",
 ]

@@ -99,7 +99,7 @@ class TestPageInitializer:
         initializer.ensure_initialized(valid_page)
 
         assert valid_page._site == mock_site
-        assert valid_page.url == "/test/"
+        assert valid_page.href == "/test/"
 
     # =========================================================================
     # Output Path Validation Tests
@@ -149,7 +149,7 @@ class TestPageInitializer:
         initializer.ensure_initialized(valid_page)
 
         # Verify URL works
-        assert valid_page.url == "/test/"
+        assert valid_page.href == "/test/"
 
     def test_ensure_initialized_url_generation_path_outside_output_dir(
         self, initializer, mock_site, tmp_path, capsys
@@ -179,7 +179,7 @@ class TestPageInitializer:
         initializer.ensure_initialized(page)
 
         # Should have generated a URL (fallback)
-        assert page.url.startswith("/")
+        assert page.href.startswith("/")
 
     # =========================================================================
     # Section-Specific Initialization Tests
@@ -341,7 +341,7 @@ class TestPageInitializer:
 
         assert archive_page._site == mock_site
         assert archive_page._section == section
-        assert archive_page.url == "/blog/"
+        assert archive_page.href == "/blog/"
 
     def test_initialize_generated_tag_page(self, initializer, mock_site, tmp_path):
         """Test initialization of generated tag page."""
@@ -361,7 +361,7 @@ class TestPageInitializer:
         initializer.ensure_initialized(tag_page)
 
         assert tag_page._site == mock_site
-        assert tag_page.url == "/tags/python/"
+        assert tag_page.href == "/tags/python/"
 
     def test_initialize_paginated_archive(self, initializer, mock_site, tmp_path):
         """Test initialization of paginated archive page."""
@@ -390,7 +390,7 @@ class TestPageInitializer:
         initializer.ensure_initialized_for_section(archive_page, section)
 
         assert archive_page._site == mock_site
-        assert archive_page.url == "/blog/page/2/"
+        assert archive_page.href == "/blog/page/2/"
 
     # =========================================================================
     # Edge Cases and Integration Tests
@@ -414,7 +414,7 @@ class TestPageInitializer:
 
         assert index_page._site == mock_site
         assert index_page._section == section
-        assert index_page.url == "/docs/"
+        assert index_page.href == "/docs/"
 
     def test_initialize_nested_section_page(self, initializer, mock_site, tmp_path):
         """Test initialization of page in nested section."""
@@ -436,7 +436,7 @@ class TestPageInitializer:
 
         assert page._site == mock_site
         assert page._section == child
-        assert page.url == "/docs/guides/intro/"
+        assert page.href == "/docs/guides/intro/"
 
     def test_initialize_multiple_pages_in_sequence(self, initializer, mock_site, tmp_path):
         """Test initializing multiple pages in sequence."""
@@ -453,7 +453,7 @@ class TestPageInitializer:
         # All should be valid
         for i, page in enumerate(pages):
             assert page._site == mock_site
-            assert page.url == f"/page{i}/"
+            assert page.href == f"/page{i}/"
 
     def test_initialize_pages_with_same_output_dir(self, initializer, mock_site, tmp_path):
         """Test multiple pages in same directory."""
@@ -466,8 +466,8 @@ class TestPageInitializer:
         initializer.ensure_initialized(page1)
         initializer.ensure_initialized(page2)
 
-        assert page1.url == "/blog/post1/"
-        assert page2.url == "/blog/post2/"
+        assert page1.href == "/blog/post1/"
+        assert page2.href == "/blog/post2/"
 
     # =========================================================================
     # Docstring and Interface Tests
@@ -535,5 +535,5 @@ class TestPageInitializer:
         initializer.ensure_initialized(page)
 
         # Now URL access should work without issues
-        _ = page.url
+        _ = page.href
         # If we got here, validation worked correctly

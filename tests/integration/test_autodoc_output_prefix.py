@@ -108,7 +108,7 @@ paths:
         # With /api/python/ and /api/rest/, we should return a single /api/ root section that
         # aggregates both children.
         assert [s.name for s in sections] == ["api"]
-        assert [s.relative_url for s in sections] == ["/api/"]
+        assert [s._path for s in sections] == ["/api/"]
 
         root = sections[0]
         child_names = [s.name for s in root.subsections]
@@ -252,7 +252,7 @@ class TestBackwardsCompatibility:
             pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
-        assert any(s.relative_url == "/api/" for s in sections)
+        assert any(s._path == "/api/" for s in sections)
 
     def test_openapi_only_with_api_prefix(self, mock_site, tmp_path):
         """Test OpenAPI-only config with explicit 'api' prefix works unchanged."""
@@ -306,7 +306,7 @@ paths: {}
             pages, sections, result = orchestrator.generate()
 
         # Should have root section at /api/
-        assert any(s.relative_url == "/api/" for s in sections)
+        assert any(s._path == "/api/" for s in sections)
 
     def test_default_prefixes_when_not_specified(self, mock_site, tmp_path):
         """Test that default prefixes are used when not explicitly configured."""

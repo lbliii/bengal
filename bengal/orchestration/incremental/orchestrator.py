@@ -228,7 +228,6 @@ class IncrementalOrchestrator:
             verbose=verbose,
         )
 
-        # Convert ChangeSummary to legacy dict format for backwards compatibility
         summary_dict: dict[str, list[Any]] = {
             "Modified content": list(change_set.change_summary.modified_content),
             "Modified assets": list(change_set.change_summary.modified_assets),
@@ -379,7 +378,7 @@ class IncrementalOrchestrator:
         """
         Get the templates directory for the current theme.
 
-        Delegates to CacheManager for backwards compatibility.
+        Delegates to CacheManager.
 
         Returns:
             Path to theme templates or None if not found

@@ -71,7 +71,7 @@ class TestChildPageTilesMacro:
                 tile_data.append(
                     {
                         "title": page.title,
-                        "url": page.url,  # This is what templates access
+                        "url": page.href,  # This is what templates access
                         "description": page.metadata.get("description", ""),
                     }
                 )
@@ -89,7 +89,7 @@ class TestChildPageTilesMacro:
 
         # Simulate: {% for page in section.sorted_pages %}
         for page in guides_section.sorted_pages:
-            url = page.url
+            url = page.href
             if page.source_path.stem != "_index":
                 assert url.startswith("/guides/"), f"Sorted page wrong URL: {url}"
 
@@ -137,12 +137,12 @@ class TestNavigationComponentURLs:
             urls = []
             # Section index
             if section.index_page:
-                urls.append(section.index_page.url)
+                urls.append(section.index_page.href)
 
             # Section pages
             for page in section.pages:
                 if page != section.index_page:
-                    urls.append(page.url)
+                    urls.append(page.href)
 
             # Subsections
             for subsection in section.subsections:
@@ -169,7 +169,7 @@ class TestNavigationComponentURLs:
 
         # Simulate breadcrumb: {% for ancestor in page.ancestors %}
         # (Note: page.ancestors would need to be set up, simulating the access pattern)
-        breadcrumb_url = hello_page.url
+        breadcrumb_url = hello_page.href
         assert breadcrumb_url.startswith("/docs/getting-started/basics/"), (
             f"Deeply nested page has wrong URL: {breadcrumb_url}"
         )
@@ -214,7 +214,7 @@ class TestRelatedPostsURLs:
 
         # Access URLs (as template would)
         for post in python_posts:
-            assert post.url.startswith("/blog/"), f"Related post wrong URL: {post.url}"
+            assert post.href.startswith("/blog/"), f"Related post wrong URL: {post.href}"
 
 
 class TestPaginationURLs:
@@ -239,7 +239,7 @@ class TestPaginationURLs:
 
         # Simulate template: {% for page in paginator.pages %}
         for page in pages:
-            url = page.url
+            url = page.href
             assert url.startswith("/blog/"), f"Paginated page wrong URL: {url}"
 
 
@@ -302,15 +302,15 @@ class TestTagPageLinks:
         # Verify each section's pages have correct prefix
         if "blog" in by_section:
             for page in by_section["blog"]:
-                assert page.url.startswith("/blog/"), f"Blog page wrong URL: {page.url}"
+                assert page.href.startswith("/blog/"), f"Blog page wrong URL: {page.href}"
 
         if "docs" in by_section:
             for page in by_section["docs"]:
-                assert page.url.startswith("/docs/"), f"Docs page wrong URL: {page.url}"
+                assert page.href.startswith("/docs/"), f"Docs page wrong URL: {page.href}"
 
         if "tutorials" in by_section:
             for page in by_section["tutorials"]:
-                assert page.url.startswith("/tutorials/"), f"Tutorial page wrong URL: {page.url}"
+                assert page.href.startswith("/tutorials/"), f"Tutorial page wrong URL: {page.href}"
 
 
 class TestTemplateAccessPatterns:
@@ -334,19 +334,19 @@ class TestTemplateAccessPatterns:
             yield site
 
     def test_direct_property_access(self, access_test_site):
-        """Test: {{ page.url }}"""
+        """Test: {{ page.href }}"""
         articles = [p for p in access_test_site.pages if "article-" in str(p.source_path)]
 
         for article in articles:
-            url = article.url  # Direct property access
+            url = article.href  # Direct property access
             assert url.startswith("/articles/"), f"Direct access wrong: {url}"
 
     def test_loop_iteration_access(self, access_test_site):
-        """Test: {% for page in section.pages %}{{ page.url }}{% endfor %}"""
+        """Test: {% for page in section.pages %}{{ page.href }}{% endfor %}"""
         section = [s for s in access_test_site.sections if s.name == "articles"][0]
 
         for page in section.pages:
-            url = page.url  # Loop iteration access
+            url = page.href  # Loop iteration access
             if page.source_path.stem != "_index":
                 assert url.startswith("/articles/"), f"Loop access wrong: {url}"
 
@@ -356,7 +356,7 @@ class TestTemplateAccessPatterns:
         regular_pages = [p for p in section.pages if p.source_path.stem != "_index"]
 
         if regular_pages:
-            first_page_url = regular_pages[0].url  # Array index access
+            first_page_url = regular_pages[0].href  # Array index access
             assert first_page_url.startswith("/articles/"), f"Array access wrong: {first_page_url}"
 
     def test_conditional_access(self, access_test_site):

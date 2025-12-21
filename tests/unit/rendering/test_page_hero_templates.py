@@ -244,7 +244,7 @@ def mock_get_breadcrumbs(page: MockPage) -> list[dict[str, str]]:
     return [
         {"title": "Home", "url": "/"},
         {"title": "API", "url": "/api/"},
-        {"title": page.title, "url": page.url},
+        {"title": page.title, "url": page.href},
     ]
 
 
@@ -559,7 +559,7 @@ class TestAPISectionIndexPageHero:
             title="Core Package",
             metadata={"description": "Core Bengal functionality"},
         )
-        page = MockPage(title="Core Package", url="/api/core/")
+        page = MockPage(title="Core Package", href="/api/core/")
 
         # NOTE: We use _render_section_hero which omits element entirely
         html = _render_section_hero(template_env, section=section, page=page)
@@ -575,7 +575,7 @@ class TestAPISectionIndexPageHero:
             title="Orchestration",
             metadata={"description": "Build orchestration components"},
         )
-        page = MockPage(title="Orchestration", url="/api/orchestration/")
+        page = MockPage(title="Orchestration", href="/api/orchestration/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -592,12 +592,12 @@ class TestAPISectionIndexPageHero:
                 MockSection(name="rendering", title="Rendering"),
             ],
             pages=[
-                MockPage(title="utils", url="/api/utils/", source_path=Path("utils.md")),
-                MockPage(title="cli", url="/api/cli/", source_path=Path("cli.md")),
-                MockPage(title="config", url="/api/config/", source_path=Path("config.md")),
+                MockPage(title="utils", href="/api/utils/", source_path=Path("utils.md")),
+                MockPage(title="cli", href="/api/cli/", source_path=Path("cli.md")),
+                MockPage(title="config", href="/api/config/", source_path=Path("config.md")),
             ],
         )
-        page = MockPage(title="Bengal API", url="/api/")
+        page = MockPage(title="Bengal API", href="/api/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -625,7 +625,7 @@ class TestAPISectionIndexPageHero:
                 ),
             ],
         )
-        page = MockPage(title="Core", url="/api/core/")
+        page = MockPage(title="Core", href="/api/core/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -726,7 +726,7 @@ class TestCLISectionIndexPageHero:
             pages=[],
         )
         # CLI detection uses URL sniffing - URL must contain '/cli'
-        page = MockPage(title="CLI Reference", url="/cli/")
+        page = MockPage(title="CLI Reference", href="/cli/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -756,7 +756,7 @@ class TestCLISectionIndexPageHero:
             ],
         )
         # CLI detection uses URL sniffing
-        page = MockPage(title="CLI Reference", url="/cli/")
+        page = MockPage(title="CLI Reference", href="/cli/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -780,7 +780,7 @@ class TestCLISectionIndexPageHero:
             ],
         )
         # Nested CLI path still contains '/cli'
-        page = MockPage(title="Subgroup Commands", url="/cli/group/subgroup/")
+        page = MockPage(title="Subgroup Commands", href="/cli/group/subgroup/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -805,7 +805,7 @@ class TestCLISectionIndexPageHero:
             ],
         )
         # API path without /cli
-        page = MockPage(title="API Reference", url="/api/")
+        page = MockPage(title="API Reference", href="/api/")
 
         html = _render_section_hero(template_env, section=section, page=page)
 
@@ -875,7 +875,7 @@ class TestPageHeroEdgeCases:
             description="Test",
             element_type="module",
         )
-        page = MockPage(title="Test", url="/api/test/")
+        page = MockPage(title="Test", href="/api/test/")
 
         html = render_page_hero(template_env, element=element, page=page)
 
@@ -886,7 +886,7 @@ class TestPageHeroEdgeCases:
 
     def test_breadcrumbs_render(self, template_env: Environment) -> None:
         """Verify breadcrumbs render in hero."""
-        page = MockPage(title="Test Page", url="/api/core/test/")
+        page = MockPage(title="Test Page", href="/api/core/test/")
         element = MockDocElement(
             name="test",
             qualified_name="test",
@@ -1052,7 +1052,7 @@ class TestNewSectionTemplate:
             title="Core Package",
             metadata={"description": "Core functionality"},
         )
-        page = MockPage(title="Core Package", url="/api/core/")
+        page = MockPage(title="Core Package", href="/api/core/")
 
         html = _render_new_section_hero(template_env, section=section, page=page)
 
@@ -1065,7 +1065,7 @@ class TestNewSectionTemplate:
             title="Rendering",
             metadata={"description": "Rendering components"},
         )
-        page = MockPage(title="Rendering", url="/api/rendering/")
+        page = MockPage(title="Rendering", href="/api/rendering/")
 
         html = _render_new_section_hero(template_env, section=section, page=page)
 
@@ -1077,9 +1077,9 @@ class TestNewSectionTemplate:
             name="api",
             title="API Reference",
             subsections=[MockSection(name="core", title="Core")],
-            pages=[MockPage(title="utils", url="/api/utils/", source_path=Path("utils.md"))],
+            pages=[MockPage(title="utils", href="/api/utils/", source_path=Path("utils.md"))],
         )
-        page = MockPage(title="API Reference", url="/api/")
+        page = MockPage(title="API Reference", href="/api/")
 
         html = _render_new_section_hero(template_env, section=section, page=page)
 
@@ -1092,9 +1092,9 @@ class TestNewSectionTemplate:
             name="cli",
             title="CLI Reference",
             subsections=[MockSection(name="site", title="Site")],
-            pages=[MockPage(title="build", url="/cli/build/", source_path=Path("build.md"))],
+            pages=[MockPage(title="build", href="/cli/build/", source_path=Path("build.md"))],
         )
-        page = MockPage(title="CLI Reference", url="/cli/")
+        page = MockPage(title="CLI Reference", href="/cli/")
 
         html = _render_new_section_hero(template_env, section=section, page=page)
 
@@ -1110,7 +1110,7 @@ class TestNewSectionTemplate:
             subsections=[MockSection(name="group", title="Group")],
             pages=[],
         )
-        page = MockPage(title="Commands", url="/some/other/path/")
+        page = MockPage(title="Commands", href="/some/other/path/")
 
         # Explicit context should override URL detection
         html = _render_new_section_hero(

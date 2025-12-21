@@ -17,7 +17,6 @@ from typing import Any
 
 import yaml
 
-from bengal.config.deprecation import check_deprecated_keys
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
@@ -62,7 +61,6 @@ class ConfigDirectoryLoader:
         """
         self.track_origins = track_origins
         self.origin_tracker: ConfigWithOrigin | None = None
-        self.deprecated_keys: list[tuple[str, str, str]] = []
 
     def load(
         self,
@@ -147,8 +145,7 @@ class ConfigDirectoryLoader:
         # Expand feature groups (must happen after all merges)
         config = expand_features(config)
 
-        # Flatten config for backward compatibility with old loader
-        # (site.title → title, build.parallel → parallel)
+        # Flatten config (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
 
         # Apply environment-based overrides (GitHub Actions, Netlify, Vercel)
@@ -157,33 +154,14 @@ class ConfigDirectoryLoader:
 
         config = apply_env_overrides(config)
 
-        # Check for deprecated keys (don't warn yet, store for later)
-        self.deprecated_keys = check_deprecated_keys(
-            config,
-            source="config/",
-            warn=False,
-        )
-
         logger.debug(
             "config_loaded",
             environment=environment,
             profile=profile,
             sections=list(config.keys()),
-            deprecated_keys=len(self.deprecated_keys),
         )
 
         return config
-
-    def get_deprecated_keys(self) -> list[tuple[str, str, str]]:
-        """Get list of deprecated keys found (old_key, new_location, note)."""
-        return self.deprecated_keys
-
-    def print_deprecation_warnings(self) -> None:
-        """Print deprecation warnings if any deprecated keys were found."""
-        if self.deprecated_keys:
-            from bengal.config.deprecation import print_deprecation_warnings
-
-            print_deprecation_warnings(self.deprecated_keys)
 
     def _load_directory(self, directory: Path, _origin_prefix: str = "") -> dict[str, Any]:
         """
@@ -358,7 +336,7 @@ class ConfigDirectoryLoader:
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Flatten nested config for backward compatibility with old ConfigLoader.
+        Flatten nested config.
 
         Extracts common sections to top level:
         - site.title → title
@@ -390,18 +368,12 @@ class ConfigDirectoryLoader:
                 if key not in flat:
                     flat[key] = value
 
-        # Extract features section to top level (for backward compatibility)
+        # Extract features section to top level
         # Note: expand_features() runs before flattening, so this mainly handles
         # any remaining feature keys that weren't expanded
         if "features" in config and isinstance(config["features"], dict):
             for key, value in config["features"].items():
                 if key not in flat:
                     flat[key] = value
-
-        # Handle special asset fields (assets.minify -> minify_assets)
-        # This ensures backward compatibility with code that expects flattened keys
-        if "assets" in config and isinstance(config["assets"], dict):
-            for k, v in config["assets"].items():
-                flat[f"{k}_assets"] = v
 
         return flat

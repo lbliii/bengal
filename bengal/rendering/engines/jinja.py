@@ -311,35 +311,29 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
         return errors
 
-    # =========================================================================
-    # LEGACY METHODS (for backward compatibility during migration)
-    # =========================================================================
-
     def render(self, template_name: str, context: dict[str, Any]) -> str:
-        """Legacy alias for render_template()."""
+        """Render a template with the given context."""
         return self.render_template(template_name, context)
 
     def _find_template_path(self, template_name: str) -> Path | None:
-        """Legacy alias for get_template_path()."""
+        """Find the path to a template file."""
         return self.get_template_path(template_name)
 
     def validate_templates(self, include_patterns: list[str] | None = None) -> list[Any]:
         """
-        Legacy validate method returning TemplateRenderError objects.
-
-        Use validate() for the new API returning TemplateError objects.
+        Validate templates and return TemplateRenderError objects.
         """
-        from bengal.rendering.errors import TemplateRenderError as LegacyError
+        from bengal.rendering.errors import TemplateRenderError
 
         errors = self.validate(include_patterns)
-        legacy_errors: list[Any] = []
+        render_errors: list[Any] = []
         for err in errors:
             exc = err.original_exception
             if exc is None:
                 exc = TemplateSyntaxError(err.message, lineno=err.line)
-            legacy_error = LegacyError.from_jinja2_error(exc, err.template, err.path, self)
-            legacy_errors.append(legacy_error)
-        return legacy_errors
+            render_error = TemplateRenderError.from_jinja2_error(exc, err.template, err.path, self)
+            render_errors.append(render_error)
+        return render_errors
 
     # =========================================================================
     # PROFILING

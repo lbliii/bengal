@@ -87,15 +87,6 @@ class NavNode:
     _depth: int = 0
 
     @property
-    def url(self) -> str:
-        """
-        Backward-compatible alias for _path.
-
-        Deprecated: Use ._path for internal code, NavNodeProxy.href for templates.
-        """
-        return self._path
-
-    @property
     def has_children(self) -> bool:
         """True if this node has child nodes."""
         return len(self.children) > 0
@@ -140,7 +131,6 @@ class NavNode:
             "id",
             "title",
             "_path",
-            "url",  # Backward compatibility
             "href",  # For templates (via NavNodeProxy)
             "icon",
             "weight",
@@ -502,10 +492,6 @@ class NavNodeProxy:
     The cached NavTree stores _path internally for efficient lookups,
     but templates should always use .href for href attributes.
 
-    Backward Compatibility:
-    - `url`: Alias for href (deprecated, use href)
-    - `site_path`: Alias for _path (deprecated, use _path)
-
     Other Properties:
     - `is_current`: True if this node is the current page
     - `is_in_trail`: True if this node is in the path to current page
@@ -573,24 +559,6 @@ class NavNodeProxy:
         return self._node._path
 
     @property
-    def url(self) -> str:
-        """
-        Backward-compatible alias for href.
-
-        Deprecated: Use .href for templates, ._path for internal code.
-        """
-        return self.href
-
-    @property
-    def site_path(self) -> str:
-        """
-        Backward-compatible alias for _path.
-
-        Deprecated: Use ._path instead.
-        """
-        return self._path
-
-    @property
     def absolute_href(self) -> str:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
@@ -625,7 +593,7 @@ class NavNodeProxy:
         # These attributes have @property implementations above, so __getattr__
         # should only be called if there's an issue accessing them. Delegate
         # directly to the node to avoid recursion.
-        if name in ("href", "url", "_path", "site_path", "absolute_href"):
+        if name in ("href", "_path", "absolute_href"):
             # Should not reach here - these are @property methods.
             # Return node's _path as safe fallback.
             return self._node._path
@@ -636,10 +604,6 @@ class NavNodeProxy:
             return self.href
         if key == "_path":
             return self._path
-        if key == "url":
-            return self.url  # Backward-compat: alias for href (includes baseurl)
-        if key == "site_path":
-            return self.site_path
         if key == "absolute_href":
             return self.absolute_href
         if key == "is_current":

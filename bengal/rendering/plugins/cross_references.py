@@ -258,24 +258,19 @@ class CrossReferencePlugin:
                 f'title="Target directive not found: {anchor_id}">[{text or anchor_id}]</span>'
             )
 
-        # Handle both old format (tuple) and new format (list of tuples)
-        if isinstance(anchor_entries, tuple):
-            # Legacy format: (page, anchor_id) - no version info
-            page, anchor_id_resolved = anchor_entries
-        else:
-            # New format: [(page, anchor_id, version_id), ...]
-            # Prefer same-version anchor, fall back to first available
-            same_version_entry = None
-            for entry in anchor_entries:
-                if len(entry) >= 3 and entry[2] == self.current_version:
-                    same_version_entry = entry
-                    break
+        # Handle list of tuples format: [(page, anchor_id, version_id), ...]
+        # Prefer same-version anchor, fall back to first available
+        same_version_entry = None
+        for entry in anchor_entries:
+            if len(entry) >= 3 and entry[2] == self.current_version:
+                same_version_entry = entry
+                break
 
-            if same_version_entry:
-                page, anchor_id_resolved, _ = same_version_entry
-            else:
-                # Fall back to first entry (any version)
-                page, anchor_id_resolved, _ = anchor_entries[0]
+        if same_version_entry:
+            page, anchor_id_resolved, _ = same_version_entry
+        else:
+            # Fall back to first entry (any version)
+            page, anchor_id_resolved, _ = anchor_entries[0]
 
         logger.debug(
             "xref_resolved",
@@ -311,24 +306,19 @@ class CrossReferencePlugin:
         # This includes both heading anchors and target directives
         anchor_entries = self.xref_index.get("by_anchor", {}).get(anchor_key)
         if anchor_entries:
-            # Handle both old format (tuple) and new format (list of tuples)
-            if isinstance(anchor_entries, tuple):
-                # Legacy format: (page, anchor_id) - no version info
-                page, anchor_id = anchor_entries
-            else:
-                # New format: [(page, anchor_id, version_id), ...]
-                # Prefer same-version anchor, fall back to first available
-                same_version_entry = None
-                for entry in anchor_entries:
-                    if len(entry) >= 3 and entry[2] == self.current_version:
-                        same_version_entry = entry
-                        break
+            # Handle list of tuples format: [(page, anchor_id, version_id), ...]
+            # Prefer same-version anchor, fall back to first available
+            same_version_entry = None
+            for entry in anchor_entries:
+                if len(entry) >= 3 and entry[2] == self.current_version:
+                    same_version_entry = entry
+                    break
 
-                if same_version_entry:
-                    page, anchor_id, _ = same_version_entry
-                else:
-                    # Fall back to first entry (any version)
-                    page, anchor_id, _ = anchor_entries[0]
+            if same_version_entry:
+                page, anchor_id, _ = same_version_entry
+            else:
+                # Fall back to first entry (any version)
+                page, anchor_id, _ = anchor_entries[0]
 
             logger.debug(
                 "xref_resolved",

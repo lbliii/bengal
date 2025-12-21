@@ -232,7 +232,7 @@ def test_auto_menu_includes_nested_sections():
     docs_section.path = site.root_path / "content" / "docs"
     docs_section.name = "docs"
     docs_section.href = "/docs/"
-    docs_section.relative_url = "/docs/"
+    docs_section._path = "/docs/"
     docs_section.weight = 10
     docs_section.index_page = None
     docs_section.parent = None
@@ -245,7 +245,7 @@ def test_auto_menu_includes_nested_sections():
     guides_section.path = site.root_path / "content" / "docs" / "guides"
     guides_section.name = "guides"
     guides_section.href = "/docs/guides/"
-    guides_section.relative_url = "/docs/guides/"
+    guides_section._path = "/docs/guides/"
     guides_section.weight = 20
     guides_section.index_page = None
     guides_section.parent = docs_section
@@ -261,7 +261,7 @@ def test_auto_menu_includes_nested_sections():
     blog_section.path = site.root_path / "content" / "blog"
     blog_section.name = "blog"
     blog_section.href = "/blog/"
-    blog_section.relative_url = "/blog/"
+    blog_section._path = "/blog/"
     blog_section.weight = 30
     blog_section.index_page = None
     blog_section.parent = None

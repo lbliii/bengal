@@ -9,8 +9,6 @@ Use cases:
 - Creating styled blocks without affecting heading hierarchy
 - Grouping related content with a common class
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations

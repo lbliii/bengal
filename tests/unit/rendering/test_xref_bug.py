@@ -18,7 +18,7 @@ class TestCrossReferenceBug:
         # Create mock page and xref index
         mock_page = MockPage(
             title="Test Page",
-            url="/test-url/",
+            href="/test-url/",
             slug="test-page",
         )
 

@@ -42,8 +42,8 @@ baseurl = "https://example.com"
         """Create a mock page with all required attributes."""
         page = Mock()
         page.title = title
-        page.url = url
-        page.relative_url = url  # relative_url doesn't include baseurl
+        page.href = url
+        page._path = url  # _path doesn't include baseurl
         page.metadata = {}
         page.date = None
         page.content = content

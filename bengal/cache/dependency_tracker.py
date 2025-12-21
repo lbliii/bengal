@@ -277,7 +277,7 @@ class DependencyTracker:
         changed = set()
 
         # Check all tracked files
-        for file_path_str in self.cache.file_hashes:
+        for file_path_str in self.cache.file_fingerprints:
             file_path = Path(file_path_str)
             if file_path.exists() and self.cache.is_changed(file_path):
                 changed.add(file_path)
@@ -286,8 +286,8 @@ class DependencyTracker:
             self.logger.info(
                 "changed_files_detected",
                 changed_count=len(changed),
-                total_tracked=len(self.cache.file_hashes),
-                change_ratio=f"{len(changed) / len(self.cache.file_hashes) * 100:.1f}%",
+                total_tracked=len(self.cache.file_fingerprints),
+                change_ratio=f"{len(changed) / len(self.cache.file_fingerprints) * 100:.1f}%",
             )
 
         return changed
@@ -302,7 +302,7 @@ class DependencyTracker:
         Returns:
             Set of new file paths
         """
-        tracked_files = {Path(f) for f in self.cache.file_hashes}
+        tracked_files = {Path(f) for f in self.cache.file_fingerprints}
         new_files = current_files - tracked_files
 
         if new_files:
@@ -322,7 +322,7 @@ class DependencyTracker:
         Returns:
             Set of deleted file paths
         """
-        tracked_files = {Path(f) for f in self.cache.file_hashes}
+        tracked_files = {Path(f) for f in self.cache.file_fingerprints}
         deleted_files = tracked_files - current_files
 
         if deleted_files:

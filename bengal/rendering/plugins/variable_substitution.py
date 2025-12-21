@@ -188,8 +188,7 @@ class VariableSubstitutionPlugin:
 
     def _substitute_variables(self, text: str) -> str:
         """
-        Legacy method combining preprocess and substitution.
-        Kept for backward compatibility if needed, but splitting usage is preferred.
+        Combines preprocess and substitution.
         """
         text = self.preprocess(text)
         return self.substitute_variables(text)

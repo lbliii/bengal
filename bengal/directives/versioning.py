@@ -11,7 +11,6 @@ Provides MyST-style directives for marking version-specific content:
     :::
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     Enhanced to align with Bengal's default theme aesthetic:
     - Luminescent left-edge glow animation
     - Palette-aware colors via CSS custom properties

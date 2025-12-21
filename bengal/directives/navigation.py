@@ -8,7 +8,6 @@ Provides directives that leverage the pre-computed site tree:
 - related: Show related content based on tags
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     All directives access renderer._current_page to walk the object tree.
 """
 
@@ -498,28 +497,3 @@ def _get_section_url(section: Any) -> str:
     if path:
         return f"/{path}/"
     return "/"
-
-
-# =============================================================================
-# Backward Compatibility Render Functions
-# =============================================================================
-
-
-def render_breadcrumbs(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return BreadcrumbsDirective().render(renderer, text, **attrs)
-
-
-def render_siblings(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return SiblingsDirective().render(renderer, text, **attrs)
-
-
-def render_prev_next(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return PrevNextDirective().render(renderer, text, **attrs)
-
-
-def render_related(renderer: Any, text: str, **attrs: Any) -> str:
-    """Legacy render function for backward compatibility."""
-    return RelatedDirective().render(renderer, text, **attrs)

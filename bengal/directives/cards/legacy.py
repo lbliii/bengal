@@ -11,12 +11,12 @@ from typing import Any, ClassVar
 
 from mistune.directives import DirectivePlugin
 
+from bengal.directives.cards.card import CardDirective
+from bengal.directives.cards.cards_grid import CardsDirective
 from bengal.directives.cards.utils import (
     convert_legacy_columns,
     convert_legacy_gutter,
     extract_octicon,
-    render_card,
-    render_cards_grid,
 )
 
 __all__ = ["GridDirective", "GridItemCardDirective"]
@@ -65,7 +65,7 @@ class GridDirective(DirectivePlugin):
         directive.register("grid", self.parse)
 
         if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("cards_grid", render_cards_grid)
+            md.renderer.register("cards_grid", CardsDirective().render)
 
 
 class GridItemCardDirective(DirectivePlugin):
@@ -118,4 +118,4 @@ class GridItemCardDirective(DirectivePlugin):
         directive.register("grid-item-card", self.parse)
 
         if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("card", render_card)
+            md.renderer.register("card", CardDirective().render)

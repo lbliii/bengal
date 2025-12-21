@@ -3,8 +3,6 @@ Button directive for Mistune.
 
 Provides clean button syntax for CTAs and navigation.
 
-Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
 """
 
 from __future__ import annotations

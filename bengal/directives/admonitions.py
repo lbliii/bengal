@@ -5,7 +5,6 @@ Provides note, warning, tip, danger, and other callout boxes with
 full markdown support.
 
 Architecture:
-    Migrated to BengalDirective base class as part of directive system v2.
     Uses multi-name registration pattern for 10 admonition types.
 """
 

@@ -34,14 +34,12 @@ class FileTrackingMixin:
     Mixin providing file tracking, hashing, and dependency management.
 
     Requires these attributes on the host class:
-        - file_hashes: dict[str, str]
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
     """
 
     # Type hints for mixin attributes (provided by host class)
-    file_hashes: dict[str, str]
     file_fingerprints: dict[str, dict[str, Any]]
     dependencies: dict[str, set[str]]
     output_sources: dict[str, str]
@@ -152,11 +150,6 @@ class FileTrackingMixin:
                 # Can't stat file, treat as changed
                 return True
 
-        # Fallback: check legacy file_hashes (VERSION < 5 compatibility)
-        if file_key in self.file_hashes:
-            current_hash = self.hash_file(file_path)
-            return self.file_hashes[file_key] != current_hash
-
         # New file (not in any cache)
         return True
 
@@ -184,16 +177,11 @@ class FileTrackingMixin:
                 "hash": file_hash,
             }
 
-            # Also update legacy file_hashes for backward compatibility
-            self.file_hashes[file_key] = file_hash
-
         except FileNotFoundError:
             # File was deleted - remove from tracking silently
             # This commonly happens when switching from markdown-based autodoc to virtual pages
             if file_key in self.file_fingerprints:
                 del self.file_fingerprints[file_key]
-            if file_key in self.file_hashes:
-                del self.file_hashes[file_key]
             logger.debug(
                 "file_removed_from_tracking",
                 file_path=str(file_path),
@@ -278,7 +266,6 @@ class FileTrackingMixin:
             file_path: Path to file
         """
         file_key = str(file_path)
-        self.file_hashes.pop(file_key, None)
         self.file_fingerprints.pop(file_key, None)
         self.dependencies.pop(file_key, None)
 

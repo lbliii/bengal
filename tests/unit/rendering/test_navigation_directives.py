@@ -17,7 +17,7 @@ class TestBreadcrumbsDirective:
         section.title = title
         section.path = Path(path)
         section.index_page = Mock()
-        section.index_page.url = url
+        section.index_page.href = url
         return section
 
     def test_breadcrumbs_renders_ancestors(self, parser):
@@ -192,11 +192,11 @@ class TestPrevNextDirective:
 
         prev_page = Mock()
         prev_page.title = "Installation"
-        prev_page.url = "/docs/installation/"
+        prev_page.href = "/docs/installation/"
 
         next_page = Mock()
         next_page.title = "Configuration"
-        next_page.url = "/docs/config/"
+        next_page.href = "/docs/config/"
 
         current_page = Mock()
         current_page.title = "Quickstart"
@@ -223,7 +223,7 @@ class TestPrevNextDirective:
 
         prev_page = Mock()
         prev_page.title = "Previous"
-        prev_page.url = "/prev/"
+        prev_page.href = "/prev/"
 
         current_page = Mock()
         current_page.prev_in_section = prev_page
@@ -245,7 +245,7 @@ class TestPrevNextDirective:
 
         next_page = Mock()
         next_page.title = "Next"
-        next_page.url = "/next/"
+        next_page.href = "/next/"
 
         current_page = Mock()
         current_page.prev_in_section = None
@@ -319,7 +319,7 @@ class TestRelatedDirective:
 
         related = Mock()
         related.title = "Advanced"
-        related.url = "/advanced/"
+        related.href = "/advanced/"
         related.tags = ["python", "config"]
 
         current_page = Mock()

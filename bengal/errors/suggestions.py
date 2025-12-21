@@ -443,7 +443,7 @@ def get_suggestion(category: str, error_key: str) -> ActionableSuggestion | None
 
 def get_suggestion_dict(category: str, error_key: str) -> dict[str, Any] | None:
     """
-    Get suggestion as dictionary (legacy compatibility).
+    Get suggestion as dictionary.
 
     Args:
         category: Error category
