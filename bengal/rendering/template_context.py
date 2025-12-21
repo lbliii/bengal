@@ -81,13 +81,8 @@ class TemplatePageWrapper:
         It automatically includes baseurl, so theme developers don't need
         to remember to use permalink or filters.
         """
-        # Get relative URL from wrapped page (prefer href, fallback to _path)
-        rel = (
-            getattr(self._page, "href", None)
-            or getattr(self._page, "_path", None)
-            or getattr(self._page, "url", None)
-            or "/"
-        )
+        # Get relative URL from wrapped page
+        rel = self._page.href
 
         # Normalize relative URL
         if not rel:
@@ -128,12 +123,7 @@ class TemplatePageWrapper:
         Use this when you need the relative URL for comparisons or logic.
         For display URLs, use .url (which includes baseurl).
         """
-        return (
-            getattr(self._page, "_path", None)
-            or getattr(self._page, "relative_url", None)
-            or getattr(self._page, "url", None)
-            or "/"
-        )
+        return self._page._path
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -191,12 +181,7 @@ class TemplateSectionWrapper:
     @property
     def url(self) -> str:
         """URL with baseurl applied (for templates)."""
-        rel = (
-            getattr(self._section, "href", None)
-            or getattr(self._section, "_path", None)
-            or getattr(self._section, "url", None)
-            or "/"
-        )
+        rel = self._section._path
 
         if not rel:
             rel = "/"
@@ -222,12 +207,7 @@ class TemplateSectionWrapper:
     @property
     def relative_url(self) -> str:
         """Relative URL without baseurl (for comparisons)."""
-        return (
-            getattr(self._section, "_path", None)
-            or getattr(self._section, "relative_url", None)
-            or getattr(self._section, "url", None)
-            or "/"
-        )
+        return self._section._path
 
     @property
     def pages(self) -> list[TemplatePageWrapper]:

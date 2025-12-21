@@ -108,64 +108,8 @@ def get_page_relative_url(page: Page, site: Any) -> str:
         elif isinstance(result := path, str):
             return result
 
-    # Prefer _path (internal path without baseurl)
-    if hasattr(page, "_path"):
-        url: str | None = page._path
-        if isinstance(url, str):
-            return url
-    elif hasattr(page, "href"):
-        # href includes baseurl, need to strip it
-        url: str | None = page.href
-        baseurl = site.config.get("baseurl", "").rstrip("/")
-        if baseurl and url and url.startswith(baseurl):
-            url = url[len(baseurl):] or "/"
-        if isinstance(url, str):
-            return url
-    elif hasattr(page, "relative_url"):
-        relative_url = page.relative_url
-        if callable(relative_url):
-            try:
-                result = relative_url()
-                if isinstance(result, str):
-                    return result
-            except Exception as e:
-                logger.debug(
-                    "output_format_relative_url_failed",
-                    page=str(page.source_path) if hasattr(page, "source_path") else None,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="trying_url_fallback",
-                )
-                pass
-        elif isinstance(result := relative_url, str):
-            return result
-    else:
-        url = None
-        if callable(url):
-            try:
-                url = url()
-            except Exception as e:
-                logger.debug(
-                    "postprocess_page_url_callable_failed",
-                    page=str(getattr(page, "source_path", "unknown")),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="using_none_url",
-                )
-                url = None
-
-        if isinstance(url, str):
-            # Strip baseurl from url if present
-            baseurl = ""
-            if site and hasattr(site, "config") and isinstance(site.config, dict):
-                baseurl = site.config.get("baseurl", "") or ""
-
-            if baseurl and baseurl != "/" and url.startswith(baseurl):
-                # Remove baseurl prefix to get relative URL
-                url = url[len(baseurl) :]
-                # Ensure leading slash
-                if not url.startswith("/"):
-                    url = "/" + url
+    # Use _path (internal path without baseurl)
+    return page._path
 
             if url:
                 return url
@@ -206,27 +150,7 @@ def get_page_url(page: Page, site: Any) -> str:
         Full public URL including baseurl
     """
     # Get the page's public URL (relative to site root)
-    page_url = getattr(page, "url", None) or getattr(page, "permalink", None)
-
-    if not page_url:
-        # Fallback: construct from output_path
-        output_path = getattr(page, "output_path", None)
-        if output_path:
-            output_dir = getattr(site, "output_dir", None)
-            if output_dir:
-                try:
-                    relative_path = output_path.relative_to(output_dir)
-                    page_url = "/" + str(relative_path).replace("\\", "/")
-                except ValueError:
-                    page_url = "/" + output_path.name
-            else:
-                page_url = "/" + output_path.name
-
-    if not page_url:
-        # Last fallback: use source path
-        source_path = getattr(page, "source_path", None)
-        if source_path:
-            page_url = "/" + Path(source_path).stem
+    page_url = page.href
 
     # Ensure page_url starts with /
     if page_url and not page_url.startswith("/"):

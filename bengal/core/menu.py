@@ -66,7 +66,7 @@ class MenuItem:
         menu_item = MenuItem(name="Home", url="/", weight=1)
 
         # From page frontmatter
-        menu_item = MenuItem(name=page.title, url=getattr(page, "href", None) or getattr(page, "url", "/"), weight=page.metadata.get("weight", 0))
+        menu_item = MenuItem(name=page.title, url=page.href, weight=page.metadata.get("weight", 0))
 
         # With icon
         menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
@@ -105,8 +105,7 @@ class MenuItem:
         """
         URL for templates. Alias for url property.
 
-        This property provides backward compatibility with the unified URL model
-        where templates use .href instead of .url.
+        Return href property for unified URL model.
         """
         return self.url
 
@@ -213,8 +212,7 @@ class MenuItem:
         """
         return {
             "name": self.name,
-            "url": self.href,  # Use href for unified URL model
-            "href": self.href,  # Also include href for templates
+            "href": self.href,
             "icon": self.icon,
             "active": self.active,
             "active_trail": self.active_trail,
@@ -313,10 +311,8 @@ class MenuBuilder:
         """
         if item.identifier:
             self._seen_identifiers.add(item.identifier)
-        # Use href (unified URL model) but fallback to url for backward compatibility
-        url = getattr(item, "href", None) or getattr(item, "url", None)
-        if url:
-            self._seen_urls.add(url.rstrip("/"))
+        if item.href:
+            self._seen_urls.add(item.href.rstrip("/"))
         if item.name:
             self._seen_names.add(item.name.lower())
 
@@ -398,7 +394,7 @@ class MenuBuilder:
         item_id = menu_config.get("identifier")
         # Use _path for menu items (for comparison/activation)
         # Templates apply baseurl via | absolute_url filter
-        item_url = (getattr(page, "_path", None) or getattr(page, "relative_url", "/")).rstrip("/")
+        item_url = page._path.rstrip("/")
         item_name = menu_config.get("name", page.title).lower()
 
         # Skip if duplicate
@@ -414,7 +410,7 @@ class MenuBuilder:
 
         item = MenuItem(
             name=menu_config.get("name", page.title),
-            url=getattr(page, "_path", None) or getattr(page, "relative_url", "/"),  # Store site-relative path for comparison
+            url=page._path,  # Store site-relative path for comparison
             weight=menu_config.get("weight", 0),
             parent=menu_config.get("parent"),
             identifier=menu_config.get("identifier"),

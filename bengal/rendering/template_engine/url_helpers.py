@@ -122,41 +122,9 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
         )
         pass
 
-    # Fallback to relative_url (legacy)
+    # Use _path (internal path without baseurl)
     if url is None:
-        try:
-            if hasattr(page, "relative_url"):
-                url = page.relative_url
-        except Exception as e:
-            logger.debug(
-                "url_for_relative_url_access_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="trying_url_fallback",
-            )
-            pass
-
-    # Fallback to page.url/href if _path/relative_url not available
-    if url is None:
-        try:
-            # Prefer _path (internal path without baseurl), then href (with baseurl), fallback to url (legacy)
-            if hasattr(page, "_path"):
-                url = page._path
-            elif hasattr(page, "href"):
-                url = page.href
-                # If href includes baseurl, extract relative part
-                baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
-                if baseurl and url.startswith(baseurl):
-                    url = url[len(baseurl) :] or "/"
-            elif hasattr(page, "url"):
-                url = page.url
-            # If url already includes baseurl, extract relative part
-            baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
-            if baseurl and url.startswith(baseurl):
-                    url = url[len(baseurl) :] or "/"
-        except Exception as e:
-            logger.debug(
-                "url_for_url_access_failed",
+        url = page._path
                 error=str(e),
                 error_type=type(e).__name__,
                 action="trying_dict_fallback",
