@@ -12,6 +12,23 @@ Bengal already detects URL collisions proactively during the build, and can fail
 
 This RFC proposes a `URLRegistry` (or equivalent) to make URL ownership explicit, prevent invalid states earlier in the pipeline, and provide clear diagnostics for collisions across content, autodoc, taxonomies, special pages, and redirects.
 
+### Long-term decision (recommended)
+
+Adopt a **single claim-before-write ownership system** that covers:
+
+- **Pages** produced into `site.pages` (content discovery, taxonomy, autodoc).
+- **Direct writers** that write output files without creating pages (redirects, special pages).
+
+This is the most elegant long-term model because it is the only way to express URL ownership as a complete invariant: “no two producers can write the same output path/URL” *before* any file is written.
+
+Evidence that not all outputs are currently mediated by `site.pages`:
+
+- Redirects write `/<alias>/index.html` directly and only guard via `output_path.exists()`:
+  - `bengal/postprocess/redirects.py:131-148`
+- Special pages write `404.html` and other pages directly (not mediated via `site.pages`):
+  - `bengal/postprocess/special_pages.py:152-175` (404)
+  - `bengal/postprocess/special_pages.py:266-272` (search)
+
 ## Problem Statement
 
 ### Current state (verified)
@@ -111,9 +128,11 @@ These protections detect collisions, but **do not define ownership policy**. Tod
 
 ## Design Options
 
-### Option A: URL registry (claim-time authority)
+### Option A (recommended): output claim registry (claim-time authority for URLs *and* output paths)
 
-Introduce a stateful `URLRegistry` on `Site` that is the single authority for URL claims.
+Introduce a stateful registry on `Site` that is the single authority for **output claims**.
+
+Key point: the registry must be able to claim **output paths** as well as **URLs** so it can cover both page-based producers and direct file writers.
 
 ```python
 @dataclass
@@ -157,6 +176,41 @@ class URLRegistry:
             logger.warning("url_override", url=url, old=existing.owner, new=owner)
 
         self._claims[normalized] = URLClaim(owner, source, priority, version, lang)
+```
+
+#### Required API surface (to cover direct writers)
+
+To cover redirects and special pages, the registry needs a way to claim an output path:
+
+```python
+class URLRegistry:
+    def claim_output_path(
+        self,
+        output_path: Path,
+        *,
+        site: Site,
+        owner: str,
+        source: str,
+        priority: int = 50,
+        version: str | None = None,
+        lang: str | None = None,
+    ) -> str:
+        \"\"\"
+        Claim an output file path and return its canonical URL.
+
+        This enables claim-time protection for producers that do not create Page objects
+        (e.g., redirects and special pages).
+        \"\"\"
+        url = URLStrategy.url_from_output_path(output_path, site)
+        self.claim(
+            url=url,
+            owner=owner,
+            source=source,
+            priority=priority,
+            version=version,
+            lang=lang,
+        )
+        return url
 ```
 
 ### Notes on incremental builds
@@ -222,10 +276,13 @@ Cons:
 
 ### Phase 2: URL registry (Option A), if policy needs claim-time enforcement
 
-1. **Add `URLRegistry` to `Site`**: Implement the centralized claim system with priority levels.
+1. **Add registry to `Site`**: Implement claim-time registry with priority levels.
 2. **Persistence**: Add `url_claims` to `BuildCache` to support incremental collision detection.
-3. **Integration**: Update `ContentDiscovery`, `AutodocOrchestrator`, `TaxonomyOrchestrator`, and `SectionOrchestrator` to call `claim()` after computing paths via `URLStrategy`.
-4. **Warning mode**: Keep warnings by default to avoid breaking existing sites; allow strict failure via existing `--strict` behavior.
+3. **Integration (pages)**: Update `ContentDiscovery`, `AutodocOrchestrator`, `TaxonomyOrchestrator`, and `SectionOrchestrator` to claim after computing paths via `URLStrategy`.
+4. **Integration (direct writers)**:
+   - Redirects must claim `/<alias>/index.html` before writing (`bengal/postprocess/redirects.py:131-148`).
+   - Special pages must claim their output path before writing (`bengal/postprocess/special_pages.py:152-175`, `bengal/postprocess/special_pages.py:266-272`).
+5. **Warning mode**: Keep warnings by default to avoid breaking existing sites; allow strict failure via existing `--strict` behavior.
 
 Notes:
 
@@ -258,6 +315,7 @@ Suggested priority levels for URL claims:
 - [ ] Ownership violations (namespace/policy) are reported separately from collisions
 - [ ] Existing sites continue to work with warnings by default
 - [ ] Strict builds fail fast (already possible; see `bengal/core/site/core.py:637-639`)
+- [ ] Redirects and special pages cannot overwrite real content within the same build (claim-before-write)
 
 ## Related
 
