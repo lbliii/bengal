@@ -219,12 +219,13 @@ class PageMetadataMixin:
         return url
 
     @property
-    def url(self) -> str:
+    def href(self) -> str:
         """
-        Get URL with baseurl applied (cached after first access).
+        URL for template href attributes. Includes baseurl.
 
-        This is the primary URL property for templates - automatically includes
-        baseurl when available. Use .relative_url for comparisons.
+        Use this in templates for all links:
+            <a href="{{ page.href }}">
+            <link href="{{ page.href }}">
 
         Returns:
             URL path with baseurl prepended (if configured)
@@ -233,13 +234,13 @@ class PageMetadataMixin:
         computed (not from fallback).
         """
         # Check for manually-set value first (tests use this pattern)
-        # This allows __dict__['url'] = '/path/' to work
-        manual_value = self.__dict__.get("url")
+        # This allows __dict__['href'] = '/path/' to work
+        manual_value = self.__dict__.get("href")
         if manual_value is not None:
             return manual_value
 
         # Check for cached value
-        cached = self.__dict__.get("_url_cache")
+        cached = self.__dict__.get("_href_cache")
         if cached is not None:
             return cached
 
@@ -263,36 +264,67 @@ class PageMetadataMixin:
 
         # Only cache if relative_url was properly computed (has its own cache)
         if "_relative_url_cache" in self.__dict__:
-            self.__dict__["_url_cache"] = result
+            self.__dict__["_href_cache"] = result
 
         return result
+
+    @property
+    def _path(self) -> str:
+        """
+        Internal site-relative path. NO baseurl.
+
+        Use for internal operations only:
+        - Cache keys
+        - Active trail detection
+        - URL comparisons
+        - Link validation
+
+        NEVER use in templates - use .href instead.
+        """
+        return self.relative_url
+
+    @property
+    def url(self) -> str:
+        """
+        Backward-compatible alias for href.
+
+        Deprecated: Use .href for templates.
+        """
+        return self.href
+
+    @property
+    def absolute_href(self) -> str:
+        """
+        Fully-qualified URL for meta tags and sitemaps when available.
+
+        Bengal's configuration model uses `baseurl` as the public URL prefix. It may be:
+        - Empty: "" (root-relative URLs)
+        - Path-only: "/bengal" (GitHub Pages subpath)
+        - Absolute: "https://example.com" (fully-qualified base)
+
+        If `baseurl` is absolute, `href` is already absolute and this returns it.
+        Otherwise, this falls back to `href` (root-relative) because no fully-qualified
+        site origin is configured.
+        """
+        return self.href
 
     @cached_property
     def permalink(self) -> str:
         """
-        Alias for url (for backward compatibility).
+        Backward-compatible alias for href.
 
-        Both url and permalink now return the same value (with baseurl).
-        Use .relative_url for comparisons.
+        Deprecated: Use .href for templates.
         """
-        return self.url
+        return self.href
 
     @property
     def site_path(self) -> str:
         """
-        Alias for relative_url with explicit naming.
+        Backward-compatible alias for _path.
 
-        URL NAMING CONVENTION:
-        ======================
-        - site_path: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
-                     Use for: Internal lookups, comparisons, active trail detection
-        - url: Public URL WITH baseurl (e.g., "/bengal/docs/foo/")
-               Use for: Template href attributes, external links
-
-        This property exists to make the naming convention explicit and
-        prevent confusion about which URL property to use.
+        Deprecated: Use ._path for internal code.
         """
-        return self.relative_url
+        return self._path
 
     def _fallback_url(self) -> str:
         """
