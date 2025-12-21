@@ -41,6 +41,9 @@ import signal
 import time
 from pathlib import Path
 
+from bengal.output.icons import get_icon_set
+from bengal.utils.rich_console import should_use_emoji
+
 
 class PIDManager:
     """
@@ -213,11 +216,13 @@ class PIDManager:
         except ProcessLookupError:
             return True  # Already dead
         except PermissionError:
-            print(f"  ⚠️  No permission to kill process {pid}")
+            icons = get_icon_set(should_use_emoji())
+            print(f"  {icons.warning} No permission to kill process {pid}")
             print(f"     Try manually: kill {pid}")
             return False
         except Exception as e:
-            print(f"  ⚠️  Error killing process {pid}: {e}")
+            icons = get_icon_set(should_use_emoji())
+            print(f"  {icons.warning} Error killing process {pid}: {e}")
             return False
 
     @staticmethod
@@ -241,7 +246,8 @@ class PIDManager:
 
             atomic_write_text(pid_file, str(os.getpid()))
         except OSError as e:
-            print(f"  ⚠️  Warning: Could not write PID file: {e}")
+            icons = get_icon_set(should_use_emoji())
+            print(f"  {icons.warning} Warning: Could not write PID file: {e}")
 
     @staticmethod
     def get_process_on_port(port: int) -> int | None:

@@ -22,7 +22,9 @@ from pathlib import Path
 from types import FrameType
 from typing import Any
 
+from bengal.output.icons import get_icon_set
 from bengal.utils.logger import get_logger
+from bengal.utils.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -89,12 +91,15 @@ class ResourceManager:
                 shutdown_thread.start()
                 shutdown_thread.join(timeout=2.0)
 
+                icons = get_icon_set(should_use_emoji())
                 if shutdown_thread.is_alive():
-                    print("  ⚠️  Server shutdown timed out (press Ctrl+C again to force quit)")
+                    print(
+                        f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"
+                    )
 
                 s.server_close()
             except Exception as e:
-                print(f"  ⚠️  Error closing server: {e}")
+                print(f"  {icons.warning} Error closing server: {e}")
 
         return self.register("HTTP Server", server, cleanup)
 
@@ -110,10 +115,11 @@ class ResourceManager:
         """
 
         def cleanup(w: Any) -> None:
+            icons = get_icon_set(should_use_emoji())
             try:
                 w.stop()
             except Exception as e:
-                print(f"  ⚠️  Error stopping watcher: {e}")
+                print(f"  {icons.warning} Error stopping watcher: {e}")
 
         return self.register("File Watcher", watcher, cleanup)
 
@@ -217,18 +223,19 @@ class ResourceManager:
         # Clean up in reverse order (LIFO - like context managers)
         start_time = time.time()
 
+        icons = get_icon_set(should_use_emoji())
         for name, resource, cleanup_fn in reversed(self._resources):
             try:
                 cleanup_fn(resource)
             except Exception as e:
-                print(f"  ⚠️  Error cleaning up {name}: {e}")
+                print(f"  {icons.warning} Error cleaning up {name}: {e}")
 
         self._restore_signals()
 
         # Show completion message if shutdown was fast enough
         elapsed = time.time() - start_time
         if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
-            print("  ✅ Server stopped")
+            print(f"  {icons.success} Server stopped")
 
     def _signal_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle termination signals."""
@@ -239,7 +246,8 @@ class ResourceManager:
             sys.exit(0)
         else:
             # Second interrupt - force exit
-            print("\n  ⚠️  Force shutdown")
+            icons = get_icon_set(should_use_emoji())
+            print(f"\n  {icons.warning} Force shutdown")
             sys.exit(1)
 
     def _register_signal_handlers(self) -> None:

@@ -339,7 +339,7 @@ def build(
                 # Build each version (sequential for now, parallel in future)
                 for version in discovered_versions:
                     cli.blank()
-                    cli.info(f"📦 Building version {version.id}...")
+                    cli.info(f"{cli.icons.info} Building version {version.id}...")
 
                     # Extract ref from source (e.g., "git:release/0.1.6" → "release/0.1.6")
                     ref = (
@@ -409,7 +409,7 @@ def build(
 
                 worktree = git_adapter.get_or_create_worktree(version.id, ref)
 
-                cli.info(f"📦 Building version {version.id} from {ref}")
+                cli.info(f"{cli.icons.info} Building version {version.id} from {ref}")
 
                 # Load site from worktree
                 site = load_site_from_cli(
@@ -564,8 +564,8 @@ def build(
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
-            cli.success("✅ Build complete!")
-            cli.path(str(site.output_dir), label="", icon="↪")
+            cli.console.print(f"{cli.icons.success} [success]Build complete![/success]")
+            cli.path(str(site.output_dir), label="")
 
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:

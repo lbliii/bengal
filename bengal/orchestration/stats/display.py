@@ -38,7 +38,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
     if not stats.has_errors:
         build_time_s = stats.build_time_ms / 1000
         cli.blank()
-        cli.success(f"✨ Built {stats.total_pages} pages in {build_time_s:.1f}s")
+        cli.success(f"Built {stats.total_pages} pages in {build_time_s:.1f}s")
         cli.blank()
     else:
         cli.blank()
@@ -94,7 +94,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
 
     # Output location
     if output_dir:
-        cli.path(output_dir, icon="📂", label="Output")
+        cli.path(output_dir, label="Output")
 
 
 def display_build_stats(
@@ -175,11 +175,13 @@ def display_build_stats(
         cli.blank()
         if show_art:
             if cli.use_rich:
-                cli.console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete[/success]")
+                cli.console.print(
+                    f"{cli.icons.success} [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete[/success]"
+                )
             else:
-                cli.info("    ᓚᘏᗢ  Build complete")
+                cli.info(f"{cli.icons.success} ᓚᘏᗢ  Build complete")
         else:
-            cli.success("    Build complete")
+            cli.console.print(f"{cli.icons.success} [success]Build complete[/success]")
 
     # Content stats
     cli.blank()
@@ -329,7 +331,7 @@ def display_build_stats(
     # Output location
     if output_dir:
         cli.blank()
-        cli.path(output_dir, icon="📂", label="Output")
+        cli.path(output_dir, label="Output")
 
     # Separator
     if cli.use_rich:

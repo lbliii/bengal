@@ -247,23 +247,36 @@ class CLIOutput(DevServerOutputMixin):
             return
 
         phase_icon = icon if icon is not None else self.icons.success
-        parts = [f"[success]{phase_icon}[/success]", f"[phase]{name}[/phase]"]
-
-        if duration_ms is not None and self._show_timing():
-            parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
-
-        if details and self._show_details():
-            parts.append(f"([dim]{details}[/dim])")
-
-        line = self._format_phase_line(parts)
-
-        if self._should_dedup_phase(line):
-            return
-        self._mark_phase_emit(line)
 
         if self.use_rich:
+            parts = [f"[success]{phase_icon}[/success]", f"[phase]{name}[/phase]"]
+
+            if duration_ms is not None and self._show_timing():
+                parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
+
+            if details and self._show_details():
+                parts.append(f"([dim]{details}[/dim])")
+
+            line = self._format_phase_line(parts)
+
+            if self._should_dedup_phase(line):
+                return
+            self._mark_phase_emit(line)
             self.console.print(line)
         else:
+            parts = [phase_icon, name]
+
+            if duration_ms is not None and self._show_timing():
+                parts.append(f"{int(duration_ms)}ms")
+
+            if details and self._show_details():
+                parts.append(f"({details})")
+
+            line = self._format_phase_line(parts)
+
+            if self._should_dedup_phase(line):
+                return
+            self._mark_phase_emit(line)
             click.echo(click.style(line, fg="green"))
 
     def detail(self, text: str, indent: int = 1, icon: str | None = None) -> None:

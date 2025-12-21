@@ -15,7 +15,9 @@ from rich.table import Table
 
 from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
+from bengal.output.icons import get_icon_set
 from bengal.utils.logger import get_logger
+from bengal.utils.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -94,6 +96,9 @@ class CLIOutput(DevServerOutputMixin):
 
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
+
+        # Get icon set based on emoji preference
+        self.icons = get_icon_set(should_use_emoji())
 
         # Spacing and indentation rules
         self.indent_char = " "
@@ -240,17 +245,18 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(line)
 
-    def success(self, text: str, icon: str = "✨") -> None:
+    def success(self, text: str, icon: str | None = None) -> None:
         """Print a success message."""
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
+        icon_str = icon if icon is not None else self.icons.success
         if self.use_rich:
             self.console.print()
-            self.console.print(f"{icon} [success]{text}[/success]")
+            self.console.print(f"{icon_str} [success]{text}[/success]")
             self.console.print()
         else:
-            click.echo(f"\n{icon} {text}\n", color=True)
+            click.echo(f"\n{icon_str} {text}\n", color=True)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
@@ -264,35 +270,38 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(f"{icon_str}{text}")
 
-    def warning(self, text: str, icon: str = "⚠️") -> None:
+    def warning(self, text: str, icon: str | None = None) -> None:
         """Print a warning message."""
         if not self.should_show(MessageLevel.WARNING):
             return
 
+        icon_str = icon if icon is not None else self.icons.warning
         if self.use_rich:
-            self.console.print(f"{icon}  [warning]{text}[/warning]")
+            self.console.print(f"{icon_str} [warning]{text}[/warning]")
         else:
-            click.echo(click.style(f"{icon}  {text}", fg="yellow"))
+            click.echo(click.style(f"{icon_str} {text}", fg="yellow"))
 
-    def error(self, text: str, icon: str = "❌") -> None:
+    def error(self, text: str, icon: str | None = None) -> None:
         """Print an error message."""
         if not self.should_show(MessageLevel.ERROR):
             return
 
+        icon_str = icon if icon is not None else self.icons.error
         if self.use_rich:
-            self.console.print(f"{icon} [error]{text}[/error]")
+            self.console.print(f"{icon_str} [error]{text}[/error]")
         else:
-            click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
+            click.echo(click.style(f"{icon_str} {text}", fg="red", bold=True))
 
-    def tip(self, text: str, icon: str = "💡") -> None:
+    def tip(self, text: str, icon: str | None = None) -> None:
         """Print a subtle tip/instruction line."""
         if not self.should_show(MessageLevel.INFO):
             return
 
+        icon_str = icon if icon is not None else self.icons.tip
         if self.use_rich:
-            self.console.print(f"{icon} [tip]{text}[/tip]")
+            self.console.print(f"{icon_str} [tip]{text}[/tip]")
         else:
-            click.echo(f"{icon} {text}")
+            click.echo(f"{icon_str} {text}")
 
     def error_header(self, text: str, mouse: bool = True) -> None:
         """
@@ -318,19 +327,22 @@ class CLIOutput(DevServerOutputMixin):
             mouse_str = "ᘛ⁐̤ᕐᐷ  " if mouse else ""
             click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
 
-    def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
+    def path(self, path: str, icon: str | None = None, label: str = "Output") -> None:
         """Print a path with icon and label."""
         if not self.should_show(MessageLevel.INFO):
             return
 
         display_path = self._format_path(path)
+        icon_str = icon if icon is not None else ""
 
         if self.use_rich:
-            self.console.print(f"{icon} {label}:")
-            self.console.print(f"   ↪ [path]{display_path}[/path]")
+            if label:
+                self.console.print(f"{icon_str}{label}:" if icon_str else f"{label}:")
+            self.console.print(f"   {self.icons.arrow} [path]{display_path}[/path]")
         else:
-            click.echo(f"{icon} {label}:")
-            click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
+            if label:
+                click.echo(f"{icon_str}{label}:" if icon_str else f"{label}:")
+            click.echo(click.style(f"   {self.icons.arrow} {display_path}", fg="cyan"))
 
     def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None:
         """Print a metric with label and optional unit."""

@@ -124,7 +124,10 @@ class FontHelper:
         if not fonts_to_download:
             return None
 
-        print("\n🔤 Fonts:")
+        from bengal.output import CLIOutput
+
+        cli = CLIOutput()
+        cli.section("Fonts")
 
         # Download fonts
         fonts_dir = assets_dir / "fonts"

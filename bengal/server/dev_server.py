@@ -14,6 +14,7 @@ from typing import Any
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.output.icons import get_icon_set
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
@@ -22,6 +23,7 @@ from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.watcher_runner import WatcherRunner
 from bengal.utils.logger import get_logger
+from bengal.utils.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -520,7 +522,8 @@ class DevServer:
                 port=self.port if is_holding_port else None,
             )
 
-            print(f"\n⚠️  Found stale Bengal server process (PID {stale_pid})")
+            icons = get_icon_set(should_use_emoji())
+            print(f"\n{icons.warning} Found stale Bengal server process (PID {stale_pid})")
 
             if is_holding_port:
                 print(f"   This process is holding port {self.port}")
@@ -539,7 +542,7 @@ class DevServer:
 
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):
-                    print("  ✅ Stale process terminated")
+                    print(f"  {icons.success} Stale process terminated")
                     logger.info("stale_process_killed", pid=stale_pid)
                     time.sleep(1)  # Give OS time to release resources
                 else:
@@ -581,16 +584,17 @@ class DevServer:
         if not self._is_port_available(self.port):
             logger.warning("port_unavailable", port=self.port, auto_port_enabled=self.auto_port)
 
+            icons = get_icon_set(should_use_emoji())
             if self.auto_port:
                 # Try to find an available port
                 try:
                     actual_port = self._find_available_port(self.port + 1)
-                    print(f"⚠️  Port {self.port} is already in use")
-                    print(f"🔄 Using port {actual_port} instead")
+                    print(f"{icons.warning} Port {self.port} is already in use")
+                    print(f"{icons.arrow} Using port {actual_port} instead")
                     logger.info("port_fallback", requested_port=self.port, actual_port=actual_port)
                 except OSError as e:
                     print(
-                        f"❌ Port {self.port} is already in use and no alternative "
+                        f"{icons.error} Port {self.port} is already in use and no alternative "
                         f"ports are available."
                     )
                     print("\nTo fix this issue:")
@@ -680,9 +684,13 @@ class DevServer:
 
         lines.append("")  # Blank line
 
+        icons = get_icon_set(should_use_emoji())
+
         # Watching status
         if self.watch:
-            lines.append("   [yellow]⚠[/yellow]  File watching enabled (auto-reload on changes)")
+            lines.append(
+                f"   [yellow]{icons.warning}[/yellow]  File watching enabled (auto-reload on changes)"
+            )
             lines.append("      [dim](Live reload enabled - browser refreshes after rebuild)[/dim]")
         else:
             lines.append("   [dim]○  File watching disabled[/dim]")
@@ -694,7 +702,7 @@ class DevServer:
         content = "\n".join(lines)
         panel = Panel(
             content,
-            title="[bold]🚀 Bengal Dev Server[/bold]",
+            title=f"[bold]{icons.arrow} Bengal Dev Server[/bold]",
             border_style="cyan",
             padding=(0, 1),
             expand=False,  # Don't expand to full terminal width

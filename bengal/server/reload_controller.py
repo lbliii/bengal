@@ -21,7 +21,9 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
+from bengal.output.icons import get_icon_set
 from bengal.utils.hashing import hash_file
+from bengal.utils.rich_console import should_use_emoji
 
 
 @dataclass(frozen=True)
@@ -282,8 +284,9 @@ class ReloadController:
                 action=decision.action,
                 reason=decision.reason,
             )
+            icons = get_icon_set(should_use_emoji())
             print(
-                f"\n⚠️  RELOAD TRIGGERED: {len(changed)} files changed (action={decision.action}):"
+                f"\n{icons.warning} RELOAD TRIGGERED: {len(changed)} files changed (action={decision.action}):"
             )
             for f in changed[:5]:
                 print(f"    - {f}")

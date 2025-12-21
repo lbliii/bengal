@@ -75,16 +75,14 @@ class HealthCheckStats:
 
     def format_summary(self) -> str:
         """Format a human-readable summary."""
-        mode_emoji = "⚡" if self.execution_mode == "parallel" else "📝"
+        from bengal.output.icons import get_icon_set
+        from bengal.utils.rich_console import should_use_emoji
+
+        icons = get_icon_set(should_use_emoji())
+        mode_icon = icons.success if self.execution_mode == "parallel" else icons.info
         lines = [
-            f"{mode_emoji} Health check: {self.total_duration_ms:.1f}ms "
-            f"({self.execution_mode}, {self.validator_count} validators)",
+            f"   {mode_icon} {self.validator_count} validators, {self.worker_count} workers, {self.speedup:.1f}x speedup",
         ]
-        if self.execution_mode == "parallel":
-            lines.append(
-                f"   Workers: {self.worker_count}/{self.cpu_count} cores, "
-                f"Speedup: {self.speedup:.1f}x, Efficiency: {self.efficiency:.0%}"
-            )
         return "\n".join(lines)
 
 
