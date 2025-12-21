@@ -108,8 +108,20 @@ def get_page_relative_url(page: Page, site: Any) -> str:
         elif isinstance(result := path, str):
             return result
 
-    # Fallback: try relative_url (legacy)
-    if hasattr(page, "relative_url"):
+    # Prefer _path (internal path without baseurl)
+    if hasattr(page, "_path"):
+        url: str | None = page._path
+        if isinstance(url, str):
+            return url
+    elif hasattr(page, "href"):
+        # href includes baseurl, need to strip it
+        url: str | None = page.href
+        baseurl = site.config.get("baseurl", "").rstrip("/")
+        if baseurl and url and url.startswith(baseurl):
+            url = url[len(baseurl):] or "/"
+        if isinstance(url, str):
+            return url
+    elif hasattr(page, "relative_url"):
         relative_url = page.relative_url
         if callable(relative_url):
             try:
@@ -117,7 +129,6 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 if isinstance(result, str):
                     return result
             except Exception as e:
-                # Ignore exceptions from relative_url() to allow fallback to other URL methods
                 logger.debug(
                     "output_format_relative_url_failed",
                     page=str(page.source_path) if hasattr(page, "source_path") else None,
@@ -128,20 +139,6 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 pass
         elif isinstance(result := relative_url, str):
             return result
-
-    # Fallback: try url/href property, but STRIP baseurl if present
-    # page.href may include baseurl, so we need to remove it
-    # Prefer _path (internal path without baseurl)
-    if hasattr(page, "_path"):
-        url: str | None = page._path
-    elif hasattr(page, "href"):
-        # href includes baseurl, need to strip it
-        url: str | None = page.href
-        baseurl = site.config.get("baseurl", "").rstrip("/")
-        if baseurl and url and url.startswith(baseurl):
-            url = url[len(baseurl):] or "/"
-    elif hasattr(page, "relative_url"):
-        url: str | None = page.relative_url
     else:
         url = None
         if callable(url):

@@ -191,7 +191,12 @@ class TemplateSectionWrapper:
     @property
     def url(self) -> str:
         """URL with baseurl applied (for templates)."""
-        rel = self._section.url if hasattr(self._section, "url") else "/"
+        rel = (
+            getattr(self._section, "href", None)
+            or getattr(self._section, "_path", None)
+            or getattr(self._section, "url", None)
+            or "/"
+        )
 
         if not rel:
             rel = "/"
@@ -217,7 +222,12 @@ class TemplateSectionWrapper:
     @property
     def relative_url(self) -> str:
         """Relative URL without baseurl (for comparisons)."""
-        return self._section.url if hasattr(self._section, "url") else "/"
+        return (
+            getattr(self._section, "_path", None)
+            or getattr(self._section, "relative_url", None)
+            or getattr(self._section, "url", None)
+            or "/"
+        )
 
     @property
     def pages(self) -> list[TemplatePageWrapper]:
