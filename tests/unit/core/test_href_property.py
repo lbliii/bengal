@@ -344,7 +344,14 @@ class TestPageProxyHrefPath:
         )
         proxy._site = site
 
-        # Verify href and _path are correct
+        # PageProxy lazy-loads the full page when accessing href/_path
+        # Ensure the loaded page has output_path set correctly
+        proxy._ensure_loaded()
+        if proxy._full_page:
+            proxy._full_page.output_path = page.output_path
+            proxy._full_page._site = site
+
+        # Verify href and _path are correct (after lazy load)
         assert proxy.href == "/bengal/docs/page/"
         assert proxy._path == "/docs/page/"
 
