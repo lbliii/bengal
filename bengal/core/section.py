@@ -601,12 +601,12 @@ class Section:
         return url
 
     @cached_property
-    def url(self) -> str:
+    def href(self) -> str:
         """
-        Get URL with baseurl applied (cached after first access).
+        URL for template href attributes. Includes baseurl.
 
-        This is the primary URL property for templates - automatically includes
-        baseurl when available. Use .relative_url for comparisons.
+        Use this in templates for all links:
+            <a href="{{ section.href }}">
 
         Returns:
             URL path with baseurl prepended (if configured)
@@ -630,31 +630,56 @@ class Section:
         return f"{baseurl}{rel}"
 
     @cached_property
+    def _path(self) -> str:
+        """
+        Internal site-relative path. NO baseurl.
+
+        Use for internal operations only:
+        - Cache keys
+        - Active trail detection
+        - URL comparisons
+        - Link validation
+
+        NEVER use in templates - use .href instead.
+        """
+        return self.relative_url
+
+    @property
+    def absolute_href(self) -> str:
+        """
+        Fully-qualified URL for meta tags and sitemaps when available.
+
+        If baseurl is absolute, returns href. Otherwise returns href as-is
+        (root-relative) since no fully-qualified site origin is configured.
+        """
+        return self.href
+
+    @cached_property
+    def url(self) -> str:
+        """
+        Backward-compatible alias for href.
+
+        Deprecated: Use .href for templates.
+        """
+        return self.href
+
+    @cached_property
     def permalink(self) -> str:
         """
-        Alias for url (for backward compatibility).
+        Backward-compatible alias for href.
 
-        Both url and permalink now return the same value (with baseurl).
-        Use .relative_url for comparisons.
+        Deprecated: Use .href for templates.
         """
-        return self.url
+        return self.href
 
     @property
     def site_path(self) -> str:
         """
-        Alias for relative_url with explicit naming.
+        Backward-compatible alias for _path.
 
-        URL NAMING CONVENTION:
-        ======================
-        - site_path: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
-                     Use for: Internal lookups, comparisons, active trail detection
-        - url: Public URL WITH baseurl (e.g., "/bengal/docs/foo/")
-               Use for: Template href attributes, external links
-
-        This property exists to make the naming convention explicit and
-        prevent confusion about which URL property to use.
+        Deprecated: Use ._path for internal code.
         """
-        return self.relative_url
+        return self._path
 
     def add_page(self, page: Page) -> None:
         """
