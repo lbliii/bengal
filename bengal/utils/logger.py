@@ -267,11 +267,16 @@ class BengalLogger:
         show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
 
         if show_console:
+            # Add visual separation before warnings/errors
+            needs_separation = level.value >= LogLevel.WARNING.value
+
             try:
                 # Use Rich console for markup rendering
                 from bengal.utils.rich_console import get_console
 
                 console = get_console()
+                if needs_separation:
+                    console.print()  # Blank line before warning/error
                 console.print(event.format_console(verbose=self.verbose))
             except ImportError:
                 # Fallback to plain print if Rich not available
@@ -281,6 +286,8 @@ class BengalLogger:
                 import re
 
                 message = re.sub(r"\[/?[^\]]+\]", "", message)
+                if needs_separation:
+                    print()  # Blank line before warning/error
                 print(message)
 
         # Output to file (JSON format)
