@@ -208,7 +208,8 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v1.url = "/v1/docs/guide/"
+        page_v1.__dict__["relative_url"] = "/v1/docs/guide/"
+        page_v1.__dict__["url"] = "/v1/docs/guide/"
         page_v1.version = "v1"
         section_v1.pages = [page_v1]
 
@@ -220,7 +221,8 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v2.url = "/v2/docs/guide/"
+        page_v2.__dict__["relative_url"] = "/v2/docs/guide/"
+        page_v2.__dict__["url"] = "/v2/docs/guide/"
         page_v2.version = "v2"
         section_v2.pages = [page_v2]
 
@@ -287,7 +289,8 @@ class TestNavTree:
             content="# Docs",
             metadata={"title": "Docs"},
         )
-        index_page.url = "/docs/"
+        index_page.__dict__["relative_url"] = "/docs/"
+        index_page.__dict__["url"] = "/docs/"
         index_page.version = "v1"
         index_page._section_path = section.path
         index_page._site = site
@@ -347,7 +350,8 @@ class TestNavTree:
             content="# Guide",
             metadata={"title": "Guide"},
         )
-        page_v1.url = "/docs/v1/guide/"
+        page_v1.__dict__["relative_url"] = "/docs/v1/guide/"
+        page_v1.__dict__["url"] = "/docs/v1/guide/"
         page_v1.version = "v1"
         page_v1._section_path = section_v1_only.path
         page_v1._site = site
@@ -414,7 +418,8 @@ class TestNavTree:
             content="# Page",
             metadata={"title": "Page"},
         )
-        page.url = "/docs/guide/page/"
+        page.__dict__["relative_url"] = "/docs/guide/page/"
+        page.__dict__["url"] = "/docs/guide/page/"
         page.version = "v1"
         page._section_path = subsection.path
         page._site = site

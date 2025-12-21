@@ -153,7 +153,13 @@ class PageMetadataMixin:
         computed from output_path (not fallback). This prevents caching incorrect
         URLs when called before output_path or _site are set.
         """
-        # Check for cached value (stored in __dict__ to avoid recursion)
+        # Check for manually-set value first (tests use this pattern)
+        # This allows __dict__['relative_url'] = '/path/' to work
+        manual_value = self.__dict__.get("relative_url")
+        if manual_value is not None:
+            return manual_value
+
+        # Check for cached computed value
         cached = self.__dict__.get("_relative_url_cache")
         if cached is not None:
             return cached
@@ -226,6 +232,12 @@ class PageMetadataMixin:
         Note: Uses manual caching that only stores when relative_url is properly
         computed (not from fallback).
         """
+        # Check for manually-set value first (tests use this pattern)
+        # This allows __dict__['url'] = '/path/' to work
+        manual_value = self.__dict__.get("url")
+        if manual_value is not None:
+            return manual_value
+
         # Check for cached value
         cached = self.__dict__.get("_url_cache")
         if cached is not None:

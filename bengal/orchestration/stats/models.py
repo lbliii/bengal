@@ -12,6 +12,15 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ErrorCategory:
+    """Error category for grouping errors by type."""
+
+    name: str
+    errors: list[Any] = field(default_factory=list)  # BengalError instances
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
 class BuildWarning:
     """A build warning or error."""
 
@@ -102,6 +111,9 @@ class BuildStats:
         default_factory=list
     )  # Rich template errors (TemplateRenderError instances)
 
+    # Enhanced error collection by category
+    errors_by_category: dict[str, ErrorCategory] = field(default_factory=dict)
+
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""
         self.warnings.append(BuildWarning(file_path, message, warning_type))
@@ -114,6 +126,46 @@ class BuildStats:
             error: TemplateRenderError instance (or compatible exception)
         """
         self.template_errors.append(error)
+        # Also add to categorized errors
+        self.add_error(error, category="rendering")
+
+    def add_error(self, error: Any, category: str = "general") -> None:
+        """
+        Add error to category.
+
+        Args:
+            error: BengalError instance (or compatible exception)
+            category: Error category name (e.g., "rendering", "discovery", "config")
+        """
+        if category not in self.errors_by_category:
+            self.errors_by_category[category] = ErrorCategory(name=category)
+        self.errors_by_category[category].errors.append(error)
+
+    def get_error_summary(self) -> dict[str, Any]:
+        """
+        Get summary of all errors.
+
+        Returns:
+            Dictionary with error counts and breakdown by category
+        """
+        total_errors = sum(len(cat.errors) for cat in self.errors_by_category.values())
+        total_warnings = sum(len(cat.warnings) for cat in self.errors_by_category.values())
+
+        # Also count template_errors for backward compatibility
+        if self.template_errors:
+            total_errors += len(self.template_errors)
+
+        return {
+            "total_errors": total_errors,
+            "total_warnings": total_warnings + len(self.warnings),
+            "by_category": {
+                name: {
+                    "errors": len(cat.errors),
+                    "warnings": len(cat.warnings),
+                }
+                for name, cat in self.errors_by_category.items()
+            },
+        }
 
     def add_directive(self, directive_type: str) -> None:
         """Track a directive usage."""
@@ -123,6 +175,10 @@ class BuildStats:
     @property
     def has_errors(self) -> bool:
         """Check if build has any errors."""
+        # Check categorized errors
+        if any(len(cat.errors) > 0 for cat in self.errors_by_category.values()):
+            return True
+        # Check template_errors for backward compatibility
         return len(self.template_errors) > 0
 
     @property

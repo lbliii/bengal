@@ -918,8 +918,12 @@ class ContentDiscovery:
                 suggestion="Check file encoding and format",
                 original_error=e,
             )
-            # Enrich error for better error messages (context captured for logging)
-            enrich_error(e, context, BengalDiscoveryError)
+            # Enrich error and collect in build stats if available
+            enriched_error = enrich_error(e, context, BengalDiscoveryError)
+            if self._build_context and hasattr(self._build_context, "build_stats"):
+                build_stats = self._build_context.build_stats
+                if build_stats:
+                    build_stats.add_error(enriched_error, category="discovery")
 
             self.logger.warning(
                 "content_parse_unexpected_error",

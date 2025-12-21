@@ -413,6 +413,24 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
         console.print(suggestions_panel)
         console.print()
 
+    # Row 5: Errors and warnings (if any)
+    if stats.has_errors or stats.warnings:
+        from bengal.utils.error_reporter import format_error_report
+
+        error_report = format_error_report(stats, verbose=True)
+        if error_report != "✅ No errors or warnings":
+            from rich.panel import Panel
+
+            console.print(
+                Panel(
+                    error_report,
+                    title="[red bold]Errors & Warnings[/red bold]",
+                    border_style="red" if stats.has_errors else "yellow",
+                    padding=(1, 2),
+                )
+            )
+            console.print()
+
     # Footer: Output location
     if hasattr(stats, "output_dir") and stats.output_dir:
         console.print("[header]📂 Output:[/header]")

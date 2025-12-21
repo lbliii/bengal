@@ -34,6 +34,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         return
 
     # Success indicator
+    error_summary = stats.get_error_summary()
     if not stats.has_errors:
         build_time_s = stats.build_time_ms / 1000
         cli.blank()
@@ -41,38 +42,39 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         cli.blank()
     else:
         cli.blank()
-        cli.warning(f"⚠️  Built with {len(stats.template_errors)} error(s)")
+        cli.warning(
+            f"⚠️  Built with {error_summary['total_errors']} error(s), {error_summary['total_warnings']} warning(s)"
+        )
         cli.blank()
 
-    # Show template errors if any (critical for writers)
-    if stats.template_errors:
-        cli.error_header(f"{len(stats.template_errors)} template error(s)")
+    # Show errors using new error reporter
+    if stats.has_errors:
+        from bengal.utils.error_reporter import format_error_report
 
-        for error in stats.template_errors[:3]:  # Show first 3
-            # Extract key info without overwhelming detail
-            template_name = (
-                error.template_context.template_name
-                if hasattr(error, "template_context")
-                else "unknown"
-            )
-            message = str(error.message)[:80]  # Truncate long messages
-
-            if cli.use_rich:
-                cli.console.print(f"   • [warning]{template_name}[/warning]: {message}")
-            else:
-                cli.info(f"   • {template_name}: {message}")
-
-            # Show suggestion if available
-            if hasattr(error, "suggestion") and error.suggestion:
-                if cli.use_rich:
-                    cli.console.print(f"     💡 [info]{error.suggestion}[/info]")
-                else:
-                    cli.info(f"     💡 {error.suggestion}")
-
-        if len(stats.template_errors) > 3:
-            remaining = len(stats.template_errors) - 3
-            cli.info(f"   ... and {remaining} more")
-        cli.blank()
+        error_report = format_error_report(stats, verbose=False)
+        if error_report != "✅ No errors or warnings":
+            cli.error_header("Errors:")
+            # Split report into lines and display
+            for line in error_report.split("\n"):
+                if line.strip():
+                    if line.startswith("  ❌"):
+                        if cli.use_rich:
+                            cli.console.print(f"   [error]{line[4:].strip()}[/error]")
+                        else:
+                            cli.error(f"   {line[4:].strip()}")
+                    elif line.startswith("  ⚠️"):
+                        if cli.use_rich:
+                            cli.console.print(f"   [warning]{line[4:].strip()}[/warning]")
+                        else:
+                            cli.warning(f"   {line[4:].strip()}")
+                    elif line.endswith(":"):
+                        if cli.use_rich:
+                            cli.console.print(f"   [header]{line}[/header]")
+                        else:
+                            cli.info(f"   {line}")
+                    else:
+                        cli.info(f"   {line}")
+            cli.blank()
 
     # Show link validation warnings if any
     link_warnings = [w for w in stats.warnings if w.warning_type == "link"]
@@ -113,8 +115,43 @@ def display_build_stats(
         cli.info("✨ No changes detected - build skipped!")
         return
 
-    # Display warnings first if any
-    if stats.warnings:
+    # Display errors and warnings
+    if stats.has_errors or stats.warnings:
+        from bengal.utils.error_reporter import format_error_report
+
+        error_report = format_error_report(stats, verbose=True)
+        if error_report != "✅ No errors or warnings":
+            cli.blank()
+            cli.error_header("Build Errors & Warnings")
+            # Display formatted error report
+            for line in error_report.split("\n"):
+                if line.strip():
+                    if line.startswith("  ❌"):
+                        if cli.use_rich:
+                            cli.console.print(f"   [error]{line[4:].strip()}[/error]")
+                        else:
+                            cli.error(f"   {line[4:].strip()}")
+                    elif line.startswith("  ⚠️"):
+                        if cli.use_rich:
+                            cli.console.print(f"   [warning]{line[4:].strip()}[/warning]")
+                        else:
+                            cli.warning(f"   {line[4:].strip()}")
+                    elif line.endswith(":") and not line.startswith(" "):
+                        if cli.use_rich:
+                            cli.console.print(f"   [header]{line}[/header]")
+                        else:
+                            cli.info(f"   {line}")
+                    elif line.startswith("     "):  # Indented details
+                        if cli.use_rich:
+                            cli.console.print(f"   [dim]{line.strip()}[/dim]")
+                        else:
+                            cli.info(f"   {line.strip()}")
+                    else:
+                        cli.info(f"   {line}")
+            cli.blank()
+
+    # Also display warnings using existing function for backward compatibility
+    if stats.warnings and not stats.has_errors:
         display_warnings(stats)
 
     # Header with ASCII art integrated
