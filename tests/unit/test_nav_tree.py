@@ -315,9 +315,7 @@ class TestNavTree:
             return []
 
         def has_content_for_version(version_id):
-            if version_id == "v1":
-                return True  # Has index page
-            return False
+            return version_id == "v1"  # Has index page
 
         section.pages_for_version = pages_for_version
         section.subsections_for_version = subsections_for_version
@@ -436,8 +434,8 @@ class TestNavTree:
                 return [subsection]
             return []
 
-          def parent_has_content_for_version(version_id):
-              return version_id == "v1"  # Has subsection with content
+        def parent_has_content_for_version(version_id):
+            return version_id == "v1"  # Has subsection with content
 
         # Mock version-aware methods for subsection
         def subsection_pages_for_version(version_id):
