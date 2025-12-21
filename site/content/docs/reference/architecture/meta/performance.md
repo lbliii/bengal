@@ -41,6 +41,6 @@ This page is a pointer to the benchmark suite and the main performance-critical 
 
 ## Related architecture pages
 
-- [Rendering Pipeline](../rendering/rendering/)
-- [Cache](../core/cache/)
-- [Orchestration](../core/orchestration/)
+- [[docs/reference/architecture/rendering/rendering|Rendering Pipeline]]
+- [[docs/reference/architecture/core/cache|Cache]]
+- [[docs/reference/architecture/core/orchestration|Orchestration]]

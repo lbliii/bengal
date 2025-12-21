@@ -172,8 +172,10 @@ paths:
         # Check page URLs
         page_urls = {p.url for p in pages}
 
-        # Root command group should be at /cli/ (the prefix)
-        assert "/cli/" in page_urls
+        # Root command group is NOT a separate page - the section index represents it
+        # (see page_builders.py: "Skip root command-groups - the section index page represents them")
+        # So we verify that root URL is NOT in pages (it's the section index instead)
+        assert "/cli/" not in page_urls, "Root command group should be section index, not a page"
 
         # Subcommands should drop 'bengal'
         # bengal.build -> /cli/build/
@@ -184,6 +186,10 @@ paths:
         # qualified names should NOT appear in URLs if they include root
         assert "/cli/bengal/build/" not in page_urls
         assert "/cli/bengal/theme/swizzle/" not in page_urls
+
+        # Verify the CLI section exists (represents the root command group)
+        section_urls = {s.url for s in sections.values()}
+        assert "/cli/" in section_urls, "CLI section should exist at /cli/"
 
 
 class TestBackwardsCompatibility:

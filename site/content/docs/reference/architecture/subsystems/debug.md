@@ -271,6 +271,6 @@ bengal debug dependencies --format dot
 
 ## Related
 
-- [Orchestration](../core/orchestration/) - How incremental builds work
-- [Cache](../core/cache/) - Cache system details
-- [CLI](../tooling/cli/) - Command-line interface
+- [[docs/reference/architecture/core/orchestration|Orchestration]] - How incremental builds work
+- [[docs/reference/architecture/core/cache|Cache]] - Cache system details
+- [[docs/reference/architecture/tooling/cli|CLI]] - Command-line interface

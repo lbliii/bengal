@@ -253,6 +253,6 @@ except ContentSourceError as e:
 
 ## Related
 
-- [Collections](collections.md) - Type-safe content schemas
-- [Content Discovery](../rendering/discovery/) - How content is discovered
-- [Cache](../core/cache/) - Build state caching
+- [[docs/reference/architecture/subsystems/collections|Collections]] - Type-safe content schemas
+- [[docs/reference/architecture/rendering/discovery|Content Discovery]] - How content is discovered
+- [[docs/reference/architecture/core/cache|Cache]] - Build state caching

@@ -250,6 +250,6 @@ class Tutorial:
 
 ## Related
 
-- [Content Layer](content-layer.md) - Remote content sources
-- [Content Discovery](../rendering/discovery/) - How content is discovered
-- [Content Types](../core/content-types/) - Content strategies
+- [[docs/reference/architecture/subsystems/content-layer|Content Layer]] - Remote content sources
+- [[docs/reference/architecture/rendering/discovery|Content Discovery]] - How content is discovered
+- [[docs/reference/architecture/core/content-types|Content Types]] - Content strategies
