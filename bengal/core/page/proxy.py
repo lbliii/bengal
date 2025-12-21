@@ -66,7 +66,7 @@ class PageProxy:
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
-    - **Templates**: Implements .url, .permalink, .title, etc.
+    - **Templates**: Implements .url, .href, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
 
