@@ -387,6 +387,21 @@ class PageProxy:
             self._full_page.parsed_ast = value
 
     @property
+    def plain_text(self) -> str:
+        """
+        Get plain text content (lazy-loaded from full page).
+
+        Used by output formats (index.json, llm-full.txt) for search indexing
+        and LLM context. Accessing this property triggers lazy loading of the
+        full page content.
+
+        Returns:
+            Plain text with HTML tags stripped
+        """
+        self._ensure_loaded()
+        return self._full_page.plain_text if self._full_page else ""
+
+    @property
     def related_posts(self) -> list[Page]:
         """Get related posts (lazy-loaded)."""
         # If set on proxy without loading, return cached value

@@ -10,6 +10,7 @@ import json
 
 import pytest
 
+from bengal.core.page import PageProxy
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
 
@@ -41,7 +42,7 @@ def test_full_build_generates_index_json_with_pages(site, build_site):
     assert "tags" in data
 
 
-@pytest.mark.bengal(testroot="test-basic")
+@pytest.mark.bengal(testroot="test-taxonomy")
 def test_incremental_build_generates_index_json_with_pages(site, build_site):
     """Test that incremental build also generates index.json with populated pages array."""
     # First: Full build
@@ -56,6 +57,15 @@ def test_incremental_build_generates_index_json_with_pages(site, build_site):
 
     # Second: Incremental build (no changes)
     build_site(incremental=True)
+
+    # CRITICAL: Verify at least one PageProxy is present (contract test)
+    # This ensures we're actually testing the PageProxy transparency contract
+    # Note: Uses test-taxonomy (3 pages) to ensure proxies are created
+    proxy_count = sum(1 for p in site.pages if isinstance(p, PageProxy))
+    assert proxy_count > 0, (
+        "Expected at least one PageProxy in site.pages during incremental build. "
+        "This test should exercise the PageProxy transparency contract."
+    )
 
     # CRITICAL: index.json should still exist and have pages
     assert index_path.exists(), (
@@ -273,3 +283,45 @@ def test_disabled_output_formats_skips_index_json(site, build_site):
     assert not index_path.exists(), (
         "index.json should not be generated when output_formats is disabled"
     )
+
+
+@pytest.mark.bengal(testroot="test-taxonomy")
+def test_output_formats_succeed_with_pageproxy_in_pages(site, build_site):
+    """
+    Contract test: Output formats must succeed when site.pages contains PageProxy objects.
+
+    This test ensures the PageProxy transparency contract is maintained.
+    If PageProxy is missing required attributes (like plain_text), this test will fail
+    with an AttributeError during output format generation.
+
+    Note: Uses test-taxonomy (3 pages) to ensure proxies are created during incremental build.
+
+    See: plan/ready/rfc-pageproxy-transparency-contract.md
+    """
+    # Full build first
+    build_site(incremental=False)
+
+    # Incremental build (creates PageProxy for unchanged pages)
+    build_site(incremental=True)
+
+    # Verify we have at least one proxy (precondition)
+    proxy_count = sum(1 for p in site.pages if isinstance(p, PageProxy))
+    assert proxy_count > 0, (
+        "Test precondition failed: expected PageProxy in site.pages. "
+        "Test uses test-taxonomy root (3 pages) to ensure incremental build has proxies."
+    )
+
+    # Verify output formats generated successfully
+    index_path = site.output_dir / "index.json"
+    assert index_path.exists(), "index.json should be generated with PageProxy in pages"
+
+    # Verify index.json is valid JSON with pages
+    data = json.loads(index_path.read_text(encoding="utf-8"))
+    assert "pages" in data
+    assert len(data["pages"]) > 0, "index.json pages array should not be empty"
+
+    # Verify llm-full.txt if enabled
+    llm_path = site.output_dir / "llm-full.txt"
+    if llm_path.exists():
+        content = llm_path.read_text(encoding="utf-8")
+        assert len(content) > 0, "llm-full.txt should have content"

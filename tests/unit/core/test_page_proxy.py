@@ -405,3 +405,61 @@ class TestPageProxyEdgeCases:
         # Should handle None gracefully
         assert proxy.rendered_html == ""
         assert proxy.links == []
+
+
+class TestPageProxyPlainText:
+    """Tests for plain_text property (output formats contract).
+
+    These tests ensure PageProxy exposes plain_text for output format generators
+    (index.json, llm-full.txt, etc.) that read it during postprocessing.
+    """
+
+    def test_proxy_plain_text_exists_and_returns_string(self, cached_metadata, page_loader):
+        """Verify plain_text property exists and returns str."""
+        proxy = PageProxy(
+            source_path=Path("content/blog/post.md"),
+            metadata=cached_metadata,
+            loader=page_loader,
+        )
+
+        result = proxy.plain_text
+
+        assert isinstance(result, str)
+
+    def test_proxy_plain_text_triggers_lazy_load(self, cached_metadata, page_loader):
+        """Verify accessing plain_text triggers lazy load."""
+        proxy = PageProxy(
+            source_path=Path("content/blog/post.md"),
+            metadata=cached_metadata,
+            loader=page_loader,
+        )
+
+        assert not proxy._lazy_loaded
+
+        # Access plain_text (should trigger load)
+        _ = proxy.plain_text
+
+        assert proxy._lazy_loaded
+
+    def test_proxy_plain_text_returns_empty_when_loader_returns_none(self):
+        """Verify plain_text returns empty string when loader returns None."""
+        metadata = PageMetadata(
+            source_path="content/post.md",
+            title="Post",
+            date=None,
+            tags=[],
+            section=None,
+            slug="post",
+        )
+
+        def empty_loader(source_path):
+            return None
+
+        proxy = PageProxy(
+            source_path=Path("content/post.md"),
+            metadata=metadata,
+            loader=empty_loader,
+        )
+
+        # Should handle None gracefully
+        assert proxy.plain_text == ""

@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Dev Server Modernization ✅
+- **server**: add process-isolated builds via `BuildExecutor` - builds run in subprocess for resilience (crashes don't take down server)
+- **server**: add `watchfiles` integration - Rust-based file watcher for 10-50x faster change detection
+- **server**: add pre/post build hooks - run custom commands via `pre_build` and `post_build` config options
+- **server**: add configurable ignore patterns - `exclude_patterns` (glob) and `exclude_regex` config options
+- **server**: add free-threading support - automatically uses threads instead of processes on Python 3.14+ with GIL disabled
+- **server**: remove unused `BENGAL_DEV_SERVER_V2` feature flag - all features are now default behavior
+- **plan**: remove completed dev server modernization plan - work documented in changelog
+
 ### Documentation Cleanup ✅
 - **plan**: remove completed RFCs and plans (template-functions-robustness, template-error-collection, version-aware-section-methods) - work documented in changelog
 
