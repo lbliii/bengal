@@ -416,6 +416,15 @@ class PageProxy:
         return self._full_page.translation_key if self._full_page else None
 
     @property
+    def url(self) -> str:
+        """
+        URL for template href attributes. Includes baseurl.
+        
+        This is an alias for href. Templates can use page.url or page.href.
+        """
+        return self.href
+
+    @property
     def href(self) -> str:
         """Get the URL path for the page with baseurl (lazy-loaded, cached after first access)."""
         self._ensure_loaded()
