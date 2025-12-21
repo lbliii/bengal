@@ -197,7 +197,7 @@ This is a note with **markdown** support.
 
 :::{card} Card 1
 :icon: book
-:link: /docs/
+:link: docs/getting-started
 
 Content here
 :::
