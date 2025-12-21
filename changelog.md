@@ -1,5 +1,27 @@
 ## [Unreleased]
 
+### Configuration System Cleanup ✅
+- **config(defaults)**: add centralized `defaults.py` with ~300 lines of config defaults and helper functions
+- **config(defaults)**: add `get_max_workers()` auto-detection (CPU count - 1, min 4) adopted in 6+ files
+- **config(defaults)**: add `normalize_bool_or_dict()` for standardized bool/dict config handling
+- **config(defaults)**: add `is_feature_enabled()` and `get_feature_config()` feature flag helpers
+- **config(deprecation)**: add deprecation system with `check_deprecated_keys()`, `migrate_deprecated_keys()`, and warning output
+- **config(loader)**: register all config sections in `KNOWN_SECTIONS` (search, content, autodoc, i18n, graph, versioning)
+- **plan**: remove completed config-inventory.md - work documented in changelog
+
+### PageProxy Transparency Contract ✅
+- **core(page)**: add `PageProxy.plain_text` delegate for output formats compatibility
+- **tests(core)**: add PageProxy.plain_text unit tests verifying lazy-load behavior
+- **tests(integration)**: add PageProxy output-formats contract test
+- **plan**: remove completed plan-pageproxy-transparency-contract.md - work documented in changelog
+
+### Typography System Adoption ✅
+- **theme(fonts)**: add Instrument Serif as default display font with font-display: swap
+- **theme(typography)**: increase heading weights for stronger hierarchy (h1=800, h2=700, h3/h4=600)
+- **theme(typography)**: bump body line-height to 1.7 for improved readability
+- **theme(typography)**: align code block line-height with premium patterns (1.7)
+- **plan**: remove completed plan-typography-adoption.md - work documented in changelog
+
 ### AI-Friendly Docstring Standards ✅
 - **docs(core)**: adopt AI-friendly docstring standards across core modules - module docstrings include Key Concepts, Related Modules, See Also sections
 - **docs(core)**: add Creation patterns, Attributes, Relationships, Thread Safety to class docstrings
