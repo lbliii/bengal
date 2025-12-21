@@ -286,7 +286,7 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
                         page.metadata.get("description", "") if hasattr(page, "metadata") else ""
                     ),
                     "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
-                    "url": getattr(page, "url", ""),
+                    "url": getattr(page, "href", ""),
                     "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
                     "_has_explicit_weight": has_weight,
                 }
@@ -334,7 +334,7 @@ def warn_mixed_weights(children: list[dict[str, Any]], current_page: Any) -> Non
 def get_section_url(section: Any) -> str:
     """Get URL for a section."""
     if hasattr(section, "index_page") and section.index_page:
-        return getattr(section.index_page, "url", "/")
+        return getattr(section.index_page, "href", "/")
     path = getattr(section, "path", None)
     if path:
         return f"/{path}/"

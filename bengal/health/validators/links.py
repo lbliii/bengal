@@ -85,7 +85,7 @@ class LinkValidator:
         """
         urls: set[str] = set()
         for page in site.pages:
-            url = getattr(page, "url", None)
+            url = getattr(page, "href", None)
             if url:
                 # Add both with and without trailing slash for flexible matching
                 urls.add(url)
@@ -305,7 +305,7 @@ class LinkValidator:
             return self._validate_relative_md_link(parsed.path, page)
 
         # Get page's URL for resolving other relative links
-        page_url = getattr(page, "url", None)
+        page_url = getattr(page, "href", None)
         if not page_url:
             # Can't resolve without page URL
             logger.debug(

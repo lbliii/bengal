@@ -71,7 +71,7 @@ class RedirectGenerator:
             if not aliases:
                 continue
 
-            page_url = getattr(page, "url", None) or getattr(page, "permalink", "/")
+            page_url = getattr(page, "href", None) or getattr(page, "permalink", "/")
 
             for alias in aliases:
                 if alias not in alias_map:

@@ -50,7 +50,7 @@ Context variables:
         'location': author_data.location,
         'github': author_data.github,
         'post_count': post_count,
-        'url': '/authors/' ~ author_key ~ '/'
+        'href': '/authors/' ~ author_key ~ '/'
       }) %}
     {% endfor %}
   {% endif %}
@@ -70,7 +70,7 @@ Context variables:
         'location': child.metadata.get('location'),
         'github': child.metadata.get('social', {}).get('github'),
         'post_count': post_count,
-        'url': child.href
+        'href': child.href
       }) %}
     {% endif %}
   {% endfor %}
