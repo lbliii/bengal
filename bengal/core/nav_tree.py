@@ -64,14 +64,14 @@ class NavNode:
 
     Designed for memory efficiency and Jinja2 compatibility.
 
-    IMPORTANT: The `url` field stores site_path (WITHOUT baseurl) for cache
-    efficiency and internal lookups. Templates should use NavNodeProxy.url
+    IMPORTANT: The `_path` field stores site_path (WITHOUT baseurl) for cache
+    efficiency and internal lookups. Templates should use NavNodeProxy.href
     which applies baseurl automatically.
     """
 
     id: str
     title: str
-    url: str  # NOTE: This is site_path (without baseurl). See NavNodeProxy.url for public URL.
+    _path: str  # NOTE: This is site_path (without baseurl). See NavNodeProxy.href for public URL.
     icon: str | None = None
     weight: int = 0
     children: list[NavNode] = field(default_factory=list)
@@ -85,6 +85,15 @@ class NavNode:
     is_expanded: bool = False
 
     _depth: int = 0
+
+    @property
+    def url(self) -> str:
+        """
+        Backward-compatible alias for _path.
+
+        Deprecated: Use ._path for internal code, NavNodeProxy.href for templates.
+        """
+        return self._path
 
     @property
     def has_children(self) -> bool:
@@ -104,7 +113,7 @@ class NavNode:
 
     def find(self, url: str) -> NavNode | None:
         """Find a node by URL in this subtree."""
-        if self.url == url:
+        if self._path == url:
             return self
         for child in self.children:
             found = child.find(url)
@@ -130,7 +139,9 @@ class NavNode:
         return [
             "id",
             "title",
-            "url",
+            "_path",
+            "url",  # Backward compatibility
+            "href",  # For templates (via NavNodeProxy)
             "icon",
             "weight",
             "children",
@@ -163,7 +174,7 @@ class NavTree:
         """Initialize lookup indices with collision detection and merging."""
         self._flat_nodes = {}
         for node in self.root.walk():
-            url = node.url
+            url = node._path
             if url in self._flat_nodes:
                 existing = self._flat_nodes[url]
 
@@ -253,7 +264,7 @@ class NavTree:
         nav_root = NavNode(
             id="nav-root",
             title=site.title or "Site",
-            url="/",
+            _path="/",
             is_index=True,
             _depth=0,
         )
@@ -345,7 +356,7 @@ class NavTree:
         node = NavNode(
             id=f"section-{section.name}",
             title=node_title,
-            url=node_url,
+            _path=node_url,
             icon=node_icon,
             weight=section.metadata.get("weight", 0),
             section=section,
@@ -377,7 +388,7 @@ class NavTree:
             page_node = NavNode(
                 id=f"page-{page_url}",
                 title=getattr(page, "nav_title", page.title),
-                url=page_url,
+                _path=page_url,
                 icon=getattr(page, "icon", None),
                 weight=page.metadata.get("weight", 0),
                 page=page,
@@ -439,11 +450,11 @@ class NavTreeContext:
         """True if the node is in the active trail."""
         if not self._mark_active_trail:
             return False
-        return node.url in self.active_trail_urls
+        return node._path in self.active_trail_urls
 
     def is_current(self, node: NavNode) -> bool:
         """True if the node represents the current page."""
-        return node.url == self.current_url
+        return node._path == self.current_url
 
     def is_expanded(self, node: NavNode) -> bool:
         """True if the node should be expanded in the sidebar."""
@@ -480,16 +491,20 @@ class NavNodeProxy:
     ===============
     NavNodeProxy provides two URL properties with distinct purposes:
 
-    - `url`: Public URL with baseurl applied (for template href attributes)
-             Example: "/bengal/docs/getting-started/" on GitHub Pages
-             USE THIS IN TEMPLATES: <a href="{{ item.url }}">
+    - `href`: Public URL with baseurl applied (for template href attributes)
+              Example: "/bengal/docs/getting-started/" on GitHub Pages
+              USE THIS IN TEMPLATES: <a href="{{ item.href }}">
 
-    - `site_path`: Site-relative path WITHOUT baseurl (for internal lookups)
-                   Example: "/docs/getting-started/"
-                   USE THIS FOR: Active trail detection, URL comparisons
+    - `_path`: Site-relative path WITHOUT baseurl (for internal lookups)
+               Example: "/docs/getting-started/"
+               USE THIS FOR: Active trail detection, URL comparisons
 
-    The cached NavTree stores site_path internally for efficient lookups,
-    but templates should always use .url for href attributes.
+    The cached NavTree stores _path internally for efficient lookups,
+    but templates should always use .href for href attributes.
+
+    Backward Compatibility:
+    - `url`: Alias for href (deprecated, use href)
+    - `site_path`: Alias for _path (deprecated, use _path)
 
     Other Properties:
     - `is_current`: True if this node is the current page
@@ -497,22 +512,25 @@ class NavNodeProxy:
     - `is_expanded`: True if this node should be expanded
     - `is_section`: True if this node represents a section
     - `has_children`: True if this node has children
+    - `absolute_href`: Fully-qualified URL for meta tags and sitemaps
     """
 
     _node: NavNode
     _context: NavTreeContext
 
     @property
-    def url(self) -> str:
+    def href(self) -> str:
         """
         Get public URL with baseurl applied.
 
         This is the URL for template href attributes. Automatically includes
         baseurl when configured (e.g., "/bengal/docs/foo/" for GitHub Pages).
 
-        For internal comparisons or lookups, use site_path instead.
+        Use this in templates: <a href="{{ item.href }}">
+
+        For internal comparisons or lookups, use _path instead.
         """
-        site_path = self._node.url  # NavNode stores site-relative path
+        site_path = self._node._path  # NavNode stores site-relative path
 
         # Get site from page context
         site = getattr(self._context.page, "_site", None)
@@ -541,7 +559,7 @@ class NavNodeProxy:
         return f"{base_path}{site_path}"
 
     @property
-    def site_path(self) -> str:
+    def _path(self) -> str:
         """
         Get site-relative path WITHOUT baseurl.
 
@@ -550,9 +568,37 @@ class NavNodeProxy:
         - URL comparisons
         - Cache lookups
 
-        For template href attributes, use .url instead.
+        For template href attributes, use .href instead.
         """
-        return self._node.url
+        return self._node._path
+
+    @property
+    def url(self) -> str:
+        """
+        Backward-compatible alias for href.
+
+        Deprecated: Use .href for templates.
+        """
+        return self.href
+
+    @property
+    def site_path(self) -> str:
+        """
+        Backward-compatible alias for _path.
+
+        Deprecated: Use ._path for internal code.
+        """
+        return self._path
+
+    @property
+    def absolute_href(self) -> str:
+        """
+        Fully-qualified URL for meta tags and sitemaps when available.
+
+        If baseurl is absolute, returns href. Otherwise returns href as-is
+        (root-relative) since no fully-qualified site origin is configured.
+        """
+        return self.href
 
     @property
     def is_current(self) -> bool:
@@ -576,16 +622,22 @@ class NavNodeProxy:
         return [self._context._wrap_node(child) for child in self._node.children]
 
     def __getattr__(self, name: str) -> Any:
-        # Don't delegate 'url' - we provide our own with baseurl
-        if name == "url":
-            return self.url
+        # Don't delegate 'href', 'url', '_path', 'site_path' - we provide our own
+        if name in ("href", "url", "_path", "site_path", "absolute_href"):
+            return getattr(self, name)
         return getattr(self._node, name)
 
     def __getitem__(self, key: str) -> Any:
+        if key == "href":
+            return self.href
         if key == "url":
             return self.url
+        if key == "_path":
+            return self._path
         if key == "site_path":
             return self.site_path
+        if key == "absolute_href":
+            return self.absolute_href
         if key == "is_current":
             return self.is_current
         if key == "is_in_trail":
