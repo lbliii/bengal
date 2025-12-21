@@ -415,7 +415,7 @@ def migrate(
     move: tuple[str, str] | None,
     execute: bool,
     dry_run: bool,
-    redirect_format: str | None,
+    _redirect_format: str | None,  # TODO: implement redirect generation
     traceback: str | None,
 ) -> None:
     """

@@ -42,13 +42,11 @@ logger = get_logger(__name__)
 # Check if lunr is available (optional dependency)
 try:
     from lunr import lunr  # type: ignore[import-untyped]
-    from lunr.index import Index  # type: ignore[import-untyped]
 
     LUNR_AVAILABLE = True
 except ImportError:
     LUNR_AVAILABLE = False
     lunr = None
-    Index = None
 
 
 class LunrIndexGenerator:

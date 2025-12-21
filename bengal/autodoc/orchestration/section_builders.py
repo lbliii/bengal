@@ -204,11 +204,11 @@ def create_openapi_sections(
     elements: list[DocElement],
     site: Site,
     resolve_output_prefix: callable,
-    existing_sections: dict[str, Section] | None = None,
+    _existing_sections: dict[str, Section] | None = None,
 ) -> dict[str, Section]:
     """Create OpenAPI section hierarchy."""
     sections: dict[str, Section] = {}
-    # Note: existing_sections parameter kept for API compatibility but no longer used
+    # Note: _existing_sections parameter kept for API compatibility but no longer used
     # Each autodoc type now creates its own distinct section tree
 
     # Resolve output prefix for OpenAPI docs

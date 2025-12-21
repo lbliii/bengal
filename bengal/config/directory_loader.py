@@ -167,13 +167,13 @@ class ConfigDirectoryLoader:
 
             print_deprecation_warnings(self.deprecated_keys)
 
-    def _load_directory(self, directory: Path, origin_prefix: str = "") -> dict[str, Any]:
+    def _load_directory(self, directory: Path, _origin_prefix: str = "") -> dict[str, Any]:
         """
         Load all YAML files in directory and merge.
 
         Args:
             directory: Directory to load from
-            origin_prefix: Prefix for origin tracking
+            _origin_prefix: Reserved for future origin tracking (currently unused)
 
         Returns:
             Merged configuration from all files
