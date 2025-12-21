@@ -33,7 +33,7 @@ Bengal's build system is orchestrated by the `BuildOrchestrator` and executes in
 ### 2. Content Discovery (`ContentOrchestrator`)
 *   **Scanning**: The `content/` directory is scanned recursively.
 *   **Page Creation**: `Page` objects are created for each markdown file.
-*   **Schema Validation**: If `collections.py` exists, frontmatter is validated against defined schemas (see [Content Collections](/docs/content/collections/)).
+*   **Schema Validation**: If `collections.py` exists, frontmatter is validated against defined schemas (see [[docs/content/collections|Content Collections]]).
 *   **Lazy Loading**: In incremental builds, unchanged pages are loaded as `PageProxy` objects (lightweight metadata only), saving parsing time.
 *   **Section Registry**: A path-based registry is built for O(1) section lookups.
 
@@ -112,4 +112,4 @@ Key benefits:
 *   **Watch Mode**: Built-in file watching with debouncing
 *   **Composable**: Chain operations fluently
 
-See [Reactive Pipeline Architecture](/docs/reference/architecture/core/pipeline/) for details.
+See [[docs/reference/architecture/core/pipeline|Reactive Pipeline Architecture]] for details.

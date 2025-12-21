@@ -27,7 +27,7 @@ Learn to customize Bengal themes and create your own designs.
 
 :::{checklist}
 :show-progress:
-- [ ] [Bengal installed](/docs/get-started/installation/)
+- [ ] [[docs/get-started/installation|Bengal installed]]
 - [ ] Basic knowledge of HTML
 - [ ] Familiarity with CSS (or willingness to learn)
 - [ ] Basic Jinja2 template syntax
@@ -151,7 +151,7 @@ bengal utils theme info default
 
 ## Next Steps
 
-- **[Theme Customization](/docs/theming/themes/customize/)** — Deep dive into overrides
-- **[Template Functions](/docs/theming/templating/functions/)** — Available filters
-- **[Variables Reference](/docs/theming/variables/)** — All template variables
-- **[Assets](/docs/theming/assets/)** — CSS, JS, and image handling
+- **[[docs/theming/themes/customize|Theme Customization]]** — Deep dive into overrides
+- **[[docs/theming/templating/functions|Template Functions]]** — Available filters
+- **[[docs/theming/variables|Variables Reference]]** — All template variables
+- **[[docs/theming/assets|Assets]]** — CSS, JS, and image handling

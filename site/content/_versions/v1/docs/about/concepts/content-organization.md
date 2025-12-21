@@ -193,4 +193,4 @@ Any page inside `content/blog/` will now automatically have `type: blog-post` un
 
 ## Validating Frontmatter
 
-Want to catch frontmatter errors at build time? Use [Content Collections](/docs/content/collections/) to define schemas that validate your content automatically. Collections are optional but helpful for teams or sites with strict content requirements.
+Want to catch frontmatter errors at build time? Use [[docs/content/collections|Content Collections]] to define schemas that validate your content automatically. Collections are optional but helpful for teams or sites with strict content requirements.

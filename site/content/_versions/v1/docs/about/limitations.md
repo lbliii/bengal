@@ -29,6 +29,6 @@ Sites with 10,000+ pages will have slower full builds. Incremental builds stay f
 Developed on macOS/Linux. Windows works but may have edge cases.
 
 :::{seealso}
-- [Comparison](/docs/about/comparison/)
-- [FAQ](/docs/about/faq/)
+- [[docs/about/comparison|Comparison]]
+- [[docs/about/faq|FAQ]]
 :::

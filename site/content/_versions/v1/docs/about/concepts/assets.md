@@ -119,4 +119,4 @@ formats = ["webp"]
 
 ---
 
-**Deep Dive**: For implementation details, caching behavior, and internal architecture, see the [Asset Pipeline Reference](/docs/reference/architecture/rendering/assets-pipeline/).
+**Deep Dive**: For implementation details, caching behavior, and internal architecture, see the [[docs/reference/architecture/rendering/assets-pipeline|Asset Pipeline Reference]].
