@@ -54,7 +54,9 @@ class TestCLIOutputInit:
         cli = CLIOutput(use_rich=False)
 
         assert cli.use_rich is False
-        assert cli.console is None
+        # Console is always created for type safety (never None)
+        # When use_rich=False, Rich features are bypassed but console exists
+        assert cli.console is not None
 
     def test_init_with_use_rich_true(self):
         """Test CLIOutput can force rich output."""

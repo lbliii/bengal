@@ -208,7 +208,10 @@ class ContentDiscovery:
                         _site=self.site,
                     )
                     self._walk_directory(item_path, section, current_lang=current_lang)
-                    # Don't add _versions/_shared itself as a section - only its contents
+                    # Don't add _versions/_shared itself as a section
+                    # BUT we need to add its nested content sections (e.g., _versions/v1/docs) to self.sections
+                    # so they're accessible for version-filtered navigation
+                    self._add_versioned_sections_recursive(section)
                     return produced_pages
 
                 section = Section(
@@ -434,6 +437,40 @@ class ContentDiscovery:
         # Use _section_path directly to avoid triggering lazy lookup
         page_section_str = str(page._section_path) if page._section_path else None
         return bool(page_section_str == cached_metadata.section)
+
+    def _add_versioned_sections_recursive(self, version_container: Section) -> None:
+        """
+        Extract content sections from _versions hierarchy and add to self.sections.
+
+        The _versions directory structure is:
+            _versions/
+                v1/
+                    docs/           <- This is a content section (add to self.sections)
+                        about/      <- This is a subsection (already linked via docs)
+                v2/
+                    docs/
+
+        We skip _versions itself and version-id directories (v1, v2), but add their
+        content sections (docs, etc.) to self.sections so they're accessible for
+        version-filtered navigation.
+
+        Args:
+            version_container: The _versions or _shared section after walking
+        """
+        # version_container is _versions - iterate its subsections (v1, v2, etc.)
+        for version_section in version_container.subsections:
+            # version_section is v1, v2, etc. - iterate its content sections
+            for content_section in version_section.subsections:
+                # content_section is docs, tutorials, etc. - add to self.sections
+                if content_section.pages or content_section.subsections:
+                    self.sections.append(content_section)
+                    self.logger.debug(
+                        "versioned_section_added",
+                        section_name=content_section.name,
+                        version=version_section.name,
+                        page_count=len(content_section.pages),
+                        subsection_count=len(content_section.subsections),
+                    )
 
     def _walk_directory(
         self, directory: Path, parent_section: Section, current_lang: str | None = None

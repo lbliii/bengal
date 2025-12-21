@@ -57,7 +57,10 @@ class TestNavTreeVersionedSite:
 
         changelog_page = next((p for p in shared_pages if "changelog" in str(p.source_path)), None)
         assert changelog_page is not None, "Changelog page should exist"
-        assert changelog_page.url == "/_shared/changelog/", "Changelog should have correct URL"
+        # Use relative_url for comparison (excludes baseurl)
+        assert changelog_page.relative_url == "/_shared/changelog/", (
+            "Changelog should have correct URL"
+        )
 
         # TODO: Once shared content injection is implemented in NavTree.build(),
         # uncomment these assertions:
@@ -138,9 +141,11 @@ class TestNavTreeVersionedSite:
 
         context = NavTreeContext(tree_v3, v3_guide_page)
 
-        # Current page should be active
-        current_node = tree_v3.find(v3_guide_page.url)
-        assert current_node is not None, f"v3 guide page {v3_guide_page.url} should be in nav tree"
+        # Current page should be active (use relative_url for nav tree lookup)
+        current_node = tree_v3.find(v3_guide_page.relative_url)
+        assert current_node is not None, (
+            f"v3 guide page {v3_guide_page.relative_url} should be in nav tree"
+        )
         assert context.is_active(current_node) is True
         assert context.is_current(current_node) is True
 

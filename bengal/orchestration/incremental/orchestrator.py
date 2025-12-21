@@ -311,6 +311,54 @@ class IncrementalOrchestrator:
         self._cache_manager.cache = self.cache
         self._cache_manager.save(pages_built, assets_processed)
 
+    def _check_shared_content_changes(
+        self, forced_changed_sources: set[Path] | None = None
+    ) -> bool:
+        """
+        Check if any _shared/ content has changed.
+
+        When shared content changes, ALL versioned pages need rebuilding since
+        shared content is injected into every version.
+
+        Args:
+            forced_changed_sources: Optional set of paths explicitly changed
+
+        Returns:
+            True if any shared content has changed
+        """
+        if not self.site.versioning_enabled:
+            return False
+
+        if not self.cache:
+            return False
+
+        version_config = getattr(self.site, "version_config", None)
+        if not version_config:
+            return False
+
+        # Check if any forced changes are in shared paths
+        if forced_changed_sources:
+            for path in forced_changed_sources:
+                for shared_path in version_config.shared:
+                    shared_dir = self.site.content_dir / shared_path
+                    try:
+                        path.relative_to(shared_dir)
+                        return True  # Path is in shared dir
+                    except ValueError:
+                        continue
+
+        # Check if any shared files have changed via cache
+        for shared_path in version_config.shared:
+            shared_dir = self.site.content_dir / shared_path
+            if not shared_dir.exists():
+                continue
+
+            for file_path in shared_dir.rglob("*.md"):
+                if self.cache.is_changed(file_path):
+                    return True
+
+        return False
+
     def _get_theme_templates_dir(self) -> Path | None:
         """
         Get the templates directory for the current theme.

@@ -230,10 +230,12 @@ class NavTree:
             if is_autodoc_page(page):
                 continue
 
+            # Use relative_url for nav tree (without baseurl) for consistent lookups
+            page_url = getattr(page, "relative_url", page.url)
             page_node = NavNode(
-                id=f"page-{page.url}",
+                id=f"page-{page_url}",
                 title=getattr(page, "nav_title", page.title),
-                url=page.url,
+                url=page_url,
                 icon=getattr(page, "icon", None),
                 weight=page.metadata.get("weight", 0),
                 page=page,
@@ -270,7 +272,8 @@ class NavTreeContext:
     ):
         self.tree = tree
         self.page = page
-        self.current_url = page.url
+        # Use relative_url for consistent matching with nav tree nodes
+        self.current_url = getattr(page, "relative_url", page.url)
         self._mark_active_trail = mark_active_trail
         self._root_node = root_node or tree.root
 

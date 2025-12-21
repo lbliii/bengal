@@ -297,13 +297,16 @@ class TestNavTree:
             content="# Docs",
             metadata={"title": "Docs"},
         )
-        index_page.url = "/docs/v1/"
+        index_page.url = "/docs/"
         index_page.version = "v1"
         index_page._section_path = section.path
         index_page._site = site
 
         section.index_page = index_page
         section.pages = [index_page]
+        # Set relative_url directly to match expected nav tree URL
+        section.relative_url = "/docs/"
+        section.nav_title = "Docs"
 
         # Mock version-aware methods
         def pages_for_version(version_id):
@@ -329,7 +332,7 @@ class TestNavTree:
 
         # Section should be included even though it only has an index page
         assert len(tree_v1.root.children) > 0
-        docs_node = tree_v1.find("/docs/v1/")
+        docs_node = tree_v1.find("/docs/")
         assert docs_node is not None, "Section with only index page should be in nav tree"
 
     def test_nav_tree_filters_empty_sections(self, tmp_path):
@@ -404,6 +407,8 @@ class TestNavTree:
             name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs"
         )
         parent_section._site = site
+        parent_section.relative_url = "/docs/"
+        parent_section.nav_title = "Docs"
 
         # Create subsection with a page
         subsection = Section(
@@ -411,13 +416,15 @@ class TestNavTree:
         )
         subsection._site = site
         subsection.parent = parent_section
+        subsection.relative_url = "/docs/guide/"
+        subsection.nav_title = "Guide"
 
         page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
             content="# Page",
             metadata={"title": "Page"},
         )
-        page.url = "/docs/v1/guide/page/"
+        page.url = "/docs/guide/page/"
         page.version = "v1"
         page._section_path = subsection.path
         page._site = site
@@ -465,7 +472,7 @@ class TestNavTree:
 
         # Parent section should be included (has subsection with content)
         assert len(tree_v1.root.children) > 0
-        docs_node = tree_v1.find("/docs/v1/")
+        docs_node = tree_v1.find("/docs/")
         assert docs_node is not None, "Section with subsections should be in nav tree"
 
     def test_flat_nodes_property(self, simple_site):
