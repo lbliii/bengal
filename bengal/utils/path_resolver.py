@@ -27,7 +27,7 @@ Architecture:
 Related Modules:
     - bengal.core.site: Site.root_path is always absolute
     - bengal.config.loader: Config paths resolved on load
-    - bengal.rendering.plugins.directives: Directives use resolver
+    - bengal.directives: Directives use resolver
 """
 
 from __future__ import annotations

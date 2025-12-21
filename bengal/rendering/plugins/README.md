@@ -63,7 +63,7 @@ html = md(content)
 
 ```python
 # Use only admonitions
-from bengal.rendering.plugins.directives import AdmonitionDirective
+from bengal.directives import AdmonitionDirective
 from mistune.directives import FencedDirective
 
 directive = FencedDirective([AdmonitionDirective()])

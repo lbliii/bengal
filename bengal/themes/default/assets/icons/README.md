@@ -15,7 +15,7 @@ All icons use **Phosphor Icons** from the [Phosphor Icons](https://phosphoricons
 ### In Python/Directives
 
 ```python
-from bengal.rendering.plugins.directives._icons import render_icon
+from bengal.directives._icons import render_icon
 
 icon_html = render_icon("terminal", size=20)
 ```
