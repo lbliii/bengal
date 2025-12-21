@@ -75,18 +75,26 @@ class PageInitializer:
 
         # Validate output_path is set
         if not page.output_path:
-            raise ValueError(
+            from bengal.utils.exceptions import BengalContentError
+
+            raise BengalContentError(
                 f"Page '{page.title}' has no output_path set. "
                 f"Orchestrator must compute and set output_path before calling ensure_initialized().\n"
-                f"Source: {page.source_path}"
+                f"Source: {page.source_path}",
+                file_path=page.source_path,
+                suggestion="Ensure the orchestrator computes output_path before calling ensure_initialized()",
             )
 
         # Validate output_path is absolute
         if not page.output_path.is_absolute():
-            raise ValueError(
+            from bengal.utils.exceptions import BengalContentError
+
+            raise BengalContentError(
                 f"Page '{page.title}' has relative output_path: {page.output_path}\n"
                 f"Output paths must be absolute. "
-                f"Use site.output_dir as base."
+                f"Use site.output_dir as base.",
+                file_path=page.source_path,
+                suggestion=f"Use site.output_dir ({self.site.output_dir}) as base for absolute paths",
             )
 
         # Verify URL generation works
@@ -110,13 +118,25 @@ class PageInitializer:
             # Use relative_url for validation since page.url includes baseurl
             rel_url = page.relative_url
             if not rel_url.startswith("/"):
-                raise ValueError(f"Generated URL doesn't start with '/': {rel_url}")
+                from bengal.utils.exceptions import BengalContentError
+
+                raise BengalContentError(
+                    f"Generated URL doesn't start with '/': {rel_url}",
+                    file_path=page.source_path,
+                    suggestion="URLs must start with '/' - check page slug and output_path configuration",
+                )
         except Exception as e:
-            raise ValueError(
-                f"Page '{page.title}' URL generation failed: {e}\n"
-                f"Output path: {page.output_path}\n"
-                f"Site output_dir: {self.site.output_dir}"
-            ) from e
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalContentError
+
+            context = ErrorContext(
+                file_path=page.source_path,
+                operation="generating page URL",
+                suggestion="Check page slug, output_path, and site.output_dir configuration",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalContentError)
+            raise enriched from e
 
     def ensure_initialized_for_section(self, page: Page, section: Section) -> None:
         """

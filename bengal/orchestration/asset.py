@@ -660,8 +660,19 @@ class AssetOrchestrator:
             css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
 
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=css_entry.source_path,
+                operation="processing CSS entry",
+                suggestion="Check CSS syntax, file encoding, and dependencies",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalError)
             # Re-raise with context so caller can handle logging/error collection
-            raise Exception(f"Failed to process CSS entry {css_entry.source_path.name}: {e}") from e
+            raise enriched from e
 
     def _process_single_asset(
         self, asset: Asset, assets_output: Path, minify: bool, optimize: bool, fingerprint: bool
@@ -691,8 +702,19 @@ class AssetOrchestrator:
 
             asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=asset.source_path,
+                operation="processing asset",
+                suggestion="Check file permissions, encoding, and format",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalError)
             # Re-raise with asset context for better error messages
-            raise Exception(f"Failed to process {asset.source_path}: {e}") from e
+            raise enriched from e
 
     def _write_asset_manifest(self, assets: list[Asset]) -> None:
         """

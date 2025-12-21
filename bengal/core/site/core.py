@@ -42,7 +42,7 @@ from bengal.core.site.properties import SitePropertiesMixin
 from bengal.core.site.section_registry import SectionRegistryMixin
 from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
-from bengal.core.url_ownership import URLRegistry
+from bengal.core.url_ownership import URLCollisionError, URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.orchestration.stats import BuildStats
 
@@ -685,6 +685,9 @@ class Site(
                     urls_seen[url] = source
 
         if collisions and strict:
-            raise ValueError("URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions))
+            raise URLCollisionError(
+                "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
+                suggestion="Check for duplicate slugs, conflicting autodoc output, or use different URLs for conflicting pages",
+            )
 
         return collisions

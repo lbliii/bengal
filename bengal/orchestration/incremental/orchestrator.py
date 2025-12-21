@@ -235,7 +235,12 @@ class IncrementalOrchestrator:
         ⚠️  TEST BRIDGE ONLY - See docstring for details.
         """
         if not self.tracker:
-            raise RuntimeError("Tracker not initialized - call initialize() first")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                "Tracker not initialized - call initialize() first",
+                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+            )
 
         import sys
 

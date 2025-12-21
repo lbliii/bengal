@@ -401,9 +401,12 @@ def run_health_check(
     # Fail build in strict mode if there are errors
     strict_mode = health_config.get("strict_mode", False)
     if strict_mode and report.has_errors():
-        raise Exception(
+        from bengal.utils.exceptions import BengalError
+
+        raise BengalError(
             f"Build failed health checks: {report.total_errors} error(s) found. "
-            "Review output or disable strict_mode."
+            "Review output or disable strict_mode.",
+            suggestion="Review the health check report above and fix the errors, or set health_check.strict_mode=false",
         )
 
 

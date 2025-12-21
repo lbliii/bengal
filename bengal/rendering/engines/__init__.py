@@ -28,6 +28,7 @@ from bengal.rendering.engines.errors import (
 )
 from bengal.rendering.engines.protocol import TemplateEngineProtocol
 from bengal.rendering.errors import TemplateRenderError
+from bengal.utils.exceptions import BengalConfigError
 
 if TYPE_CHECKING:
     from bengal.core import Site
@@ -81,8 +82,10 @@ def create_engine(
         try:
             from bengal.rendering.engines.mako import MakoTemplateEngine
         except ImportError as e:
-            raise ValueError(
-                "Mako engine requires mako package.\nInstall with: pip install bengal[mako]"
+            raise BengalConfigError(
+                "Mako engine requires mako package.\nInstall with: pip install bengal[mako]",
+                suggestion="Install the mako package or use a different template engine (jinja2, patitas)",
+                original_error=e,
             ) from e
         return MakoTemplateEngine(site)
 
@@ -90,9 +93,11 @@ def create_engine(
         try:
             from bengal.rendering.engines.patitas import PatitasTemplateEngine
         except ImportError as e:
-            raise ValueError(
+            raise BengalConfigError(
                 "Patitas engine requires patitas package.\n"
-                "Install with: pip install bengal[patitas]"
+                "Install with: pip install bengal[patitas]",
+                suggestion="Install the patitas package or use a different template engine (jinja2, mako)",
+                original_error=e,
             ) from e
         return PatitasTemplateEngine(site)
 
@@ -100,8 +105,9 @@ def create_engine(
         return _ENGINES[engine_name](site)
 
     available = ["jinja2", "mako", "patitas", *_ENGINES.keys()]
-    raise ValueError(
-        f"Unknown template engine: '{engine_name}'\nAvailable: {', '.join(sorted(available))}"
+    raise BengalConfigError(
+        f"Unknown template engine: '{engine_name}'\nAvailable: {', '.join(sorted(available))}",
+        suggestion=f"Set template_engine to one of: {', '.join(sorted(available))}",
     )
 
 
