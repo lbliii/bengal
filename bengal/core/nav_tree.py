@@ -246,13 +246,13 @@ class NavTree:
 
         Different autodoc types have different navigation expectations:
 
-        - **Python API pages**: EXCLUDE - Too granular (hundreds of classes/functions
-          would flood the nav). Users use search or the index page to find items.
+        - **Python API pages**: INCLUDE - Users expect to navigate to individual
+          modules within packages.
 
         - **CLI command pages**: INCLUDE - Users expect to navigate to individual
           commands like 'bengal build' or 'bengal serve'.
 
-        - **OpenAPI endpoint pages**: EXCLUDE - Similar to Python, too many endpoints.
+        - **OpenAPI endpoint pages**: EXCLUDE - Too many endpoints.
           Users typically browse by tag/category.
 
         - **Regular content pages**: INCLUDE - Always shown in nav.
@@ -271,10 +271,10 @@ class NavTree:
         if page_type.startswith("cli-") or page_type == "autodoc-cli":
             return False
 
-        # Python API pages are too granular for navigation
-        # Hundreds of classes/functions would flood the nav
+        # Python API pages (modules) should be shown in navigation
+        # Users expect to navigate to individual modules within packages
         if page_type.startswith("python-") or page_type == "autodoc-python":
-            return True
+            return False
 
         # OpenAPI endpoint pages - exclude by default (too many endpoints)
         if page_type.startswith("openapi-") or page_type == "autodoc-rest":
