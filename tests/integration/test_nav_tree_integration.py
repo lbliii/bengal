@@ -238,11 +238,11 @@ class TestNavTreeVersionedSite:
             and (p._section is None or p != getattr(p._section, "index_page", None))
         ]
 
-        # All v3 pages should be findable in the tree
+        # All v3 pages should be findable in the tree (NavTree uses relative_url)
         for page in v3_pages:
-            node = tree_v3.find(page.url)
-            assert node is not None, f"Page {page.url} should be findable in v3 nav tree"
-            assert node.url == page.url
+            node = tree_v3.find(page.relative_url)
+            assert node is not None, f"Page {page.relative_url} should be findable in v3 nav tree"
+            assert node.url == page.relative_url
 
         # Index pages are represented by section nodes, not separate page nodes
         # Verify section nodes exist

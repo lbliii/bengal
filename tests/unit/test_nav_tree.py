@@ -133,66 +133,56 @@ class TestNavTree:
         """Create a simple site with sections and pages."""
         site = Site(root_path=tmp_path, config={"title": "Test Site"})
 
-        # Create sections
+        # Create sections with proper setup
         section1 = Section(name="docs", path=tmp_path / "content" / "docs")
         section1._site = site
         section2 = Section(name="blog", path=tmp_path / "content" / "blog")
         section2._site = site
 
-        # Create pages
+        # Set nav_title via metadata (nav_title property reads from metadata)
+        section1.metadata["nav_title"] = "Docs"
+        section2.metadata["nav_title"] = "Blog"
+
+        # Create pages with proper relative_url setup
+        # cached_property stores value in __dict__ once computed, so we set it there
         page1 = Page(
             source_path=tmp_path / "content" / "docs" / "page1.md",
             content="# Page 1",
             metadata={"title": "Page 1", "weight": 1},
         )
-        page1.url = "/docs/page1/"
+        page1._site = site
+        page1.__dict__["relative_url"] = "/docs/page1/"
+        page1.__dict__["url"] = "/docs/page1/"
 
         page2 = Page(
             source_path=tmp_path / "content" / "docs" / "page2.md",
             content="# Page 2",
             metadata={"title": "Page 2", "weight": 2},
         )
-        page2.url = "/docs/page2/"
+        page2._site = site
+        page2.__dict__["relative_url"] = "/docs/page2/"
+        page2.__dict__["url"] = "/docs/page2/"
 
         page3 = Page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
             content="# Post 1",
             metadata={"title": "Post 1"},
         )
-        page3.url = "/blog/post1/"
+        page3._site = site
+        page3.__dict__["relative_url"] = "/blog/post1/"
+        page3.__dict__["url"] = "/blog/post1/"
 
         # Associate pages with sections
         section1.pages = [page1, page2]
         section2.pages = [page3]
 
-        # Set up section properties needed for NavTree.build()
-        # Sections need relative_url and nav_title for NavTree
-        if not hasattr(section1, "relative_url") or section1.relative_url is None:
-            section1.relative_url = "/docs/"
-        if not hasattr(section2, "relative_url") or section2.relative_url is None:
-            section2.relative_url = "/blog/"
-        if not hasattr(section1, "nav_title") or section1.nav_title is None:
-            section1.nav_title = "Docs"
-        if not hasattr(section2, "nav_title") or section2.nav_title is None:
-            section2.nav_title = "Blog"
-
-        # Ensure pages_for_version and subsections_for_version work
-        # These methods are needed by NavTree.build()
-        if not hasattr(section1, "pages_for_version"):
-            section1.pages_for_version = lambda v: section1.pages
-        if not hasattr(section2, "pages_for_version"):
-            section2.pages_for_version = lambda v: section2.pages
-        if not hasattr(section1, "subsections_for_version"):
-            section1.subsections_for_version = lambda v: []
-        if not hasattr(section2, "subsections_for_version"):
-            section2.subsections_for_version = lambda v: []
+        # Set relative_url for sections via __dict__ (cached_property override)
+        section1.__dict__["relative_url"] = "/docs/"
+        section2.__dict__["relative_url"] = "/blog/"
 
         # Set up site structure
         site.sections = [section1, section2]
         site.pages = [page1, page2, page3]
-
-        # Versioning is disabled by default (no versioning in config)
-        # site.versioning_enabled is computed from version_config
 
         return site
 
@@ -304,9 +294,9 @@ class TestNavTree:
 
         section.index_page = index_page
         section.pages = [index_page]
-        # Set relative_url directly to match expected nav tree URL
-        section.relative_url = "/docs/"
-        section.nav_title = "Docs"
+        # Set nav_title via metadata and relative_url via __dict__ (cached_property)
+        section.metadata["nav_title"] = "Docs"
+        section.__dict__["relative_url"] = "/docs/"
 
         # Mock version-aware methods
         def pages_for_version(version_id):
@@ -407,8 +397,8 @@ class TestNavTree:
             name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs"
         )
         parent_section._site = site
-        parent_section.relative_url = "/docs/"
-        parent_section.nav_title = "Docs"
+        parent_section.metadata["nav_title"] = "Docs"
+        parent_section.__dict__["relative_url"] = "/docs/"
 
         # Create subsection with a page
         subsection = Section(
@@ -416,8 +406,8 @@ class TestNavTree:
         )
         subsection._site = site
         subsection.parent = parent_section
-        subsection.relative_url = "/docs/guide/"
-        subsection.nav_title = "Guide"
+        subsection.metadata["nav_title"] = "Guide"
+        subsection.__dict__["relative_url"] = "/docs/guide/"
 
         page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
@@ -530,19 +520,21 @@ class TestNavTreeContext:
         # Create nested sections
         root_section = Section(name="docs", path=tmp_path / "content" / "docs")
         root_section._site = site
+        root_section.__dict__["relative_url"] = "/docs/"
         subsection = Section(name="guide", path=tmp_path / "content" / "docs" / "guide")
         subsection._site = site
         subsection.parent = root_section
+        subsection.__dict__["relative_url"] = "/docs/guide/"
 
-        # Create pages
+        # Create pages with proper url and relative_url
         root_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             content="# Docs",
             metadata={"title": "Docs"},
         )
-        root_page.url = "/docs/"
-        root_page._section_path = root_section.path
         root_page._site = site
+        root_page.__dict__["relative_url"] = "/docs/"
+        root_page.__dict__["url"] = "/docs/"
         root_section.index_page = root_page
 
         sub_page = Page(
@@ -550,65 +542,24 @@ class TestNavTreeContext:
             content="# Page",
             metadata={"title": "Page"},
         )
-        sub_page.url = "/docs/guide/page/"
-        # Set _section_path directly to ensure lookup works
-        sub_page._section_path = subsection.path
         sub_page._site = site
-        subsection.parent = root_section
+        sub_page.__dict__["relative_url"] = "/docs/guide/page/"
+        sub_page.__dict__["url"] = "/docs/guide/page/"
 
         root_section.pages = [root_page]
         subsection.pages = [sub_page]
         root_section.subsections = [subsection]
 
-        # Set up pages_for_version and subsections_for_version
-        root_section.pages_for_version = lambda v: root_section.pages
-        subsection.pages_for_version = lambda v: subsection.pages
-        root_section.subsections_for_version = lambda v: root_section.subsections
-        subsection.subsections_for_version = lambda v: []
-
         site.sections = [root_section]
         site.pages = [root_page, sub_page]
 
-        # Register sections so _section property lookup works
-        # Initialize section registry if needed
-        if not hasattr(site, "_section_registry"):
-            site._section_registry = {}
-        if not hasattr(site, "_section_url_registry"):
-            site._section_url_registry = {}
+        # Register sections in site registry for path-based lookups
+        site.register_sections()
 
-        # Use Site's register_sections method if available
-        if hasattr(site, "register_sections"):
-            try:
-                site.register_sections()
-            except Exception:
-                # Fallback: manually register sections
-                # Register by path
-                for section in site.sections:
-                    if section.path:
-                        # Normalize path relative to content/ directory
-                        content_dir = site.root_path / "content"
-                        try:
-                            normalized = section.path.resolve().relative_to(content_dir.resolve())
-                            site._section_registry[normalized] = section
-                        except (ValueError, AttributeError):
-                            pass
-                    # Register by URL
-                    rel_url = section.relative_url
-                    if rel_url:
-                        site._section_url_registry[rel_url] = section
-                    # Register subsections
-                    for sub in section.subsections:
-                        if sub.path:
-                            try:
-                                sub_normalized = sub.path.resolve().relative_to(
-                                    content_dir.resolve()
-                                )
-                                site._section_registry[sub_normalized] = sub
-                            except (ValueError, AttributeError):
-                                pass
-                        sub_rel_url = sub.relative_url
-                        if sub_rel_url:
-                            site._section_url_registry[sub_rel_url] = sub
+        # Set up section references on pages using the _section setter
+        # This stores the path/URL for lookup
+        root_page._section = root_section
+        sub_page._section = subsection
 
         tree = NavTree.build(site)
         return tree, sub_page
@@ -618,9 +569,9 @@ class TestNavTreeContext:
         tree, current_page = tree_with_pages
         context = NavTreeContext(tree, current_page)
 
-        # Current page should be active
-        current_node = tree.find(current_page.url)
-        assert current_node is not None
+        # Current page should be active (NavTree uses relative_url)
+        current_node = tree.find(current_page.relative_url)
+        assert current_node is not None, f"Page {current_page.relative_url} should be in nav tree"
         assert context.is_active(current_node) is True
 
         # Parent section should be active
@@ -633,9 +584,9 @@ class TestNavTreeContext:
         tree, current_page = tree_with_pages
         context = NavTreeContext(tree, current_page)
 
-        # Current page should be current
-        current_node = tree.find(current_page.url)
-        assert current_node is not None
+        # Current page should be current (NavTree uses relative_url)
+        current_node = tree.find(current_page.relative_url)
+        assert current_node is not None, f"Page {current_page.relative_url} should be in nav tree"
         assert context.is_current(current_node) is True
 
         # Parent should not be current

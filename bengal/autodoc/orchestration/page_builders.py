@@ -88,6 +88,18 @@ def create_pages(
 
         # Create page metadata without rendering HTML yet
         template_name, url_path, page_type = get_element_metadata(element, doc_type)
+
+        # Skip root command-groups - the section index page represents them
+        # resolve_cli_url_path("bengal") returns "" which becomes just the prefix
+        # This would output to /cli/index.html, same as the section index page
+        prefix = resolve_output_prefix(doc_type)
+        if doc_type == "cli" and url_path == prefix:
+            logger.debug(
+                "cli_root_group_skipped",
+                element=element.qualified_name,
+                reason="Section index page represents root command-group",
+            )
+            continue
         # Note: url_path already includes the prefix (e.g., "cli/assets/build")
         source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"

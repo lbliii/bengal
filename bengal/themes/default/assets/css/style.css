@@ -285,6 +285,10 @@
 }
 
 @layer components {
+  @import url('components/versioning.css');
+}
+
+@layer components {
   @import url('components/graph.css');
 }
 

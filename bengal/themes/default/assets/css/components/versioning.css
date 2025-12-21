@@ -137,6 +137,12 @@
   color: var(--color-error-text);
 }
 
+/* Deprecated option in select dropdown */
+.version-selector__select option.version-deprecated {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 /* =============================================================================
    Version Banner (Full-Width Alert for Older Versions)
    ============================================================================= */

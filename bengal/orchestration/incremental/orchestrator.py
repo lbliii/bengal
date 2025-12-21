@@ -337,10 +337,11 @@ class IncrementalOrchestrator:
             return False
 
         # Check if any forced changes are in shared paths
+        content_dir = self.site.root_path / "content"
         if forced_changed_sources:
             for path in forced_changed_sources:
                 for shared_path in version_config.shared:
-                    shared_dir = self.site.content_dir / shared_path
+                    shared_dir = content_dir / shared_path
                     try:
                         path.relative_to(shared_dir)
                         return True  # Path is in shared dir
@@ -349,7 +350,7 @@ class IncrementalOrchestrator:
 
         # Check if any shared files have changed via cache
         for shared_path in version_config.shared:
-            shared_dir = self.site.content_dir / shared_path
+            shared_dir = content_dir / shared_path
             if not shared_dir.exists():
                 continue
 
