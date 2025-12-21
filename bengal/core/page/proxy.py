@@ -402,6 +402,20 @@ class PageProxy:
         return self._full_page.plain_text if self._full_page else ""
 
     @property
+    def is_virtual(self) -> bool:
+        """
+        Check if this is a virtual page (not backed by a disk file).
+
+        PageProxy objects are always backed by cached disk files, so they
+        are never virtual. Virtual pages (like autodoc-generated pages)
+        are not cached as proxies.
+
+        Returns:
+            Always False for PageProxy
+        """
+        return False
+
+    @property
     def related_posts(self) -> list[Page]:
         """Get related posts (lazy-loaded)."""
         # If set on proxy without loading, return cached value

@@ -210,7 +210,7 @@ class Page(
             title=standard_fields.get("title", ""),
             date=standard_fields.get("date"),
             tags=self.tags or [],
-            slug=standard_fields.get("slug"),
+            slug=self.slug,  # Use computed slug (includes filename fallback)
             weight=standard_fields.get("weight"),
             lang=self.lang,
             nav_title=standard_fields.get("nav_title"),  # Short title for navigation
