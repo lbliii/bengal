@@ -30,22 +30,21 @@ def test_url_cache_cleared_after_output_path_set():
     page._site = site
 
     # Access URL BEFORE setting output_path (simulates early access during discovery)
-    # This should return fallback: "/0.1.0/" and cache it
+    # This should return fallback: "/0.1.0/" - but NOT cache it (new behavior)
     early_url = page.url
     assert early_url == "/0.1.0/", "Should use fallback slug-based URL"
 
-    # Verify it's cached
-    assert "url" in page.__dict__, "URL should be cached in __dict__"
+    # Verify it's NOT cached (fallback values are not cached to prevent stale URLs)
+    # This is the new behavior - fallbacks don't get cached to allow proper URL
+    # computation once output_path is set
+    assert "_url_cache" not in page.__dict__, "Fallback URL should not be cached"
+    assert "_relative_url_cache" not in page.__dict__, "Fallback relative_url should not be cached"
 
     # Now set the proper output_path
     page.output_path = Path("/tmp/public/releases/0.1.0/index.html")
 
-    # Clear the cache (this is what orchestrators do)
-    # Must clear both url AND relative_url since url depends on relative_url
-    if "url" in page.__dict__:
-        del page.__dict__["url"]
-    if "relative_url" in page.__dict__:
-        del page.__dict__["relative_url"]
+    # No need to clear cache anymore since fallbacks are not cached
+    # The next access will compute the correct URL from output_path
 
     # Now accessing url should compute the correct value
     correct_url = page.url

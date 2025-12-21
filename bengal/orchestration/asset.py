@@ -399,7 +399,24 @@ class AssetOrchestrator:
                             last_update_time = now
 
                 except Exception as e:
-                    errors.append(str(e))
+                    from bengal.utils.error_context import ErrorContext, enrich_error
+                    from bengal.utils.exceptions import BengalError
+
+                    # Enrich error with context
+                    asset_path = asset.source_path if hasattr(asset, "source_path") else None
+                    context = ErrorContext(
+                        file_path=asset_path,
+                        operation="processing asset",
+                        suggestion="Check file permissions, encoding, and format",
+                        original_error=e,
+                    )
+                    enriched = enrich_error(e, context, BengalError)
+                    errors.append(str(enriched))
+                    # Collect error in build stats if available
+                    if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
+                        stats = self.site._last_build_stats
+                        if stats:
+                            stats.add_error(enriched, category="assets")
 
         # Final progress update for any remaining pending updates
         if progress_manager and pending_updates > 0:
@@ -455,13 +472,29 @@ class AssetOrchestrator:
                         bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
+                from bengal.utils.error_context import ErrorContext, enrich_error
+                from bengal.utils.exceptions import BengalError
+
+                # Enrich error with context
+                context = ErrorContext(
+                    file_path=asset.source_path,
+                    operation="processing asset",
+                    suggestion="Check file permissions, encoding, and format",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalError)
                 self.logger.error(
                     "asset_processing_failed",
                     asset_path=str(asset.source_path),
-                    error=str(e),
+                    error=str(enriched),
                     error_type=type(e).__name__,
                     mode="sequential",
                 )
+                # Collect error in build stats if available
+                if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
+                    stats = self.site._last_build_stats
+                    if stats:
+                        stats.add_error(enriched, category="assets")
 
         # Process CSS
         for entry in css_entries:

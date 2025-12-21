@@ -385,10 +385,21 @@ class BuildCache(
                 self._save_to_file(cache_path)
 
         except Exception as e:
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalCacheError
+
+            # Enrich error with context
+            context = ErrorContext(
+                file_path=cache_path,
+                operation="saving build cache",
+                suggestion="Check disk space and permissions. Cache will be rebuilt on next build.",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalCacheError)
             logger.error(
                 "cache_save_failed",
                 cache_path=str(cache_path),
-                error=str(e),
+                error=str(enriched),
                 error_type=type(e).__name__,
                 impact="incremental_builds_disabled",
             )

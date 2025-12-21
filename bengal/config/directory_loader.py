@@ -200,6 +200,9 @@ class ConfigDirectoryLoader:
         # Load .yaml and .yml files in sorted order (deterministic)
         yaml_files = sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml"))
 
+        from bengal.utils.error_context import ErrorContext, enrich_error
+        from bengal.utils.exceptions import BengalConfigError
+
         for yaml_file in yaml_files:
             try:
                 file_config = self._load_yaml(yaml_file)
@@ -211,25 +214,34 @@ class ConfigDirectoryLoader:
                     keys=list(file_config.keys()),
                 )
             except ConfigLoadError:
-                # Re-raise config errors immediately
+                # Re-raise config errors immediately (critical)
                 raise
             except Exception as e:
+                # Enrich error with context for better error messages
+                context = ErrorContext(
+                    file_path=yaml_file,
+                    operation="loading config file",
+                    suggestion="Check YAML syntax and file encoding (must be UTF-8)",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalConfigError)
                 logger.warning(
                     "config_file_load_failed",
                     file=str(yaml_file),
-                    error=str(e),
+                    error=str(enriched),
+                    error_type=type(e).__name__,
                 )
-                errors.append((yaml_file, e))
+                errors.append((yaml_file, enriched))
 
-        # If any errors occurred, raise
+        # If any errors occurred, raise with better context
         if errors:
             error_msg = "; ".join([f"{f}: {e}" for f, e in errors])
             # Use first error's file path for context
             first_file, first_error = errors[0]
             raise ConfigLoadError(
-                f"Failed to load config files: {error_msg}",
+                message=f"Failed to load config files: {error_msg}",
                 file_path=first_file,
-                suggestion="Check YAML syntax and file encoding (must be UTF-8)",
+                suggestion="Check YAML syntax and file encoding (must be UTF-8). Failed files were skipped.",
                 original_error=first_error if isinstance(first_error, Exception) else None,
             )
 
