@@ -53,6 +53,7 @@ graph TB
         Sections[Sections<br/>bengal/core/section.py]
         Assets[Assets<br/>bengal/core/asset/]
         Menus[Menus<br/>bengal/core/menu.py]
+        NavTree[NavTree<br/>bengal/core/nav_tree.py]
     end
 
     subgraph "Supporting Systems"
@@ -73,7 +74,10 @@ graph TB
     Site --> Orchestration
     Orchestration --> Menus
     Orchestration --> Rendering
+    Site --> NavTree
+    Sections -.->|"builds from"| NavTree
     Menus -.->|"used by"| Rendering
+    NavTree -.->|"used by"| Rendering
     Rendering --> PostProcess
     Cache -.->|"cache checks"| Orchestration
     Health -.->|"validation"| PostProcess
@@ -86,6 +90,23 @@ graph TB
 **Key Flows:**
 1. **Build**: CLI → Site → Discovery → Orchestration → [Menus + Rendering] → Post-Process
 2. **Menu Building**: Orchestration builds menus → Rendering uses menus in templates
-3. **Cache**: Build Cache checks file changes and dependencies before rebuilding
-4. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
-5. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
+3. **Navigation Tree**: Site builds NavTree from sections → Cached per version → Rendering uses for O(1) template access
+4. **Cache**: Build Cache checks file changes and dependencies before rebuilding
+5. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
+6. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
+
+## Object Model Relationships
+
+### NavTree ↔ Section Relationship
+
+`NavTree` is built from the site's `Section` hierarchy:
+
+- **NavTree.build()** traverses `site.sections` and creates `NavNode` structures
+- Each `NavNode` can reference a `Section` (via `node.section`) or a `Page` (via `node.page`)
+- Version filtering uses `Section.pages_for_version()` and `Section.subsections_for_version()`
+- The tree is cached per version for O(1) template access
+
+**Benefits:**
+- Pre-computed structure eliminates template-side version filtering overhead
+- Immutable cached trees preserve thread safety
+- Active trail computation happens once per page render (via `NavTreeContext`)
