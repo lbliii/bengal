@@ -50,12 +50,45 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
+    """
+    Get href for any object. Prefer obj.href directly.
+
+    This is the recommended way to get URLs in template functions and filters.
+    The returned URL includes baseurl and is ready for use in href attributes.
+
+    Args:
+        obj: Page, Section, Asset, NavNodeProxy, or dict-like object with href/_path
+
+    Returns:
+        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
+
+    Example:
+        # In template function
+        return href_for(related_page, site)  # Returns "/bengal/docs/related/"
+
+    Note:
+        For Page/Section/Asset objects, prefer obj.href directly, which already
+        includes baseurl. This function is useful for handling various
+        page-like objects consistently.
+    """
+    # Prefer href property if available
+    if hasattr(obj, "href"):
+        return obj.href
+
+    # Fallback to url_for for backward compatibility
+    return url_for(obj, site)
+
+
 def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
     """
     Generate public URL for a page with baseurl applied.
 
-    This is the recommended way to get URLs in template functions and filters.
-    The returned URL includes baseurl and is ready for use in href attributes.
+    Deprecated: Prefer href_for() or obj.href directly.
+
+    This function is kept for backward compatibility. New code should use:
+    - obj.href for Page/Section/Asset objects
+    - href_for() for generic objects
 
     Args:
         page: Page object, PageProxy, NavNode, or dict-like object with url/slug
@@ -68,7 +101,7 @@ def url_for(page: Page | Mapping[str, Any] | Any, site: Site) -> str:
         return url_for(related_page, site)  # Returns "/bengal/docs/related/"
 
     Note:
-        For Page objects, you can also use page.url directly, which already
+        For Page objects, prefer page.href directly, which already
         includes baseurl. This function is useful for handling various
         page-like objects consistently.
     """
