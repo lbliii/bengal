@@ -136,13 +136,22 @@ class RenderingPipeline:
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = injected_parser or get_thread_parser(markdown_engine)
 
+        self.dependency_tracker = dependency_tracker
+
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
-            self.parser.enable_cross_references(site.xref_index, version_config)
 
-        self.dependency_tracker = dependency_tracker
+            # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+            # Pass cross-version tracker for dependency tracking during incremental builds
+            cross_version_tracker = None
+            if dependency_tracker and hasattr(dependency_tracker, "track_cross_version_link"):
+                cross_version_tracker = dependency_tracker.track_cross_version_link
+
+            self.parser.enable_cross_references(
+                site.xref_index, version_config, cross_version_tracker
+            )
         self.quiet = quiet
         self.build_stats = build_stats
 
@@ -374,11 +383,17 @@ class RenderingPipeline:
     def _parse_with_mistune(self, page: Page, need_toc: bool) -> None:
         """Parse content using Mistune parser."""
         if page.metadata.get("preprocess") is False:
+            # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+            # Inject source_path into metadata for cross-version dependency tracking
+            # (non-context parse methods don't have access to page object)
+            metadata_with_source = dict(page.metadata)
+            metadata_with_source["_source_path"] = page.source_path
+
             if need_toc:
-                parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+                parsed_content, toc = self.parser.parse_with_toc(page.content, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
-                parsed_content = self.parser.parse(page.content, page.metadata)
+                parsed_content = self.parser.parse(page.content, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
                 toc = ""
         else:
@@ -833,10 +848,10 @@ class RenderingPipeline:
             """Compute URL for an element based on its qualified_name and type."""
             if not hasattr(elem, "qualified_name"):
                 return "#"
-            
+
             qualified_name = elem.qualified_name
             element_type = elem_type or getattr(elem, "element_type", None)
-            
+
             # Get prefixes from config with safe defaults
             if doc_type == "python":
                 prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
@@ -845,6 +860,7 @@ class RenderingPipeline:
             elif doc_type == "cli":
                 prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
+
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
@@ -852,6 +868,7 @@ class RenderingPipeline:
                 prefix = autodoc_config.get("openapi", {}).get("output_prefix", "api")
                 if element_type == "openapi_endpoint":
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
+
                     method = get_openapi_method(elem).lower()
                     path = get_openapi_path(elem).strip("/").replace("/", "-")
                     return f"/{prefix}/endpoints/{method}-{path}/"
@@ -859,11 +876,12 @@ class RenderingPipeline:
                     return f"/{prefix}/schemas/{elem.name}/"
                 else:
                     return f"/{prefix}/overview/"
-            
+
             # Fallback: infer from element_type
             if element_type in ["command", "command-group"]:
                 prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
+
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
@@ -871,7 +889,7 @@ class RenderingPipeline:
                 prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
-            
+
             # Ultimate fallback
             return "#"
 
@@ -935,7 +953,7 @@ class RenderingPipeline:
                     except (AttributeError, TypeError):
                         # Can't set attribute, skip
                         pass
-            
+
             # Recursively coerce children if they exist and are iterable
             children = getattr(obj, "children", None)
             if children and isinstance(children, (list, tuple)):

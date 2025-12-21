@@ -206,6 +206,20 @@ class MistuneParser(BaseMarkdownParser):
                     metadata.get("version") or metadata.get("_version") if metadata else None
                 )
                 self._xref_plugin.current_version = page_version
+
+                # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+                # Set current page source path for cross-version dependency tracking
+                # (source_path may be passed via metadata._source_path)
+                source_path = metadata.get("_source_path") if metadata else None
+                if source_path:
+                    from pathlib import Path
+
+                    self._xref_plugin.current_source_page = (
+                        Path(source_path) if isinstance(source_path, str) else source_path
+                    )
+                else:
+                    self._xref_plugin.current_source_page = None
+
                 html = self._xref_plugin._substitute_xrefs(html)
             return html
         except Exception as e:
@@ -250,6 +264,19 @@ class MistuneParser(BaseMarkdownParser):
             # Try to get version from metadata (page object may not be available)
             page_version = metadata.get("version") or metadata.get("_version") if metadata else None
             self._xref_plugin.current_version = page_version
+
+            # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+            # Set current page source path for cross-version dependency tracking
+            source_path = metadata.get("_source_path") if metadata else None
+            if source_path:
+                from pathlib import Path
+
+                self._xref_plugin.current_source_page = (
+                    Path(source_path) if isinstance(source_path, str) else source_path
+                )
+            else:
+                self._xref_plugin.current_source_page = None
+
             html = self._xref_plugin._substitute_xrefs(html)
 
         # Stage 2: Inject heading anchors (IDs only; theme adds copy-link anchors)
@@ -379,6 +406,14 @@ class MistuneParser(BaseMarkdownParser):
                         metadata.get("version") or metadata.get("_version") if metadata else None
                     )
                     self._xref_plugin.current_version = page_version
+
+                # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+                # Set current page source path for cross-version dependency tracking
+                if current_page and hasattr(current_page, "source_path"):
+                    self._xref_plugin.current_source_page = current_page.source_path
+                else:
+                    self._xref_plugin.current_source_page = None
+
                 html = self._xref_plugin._substitute_xrefs(html)
             return html
         except Exception as e:
@@ -436,6 +471,7 @@ class MistuneParser(BaseMarkdownParser):
         self,
         xref_index: dict[str, Any],
         version_config: Any | None = None,
+        cross_version_tracker: Any | None = None,
     ) -> None:
         """
         Enable cross-reference support with [[link]] syntax.
@@ -451,15 +487,21 @@ class MistuneParser(BaseMarkdownParser):
         Args:
             xref_index: Pre-built cross-reference index from site discovery
             version_config: Optional versioning configuration for cross-version links
+            cross_version_tracker: Optional callback for tracking cross-version link
+                dependencies. Called with (source_page, target_version, target_path)
+                when a [[v2:path]] link is resolved.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
 
         Raises:
             ImportError: If CrossReferencePlugin cannot be imported
         """
         if self._xref_enabled:
-            # Already enabled, just update index and version_config
+            # Already enabled, just update index, version_config, and tracker
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
                 self._xref_plugin.version_config = version_config
+                self._xref_plugin._cross_version_tracker = cross_version_tracker
             # Update shared renderer (automatically available to all Markdown instances)
             self._shared_renderer._xref_index = xref_index  # type: ignore[attr-defined]
             return
@@ -467,7 +509,7 @@ class MistuneParser(BaseMarkdownParser):
         from bengal.rendering.plugins import CrossReferencePlugin
 
         # Create plugin instance (for post-processing HTML)
-        self._xref_plugin = CrossReferencePlugin(xref_index, version_config)
+        self._xref_plugin = CrossReferencePlugin(xref_index, version_config, cross_version_tracker)
         self._xref_enabled = True
 
         # Store xref_index on shared renderer for directive access
@@ -558,6 +600,19 @@ class MistuneParser(BaseMarkdownParser):
                     metadata.get("version") or metadata.get("_version") if metadata else None
                 )
                 self._xref_plugin.current_version = page_version
+
+                # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+                # Set current page source path for cross-version dependency tracking
+                source_path = metadata.get("_source_path") if metadata else None
+                if source_path:
+                    from pathlib import Path
+
+                    self._xref_plugin.current_source_page = (
+                        Path(source_path) if isinstance(source_path, str) else source_path
+                    )
+                else:
+                    self._xref_plugin.current_source_page = None
+
                 html = self._xref_plugin._substitute_xrefs(html)
 
             # Inject heading anchors and extract TOC

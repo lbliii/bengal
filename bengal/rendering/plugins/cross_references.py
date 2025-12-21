@@ -388,6 +388,9 @@ class CrossReferencePlugin:
 
         Handles [[v2:path]] and [[latest:path]] syntax.
 
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+        - Tracks cross-version link dependencies for incremental rebuilds
+
         Args:
             ref: Reference string in format "version:path"
             text: Optional custom link text
@@ -397,6 +400,16 @@ class CrossReferencePlugin:
         """
         # Parse version:path format
         version_id, path = ref.split(":", 1)
+
+        # Track cross-version dependency for incremental rebuilds
+        if self._cross_version_tracker is not None and self.current_source_page is not None:
+            # Normalize path for tracking (remove anchor, clean up)
+            track_path = path.split("#")[0].replace(".md", "").strip("/")
+            self._cross_version_tracker(
+                self.current_source_page,
+                version_id,
+                track_path,
+            )
 
         # Check if versioning is enabled
         if not self.version_config or not self.version_config.enabled:

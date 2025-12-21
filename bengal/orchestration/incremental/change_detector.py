@@ -193,6 +193,20 @@ class ChangeDetector:
             change_summary=change_summary,
         )
 
+        # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+        # Apply cross-version link dependencies
+        xver_count = self._apply_cross_version_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            verbose=verbose,
+            change_summary=change_summary,
+        )
+        if xver_count > 0:
+            logger.info(
+                "cross_version_dependencies_detected",
+                additional_pages=xver_count,
+                reason="cross_version_link_targets_changed",
+            )
+
         # Apply adjacent navigation rebuilds
         nav_count = self.cascade_tracker.apply_adjacent_navigation_rebuilds(
             pages_to_rebuild=pages_to_rebuild,
@@ -479,6 +493,103 @@ class ChangeDetector:
                 and (str(page.source_path) in autodoc_pages or not has_autodoc_tracking)
             )
         ]
+
+    def _apply_cross_version_rebuilds(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        verbose: bool,
+        change_summary: ChangeSummary,
+    ) -> int:
+        """
+        Add pages that depend on changed cross-version link targets.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+
+        When a page changes that is the target of cross-version links ([[v2:path]]),
+        the source pages containing those links must be rebuilt to update their
+        link text (which may include the target's title).
+
+        Args:
+            pages_to_rebuild: Set of page paths to rebuild (modified in place)
+            verbose: Whether to collect detailed change information
+            change_summary: Summary object to record changes
+
+        Returns:
+            Count of pages added due to cross-version dependencies.
+        """
+        # Check if versioning is enabled
+        if not getattr(self.site, "versioning_enabled", False):
+            return 0
+
+        # Check if tracker supports cross-version dependencies
+        if not hasattr(self.tracker, "get_cross_version_dependents"):
+            return 0
+
+        added_count = 0
+        xver_sources: set[Path] = set()
+
+        # For each page being rebuilt, check if other pages have cross-version links to it
+        for changed_path in list(pages_to_rebuild):
+            # Find the page to get its version
+            page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            if not page:
+                continue
+
+            # Get the page's version
+            version = getattr(page, "version", None) or page.metadata.get("version")
+            if not version:
+                continue
+
+            # Normalize the path for lookup (remove content/ prefix if present)
+            # Cross-version links use paths like [[v2:docs/guide]] without content/ prefix
+            path_str = str(changed_path)
+            content_prefix = str(self.site.root_path / "content") + "/"
+            if path_str.startswith(content_prefix):
+                path_str = path_str[len(content_prefix):]
+
+            # Remove version prefix from path (e.g., docs/v2/guide -> docs/guide)
+            # This matches how cross-version links are stored
+            version_config = getattr(self.site, "version_config", None)
+            if version_config:
+                for section in getattr(version_config, "sections", []):
+                    section_prefix = f"{section}/{version}/"
+                    if path_str.startswith(section_prefix):
+                        path_str = section + "/" + path_str[len(section_prefix):]
+                        break
+
+            # Remove .md extension
+            if path_str.endswith(".md"):
+                path_str = path_str[:-3]
+
+            # Also handle index pages
+            if path_str.endswith("/_index"):
+                path_str = path_str[:-7]
+            elif path_str.endswith("/index"):
+                path_str = path_str[:-6]
+
+            # Get pages that have cross-version links to this target
+            dependents = self.tracker.get_cross_version_dependents(
+                changed_version=version,
+                changed_path=path_str,
+            )
+
+            for dependent_path in dependents:
+                if dependent_path not in pages_to_rebuild:
+                    xver_sources.add(dependent_path)
+
+        # Add dependent pages to rebuild set
+        for source_path in xver_sources:
+            pages_to_rebuild.add(source_path)
+            added_count += 1
+
+            if verbose:
+                change_summary.extra_changes.setdefault("Cross-version dependencies", [])
+                change_summary.extra_changes["Cross-version dependencies"].append(
+                    f"Rebuilt {source_path.name} (cross-version link target changed)"
+                )
+
+        return added_count
 
     def _get_theme_templates_dir(self) -> Path | None:
         """Get the templates directory for the current theme."""

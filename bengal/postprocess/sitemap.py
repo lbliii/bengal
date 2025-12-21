@@ -94,6 +94,13 @@ class SitemapGenerator:
 
         self.logger.info("sitemap_generation_start", total_pages=len(self.site.pages))
 
+        # Build translation index once: O(n) instead of O(n²) for hreflang lookups
+        translation_index: dict[str, list[Any]] = {}
+        for page in self.site.pages:
+            key = getattr(page, "translation_key", None)
+            if key:
+                translation_index.setdefault(key, []).append(page)
+
         # Create root element with xhtml namespace for hreflang alternates
         urlset = ET.Element("urlset")
         urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
@@ -133,10 +140,10 @@ class SitemapGenerator:
             try:
                 if getattr(page, "translation_key", None):
                     key = page.translation_key
-                    # Collect alternates
+                    # Collect alternates using pre-built index: O(1) lookup
                     seen = set()
-                    for p in self.site.pages:
-                        if getattr(p, "translation_key", None) == key and p.output_path:
+                    for p in translation_index.get(key, []):
+                        if p.output_path:
                             try:
                                 rel = p.output_path.relative_to(self.site.output_dir)
                                 href = f"{baseurl}/{rel}".replace("\\", "/")
