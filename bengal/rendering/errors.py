@@ -11,7 +11,7 @@ from typing import Any
 from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
-from bengal.utils.exceptions import BengalRenderingError
+from bengal.errors import BengalRenderingError
 from bengal.utils.logger import truncate_error
 
 

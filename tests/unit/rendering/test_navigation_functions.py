@@ -317,7 +317,7 @@ class TestGetNavContext:
 
     def test_no_site_raises_error(self):
         """Page without site reference raises BengalRenderingError."""
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         current_page = Mock(spec=[])
         current_page._site = None

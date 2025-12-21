@@ -11,7 +11,7 @@ import pytest
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration import AutodocRunResult, VirtualAutodocOrchestrator
-from bengal.utils.exceptions import BengalDiscoveryError
+from bengal.errors import BengalDiscoveryError
 
 # Note: The orchestrator calls module-level functions from these modules:
 # - bengal.autodoc.orchestration.extractors: extract_python, extract_cli, extract_openapi

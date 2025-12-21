@@ -287,7 +287,7 @@ class Renderer:
                 if debug_mode:
                     # Use configured traceback renderer for consistency
                     try:
-                        from bengal.utils.traceback_config import TracebackConfig
+                        from bengal.errors.traceback import TracebackConfig
 
                         TracebackConfig.from_environment().get_renderer().display_exception(e)
                     except Exception as traceback_error:
@@ -310,7 +310,7 @@ class Renderer:
             if debug_mode:
                 # Show exception using the configured renderer
                 try:
-                    from bengal.utils.traceback_config import TracebackConfig
+                    from bengal.errors.traceback import TracebackConfig
 
                     TracebackConfig.from_environment().get_renderer().display_exception(e)
                 except Exception as traceback_error:

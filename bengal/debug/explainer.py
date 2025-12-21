@@ -121,7 +121,7 @@ class PageExplainer:
         """
         page = self._find_page(page_path)
         if page is None:
-            from bengal.utils.exceptions import BengalContentError
+            from bengal.errors import BengalContentError
 
             raise BengalContentError(
                 f"Page not found: {page_path}\n"

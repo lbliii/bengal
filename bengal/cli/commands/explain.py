@@ -21,8 +21,8 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.errors.traceback import TracebackStyle
 from bengal.utils.profile import BuildProfile
-from bengal.utils.traceback_config import TracebackStyle
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -156,7 +156,7 @@ def explain(
             for match in matches[:5]:
                 cli.info(f"  • {match}")
 
-        raise click.ClickException(f"Page not found: {page_path}")
+        raise click.ClickException(f"Page not found: {page_path}") from e
 
     # Output
     if output_json:

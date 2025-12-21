@@ -18,7 +18,7 @@ from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.discovery.page_factory import PageInitializer
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 class TestPageInitializer:

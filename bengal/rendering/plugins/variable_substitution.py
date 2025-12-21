@@ -244,7 +244,7 @@ class VariableSubstitutionPlugin:
         parts = expr.split(".")
 
         # SECURITY: Block access to private/dunder attributes
-        from bengal.utils.exceptions import BengalRenderingError
+        from bengal.errors import BengalRenderingError
 
         for part in parts:
             if part.startswith("_"):

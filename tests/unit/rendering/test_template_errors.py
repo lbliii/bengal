@@ -10,13 +10,13 @@ import pytest
 from jinja2 import Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError
 
+from bengal.errors import BengalError, BengalRenderingError
 from bengal.rendering.errors import (
     InclusionChain,
     TemplateErrorContext,
     TemplateRenderError,
     display_template_error,
 )
-from bengal.utils.exceptions import BengalError, BengalRenderingError
 
 
 class MockTemplateEngine:

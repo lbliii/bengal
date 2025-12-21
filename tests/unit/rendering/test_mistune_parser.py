@@ -39,7 +39,7 @@ class TestParserFactory:
 
     def test_invalid_engine_raises_error(self, parser):
         """Test that invalid engine raises BengalConfigError."""
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         with pytest.raises(BengalConfigError, match="Unsupported markdown engine"):
             create_markdown_parser("invalid-engine")

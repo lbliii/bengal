@@ -13,7 +13,7 @@ from typing import Any
 
 import yaml
 
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

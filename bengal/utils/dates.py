@@ -93,7 +93,7 @@ def parse_date(
 
     # Couldn't parse
     if on_error == "raise":
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         raise BengalError(
             f"Could not parse date from: {value!r}",

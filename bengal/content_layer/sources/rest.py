@@ -70,7 +70,7 @@ class RESTSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         if "url" not in config:
             raise BengalConfigError(

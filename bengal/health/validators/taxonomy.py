@@ -150,7 +150,7 @@ class TaxonomyValidator(BaseValidator):
                 and p.metadata.get("type") == "archive"
                 and (
                     p.metadata.get("_section") == section
-                    or (p.metadata.get("_section_url") == getattr(section, "url", None))
+                    or (p.metadata.get("_section_url") == getattr(section, "href", None))
                 )
                 for p in site.pages
             )

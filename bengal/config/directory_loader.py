@@ -22,8 +22,7 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
-from bengal.utils.actionable_errors import format_suggestion
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError, format_suggestion
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -206,8 +205,7 @@ class ConfigDirectoryLoader:
         # Load .yaml and .yml files in sorted order (deterministic)
         yaml_files = sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml"))
 
-        from bengal.utils.error_context import ErrorContext, enrich_error
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorContext, enrich_error
 
         for yaml_file in yaml_files:
             try:

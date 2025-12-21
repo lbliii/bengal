@@ -26,7 +26,7 @@ from typing import Any, ClassVar
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
-from bengal.utils.actionable_errors import format_suggestion
+from bengal.errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 __all__ = ["SinceDirective", "DeprecatedDirective", "ChangedDirective"]

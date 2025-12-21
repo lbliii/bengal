@@ -270,7 +270,7 @@ class GitVersionAdapter:
                 ref=ref,
                 error=e.stderr,
             )
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError
 
             raise BengalDiscoveryError(
                 f"Failed to create worktree for {ref}: {e.stderr}",

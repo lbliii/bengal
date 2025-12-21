@@ -157,7 +157,7 @@ class PythonExtractor(Extractor):
         elif source.is_dir():
             return self._extract_directory(source)
         else:
-            from bengal.utils.exceptions import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError
 
             raise BengalDiscoveryError(
                 f"Source must be a file or directory: {source}",

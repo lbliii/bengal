@@ -75,7 +75,7 @@ class GoogleFontsDownloader:
             output_dir must be explicit - no fallback to Path.cwd() to ensure
             consistent behavior. See: plan/implemented/rfc-path-resolution-architecture.md
         """
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         if output_dir is None:
             raise BengalError(

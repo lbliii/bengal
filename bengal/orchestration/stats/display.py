@@ -49,7 +49,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
 
     # Show errors using new error reporter
     if stats.has_errors:
-        from bengal.utils.error_reporter import format_error_report
+        from bengal.errors import format_error_report
 
         error_report = format_error_report(stats, verbose=False)
         if error_report != "✅ No errors or warnings":
@@ -117,7 +117,7 @@ def display_build_stats(
 
     # Display errors and warnings
     if stats.has_errors or stats.warnings:
-        from bengal.utils.error_reporter import format_error_report
+        from bengal.errors import format_error_report
 
         error_report = format_error_report(stats, verbose=True)
         if error_report != "✅ No errors or warnings":

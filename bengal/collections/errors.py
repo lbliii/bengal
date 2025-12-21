@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 @dataclass

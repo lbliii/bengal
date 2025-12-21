@@ -357,7 +357,7 @@ class TestURLCollisionValidation:
         site.pages = [page1, page2]
 
         # Validate in strict mode should raise
-        from bengal.utils.exceptions import BengalContentError
+        from bengal.errors import BengalContentError
 
         with pytest.raises(BengalContentError, match="URL collisions detected"):
             site.validate_no_url_collisions(strict=True)

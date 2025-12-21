@@ -385,8 +385,7 @@ class BuildCache(
                 self._save_to_file(cache_path)
 
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalCacheError
+            from bengal.errors import BengalCacheError, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(

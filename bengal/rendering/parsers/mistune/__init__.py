@@ -31,6 +31,7 @@ from typing import Any, override
 
 from mistune.renderers.html import HTMLRenderer
 
+from bengal.errors import format_suggestion
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune.ast import (
     create_ast_parser,
@@ -41,7 +42,6 @@ from bengal.rendering.parsers.mistune.highlighting import (
     create_syntax_highlighting_plugin,
 )
 from bengal.rendering.parsers.mistune.toc import extract_toc, inject_heading_anchors
-from bengal.utils.actionable_errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

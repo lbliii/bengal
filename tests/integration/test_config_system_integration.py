@@ -286,7 +286,7 @@ class TestErrorHandling:
         (default_dir / "site.yaml").write_text("invalid: yaml: syntax: error:")
 
         from bengal.config.directory_loader import ConfigLoadError
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         with pytest.raises(ConfigLoadError) as exc_info:
             Site.from_config(root)

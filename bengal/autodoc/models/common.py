@@ -34,7 +34,7 @@ class SourceLocation:
 
     def __post_init__(self) -> None:
         """Validate line number is positive."""
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         if self.line < 1:
             raise BengalError(
@@ -89,7 +89,7 @@ class QualifiedName:
     def __post_init__(self) -> None:
         """Validate parts are non-empty."""
         if not self.parts:
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 "QualifiedName cannot be empty",
@@ -97,7 +97,7 @@ class QualifiedName:
             )
         for part in self.parts:
             if not part:
-                from bengal.utils.exceptions import BengalError
+                from bengal.errors import BengalError
 
                 raise BengalError(
                     f"QualifiedName contains empty part: {self.parts}",

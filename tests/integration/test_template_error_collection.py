@@ -15,8 +15,8 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.errors import BengalRenderingError
 from bengal.orchestration.build import BuildOrchestrator
-from bengal.utils.exceptions import BengalRenderingError
 
 
 class TestTemplateErrorCollection:

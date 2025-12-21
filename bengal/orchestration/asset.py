@@ -399,8 +399,7 @@ class AssetOrchestrator:
                             last_update_time = now
 
                 except Exception as e:
-                    from bengal.utils.error_context import ErrorContext, enrich_error
-                    from bengal.utils.exceptions import BengalError
+                    from bengal.errors import BengalError, ErrorContext, enrich_error
 
                     # Enrich error with context
                     asset_path = asset.source_path if hasattr(asset, "source_path") else None
@@ -445,10 +444,14 @@ class AssetOrchestrator:
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
-        from bengal.utils.actionable_errors import format_suggestion
-        from bengal.utils.error_aggregation import ErrorAggregator, extract_error_context
-        from bengal.utils.error_context import ErrorContext, enrich_error
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import (
+            BengalError,
+            ErrorAggregator,
+            ErrorContext,
+            enrich_error,
+            extract_error_context,
+            format_suggestion,
+        )
 
         assets_output = self.site.output_dir / "assets"
         completed = 0
@@ -688,8 +691,7 @@ class AssetOrchestrator:
             css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
 
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(
@@ -730,8 +732,7 @@ class AssetOrchestrator:
 
             asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(

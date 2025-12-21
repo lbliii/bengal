@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from bengal.content_layer.sources.local import LocalSource, _parse_frontmatter
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 class TestParseFrontmatter:

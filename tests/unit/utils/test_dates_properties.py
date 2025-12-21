@@ -122,7 +122,7 @@ class TestParseDateProperties:
         """
         Property: on_error='raise' either succeeds or raises, never returns None.
         """
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         # Skip valid date-like strings
         parsed_default = parse_date(invalid)

@@ -58,7 +58,7 @@ class TestReadTextFile:
 
     def test_path_is_directory_raise(self, tmp_path):
         """Test BengalError when path is a directory."""
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         with pytest.raises(BengalError, match="not a file"):
             read_text_file(tmp_path, on_error="raise")
@@ -314,7 +314,7 @@ class TestLoadDataFile:
 
     def test_unsupported_extension_raise(self, tmp_path):
         """Test BengalError for unsupported format."""
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         file_path = tmp_path / "data.xml"
         file_path.write_text("<data/>")

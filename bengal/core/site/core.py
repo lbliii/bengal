@@ -685,7 +685,7 @@ class Site(
                     urls_seen[url] = source
 
         if collisions and strict:
-            from bengal.utils.exceptions import BengalContentError
+            from bengal.errors import BengalContentError
 
             raise BengalContentError(
                 "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),

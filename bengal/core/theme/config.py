@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 @dataclass

@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import get_max_workers
-from bengal.utils.error_aggregation import ErrorAggregator, extract_error_context
+from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 

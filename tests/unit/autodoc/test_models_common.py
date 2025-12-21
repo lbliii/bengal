@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from bengal.autodoc.models import QualifiedName, SourceLocation
-from bengal.utils.exceptions import BengalError
+from bengal.errors import BengalError
 
 
 class TestSourceLocation:

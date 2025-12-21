@@ -87,7 +87,7 @@ class TestParseDate:
 
     def test_invalid_string_raise(self):
         """Test invalid string raises BengalError when on_error='raise'."""
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         with pytest.raises(BengalError, match="Could not parse date"):
             parse_date("not a date", on_error="raise")

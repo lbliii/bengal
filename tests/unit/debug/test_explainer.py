@@ -24,7 +24,7 @@ from bengal.debug.models import (
     SourceInfo,
     TemplateInfo,
 )
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 class TestSourceInfo:

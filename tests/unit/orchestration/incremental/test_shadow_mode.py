@@ -11,8 +11,8 @@ import pytest
 
 from bengal.cache.paths import BengalPaths
 from bengal.core.page import Page
+from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.utils.exceptions import BengalError
 
 
 @pytest.fixture

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 @dataclass

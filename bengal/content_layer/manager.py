@@ -13,8 +13,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import BengalConfigError, BengalError
 from bengal.utils.async_compat import run_async
-from bengal.utils.exceptions import BengalConfigError, BengalError
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:

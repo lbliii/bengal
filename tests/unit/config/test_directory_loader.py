@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 
 
 @pytest.fixture

@@ -169,7 +169,7 @@ class ConfigLoader:
             elif suffix in (".yaml", ".yml"):
                 raw_config = self._load_yaml(config_path)
             else:
-                from bengal.utils.exceptions import BengalConfigError
+                from bengal.errors import BengalConfigError
 
                 raise BengalConfigError(
                     f"Unsupported config format: {suffix}",

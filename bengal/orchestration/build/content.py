@@ -58,7 +58,7 @@ def phase_sections(
                     cli.error("Section validation errors:")
                     for error in section_errors:
                         cli.detail(str(error), indent=1, icon="•")
-                    from bengal.utils.exceptions import BengalContentError
+                    from bengal.errors import BengalContentError
 
                     raise BengalContentError(
                         f"Build failed: {len(section_errors)} section validation error(s)",

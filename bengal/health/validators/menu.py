@@ -112,15 +112,21 @@ class MenuValidator(BaseValidator):
         for item in items:
             # Check if URL points to a page
             # Prefer _path (internal), fallback to href (template), then url (legacy)
-            url = getattr(item, "_path", None) or getattr(item, "href", None) or getattr(item, "url", None)
+            url = (
+                getattr(item, "_path", None)
+                or getattr(item, "href", None)
+                or getattr(item, "url", None)
+            )
             if url:
-
                 # Skip external URLs
                 if url.startswith(("http://", "https://", "//")):
                     continue
 
                 # Check if any page has this URL (use _path for internal comparison)
-                found = any(getattr(page, "_path", None) or getattr(page, "relative_url", None) or getattr(page, "url", None) == url for page in site.pages)
+                found = any(
+                    (getattr(page, "_path", None) == url) or (getattr(page, "href", None) == url)
+                    for page in site.pages
+                )
 
                 if not found:
                     broken.append(f"{item.name} → {url}")

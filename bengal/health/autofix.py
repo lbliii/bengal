@@ -84,7 +84,7 @@ class AutoFixer:
             consistent behavior regardless of working directory.
             See: plan/implemented/rfc-path-resolution-architecture.md
         """
-        from bengal.utils.exceptions import BengalError
+        from bengal.errors import BengalError
 
         if not site_root:
             raise BengalError(

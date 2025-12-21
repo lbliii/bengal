@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.exceptions import BengalConfigError
+from bengal.errors import BengalConfigError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

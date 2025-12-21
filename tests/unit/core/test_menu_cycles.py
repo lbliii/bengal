@@ -1,7 +1,7 @@
 import pytest
 
 from bengal.core.menu import MenuBuilder
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 
 
 class TestMenuCircularDependencies:

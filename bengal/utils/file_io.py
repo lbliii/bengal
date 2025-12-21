@@ -125,7 +125,7 @@ def read_text_file(
             caller=caller or "file_io",
         )
         if on_error == "raise":
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 f"Path is not a file: {file_path}",
@@ -483,7 +483,7 @@ def load_data_file(
         )
 
         if on_error == "raise":
-            from bengal.utils.exceptions import BengalError
+            from bengal.errors import BengalError
 
             raise BengalError(
                 f"Unsupported file format: {suffix}",

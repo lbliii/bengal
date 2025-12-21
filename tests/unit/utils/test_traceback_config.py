@@ -1,6 +1,6 @@
 import os
 
-from bengal.utils.traceback_config import (
+from bengal.errors.traceback import (
     TracebackConfig,
     TracebackStyle,
     apply_file_traceback_to_env,
@@ -49,28 +49,28 @@ def test_get_renderer_types(monkeypatch):
     # Full
     set_effective_style_from_cli("full")
     cfg = TracebackConfig.from_environment()
-    from bengal.utils.traceback_renderer import FullTracebackRenderer
+    from bengal.errors.traceback import FullTracebackRenderer
 
     assert isinstance(cfg.get_renderer(), FullTracebackRenderer)
 
     # Compact
     set_effective_style_from_cli("compact")
     cfg = TracebackConfig.from_environment()
-    from bengal.utils.traceback_renderer import CompactTracebackRenderer
+    from bengal.errors.traceback import CompactTracebackRenderer
 
     assert isinstance(cfg.get_renderer(), CompactTracebackRenderer)
 
     # Minimal
     set_effective_style_from_cli("minimal")
     cfg = TracebackConfig.from_environment()
-    from bengal.utils.traceback_renderer import MinimalTracebackRenderer
+    from bengal.errors.traceback import MinimalTracebackRenderer
 
     assert isinstance(cfg.get_renderer(), MinimalTracebackRenderer)
 
     # Off
     set_effective_style_from_cli("off")
     cfg = TracebackConfig.from_environment()
-    from bengal.utils.traceback_renderer import OffTracebackRenderer
+    from bengal.errors.traceback import OffTracebackRenderer
 
     assert isinstance(cfg.get_renderer(), OffTracebackRenderer)
 

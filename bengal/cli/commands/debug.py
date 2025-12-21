@@ -24,7 +24,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
-from bengal.utils.traceback_config import TracebackStyle
+from bengal.errors.traceback import TracebackStyle
 
 
 @click.group("debug", cls=BengalGroup)

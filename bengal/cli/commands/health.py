@@ -22,9 +22,9 @@ from bengal.cli.helpers import (
     load_site_from_cli,
 )
 from bengal.core.site import Site
+from bengal.errors.traceback import TracebackStyle
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.output import CLIOutput
-from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.group("health", cls=BengalGroup)

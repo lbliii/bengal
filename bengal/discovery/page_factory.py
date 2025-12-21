@@ -75,7 +75,7 @@ class PageInitializer:
 
         # Validate output_path is set
         if not page.output_path:
-            from bengal.utils.exceptions import BengalContentError
+            from bengal.errors import BengalContentError
 
             raise BengalContentError(
                 f"Page '{page.title}' has no output_path set. "
@@ -87,7 +87,7 @@ class PageInitializer:
 
         # Validate output_path is absolute
         if not page.output_path.is_absolute():
-            from bengal.utils.exceptions import BengalContentError
+            from bengal.errors import BengalContentError
 
             raise BengalContentError(
                 f"Page '{page.title}' has relative output_path: {page.output_path}\n"
@@ -116,9 +116,11 @@ class PageInitializer:
                     f"falling back to slug-based URL"
                 )
             # Use _path for validation (site-relative path without baseurl)
-            rel_url = getattr(page, "_path", None) or getattr(page, "relative_url", f"/{page.slug}/")
+            rel_url = getattr(page, "_path", None) or getattr(
+                page, "relative_url", f"/{page.slug}/"
+            )
             if not rel_url.startswith("/"):
-                from bengal.utils.exceptions import BengalContentError
+                from bengal.errors import BengalContentError
 
                 raise BengalContentError(
                     f"Generated URL doesn't start with '/': {rel_url}",
@@ -126,8 +128,7 @@ class PageInitializer:
                     suggestion="URLs must start with '/' - check page slug and output_path configuration",
                 )
         except Exception as e:
-            from bengal.utils.error_context import ErrorContext, enrich_error
-            from bengal.utils.exceptions import BengalContentError
+            from bengal.errors import BengalContentError, ErrorContext, enrich_error
 
             context = ErrorContext(
                 file_path=page.source_path,

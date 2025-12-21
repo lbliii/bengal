@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from bengal.core.site import Site
-from bengal.utils.logger import get_logger
-from bengal.utils.traceback_config import (
+from bengal.errors.traceback import (
     TracebackConfig,
     apply_file_traceback_to_env,
     map_debug_flag_to_traceback,
     set_effective_style_from_cli,
 )
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

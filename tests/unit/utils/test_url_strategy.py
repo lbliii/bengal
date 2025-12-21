@@ -17,7 +17,7 @@ import pytest
 
 from bengal.core.section import Section
 from bengal.core.site import Site
-from bengal.utils.exceptions import BengalContentError
+from bengal.errors import BengalContentError
 from bengal.utils.url_strategy import URLStrategy
 
 

@@ -69,7 +69,7 @@ class GitHubSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.utils.exceptions import BengalConfigError
+        from bengal.errors import BengalConfigError
 
         if "repo" not in config:
             raise BengalConfigError(
