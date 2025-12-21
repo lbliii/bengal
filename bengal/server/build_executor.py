@@ -52,6 +52,9 @@ class BuildRequest:
         nav_changed_paths: Paths with navigation-affecting frontmatter changes
         structural_changed: Whether structural changes (create/delete/move) occurred
         parallel: Whether to use parallel rendering
+        version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+            Focus rebuilds on a single version (e.g., "v2", "latest").
+            If None, all versions are rebuilt on changes.
     """
 
     site_root: str
@@ -61,6 +64,7 @@ class BuildRequest:
     nav_changed_paths: tuple[str, ...] = field(default_factory=tuple)
     structural_changed: bool = False
     parallel: bool = True
+    version_scope: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +119,11 @@ def _execute_build(request: BuildRequest) -> BuildResult:
         site.dev_mode = True  # Runtime flag for dev server mode
         cfg["fingerprint_assets"] = False
         cfg.setdefault("minify_assets", False)
+
+        # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+        # Store version_scope in site config for incremental build filtering
+        if request.version_scope:
+            cfg["_version_scope"] = request.version_scope
 
         # Get build profile
         profile = getattr(BuildProfile, request.profile, BuildProfile.WRITER)

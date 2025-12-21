@@ -484,7 +484,7 @@ class ChangeDetector:
             with contextlib.suppress(TypeError, AttributeError):
                 has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
 
-        return [
+        pages = [
             page
             for page in self.site.pages
             if (page.source_path in pages_to_rebuild and not page.metadata.get("_generated"))
@@ -493,6 +493,73 @@ class ChangeDetector:
                 and (str(page.source_path) in autodoc_pages or not has_autodoc_tracking)
             )
         ]
+
+        # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+        # Apply version scope filtering if configured
+        return self._apply_version_scope_filter(pages)
+
+    def _apply_version_scope_filter(self, pages: list[Page]) -> list[Page]:
+        """
+        Filter pages to only include those in the specified version scope.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+
+        When version_scope is set in config, only pages belonging to that version
+        are rebuilt. This speeds up focused development on a single version.
+
+        Args:
+            pages: List of pages to filter
+
+        Returns:
+            Filtered list of pages (only those matching version_scope, or all if not set)
+        """
+        # Get version_scope from site config
+        version_scope = self.site.config.get("_version_scope")
+        if not version_scope:
+            return pages
+
+        # Check if versioning is enabled
+        if not getattr(self.site, "versioning_enabled", False):
+            return pages
+
+        # Resolve version aliases (e.g., "latest" -> actual version id)
+        version_config = getattr(self.site, "version_config", None)
+        if not version_config:
+            return pages
+
+        target_version = version_config.get_version_or_alias(version_scope)
+        if not target_version:
+            logger.warning(
+                "version_scope_unknown",
+                version_scope=version_scope,
+                action="rebuilding_all_versions",
+            )
+            return pages
+
+        target_version_id = target_version.id
+        filtered_pages: list[Page] = []
+
+        for page in pages:
+            # Get page's version
+            page_version = getattr(page, "version", None) or page.metadata.get("version")
+
+            # Include page if:
+            # 1. It's not versioned (shared content, non-versioned sections)
+            # 2. It matches the target version
+            if page_version is None or page_version == target_version_id:
+                filtered_pages.append(page)
+
+        if len(filtered_pages) < len(pages):
+            logger.info(
+                "version_scope_filter_applied",
+                version_scope=version_scope,
+                resolved_version=target_version_id,
+                total_pages=len(pages),
+                filtered_pages=len(filtered_pages),
+                skipped_pages=len(pages) - len(filtered_pages),
+            )
+
+        return filtered_pages
 
     def _apply_cross_version_rebuilds(
         self,
@@ -546,7 +613,7 @@ class ChangeDetector:
             path_str = str(changed_path)
             content_prefix = str(self.site.root_path / "content") + "/"
             if path_str.startswith(content_prefix):
-                path_str = path_str[len(content_prefix):]
+                path_str = path_str[len(content_prefix) :]
 
             # Remove version prefix from path (e.g., docs/v2/guide -> docs/guide)
             # This matches how cross-version links are stored
@@ -555,7 +622,7 @@ class ChangeDetector:
                 for section in getattr(version_config, "sections", []):
                     section_prefix = f"{section}/{version}/"
                     if path_str.startswith(section_prefix):
-                        path_str = section + "/" + path_str[len(section_prefix):]
+                        path_str = section + "/" + path_str[len(section_prefix) :]
                         break
 
             # Remove .md extension

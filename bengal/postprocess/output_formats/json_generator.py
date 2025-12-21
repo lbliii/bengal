@@ -63,6 +63,9 @@ class PageJSONGenerator:
         self.graph_data = graph_data
         self.include_html = include_html
         self.include_text = include_text
+        # Lazily-built indexes for O(1) graph lookups (built on first use)
+        self._node_url_index: dict[str, dict[str, Any]] | None = None
+        self._edge_index: dict[str, list[dict[str, Any]]] | None = None
 
     def generate(
         self, pages: list[Page], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None

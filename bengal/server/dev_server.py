@@ -65,6 +65,7 @@ class DevServer:
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
+        version_scope: str | None = None,
     ) -> None:
         """
         Initialize the dev server.
@@ -77,6 +78,9 @@ class DevServer:
             auto_port: Whether to automatically find an available port if the
                 specified one is in use
             open_browser: Whether to automatically open the browser
+            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+                Focus rebuilds on a single version (e.g., "v2", "latest").
+                If None, all versions are rebuilt on changes.
         """
         self.site = site
         self.host = host
@@ -84,6 +88,7 @@ class DevServer:
         self.watch = watch
         self.auto_port = auto_port
         self.open_browser = open_browser
+        self.version_scope = version_scope
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
@@ -410,10 +415,12 @@ class DevServer:
             Tuple of (WatcherRunner, BuildTrigger)
         """
         # Create build trigger (handles all build execution)
+        # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
         build_trigger = BuildTrigger(
             site=self.site,
             host=self.host,
             port=actual_port,
+            version_scope=self.version_scope,
         )
 
         # Create ignore filter from config

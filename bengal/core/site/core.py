@@ -351,6 +351,7 @@ class Site(
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
+        version_scope: str | None = None,
     ) -> None:
         """
         Start a development server.
@@ -362,6 +363,9 @@ class Site(
             auto_port: Whether to automatically find an available port if the specified one is
                        in use
             open_browser: Whether to automatically open the browser
+            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+                Focus rebuilds on a single version (e.g., "v2", "latest").
+                If None, all versions are rebuilt on changes.
         """
         from bengal.server.dev_server import DevServer
 
@@ -372,6 +376,7 @@ class Site(
             watch=watch,
             auto_port=auto_port,
             open_browser=open_browser,
+            version_scope=version_scope,
         )
         server.start()
 
