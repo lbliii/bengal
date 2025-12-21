@@ -41,6 +41,7 @@ from bengal.rendering.parsers.mistune.highlighting import (
     create_syntax_highlighting_plugin,
 )
 from bengal.rendering.parsers.mistune.toc import extract_toc, inject_heading_anchors
+from bengal.utils.actionable_errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -210,7 +211,13 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            logger.warning("mistune_parsing_error", error=str(e), error_type=type(e).__name__)
+            suggestion = format_suggestion("parsing", "markdown_error")
+            logger.warning(
+                "mistune_parsing_error",
+                error=str(e),
+                error_type=type(e).__name__,
+                suggestion=suggestion,
+            )
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 

@@ -76,7 +76,6 @@ via theme templates without intermediate markdown files. This provides:
   - `index_pages.py`: Section index page generation
   - `result.py`: `AutodocRunResult` and `PageContext` classes
   - `utils.py`: Shared utility functions
-- **VirtualAutodocOrchestrator** (`bengal/autodoc/virtual_orchestrator.py`): Backward-compatibility shim (re-exports from `orchestration/`)
 - **Config** (`bengal/autodoc/config.py`): Load and merge configuration
 - **Fallback Templates** (`bengal/autodoc/fallback/`): Minimal templates when theme doesn't provide them
 

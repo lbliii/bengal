@@ -22,6 +22,7 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
+from bengal.utils.actionable_errors import format_suggestion
 from bengal.utils.exceptions import BengalConfigError
 from bengal.utils.logger import get_logger
 
@@ -122,7 +123,12 @@ class ConfigDirectoryLoader:
             if self.origin_tracker:
                 self.origin_tracker.merge(default_config, "_default")
         else:
-            logger.warning("config_defaults_missing", config_dir=str(config_dir))
+            suggestion = format_suggestion("config", "defaults_missing")
+            logger.warning(
+                "config_defaults_missing",
+                config_dir=str(config_dir),
+                suggestion=suggestion,
+            )
 
         # Layer 2: Environment overrides from environments/<env>.yaml
         env_config = self._load_environment(config_dir, environment)

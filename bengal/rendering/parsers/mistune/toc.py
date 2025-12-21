@@ -20,6 +20,7 @@ from bengal.rendering.parsers.mistune.patterns import (
     HTML_TAG_PATTERN,
     TOC_HEADING_PATTERN,
 )
+from bengal.utils.actionable_errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -232,5 +233,11 @@ def extract_toc(html: str) -> str:
 
     except Exception as e:
         # On any error, return empty TOC (safe fallback)
-        logger.warning("toc_extraction_error", error=str(e), error_type=type(e).__name__)
+        suggestion = format_suggestion("parsing", "toc_extraction_error")
+        logger.warning(
+            "toc_extraction_error",
+            error=str(e),
+            error_type=type(e).__name__,
+            suggestion=suggestion,
+        )
         return ""

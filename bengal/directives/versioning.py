@@ -26,6 +26,7 @@ from typing import Any, ClassVar
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.utils.actionable_errors import format_suggestion
 from bengal.utils.logger import get_logger
 
 __all__ = ["SinceDirective", "DeprecatedDirective", "ChangedDirective"]
@@ -122,7 +123,12 @@ class SinceDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("since_directive_empty", info="Since directive has no version")
+            suggestion = format_suggestion("directive", "since_empty")
+            logger.warning(
+                "since_directive_empty",
+                info="Since directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -228,7 +234,12 @@ class DeprecatedDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("deprecated_directive_empty", info="Deprecated directive has no version")
+            suggestion = format_suggestion("directive", "deprecated_empty")
+            logger.warning(
+                "deprecated_directive_empty",
+                info="Deprecated directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -336,7 +347,12 @@ class ChangedDirective(BengalDirective):
         Title is the version number.
         """
         if not title:
-            logger.warning("changed_directive_empty", info="Changed directive has no version")
+            suggestion = format_suggestion("directive", "changed_empty")
+            logger.warning(
+                "changed_directive_empty",
+                info="Changed directive has no version",
+                suggestion=suggestion,
+            )
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,

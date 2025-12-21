@@ -445,6 +445,7 @@ class AssetOrchestrator:
         css_modules_count: int,
     ) -> None:
         """Process assets sequentially."""
+        from bengal.utils.actionable_errors import format_suggestion
         from bengal.utils.error_aggregation import ErrorAggregator, extract_error_context
         from bengal.utils.error_context import ErrorContext, enrich_error
         from bengal.utils.exceptions import BengalError
@@ -480,11 +481,14 @@ class AssetOrchestrator:
                         bundled_modules=css_modules_count if is_css_entry else None,
                     )
             except Exception as e:
+                # Get actionable suggestion
+                suggestion = format_suggestion("asset", "processing_failed")
+
                 # Enrich error with context
                 error_context = ErrorContext(
                     file_path=asset.source_path,
                     operation="processing asset",
-                    suggestion="Check file permissions, encoding, and format",
+                    suggestion=suggestion or "Check file permissions, encoding, and format",
                     original_error=e,
                 )
                 enriched = enrich_error(e, error_context, BengalError)
@@ -493,15 +497,20 @@ class AssetOrchestrator:
                 context = extract_error_context(e, asset)
                 context["operation"] = "processing asset"
                 context["mode"] = "sequential"
+                if suggestion:
+                    context["suggestion"] = suggestion
 
-                # Log individual error
-                self.logger.error(
-                    "asset_processing_failed",
-                    asset_path=str(asset.source_path),
-                    error=str(enriched),
-                    error_type=type(e).__name__,
-                    mode="sequential",
-                )
+                # Only log individual error if below threshold or first samples
+                threshold = 5
+                if aggregator.should_log_individual(e, context, threshold=threshold, max_samples=3):
+                    self.logger.error(
+                        "asset_processing_failed",
+                        asset_path=str(asset.source_path),
+                        error=str(enriched),
+                        error_type=type(e).__name__,
+                        mode="sequential",
+                        suggestion=suggestion,
+                    )
 
                 # Add to aggregator
                 aggregator.add_error(e, context=context)
