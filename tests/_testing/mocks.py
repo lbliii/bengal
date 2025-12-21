@@ -44,7 +44,8 @@ class MockPage:
 
     Attributes:
         title: Page title (required)
-        url: Page URL path (default: "/")
+        href: Page URL with baseurl (default: "/")
+        _path: Page internal path (default: same as href)
         source_path: Path to source file (default: Path("test.md"))
         metadata: Page metadata dict (default: empty)
         tags: List of tags (default: empty)
@@ -55,7 +56,7 @@ class MockPage:
         _section: Parent section reference (default: None)
 
     Example:
-        >>> page = MockPage(title="Getting Started", url="/docs/quickstart/")
+        >>> page = MockPage(title="Getting Started", href="/docs/quickstart/")
         >>> page.title
         'Getting Started'
         >>> page.metadata
@@ -63,14 +64,15 @@ class MockPage:
 
         >>> page = MockPage(
         ...     title="API Reference",
-        ...     url="/api/",
+        ...     href="/api/",
         ...     metadata={"description": "Complete API docs"},
         ...     tags=["api", "reference"]
         ... )
     """
 
     title: str = ""
-    url: str = "/"
+    href: str = "/"
+    _path: str = ""
     source_path: Path = field(default_factory=lambda: Path("test.md"))
     metadata: dict[str, Any] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
@@ -80,7 +82,6 @@ class MockPage:
     slug: str = ""
     _section: Any = None
     output_path: Path = field(default_factory=lambda: Path("output.html"))
-    relative_url: str = ""
     translations: dict[str, str] | None = None
     name: str = ""
 
@@ -88,8 +89,8 @@ class MockPage:
         """Initialize derived fields."""
         if not self.slug:
             self.slug = self.source_path.stem
-        if not self.relative_url:
-            self.relative_url = self.url
+        if not self._path:
+            self._path = self.href
         # Sync metadata with explicit fields
         if self.description and "description" not in self.metadata:
             self.metadata["description"] = self.description
@@ -116,13 +117,13 @@ class MockSection:
 
     Example:
         >>> section = MockSection(name="docs", title="Documentation")
-        >>> section.index_page.url
+        >>> section.index_page.href
         '/docs/'
 
         >>> section = MockSection(
         ...     name="guides",
         ...     title="User Guides",
-        ...     pages=[MockPage(title="Quickstart", url="/guides/quickstart/")]
+        ...     pages=[MockPage(title="Quickstart", href="/guides/quickstart/")]
         ... )
     """
 

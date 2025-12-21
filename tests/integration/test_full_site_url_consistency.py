@@ -51,7 +51,7 @@ class TestFullSiteUrlConsistency:
         assert test_page is not None, f"Page {page_path} not found in site"
 
         # Verify URL
-        actual_url = test_page.url
+        actual_url = test_page.href
         assert actual_url == expected_url, f"Expected {expected_url}, got {actual_url}"
 
         # Additional checks: trailing slash, no double slashes, relative to baseurl
@@ -67,7 +67,7 @@ class TestFullSiteUrlConsistency:
             site.discover_assets()
             site.build(parallel=False)
 
-        urls = [p.url for p in site.pages]
+        urls = [p.href for p in site.pages]
         url_counts = {}
         for url in urls:
             url_counts[url] = url_counts.get(url, 0) + 1

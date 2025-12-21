@@ -170,7 +170,7 @@ paths:
             pages, sections, result = orchestrator.generate()
 
         # Check page URLs
-        page_urls = {p.url for p in pages}
+        page_urls = {p.href for p in pages}
 
         # Root command group is NOT a separate page - the section index represents it
         # (see page_builders.py: "Skip root command-groups - the section index page represents them")
@@ -189,7 +189,7 @@ paths:
 
         # Verify the CLI section exists (represents the root command group)
         # sections is a list of Section objects
-        section_urls = {s.url for s in sections}
+        section_urls = {s.href for s in sections}
         assert "/cli/" in section_urls, "CLI section should exist at /cli/"
 
 

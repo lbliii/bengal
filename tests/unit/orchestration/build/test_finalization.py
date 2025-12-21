@@ -510,7 +510,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output") as mock_get_cli,
+            patch("bengal.output.get_cli_output") as mock_get_cli,
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()
@@ -536,7 +536,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output") as mock_get_cli,
+            patch("bengal.output.get_cli_output") as mock_get_cli,
         ):
             mock_config.return_value = {"enabled": True}
 
@@ -580,7 +580,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.output.get_cli_output"),
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()
@@ -606,7 +606,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.output.get_cli_output"),
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()
@@ -629,7 +629,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.output.get_cli_output"),
         ):
             mock_config.return_value = {"enabled": True, "strict_mode": True}
             mock_health = MagicMock()
@@ -651,7 +651,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.output.get_cli_output"),
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()
@@ -673,7 +673,7 @@ class TestRunHealthCheck:
         with (
             patch("bengal.config.defaults.get_feature_config") as mock_config,
             patch("bengal.health.HealthCheck") as MockHealth,
-            patch("bengal.utils.cli_output.get_cli_output"),
+            patch("bengal.output.get_cli_output"),
         ):
             mock_config.return_value = {"enabled": True}
             mock_health = MagicMock()

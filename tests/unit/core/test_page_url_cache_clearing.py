@@ -31,7 +31,7 @@ def test_url_cache_cleared_after_output_path_set():
 
     # Access URL BEFORE setting output_path (simulates early access during discovery)
     # This should return fallback: "/0.1.0/" - but NOT cache it (new behavior)
-    early_url = page.url
+    early_url = page.href
     assert early_url == "/0.1.0/", "Should use fallback slug-based URL"
 
     # Verify it's NOT cached (fallback values are not cached to prevent stale URLs)
@@ -47,7 +47,7 @@ def test_url_cache_cleared_after_output_path_set():
     # The next access will compute the correct URL from output_path
 
     # Now accessing url should compute the correct value
-    correct_url = page.url
+    correct_url = page.href
     assert correct_url == "/releases/0.1.0/", f"Should use path-based URL, got: {correct_url}"
 
 
@@ -71,7 +71,7 @@ def test_url_correct_when_output_path_set_first():
     page.output_path = Path("/tmp/public/releases/0.1.0/index.html")
 
     # Now access URL - should be correct
-    url = page.url
+    url = page.href
     assert url == "/releases/0.1.0/", f"Should use path-based URL, got: {url}"
 
 
@@ -85,7 +85,7 @@ def test_url_fallback_without_output_path():
     )
     # No site or output_path set
 
-    url = page.url
+    url = page.href
     assert url == "/0.1.0/", "Should use slug-based fallback"
 
 
@@ -104,6 +104,6 @@ def test_numeric_filename_with_section():
     page._site = site
     page.output_path = Path("/tmp/public/releases/0.1.2/index.html")
 
-    url = page.url
+    url = page.href
     assert url == "/releases/0.1.2/", f"Expected /releases/0.1.2/, got: {url}"
     assert not url.startswith("/0.1.2/"), "Should not drop section path"

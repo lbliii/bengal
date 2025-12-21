@@ -402,19 +402,19 @@ class BuildOrchestrator:
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
-        rendering.phase_update_site_pages(self, incremental, pages_to_build)
+        rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
 
         # Phase 16: Track Asset Dependencies
-        rendering.phase_track_assets(self, pages_to_build)
+        rendering.phase_track_assets(self, pages_to_build, cli=cli)
 
         # Phase 17: Post-processing
         finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
 
         # Phase 18: Save Cache
-        finalization.phase_cache_save(self, pages_to_build, assets_to_process)
+        finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
 
         # Phase 19: Collect Final Stats
-        finalization.phase_collect_stats(self, build_start)
+        finalization.phase_collect_stats(self, build_start, cli=cli)
 
         # Phase 20: Health Check
         with self.logger.phase("health_check"):

@@ -291,7 +291,10 @@ def phase_render(
 
 
 def phase_update_site_pages(
-    orchestrator: BuildOrchestrator, incremental: bool, pages_to_build: list[Page]
+    orchestrator: BuildOrchestrator,
+    incremental: bool,
+    pages_to_build: list[Page],
+    cli: CLIOutput | None = None,
 ) -> None:
     """
     Phase 15: Update Site Pages.
@@ -305,6 +308,7 @@ def phase_update_site_pages(
         pages_to_build: List of freshly rendered pages
     """
     if incremental and pages_to_build:
+        start = time.perf_counter()
         # Create a mapping of source_path -> rendered page
         rendered_map = {page.source_path: page for page in pages_to_build}
 
@@ -344,9 +348,18 @@ def phase_update_site_pages(
                 fresh_pages=len(rendered_map),
                 total_pages=len(orchestrator.site.pages),
             )
+        duration_ms = (time.perf_counter() - start) * 1000
+        if cli is not None:
+            cli.phase(
+                "Update site pages",
+                duration_ms=duration_ms,
+                details=f"{len(rendered_map)} updated",
+            )
 
 
-def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any]) -> None:
+def phase_track_assets(
+    orchestrator: BuildOrchestrator, pages_to_build: list[Any], cli: CLIOutput | None = None
+) -> None:
     """
     Phase 16: Track Asset Dependencies.
 
@@ -358,6 +371,10 @@ def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any
         pages_to_build: List of rendered pages
     """
     with orchestrator.logger.phase("track_assets", enabled=True):
+        start = time.perf_counter()
+        status = "Done"
+        icon = "✓"
+        details = f"{len(pages_to_build)} pages"
         try:
             from bengal.cache.asset_dependency_map import AssetDependencyMap
             from bengal.rendering.asset_extractor import extract_assets_from_html
@@ -383,7 +400,20 @@ def phase_track_assets(orchestrator: BuildOrchestrator, pages_to_build: list[Any
                 unique_assets=len(asset_map.get_all_assets()),
             )
         except Exception as e:
+            status = "Error"
+            icon = "✗"
+            details = "see logs"
             orchestrator.logger.warning(
                 "asset_tracking_failed",
                 error=str(e),
             )
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            if cli is not None:
+                cli.phase(
+                    "Track assets",
+                    status=status,
+                    duration_ms=duration_ms,
+                    details=details,
+                    icon=icon,
+                )

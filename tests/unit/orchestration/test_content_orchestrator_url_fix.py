@@ -11,14 +11,14 @@ Bug Symptoms:
 - Result: 404 errors, links broken in templates
 
 Root Cause:
-- page.url property depends on page.output_path
+- page.href property depends on page.output_path
 - If output_path is None, it falls back to f"/{slug}/"
 - output_path was only set during rendering (too late)
-- Templates accessed page.url before rendering → got wrong URLs
+- Templates accessed page.href before rendering → got wrong URLs
 
 Fix:
 - ContentOrchestrator now sets output_path immediately after discovery
-- Ensures page.url returns correct paths before any template accesses it
+- Ensures page.href returns correct paths before any template accesses it
 """
 
 from pathlib import Path
@@ -101,7 +101,7 @@ class TestContentOrchestratorOutputPathSetting:
         """
         Test that child pages in sections have correct URLs immediately after discovery.
 
-        This ensures templates can access page.url without getting fallback slug-based URLs.
+        This ensures templates can access page.href without getting fallback slug-based URLs.
         """
         orchestrator = ContentOrchestrator(test_site)
         orchestrator.discover()
@@ -117,7 +117,7 @@ class TestContentOrchestratorOutputPathSetting:
 
         # Verify URLs include section prefix
         for page in reference_pages:
-            url = page.url
+            url = page.href
             assert url.startswith("/reference/"), (
                 f"Page {page.source_path.name} has wrong URL: {url} "
                 f"(should start with /reference/, not /{page.slug}/)"
@@ -144,8 +144,8 @@ class TestContentOrchestratorOutputPathSetting:
         assert nested_page is not None, "Should find optimization.md in nested section"
 
         # Verify URL includes full path
-        assert nested_page.url.startswith("/guides/advanced/"), (
-            f"Nested page has wrong URL: {nested_page.url} "
+        assert nested_page.href.startswith("/guides/advanced/"), (
+            f"Nested page has wrong URL: {nested_page.href} "
             f"(should include full path /guides/advanced/...)"
         )
 
@@ -161,21 +161,21 @@ class TestContentOrchestratorOutputPathSetting:
 
         for page in index_pages:
             # Index pages should have section URL (ending with /)
-            assert page.url.endswith("/"), f"Index page URL should end with /: {page.url}"
+            assert page.href.endswith("/"), f"Index page URL should end with /: {page.href}"
 
             # Should not be just "/" unless it's the root index
             if "reference" in str(page.source_path):
-                assert page.url == "/reference/", (
-                    f"Reference index should be /reference/, got {page.url}"
+                assert page.href == "/reference/", (
+                    f"Reference index should be /reference/, got {page.href}"
                 )
             elif "advanced" in str(page.source_path):
-                assert page.url == "/guides/advanced/", (
-                    f"Advanced index should be /guides/advanced/, got {page.url}"
+                assert page.href == "/guides/advanced/", (
+                    f"Advanced index should be /guides/advanced/, got {page.href}"
                 )
 
     def test_url_generation_works_before_rendering(self, test_site):
         """
-        Simulate template accessing page.url before rendering phase.
+        Simulate template accessing page.href before rendering phase.
 
         This mimics what happens in doc/list.html when it loops through child pages.
         """
@@ -198,7 +198,7 @@ class TestContentOrchestratorOutputPathSetting:
             nav_links.append(
                 {
                     "title": page.title,
-                    "url": page.url,  # This should work correctly now!
+                    "url": page.href,  # This should work correctly now!
                 }
             )
 
@@ -231,8 +231,8 @@ class TestContentOrchestratorOutputPathSetting:
         for page in cascaded_pages:
             # URL should include parent directory
             if "reference" in str(page.source_path):
-                assert page.url.startswith("/reference/"), (
-                    f"Cascaded doc page has wrong URL: {page.url}"
+                assert page.href.startswith("/reference/"), (
+                    f"Cascaded doc page has wrong URL: {page.href}"
                 )
 
     def test_no_duplicate_output_path_setting(self, test_site):
@@ -302,9 +302,9 @@ class TestRegressionScenarios:
             # The bug: these would have URLs /installation/ and /quickstart/
             # Fixed: they should have /getting-started/installation/ etc.
             for page in child_pages:
-                assert page.url.startswith("/getting-started/"), (
-                    f"Child page {page.source_path.name} has incorrect URL: {page.url}\n"
-                    f"Expected to start with /getting-started/, got {page.url}\n"
+                assert page.href.startswith("/getting-started/"), (
+                    f"Child page {page.source_path.name} has incorrect URL: {page.href}\n"
+                    f"Expected to start with /getting-started/, got {page.href}\n"
                     f"This is the original bug - child pages missing section prefix!"
                 )
 
@@ -333,6 +333,6 @@ class TestRegressionScenarios:
             # These pages should have full path URLs
             for page in site.pages:
                 if page.source_path.stem in ("getting-started", "markdown-basics"):
-                    assert page.url.startswith("/docs/writing/"), (
-                        f"Showcase page {page.source_path.name} has wrong URL: {page.url}"
+                    assert page.href.startswith("/docs/writing/"), (
+                        f"Showcase page {page.source_path.name} has wrong URL: {page.href}"
                     )

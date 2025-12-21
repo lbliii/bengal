@@ -64,8 +64,8 @@ class TestBlogContentTypeURLs:
 
         # All posts should have /blog/ prefix
         for post in blog_posts:
-            assert post.url.startswith("/blog/"), (
-                f"Blog post {post.source_path.name} has wrong URL: {post.url}"
+            assert post.href.startswith("/blog/"), (
+                f"Blog post {post.source_path.name} has wrong URL: {post.href}"
             )
 
     def test_blog_nested_year_urls(self, blog_site):
@@ -83,8 +83,8 @@ class TestBlogContentTypeURLs:
         assert len(posts_2024) >= 2
 
         for post in posts_2024:
-            assert post.url.startswith("/blog/2024/"), (
-                f"2024 post should have /blog/2024/ prefix, got: {post.url}"
+            assert post.href.startswith("/blog/2024/"), (
+                f"2024 post should have /blog/2024/ prefix, got: {post.href}"
             )
 
     def test_blog_cascade_preserves_urls(self, blog_site):
@@ -100,7 +100,7 @@ class TestBlogContentTypeURLs:
         ]
 
         for post in cascaded_posts:
-            assert "/blog/" in post.url, f"Cascaded post has wrong URL: {post.url}"
+            assert "/blog/" in post.href, f"Cascaded post has wrong URL: {post.href}"
 
 
 class TestTutorialContentTypeURLs:
@@ -147,8 +147,8 @@ class TestTutorialContentTypeURLs:
         assert len(lessons) >= 2
 
         for lesson in lessons:
-            assert lesson.url.startswith("/tutorials/python/"), (
-                f"Tutorial lesson should have /tutorials/python/ prefix, got: {lesson.url}"
+            assert lesson.href.startswith("/tutorials/python/"), (
+                f"Tutorial lesson should have /tutorials/python/ prefix, got: {lesson.href}"
             )
 
 
@@ -196,8 +196,8 @@ class TestAPIReferenceURLs:
         assert len(api_pages) >= 2
 
         for page in api_pages:
-            assert page.url.startswith("/api/core/"), (
-                f"API page should have /api/core/ prefix, got: {page.url}"
+            assert page.href.startswith("/api/core/"), (
+                f"API page should have /api/core/ prefix, got: {page.href}"
             )
 
 
@@ -242,8 +242,8 @@ class TestChangelogURLs:
         assert len(entries) >= 2
 
         for entry in entries:
-            assert entry.url.startswith("/changelog/v1.0/"), (
-                f"Changelog entry should have /changelog/v1.0/ prefix, got: {entry.url}"
+            assert entry.href.startswith("/changelog/v1.0/"), (
+                f"Changelog entry should have /changelog/v1.0/ prefix, got: {entry.href}"
             )
 
 
@@ -296,13 +296,13 @@ class TestMixedContentTypes:
 
         # Verify each type has correct prefix
         for page in doc_pages:
-            assert page.url.startswith("/docs/"), f"Doc page wrong URL: {page.url}"
+            assert page.href.startswith("/docs/"), f"Doc page wrong URL: {page.href}"
 
         for page in blog_pages:
-            assert page.url.startswith("/blog/"), f"Blog page wrong URL: {page.url}"
+            assert page.href.startswith("/blog/"), f"Blog page wrong URL: {page.href}"
 
         for page in tutorial_pages:
-            assert page.url.startswith("/tutorials/"), f"Tutorial page wrong URL: {page.url}"
+            assert page.href.startswith("/tutorials/"), f"Tutorial page wrong URL: {page.href}"
 
     def test_no_url_collisions_between_types(self, mixed_site):
         """Different content types should not have URL collisions."""
@@ -310,7 +310,7 @@ class TestMixedContentTypes:
         orchestrator.discover()
 
         # Collect all URLs
-        urls = [p.url for p in mixed_site.pages]
+        urls = [p.href for p in mixed_site.pages]
 
         # Check for duplicates
         assert len(urls) == len(set(urls)), f"Found duplicate URLs: {urls}"
@@ -339,7 +339,7 @@ class TestContentTypeURLConsistency:
         page = [p for p in site.pages if p.source_path.stem == "page"][0]
 
         # URL should be correct after full discovery
-        assert page.url == "/docs/page/", f"URL wrong after cascade: {page.url}"
+        assert page.href == "/docs/page/", f"URL wrong after cascade: {page.href}"
 
         # Type should be cascaded
         assert page.metadata.get("type") == "doc"

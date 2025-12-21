@@ -100,7 +100,7 @@ def test_page_url_stable_across_rebuilds(temp_site):
     page._section = blog
 
     # Get original URL
-    original_url = page.url
+    original_url = page.href
 
     # Recreate section (simulate incremental build)
     blog_recreated = Section(
@@ -115,7 +115,7 @@ def test_page_url_stable_across_rebuilds(temp_site):
     temp_site.register_sections()
 
     # URL should still be correct
-    assert page.url == original_url
+    assert page.href == original_url
     assert page._section == blog_recreated
 
 
