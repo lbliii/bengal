@@ -327,7 +327,7 @@ class TestGetNavContext:
 
     def test_returns_nav_tree_context(self):
         """Returns NavTreeContext with root node."""
-        from bengal.core.nav_tree import NavTreeCache
+        from bengal.core.nav_tree import NavTreeCache, NavTreeContext
 
         # Create mock site with empty sections
         site = Mock()
@@ -349,7 +349,10 @@ class TestGetNavContext:
 
         result = get_nav_context(current_page)
 
-        # Should return a dict-like context with 'root' key
-        assert "root" in result
+        # Should return a NavTreeContext
+        assert isinstance(result, NavTreeContext)
+        # Should have accessible root via dict-style access
+        root = result["root"]
         # Root should have children attribute (empty for empty site)
-        assert hasattr(result["root"], "children")
+        assert hasattr(root, "children")
+        assert root.children == []

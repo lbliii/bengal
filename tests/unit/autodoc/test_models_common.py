@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from bengal.autodoc.models import QualifiedName, SourceLocation
+from bengal.utils.exceptions import BengalError
 
 
 class TestSourceLocation:
@@ -37,23 +38,23 @@ class TestSourceLocation:
         assert loc.column == 20
 
     def test_rejects_zero_line(self) -> None:
-        """Test that line=0 raises ValueError."""
-        with pytest.raises(ValueError, match="Line must be >= 1"):
+        """Test that line=0 raises BengalError."""
+        with pytest.raises(BengalError, match="Line must be >= 1"):
             SourceLocation(file="test.py", line=0)
 
     def test_rejects_negative_line(self) -> None:
-        """Test that negative line raises ValueError."""
-        with pytest.raises(ValueError, match="Line must be >= 1"):
+        """Test that negative line raises BengalError."""
+        with pytest.raises(BengalError, match="Line must be >= 1"):
             SourceLocation(file="test.py", line=-5)
 
     def test_rejects_zero_column(self) -> None:
-        """Test that column=0 raises ValueError."""
-        with pytest.raises(ValueError, match="Column must be >= 1"):
+        """Test that column=0 raises BengalError."""
+        with pytest.raises(BengalError, match="Column must be >= 1"):
             SourceLocation(file="test.py", line=1, column=0)
 
     def test_rejects_negative_column(self) -> None:
-        """Test that negative column raises ValueError."""
-        with pytest.raises(ValueError, match="Column must be >= 1"):
+        """Test that negative column raises BengalError."""
+        with pytest.raises(BengalError, match="Column must be >= 1"):
             SourceLocation(file="test.py", line=1, column=-1)
 
     def test_frozen(self) -> None:
@@ -131,18 +132,18 @@ class TestQualifiedName:
         assert qn.parent is None
 
     def test_rejects_empty_parts_tuple(self) -> None:
-        """Test that empty parts tuple raises ValueError."""
-        with pytest.raises(ValueError, match="QualifiedName cannot be empty"):
+        """Test that empty parts tuple raises BengalError."""
+        with pytest.raises(BengalError, match="QualifiedName cannot be empty"):
             QualifiedName(parts=())
 
     def test_rejects_empty_string_in_parts(self) -> None:
-        """Test that empty string in parts raises ValueError."""
-        with pytest.raises(ValueError, match="QualifiedName contains empty part"):
+        """Test that empty string in parts raises BengalError."""
+        with pytest.raises(BengalError, match="QualifiedName contains empty part"):
             QualifiedName(parts=("bengal", "", "core"))
 
     def test_from_string_all_empty_raises(self) -> None:
-        """Test that from_string with all empty parts raises ValueError."""
-        with pytest.raises(ValueError, match="QualifiedName cannot be empty"):
+        """Test that from_string with all empty parts raises BengalError."""
+        with pytest.raises(BengalError, match="QualifiedName cannot be empty"):
             QualifiedName.from_string("...")
 
     def test_frozen(self) -> None:

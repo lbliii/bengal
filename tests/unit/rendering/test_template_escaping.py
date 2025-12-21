@@ -322,55 +322,67 @@ class TestVariableSubstitutionSecurity:
 
     def test_blocks_dunder_class(self):
         """Test that __class__ access is blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("page.__class__")
 
     def test_blocks_dunder_init(self):
         """Test that __init__ access is blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("page.__init__")
 
     def test_blocks_dunder_globals(self):
         """Test that __globals__ access is blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         context = {"config": {"key": "value"}}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("config.__class__.__init__.__globals__")
 
     def test_blocks_dunder_bases(self):
         """Test that __bases__ access is blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         page = type("Page", (), {"title": "Test"})
         context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("page.__class__.__bases__")
 
     def test_blocks_single_underscore_private(self):
         """Test that _private attributes are blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         page = type("Page", (), {"title": "Test", "_secret": "hidden"})
         context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("page._secret")
 
     def test_blocks_nested_dunder_access(self):
         """Test that nested dunder access is blocked."""
+        from bengal.utils.exceptions import BengalRenderingError
+
         page = type("Page", (), {"metadata": {"key": "value"}})
         context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
-        with pytest.raises(ValueError, match="private/protected attributes denied"):
+        with pytest.raises(BengalRenderingError, match="private/protected attributes denied"):
             plugin._eval_expression("page.metadata.__class__")
 
     def test_allows_normal_attribute_access(self):

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 from bengal.health.validators.anchors import AnchorValidator
 from bengal.health.validators.assets import AssetValidator
+from bengal.health.validators.autodoc import AutodocValidator
 from bengal.health.validators.cache import CacheValidator
 from bengal.health.validators.config import ConfigValidatorWrapper
 from bengal.health.validators.connectivity import ConnectivityValidator
@@ -57,6 +58,8 @@ __all__ = [
     # Anchor validation (RFC: plan/active/rfc-explicit-anchor-targets.md)
     "AnchorValidator",
     "AssetValidator",
+    # Autodoc HTML validation
+    "AutodocValidator",
     # Phase 3
     "CacheValidator",
     "ConfigValidatorWrapper",

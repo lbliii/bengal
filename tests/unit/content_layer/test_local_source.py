@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from bengal.content_layer.sources.local import LocalSource, _parse_frontmatter
+from bengal.utils.exceptions import BengalConfigError
 
 
 class TestParseFrontmatter:
@@ -55,7 +56,7 @@ class TestLocalSource:
 
     def test_requires_directory(self) -> None:
         """Test that LocalSource requires directory config."""
-        with pytest.raises(ValueError, match="requires 'directory'"):
+        with pytest.raises(BengalConfigError, match="requires 'directory'"):
             LocalSource("test", {})
 
     def test_config_parsing(self) -> None:

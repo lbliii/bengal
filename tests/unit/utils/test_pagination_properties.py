@@ -9,6 +9,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from bengal.utils.exceptions import BengalError
 from bengal.utils.pagination import Paginator
 
 
@@ -172,16 +173,16 @@ class TestPaginatorProperties:
         paginator = Paginator(items, per_page=per_page)
 
         # Test page 0 (invalid)
-        with pytest.raises(ValueError, match="out of range"):
+        with pytest.raises(BengalError, match="out of range"):
             paginator.page(0)
 
         # Test negative page (invalid)
-        with pytest.raises(ValueError, match="out of range"):
+        with pytest.raises(BengalError, match="out of range"):
             paginator.page(-1)
 
         # Test beyond last page (invalid)
         if paginator.num_pages < 1000:  # Avoid huge numbers
-            with pytest.raises(ValueError, match="out of range"):
+            with pytest.raises(BengalError, match="out of range"):
                 paginator.page(paginator.num_pages + 1)
 
     @pytest.mark.hypothesis

@@ -405,6 +405,12 @@ class NavTreeContext:
 
     # --- Jinja2 Compatibility (Delegation to NavTree and compute state) ---
 
+    def __contains__(self, key: str) -> bool:
+        """Support 'in' operator for nav context access."""
+        if key == "root":
+            return True
+        return hasattr(self.tree, key)
+
     def __getitem__(self, key: str) -> Any:
         """Allow nav['root'] access by delegating to tree or computing state."""
         if key == "root":

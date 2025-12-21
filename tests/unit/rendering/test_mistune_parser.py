@@ -38,8 +38,10 @@ class TestParserFactory:
         assert isinstance(parser, BaseMarkdownParser)
 
     def test_invalid_engine_raises_error(self, parser):
-        """Test that invalid engine raises ValueError."""
-        with pytest.raises(ValueError, match="Unsupported markdown engine"):
+        """Test that invalid engine raises BengalConfigError."""
+        from bengal.utils.exceptions import BengalConfigError
+
+        with pytest.raises(BengalConfigError, match="Unsupported markdown engine"):
             create_markdown_parser("invalid-engine")
 
 

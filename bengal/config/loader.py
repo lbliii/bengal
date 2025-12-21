@@ -127,14 +127,14 @@ class ConfigLoader:
             if config_file.exists():
                 # Use debug level to avoid noise in normal output
                 self.logger.debug(
-                    "config_file_found", config_file=str(config_file), format=config_file.suffix
+                    "config_file_found", config_file=filename, format=config_file.suffix
                 )
                 return self._load_file(config_file)
 
         # Return default config if no file found
         self.logger.warning(
             "config_file_not_found",
-            search_path=str(self.root_path),
+            search_path=self.root_path.name,
             tried_files=["bengal.toml", "bengal.yaml", "bengal.yml"],
             action="using_defaults",
         )

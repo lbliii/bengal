@@ -12,6 +12,7 @@ import pytest
 from bengal.cache.paths import BengalPaths
 from bengal.core.page import Page
 from bengal.orchestration.incremental import IncrementalOrchestrator
+from bengal.utils.exceptions import BengalError
 
 
 @pytest.fixture
@@ -107,7 +108,7 @@ class TestFindWorkEarly:
         """find_work_early should raise if cache not initialized."""
         orch = IncrementalOrchestrator(mock_site)
 
-        with pytest.raises(RuntimeError, match="Cache not initialized"):
+        with pytest.raises(BengalError, match="Cache not initialized"):
             orch.find_work_early()
 
 
@@ -145,7 +146,7 @@ class TestFindWork:
         """find_work should raise if cache not initialized."""
         orch = IncrementalOrchestrator(mock_site)
 
-        with pytest.raises(RuntimeError, match="Cache not initialized"):
+        with pytest.raises(BengalError, match="Cache not initialized"):
             orch.find_work()
 
 

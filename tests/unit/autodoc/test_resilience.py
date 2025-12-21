@@ -11,6 +11,7 @@ import pytest
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration import AutodocRunResult, VirtualAutodocOrchestrator
+from bengal.utils.exceptions import BengalDiscoveryError
 
 # Note: The orchestrator calls module-level functions from these modules:
 # - bengal.autodoc.orchestration.extractors: extract_python, extract_cli, extract_openapi
@@ -105,13 +106,15 @@ class TestExtractionFailureHandling:
             assert result.warnings >= 1
 
     def test_extraction_failure_raises_in_strict_mode(self, mock_site_strict):
-        """Extraction failures should raise RuntimeError in strict mode."""
+        """Extraction failures should raise BengalDiscoveryError in strict mode."""
         orchestrator = VirtualAutodocOrchestrator(mock_site_strict)
 
         with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = Exception("Extraction failed")
 
-            with pytest.raises(RuntimeError, match="Python extraction failed in strict mode"):
+            with pytest.raises(
+                BengalDiscoveryError, match="Python extraction failed in strict mode"
+            ):
                 orchestrator.generate()
 
     def test_partial_extraction_failure_non_strict(self, mock_site):
@@ -162,7 +165,7 @@ class TestStrictModeEnforcement:
         with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = ValueError("Invalid source directory")
 
-            with pytest.raises(RuntimeError) as exc_info:
+            with pytest.raises(BengalDiscoveryError) as exc_info:
                 orchestrator.generate()
 
             assert "strict mode" in str(exc_info.value).lower()
@@ -175,8 +178,8 @@ class TestStrictModeEnforcement:
         with patch("bengal.autodoc.orchestration.orchestrator.extract_python") as mock_extract:
             mock_extract.side_effect = Exception("Extraction failed")
 
-            # Should raise RuntimeError about extraction failure (happens during extraction)
-            with pytest.raises(RuntimeError, match="Python extraction failed"):
+            # Should raise BengalDiscoveryError about extraction failure (happens during extraction)
+            with pytest.raises(BengalDiscoveryError, match="Python extraction failed"):
                 orchestrator.generate()
 
     def test_strict_mode_allows_successful_generation(self, mock_site_strict):

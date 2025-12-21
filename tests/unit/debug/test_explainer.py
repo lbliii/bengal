@@ -24,6 +24,7 @@ from bengal.debug.models import (
     SourceInfo,
     TemplateInfo,
 )
+from bengal.utils.exceptions import BengalContentError
 
 
 class TestSourceInfo:
@@ -308,10 +309,10 @@ class TestPageExplainer:
         assert "sidebar.html" in result
 
     def test_explain_raises_for_missing_page(self, mock_site):
-        """Test that explain raises ValueError for missing page."""
+        """Test that explain raises BengalContentError for missing page."""
         explainer = PageExplainer(mock_site)
 
-        with pytest.raises(ValueError, match="Page not found"):
+        with pytest.raises(BengalContentError, match="Page not found"):
             explainer.explain("nonexistent.md")
 
     def test_diagnose_issues_broken_link(self, mock_site):

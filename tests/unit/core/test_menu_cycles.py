@@ -1,6 +1,7 @@
 import pytest
 
 from bengal.core.menu import MenuBuilder
+from bengal.utils.exceptions import BengalContentError
 
 
 class TestMenuCircularDependencies:
@@ -27,10 +28,10 @@ class TestMenuCircularDependencies:
         c.children.append(p)
 
         # Now the cycle should be detected by the cycle checker when rebuilding
-        with pytest.raises(ValueError):
+        with pytest.raises(BengalContentError):
             builder.build_hierarchy()
 
-        with pytest.raises(ValueError):
+        with pytest.raises(BengalContentError):
             builder.build_hierarchy()
 
     def test_valid_tree_builds(self):

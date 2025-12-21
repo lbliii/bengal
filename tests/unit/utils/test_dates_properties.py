@@ -122,6 +122,8 @@ class TestParseDateProperties:
         """
         Property: on_error='raise' either succeeds or raises, never returns None.
         """
+        from bengal.utils.exceptions import BengalError
+
         # Skip valid date-like strings
         parsed_default = parse_date(invalid)
         assume(parsed_default is None)
@@ -130,7 +132,7 @@ class TestParseDateProperties:
             result = parse_date(invalid, on_error="raise")
             # If we get here, it parsed successfully
             assert result is not None, f"Successful parse should not return None: '{invalid}'"
-        except ValueError:
+        except BengalError:
             # Expected for invalid strings
             pass
 

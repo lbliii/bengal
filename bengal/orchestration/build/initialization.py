@@ -109,6 +109,8 @@ def phase_template_validation(
         orchestrator.logger.debug("template_validation_skipped", reason="disabled in config")
         return []
 
+    from bengal.utils.exceptions import BengalRenderingError
+
     with orchestrator.logger.phase("template_validation"):
         validation_start = time.time()
 
@@ -160,8 +162,8 @@ def phase_template_validation(
 
             return errors
 
-        except RuntimeError:
-            # Re-raise RuntimeError (strict mode failure)
+        except (RuntimeError, BengalRenderingError):
+            # Re-raise strict mode failures
             raise
         except Exception as e:
             # Log other errors but don't fail build

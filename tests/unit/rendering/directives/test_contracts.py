@@ -20,6 +20,7 @@ from bengal.directives import (
     ContractViolation,
     DirectiveContract,
 )
+from bengal.utils.exceptions import BengalRenderingError
 
 # =============================================================================
 # DirectiveContract Tests
@@ -80,12 +81,12 @@ class TestDirectiveContract:
 
     def test_invalid_min_children(self) -> None:
         """Test that negative min_children raises error."""
-        with pytest.raises(ValueError, match="min_children must be >= 0"):
+        with pytest.raises(BengalRenderingError, match="min_children must be >= 0"):
             DirectiveContract(min_children=-1)
 
     def test_invalid_max_children(self) -> None:
         """Test that negative max_children raises error."""
-        with pytest.raises(ValueError, match="max_children must be >= 0"):
+        with pytest.raises(BengalRenderingError, match="max_children must be >= 0"):
             DirectiveContract(max_children=-1)
 
 
