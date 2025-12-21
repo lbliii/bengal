@@ -34,10 +34,18 @@ class SourceLocation:
 
     def __post_init__(self) -> None:
         """Validate line number is positive."""
+        from bengal.utils.exceptions import BengalError
+
         if self.line < 1:
-            raise ValueError(f"Line must be >= 1, got {self.line}")
+            raise BengalError(
+                f"Line must be >= 1, got {self.line}",
+                suggestion="Line numbers must be 1-based (first line is 1)",
+            )
         if self.column is not None and self.column < 1:
-            raise ValueError(f"Column must be >= 1, got {self.column}")
+            raise BengalError(
+                f"Column must be >= 1, got {self.column}",
+                suggestion="Column numbers must be 1-based (first column is 1)",
+            )
 
     @classmethod
     def from_path(cls, path: Path, line: int, column: int | None = None) -> SourceLocation:
@@ -81,10 +89,20 @@ class QualifiedName:
     def __post_init__(self) -> None:
         """Validate parts are non-empty."""
         if not self.parts:
-            raise ValueError("QualifiedName cannot be empty")
+            from bengal.utils.exceptions import BengalError
+
+            raise BengalError(
+                "QualifiedName cannot be empty",
+                suggestion="Provide at least one name part",
+            )
         for part in self.parts:
             if not part:
-                raise ValueError(f"QualifiedName contains empty part: {self.parts}")
+                from bengal.utils.exceptions import BengalError
+
+                raise BengalError(
+                    f"QualifiedName contains empty part: {self.parts}",
+                    suggestion="Remove empty parts from qualified name",
+                )
 
     @classmethod
     def from_string(cls, qualified_name: str, separator: str = ".") -> QualifiedName:

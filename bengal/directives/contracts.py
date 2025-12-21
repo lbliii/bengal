@@ -31,6 +31,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from bengal.utils.exceptions import BengalRenderingError
+
 
 @dataclass(frozen=True)
 class DirectiveContract:
@@ -91,9 +93,15 @@ class DirectiveContract:
     def __post_init__(self) -> None:
         """Validate contract configuration."""
         if self.min_children < 0:
-            raise ValueError("min_children must be >= 0")
+            raise BengalRenderingError(
+                "min_children must be >= 0",
+                suggestion="Set min_children to 0 or greater in directive contract",
+            )
         if self.max_children < 0:
-            raise ValueError("max_children must be >= 0")
+            raise BengalRenderingError(
+                "max_children must be >= 0",
+                suggestion="Set max_children to 0 or greater in directive contract",
+            )
 
     @property
     def has_parent_requirement(self) -> bool:

@@ -58,8 +58,11 @@ def phase_sections(
                     cli.error("Section validation errors:")
                     for error in section_errors:
                         cli.detail(str(error), indent=1, icon="•")
-                    raise Exception(
-                        f"Build failed: {len(section_errors)} section validation error(s)"
+                    from bengal.utils.exceptions import BengalContentError
+
+                    raise BengalContentError(
+                        f"Build failed: {len(section_errors)} section validation error(s)",
+                        suggestion="Review section validation errors above and fix section structure, or disable strict mode",
                     )
                 else:
                     # Warn but continue in non-strict mode

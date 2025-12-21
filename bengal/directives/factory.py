@@ -201,6 +201,12 @@ def create_documentation_directives() -> Callable[[Any], None]:
             return directive(md)
         except Exception as e:
             logger.error("directive_registration_error", error=str(e), error_type=type(e).__name__)
-            raise RuntimeError(f"Failed to register directives plugin: {e}") from e
+            from bengal.utils.exceptions import BengalRenderingError
+
+            raise BengalRenderingError(
+                f"Failed to register directives plugin: {e}",
+                suggestion="Check directive plugin implementation and dependencies",
+                original_error=e,
+            ) from e
 
     return plugin_documentation_directives

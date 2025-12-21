@@ -154,7 +154,13 @@ class PythonExtractor(Extractor):
         elif source.is_dir():
             return self._extract_directory(source)
         else:
-            raise ValueError(f"Source must be a file or directory: {source}")
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            raise BengalDiscoveryError(
+                f"Source must be a file or directory: {source}",
+                file_path=source if isinstance(source, Path) else None,
+                suggestion="Provide a valid file or directory path for autodoc extraction",
+            )
 
     def _extract_directory(self, directory: Path) -> list[DocElement]:
         """Extract from all Python files in directory."""
