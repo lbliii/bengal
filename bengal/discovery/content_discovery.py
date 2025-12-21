@@ -871,6 +871,18 @@ class ContentDiscovery:
 
         except yaml.YAMLError as e:
             # YAML syntax error in frontmatter - use debug to avoid noise
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            context = ErrorContext(
+                file_path=file_path,
+                operation="parsing frontmatter",
+                suggestion="Fix frontmatter YAML syntax",
+                original_error=e,
+            )
+            # Enrich error for better error messages (context captured for logging)
+            enrich_error(e, context, BengalDiscoveryError)
+
             self.logger.debug(
                 "frontmatter_parse_failed",
                 file_path=str(file_path),
@@ -896,7 +908,19 @@ class ContentDiscovery:
             return content, metadata
 
         except Exception as e:
-            # Unexpected error
+            # Unexpected error - enrich with context
+            from bengal.utils.error_context import ErrorContext, enrich_error
+            from bengal.utils.exceptions import BengalDiscoveryError
+
+            context = ErrorContext(
+                file_path=file_path,
+                operation="parsing content file",
+                suggestion="Check file encoding and format",
+                original_error=e,
+            )
+            # Enrich error for better error messages (context captured for logging)
+            enrich_error(e, context, BengalDiscoveryError)
+
             self.logger.warning(
                 "content_parse_unexpected_error",
                 file_path=str(file_path),

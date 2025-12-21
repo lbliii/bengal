@@ -90,10 +90,18 @@ class ConfigDirectoryLoader:
             ConfigLoadError: If config loading fails
         """
         if not config_dir.exists():
-            raise ConfigLoadError(f"Config directory not found: {config_dir}")
+            raise ConfigLoadError(
+                f"Config directory not found: {config_dir}",
+                file_path=config_dir,
+                suggestion="Ensure config directory exists or run 'bengal init' to create site structure",
+            )
 
         if not config_dir.is_dir():
-            raise ConfigLoadError(f"Not a directory: {config_dir}")
+            raise ConfigLoadError(
+                f"Not a directory: {config_dir}",
+                file_path=config_dir,
+                suggestion="Ensure path points to a directory, not a file",
+            )
 
         # Initialize origin tracker if needed
         if self.track_origins:
@@ -216,7 +224,14 @@ class ConfigDirectoryLoader:
         # If any errors occurred, raise
         if errors:
             error_msg = "; ".join([f"{f}: {e}" for f, e in errors])
-            raise ConfigLoadError(f"Failed to load config files: {error_msg}")
+            # Use first error's file path for context
+            first_file, first_error = errors[0]
+            raise ConfigLoadError(
+                f"Failed to load config files: {error_msg}",
+                file_path=first_file,
+                suggestion="Check YAML syntax and file encoding (must be UTF-8)",
+                original_error=first_error if isinstance(first_error, Exception) else None,
+            )
 
         return config
 
@@ -294,9 +309,27 @@ class ConfigDirectoryLoader:
                 content = yaml.safe_load(f)
                 return content or {}
         except yaml.YAMLError as e:
-            raise ConfigLoadError(f"Invalid YAML in {path}: {e}") from e
+            # Extract line number from YAML error if available
+            line_number = getattr(e, "problem_mark", None)
+            if line_number and hasattr(line_number, "line"):
+                line_num = line_number.line + 1  # YAML line numbers are 0-based
+            else:
+                line_num = None
+
+            raise ConfigLoadError(
+                f"Invalid YAML in {path}: {e}",
+                file_path=path,
+                line_number=line_num,
+                suggestion="Check YAML syntax, indentation, and ensure all quotes are properly closed",
+                original_error=e,
+            ) from e
         except Exception as e:
-            raise ConfigLoadError(f"Failed to load {path}: {e}") from e
+            raise ConfigLoadError(
+                f"Failed to load {path}: {e}",
+                file_path=path,
+                suggestion="Check file permissions and encoding (must be UTF-8)",
+                original_error=e,
+            ) from e
 
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """
