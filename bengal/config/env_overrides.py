@@ -20,7 +20,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     Apply environment-based overrides for deployment platforms.
 
     Auto-detects baseurl from platform environment variables when
-    config baseurl is empty or missing. Provides zero-config deployments
+    config baseurl is not explicitly set. Provides zero-config deployments
     for Netlify, Vercel, and GitHub Pages.
 
     Priority:
@@ -31,8 +31,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
            - Set GITHUB_PAGES_ROOT=true for root deployments (user/org sites)
            - Auto-detects user/org sites when repo name is {owner}.github.io
 
-    Only applies when config baseurl is empty or missing.
-    Explicit baseurl in config is never overridden.
+    Only applies when config baseurl is not explicitly set (missing from config).
+    If baseurl is present in config (even if empty), it is respected and not overridden.
 
     Args:
         config: Configuration dictionary (flat or nested)
@@ -44,22 +44,29 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         >>> import os
         >>> os.environ["GITHUB_ACTIONS"] = "true"
         >>> os.environ["GITHUB_REPOSITORY"] = "owner/repo"
+        >>> # Missing baseurl allows env override
+        >>> config = {}
+        >>> result = apply_env_overrides(config)
+        >>> result["baseurl"]
+        '/repo'
+
+        >>> # Explicit empty baseurl is respected
         >>> config = {"baseurl": ""}
         >>> result = apply_env_overrides(config)
         >>> result["baseurl"]
-        'https://owner.github.io/repo'
+        ''
 
-        >>> # Explicit baseurl not overridden
+        >>> # Explicit non-empty baseurl is respected
         >>> config = {"baseurl": "https://custom.com"}
         >>> result = apply_env_overrides(config)
         >>> result["baseurl"]
         'https://custom.com'
     """
     try:
-        # Only apply env overrides if baseurl is not set to a non-empty value
-        # Empty string ("") or missing baseurl allows env overrides
-        baseurl_current = config.get("baseurl", "")
-        if baseurl_current:  # Non-empty string means explicit config, don't override
+        # Only apply env overrides if baseurl is not explicitly set in config
+        # If baseurl is present (even if empty), respect the explicit setting
+        if "baseurl" in config:
+            # baseurl is explicitly set (empty or non-empty), don't override
             return config
 
         # 1) Explicit override (highest priority)
