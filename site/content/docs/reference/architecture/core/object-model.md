@@ -198,3 +198,107 @@ classDiagram
         +subsections: List~Section~
     }
 ```
+
+## URL Ownership
+
+Bengal uses a **URL ownership system** with claim-time enforcement to prevent URL collisions and ensure explicit ownership policy across all content producers.
+
+### URLRegistry
+
+The `URLRegistry` on `Site` is the central authority for URL claims. It enforces ownership at claim time (before file writes), preventing invalid states from being created.
+
+**Key Features**:
+- **Claim-time enforcement**: URLs are claimed before any file is written
+- **Priority-based resolution**: Higher priority claims win conflicts
+- **Ownership context**: All claims include owner, source, and priority metadata
+- **Incremental safety**: Claims are cached and loaded for incremental builds
+
+**Usage**:
+```python
+# Claim a URL (done automatically by orchestrators)
+site.url_registry.claim(
+    url="/about/",
+    owner="content",
+    source="content/about.md",
+    priority=100,  # User content (highest priority)
+)
+
+# Claim via output path (for direct file writers)
+url = site.url_registry.claim_output_path(
+    output_path=Path("public/about/index.html"),
+    site=site,
+    owner="content",
+    source="content/about.md",
+    priority=100,
+)
+```
+
+### Priority Levels
+
+URL claims use priority levels to resolve conflicts:
+
+| Priority | Owner | Rationale |
+|----------|-------|-----------|
+| 100 | User content | User intent always wins |
+| 90 | Autodoc sections | Explicitly configured by user |
+| 80 | Autodoc pages | Derived from sections |
+| 50 | Section indexes | Structural authority |
+| 40 | Taxonomy | Auto-generated |
+| 10 | Special pages | Fallback utility pages |
+| 5 | Redirects | Should never shadow actual content |
+
+**Conflict Resolution**:
+- Higher priority wins (user content can override generated content)
+- Same priority + same source = idempotent (allowed)
+- Same priority + different source = collision error
+
+### Reserved Namespaces
+
+Certain URL namespaces are reserved for specific generators:
+
+- `/tags/` - Reserved for taxonomy (priority 40)
+- `/search/`, `/404.html`, `/graph/` - Reserved for special pages (priority 10)
+- Autodoc prefixes (e.g., `/cli/`, `/api/python/`) - Reserved for autodoc output (priority 90/80)
+
+The `OwnershipPolicyValidator` warns when user content lands in reserved namespaces.
+
+### Integration Points
+
+URLRegistry is integrated across all content producers:
+
+- **ContentDiscovery**: Claims URLs for user content (priority 100)
+- **SectionOrchestrator**: Claims section index URLs (priority 50)
+- **TaxonomyOrchestrator**: Claims taxonomy URLs (priority 40)
+- **AutodocOrchestrator**: Claims autodoc URLs (priority 90/80)
+- **RedirectGenerator**: Claims redirect URLs (priority 5)
+- **SpecialPagesGenerator**: Claims special page URLs (priority 10)
+
+### Incremental Build Safety
+
+URL claims are persisted in `BuildCache` and loaded during incremental builds. This prevents new content from shadowing existing URLs that weren't rebuilt in the current build.
+
+**Cache Integration**:
+- Claims are saved to `BuildCache.url_claims` after build completes
+- Cached claims are loaded during discovery phase for incremental builds
+- Registry is pre-populated with claims from pages not being rebuilt
+
+### Error Handling
+
+When a collision is detected, `URLCollisionError` is raised with diagnostic information:
+
+```
+URL collision detected: /about/
+  Existing claim: content (priority 100)
+    Source: content/about.md
+  New claim: taxonomy (priority 40)
+    Source: tags/about
+  Priority: Existing claim has higher priority (100 > 40) - new claim rejected
+  Tip: Check for duplicate slugs, conflicting autodoc output, or namespace violations
+```
+
+### See Also
+
+- [URL Ownership RFC](../../../../plan/evaluated/rfc-url-ownership-architecture.md) - Design rationale
+- [URL Ownership Plan](../../../../plan/drafted/plan-url-ownership-architecture.md) - Implementation details
+- `bengal/core/url_ownership.py` - URLRegistry implementation
+- `bengal/config/url_policy.py` - Reserved namespace definitions
