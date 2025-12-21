@@ -416,22 +416,42 @@ class PageProxy:
         return self._full_page.translation_key if self._full_page else None
 
     @property
-    def url(self) -> str:
-        """Get the URL path for the page (lazy-loaded, cached after first access)."""
+    def href(self) -> str:
+        """Get the URL path for the page with baseurl (lazy-loaded, cached after first access)."""
         self._ensure_loaded()
-        return self._full_page.url if self._full_page else "/"
+        return self._full_page.href if self._full_page else "/"
+
+    @property
+    def _path(self) -> str:
+        """Get the site-relative path (without baseurl) for the page."""
+        self._ensure_loaded()
+        return self._full_page._path if self._full_page else "/"
+
+    @property
+    def url(self) -> str:
+        """Backward-compatible alias for href."""
+        return self.href
 
     @property
     def relative_url(self) -> str:
-        """Get the relative URL (without baseurl) for the page."""
-        self._ensure_loaded()
-        return self._full_page.relative_url if self._full_page else "/"
+        """Backward-compatible alias for _path."""
+        return self._path
 
     @property
     def permalink(self) -> str:
-        """Get the permalink (URL with baseurl) for the page."""
+        """Backward-compatible alias for href."""
+        return self.href
+
+    @property
+    def absolute_href(self) -> str:
+        """Fully-qualified URL for meta tags and sitemaps."""
         self._ensure_loaded()
-        return self._full_page.permalink if self._full_page else "/"
+        return self._full_page.absolute_href if self._full_page else "/"
+
+    @property
+    def site_path(self) -> str:
+        """Backward-compatible alias for _path."""
+        return self._path
 
     # ============================================================================
     # Computed Properties - delegate to full page (cached_properties)
