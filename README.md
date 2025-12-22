@@ -23,18 +23,7 @@ bengal new site mysite && cd mysite && bengal serve
 
 ---
 
-## Quick Start
-
-```bash
-pip install bengal
-bengal new site mysite
-cd mysite
-bengal serve
-```
-
-Open `localhost:5173`. Edit files in `content/`, changes appear instantly.
-
-**Commands:**
+## Quick Commands
 
 | Command | Description |
 |---------|-------------|
@@ -48,24 +37,167 @@ Aliases: `b` (build), `s` (serve), `v` (validate)
 
 ---
 
-## What's New in 0.1.5
+## Site Scaffolding
 
-**Performance:**
-- **NavTree architecture** — Pre-computed navigation with O(1) template access
-- **Zstandard caching** — 12-14x compression, 10x faster cache I/O (PEP 784)
-- **Parallel health checks** — 50-70% faster validation
+<details>
+<summary><strong>Interactive Wizard</strong> — Guided setup with presets</summary>
 
-**Developer Experience:**
-- **Directive system v2** — Named closers, typed options, nesting contracts
-- **Dev server modernization** — Process isolation, Rust-based file watching
-- **Media embed directives** — YouTube, Vimeo, Gist, CodePen, Asciinema
+Run without arguments for a guided experience:
 
-**Robustness:**
-- **Proactive template validation** — Syntax errors caught before build
-- **Autodoc incremental builds** — Only regenerate changed source files
-- **Build-integrated validation** — Tiered health checks during builds
+```bash
+bengal new site
+```
 
-See the [full changelog](changelog.md) for details.
+The wizard prompts for site name, base URL, and presents preset options:
+
+```
+🎯 What kind of site are you building?
+  📝 Blog            - Personal or professional blog
+  📚 Documentation   - Technical docs or guides
+  💼 Portfolio       - Showcase your work
+  🏢 Business        - Company or product site
+  📄 Resume          - Professional resume/CV site
+  📦 Blank           - Empty site, no initial structure
+  ⚙️  Custom         - Define your own structure
+```
+
+Each preset creates a complete site with appropriate sections, sample content, and configuration.
+
+</details>
+
+<details>
+<summary><strong>Direct Template Selection</strong> — Skip prompts with explicit options</summary>
+
+Create sites non-interactively with `--template`:
+
+```bash
+bengal new site my-docs --template docs
+bengal new site my-blog --template blog
+bengal new site portfolio --template portfolio
+```
+
+**Available templates:**
+
+| Template | Description | Sections Created |
+|----------|-------------|------------------|
+| `default` | Minimal starter | Home page only |
+| `blog` | Personal/professional blog | blog, about |
+| `docs` | Technical documentation | getting-started, guides, api |
+| `portfolio` | Showcase work | about, projects, blog, contact |
+| `product` | Product/company site | products, features, pricing, contact |
+| `landing` | Single-page landing | Home, privacy, terms |
+| `resume` | Professional CV | Single resume page |
+| `changelog` | Release notes | Changelog with YAML data |
+
+</details>
+
+<details>
+<summary><strong>Add Sections to Existing Sites</strong> — Expand without recreating</summary>
+
+Add new content sections to an existing Bengal site:
+
+```bash
+# Add multiple sections
+bengal project init --sections docs --sections tutorials
+
+# Add sections with sample content
+bengal project init --sections blog --with-content --pages-per-section 5
+
+# Preview without creating files
+bengal project init --sections api --dry-run
+```
+
+**Section type inference:**
+
+| Name Pattern | Inferred Type | Behavior |
+|--------------|---------------|----------|
+| blog, posts, articles, news | `blog` | Date-sorted, post-style |
+| docs, documentation, guides, tutorials | `doc` | Weight-sorted, doc-style |
+| projects, portfolio | `section` | Standard section |
+| about, contact | `section` | Standard section |
+
+</details>
+
+<details>
+<summary><strong>Custom Skeleton Manifests</strong> — YAML-defined site structures</summary>
+
+For complex or repeatable scaffolding, define structures in YAML manifests:
+
+```bash
+# Preview what would be created
+bengal project skeleton apply my-structure.yaml --dry-run
+
+# Apply the skeleton
+bengal project skeleton apply my-structure.yaml
+
+# Overwrite existing files
+bengal project skeleton apply my-structure.yaml --force
+```
+
+**Example manifest** (`docs-skeleton.yaml`):
+
+```yaml
+name: Documentation Site
+description: Technical docs with navigation sections
+version: "1.0"
+
+cascade:
+  type: doc  # Applied to all pages
+
+structure:
+  - path: _index.md
+    props:
+      title: Documentation
+      description: Project documentation
+      weight: 100
+    content: |
+      # Documentation
+      Welcome! Start with our [Quick Start](getting-started/quickstart/).
+
+  - path: getting-started/_index.md
+    props:
+      title: Getting Started
+      weight: 10
+    cascade:
+      type: doc
+    pages:
+      - path: installation.md
+        props:
+          title: Installation
+          weight: 20
+        content: |
+          # Installation
+          ```bash
+          pip install your-package
+          ```
+
+      - path: quickstart.md
+        props:
+          title: Quick Start
+          weight: 30
+        content: |
+          # Quick Start
+          Your first project in 5 minutes.
+
+  - path: api/_index.md
+    props:
+      title: API Reference
+      weight: 30
+    content: |
+      # API Reference
+      Complete API documentation.
+```
+
+**Component Model:**
+- `path` — File or directory path
+- `type` — Component identity (blog, doc, landing)
+- `variant` — Visual style variant
+- `props` — Frontmatter data (title, weight, etc.)
+- `content` — Markdown body content
+- `pages` — Child components (makes this a section)
+- `cascade` — Values inherited by all descendants
+
+</details>
 
 ---
 
@@ -146,12 +278,17 @@ collections = {
 
 ### Build Performance
 
-| Feature | Benefit |
-|---------|---------|
-| Parallel builds | Utilizes all CPU cores |
-| Incremental rebuilds | Only rebuild changed files |
-| Zstd cache | 12-14x compression, 10x faster I/O |
-| Memory-optimized | Streaming mode for 5K+ page sites |
+| Site Size | Strategy | Typical Build Time |
+|-----------|----------|-------------------|
+| <500 pages | Default | 1-3s |
+| 500-5K pages | `--incremental` | 3-15s |
+| 5K+ pages | `--memory-optimized` | 15-60s |
+
+```bash
+bengal build --incremental   # Only rebuild changed files
+bengal build --parallel      # Use all CPU cores (default)
+bengal build --memory-optimized  # Streaming for large sites
+```
 
 ### Site Analysis & Validation
 

@@ -89,8 +89,11 @@ class OutputType(Enum):
     HTML = "html"
     CSS = "css"
     JS = "js"
+    IMAGE = "image"
+    FONT = "font"
     ASSET = "asset"  # images, fonts, etc.
     JSON = "json"    # index.json, manifest, etc.
+    MANIFEST = "manifest" # asset-manifest.json
     XML = "xml"      # sitemap, RSS
 
 @dataclass(frozen=True, slots=True)
@@ -123,7 +126,16 @@ class OutputRecord:
             ".js": OutputType.JS,
             ".json": OutputType.JSON,
             ".xml": OutputType.XML,
+            ".png": OutputType.IMAGE,
+            ".jpg": OutputType.IMAGE,
+            ".jpeg": OutputType.IMAGE,
+            ".svg": OutputType.IMAGE,
+            ".woff": OutputType.FONT,
+            ".woff2": OutputType.FONT,
+            ".ttf": OutputType.FONT,
         }.get(suffix, OutputType.ASSET)
+        if path.name == "asset-manifest.json":
+            output_type = OutputType.MANIFEST
         return cls(path=path, output_type=output_type, phase=phase)
 ```
 
@@ -156,6 +168,15 @@ class OutputCollector(Protocol):
 
     def css_only(self) -> bool:
         """Check if only CSS files were written."""
+        ...
+
+    def validate(self, changed_sources: list[str] | None = None) -> None:
+        """
+        Validate collection integrity.
+
+        Warns if changed_sources is non-empty but zero outputs were recorded,
+        suggesting a missing record() call in a writer.
+        """
         ...
 
 
@@ -211,6 +232,17 @@ class BuildOutputCollector:
         """Clear collected outputs (for reuse between incremental builds)."""
         with self._lock:
             self._outputs.clear()
+
+    def validate(self, changed_sources: list[str] | None = None) -> None:
+        """Validate that changes were actually recorded."""
+        with self._lock:
+            if not self._outputs and changed_sources:
+                from bengal.utils.logger import get_logger
+                get_logger(__name__).warning(
+                    "output_tracking_gap",
+                    message="Build reported changed sources but zero outputs recorded. Hot reload may be unreliable.",
+                    sources=changed_sources[:5]
+                )
 ```
 
 ### 3. Integration with BuildStats
@@ -312,6 +344,9 @@ class BuildOrchestrator:
         # Populate stats with typed outputs
         self.stats.changed_outputs = collector.get_outputs()
 
+        # Validate tracking integrity
+        collector.validate(getattr(self, "changed_sources", None))
+
         return self.stats
 ```
 
@@ -355,6 +390,7 @@ class ReloadController:
 |-----------|--------|--------|
 | **Core** | New `bengal/core/output/` package | Low - additive |
 | **Orchestration** | `BuildStats.changed_outputs` typed | Medium - signature change |
+| **Orchestration** | `AssetOrchestrator` simplification | High - removes ephemeral caches |
 | **Rendering** | `write_output()` gains `collector` param | Low - optional param |
 | **Assets** | `AssetOrchestrator.process()` gains `collector` param | Low - optional param |
 | **Postprocess** | Writers gain `collector` param | Low - optional param |
