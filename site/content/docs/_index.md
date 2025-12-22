@@ -3,6 +3,7 @@ title: Documentation
 draft: false
 weight: 5
 lang: en
+nav_root: true
 cascade:
   type: doc
   variant: standard
