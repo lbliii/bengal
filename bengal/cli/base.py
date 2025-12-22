@@ -31,6 +31,25 @@ for alias, canonical in COMMAND_ALIASES.items():
         CANONICAL_TO_ALIASES[canonical] = []
     CANONICAL_TO_ALIASES[canonical].append(alias)
 
+# =============================================================================
+# QUICK START & SHORTCUTS CONFIG
+# =============================================================================
+# Featured commands shown in Quick Start section (command, description)
+QUICK_START_COMMANDS: list[tuple[str, str]] = [
+    ("bengal build", "Build your site"),
+    ("bengal serve", "Start dev server with live reload"),
+    ("bengal new site", "Create a new site"),
+]
+
+# Shortcuts shown in help - tuple of (aliases_display, canonical_name)
+# Derived from CANONICAL_TO_ALIASES but with custom display formatting
+SHORTCUTS_DISPLAY: list[tuple[str, str]] = [
+    ("b", "build"),
+    ("s, dev", "serve"),
+    ("c", "clean"),
+    ("v, check, lint", "validate"),
+]
+
 
 def get_aliases_for_command(cmd_name: str) -> list[str]:
     """Get all aliases for a canonical command name."""
@@ -167,30 +186,26 @@ class BengalGroup(click.Group):
         # Check if this is the root command (no parent or parent is None)
         if ctx.parent is None:
             cli.subheader("Quick Start:", leading_blank=False)
-            if cli.use_rich:
-                cli.console.print("  [info]bengal build[/info]          Build your site")
-                cli.console.print(
-                    "  [info]bengal serve[/info]          Start dev server with live reload"
-                )
-                cli.console.print("  [info]bengal new site[/info]       Create a new site")
-            else:
-                cli.info("  bengal build          Build your site")
-                cli.info("  bengal serve          Start dev server with live reload")
-                cli.info("  bengal new site       Create a new site")
+            for cmd, desc in QUICK_START_COMMANDS:
+                if cli.use_rich:
+                    cli.console.print(f"  [info]{cmd:<18}[/info] {desc}")
+                else:
+                    cli.info(f"  {cmd:<18} {desc}")
             cli.blank()
 
             # Show shortcuts section
             cli.subheader("Shortcuts:", leading_blank=False, trailing_blank=False)
-            if cli.use_rich:
-                cli.console.print("  [dim]b[/dim]                      build")
-                cli.console.print("  [dim]s[/dim], [dim]dev[/dim]               serve")
-                cli.console.print("  [dim]c[/dim]                      clean")
-                cli.console.print("  [dim]v[/dim], [dim]check[/dim], [dim]lint[/dim]      validate")
-            else:
-                cli.info("  b                      build")
-                cli.info("  s, dev                 serve")
-                cli.info("  c                      clean")
-                cli.info("  v, check, lint         validate")
+            for aliases, canonical in SHORTCUTS_DISPLAY:
+                # Calculate padding based on visible text width
+                padding = 18 - len(aliases)
+                if cli.use_rich:
+                    # Style each alias as dim
+                    styled_aliases = ", ".join(
+                        f"[dim]{a.strip()}[/dim]" for a in aliases.split(",")
+                    )
+                    cli.console.print(f"  {styled_aliases}{' ' * padding} {canonical}")
+                else:
+                    cli.info(f"  {aliases:<18} {canonical}")
             cli.blank()
 
         # Usage pattern
