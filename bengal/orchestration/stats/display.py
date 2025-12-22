@@ -154,191 +154,86 @@ def display_build_stats(
     if stats.warnings and not stats.has_errors:
         display_warnings(stats)
 
-    # Header with ASCII art integrated
-    has_warnings = len(stats.warnings) > 0
-    if has_warnings:
-        if cli.use_rich:
-            cli.console.print()
-            cli.console.print(
-                "[info]┌─────────────────────────────────────────────────────┐[/info]"
-            )
-            cli.console.print(
-                f"[info]│[/info][warning]         {cli.icons.warning}  Build complete (with warnings)          [/warning][info]│[/info]"
-            )
-            cli.console.print(
-                "[info]└─────────────────────────────────────────────────────┘[/info]"
-            )
-        else:
-            cli.blank()
-            cli.warning(f"         {cli.icons.warning}  Build complete (with warnings)          ")
-    else:
-        cli.blank()
-        if show_art:
-            if cli.use_rich:
-                cli.console.print(
-                    f"{cli.icons.success} [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete[/success]"
-                )
-            else:
-                cli.info(f"{cli.icons.success} ᓚᘏᗢ  Build complete")
-        else:
-            cli.console.print(f"{cli.icons.success} [success]Build complete[/success]")
-
-    # Content stats
-    cli.blank()
-    if cli.use_rich:
-        cli.console.print("[header]Content statistics:[/header]")
-        cli.console.print(
-            f"   [info]├─[/info] Pages:       [success]{stats.total_pages}[/success] "
-            f"({stats.regular_pages} regular + {stats.generated_pages} generated)"
-        )
-        cli.console.print(
-            f"   [info]├─[/info] Sections:    [success]{stats.total_sections}[/success]"
-        )
-        cli.console.print(
-            f"   [info]├─[/info] Assets:      [success]{stats.total_assets}[/success]"
-        )
-
-        # Directive statistics (if present)
-        if stats.total_directives > 0:
-            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
-                :3
-            ]
-            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-            cli.console.print(
-                f"   [info]├─[/info] Directives:  [highlight]{stats.total_directives}[/highlight] "
-                f"({type_summary})"
-            )
-
-        cli.console.print(
-            f"   [info]└─[/info] Taxonomies:  [success]{stats.taxonomies_count}[/success]"
-        )
-    else:
-        cli.info("Content statistics:")
-        cli.info(
-            f"   ├─ Pages:       {stats.total_pages} "
-            f"({stats.regular_pages} regular + {stats.generated_pages} generated)"
-        )
-        cli.info(f"   ├─ Sections:    {stats.total_sections}")
-        cli.info(f"   ├─ Assets:      {stats.total_assets}")
-
-        if stats.total_directives > 0:
-            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
-                :3
-            ]
-            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-            cli.info(f"   ├─ Directives:  {stats.total_directives} ({type_summary})")
-
-        cli.info(f"   └─ Taxonomies:  {stats.taxonomies_count}")
-
-    # Build info
-    cli.blank()
+    # Build mode
     mode_parts = []
     if stats.incremental:
         mode_parts.append("incremental")
     if stats.parallel:
         mode_parts.append("parallel")
-    if not mode_parts:
-        mode_parts.append("sequential")
+    mode_text = "+".join(mode_parts) if mode_parts else "sequential"
 
-    mode_text = " + ".join(mode_parts)
+    # Throughput
+    pages_per_sec = (
+        (stats.total_pages / stats.build_time_ms) * 1000 if stats.build_time_ms > 0 else 0
+    )
 
-    if cli.use_rich:
-        cli.console.print("[header]Build configuration:[/header]")
-        cli.console.print(f"   [info]└─[/info] Mode:        [warning]{mode_text}[/warning]")
-    else:
-        cli.info("Build configuration:")
-        cli.info(f"   └─ Mode:        {mode_text}")
+    # Phase breakdown - collect non-zero phases
+    phases = []
+    if stats.rendering_time_ms > 0:
+        phases.append(f"Render {format_time(stats.rendering_time_ms)}")
+    if stats.discovery_time_ms > 0:
+        phases.append(f"Discovery {format_time(stats.discovery_time_ms)}")
+    if stats.health_check_time_ms > 0:
+        phases.append(f"Health {format_time(stats.health_check_time_ms)}")
+    if stats.postprocess_time_ms > 0:
+        phases.append(f"Post {format_time(stats.postprocess_time_ms)}")
+    if stats.assets_time_ms > 0:
+        phases.append(f"Assets {format_time(stats.assets_time_ms)}")
 
-    # Performance stats
-    cli.blank()
+    # Build main summary line
     total_time_str = format_time(stats.build_time_ms)
+    has_warnings = len(stats.warnings) > 0
 
-    # Determine time styling and grade token (ASCII by default)
-    if stats.build_time_ms < 100:
-        time_token = "success"
-        grade = cli.icons.grade_excellent
-    elif stats.build_time_ms < 1000:
-        time_token = "warning"
-        grade = cli.icons.grade_fast
+    cli.blank()
+    if has_warnings:
+        if cli.use_rich:
+            cli.console.print(
+                f"[warning]{cli.icons.warning}[/warning] [bengal]ᓚᘏᗢ[/bengal]  "
+                f"[warning]Built {stats.total_pages} pages in {total_time_str} ({mode_text}) with warnings[/warning]"
+            )
+        else:
+            cli.warning(
+                f"{cli.icons.warning} ᓚᘏᗢ  Built {stats.total_pages} pages in {total_time_str} ({mode_text}) with warnings"
+            )
     else:
-        time_token = "error"
-        grade = cli.icons.grade_slow
+        if cli.use_rich:
+            cli.console.print(
+                f"[success]{cli.icons.success}[/success] [bengal]ᓚᘏᗢ[/bengal]  "
+                f"[success]Built {stats.total_pages} pages[/success] "
+                f"({stats.regular_pages}+{stats.generated_pages}) in [highlight]{total_time_str}[/highlight] "
+                f"({mode_text}) | [highlight]{pages_per_sec:.1f}[/highlight] pages/sec"
+            )
+        else:
+            cli.success(
+                f"ᓚᘏᗢ  Built {stats.total_pages} pages ({stats.regular_pages}+{stats.generated_pages}) "
+                f"in {total_time_str} ({mode_text}) | {pages_per_sec:.1f} pages/sec"
+            )
+
+    # Content line
+    content_parts = [f"{stats.total_sections} sections", f"{stats.total_assets} assets"]
+    if stats.taxonomies_count > 0:
+        content_parts.append(f"{stats.taxonomies_count} taxonomies")
+    if stats.total_directives > 0:
+        content_parts.append(f"{stats.total_directives} directives")
 
     if cli.use_rich:
-        cli.console.print("[header]Performance:[/header]")
-        cli.console.print(
-            f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {grade}"
-        )
-
-        # Phase breakdown (only if we have phase data)
-        if stats.discovery_time_ms > 0:
-            cli.console.print(
-                f"   [info]├─[/info] Discovery:   {format_time(stats.discovery_time_ms)}"
-            )
-        if stats.taxonomy_time_ms > 0:
-            cli.console.print(
-                f"   [info]├─[/info] Taxonomies:  {format_time(stats.taxonomy_time_ms)}"
-            )
-        if stats.rendering_time_ms > 0:
-            cli.console.print(
-                f"   [info]├─[/info] Rendering:   {format_time(stats.rendering_time_ms)}"
-            )
-        if stats.assets_time_ms > 0:
-            cli.console.print(
-                f"   [info]├─[/info] Assets:      {format_time(stats.assets_time_ms)}"
-            )
-        if stats.postprocess_time_ms > 0:
-            cli.console.print(
-                f"   [info]├─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}"
-            )
-        if stats.health_check_time_ms > 0:
-            cli.console.print(
-                f"   [info]└─[/info] Health:      {format_time(stats.health_check_time_ms)}"
-            )
+        cli.console.print(f"   [dim]{', '.join(content_parts)}[/dim]")
     else:
-        cli.info("Performance:")
-        cli.info(f"   ├─ Total:       {total_time_str} {grade}")
+        cli.info(f"   {', '.join(content_parts)}")
 
-        if stats.discovery_time_ms > 0:
-            cli.info(f"   ├─ Discovery:   {format_time(stats.discovery_time_ms)}")
-        if stats.taxonomy_time_ms > 0:
-            cli.info(f"   ├─ Taxonomies:  {format_time(stats.taxonomy_time_ms)}")
-        if stats.rendering_time_ms > 0:
-            cli.info(f"   ├─ Rendering:   {format_time(stats.rendering_time_ms)}")
-        if stats.assets_time_ms > 0:
-            cli.info(f"   ├─ Assets:      {format_time(stats.assets_time_ms)}")
-        if stats.postprocess_time_ms > 0:
-            cli.info(f"   ├─ Postprocess: {format_time(stats.postprocess_time_ms)}")
-        if stats.health_check_time_ms > 0:
-            cli.info(f"   └─ Health:      {format_time(stats.health_check_time_ms)}")
-
-    # Fun stats
-    if stats.build_time_ms > 0:
-        pages_per_sec = (
-            (stats.total_pages / stats.build_time_ms) * 1000 if stats.build_time_ms > 0 else 0
-        )
-        if pages_per_sec > 0:
-            cli.blank()
-            if cli.use_rich:
-                cli.console.print("[header]Throughput:[/header]")
-                cli.console.print(
-                    f"   [info]└─[/info] [highlight]{pages_per_sec:.1f}[/highlight] pages/second"
-                )
-            else:
-                cli.info("Throughput:")
-                cli.info(f"   └─ {pages_per_sec:.1f} pages/second")
+    # Phase breakdown line (only show top 3-4 phases)
+    if phases:
+        phase_str = ", ".join(phases[:4])
+        if cli.use_rich:
+            cli.console.print(f"   [dim]{phase_str}[/dim]")
+        else:
+            cli.info(f"   {phase_str}")
 
     # Output location
     if output_dir:
-        cli.blank()
-        cli.path(output_dir, label="Output")
+        if cli.use_rich:
+            cli.console.print(f"   [dim]↪ {output_dir}[/dim]")
+        else:
+            cli.info(f"   ↪ {output_dir}")
 
-    # Separator
-    if cli.use_rich:
-        cli.console.print()
-        cli.console.print("[info]─────────────────────────────────────────────────────[/info]")
-        cli.console.print()
-    else:
-        cli.blank()
-        cli.info("─────────────────────────────────────────────────────")
-        cli.blank()
+    cli.blank()
