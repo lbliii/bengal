@@ -273,6 +273,7 @@ def reset_bengal_state():
     - Rich console is reset (prevents Live display conflicts)
     - Logger state is cleared (prevents file handle leaks)
     - Theme cache is cleared (ensures fresh theme discovery)
+    - Parser cache is cleared (ensures fresh parsers with current directives)
 
     Future expansions:
     - PageProxyCache (if added as singleton)
@@ -280,7 +281,25 @@ def reset_bengal_state():
     - Template engine instances/bytecode cache
     - Asset dependency map state
     """
-    # Setup: Nothing needed before test
+    # Setup: Clear parser cache before test to get fresh parsers with latest directives
+    try:
+        from bengal.rendering.pipeline.thread_local import reset_parser_cache
+
+        reset_parser_cache()
+    except ImportError:
+        pass
+
+    # Setup: Force reload directives factory to pick up any new directives
+    # This is needed because directive imports happen at module load time
+    try:
+        import importlib
+
+        import bengal.directives.factory
+
+        importlib.reload(bengal.directives.factory)
+    except (ImportError, AttributeError):
+        pass
+
     yield
 
     # Teardown: Reset all stateful components after each test

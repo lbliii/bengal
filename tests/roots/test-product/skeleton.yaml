@@ -1,0 +1,22 @@
+name: Test Product
+description: Test site for product template integration tests
+
+structure:
+  - path: _index.md
+    type: home
+    props:
+      title: Test Product Home
+
+  - path: products/_index.md
+    type: section
+    props:
+      title: Products
+
+  - path: products/product-1.md
+    type: product
+    props:
+      title: Test Product One
+      structured_data: true
+      price: 99.99
+      currency: USD
+      description: A test product for integration tests
