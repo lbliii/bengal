@@ -354,6 +354,7 @@ class BengalServeDashboard(BengalDashboard):
                 # Task 4.2: Empty state for no site
                 watcher_summary.update("[dim]No site loaded[/dim]")
         except Exception:
+            # Widget may not be mounted yet during initialization
             pass
 
     def _update_stat(self, key: str, value: str) -> None:
@@ -362,6 +363,7 @@ class BengalServeDashboard(BengalDashboard):
             stats_table = self.query_one("#stats-table", DataTable)
             stats_table.update_cell(key, "Value", value)
         except Exception:
+            # Widget may not be mounted yet during initialization
             pass
 
     def _add_build_to_history(self, duration_ms: float) -> None:
