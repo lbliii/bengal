@@ -57,10 +57,8 @@ class TestNavTreeVersionedSite:
 
         changelog_page = next((p for p in shared_pages if "changelog" in str(p.source_path)), None)
         assert changelog_page is not None, "Changelog page should exist"
-        # Use relative_url for comparison (excludes baseurl)
-        assert changelog_page.relative_url == "/_shared/changelog/", (
-            "Changelog should have correct URL"
-        )
+        # Use _path for comparison (excludes baseurl)
+        assert changelog_page._path == "/_shared/changelog/", "Changelog should have correct URL"
 
         # TODO: Once shared content injection is implemented in NavTree.build(),
         # uncomment these assertions:
@@ -92,7 +90,7 @@ class TestNavTreeVersionedSite:
         v3_guide_url = "/docs/guide/"
         v3_guide = tree_v3.find(v3_guide_url)
         assert v3_guide is not None, "v3 guide should be in v3 nav tree"
-        assert v3_guide.url == v3_guide_url
+        assert v3_guide._path == v3_guide_url
 
         # v3 docs section should exist
         v3_docs_url = "/docs/"
@@ -141,10 +139,10 @@ class TestNavTreeVersionedSite:
 
         context = NavTreeContext(tree_v3, v3_guide_page)
 
-        # Current page should be active (use relative_url for nav tree lookup)
-        current_node = tree_v3.find(v3_guide_page.relative_url)
+        # Current page should be active (use _path for nav tree lookup)
+        current_node = tree_v3.find(v3_guide_page._path)
         assert current_node is not None, (
-            f"v3 guide page {v3_guide_page.relative_url} should be in nav tree"
+            f"v3 guide page {v3_guide_page._path} should be in nav tree"
         )
         assert context.is_active(current_node) is True
         assert context.is_current(current_node) is True
@@ -249,11 +247,11 @@ class TestNavTreeVersionedSite:
             and (p._section is None or p != getattr(p._section, "index_page", None))
         ]
 
-        # All v3 pages should be findable in the tree (NavTree uses relative_url)
+        # All v3 pages should be findable in the tree (NavTree uses _path)
         for page in v3_pages:
-            node = tree_v3.find(page.relative_url)
-            assert node is not None, f"Page {page.relative_url} should be findable in v3 nav tree"
-            assert node.url == page.relative_url
+            node = tree_v3.find(page._path)
+            assert node is not None, f"Page {page._path} should be findable in v3 nav tree"
+            assert node._path == page._path
 
         # Index pages are represented by section nodes, not separate page nodes
         # Verify section nodes exist
@@ -271,7 +269,7 @@ class TestNavTreeVersionedSite:
         tree_v3 = NavTree.build(site, version_id="v3")
 
         # Walk the tree and collect all URLs
-        walked_urls = {node.url for node in tree_v3.root.walk()}
+        walked_urls = {node._path for node in tree_v3.root.walk()}
 
         # flat_nodes should contain all walked URLs
         flat_urls = set(tree_v3.flat_nodes.keys())
