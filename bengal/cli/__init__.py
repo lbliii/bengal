@@ -55,7 +55,12 @@ from .base import BengalCommand, BengalGroup
 @click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
 @click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main(ctx: click.Context) -> None:
+@click.option(
+    "--dashboard",
+    is_flag=True,
+    help="Launch unified interactive dashboard (Textual TUI)",
+)
+def main(ctx: click.Context, dashboard: bool = False) -> None:
     """
     Bengal Static Site Generator CLI.
 
@@ -67,12 +72,18 @@ def main(ctx: click.Context) -> None:
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     TracebackConfig.from_environment().install()
 
+    # Launch unified dashboard if requested
+    if dashboard:
+        from bengal.cli.dashboard import run_unified_dashboard
+
+        run_unified_dashboard()
+        return
+
     # Show welcome banner if no command provided (but not if --help was used)
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
         from click.core import HelpFormatter
 
         from bengal.orchestration.stats import show_welcome
-        from bengal.output import CLIOutput
 
         show_welcome()
         formatter = HelpFormatter()

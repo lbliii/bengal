@@ -1,0 +1,173 @@
+name: test-mixed-content
+description: Tests mixed content types - docs + blog + portfolio on single site
+version: "1.0"
+
+structure:
+  # Landing page
+  - path: _index.md
+    type: landing
+    props:
+      title: "Mixed Content Site"
+      description: "A site with docs, blog, and portfolio sections"
+    content: |
+      # Welcome to Mixed Content Site
+
+      This site demonstrates multiple content types:
+      - Documentation
+      - Blog posts
+      - Project portfolio
+
+  # Docs section with doc type
+  - path: docs/_index.md
+    type: section
+    cascade:
+      type: doc
+    props:
+      title: "Documentation"
+      weight: 10
+    content: |
+      # Documentation
+
+      Technical documentation for the project.
+
+  - path: docs/getting-started.md
+    type: doc
+    props:
+      title: "Getting Started"
+      weight: 1
+    content: |
+      # Getting Started
+
+      Welcome to the documentation!
+
+      ## Installation
+
+      Install the package using pip:
+
+      ```bash
+      pip install mypackage
+      ```
+
+  - path: docs/reference.md
+    type: doc
+    props:
+      title: "Reference"
+      weight: 2
+    content: |
+      # API Reference
+
+      Detailed API documentation.
+
+      ## Functions
+
+      - `function_a()` - Does something
+      - `function_b()` - Does something else
+
+  # Blog section with blog type
+  - path: blog/_index.md
+    type: section
+    cascade:
+      type: blog
+    props:
+      title: "Blog"
+      weight: 20
+    content: |
+      # Blog
+
+      Latest updates and articles.
+
+  - path: blog/post-1.md
+    type: blog
+    props:
+      title: "First Blog Post"
+      date: "2025-06-01"
+      tags:
+        - announcement
+        - news
+    content: |
+      # First Blog Post
+
+      This is the first blog post on our mixed content site.
+
+      ## Highlights
+
+      - New documentation
+      - New projects
+      - More content coming soon
+
+  - path: blog/post-2.md
+    type: blog
+    props:
+      title: "Second Blog Post"
+      date: "2025-06-15"
+      tags:
+        - tutorial
+    content: |
+      # Second Blog Post
+
+      Another update from the team.
+
+      ## What's New
+
+      Check out our latest project!
+
+  # Portfolio/Projects section with portfolio type
+  - path: projects/_index.md
+    type: section
+    cascade:
+      type: portfolio
+    props:
+      title: "Projects"
+      weight: 30
+    content: |
+      # Our Projects
+
+      Explore our portfolio of work.
+
+  - path: projects/project-alpha.md
+    type: portfolio
+    props:
+      title: "Project Alpha"
+      date: "2025-01-15"
+      tags:
+        - python
+        - api
+      featured: true
+    content: |
+      # Project Alpha
+
+      Our flagship project.
+
+      ## Overview
+
+      A comprehensive solution for modern development.
+
+      ## Technologies
+
+      - Python
+      - REST API
+      - PostgreSQL
+
+  - path: projects/project-beta.md
+    type: portfolio
+    props:
+      title: "Project Beta"
+      date: "2025-03-20"
+      tags:
+        - web
+        - frontend
+      featured: false
+    content: |
+      # Project Beta
+
+      Web-focused project.
+
+      ## Overview
+
+      A modern web application.
+
+      ## Technologies
+
+      - React
+      - TypeScript
+      - Tailwind CSS

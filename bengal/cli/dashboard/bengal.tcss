@@ -373,22 +373,62 @@ Toast.-error {
 
 /* Progress bar smooth fill */
 ProgressBar > Bar {
-    transition: width 300ms;
+    transition: width 300ms ease-out;
 }
 
 /* Tab switch fade */
 TabPane {
-    transition: opacity 150ms;
+    transition: opacity 150ms ease-in-out;
 }
 
 /* Log entry fade-in */
 Log > .log-entry {
-    transition: opacity 200ms;
+    transition: opacity 200ms ease-in;
 }
 
 /* Phase status change */
 .phase-transition {
-    transition: color 200ms;
+    transition: color 200ms ease-in-out, background 200ms ease-in-out;
+}
+
+/* Screen transitions */
+Screen {
+    transition: opacity 150ms ease-in-out;
+}
+
+/* Tree expand/collapse animation */
+Tree {
+    transition: height 200ms ease-in-out;
+}
+
+/* Sparkline value animation */
+Sparkline {
+    transition: color 300ms ease-in-out;
+}
+
+/* Toast slide in */
+Toast {
+    transition: offset 300ms ease-out, opacity 200ms ease-in;
+}
+
+/* Button hover effect */
+Button {
+    transition: background 150ms ease-in-out, border 150ms ease-in-out;
+}
+
+/* Focus ring animation */
+*:focus {
+    transition: border 100ms ease-in;
+}
+
+/* Data table row selection */
+DataTable > .datatable--cursor {
+    transition: background 100ms ease-in-out;
+}
+
+/* Tree cursor animation */
+Tree > .tree--cursor {
+    transition: background 100ms ease-in-out;
 }
 
 /* === Scrollbars === */
