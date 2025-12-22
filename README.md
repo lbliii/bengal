@@ -203,138 +203,55 @@ structure:
 
 ## Features
 
-### Content Authoring
+| Feature | Description | Docs |
+|---------|-------------|------|
+| **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
+| **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/extending/autodoc/) |
+| **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
+| **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
+| **Validation** | Health checks, broken link detection, auto-fix | [Building →](https://lbliii.github.io/bengal/docs/building/) |
+| **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/building/performance/large-sites/) |
 
-Markdown with directives — tabs, admonitions, code blocks, cards, and more:
-
-~~~markdown
-:::{note} Pro tip
-Nest **any markdown** inside directives.
-:::
-
-:::{tabs}
-### Python
-```python
-print("Hello")
-```
-### JavaScript
-```js
-console.log("Hello")
-```
-:::
-~~~
-
-Frontmatter for metadata and visibility control:
-
-```yaml
----
-title: My Page
-date: 2025-12-01
-hidden: true           # Exclude from nav, search, sitemap
-template: custom.html  # Custom template
----
-```
-
-### Auto-Generated Documentation
-
-Generate docs from source code without imports:
-
-```yaml
-# config/_default/autodoc.yaml
-python:
-  enabled: true
-  source_dirs: [mypackage]
-
-cli:
-  enabled: true
-  app_module: mypackage.cli:main
-
-openapi:
-  enabled: true
-  spec_file: openapi.yaml
-```
-
-### Remote Content Sources
-
-Pull content from GitHub, Notion, or REST APIs:
-
-```bash
-pip install bengal[github]      # GitHub source
-pip install bengal[notion]      # Notion source
-pip install bengal[all-sources] # All remote sources
-```
-
-```python
-# collections.py
-from bengal.content_layer import github_loader
-
-collections = {
-    "external-docs": define_collection(
-        schema=Doc,
-        loader=github_loader(repo="myorg/docs", path="content/"),
-    ),
-}
-```
-
-### Build Performance
-
-| Site Size | Strategy | Typical Build Time |
-|-----------|----------|-------------------|
-| <500 pages | Default | 1-3s |
-| 500-5K pages | `--incremental` | 3-15s |
-| 5K+ pages | `--memory-optimized` | 15-60s |
-
-```bash
-bengal build --incremental   # Only rebuild changed files
-bengal build --parallel      # Use all CPU cores (default)
-bengal build --memory-optimized  # Streaming for large sites
-```
-
-### Site Analysis & Validation
-
-```bash
-bengal graph report    # Full connectivity analysis
-bengal graph orphans   # Find unlinked pages
-bengal validate        # Run health checks
-bengal validate --watch # Continuous validation
-bengal fix             # Auto-fix common issues
-```
+📚 **Full documentation**: [lbliii.github.io/bengal](https://lbliii.github.io/bengal/)
 
 ---
 
 ## Configuration
 
-Directory-based config with environment and profile support:
-
-```
-mysite/
-├── bengal.toml              # Simple single-file (optional)
-└── config/
-    ├── _default/            # Base configuration
-    │   ├── site.yaml
-    │   ├── build.yaml
-    │   └── autodoc.yaml
-    ├── environments/        # Environment overrides
-    │   └── production.yaml
-    └── profiles/            # Build profiles
-        └── dev.yaml
-```
-
-**Minimal config:**
+<details>
+<summary><strong>Single-file</strong> — Simple projects</summary>
 
 ```toml
+# bengal.toml
 [site]
 title = "My Site"
 baseurl = "https://example.com"
 ```
 
-**Environment and profile builds:**
+</details>
+
+<details>
+<summary><strong>Directory-based</strong> — Multi-environment projects</summary>
+
+```
+config/
+├── _default/           # Base configuration
+│   ├── site.yaml
+│   └── build.yaml
+├── environments/       # Environment overrides
+│   └── production.yaml
+└── profiles/           # Build profiles
+    └── dev.yaml
+```
 
 ```bash
-bengal build -e production       # Production environment
-bengal build --profile writer    # Fast, clean output
-bengal build --profile dev       # Full observability
+bengal build -e production    # Production environment
+bengal build --profile dev    # Development profile
 ```
+
+</details>
+
+📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/reference/configuration/)
 
 ---
 

@@ -30,6 +30,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.utils.build_context import BuildContext
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
@@ -95,6 +96,7 @@ class PostprocessOrchestrator:
         progress_manager: Any | None = None,
         build_context: BuildContext | Any | None = None,
         incremental: bool = False,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
@@ -103,7 +105,10 @@ class PostprocessOrchestrator:
             parallel: Whether to run tasks in parallel
             progress_manager: Live progress manager (optional)
             incremental: Whether this is an incremental build (can skip some tasks)
+            collector: Optional output collector for hot reload tracking
         """
+        # Store collector for use in task methods
+        self._collector = collector
         # Resolve from context if absent
         if (
             not progress_manager
@@ -299,7 +304,8 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If sitemap generation fails
         """
-        generator = SitemapGenerator(self.site)
+        collector = getattr(self, "_collector", None)
+        generator = SitemapGenerator(self.site, collector=collector)
         generator.generate()
 
     def _generate_rss(self) -> None:
@@ -309,7 +315,8 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If RSS generation fails
         """
-        generator = RSSGenerator(self.site)
+        collector = getattr(self, "_collector", None)
+        generator = RSSGenerator(self.site, collector=collector)
         generator.generate()
 
     def _generate_redirects(self) -> None:

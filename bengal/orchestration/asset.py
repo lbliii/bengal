@@ -36,6 +36,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
+    from bengal.core.output import OutputCollector
     from bengal.core.site import Site
 
 # Thread-safe output lock for parallel processing
@@ -91,6 +92,8 @@ class AssetOrchestrator:
         self._cached_css_entry_points: list[Asset] | None = None
         self._cached_assets_id: int | None = None
         self._cached_assets_len: int | None = None
+        # Output collector for hot reload tracking (set during process())
+        self._collector: OutputCollector | None = None
 
     def _get_site_css_entries_cached(self) -> list[Asset]:
         """
@@ -137,11 +140,32 @@ class AssetOrchestrator:
 
         return self._cached_css_entry_points
 
+    def _record_asset_output(self, asset: Asset) -> None:
+        """
+        Record asset output for hot reload tracking.
+
+        Called after successful copy_to_output() to track the asset
+        in the output collector (if present).
+
+        Args:
+            asset: Asset that was just written to output
+        """
+        if self._collector is None:
+            return
+
+        output_path = getattr(asset, "output_path", None)
+        if not isinstance(output_path, Path):
+            return
+
+        # Record using auto-detection from extension
+        self._collector.record(output_path, phase="asset")
+
     def process(
         self,
         assets: list[Asset],
         parallel: bool = True,
         progress_manager: LiveProgressManager | None = None,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Process and copy assets to output directory.
@@ -154,7 +178,11 @@ class AssetOrchestrator:
             assets: List of assets to process
             parallel: Whether to use parallel processing
             progress_manager: Live progress manager (optional)
+            collector: Optional output collector for hot reload tracking
         """
+        # Store collector for use by _process_* methods
+        self._collector = collector
+
         # Optional Node-based pipeline: compile SCSS/PostCSS and bundle JS/TS first
         try:
             from bengal.assets.pipeline import from_site as pipeline_from_site
@@ -324,6 +352,9 @@ class AssetOrchestrator:
             throughput=len(assets) / (duration_ms / 1000) if duration_ms > 0 else 0,
         )
         self._write_asset_manifest(assets)
+
+        # Clear collector reference
+        self._collector = None
 
     def _process_concurrently(
         self,
@@ -696,6 +727,9 @@ class AssetOrchestrator:
             # Step 3: Output to public directory
             css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
 
+            # Record output for hot reload tracking
+            self._record_asset_output(css_entry)
+
         except Exception as e:
             from bengal.errors import BengalError, ErrorContext, enrich_error
 
@@ -737,6 +771,9 @@ class AssetOrchestrator:
                 asset.optimize()
 
             asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
+
+            # Record output for hot reload tracking
+            self._record_asset_output(asset)
         except Exception as e:
             from bengal.errors import BengalError, ErrorContext, enrich_error
 
