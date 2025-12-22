@@ -26,57 +26,64 @@ Usage:
 {# Check if page is autodoc - autodoc pages should use scoped navigation #}
 {% set is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
 
-{# Get root section for scoped navigation (autodoc sections have nav_root: true) #}
-{% set root_section = page._section.root if page._section and (is_autodoc or page._section.metadata.get('nav_root')) else none %}
+{# Always scope docs navigation to the page's section root.
+The docs-nav template is only used by doc-type pages, so scoped navigation
+is the expected behavior - docs sidebar should show docs content only,
+not sibling top-level sections like releases or tracks.
+
+nav_root: true metadata can still be used to create navigation boundaries
+within a section (e.g., /api/python/ stops at itself, not /api/).
+#}
+{% set root_section = page._section.root if page._section else none %}
 
 <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
   {# Version Selector - only show if page is versioned (not autodoc) #}
   {% if not is_autodoc %}
-    {% include 'partials/version-selector.html' %}
+  {% include 'partials/version-selector.html' %}
   {% endif %}
 
   {# Navigation Tree - uses cached NavTree infrastructure #}
   <div class="docs-nav-tree">
     {% if root_section %}
-      {# Scoped navigation (autodoc, nav_root sections): include root section as header #}
-      {% set nav_context = get_nav_context(page, root_section=root_section) %}
-      {% set root_item = nav_context['root'] %}
+    {# Scoped navigation (autodoc, nav_root sections): include root section as header #}
+    {% set nav_context = get_nav_context(page, root_section=root_section) %}
+    {% set root_item = nav_context['root'] %}
 
-      {# Render root section as static header with its children #}
-      <div class="docs-nav-group docs-nav-group--root{% if root_item.is_in_trail %} is-in-trail{% endif %}" data-depth="0">
-        <div class="docs-nav-group-header">
-          {% if show_nav_icons %}
-          <span class="docs-nav-icon" {% if not root_item.icon %}data-default="true"{% endif %}>
-            {{ icon(root_item.icon or 'folder', size=16) }}
-          </span>
-          {% endif %}
+    {# Render root section as static header with its children #}
+    <div class="docs-nav-group docs-nav-group--root{% if root_item.is_in_trail %} is-in-trail{% endif %}"
+      data-depth="0">
+      <div class="docs-nav-group-header">
+        {% if show_nav_icons %}
+        <span class="docs-nav-icon" {% if not root_item.icon %}data-default="true" {% endif %}>
+          {{ icon(root_item.icon or 'folder', size=16) }}
+        </span>
+        {% endif %}
 
-          {% if root_item.href %}
-          <a href="{{ root_item.href }}"
-             class="docs-nav-group-title{% if root_item.is_current %} active{% endif %}"
-             {% if root_item.is_current %}aria-current="page"{% endif %}>
-            {{ root_item.title }}
-          </a>
-          {% else %}
-          <span class="docs-nav-group-title">{{ root_item.title }}</span>
-          {% endif %}
-        </div>
-
-        <div class="docs-nav-group-items is-expanded expanded">
-          {% for item in root_item.children %}
-            {% set depth = 1 %}
-            {% include 'partials/docs-nav-node.html' %}
-          {% endfor %}
-        </div>
+        {% if root_item.url %}
+        <a href="{{ root_item.url }}" class="docs-nav-group-title{% if root_item.is_current %} active{% endif %}" {% if
+          root_item.is_current %}aria-current="page" {% endif %}>
+          {{ root_item.title }}
+        </a>
+        {% else %}
+        <span class="docs-nav-group-title">{{ root_item.title }}</span>
+        {% endif %}
       </div>
-    {% else %}
-      {# Regular navigation: render all top-level items #}
-      {% set nav_items = get_nav_tree(page) %}
 
-      {% for item in nav_items %}
-        {% set depth = 0 %}
+      <div class="docs-nav-group-items is-expanded expanded">
+        {% for item in root_item.children %}
+        {% set depth = 1 %}
         {% include 'partials/docs-nav-node.html' %}
-      {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    {# Regular navigation: render all top-level items #}
+    {% set nav_items = get_nav_tree(page) %}
+
+    {% for item in nav_items %}
+    {% set depth = 0 %}
+    {% include 'partials/docs-nav-node.html' %}
+    {% endfor %}
     {% endif %}
   </div>
 </nav>

@@ -336,3 +336,30 @@ class TestNavigationEdgeCases:
         assert parent.root == parent
         assert child.root == parent
         assert grandchild.root == parent
+
+    def test_section_root_with_nav_root_metadata(self):
+        """Test section.root stops at nav_root: true metadata boundary.
+
+        When a section has nav_root: true in metadata, it acts as a navigation
+        boundary - child sections see it as their root instead of traversing
+        further up the hierarchy. This enables scoped navigation for docs
+        sections that shouldn't show sibling top-level sections.
+        """
+        # Three-level hierarchy: site > docs > guides
+        site_root = Section(name="content", path=Path("/content"))
+        docs = Section(name="docs", path=Path("/content/docs"))
+        guides = Section(name="guides", path=Path("/content/docs/guides"))
+
+        site_root.add_subsection(docs)
+        docs.add_subsection(guides)
+
+        # Without nav_root, guides.root traverses to site_root
+        assert guides.root == site_root
+        assert docs.root == site_root
+
+        # With nav_root: true on docs, it becomes the navigation boundary
+        docs.metadata["nav_root"] = True
+
+        assert guides.root == docs  # Stops at docs (nav_root)
+        assert docs.root == docs  # docs is its own root now
+        assert site_root.root == site_root  # site_root unchanged
