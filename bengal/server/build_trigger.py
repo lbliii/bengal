@@ -549,8 +549,14 @@ class BuildTrigger:
                 )
 
                 if css_only:
+                    # Use changed_outputs to get actual CSS output paths for targeted reload
+                    css_paths = (
+                        [p for p in changed_outputs if p.lower().endswith(".css")]
+                        if changed_outputs
+                        else []
+                    )
                     decision = ReloadDecision(
-                        action="reload-css", reason="css-only", changed_paths=[]
+                        action="reload-css", reason="css-only", changed_paths=css_paths
                     )
                 else:
                     decision = ReloadDecision(
