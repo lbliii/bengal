@@ -1,9 +1,36 @@
 """
-Content discovery - finds and organizes pages and sections.
+Content discovery for Bengal SSG.
+
+This module provides the ContentDiscovery class that finds and organizes
+markdown content files into Page and Section hierarchies during site builds.
+
+Key Features:
+    - Parallel parsing via ThreadPoolExecutor for performance
+    - Frontmatter parsing with YAML error recovery
+    - i18n support (language detection from directory structure)
+    - Content collection schema validation (opt-in)
+    - Symlink loop detection via inode tracking
+    - Content caching for build-integrated validation
+    - Versioned documentation support (_versions/, _shared/)
 
 Robustness:
-    - Symlink loop detection via inode tracking to prevent infinite recursion
-    - Content collection validation (opt-in via collections.py)
+    - YAML errors in frontmatter are downgraded to debug; content is preserved
+    - UTF-8 BOM is stripped at read time to avoid parser confusion
+    - Permission errors and missing directories are handled gracefully
+    - Hidden files/directories are skipped (except _index.md)
+
+Architecture:
+    ContentDiscovery is responsible ONLY for finding and parsing content.
+    Rendering, writing, and other operations are handled by orchestrators.
+    The class integrates with BuildContext for content caching, eliminating
+    redundant disk I/O during health checks.
+
+Related:
+    - bengal/core/page/: Page, PageProxy, and PageCore data models
+    - bengal/core/section.py: Section data model
+    - bengal/orchestration/: Build orchestration
+    - bengal/collections.py: Content collection schemas
+    - bengal/health/: Validators that consume cached content
 """
 
 from __future__ import annotations
@@ -28,20 +55,42 @@ if TYPE_CHECKING:
 
 class ContentDiscovery:
     """
-    Discovers and organizes content files into pages and sections.
+    Discovers and organizes content files into Page and Section hierarchies.
 
-    Notes:
-    - YAML errors in front matter are downgraded to debug; we fall back to using the content
-      and synthesize minimal metadata to keep the build progressing.
-    - UTF-8 BOM is stripped at read time by `bengal.utils.file_io.read_text_file` to avoid
-      confusing the YAML/front matter parser.
-    - I18n dir-prefix strategy is supported (e.g., `content/en/...`); hidden files/dirs are
-      skipped except `_index.md`.
-    - Parsing uses a thread pool for concurrency; unchanged pages can be represented as
-      `PageProxy` in lazy modes.
-    - Symlink loops are detected via inode tracking to prevent infinite recursion.
-    - Content collections: When collections.py is present at project root, frontmatter
-      is validated against schemas during discovery (fail fast).
+    This class walks the content directory, parses markdown files with frontmatter,
+    and builds a structured representation of the site's content.
+
+    Key Behaviors:
+        - YAML errors in frontmatter are downgraded to debug level; content is
+          preserved with synthesized minimal metadata to keep builds progressing.
+        - UTF-8 BOM is stripped at read time to avoid parser confusion.
+        - i18n directory-prefix strategy is supported (e.g., `content/en/...`).
+        - Hidden files/directories are skipped except `_index.md` and versioning
+          directories (`_versions/`, `_shared/`).
+        - Parsing uses a ThreadPoolExecutor for concurrent file processing.
+        - Unchanged pages can be represented as PageProxy for incremental builds.
+        - Symlink loops are detected via inode tracking to prevent infinite recursion.
+        - Content collections: When collections.py is present, frontmatter is
+          validated against schemas during discovery (fail fast).
+
+    Attributes:
+        content_dir: Root content directory to scan
+        site: Optional Site reference for configuration access
+        sections: List of discovered Section objects (populated after discover())
+        pages: List of discovered Page objects (populated after discover())
+
+    Example:
+        >>> from bengal.discovery import ContentDiscovery
+        >>> from pathlib import Path
+        >>>
+        >>> # Basic usage
+        >>> discovery = ContentDiscovery(Path("content"))
+        >>> sections, pages = discovery.discover()
+        >>> print(f"Found {len(pages)} pages in {len(sections)} sections")
+        >>>
+        >>> # With caching for incremental builds
+        >>> discovery = ContentDiscovery(Path("content"), site=site)
+        >>> sections, pages = discovery.discover(use_cache=True, cache=page_cache)
     """
 
     def __init__(

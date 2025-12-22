@@ -1,30 +1,35 @@
 """
-Git version adapter for discovering versions from branches/tags.
+Git version adapter for discovering documentation versions from branches/tags.
 
 This module provides the GitVersionAdapter for building versioned documentation
-from Git branches and tags without folder duplication.
+from Git branches and tags without requiring folder duplication.
 
-Key Concepts:
-    - Discover versions from Git branches matching patterns (e.g., release/*)
+Key Features:
+    - Discover versions from Git branches matching patterns (e.g., `release/*`)
+    - Support both branches and tags as version sources
     - Use Git worktrees for parallel builds of multiple versions
     - Cache worktrees to avoid repeated checkouts
-    - Support both branches and tags as version sources
+    - Track commits for incremental build detection
 
-Design:
+Architecture:
     The adapter integrates with Bengal's versioning system by:
     1. Discovering branches/tags matching configured patterns
     2. Creating Version objects for each match
     3. Managing worktrees for building each version
     4. Cleaning up worktrees after builds complete
 
+    This enables single-source versioned documentation where different versions
+    live in different Git branches, avoiding folder duplication.
+
 Related:
     - bengal/core/version.py: Version and GitVersionConfig models
     - bengal/orchestration/build_orchestrator.py: Multi-version builds
-    - plan/drafted/rfc-versioned-documentation.md: Design rationale
+    - bengal/discovery/version_resolver.py: Path resolution for versions
 
 Example:
-    >>> from bengal.discovery.git_version_adapter import GitVersionAdapter
+    >>> from bengal.discovery import GitVersionAdapter
     >>> from bengal.core.version import GitVersionConfig, GitBranchPattern
+    >>> from pathlib import Path
     >>>
     >>> config = GitVersionConfig(
     ...     branches=[

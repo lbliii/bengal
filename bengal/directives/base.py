@@ -1,22 +1,49 @@
-"""
-Base class for Bengal directives.
+"""Base class for Bengal directives.
 
-Provides BengalDirective as the foundation for all directive implementations,
-offering automatic registration, typed options, contract validation, and
-encapsulated rendering.
+This module provides ``BengalDirective``, the foundation for all directive
+implementations. It extends Mistune's ``DirectivePlugin`` with automatic
+registration, typed options, and contract-based nesting validation.
 
-Architecture:
-    BengalDirective extends mistune's DirectivePlugin with:
-    - Automatic directive and renderer registration via NAMES/TOKEN_TYPE
-    - Typed option parsing via OPTIONS_CLASS
-    - Nesting validation via CONTRACT
-    - Template method pattern for parse flow
-    - Encapsulated render method
+Features:
+    - **Automatic Registration**: Directives register themselves via ``NAMES``
+      and ``TOKEN_TYPE`` class attributes.
+    - **Typed Options**: Parse directive options into typed dataclasses using
+      ``OPTIONS_CLASS``.
+    - **Contract Validation**: Define valid parent-child relationships via
+      ``CONTRACT`` to catch invalid nesting at parse time.
+    - **Template Method Pattern**: Override ``parse_directive()`` and ``render()``
+      for directive-specific logic.
 
-Related:
-    - bengal/directives/tokens.py: DirectiveToken
-    - bengal/directives/options.py: DirectiveOptions
-    - bengal/directives/contracts.py: DirectiveContract
+Class Attributes:
+    NAMES: List of directive names to register (e.g., ``["dropdown", "details"]``).
+    TOKEN_TYPE: Token type string for the AST (e.g., ``"dropdown"``).
+    OPTIONS_CLASS: Dataclass for typed option parsing (default: ``DirectiveOptions``).
+    CONTRACT: Optional nesting validation contract (default: ``None``).
+
+Example:
+    Create a custom dropdown directive::
+
+        from bengal.directives import BengalDirective, DirectiveToken
+
+        class DropdownDirective(BengalDirective):
+            NAMES = ["dropdown"]
+            TOKEN_TYPE = "dropdown"
+
+            def parse_directive(self, title, options, content, children, state):
+                return DirectiveToken(
+                    type=self.TOKEN_TYPE,
+                    attrs={"title": title or "Details"},
+                    children=children,
+                )
+
+            def render(self, renderer, text, **attrs):
+                title = attrs.get("title", "Details")
+                return f"<details><summary>{title}</summary>{text}</details>"
+
+See Also:
+    - ``bengal.directives.tokens``: ``DirectiveToken`` definition.
+    - ``bengal.directives.options``: ``DirectiveOptions`` base class.
+    - ``bengal.directives.contracts``: ``DirectiveContract`` for nesting rules.
 """
 
 from __future__ import annotations
