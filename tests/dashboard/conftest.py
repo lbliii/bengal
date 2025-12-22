@@ -5,27 +5,121 @@ Provides async fixtures for testing Textual apps in headless mode,
 snapshot testing helpers, and mock data generators.
 
 Usage:
-    async def test_build_dashboard(app: BengalBuildDashboard):
-        async with app.run_test() as pilot:
-            await pilot.press("q")
-            assert app.is_mounted
+    @pytest.mark.asyncio
+    async def test_navigation(pilot):
+        await pilot.press("1")
+        assert pilot.app.screen.name == "build"
+
+    def test_build_screen_snapshot(snap_compare):
+        assert snap_compare(APP_PATH, press=["1"])
 """
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 
 if TYPE_CHECKING:
-    pass
+    from textual.pilot import Pilot
+
+    from bengal.cli.dashboard.app import BengalApp
+
+
+# Path to the main dashboard app module (for snapshot tests)
+APP_PATH = str(Path(__file__).parent.parent.parent / "bengal" / "cli" / "dashboard" / "app.py")
 
 
 @pytest.fixture
 def snapshot_path() -> Path:
     """Path to store dashboard snapshots for visual regression testing."""
     return Path(__file__).parent / "snapshots"
+
+
+@pytest.fixture
+def mock_site() -> MagicMock:
+    """
+    Create a mock Site object for dashboard testing.
+
+    Provides realistic data for rendering dashboards without
+    requiring actual site files.
+    """
+    site = MagicMock()
+    site.title = "Test Site"
+    site.baseurl = "/"
+    site.output_dir = Path("/tmp/test-output")
+    site.content_dir = Path("/tmp/test-content")
+
+    # Mock pages
+    site.pages = [
+        MagicMock(
+            title=f"Page {i}",
+            url=f"/page-{i}/",
+            source_path=Path(f"content/page-{i}.md"),
+        )
+        for i in range(5)
+    ]
+
+    # Mock assets
+    site.assets = [MagicMock(path=f"assets/file-{i}.css") for i in range(10)]
+
+    # Mock sections
+    site.sections = [MagicMock(title="Docs", path="docs/")]
+
+    return site
+
+
+@pytest.fixture
+def bengal_app(mock_site: MagicMock) -> BengalApp:
+    """
+    Create BengalApp instance for testing.
+
+    Returns app configured with mock site, starting on landing screen.
+    """
+    from bengal.cli.dashboard.app import BengalApp
+
+    return BengalApp(site=mock_site, start_screen="landing")
+
+
+@pytest.fixture
+def bengal_app_no_site() -> BengalApp:
+    """
+    Create BengalApp instance without a site.
+
+    Useful for testing error handling and empty states.
+    """
+    from bengal.cli.dashboard.app import BengalApp
+
+    return BengalApp(site=None, start_screen="landing")
+
+
+@pytest.fixture
+async def pilot(bengal_app: BengalApp) -> AsyncGenerator[Pilot]:
+    """
+    Async fixture providing Textual pilot for interaction testing.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_navigation(pilot):
+            await pilot.press("1")
+            assert pilot.app.screen.name == "build"
+    """
+    async with bengal_app.run_test() as pilot:
+        yield pilot
+
+
+@pytest.fixture
+async def pilot_no_site(bengal_app_no_site: BengalApp) -> AsyncGenerator[Pilot]:
+    """
+    Async fixture providing pilot for app without site.
+
+    Useful for testing error states and notifications.
+    """
+    async with bengal_app_no_site.run_test() as pilot:
+        yield pilot
 
 
 @pytest.fixture

@@ -226,15 +226,24 @@ class BengalApp(App):
         self.notify(f"Opening {self.server_url}", title="Browser")
 
     def action_clear_log(self) -> None:
-        """Clear the output log."""
-        # Find and clear log widget on current screen
-        try:
-            from textual.widgets import Log
+        """Clear the output log on current screen."""
+        from textual.widgets import Log
 
-            log = self.screen.query_one("#build-log", Log)
-            log.clear()
+        # Try to find any log widget on current screen
+        log_ids = ["#build-log", "#changes-log", "#errors-log", "#activity-log"]
+        cleared = False
+
+        for log_id in log_ids:
+            try:
+                log = self.screen.query_one(log_id, Log)
+                log.clear()
+                cleared = True
+            except Exception:
+                continue
+
+        if cleared:
             self.notify("Log cleared")
-        except Exception:
+        else:
             self.notify("No log to clear")
 
     async def action_quit(self) -> None:

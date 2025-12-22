@@ -113,7 +113,7 @@ def main(
         # Load site from current directory
         site = None
         try:
-            site = Site.from_path(Path.cwd())
+            site = Site.from_config(Path.cwd())
         except Exception as e:
             cli = CLIOutput()
             cli.warning(f"Could not load site: {e}")

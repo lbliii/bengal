@@ -160,20 +160,49 @@ Static Site Generator
 """
 
     def _get_site_summary(self) -> str:
-        """Get site summary text."""
+        """Get rich site summary text."""
         if not self.site:
             return "No site loaded. Run 'bengal new site' to create one."
 
-        title = getattr(self.site, "title", "Untitled Site")
-        pages = getattr(self.site, "pages", [])
-        assets = getattr(self.site, "assets", [])
+        title = getattr(self.site, "title", None) or "Untitled Site"
+        pages = getattr(self.site, "pages", []) or []
+        sections = getattr(self.site, "sections", []) or []
+        assets = getattr(self.site, "assets", []) or []
+        taxonomies = getattr(self.site, "taxonomies", {}) or {}
+        theme = getattr(self.site, "theme", None) or "default"
+        baseurl = getattr(self.site, "baseurl", "") or "/"
 
-        page_count = len(pages) if pages else 0
-        asset_count = len(assets) if assets else 0
+        # Count taxonomy terms
+        taxonomy_info = []
+        for tax_name, terms in taxonomies.items():
+            if isinstance(terms, dict):
+                taxonomy_info.append(f"{len(terms)} {tax_name}")
 
-        return f"""Site: {title}
-Pages: {page_count} | Assets: {asset_count}
-"""
+        # Get recent pages (by date if available)
+        recent_pages = []
+        for page in pages[:5]:
+            page_title = getattr(page, "title", None) or getattr(page, "source_path", "Untitled")
+            if hasattr(page_title, "name"):
+                page_title = page_title.name
+            recent_pages.append(f"  • {page_title[:40]}")
+
+        lines = [
+            f"[bold]{title}[/bold]",
+            "",
+            f"[dim]Theme:[/dim] {theme}  [dim]Base URL:[/dim] {baseurl}",
+            "",
+            f"📄 [bold]{len(pages)}[/bold] pages  📁 [bold]{len(sections)}[/bold] sections  🎨 [bold]{len(assets)}[/bold] assets",
+        ]
+
+        if taxonomy_info:
+            lines.append(f"🏷️  {', '.join(taxonomy_info)}")
+
+        if recent_pages:
+            lines.append("")
+            lines.append("[dim]Recent pages:[/dim]")
+            lines.extend(recent_pages[:3])
+
+        return "\n".join(lines)
 
     def on_mount(self) -> None:
         """Set up landing screen."""
@@ -344,9 +373,28 @@ class BuildScreen(BengalScreen):
             self.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
             self.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
 
-            # Get page count from stats
+            # Log rich build stats
             page_count = getattr(stats, "pages_rendered", 0) or len(getattr(self.site, "pages", []))
-            self.call_from_thread(log.write_line, f"  {page_count} pages rendered")
+            asset_count = getattr(stats, "assets_copied", 0) or len(
+                getattr(self.site, "assets", [])
+            )
+            section_count = len(getattr(self.site, "sections", []))
+
+            self.call_from_thread(log.write_line, f"  📄 {page_count} pages rendered")
+            self.call_from_thread(log.write_line, f"  🎨 {asset_count} assets copied")
+            self.call_from_thread(log.write_line, f"  📁 {section_count} sections")
+
+            # Show phase timings if available
+            if hasattr(stats, "phase_times") and stats.phase_times:
+                self.call_from_thread(log.write_line, "")
+                self.call_from_thread(log.write_line, "Phase timings:")
+                for phase_name, phase_ms in stats.phase_times.items():
+                    self.call_from_thread(log.write_line, f"  {phase_name}: {phase_ms:.0f}ms")
+
+            # Show output directory
+            output_dir = getattr(self.site, "output_dir", "public")
+            self.call_from_thread(log.write_line, "")
+            self.call_from_thread(log.write_line, f"Output: {output_dir}/")
 
         except Exception as e:
             duration_ms = (monotonic() - start_time) * 1000
@@ -410,12 +458,23 @@ class ServeScreen(BengalScreen):
         yield Footer()
 
     def action_open_browser(self) -> None:
-        """Open browser."""
-        self.app.notify("Opening browser...", title="Browser")
+        """Open browser to dev server."""
+        import webbrowser
+
+        url = getattr(self.app, "server_url", "http://localhost:1313")
+        webbrowser.open(url)
+        self.app.notify(f"Opening {url}", title="Browser")
 
     def action_force_rebuild(self) -> None:
-        """Force rebuild."""
-        self.app.notify("Triggering rebuild...", title="Rebuild")
+        """Force rebuild - switch to build screen and trigger rebuild."""
+        self.app.push_screen("build")
+        # Give the screen time to mount, then trigger rebuild
+        self.set_timer(
+            0.1,
+            lambda: self.app.screen.action_rebuild()
+            if hasattr(self.app.screen, "action_rebuild")
+            else None,
+        )
 
 
 class HealthScreen(BengalScreen):
@@ -464,13 +523,98 @@ class HealthScreen(BengalScreen):
         tree = self.query_one("#health-tree", Tree)
         tree.show_root = False
 
-        # Add sample categories
-        links = tree.root.add("Links (0)")
-        links.add_leaf("✓ No issues")
+        if self.site:
+            # Show site stats in tree
+            pages = getattr(self.site, "pages", []) or []
+            sections = getattr(self.site, "sections", []) or []
+            assets = getattr(self.site, "assets", []) or []
+
+            content = tree.root.add(f"📄 Content ({len(pages)} pages)")
+            content.add_leaf(f"  {len(sections)} sections")
+
+            asset_node = tree.root.add(f"🎨 Assets ({len(assets)})")
+            # Group assets by type
+            by_type: dict[str, int] = {}
+            for asset in assets:
+                ext = getattr(asset, "suffix", ".unknown")
+                if callable(ext):
+                    ext = ".file"
+                by_type[ext] = by_type.get(ext, 0) + 1
+            for ext, count in sorted(by_type.items()):
+                asset_node.add_leaf(f"  {ext}: {count}")
+
+            # Show taxonomies
+            taxonomies = getattr(self.site, "taxonomies", {}) or {}
+            if taxonomies:
+                tax_node = tree.root.add(f"🏷️ Taxonomies ({len(taxonomies)})")
+                for tax_name, terms in taxonomies.items():
+                    if isinstance(terms, dict):
+                        tax_node.add_leaf(f"  {tax_name}: {len(terms)} terms")
+
+            tree.root.add_leaf("✓ Press 'r' to run health scan")
+        else:
+            tree.root.add_leaf("⚠ No site loaded")
 
     def action_rescan(self) -> None:
         """Rescan site health."""
+        if not self.site:
+            self.app.notify("No site loaded", title="Error", severity="error")
+            return
+
         self.app.notify("Scanning site health...", title="Health")
+
+        # Run health scan in background
+        self.run_worker(
+            self._run_health_scan,
+            name="health_worker",
+            exclusive=True,
+            thread=True,
+        )
+
+    async def _run_health_scan(self) -> None:
+        """Run health scan in background thread."""
+        from textual.widgets import Tree
+
+        from bengal.health import HealthReport
+
+        tree = self.query_one("#health-tree", Tree)
+        summary = self.query_one("#health-summary", Static)
+
+        try:
+            # Run health check
+            self.call_from_thread(summary.update, "Scanning...")
+
+            report = HealthReport.from_site(self.site)
+
+            # Clear and rebuild tree
+            self.call_from_thread(tree.root.remove_children)
+
+            # Add issues by category
+            total_issues = 0
+
+            if hasattr(report, "link_issues") and report.link_issues:
+                links = tree.root.add(f"Links ({len(report.link_issues)})")
+                for issue in report.link_issues[:10]:  # Limit display
+                    self.call_from_thread(links.add_leaf, f"✗ {issue}")
+                total_issues += len(report.link_issues)
+
+            if hasattr(report, "content_issues") and report.content_issues:
+                content = tree.root.add(f"Content ({len(report.content_issues)})")
+                for issue in report.content_issues[:10]:
+                    self.call_from_thread(content.add_leaf, f"⚠ {issue}")
+                total_issues += len(report.content_issues)
+
+            if total_issues == 0:
+                self.call_from_thread(tree.root.add_leaf, "✓ No issues found")
+                self.call_from_thread(summary.update, "Site is healthy!")
+            else:
+                self.call_from_thread(summary.update, f"Found {total_issues} issue(s)")
+
+            self.call_from_thread(self.app.notify, "Health scan complete", title="Health")
+
+        except Exception as e:
+            self.call_from_thread(summary.update, f"Scan failed: {e}")
+            self.call_from_thread(self.app.notify, str(e), title="Error", severity="error")
 
 
 class HelpScreen(Screen):
