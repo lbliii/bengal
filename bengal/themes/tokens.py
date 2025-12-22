@@ -1,18 +1,40 @@
 """
 Shared design tokens for Bengal's web and terminal themes.
 
-This module serves as the single source of truth for:
-- Color palettes (web CSS and terminal TCSS)
-- Brand mascots (Bengal cat and mouse)
-- Semantic color tokens
+This module is the single source of truth for all visual design tokens used
+across Bengal's web CSS output and Textual terminal interfaces. All color
+values meet WCAG AA contrast requirements.
 
-Both the web CSS generator and Textual TCSS use these tokens
-to ensure visual consistency across platforms.
+Token Categories:
+    Color Palettes: Brand, semantic, surface, border, and text colors
+    Mascots: ASCII art characters and status icons for terminal output
+    Palette Variants: Named color schemes (default, blue-bengal, etc.)
+
+Dataclasses:
+    BengalPalette: Complete color palette with all token categories
+    BengalMascots: Terminal mascots and status/navigation icons
+    PaletteVariant: Subset of colors for theme variants
+
+Instances:
+    BENGAL_PALETTE: Default palette instance for direct access
+    BENGAL_MASCOT: Default mascots instance for terminal output
+    PALETTE_VARIANTS: Dict mapping variant names to PaletteVariant instances
+
+Example:
+    >>> from bengal.themes.tokens import BENGAL_PALETTE, BENGAL_MASCOT
+    >>> print(BENGAL_PALETTE.primary)
+    #FF9D00
+    >>> print(BENGAL_MASCOT.cat)
+    ᓚᘏᗢ
+
+Architecture:
+    Tokens are defined as frozen dataclasses for immutability and hashability.
+    The generate.py module reads these tokens to produce CSS output files.
 
 Related:
-    - bengal/themes/generate.py: Generates CSS and TCSS from these tokens
-    - bengal/cli/dashboard/bengal.tcss: Textual dashboard styles
-    - bengal/themes/default/assets/css/tokens/: Web CSS tokens
+    bengal/themes/generate.py: CSS/TCSS generation from these tokens
+    bengal/cli/dashboard/bengal.tcss: Textual dashboard styles
+    bengal/themes/default/assets/css/tokens/: Generated web CSS
 """
 
 from __future__ import annotations
@@ -25,8 +47,34 @@ class BengalPalette:
     """
     Bengal color palette with semantic color tokens.
 
-    All colors meet WCAG AA contrast ratio (4.5:1) against both
-    dark (#1a1a1a) and light (#fafafa) terminal backgrounds.
+    All colors meet WCAG AA contrast ratio (4.5:1) against both dark (#1a1a1a)
+    and light (#fafafa) backgrounds for accessibility compliance.
+
+    Attributes:
+        primary: Bengal signature vivid orange (#FF9D00)
+        secondary: Complementary bright blue (#3498DB)
+        accent: Highlight sunflower yellow (#F1C40F)
+        success: Positive state emerald green (#2ECC71)
+        warning: Caution state carrot orange (#E67E22)
+        error: Error state alizarin crimson (#E74C3C)
+        info: Informational silver (#95A5A6)
+        muted: De-emphasized grayish (#7F8C8D)
+        surface: Dark widget surface (#1e1e1e)
+        surface_light: Elevated surface (#2d2d2d)
+        background: Base dark background (#121212)
+        foreground: Primary light text (#e0e0e0)
+        border: Subtle border color (#3a3a3a)
+        border_focus: Focus ring using primary (#FF9D00)
+        text_primary: Main text color (#e0e0e0)
+        text_secondary: Secondary text (#9e9e9e)
+        text_muted: De-emphasized text (#757575)
+
+    Example:
+        >>> palette = BengalPalette()
+        >>> palette.primary
+        '#FF9D00'
+        >>> palette.success
+        '#2ECC71'
     """
 
     # Brand Colors
