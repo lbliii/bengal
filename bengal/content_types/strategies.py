@@ -1,7 +1,41 @@
 """
 Concrete content type strategies.
 
-Implements specific strategies for different content types like blog, docs, etc.
+This module provides concrete implementations of ContentTypeStrategy for
+Bengal's built-in content types. Each strategy encapsulates type-specific
+behavior for sorting, filtering, pagination, and template selection.
+
+Built-in Strategies:
+    - BlogStrategy: Chronological blog posts (newest first, paginated)
+    - ArchiveStrategy: Archive pages (similar to blog, simpler template)
+    - DocsStrategy: Documentation pages (weight-sorted, no pagination)
+    - ApiReferenceStrategy: Python API reference (autodoc-python)
+    - CliReferenceStrategy: CLI command reference (autodoc-cli)
+    - TutorialStrategy: Step-by-step tutorials (weight-sorted)
+    - ChangelogStrategy: Release notes and changelogs (date-sorted)
+    - TrackStrategy: Learning tracks (weight-sorted)
+    - PageStrategy: Generic pages (default fallback)
+
+Strategy Selection:
+    Content types are typically set in section ``_index.md`` frontmatter:
+
+    .. code-block:: yaml
+
+        ---
+        content_type: blog
+        ---
+
+    Alternatively, auto-detection uses ``detect_from_section()`` heuristics.
+
+Example:
+    >>> from bengal.content_types.strategies import BlogStrategy
+    >>> strategy = BlogStrategy()
+    >>> sorted_posts = strategy.sort_pages(section.pages)
+    >>> template = strategy.get_template(page, template_engine)
+
+Related:
+    - bengal/content_types/base.py: ContentTypeStrategy base class
+    - bengal/content_types/registry.py: Strategy registration and lookup
 """
 
 from __future__ import annotations
@@ -21,17 +55,45 @@ if TYPE_CHECKING:
 
 
 class BlogStrategy(ContentTypeStrategy):
-    """Strategy for blog/news content with chronological ordering."""
+    """
+    Strategy for blog/news content with chronological ordering.
+
+    Optimized for time-based content like blog posts, news articles, and
+    announcements. Pages are sorted by date (newest first) and pagination
+    is enabled by default for long lists.
+
+    Auto-Detection:
+        Detected when section name matches blog patterns (``blog``, ``posts``,
+        ``news``, ``articles``) or when >60% of pages have date metadata.
+
+    Templates:
+        - Home: ``blog/home.html`` → ``home.html`` → ``index.html``
+        - List: ``blog/list.html``
+        - Single: ``blog/single.html``
+
+    Class Attributes:
+        default_template: ``"blog/list.html"``
+        allows_pagination: ``True``
+    """
 
     default_template = "blog/list.html"
     allows_pagination = True
 
     def sort_pages(self, pages: list[Page]) -> list[Page]:
-        """Sort by date (newest first)."""
+        """
+        Sort pages by date, newest first.
+
+        Pages without dates are sorted to the end (using ``datetime.min``).
+        """
         return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
 
     def detect_from_section(self, section: Section) -> bool:
-        """Detect blog sections by name or date-heavy content."""
+        """
+        Detect blog sections by name patterns or date-heavy content.
+
+        Returns True if section name is a blog pattern or if >60% of pages
+        (sampled from first 5) have date metadata.
+        """
         name = section.name.lower()
 
         # Check section name patterns
@@ -86,24 +148,67 @@ class ArchiveStrategy(BlogStrategy):
     """
     Strategy for archive/chronological content.
 
-    Similar to blog but uses simpler archive template.
+    Inherits chronological sorting from BlogStrategy but uses a simpler
+    archive template. Suitable for date-based archives, historical records,
+    or simplified blog views.
+
+    Templates:
+        Uses ``archive.html`` as the default template.
+
+    Class Attributes:
+        default_template: ``"archive.html"``
+        allows_pagination: ``True`` (inherited from BlogStrategy)
     """
 
     default_template = "archive.html"
 
 
 class DocsStrategy(ContentTypeStrategy):
-    """Strategy for documentation with weight-based ordering."""
+    """
+    Strategy for documentation with weight-based ordering.
+
+    Optimized for structured documentation where page order is manually
+    controlled via ``weight`` frontmatter. Pagination is disabled since
+    documentation sections typically show all pages in a structured nav.
+
+    Auto-Detection:
+        Detected when section name matches documentation patterns
+        (``docs``, ``documentation``, ``guides``, ``reference``).
+
+    Sorting:
+        Pages sorted by ``weight`` (ascending), then title (alphabetical).
+        Use ``weight`` in frontmatter to control order:
+
+        .. code-block:: yaml
+
+            ---
+            title: Getting Started
+            weight: 10
+            ---
+
+    Templates:
+        - Home: ``doc/home.html`` → ``home.html`` → ``index.html``
+        - List: ``doc/list.html``
+        - Single: ``doc/single.html``
+
+    Class Attributes:
+        default_template: ``"doc/list.html"``
+        allows_pagination: ``False``
+    """
 
     default_template = "doc/list.html"
     allows_pagination = False  # Docs should not be paginated
 
     def sort_pages(self, pages: list[Page]) -> list[Page]:
-        """Sort by weight, then title (keeps manual ordering)."""
+        """
+        Sort pages by weight, then title alphabetically.
+
+        Pages without explicit weight default to 999999 (sorted last).
+        """
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
     def detect_from_section(self, section: Section) -> bool:
-        """Detect docs sections by name."""
+        """Detect documentation sections by common naming patterns."""
         name = section.name.lower()
         return name in ("docs", "documentation", "guides", "reference")
 

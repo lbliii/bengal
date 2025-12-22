@@ -1,21 +1,37 @@
 """
 Shortcode/Directive Sandbox for isolated testing.
 
-Test directives and shortcodes in isolation without building an entire site.
-Validates syntax, shows rendered output, and identifies errors before they
-appear in production builds.
+Test MyST directives and shortcodes in isolation without building an entire
+site. Validates syntax, renders to HTML, detects errors, and suggests fixes
+before issues appear in production builds.
+
+This module provides a safe environment to experiment with directive syntax,
+verify rendering output, and debug directive issues without the overhead of
+a full site build.
+
+Key Components:
+    - ShortcodeSandbox: Main tool for isolated directive testing.
+    - RenderResult: Output from rendering a directive.
+    - ValidationResult: Syntax validation feedback.
 
 Example usage:
+    >>> from bengal.debug.shortcode_sandbox import ShortcodeSandbox
+    >>> sandbox = ShortcodeSandbox()
+    >>> result = sandbox.render('''
+    ... ```{note}
+    ... This is a test note.
+    ... ```
+    ... ''')
+    >>> if result.success:
+    ...     print(result.html)
+    ... else:
+    ...     for error in result.errors:
+    ...         print(f"Error: {error}")
 
-```python
-sandbox = ShortcodeSandbox()
-result = sandbox.render('''
-```{note}
-This is a test note.
-```
-''')
-print(result.html)
-```
+See Also:
+    - bengal.directives: Directive implementations.
+    - bengal.rendering.parsers: Markdown parser configuration.
+    - bengal.cli.commands.debug: CLI interface for sandbox.
 """
 
 from __future__ import annotations
@@ -32,7 +48,31 @@ logger = get_logger(__name__)
 
 @dataclass
 class RenderResult:
-    """Result of rendering a shortcode/directive."""
+    """
+    Result of rendering a shortcode/directive to HTML.
+
+    Contains the rendered output, timing information, and any errors
+    or warnings encountered during parsing and rendering.
+
+    Attributes:
+        input_content: Original Markdown content that was rendered.
+        html: Rendered HTML output (empty string if failed).
+        success: Whether rendering completed without errors.
+        directive_name: Detected directive name (e.g., "note", "warning").
+        errors: List of error messages from parsing/rendering.
+        warnings: List of warning messages (non-fatal issues).
+        parse_time_ms: Time spent parsing markdown (milliseconds).
+        render_time_ms: Time spent rendering to HTML (milliseconds).
+
+    Example:
+        >>> result = sandbox.render("```{note}\nHello\n```")
+        >>> if result.success:
+        ...     print(f"Rendered in {result.render_time_ms:.1f}ms")
+        ...     print(result.html)
+        ... else:
+        ...     for err in result.errors:
+        ...         print(f"Error: {err}")
+    """
 
     input_content: str
     html: str
@@ -44,7 +84,12 @@ class RenderResult:
     render_time_ms: float = 0.0
 
     def format_summary(self) -> str:
-        """Format a summary of the render result."""
+        """
+        Format human-readable summary of the render result.
+
+        Returns:
+            Multi-line summary with status, timing, and any issues.
+        """
         lines = []
         status = "✅ Success" if self.success else "❌ Failed"
         lines.append(f"Status: {status}")
@@ -70,7 +115,25 @@ class RenderResult:
 
 @dataclass
 class ValidationResult:
-    """Result of syntax validation."""
+    """
+    Result of directive/shortcode syntax validation.
+
+    Provides feedback on whether the syntax is valid, identifies the
+    directive being used, and offers suggestions for fixing issues.
+
+    Attributes:
+        content: Original content that was validated.
+        valid: Whether the syntax is valid.
+        directive_name: Detected directive name, or None if unrecognized.
+        errors: Specific syntax errors found.
+        suggestions: Helpful suggestions for fixing issues or typos.
+
+    Example:
+        >>> result = sandbox.validate("```{notee}\nText\n```")
+        >>> if not result.valid:
+        ...     print(f"Invalid: {result.errors}")
+        ...     print(f"Did you mean: {result.suggestions}")
+    """
 
     content: str
     valid: bool
@@ -83,12 +146,47 @@ class ShortcodeSandbox(DebugTool):
     """
     Sandbox for testing shortcodes/directives in isolation.
 
-    Provides:
-    - Isolated rendering without site context
-    - Syntax validation before render
-    - Error detection and suggestions
-    - Batch testing from files
-    - Interactive REPL mode
+    Provides a safe environment to test MyST directive syntax and rendering
+    without requiring a full site context. Useful for debugging directive
+    issues, experimenting with syntax, and validating custom directives.
+
+    Capabilities:
+        - **Isolated Rendering**: Render directives without building a site.
+        - **Syntax Validation**: Check directive syntax before rendering.
+        - **Error Detection**: Identify parse/render errors with suggestions.
+        - **Typo Detection**: Suggest similar directives for misspellings.
+        - **Batch Testing**: Test multiple directives from a list.
+        - **Directive Discovery**: List and document available directives.
+
+    The sandbox uses a mock context for template variables, allowing
+    directives that reference page/site data to render correctly.
+
+    Attributes:
+        name: Tool identifier ("sandbox").
+        description: Brief tool description.
+        DIRECTIVE_PATTERN_COLON: Regex for block directives (```{name}).
+        DIRECTIVE_PATTERN_BRACE: Regex for inline directives ({name}).
+
+    Example:
+        >>> sandbox = ShortcodeSandbox()
+        >>>
+        >>> # Validate syntax first
+        >>> validation = sandbox.validate("```{note}\nHello\n```")
+        >>> if validation.valid:
+        ...     result = sandbox.render(validation.content)
+        ...     print(result.html)
+        >>>
+        >>> # List available directives
+        >>> for d in sandbox.list_directives():
+        ...     print(f"{d['names']}: {d['description']}")
+        >>>
+        >>> # Get help for specific directive
+        >>> help_text = sandbox.get_directive_help("note")
+
+    See Also:
+        - :class:`RenderResult`: Rendering output structure.
+        - :class:`ValidationResult`: Validation feedback structure.
+        - :meth:`batch_test`: Test multiple directives at once.
     """
 
     name: str = "sandbox"
@@ -104,11 +202,18 @@ class ShortcodeSandbox(DebugTool):
         mock_context: dict[str, Any] | None = None,
     ) -> None:
         """
-        Initialize sandbox.
+        Initialize sandbox environment.
+
+        Creates a sandbox with optional site context or mock variables.
+        If no site is provided, a default mock context is created for
+        template variable substitution.
 
         Args:
-            site: Optional site instance for full context (creates mock if None)
-            mock_context: Optional mock context for variable substitution
+            site: Optional Site instance for full context. If None, uses
+                mock context for template variables.
+            mock_context: Optional dictionary to use as mock context.
+                Keys should include 'page' and 'site' with appropriate
+                nested structures. Defaults to a sensible mock context.
         """
         self._site = site
         self._mock_context = mock_context or self._create_default_context()
@@ -116,7 +221,15 @@ class ShortcodeSandbox(DebugTool):
         self._known_directives: frozenset[str] | None = None
 
     def _create_default_context(self) -> dict[str, Any]:
-        """Create default mock context for rendering."""
+        """
+        Create default mock context for rendering.
+
+        Provides sensible defaults for page and site variables that
+        directives might reference during rendering.
+
+        Returns:
+            Dictionary with 'page' and 'site' mock data.
+        """
         from datetime import datetime
 
         return {
@@ -139,7 +252,15 @@ class ShortcodeSandbox(DebugTool):
         }
 
     def _get_known_directives(self) -> frozenset[str]:
-        """Get set of known directive names."""
+        """
+        Get set of known directive names.
+
+        Lazily loads and caches the set of all registered directive
+        names from bengal.directives module.
+
+        Returns:
+            Frozen set of valid directive name strings.
+        """
         if self._known_directives is None:
             from bengal.directives import KNOWN_DIRECTIVE_NAMES
 
@@ -147,7 +268,15 @@ class ShortcodeSandbox(DebugTool):
         return self._known_directives
 
     def _get_parser(self) -> Any:
-        """Get or create markdown parser."""
+        """
+        Get or create markdown parser.
+
+        Lazily initializes the markdown parser with mistune engine
+        and caches it for subsequent renders.
+
+        Returns:
+            Configured markdown parser instance.
+        """
         if self._markdown_parser is None:
             from bengal.rendering.parsers import create_markdown_parser
 
@@ -162,16 +291,28 @@ class ShortcodeSandbox(DebugTool):
         **kwargs: Any,
     ) -> DebugReport:
         """
-        Run sandbox testing.
+        Run sandbox testing on directive content.
+
+        Main entry point for testing directives. Validates syntax first,
+        then optionally renders to HTML. Results are returned as a
+        structured DebugReport with findings.
 
         Args:
-            content: Markdown content to test
-            file_path: Path to file containing content
-            validate_only: Only validate syntax, don't render
-            **kwargs: Additional arguments
+            content: Markdown content containing directive to test.
+            file_path: Path to file containing content (alternative to content).
+            validate_only: If True, only validate syntax without rendering.
+            **kwargs: Additional arguments (reserved for future use).
 
         Returns:
-            DebugReport with findings
+            DebugReport with validation/rendering findings. Check
+            `report.metadata['html']` for rendered output on success.
+
+        Example:
+            >>> report = sandbox.run(content="```{note}\nTest\n```")
+            >>> if report.has_errors:
+            ...     print("Failed!")
+            ... else:
+            ...     print(report.metadata.get('html'))
         """
         report = DebugReport(tool_name=self.name)
 
@@ -257,8 +398,14 @@ class ShortcodeSandbox(DebugTool):
         """
         Perform analysis and return report.
 
-        This is the abstract method required by DebugTool.
-        For parameterized analysis, use run() instead.
+        This is the abstract method required by DebugTool. For the sandbox,
+        this method returns a helpful message directing users to use the
+        run() method with content.
+
+        For parameterized testing, use run(content=...) instead.
+
+        Returns:
+            DebugReport with usage guidance.
         """
         report = self.create_report()
         report.add_finding(
@@ -270,13 +417,27 @@ class ShortcodeSandbox(DebugTool):
 
     def validate(self, content: str) -> ValidationResult:
         """
-        Validate directive/shortcode syntax.
+        Validate directive/shortcode syntax without rendering.
+
+        Checks that the directive syntax is well-formed and that the
+        directive name is recognized. For unknown directives, suggests
+        similar names to help fix typos.
 
         Args:
-            content: Markdown content with directive
+            content: Markdown content containing directive to validate.
 
         Returns:
-            ValidationResult with errors and suggestions
+            ValidationResult with:
+            - valid: Whether syntax is correct
+            - directive_name: Detected directive name
+            - errors: List of syntax errors found
+            - suggestions: Helpful tips for fixing issues
+
+        Example:
+            >>> validation = sandbox.validate("```{notee}\nTest\n```")
+            >>> if not validation.valid:
+            ...     print(f"Unknown directive: {validation.errors}")
+            ...     print(f"Suggestions: {validation.suggestions}")
         """
         import re
 
@@ -339,7 +500,20 @@ class ShortcodeSandbox(DebugTool):
         known: frozenset[str],
         max_distance: int = 2,
     ) -> list[str]:
-        """Find directives with similar names (typo detection)."""
+        """
+        Find directives with similar names for typo detection.
+
+        Uses Levenshtein distance to find directives within a certain
+        edit distance of the given name.
+
+        Args:
+            name: Unknown directive name to find matches for.
+            known: Set of known valid directive names.
+            max_distance: Maximum Levenshtein distance (default 2).
+
+        Returns:
+            List of up to 3 similar directive names, sorted.
+        """
         similar = []
         for known_name in known:
             distance = self._levenshtein_distance(name.lower(), known_name.lower())
@@ -349,7 +523,20 @@ class ShortcodeSandbox(DebugTool):
 
     @staticmethod
     def _levenshtein_distance(s1: str, s2: str) -> int:
-        """Calculate Levenshtein distance between two strings."""
+        """
+        Calculate Levenshtein distance between two strings.
+
+        The Levenshtein distance is the minimum number of single-character
+        edits (insertions, deletions, substitutions) needed to transform
+        one string into another.
+
+        Args:
+            s1: First string.
+            s2: Second string.
+
+        Returns:
+            Integer edit distance (0 = identical strings).
+        """
         if len(s1) < len(s2):
             return ShortcodeSandbox._levenshtein_distance(s2, s1)
 
@@ -372,11 +559,28 @@ class ShortcodeSandbox(DebugTool):
         """
         Render directive/shortcode content to HTML.
 
+        Parses the markdown content, processes any directives, and
+        renders to HTML. Includes timing information for profiling.
+
+        Validates syntax first; if invalid, returns RenderResult with
+        errors and success=False.
+
         Args:
-            content: Markdown content with directive
+            content: Markdown content containing directive(s) to render.
 
         Returns:
-            RenderResult with HTML and timing info
+            RenderResult with:
+            - html: Rendered HTML output (empty if failed)
+            - success: Whether rendering completed successfully
+            - parse_time_ms: Time spent parsing
+            - render_time_ms: Time spent rendering
+            - errors/warnings: Any issues encountered
+
+        Example:
+            >>> result = sandbox.render("```{warning}\nBe careful!\n```")
+            >>> if result.success:
+            ...     print(result.html)
+            ...     print(f"Rendered in {result.render_time_ms:.1f}ms")
         """
         import time
 
@@ -421,13 +625,29 @@ class ShortcodeSandbox(DebugTool):
         test_cases: list[dict[str, Any]],
     ) -> list[RenderResult]:
         """
-        Test multiple shortcodes in batch.
+        Test multiple shortcodes/directives in batch.
+
+        Efficiently tests a list of directive snippets, optionally
+        comparing output against expected strings.
 
         Args:
-            test_cases: List of test cases with 'content' and optional 'expected'
+            test_cases: List of test case dictionaries, each containing:
+                - 'content' (required): Markdown content to test
+                - 'expected' (optional): String that should appear in output
 
         Returns:
-            List of RenderResults
+            List of RenderResult objects, one per test case.
+            If 'expected' was provided but not found in output,
+            a warning is added to that result.
+
+        Example:
+            >>> cases = [
+            ...     {'content': '```{note}\nA\n```'},
+            ...     {'content': '```{warning}\nB\n```', 'expected': 'warning'},
+            ... ]
+            >>> results = sandbox.batch_test(cases)
+            >>> for r in results:
+            ...     print(f"{r.directive_name}: {'✓' if r.success else '✗'}")
         """
         results = []
         for case in test_cases:
@@ -448,8 +668,20 @@ class ShortcodeSandbox(DebugTool):
         """
         List all available directives with descriptions.
 
+        Discovers all registered directive classes and extracts their
+        names and documentation for display.
+
         Returns:
-            List of directive info dicts
+            List of dictionaries, each containing:
+            - 'names': Comma-separated directive names
+            - 'description': First line of directive docstring
+            - 'class': Python class name implementing the directive
+
+        Example:
+            >>> for d in sandbox.list_directives():
+            ...     print(f"{d['names']}: {d['description']}")
+            note, tip: Create an admonition note.
+            warning, caution: Create a warning admonition.
         """
         from bengal.directives import DIRECTIVE_CLASSES
 
@@ -477,11 +709,21 @@ class ShortcodeSandbox(DebugTool):
         """
         Get detailed help for a specific directive.
 
+        Looks up the directive class by name and returns its full
+        docstring, which typically includes usage examples and
+        available options.
+
         Args:
-            name: Directive name
+            name: Directive name (e.g., "note", "warning", "code-block").
 
         Returns:
-            Help text or None if not found
+            Full docstring of the directive class, or None if the
+            directive name is not found.
+
+        Example:
+            >>> help_text = sandbox.get_directive_help("note")
+            >>> if help_text:
+            ...     print(help_text)
         """
         from bengal.directives import DIRECTIVE_CLASSES
 

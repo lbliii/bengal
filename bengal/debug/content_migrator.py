@@ -240,14 +240,23 @@ class PageDraft:
     """
     A draft of a new or modified page.
 
-    Used for split/merge operations to preview changes before applying.
+    Used by split_page() and merge_pages() to represent the output
+    pages before they're written to disk, allowing for preview and
+    modification before committing changes.
 
     Attributes:
-        path: Target path for the page
-        title: Page title
-        content: Page content (markdown)
-        frontmatter: Page frontmatter
-        source_pages: Original pages this was derived from
+        path: Target path for the new page (relative to content dir).
+        title: Page title extracted from heading or frontmatter.
+        content: Full Markdown content body.
+        frontmatter: Merged/generated frontmatter dictionary.
+        source_pages: Original pages this draft was derived from.
+
+    Example:
+        >>> drafts = migrator.split_page("docs/guide.md")
+        >>> for draft in drafts:
+        ...     print(f"Would create: {draft.path}")
+        ...     print(f"  Title: {draft.title}")
+        ...     print(f"  Content length: {len(draft.content)} chars")
     """
 
     path: str
@@ -277,20 +286,45 @@ class PageDraft:
 @DebugRegistry.register
 class ContentMigrator(DebugTool):
     """
-    Tool for safely restructuring content.
+    Tool for safely restructuring content with link integrity.
 
-    Helps move, split, merge, and reorganize content while maintaining
-    link integrity and generating necessary redirects.
+    Provides safe content reorganization operations that maintain site
+    integrity by automatically updating internal links and generating
+    redirect rules for external references.
 
-    Creation:
-        migrator = ContentMigrator(site=site)
+    Capabilities:
+        - **Move/Rename**: Relocate content files with automatic link updates.
+        - **Split Pages**: Break large pages into multiple smaller pages.
+        - **Merge Pages**: Combine multiple pages into a single page.
+        - **Redirect Generation**: Create redirect rules for various platforms.
+        - **Structure Analysis**: Find orphan pages, large pages, and issues.
+
+    The tool operates in a preview-first mode: all operations can be
+    previewed before execution to review the impact.
+
+    Attributes:
+        name: Tool identifier ("migrate").
+        description: Brief tool description.
+        site: Site instance for content access.
+        cache: Optional build cache for dependency info.
+        root_path: Project root directory.
 
     Example:
         >>> migrator = ContentMigrator(site=site)
-        >>> preview = migrator.preview_move("docs/old.md", "guides/new.md")
+        >>> # Preview a move operation
+        >>> preview = migrator.preview_move(
+        ...     "docs/old-guide.md",
+        ...     "tutorials/getting-started.md"
+        ... )
         >>> print(preview.format_summary())
+        >>> # Execute if safe
         >>> if preview.can_proceed:
         ...     migrator.execute_move(preview)
+
+    See Also:
+        - :class:`MovePreview`: Preview result structure
+        - :class:`PageDraft`: Draft page for split/merge
+        - :meth:`analyze`: Find content structure issues
     """
 
     name = "migrate"
