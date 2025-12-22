@@ -1,7 +1,27 @@
 """
-Base classes for autodoc system.
+Base classes for the autodoc documentation extraction system.
 
-Provides common interfaces for all documentation extractors.
+This module defines the core abstractions used by all documentation extractors:
+
+Core Classes:
+    - DocElement: Unified data model representing any documented element
+      (function, class, endpoint, command, etc.)
+    - Extractor: Abstract base class that all extractors must implement
+
+Architecture:
+    DocElement serves as the lingua franca between extractors and the
+    rendering system. Each extractor (Python, OpenAPI, CLI) produces
+    DocElement trees that can be serialized, cached, and rendered
+    uniformly regardless of source type.
+
+Serialization:
+    DocElement supports JSON serialization via `to_dict()` and `from_dict()`
+    for caching extracted documentation between builds.
+
+Related:
+    - bengal/autodoc/extractors/: Concrete extractor implementations
+    - bengal/autodoc/models/: Typed metadata dataclasses for DocElement.typed_metadata
+    - bengal/autodoc/orchestration/: Converts DocElements to virtual pages
 """
 
 from __future__ import annotations

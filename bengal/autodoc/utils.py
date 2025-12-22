@@ -1,11 +1,41 @@
 """
-Utility functions for autodoc system.
+Utility functions for the autodoc documentation extraction system.
 
-Provides text sanitization and common helpers for all extractors.
+This module provides shared utilities used across all extractors and
+the orchestration layer.
+
+Text Processing:
+    - `sanitize_text()`: Cleans docstrings for markdown generation
+    - `truncate_text()`: Safely truncates long descriptions
+    - `_convert_sphinx_roles()`: Converts RST cross-references to markdown
+
+Grouping & Path Resolution:
+    - `auto_detect_prefix_map()`: Scans packages for automatic grouping
+    - `apply_grouping()`: Maps module paths to documentation groups
+    - `resolve_cli_url_path()`: Converts CLI command names to URL paths
 
 Typed Metadata Access:
-    Helper functions for type-safe access to DocElement.typed_metadata
-    with fallback to untyped metadata dict. See get_* functions below.
+    Type-safe accessor functions for DocElement.typed_metadata with automatic
+    fallback to the untyped metadata dict. Use these instead of direct
+    `.metadata.get()` calls for better IDE support:
+
+    - `get_python_class_bases()`, `get_python_class_decorators()`
+    - `get_python_function_signature()`, `get_python_function_return_type()`
+    - `get_cli_command_callback()`, `get_cli_group_command_count()`
+    - `get_openapi_method()`, `get_openapi_path()`, `get_openapi_tags()`
+
+Normalized Parameter Access:
+    - `get_function_parameters()`: Unified parameter format across extractors
+    - `get_function_return_info()`: Unified return type information
+
+Example:
+    >>> from bengal.autodoc.utils import sanitize_text, get_function_parameters
+    >>> clean = sanitize_text("    Indented docstring text.\\n\\n    More here.")
+    >>> params = get_function_parameters(doc_element)
+
+Related:
+    - bengal/autodoc/base.py: DocElement data model
+    - bengal/autodoc/models/: Typed metadata dataclasses
 """
 
 from __future__ import annotations
