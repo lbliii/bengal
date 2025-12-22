@@ -570,8 +570,7 @@ class HealthReport:
         icons = get_icon_set(should_use_emoji())
         lines = []
 
-        lines.append("\nHealth Check Summary")
-        lines.append("─" * 60)
+        # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
         # Separate validators by priority: problems first, then suggestions, then passed
@@ -683,14 +682,13 @@ class HealthReport:
                 passed_names = ", ".join([vr.validator_name for vr in validators_passed])
                 lines.append(f"   {passed_names}")
 
-        # Summary
-        lines.append("")
-        lines.append("─" * 60)
-        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
-
+        # Summary (compact single line)
         score = self.build_quality_score()
         rating = self.quality_rating()
-        lines.append(f"Build Quality: {score}% ({rating})")
+        lines.append("")
+        lines.append(
+            f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
+        )
         lines.append("")
 
         return "\n".join(lines)
@@ -705,9 +703,7 @@ class HealthReport:
         icons = get_icon_set(should_use_emoji())
         lines = []
 
-        # Header
-        lines.append("\nHealth Check Report")
-        lines.append("─" * 60)
+        # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
         # Separate validators by priority: problems first, then suggestions, then passed
@@ -780,14 +776,13 @@ class HealthReport:
             for vr in validators_passed:
                 lines.append(f"   {icons.success} {vr.validator_name}")
 
-        # Summary
-        lines.append("")
-        lines.append("─" * 60)
-        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
-
+        # Summary (compact single line)
         score = self.build_quality_score()
         rating = self.quality_rating()
-        lines.append(f"Build Quality: {score}% ({rating})")
+        lines.append("")
+        lines.append(
+            f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
+        )
         lines.append("")
 
         return "\n".join(lines)
