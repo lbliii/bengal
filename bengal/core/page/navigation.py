@@ -1,5 +1,21 @@
 """
 Page Navigation Mixin - Navigation and hierarchy relationships.
+
+This mixin provides navigation capabilities for pages, enabling sequential
+browsing (next/prev) and hierarchical navigation (parent/ancestors).
+
+Key Properties:
+    - next, prev: Sequential navigation through site pages
+    - next_in_section, prev_in_section: Navigation within current section
+    - parent: Parent section of the page
+    - ancestors: List of ancestor sections to root
+
+Related Modules:
+    - bengal.core.section: Section class with page containment
+    - bengal.rendering.template_functions.navigation: Template navigation helpers
+
+See Also:
+    - bengal/core/page/__init__.py: Page class that uses this mixin
 """
 
 from __future__ import annotations

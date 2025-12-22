@@ -39,6 +39,17 @@ For lookups and comparisons, use _path:
 
     if page._path in nav_tree.active_trail_urls:  {# ✓ Correct: uses site path #}
         mark_active()
+
+Related Modules:
+    - bengal.core.site: Site object that holds the NavTree
+    - bengal.core.section: Section objects that form the tree structure
+    - bengal.rendering.template_functions.navigation: Template functions for nav access
+
+See Also:
+    - bengal/core/nav_tree.py:NavNode for node structure
+    - bengal/core/nav_tree.py:NavTree for tree management
+    - bengal/core/nav_tree.py:NavTreeContext for page-scoped context
+    - bengal/core/nav_tree.py:NavNodeProxy for template-safe access
 """
 
 from __future__ import annotations

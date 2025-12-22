@@ -1,5 +1,23 @@
 """
 Page Computed Properties Mixin - Cached expensive computations.
+
+This mixin provides cached computed properties for pages. Each property is
+computed once on first access and cached using @cached_property decorator.
+
+Key Properties:
+    - meta_description: SEO-friendly description (max 160 chars)
+    - reading_time: Estimated reading time in minutes
+    - excerpt: Content excerpt for listings (max 200 chars)
+
+Performance:
+    All properties use @cached_property decorator, ensuring expensive operations
+    (HTML stripping, word counting, truncation) are only performed once per page.
+
+Related Modules:
+    - bengal.rendering.pipeline: Content rendering that populates page.content
+
+See Also:
+    - bengal/core/page/__init__.py: Page class that uses this mixin
 """
 
 from __future__ import annotations

@@ -1,5 +1,24 @@
 """
 Utilities for page operations and helpers.
+
+This module provides utility functions for page field handling and synthetic
+page creation. Key functions support the Component Model field separation.
+
+Key Functions:
+    - separate_standard_and_custom_fields(): Separate frontmatter into standard
+      fields (title, date, etc.) and custom props for PageCore
+    - create_synthetic_page(): Create a Page-like object for special pages
+      (404, search, sitemap) without backing markdown files
+
+Constants:
+    - STANDARD_FIELDS: Set of field names treated as standard PageCore fields
+
+Related Modules:
+    - bengal.core.page.page_core: PageCore dataclass that uses separated fields
+    - bengal.rendering.special_pages: Uses create_synthetic_page()
+
+See Also:
+    - bengal/core/page/__init__.py: Page class that uses these utilities
 """
 
 from __future__ import annotations

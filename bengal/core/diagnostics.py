@@ -3,6 +3,25 @@ Core diagnostics events (no logging).
 
 Core models must not log. Instead, they can optionally emit structured diagnostic
 events to a sink/collector that orchestrators decide how to surface.
+
+This pattern ensures core models remain pure data containers without
+side effects like logging or I/O, while still providing observability
+for debugging and monitoring.
+
+Key Concepts:
+    - DiagnosticEvent: Structured event with level, code, and data
+    - DiagnosticsSink: Protocol for event receivers
+    - DiagnosticsCollector: In-memory collector for build diagnostics
+    - Best-effort emission: Diagnostics never affect core behavior
+
+Related Modules:
+    - bengal.core.site: Site can hold a diagnostics sink
+    - bengal.core.section: Sections can emit diagnostics
+    - bengal.orchestration: Orchestrators configure and consume diagnostics
+
+See Also:
+    - bengal/core/diagnostics.py:DiagnosticEvent for event structure
+    - bengal/core/diagnostics.py:emit() for convenience wrapper
 """
 
 from __future__ import annotations

@@ -6,6 +6,21 @@ application logic independently from Site and ContentOrchestrator.
 
 The engine pre-computes page-section relationships for O(1) top-level
 page detection, improving performance from O(n²) to O(n).
+
+Key Concepts:
+    - Cascade: Metadata propagation from section index pages to descendants
+    - Accumulation: Cascades accumulate through the hierarchy (child extends parent)
+    - Precedence: Page-level metadata always overrides cascaded values
+    - Pre-computation: O(1) top-level page detection via pre-computed sets
+
+Related Modules:
+    - bengal.core.site.discovery: ContentDiscoveryMixin calls _apply_cascades()
+    - bengal.core.section: Section objects that define cascade metadata
+    - bengal.core.page: Page objects that receive cascaded metadata
+
+See Also:
+    - bengal/core/cascade_engine.py:CascadeEngine for implementation
+    - plan/active/rfc-cascade-metadata.md: Cascade system design
 """
 
 from __future__ import annotations

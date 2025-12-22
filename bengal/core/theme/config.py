@@ -3,6 +3,19 @@ Theme configuration object for Bengal SSG.
 
 Provides theme-related configuration accessible in templates as `site.theme`.
 Includes feature flags system for declarative theme customization.
+
+Key Concepts:
+    - Feature flags: Declarative toggles for theme behavior
+    - Appearance modes: Light, dark, or system-preference
+    - Color palettes: Named color schemes for theming
+
+Related Modules:
+    - bengal.core.theme.registry: Installed theme discovery
+    - bengal.core.theme.resolution: Theme inheritance chain resolution
+    - bengal.themes.config: ThemeConfig for theme.yaml loading
+
+See Also:
+    - bengal/core/theme/config.py:Theme class for configuration object
 """
 
 from __future__ import annotations
