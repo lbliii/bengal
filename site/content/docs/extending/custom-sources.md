@@ -311,5 +311,5 @@ async def test_my_api_source():
 
 ## Related
 
-- [Content Collections](collections/) for schema validation
-- [Build Pipeline](/docs/about/concepts/build-pipeline/) for understanding discovery phase
+- [Content Collections](/docs/extending/collections/) for schema validation
+- [Build Pipeline](/docs/reference/architecture/core/pipeline/) for understanding discovery phase

@@ -73,7 +73,7 @@ Extracts:
 - Module and class docstrings
 - Function signatures and type hints
 - Examples from docstrings
-:::
+:::{/tab-item}
 
 :::{tab-item} CLI
 ```toml
@@ -89,7 +89,7 @@ Extracts:
 - Command descriptions
 - Argument documentation
 - Option flags and defaults
-:::
+:::{/tab-item}
 
 :::{tab-item} OpenAPI
 ```toml
@@ -103,8 +103,8 @@ Extracts:
 - Endpoint documentation
 - Request/response schemas
 - Authentication requirements
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Python Configuration Options
 

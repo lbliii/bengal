@@ -496,8 +496,9 @@ With directive styling
 
 ## What Bengal Adds
 
-### Variable Substitution in Content
+:::::{tab-set}
 
+::::{tab} Variables
 ```markdown
 ---
 title: API Reference
@@ -513,9 +514,9 @@ Base URL: `{{ page.metadata.base_url }}`
 ```
 
 Docusaurus requires React state or MDX exports for this.
+::::{/tab}
 
-### Centralized Glossary
-
+::::{tab} Glossary
 ```yaml
 # data/glossary.yaml
 terms:
@@ -534,9 +535,9 @@ terms:
 :tags: api
 :::
 ```
+::::{/tab}
 
-### Navigation Directives
-
+::::{tab} Navigation
 ```markdown
 <!-- Auto-generate cards from child pages -->
 :::{child-cards}
@@ -560,9 +561,9 @@ terms:
 :tags: api, authentication
 :::
 ```
+::::{/tab}
 
-### Data Tables
-
+::::{tab} Data Tables
 ```markdown
 :::{data-table}
 :source: data/endpoints.yaml
@@ -571,6 +572,9 @@ terms:
 :filterable: true
 :::
 ```
+::::{/tab}
+
+:::::{/tab-set}
 
 ---
 
@@ -628,14 +632,17 @@ terms:
 
 ## Common Questions
 
-### "Can I use React components?"
+:::{dropdown} Can I use React components?
+:icon: question
 
 No. Bengal outputs static HTML. For interactivity:
 - Use vanilla JavaScript
 - Embed external widgets (CodeSandbox, etc.)
 - Link to interactive demos
+:::
 
-### "What about live code playgrounds?"
+::::{dropdown} What about live code playgrounds?
+:icon: question
 
 Use Bengal's built-in embed directives:
 
@@ -655,14 +662,19 @@ Or link directly:
 [Try it on CodeSandbox](https://codesandbox.io/s/example)
 [Open in StackBlitz](https://stackblitz.com/edit/example)
 ```
+::::
 
-### "Can I keep my custom CSS?"
+:::{dropdown} Can I keep my custom CSS?
+:icon: question
 
 Yes! Put it in `themes/[name]/static/css/custom.css` and include in your template.
+:::
 
-### "What about search?"
+:::{dropdown} What about search?
+:icon: question
 
 Bengal generates a search index. For Algolia-level search, integrate externally or use the built-in index with JavaScript.
+:::
 
 ---
 
@@ -670,5 +682,5 @@ Bengal generates a search index. For Algolia-level search, integrate externally 
 
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown guide
-- [Configuration Reference](/docs/reference/configuration/) - Config options
+- [Configuration Reference](/docs/building/configuration/) - Config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

@@ -63,7 +63,7 @@ Create `netlify.toml` in your project root:
     # Restrict browser features
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Vercel
 
@@ -100,7 +100,7 @@ Create `vercel.json` in your project root:
   ]
 }
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Cloudflare Pages
 
@@ -114,7 +114,7 @@ Create `_headers` in your output directory (or configure via `public/_headers`):
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Nginx
 
@@ -130,7 +130,7 @@ add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 # HSTS (only if using HTTPS)
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Apache
 
@@ -145,9 +145,9 @@ Add to `.htaccess` or server config:
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </IfModule>
 ```
-:::
+:::{/tab-item}
 
-:::
+:::{/tab-set}
 
 ---
 

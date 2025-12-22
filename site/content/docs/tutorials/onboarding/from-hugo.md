@@ -369,8 +369,9 @@ weight = 20
 
 ## What Bengal Adds (Hugo Doesn't Have Built-in)
 
-### Cards Grid
+:::::{tab-set}
 
+::::{tab} Cards Grid
 ```markdown
 :::{cards}
 :columns: 3
@@ -391,10 +392,10 @@ Another feature
 
 :::{/cards}
 ```
+::::{/tab}
 
-### Visual Steps
-
-```markdown
+::::{tab} Visual Steps
+````markdown
 :::{steps}
 
 :::{step} Install
@@ -416,10 +417,10 @@ bengal serve
 :::{/step}
 
 :::{/steps}
-```
+````
+::::{/tab}
 
-### Interactive Data Tables
-
+::::{tab} Data Tables
 ```markdown
 :::{data-table}
 :source: data/products.yaml
@@ -428,9 +429,9 @@ bengal serve
 :filterable: true
 :::
 ```
+::::{/tab}
 
-### Centralized Glossary
-
+::::{tab} Glossary
 ```markdown
 <!-- Define in data/glossary.yaml -->
 <!-- Use in any page: -->
@@ -438,9 +439,9 @@ bengal serve
 :tags: api, authentication
 :::
 ```
+::::{/tab}
 
-### Navigation Directives
-
+::::{tab} Navigation
 ```markdown
 <!-- Auto-generate cards from section children -->
 :::{child-cards}
@@ -464,6 +465,9 @@ bengal serve
 :tags: api, authentication
 :::
 ```
+::::{/tab}
+
+:::::{/tab-set}
 
 ---
 
@@ -602,9 +606,37 @@ bengal serve
 
 ---
 
+## Common Questions
+
+:::{dropdown} Can I use Go templates?
+:icon: question
+
+No. Bengal uses Jinja2 templates, which have similar concepts but different syntax. The good news: Jinja2 is widely documented and arguably more readable. Your template logic transfers, just with different syntax.
+:::
+
+:::{dropdown} What about Hugo modules?
+:icon: question
+
+Bengal doesn't have a module system. For shared content, use `:::{include}` directives or symlinks. For shared themes, copy them into your project or use Git submodules.
+:::
+
+:::{dropdown} Can I keep my custom shortcodes?
+:icon: question
+
+Not directly. Convert shortcodes to Bengal directives or Jinja2 macros. Most common shortcodes (tabs, notices, figures) have built-in directive equivalents that require no custom code.
+:::
+
+:::{dropdown} What about Hugo's image processing?
+:icon: question
+
+Bengal doesn't have built-in image processing like Hugo's resource pipelines. Use external tools (ImageMagick, Sharp) in your build process, or pre-process images before adding them to `assets/`.
+:::
+
+---
+
 ## Next Steps
 
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/reference/configuration/) - Full config reference
+- [Configuration Reference](/docs/building/configuration/) - Full config reference
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference
 - [Theme Variables](/docs/reference/theme-variables/) - Theme customization

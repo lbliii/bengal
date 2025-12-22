@@ -192,8 +192,9 @@ theme = "bengal"
 
 ## What Bengal Adds (Sphinx Doesn't Have)
 
-### Cards for Feature Grids
+:::::{tab-set}
 
+::::{tab} Cards
 ```markdown
 :::{cards}
 :columns: 3
@@ -214,10 +215,10 @@ Complete API docs
 
 :::{/cards}
 ```
+::::{/tab}
 
-### Tab Sets
-
-```markdown
+::::{tab} Tab Sets
+````markdown
 :::{tab-set}
 
 :::{tab} pip
@@ -233,11 +234,11 @@ conda install mypackage
 :::{/tab}
 
 :::{/tab-set}
-```
+````
+::::{/tab}
 
-### Visual Steps
-
-```markdown
+::::{tab} Visual Steps
+````markdown
 :::{steps}
 
 :::{step} Install Dependencies
@@ -253,10 +254,10 @@ bengal new site mysite
 :::{/step}
 
 :::{/steps}
-```
+````
+::::{/tab}
 
-### Dropdowns (Collapsible Sections)
-
+::::{tab} Dropdowns
 ```markdown
 :::{dropdown} Click to expand
 :icon: info
@@ -264,9 +265,9 @@ bengal new site mysite
 Hidden content here. Supports **full markdown**.
 :::
 ```
+::::{/tab}
 
-### Variable Substitution in Content
-
+::::{tab} Variables
 Bengal supports `{{ variable }}` substitution directly in markdown content:
 
 ```markdown
@@ -286,14 +287,17 @@ Variables available in content:
 - `page.title`, `page.url`, `page.date` - Page properties
 - `page.metadata.xxx` - Custom frontmatter fields
 - `site.config.xxx` - Site configuration values
+::::{/tab}
 
-### Hot Reload Development Server
-
+::::{tab} Dev Server
 ```bash
 bengal serve
 # Live preview at http://localhost:5173
 # Auto-reloads on file changes
 ```
+::::{/tab}
+
+:::::{/tab-set}
 
 ---
 
@@ -370,9 +374,37 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 
 ---
 
+## Common Questions
+
+:::{dropdown} Can I still use RST files?
+:icon: question
+
+Not directly. Bengal uses MyST Markdown, which has similar directive syntax to RST. You'll need to convert `.rst` files to `.md`, but the concepts transfer directly—`.. note::` becomes `:::{note}`, etc.
+:::
+
+:::{dropdown} What about my Sphinx extensions?
+:icon: question
+
+Bengal has built-in directives that cover most common extension functionality (tabs, cards, admonitions, literalinclude). For specialized extensions, check if there's a built-in directive equivalent or use custom templates.
+:::
+
+:::{dropdown} Can I use intersphinx for cross-project references?
+:icon: question
+
+Not built-in. Use explicit URLs for cross-project links. If you're documenting multiple projects, consider a monorepo structure with all docs in one Bengal site.
+:::
+
+:::{dropdown} What about autodoc for Python API docs?
+:icon: question
+
+Bengal has built-in autodoc! Configure it in `config/_default/autodoc.yaml` to generate API documentation from your Python source. It works differently from Sphinx (build-time vs runtime), but achieves similar results.
+:::
+
+---
+
 ## Next Steps
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/reference/configuration/) - Full config options
+- [Configuration Reference](/docs/building/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

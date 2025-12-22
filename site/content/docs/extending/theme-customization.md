@@ -365,6 +365,6 @@ Ensure customizations work in both modes:
 
 ## Related
 
-- [Build Hooks](build-hooks/) for CSS preprocessing
-- [Configuration](/docs/about/concepts/configuration/) for theme settings
-- [Templating](/docs/about/concepts/templating/) for template syntax
+- [Build Hooks](/docs/extending/build-hooks/) for CSS preprocessing
+- [Configuration](/docs/building/configuration/) for theme settings
+- [Template Functions](/docs/reference/template-functions/) for template syntax

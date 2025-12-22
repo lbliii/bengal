@@ -348,5 +348,5 @@ def migrate_v1_to_v2(data: dict) -> dict:
 
 ## Related
 
-- [Custom Content Sources](custom-sources/) for remote content
-- [Frontmatter Reference](/docs/reference/frontmatter/) for field documentation
+- [Custom Content Sources](/docs/extending/custom-sources/) for remote content
+- [Cheatsheet](/docs/reference/cheatsheet/) for frontmatter field quick reference

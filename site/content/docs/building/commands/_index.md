@@ -107,7 +107,7 @@ bengal build --theme-dev
 bengal build --dev
 ```
 
-See [Build Profiles](./profiles/) for details.
+See [Build Profiles](../configuration/profiles/) for details.
 
 ## Getting Help
 
