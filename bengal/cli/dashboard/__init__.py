@@ -26,9 +26,13 @@ from bengal.cli.dashboard.messages import (
     BuildComplete,
     BuildEvent,
     FileChanged,
+    HealthScanComplete,
+    HealthScanStarted,
     PhaseComplete,
     PhaseProgress,
     PhaseStarted,
+    RebuildTriggered,
+    WatcherStatus,
 )
 
 __all__ = [
@@ -39,4 +43,8 @@ __all__ = [
     "PhaseComplete",
     "BuildComplete",
     "FileChanged",
+    "RebuildTriggered",
+    "WatcherStatus",
+    "HealthScanStarted",
+    "HealthScanComplete",
 ]

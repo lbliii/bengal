@@ -71,6 +71,11 @@ from bengal.utils.logger import LogLevel, configure_logging
     help="Explicitly build all versions (default behavior, for clarity)",
 )
 @click.option(
+    "--dashboard",
+    is_flag=True,
+    help="Launch interactive Textual dashboard (experimental)",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -101,6 +106,7 @@ def serve(
     profile: str | None,
     version_scope: str | None,
     all_versions: bool,
+    dashboard: bool,
     verbose: bool,
     debug: bool,
     traceback: str | None,
@@ -172,6 +178,19 @@ def serve(
     # Enable debug mode if requested
     if debug:
         site.config["debug"] = True
+
+    # Launch interactive dashboard if requested
+    if dashboard:
+        from bengal.cli.dashboard.serve import run_serve_dashboard
+
+        run_serve_dashboard(
+            site=site,
+            host=host,
+            port=port,
+            watch=watch,
+            open_browser=open_browser,
+        )
+        return  # Dashboard handles its own exit
 
     # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
     # Start server with optional version scope

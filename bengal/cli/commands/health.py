@@ -27,10 +27,31 @@ from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.output import CLIOutput
 
 
-@click.group("health", cls=BengalGroup)
-def health_cli() -> None:
+@click.group("health", cls=BengalGroup, invoke_without_command=True)
+@click.option(
+    "--dashboard",
+    is_flag=True,
+    help="Launch interactive Textual dashboard (experimental)",
+)
+@click.pass_context
+def health_cli(ctx: click.Context, dashboard: bool) -> None:
     """Health check and validation commands."""
-    pass
+    if dashboard:
+        # Launch interactive dashboard
+        from bengal.cli.helpers import load_site_from_cli
+
+        site = load_site_from_cli(source=".", config=None, environment=None, profile=None)
+        site.discover_content()
+        site.discover_assets()
+
+        from bengal.cli.dashboard.health import run_health_dashboard
+
+        run_health_dashboard(site=site)
+        ctx.exit(0)
+
+    # If no subcommand and no dashboard, show help
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 @health_cli.command("linkcheck")
