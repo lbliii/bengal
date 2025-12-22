@@ -1,21 +1,63 @@
 """
-Standardized template engine factory.
+Pluggable template engine system for Bengal SSG.
 
-ALL template engine access MUST go through create_engine().
-Direct imports of engine classes are for type hints only.
+This package provides a unified interface for template engines, allowing
+sites to choose their preferred templating solution while maintaining
+consistent behavior.
 
-Example:
-    from bengal.rendering.engines import create_engine
+Architecture:
+    All template engine access MUST go through create_engine(). Direct
+    imports of engine classes are for type hints and testing only.
 
-    engine = create_engine(site)
-    html = engine.render_template("page.html", {"page": page})
+Available Engines:
+    jinja2 (Default):
+        Industry-standard template engine. Feature-rich with excellent
+        documentation and tooling support.
+
+    mako (Optional):
+        Python-like syntax with full Python expression support. Install
+        with: pip install bengal[mako]
+
+    patitas (Optional):
+        Pure Python templates for maximum flexibility. Install with:
+        pip install bengal[patitas]
+
+Public API:
+    - create_engine(): Factory function (required for engine creation)
+    - register_engine(): Register custom/third-party engines
+    - TemplateEngineProtocol: Interface for custom implementations
+    - TemplateError: Base exception for template errors
+    - TemplateNotFoundError: Template file not found
+    - TemplateRenderError: Template rendering failed
 
 Configuration:
-    # bengal.yaml
-    site:
-      template_engine: jinja2  # Default
-      # template_engine: mako    # HTML + real Python (future)
-      # template_engine: patitas # Pure Python templates (future)
+    Set the engine in bengal.yaml:
+
+    .. code-block:: yaml
+
+        site:
+          template_engine: jinja2  # default
+
+Usage:
+    >>> from bengal.rendering.engines import create_engine
+    >>>
+    >>> engine = create_engine(site)
+    >>> html = engine.render("page.html", {"page": page, "site": site})
+
+Custom Engines:
+    To add a third-party engine, implement TemplateEngineProtocol and register:
+
+    >>> from bengal.rendering.engines import register_engine
+    >>> register_engine("myengine", MyTemplateEngine)
+
+Related Modules:
+    - bengal.rendering.template_functions: Functions available in templates
+    - bengal.rendering.template_context: Context wrappers for URL handling
+    - bengal.rendering.errors: Rich error objects for debugging
+
+See Also:
+    - bengal.rendering.engines.protocol: TemplateEngineProtocol definition
+    - bengal.rendering.engines.jinja: Jinja2 implementation details
 """
 
 from __future__ import annotations
