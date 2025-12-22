@@ -1,12 +1,39 @@
 """
 Rich build summary dashboard with performance insights.
 
-Displays comprehensive build statistics with:
-- Timing breakdown
-- Performance grade
-- Smart suggestions
-- Cache statistics
-- Resource usage
+Displays comprehensive build statistics using Rich formatting with timing
+breakdown, performance grading, smart suggestions, and cache analysis.
+This module provides the visual feedback shown after a build completes.
+
+Components:
+    Timing Breakdown Table
+        Shows time spent in each phase (discovery, taxonomies, rendering,
+        assets, postprocess) with percentage bars and bottleneck highlighting.
+    Performance Panel
+        Displays letter grade (A-F) with score, throughput (pages/sec),
+        and identified bottleneck phase.
+    Suggestions Panel
+        Smart optimization suggestions from PerformanceAdvisor based on
+        the specific build profile and detected issues.
+    Cache Statistics Panel
+        Cache hit rate, time saved, and cache effectiveness metrics
+        (shown only for incremental builds).
+    Content Statistics Table
+        Page, asset, section, and taxonomy counts with build mode info.
+
+Display Modes:
+    Full Dashboard (display_build_summary)
+        Comprehensive display with all panels for interactive use.
+    Simple Summary (display_simple_summary)
+        Minimal output for writer persona or quiet mode.
+
+Related Modules:
+    bengal.analysis.performance_advisor: Generates grades and suggestions
+    bengal.orchestration.stats: BuildStats data model
+    bengal.utils.rich_console: Console setup and detection
+
+See Also:
+    bengal.orchestration.build.finalization: Calls display after build
 """
 
 from __future__ import annotations

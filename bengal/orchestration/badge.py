@@ -1,13 +1,31 @@
 """
 Build badge and duration formatting utilities.
 
-This module generates small, self-contained build artifacts (SVG/JSON) that can be
-served from the built site to "show your work" (e.g., a footer badge like
-"built in 1m 02s").
+Generates self-contained build artifacts (SVG badges, duration strings) that
+can be served from the built site to display build metrics (e.g., a footer
+badge showing "built in 1m 02s").
 
-Design:
-    - Pure functions: no I/O, no logging.
-    - Intended to be called from orchestration/postprocess layers that handle I/O.
+Functions:
+    format_duration_ms_compact
+        Formats milliseconds into compact human-readable strings:
+        950 → "950ms", 1200 → "1.2s", 62000 → "1m 02s", 3726000 → "1h 02m"
+    build_shields_like_badge_svg
+        Generates a shields.io-style SVG badge with configurable label,
+        message, and colors. Self-contained (no external fonts or images).
+
+Design Principles:
+    - Pure functions: No I/O, no logging, no side effects
+    - Self-contained output: SVG badges work without external dependencies
+    - Called from postprocess layer which handles file writing
+
+Usage:
+    from bengal.orchestration.badge import format_duration_ms_compact, build_shields_like_badge_svg
+
+    duration_str = format_duration_ms_compact(3500)  # "3.5s"
+    svg = build_shields_like_badge_svg(label="built", message=duration_str)
+
+See Also:
+    bengal.orchestration.postprocess: Calls badge generation during post-processing
 """
 
 from __future__ import annotations

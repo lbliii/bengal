@@ -3,17 +3,31 @@ Bridge helpers for transitioning from full builds to incremental runs.
 
 ⚠️  TEST UTILITIES ONLY
 ========================
-These utilities are primarily used in tests to simulate incremental passes
-without invoking the full BuildOrchestrator.
+These utilities are used in tests to simulate incremental passes without
+invoking the full BuildOrchestrator. They provide a minimal incremental
+execution path for test verification.
 
-**Not for production use:**
-- Writes placeholder output for test verification
-- Skips full rendering pipeline
-- Use BuildOrchestrator.run() for production incremental builds
+Warning:
+    Not for production use. These helpers:
+    - Write placeholder output for test verification
+    - Skip the full rendering pipeline
+    - Do not produce valid HTML output
 
-**Primary consumers:**
-- tests/integration/test_full_to_incremental_sequence.py
-- Test scenarios validating incremental build flows
+    For production incremental builds, use BuildOrchestrator.build() with
+    incremental=True.
+
+Primary Consumers:
+    - tests/integration/test_full_to_incremental_sequence.py
+    - Test scenarios validating incremental build flows
+
+Functions:
+    run_incremental_bridge
+        Executes a minimal incremental pass for the given site and change type.
+        Supports content, template, and config change types.
+
+See Also:
+    bengal.orchestration.build: Production build orchestration
+    bengal.orchestration.incremental: Full incremental logic
 """
 
 from __future__ import annotations
