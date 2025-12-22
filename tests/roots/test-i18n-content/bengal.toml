@@ -20,4 +20,3 @@ languages = [
     { code = "en", name = "English", weight = 1 },
     { code = "fr", name = "Français", weight = 2 },
 ]
-
