@@ -99,17 +99,21 @@ Bengal supports the following frontmatter keys with their types and default valu
 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `title` | `string` | `"Untitled"` or filename-derived | Page title. Required for proper display. If omitted, Bengal generates a title from the filename. |
+| `title` | `string` | filename-derived | Page title. If omitted, Bengal generates a title from the filename (e.g., `my-post.md` → "My Post"). |
+| `nav_title` | `string` | `title` value | Short title for navigation menus. Falls back to `title` if not specified. |
 | `date` | `datetime` or `string` | `None` | Publication date. Used for sorting, archives, and RSS feeds. Accepts ISO format (`2023-10-25`) or full datetime (`2023-10-25T14:30:00`). |
 | `tags` | `list[string]` | `[]` | List of tag strings for taxonomy pages and filtering. Example: `tags: [python, web, tutorial]` |
 | `slug` | `string` | filename-derived | Override the URL path. If not specified, Bengal generates a slug from the filename. Example: `slug: my-custom-url` |
 | `weight` | `integer` | `None` | Sort weight within section. Lower numbers appear first. Used for manual ordering in sidebars and listings. |
 | `lang` | `string` | site default | Language code for i18n (e.g., `"en"`, `"es"`, `"fr"`). If not specified, uses the site's default language. |
 | `type` | `string` | `None` | Page type that determines which layout/template to use (e.g., `"doc"`, `"post"`, `"page"`). Can be cascaded from section `_index.md`. |
-| `description` | `string` | `""` | Page description used for SEO meta tags and excerpts. If omitted, Bengal generates one from content. |
+| `variant` | `string` | `None` | Visual variant for CSS/layout customization. Use for different visual styles within the same type. |
+| `description` | `string` | auto-generated | Page description for SEO meta tags. If omitted, Bengal generates one from content (max 160 chars). |
 | `draft` | `boolean` | `false` | If `true`, the page is skipped during builds unless `--build-drafts` is used. Useful for work-in-progress content. |
+| `hidden` | `boolean` | `false` | If `true`, the page is excluded from listings, sitemap, and search, but still renders and is accessible by URL. |
 | `keywords` | `list[string]` or `string` | `[]` | SEO keywords. Can be a list (`keywords: [python, web]`) or comma-separated string (`keywords: "python, web"`). |
-| `category` | `string` | `None` | Single category for taxonomy pages. Unlike tags, categories are single-valued (e.g., `category: tutorial`). **Note:** Use `category` (singular), not `categories` (plural). Only `category` is processed into the taxonomy system. |
+| `category` | `string` | `None` | Single category for taxonomy pages. Unlike tags, categories are single-valued (e.g., `category: tutorial`). |
+| `aliases` | `list[string]` | `[]` | Alternative URLs that redirect to this page. Useful for preserving old URLs after restructuring. |
 
 ### Example Frontmatter
 
@@ -155,6 +159,32 @@ keywords: [bengal, static site generator, tutorial]
 - `changelog` - Release notes
 
 **Draft**: Draft pages are excluded from builds by default. Use `bengal build --build-drafts` to include them.
+
+**Hidden**: Hidden pages render and are accessible by URL but are excluded from:
+- Navigation menus
+- Site listings (`site.pages`)
+- Sitemap.xml
+- Search index
+- RSS feeds
+
+## Visibility System
+
+For granular control over page visibility, use the `visibility` object in frontmatter:
+
+```yaml
+---
+title: Partially Hidden Page
+visibility:
+  menu: false        # Exclude from navigation menus
+  listings: true     # Include in site.pages queries
+  sitemap: true      # Include in sitemap.xml
+  search: false      # Exclude from search index
+  rss: false         # Exclude from RSS feeds
+  robots: "noindex, follow"  # Custom robots meta directive
+---
+```
+
+The `hidden: true` shorthand expands to restrictive defaults for all visibility settings.
 
 ## Sorting & Ordering
 

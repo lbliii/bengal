@@ -168,14 +168,19 @@ import {Card, CardGrid} from '@site/src/components/Card';
 ```markdown
 :::{cards}
 :columns: 2
+
 :::{card} Quick Start
 :link: /docs/quickstart/
+
 Get started in 5 minutes
 :::{/card}
+
 :::{card} API Reference
 :link: /docs/api/
+
 Complete API documentation
 :::{/card}
+
 :::{/cards}
 ```
 :::{/tab}
@@ -239,7 +244,21 @@ function Hello() {
 :::{/tab-set}
 
 :::{note}
-Bengal focuses on documentation, not interactive playgrounds. For live code, link to external tools like CodeSandbox, StackBlitz, or Jupyter.
+Bengal focuses on documentation, not interactive playgrounds. For live code, use built-in embed directives:
+
+```markdown
+:::{codesandbox} sandbox-id
+:title: My CodeSandbox Example
+:::
+
+:::{stackblitz} project-id
+:title: StackBlitz Demo
+:::
+
+:::{codepen} user/pen-id
+:title: CodePen Example
+:::
+```
 :::
 
 ---
@@ -248,13 +267,14 @@ Bengal focuses on documentation, not interactive playgrounds. For live code, lin
 
 | Docusaurus Requires | Bengal |
 |---------------------|--------|
-| `npm install` | `pip install bengal` |
+| `npm install` | `pip install bengal` or `uv pip install bengal` |
 | `node_modules/` (500MB+) | ~5MB Python package |
 | React/JSX knowledge | Just Markdown |
 | Component imports | Built-in directives |
 | `package.json` | `bengal.toml` |
 | Build step (Webpack) | Simple file processing |
 | Hydration debugging | Static HTML |
+| `npm start` (port 3000) | `bengal serve` (port 5173) |
 
 ---
 
@@ -476,8 +496,9 @@ With directive styling
 
 ## What Bengal Adds
 
-### Variable Substitution in Content
+:::::{tab-set}
 
+::::{tab} Variables
 ```markdown
 ---
 title: API Reference
@@ -493,9 +514,9 @@ Base URL: `{{ page.metadata.base_url }}`
 ```
 
 Docusaurus requires React state or MDX exports for this.
+::::{/tab}
 
-### Centralized Glossary
-
+::::{tab} Glossary
 ```yaml
 # data/glossary.yaml
 terms:
@@ -514,9 +535,9 @@ terms:
 :tags: api
 :::
 ```
+::::{/tab}
 
-### Navigation Directives
-
+::::{tab} Navigation
 ```markdown
 <!-- Auto-generate cards from child pages -->
 :::{child-cards}
@@ -527,14 +548,22 @@ terms:
 :::{siblings}
 :::
 
+<!-- Prev/Next navigation links -->
+:::{prev-next}
+:::
+
+<!-- Breadcrumb navigation -->
+:::{breadcrumbs}
+:::
+
 <!-- Related pages by tag -->
 :::{related}
 :tags: api, authentication
 :::
 ```
+::::{/tab}
 
-### Data Tables
-
+::::{tab} Data Tables
 ```markdown
 :::{data-table}
 :source: data/endpoints.yaml
@@ -543,6 +572,9 @@ terms:
 :filterable: true
 :::
 ```
+::::{/tab}
+
+:::::{/tab-set}
 
 ---
 
@@ -600,33 +632,55 @@ terms:
 
 ## Common Questions
 
-### "Can I use React components?"
+:::{dropdown} Can I use React components?
+:icon: question
 
 No. Bengal outputs static HTML. For interactivity:
 - Use vanilla JavaScript
 - Embed external widgets (CodeSandbox, etc.)
 - Link to interactive demos
+:::
 
-### "What about live code playgrounds?"
+::::{dropdown} What about live code playgrounds?
+:icon: question
 
-Link to external tools:
+Use Bengal's built-in embed directives:
+
+```markdown
+:::{codesandbox} example-id
+:title: Interactive Example
+:::
+
+:::{stackblitz} example-id
+:title: StackBlitz Demo
+:::
+```
+
+Or link directly:
+
 ```markdown
 [Try it on CodeSandbox](https://codesandbox.io/s/example)
 [Open in StackBlitz](https://stackblitz.com/edit/example)
 ```
+::::
 
-### "Can I keep my custom CSS?"
+:::{dropdown} Can I keep my custom CSS?
+:icon: question
 
 Yes! Put it in `themes/[name]/static/css/custom.css` and include in your template.
+:::
 
-### "What about search?"
+:::{dropdown} What about search?
+:icon: question
 
 Bengal generates a search index. For Algolia-level search, integrate externally or use the built-in index with JavaScript.
+:::
 
 ---
 
 ## Next Steps
 
-- [Directives Reference](/docs/reference/directives/) - All available directives  
+- [Directives Reference](/docs/reference/directives/) - All available directives
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown guide
-- [Configuration](/docs/about/concepts/configuration/) - Config options
+- [Configuration Reference](/docs/building/configuration/) - Config options
+- [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

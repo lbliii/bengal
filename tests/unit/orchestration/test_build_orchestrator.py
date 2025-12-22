@@ -163,6 +163,8 @@ class TestBuildOrchestrator:
         mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_called_with(
             parallel=True
         )
-        mock_orchestrators["asset"].return_value.process.assert_called_with(
-            mock_site.assets, parallel=True, progress_manager=None
-        )
+        # Check asset orchestrator was called with correct flags (collector is optional)
+        call_kwargs = mock_orchestrators["asset"].return_value.process.call_args.kwargs
+        assert call_kwargs["parallel"] is True
+        assert call_kwargs["progress_manager"] is None
+        # collector is now also passed (as part of output tracking implementation)

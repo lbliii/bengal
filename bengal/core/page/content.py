@@ -48,7 +48,10 @@ class PageContentMixin:
 
     # Fields from Page that this mixin accesses
     content: str
-    parsed_ast: Any  # Contains HTML (not AST)
+    # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
+    # The ASTNode types in bengal.rendering.ast_types are for future AST-based
+    # processing. See plan/ready/plan-type-system-hardening.md for migration path.
+    parsed_ast: Any
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)

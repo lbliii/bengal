@@ -63,7 +63,7 @@ Create `netlify.toml` in your project root:
     # Restrict browser features
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Vercel
 
@@ -100,7 +100,7 @@ Create `vercel.json` in your project root:
   ]
 }
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Cloudflare Pages
 
@@ -114,7 +114,7 @@ Create `_headers` in your output directory (or configure via `public/_headers`):
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Nginx
 
@@ -130,7 +130,7 @@ add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 # HSTS (only if using HTTPS)
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Apache
 
@@ -145,7 +145,7 @@ Add to `.htaccess` or server config:
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </IfModule>
 ```
-:::
+:::{/tab-item}
 
 :::{/tab-set}
 
@@ -200,39 +200,55 @@ Use the browser console to identify CSP violations:
 
 ## Build Hygiene
 
-### Exclude Sensitive Files
+### Exclude Sensitive Files from Output
 
-Ensure sensitive files don't end up in your output:
+Bengal provides multiple ways to exclude sensitive files from your build output:
+
+**Output format exclusions** — Exclude pages from JSON, search, and LLM outputs:
 
 ```toml
 # bengal.toml
-[build]
-exclude = [
-  "*.env",
-  "*.local",
-  ".env*",
-  "secrets/",
-  ".git/",
-  "*.key",
-  "*.pem",
-  "node_modules/",
-  "__pycache__/",
-]
+[output_formats.options]
+exclude_patterns = ["404.html", "search.html", "admin/*"]
+exclude_sections = ["internal"]
 ```
+
+**Content layer exclusions** — Exclude files during content discovery:
+
+```yaml
+# config/_default/sources.yaml
+sources:
+  - type: local
+    directory: content
+    exclude:
+      - "_drafts/*"
+      - "*.secret.md"
+      - "internal/*"
+```
+
+**Dev server exclusions** — Prevent file watching on sensitive paths:
+
+```toml
+# bengal.toml
+[dev_server]
+exclude_patterns = ["*.env", "secrets/*", "*.key"]
+```
+
+**Best practice**: Keep sensitive files outside your content directory entirely. Use `.gitignore` to prevent them from being committed.
 
 ### Verify Before Deploy
 
 Run validation before deploying:
 
 ```bash
-# Validate content
-bengal validate --strict
+# Validate content and health
+bengal validate
 
 # Check for broken links
 bengal health linkcheck
 
 # Verify no drafts in production
-grep -r "draft: true" public/ && echo "DRAFTS FOUND" || echo "No drafts"
+grep -r "draft: true" content/ && echo "DRAFTS FOUND" || echo "No drafts in content"
 ```
 
 ### CI/CD Validation
@@ -243,14 +259,14 @@ Add security checks to your CI pipeline:
 # GitHub Actions example
 - name: Security checks
   run: |
-    # Validate no sensitive patterns
+    # Validate no sensitive patterns in output
     ! grep -r "API_KEY\|SECRET\|PASSWORD" public/
 
-    # Validate no drafts
-    ! grep -r "draft-banner\|class=\"draft\"" public/
+    # Validate no draft content in output
+    ! grep -r "draft-banner\|data-draft" public/
 
     # Run Bengal validation
-    bengal validate --strict
+    bengal validate
 ```
 
 ---
@@ -285,8 +301,16 @@ Bengal's asset fingerprinting provides cache-busting without CDN dependencies:
 
 ```toml
 # bengal.toml
+fingerprint_assets = true  # style.css → style.a1b2c3.css
+```
+
+Or in the assets section:
+
+```toml
 [assets]
-fingerprint = true  # style.css → style.a1b2c3.css
+fingerprint = true
+minify = true
+optimize = true
 ```
 
 Benefits of self-hosting:
@@ -329,15 +353,16 @@ Bengal's media directives (`{youtube}`, `{vimeo}`, `{gist}`, etc.) include built
 
 ### Input Validation
 
-All embed IDs and paths are validated:
+All embed IDs and paths are validated via strict regex patterns:
 
 | Directive | Validation |
 |-----------|------------|
-| `{youtube}` | 11-character alphanumeric ID only |
-| `{vimeo}` | Numeric ID only |
-| `{gist}` | `username/hash` format only |
-| `{figure}` | Safe paths, no `../` traversal |
-| `{video}` / `{audio}` | Extension whitelist |
+| `{youtube}` | Exactly 11 characters: letters, numbers, underscores, hyphens |
+| `{vimeo}` | 6-11 digit numeric ID |
+| `{gist}` | `username/32-character-hex-id` format |
+| `{figure}` | Safe paths starting with `/` or `./`, no `../` traversal |
+| `{video}` | Extensions: `.mp4`, `.webm`, `.ogg`, `.mov` |
+| `{audio}` | Extensions: `.mp3`, `.ogg`, `.wav`, `.flac`, `.m4a`, `.aac` |
 
 Malicious inputs are rejected with clear error messages:
 
@@ -404,15 +429,24 @@ pip install --upgrade bengal
 
 ## Draft Protection
 
-Drafts are excluded from production by default. Verify this works:
+Drafts are automatically excluded from listings, sitemap, search index, and RSS feeds.
 
-### Check Configuration
+### How Drafts Work
 
-```toml
-# bengal.toml
-[build]
-include_drafts = false  # Default, but explicit is good
+Mark pages as drafts in frontmatter:
+
+```yaml
+---
+title: Work in Progress
+draft: true
+---
 ```
+
+Draft pages are automatically excluded from:
+- `site.pages` queries (listings)
+- Sitemap generation
+- Search index
+- RSS feeds
 
 ### Verify Output
 
@@ -420,9 +454,12 @@ include_drafts = false  # Default, but explicit is good
 # Build for production
 bengal build
 
-# Search for draft indicators
-grep -r "draft" public/  # Should return nothing
+# Search for draft indicators in output
 grep -r "draft-banner" public/  # Should return nothing
+grep -r "data-draft" public/    # Should return nothing
+
+# Verify drafts not in search index
+! grep -q '"draft":true' public/index.json
 ```
 
 ### CI Check
@@ -451,10 +488,10 @@ Before deploying to production:
 - [ ] HSTS enabled (if HTTPS confirmed working)
 
 ### Build
-- [ ] Sensitive files excluded from build
+- [ ] Sensitive files excluded from content directory
 - [ ] No API keys or secrets in content
-- [ ] Drafts excluded from production
-- [ ] Validation passes (`bengal validate --strict`)
+- [ ] Drafts marked in frontmatter (auto-excluded from output)
+- [ ] Validation passes (`bengal validate`)
 - [ ] Links checked (`bengal health linkcheck`)
 
 ### Dependencies

@@ -12,6 +12,7 @@ Key Features:
       expected by Mistune's AST.
     - **Immutable Operations**: ``with_attrs()`` and ``with_children()`` return
       new tokens without mutating the original.
+    - **DirectiveType Enum**: Known directive types for type-safe validation.
 
 Example:
     Create a token and convert for Mistune::
@@ -30,7 +31,66 @@ See Also:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
+
+
+class DirectiveType(Enum):
+    """Known directive types for type-safe validation.
+
+    This enum defines all standard Bengal directive types, enabling type-safe
+    comparisons and IDE autocomplete when working with directive tokens.
+
+    Example:
+        >>> DirectiveType.STEP.value
+        'step'
+        >>> DirectiveType.NOTE.value
+        'note'
+    """
+
+    # Container directives
+    STEP = "step"
+    STEPS = "steps"
+    TAB_ITEM = "tab_item"
+    TAB_SET = "tab_set"
+    TABS = "tabs"
+
+    # Admonition directives
+    NOTE = "note"
+    WARNING = "warning"
+    TIP = "tip"
+    IMPORTANT = "important"
+    CAUTION = "caution"
+
+    # Code directives
+    CODE_INCLUDE = "code_include"
+    CODE_TABS = "code_tabs"
+    LITERALINCLUDE = "literalinclude"
+
+    # Card directives
+    CARD = "card"
+    CARDS_GRID = "cards_grid"
+    CHILD_CARDS = "child_cards"
+
+    # Other directives
+    DROPDOWN = "dropdown"
+    FIGURE = "figure"
+    GALLERY = "gallery"
+    GLOSSARY = "glossary"
+    TOC = "toc"
+    BUTTON = "button"
+    BADGE = "badge"
+    ICON = "icon"
+    VIDEO = "video"
+    EMBED = "embed"
+    TERMINAL = "terminal"
+    MARIMO = "marimo"
+    CHECKLIST = "checklist"
+    DATA_TABLE = "data_table"
+    LIST_TABLE = "list_table"
+    INCLUDE = "include"
+    TARGET = "target"
+    RUBRIC = "rubric"
 
 
 @dataclass(slots=True)

@@ -187,13 +187,26 @@ Include code files as syntax-highlighted code blocks.
 
 Same as `{include}` - paths resolve relative to current page's directory, then site root.
 
-## Security
+## Security and Robustness
 
-Both directives prevent path traversal attacks:
+Both directives include security measures and robustness limits to prevent common issues:
 
-- Only allows paths within the site root
-- Rejects paths with `..` sequences
-- Validates file existence before inclusion
+### Security
+
+- **Path containment**: Only allows paths within the site root
+- **Path traversal protection**: Validates `..` sequences stay within bounds
+- **Symlink rejection**: Symlinks are rejected to prevent escaping containment
+- **Absolute path rejection**: Absolute paths are not allowed
+
+### Robustness Limits
+
+| Limit | Value | Purpose |
+|-------|-------|---------|
+| Maximum include depth | 10 | Prevents stack overflow from deeply nested includes |
+| Maximum file size | 10 MB | Prevents memory exhaustion from large files |
+| Cycle detection | Automatic | Prevents infinite loops (a.md → b.md → a.md)
+
+If an include exceeds these limits, an error message is rendered inline with context about the issue.
 
 ## Best Practices
 

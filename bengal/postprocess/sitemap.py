@@ -24,9 +24,12 @@ See Also:
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
 
 
 class SitemapGenerator:
@@ -61,15 +64,17 @@ class SitemapGenerator:
         generator.generate()  # Writes sitemap.xml to output directory
     """
 
-    def __init__(self, site: Any) -> None:
+    def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:
         """
         Initialize sitemap generator.
 
         Args:
             site: Site instance
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
         self.logger = get_logger(__name__)
+        self._collector = collector
 
     def generate(self) -> None:
         """
@@ -208,6 +213,12 @@ class SitemapGenerator:
         try:
             with AtomicFile(sitemap_path, "wb") as f:
                 tree.write(f, encoding="utf-8", xml_declaration=True)
+
+            # Record output for hot reload tracking
+            if self._collector:
+                from bengal.core.output import OutputType
+
+                self._collector.record(sitemap_path, OutputType.XML, phase="postprocess")
 
             self.logger.info(
                 "sitemap_generation_complete",

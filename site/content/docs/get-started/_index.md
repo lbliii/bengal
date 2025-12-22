@@ -17,8 +17,8 @@ cascade:
   type: doc
 icon: arrow-clockwise
 ---
-# Get Started
 
+# Get Started
 
 ## Install
 
@@ -26,7 +26,7 @@ icon: arrow-clockwise
 pip install bengal
 ```
 
-Requires Python 3.14+. See [[docs/get-started/installation|installation guide]] for details.
+Requires Python 3.14 or later. See [[docs/get-started/installation|installation guide]] for details, including recommended options for faster builds.
 
 ## Create a Site
 
@@ -36,7 +36,7 @@ cd mysite
 bengal serve
 ```
 
-Your site runs at `localhost:5173`.
+Your site runs at `http://localhost:5173`. The dev server rebuilds automatically when you save changes.
 
 ## Pick a Path
 
@@ -52,7 +52,7 @@ Your site runs at `localhost:5173`.
 Get up and running in 5 minutes with Bengal's writer-focused workflow.
 :::{/card}
 
-:::{card} Theme developer
+:::{card} Theme Developer
 :icon: palette
 :link: ./quickstart-themer
 :description: Customize templates and styles to match your brand
@@ -62,7 +62,7 @@ Build your own theme or override just the parts you want to change.
 :::{card} Contributor
 :icon: code
 :link: ./quickstart-contributor
-:description: Hack on Bengal core - fix bugs, add features
+:description: Hack on Bengal core, fix bugs, add features
 Set up your development environment and start contributing.
 :::{/card}
 :::{/cards}

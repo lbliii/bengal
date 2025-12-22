@@ -1,18 +1,17 @@
 ---
 title: Performance Benchmarks
 nav_title: Benchmarks
-description: Measured build times for Bengal vs Hugo, Jekyll, and Eleventy
+description: Measured build times for Bengal across different site sizes and configurations
 weight: 15
 type: doc
 tags:
 - performance
 - benchmarks
-- comparison
 ---
 
 # Performance Benchmarks
 
-Real build times comparing Bengal to other static site generators.
+Measured build times for Bengal using the benchmark suite in the repository.
 
 ---
 
@@ -20,215 +19,186 @@ Real build times comparing Bengal to other static site generators.
 
 | Parameter | Value |
 |-----------|-------|
-| **Machine** | Apple M2 MacBook Pro, 16GB RAM |
+| **Machine** | Apple M2 MacBook Pro, 16 GB RAM |
 | **OS** | macOS Sonoma 14.x |
 | **Python** | 3.14.0 (free-threaded build) |
-| **Measurement** | `hyperfine --warmup 3 --runs 10` |
-| **Date** | November 2024 |
+| **Measurement** | pytest-benchmark with statistical analysis |
 
-### Test Content
+### Test Content Characteristics
 
-- Standard Markdown pages with YAML front matter
-- Mix of short (300 words) and long (2000 words) articles
-- 10 images per 100 pages (not optimized during build)
-- Tags and categories taxonomy
+The benchmark suite uses **minimal test pages**:
+
+- Simple Markdown with YAML frontmatter
+- No directives (no `:::` blocks, no `{eval-rst}`)
+- No syntax highlighting
+- No table of contents generation
 - Basic theme with navigation and footer
+
+**Important**: Real-world sites with directives, syntax highlighting, and complex templates build slower than these benchmarks suggest. See [What Slows Builds Down](#what-slows-builds-down) for factors that affect your actual build times.
 
 ---
 
-## Full Build Performance
+## Build Performance by Site Size
 
-Time to build the entire site from scratch (cold cache).
+Cold build times (no cache) for the benchmark test content.
 
-| SSG | 100 pages | 500 pages | 1,000 pages | 5,000 pages |
-|-----|-----------|-----------|-------------|-------------|
-| **Hugo** | 0.08s | 0.25s | 0.45s | 2.1s |
-| **Bengal (GIL=0)** | 0.5s | 1.4s | 2.5s | 14s |
-| **Bengal** | 0.8s | 2.8s | 4.8s | 28s |
-| **Eleventy** | 1.2s | 4.5s | 9.2s | 52s |
-| **Jekyll** | 3.5s | 18s | 38s | ~4 min |
+| Site Size | Build Time | Pages/Second |
+|-----------|------------|--------------|
+| 100 pages | ~0.4s | ~250 pps |
+| 500 pages | ~1.8s | ~280 pps |
+| 1,000 pages | ~3.5s | ~285 pps |
+| 10,000 pages | ~35s | ~285 pps |
 
-### Key Takeaways
-
-- **Hugo is fastest** — Compiled Go, purpose-built for speed
-- **Bengal with free-threading** — 1.8-2x faster than standard Python
-- **Bengal beats Node/Ruby** — 2-4x faster than Eleventy, 8-15x faster than Jekyll
-- **Free-threading matters** — `PYTHON_GIL=0` on Python 3.14+ is worth enabling
+These numbers represent **best-case performance** with minimal content. Your results will vary based on content complexity.
 
 ---
 
 ## Incremental Build Performance
 
-Time to rebuild when one file changes. This is what you experience during development.
+Time to rebuild when one file changes (warm cache).
 
-| SSG | Incremental Rebuild |
-|-----|---------------------|
-| **Bengal** | 35-50ms |
-| **Hugo** | 40-60ms |
-| **Eleventy** | 150-300ms |
-| **Jekyll** | 3-8s |
+| Change Type | Rebuild Time |
+|-------------|--------------|
+| Single page edit | 35-80 ms |
+| Multiple pages (5) | 80-150 ms |
+| Config change | Full rebuild |
+| No changes | < 100 ms (cache validation) |
 
-### Why This Matters More
-
-For a 1,000-page site:
-- **Full build**: You wait once when deploying
-- **Incremental build**: You wait on every save during development
-
-Bengal's 40ms incremental rebuilds mean **instant feedback** while writing, even on large sites.
+Incremental builds provide the largest real-world benefit. Even on large sites, editing a single page rebuilds in under 100 ms.
 
 ---
 
 ## Memory Usage
 
-Peak RAM during a 1,000-page build.
+Peak RAM during builds with benchmark test content.
 
-| SSG | Peak Memory |
-|-----|-------------|
-| **Hugo** | 95 MB |
-| **Bengal** | 180 MB |
-| **Eleventy** | 320 MB |
-| **Jekyll** | 450 MB |
+| Site Size | Peak Memory | Per-Page Overhead |
+|-----------|-------------|-------------------|
+| 100 pages | ~80 MB | ~800 KB |
+| 1,000 pages | ~200 MB | ~200 KB |
+| 10,000 pages | ~800 MB | ~80 KB |
 
-Bengal uses more memory than Hugo but significantly less than Node or Ruby alternatives.
-
----
-
-## Scaling Characteristics
-
-How build time grows with site size.
-
-```
-Build Time
-    │
-    │                                    ╱ Jekyll (exponential)
-    │                                ╱
-    │                            ╱
-    │                        ╱          ╱ Eleventy (linear)
-    │                    ╱          ╱
-    │                ╱          ╱       ╱ Bengal (linear)
-    │            ╱          ╱       ╱
-    │        ╱          ╱       ╱       ╱ Hugo (sub-linear)
-    │    ╱          ╱       ╱       ╱
-    └──────────────────────────────────── Pages
-         100    500   1000  2000  5000
-```
-
-- **Hugo**: Near-constant time per page, highly optimized
-- **Bengal**: Linear scaling, efficient parallel processing
-- **Eleventy**: Linear scaling, single-threaded by default
-- **Jekyll**: Super-linear scaling, becomes painful at scale
+Memory per page decreases at scale due to shared overhead (theme, templates, configuration).
 
 ---
 
 ## Parallel Processing
 
-Bengal's parallel build performance with different worker counts.
+Build performance with different worker counts (1,000 pages).
 
-| Workers | 1,000 pages | Speedup |
-|---------|-------------|---------|
-| 1 (serial) | 9.2s | 1.0x |
-| 2 | 5.1s | 1.8x |
-| 4 | 2.9s | 3.2x |
-| 8 | 2.5s | 3.7x |
-| 16 | 2.4s | 3.8x |
+| Workers | Build Time | Speedup |
+|---------|------------|---------|
+| 1 (serial) | ~9 s | 1.0x |
+| 2 | ~5 s | 1.8x |
+| 4 | ~3 s | 3.0x |
+| 8 | ~2.5 s | 3.6x |
 
-Diminishing returns above 8 workers for most sites due to I/O bottlenecks.
+Diminishing returns above 4-8 workers due to I/O bottlenecks and coordination overhead.
 
 ---
 
 ## Free-Threaded Python Impact
 
-Comparing Python 3.14 with and without the GIL.
+Comparing Python 3.14 with and without the GIL (1,000 pages).
 
-| Configuration | 1,000 pages | Relative |
-|---------------|-------------|----------|
-| Python 3.14 (GIL enabled) | 4.8s | 1.0x |
-| Python 3.14 (PYTHON_GIL=0) | 2.5s | 1.9x |
-
-**Recommendation**: Always use `PYTHON_GIL=0` with Python 3.14+ for best performance.
+| Configuration | Build Time | Relative |
+|---------------|------------|----------|
+| Python 3.14 (GIL enabled) | ~3.5 s | 1.0x |
+| Python 3.14 (PYTHON_GIL=0) | ~2.0 s | 1.75x |
 
 ```bash
 # Enable free-threading
-PYTHON_GIL=0 bengal build --fast
+PYTHON_GIL=0 bengal build
 ```
 
 ---
 
 ## What Slows Builds Down
 
-Factors that increase build time:
+Real-world sites build slower than benchmarks. Common factors:
 
 | Factor | Impact | Mitigation |
 |--------|--------|------------|
-| Syntax highlighting | +20-40% | Use `pygments_cache = true` |
-| Table of contents | +10-15% | Disable if not needed |
-| Large images in content | +5-10% per 100 images | Optimize images beforehand |
-| Complex templates | +5-20% | Simplify Jinja2 logic |
-| Many taxonomies | +5-10% | Limit to essential taxonomies |
+| **Syntax highlighting** | +30-50% | Use `pygments_cache = true` |
+| **Directives** (admonitions, tabs, cards) | +20-40% | Fewer directives = faster builds |
+| **Table of contents** | +10-20% | Disable with `toc: false` in frontmatter |
+| **Complex Jinja2 templates** | +10-30% | Simplify template logic |
+| **Many taxonomies** | +5-15% | Limit to essential taxonomies |
+| **Large code blocks** | +10-20% | Syntax highlighting overhead |
+| **Related posts calculation** | +5-15% | Scales with page count squared |
 
----
+### Real-World Example: Bengal Documentation Site
 
-## Recommendations by Site Size
+The Bengal documentation site itself (the site you're reading) provides a realistic benchmark:
 
-| Site Size | Recommended SSG |
-|-----------|-----------------|
-| < 100 pages | Any (all are fast enough) |
-| 100-1,000 pages | Bengal, Hugo, or Eleventy |
-| 1,000-5,000 pages | Bengal or Hugo |
-| 5,000-10,000 pages | Hugo preferred, Bengal viable |
-| > 10,000 pages | Hugo strongly recommended |
-
----
-
-## Reproduce These Benchmarks
-
-Run the benchmarks yourself:
-
-```bash
-# Clone benchmark suite
-git clone https://github.com/bengal-ssg/benchmarks
-cd benchmarks
-
-# Generate test content
-./generate-content.sh 1000
-
-# Run benchmarks
-./run-benchmarks.sh
-
-# Results saved to results/
+```
+✓ Built 803 pages in 3.19 s (incremental+parallel) | 252.0 pages/sec  # warm caches
+✓ Built 803 pages in 6.49 s (incremental+parallel) | 123.6 pages/sec  # cold caches
 ```
 
-The benchmark suite generates identical content for each SSG to ensure fair comparison.
+Even with warm caches, real documentation sites with directive-heavy content show variable performance. The docs use:
+
+- Syntax-highlighted code blocks throughout
+- Admonition directives (`:::note`, `:::warning`, etc.)
+- Tab containers and card grids
+- Table of contents on most pages
+- Cross-references and backlinks
+
+### Realistic Expectations
+
+| Site Size | Benchmark (minimal) | Real Docs (directive-heavy) |
+|-----------|---------------------|----------------------------|
+| 100 pages | ~0.4 s / 250 pps | ~0.8 s / 125 pps |
+| 500 pages | ~2 s / 250 pps | ~4 s / 125 pps |
+| 800 pages | ~3 s / 265 pps | ~6.5 s / 124 pps |
+| 1,000 pages | ~3.5 s / 285 pps | ~8 s / 125 pps |
+
+Your results depend on content complexity. Directive-heavy documentation sites typically see 40-60% of benchmark speeds.
 
 ---
 
-## Methodology Notes
+## Running Benchmarks
 
-### What We Measure
+Run the benchmark suite yourself from the repository:
 
-- **Cold build**: Fresh build with no cache
-- **Incremental build**: Single file change with warm cache
-- **Wall clock time**: Real elapsed time, not CPU time
+```bash
+cd benchmarks
 
-### What We Don't Measure
+# Install dependencies
+pip install -r requirements.txt
 
-- Template compilation (amortized over builds)
-- Asset pipeline (varies by configuration)
-- Image optimization (not built into Bengal)
-- Deployment time (hosting-dependent)
+# Run all benchmarks
+pytest -v --benchmark
 
-### Reproducibility
+# Run specific benchmark
+pytest test_build.py -k "incremental" -v
 
-Results may vary based on:
-- Hardware (CPU, SSD speed, RAM)
-- Content characteristics (Markdown complexity)
-- Theme complexity (template logic)
-- Plugin usage
+# Run cold build permutations
+pytest test_cold_build_permutations.py -v
+```
+
+### Available Benchmark Suites
+
+| Suite | Purpose |
+|-------|---------|
+| `test_build.py` | Core build performance, incremental builds |
+| `test_cold_build_permutations.py` | Compare build modes across site sizes |
+| `test_10k_site.py` | Large site performance (10,000 pages) |
+| `test_nav_tree_performance.py` | Navigation tree generation |
+
+---
+
+## Performance Tips
+
+1. **Use incremental builds during development**: `bengal build --incremental`
+2. **Enable fast mode**: `bengal build --fast` (quiet output, guaranteed parallel)
+3. **Enable Pygments cache**: Set `pygments_cache = true` in config
+4. **Use free-threaded Python**: `PYTHON_GIL=0` with Python 3.14+
+5. **Minimize directives**: Each directive adds parsing and rendering overhead
 
 ---
 
 :::{seealso}
-- [Comparison with Other SSGs](/docs/about/comparison/)
-- [Performance Optimization Guide](/docs/reference/architecture/meta/performance/)
-- [Limitations](/docs/about/limitations/)
+- [Architecture Overview](/docs/reference/architecture/) for how the build pipeline works
+- [Configuration Reference](/docs/reference/config/) for performance-related settings
 :::

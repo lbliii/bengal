@@ -1,9 +1,9 @@
 # RFC: Build Output Tracking - Typed Protocol for Reliable Hot Reload
 
-**Status**: Draft  
+**Status**: Evaluated  
 **Created**: 2025-12-22  
 **Author**: AI-assisted  
-**Confidence**: 90% 🟢  
+**Confidence**: 95% 🟢  
 **Category**: Architecture / Server / Type Safety  
 **Related**: `rfc-type-system-hardening.md`
 

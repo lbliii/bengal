@@ -43,7 +43,7 @@ bengal build --incremental --fast
 | Site Size | Recommended Strategy | Build Time |
 |-----------|---------------------|------------|
 | <500 pages | Default (no changes needed) | 1-3s |
-| 500-5K pages | `--parallel --incremental` | 3-15s |
+| 500-5K pages | Default (parallel + incremental enabled) | 3-15s |
 | 5K-20K pages | `--memory-optimized` | 15-60s |
 | 20K+ pages | Full optimization stack | 1-5min |
 
@@ -64,24 +64,15 @@ bengal build --memory-optimized
 3. **Streams leaves** in batches and releases memory immediately
 4. **Result**: 80-90% memory reduction
 
-### Configuration
-
-```toml
-# bengal.toml
-[build]
-memory_optimized = true    # Enable streaming for all builds
-batch_size = 100           # Pages per batch (default: 100)
-```
-
 ### When to Use
 
 - Sites with 5K+ pages
 - CI runners with limited memory
 - Docker containers with memory limits
-- Local machines with <16GB RAM
+- Local machines with limited RAM
 
 :::{warning}
-Streaming mode and `--perf-profile` cannot be used together (profiler doesn't work with batched rendering).
+`--memory-optimized` and `--perf-profile` cannot be used together (profiler doesn't work with batched rendering).
 :::
 
 ---
@@ -154,13 +145,13 @@ On a 10K page site, this filter runs 10,000 comparisons.
 
 ## 3. Parallel Processing
 
-Enable true parallelism:
+Parallel processing is enabled by default. Adjust worker count if needed:
 
 ```toml
 # bengal.toml
 [build]
-parallel = true
-max_workers = 8    # Adjust based on CPU cores
+parallel = true           # Enabled by default
+max_workers = 8           # Optional: adjust based on CPU cores (auto-detected if omitted)
 ```
 
 ### Free-Threaded Python
@@ -183,10 +174,11 @@ When running on free-threaded Python:
 
 ## 4. Incremental Builds
 
-Only rebuild what changed:
+Incremental builds are enabled by default. Force a full rebuild if needed:
 
 ```bash
-bengal build --incremental
+# Force full rebuild (skip cache)
+bengal build --no-incremental
 ```
 
 ### What Gets Cached
@@ -207,29 +199,29 @@ bengal build --incremental
 └── deps.json           # Dependency graph
 ```
 
-### Force Fresh Build
+### Clear Cache
 
 ```bash
-# Clear all caches
+# Clear all caches (forces cold rebuild)
 bengal clean --cache
 
-# Build from scratch
-bengal build --no-incremental
+# Clear output and cache
+bengal clean --all
 ```
 
 ---
 
 ## 5. Fast Mode
 
-Combine all optimizations:
+Combine all optimizations for maximum speed:
 
 ```bash
 bengal build --fast
 ```
 
 `--fast` enables:
-- Parallel processing
-- Quiet output (minimal I/O)
+- Parallel processing (guaranteed)
+- Quiet output (minimal I/O overhead)
 - Optimized rendering path
 
 ---
@@ -316,13 +308,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Cache Bengal
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .bengal/cache
           key: bengal-${{ hashFiles('content/**/*.md') }}
 
       - name: Build
-        run: bengal build --fast --incremental
+        run: bengal build --fast --environment production
 ```
 
 ### Docker Memory Limits
@@ -371,18 +363,9 @@ bengal build --no-incremental
 
 # Clear all caches
 bengal clean --cache
-```
 
-### Configuration
-
-```toml
-# bengal.toml - optimized for large sites
-[build]
-parallel = true
-incremental = true
-memory_optimized = true
-max_workers = 8
-batch_size = 100
+# Clear output and cache
+bengal clean --all
 ```
 
 ---
@@ -392,7 +375,7 @@ batch_size = 100
 ### Build runs out of memory
 
 1. Enable streaming: `--memory-optimized`
-2. Reduce batch size: `batch_size = 50`
+2. Use `bengal build --dev --verbose` to see memory usage
 3. Increase swap space
 
 ### Build is slow despite caching
@@ -404,13 +387,12 @@ batch_size = 100
 ### Incremental not working
 
 1. Ensure `.bengal/` is not gitignored for local dev
-2. Check `deps.json` exists
-3. Run `bengal clean --cache` to reset
+2. Run `bengal clean --cache` to reset
+3. Check for template changes that invalidate all pages
 
 ---
 
 :::{seealso}
 - [[docs/building/performance|Performance Overview]]
 - [[docs/building/commands|Build Commands]]
-- [[docs/theming/templating|Template Optimization]]
 :::

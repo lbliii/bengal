@@ -271,7 +271,7 @@ Rank   Title                                         Score        In    Out
 Discover topical clusters in your content:
 
 ```bash
-bengal utils graph communities --top-n 10 --min-size 3
+bengal graph communities --top-n 10 --min-size 3
 ```
 
 **Options**:
@@ -330,7 +330,7 @@ Rank   Title                                              Closeness      Out
 Get smart recommendations for internal linking:
 
 ```bash
-bengal utils graph suggest --top-n 50 --min-score 0.5
+bengal graph suggest --top-n 50 --min-score 0.5
 ```
 
 **Options**:
@@ -357,9 +357,9 @@ bengal utils graph suggest --top-n 50 --min-score 0.5
    bengal graph orphans --level lightly --format json > lightly-linked.json
    ```
 
-4. **Get link suggestions**:
+4. **Get link suggestions** (via utils group):
    ```bash
-   bengal graph suggest --min-score 0.5 --format markdown > suggestions.md
+   bengal utils graph suggest --min-score 0.5 --format markdown > suggestions.md
    ```
 
 5. **Prioritize by importance**:

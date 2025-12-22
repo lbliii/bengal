@@ -98,9 +98,9 @@ Controls how Bengal processes and organizes content.
 |---------|---------|-------------|
 | `default_type` | `"doc"` | Default content type for sections |
 | `excerpt_length` | `200` | Length of auto-generated excerpts |
-| `reading_speed` | `250` | Words per minute for reading time calculation |
+| `reading_speed` | `200` | Words per minute for reading time calculation |
 | `related_count` | `3` | Number of related posts to find |
-| `toc_depth` | `3` | Depth of Table of Contents (h1-h3) |
+| `toc_depth` | `3` | Depth of Table of Contents (h2-h4) |
 | `sort_pages_by` | `"weight"` | Default sort key (`weight`, `date`, `title`) |
 
 ### `[markdown]`
@@ -112,7 +112,7 @@ Configure the Markdown parsing engine.
 parser = "mistune"       # "mistune" (fast, default) or "python-markdown" (full-featured)
 ```
 
-**Note**: `mistune` is significantly faster (2-5x) and recommended for most sites. Use `python-markdown` only if you rely on specific Python-Markdown extensions.
+**Note**: `mistune` is significantly faster (2–5x) and recommended for most sites. Bengal's MyST directives work with mistune.
 
 ### `[build]`
 
@@ -121,13 +121,30 @@ Build process settings.
 ```toml
 [build]
 output_dir = "public"
-parallel = true          # Enable parallel processing
-incremental = false      # Enable incremental builds
-max_workers = null       # Auto-detect based on CPU cores (default: CPU count - 1, min 4)
+parallel = true          # Enable parallel processing (default: true)
+incremental = true       # Enable incremental builds (default: true)
+max_workers = null       # Auto-detect based on CPU cores
 pretty_urls = true       # Generate /page/index.html instead of /page.html
+minify_html = true       # Minify HTML output (default: true)
+validate_links = true    # Check for broken internal links (default: true)
+strict_mode = false      # Fail build on warnings (default: false)
 ```
 
 **Note**: `max_workers` defaults to auto-detection based on your CPU cores (leaves 1 core for OS, minimum 4 workers). Set a specific number to override.
+
+### `[features]`
+
+Enable or disable built-in features.
+
+```toml
+[features]
+rss = true               # Generate RSS feed
+sitemap = true           # Generate sitemap.xml
+search = true            # Enable client-side search
+json = true              # Generate per-page JSON
+llm_txt = true           # Generate LLM-friendly text files
+syntax_highlighting = true  # Enable code syntax highlighting
+```
 
 ### `[assets]`
 
@@ -153,12 +170,35 @@ Configure alternative output formats (JSON, LLM text).
 ```toml
 [output_formats]
 enabled = true
-per_page = ["json", "llm_txt"]
-site_wide = ["index_json", "llm_full"]
+per_page = ["json"]               # Default: JSON only
+site_wide = ["index_json"]        # Default: site index only
 
 [output_formats.options]
-include_html_content = true
-json_indent = 2
+excerpt_length = 200              # Excerpt length for site index
+json_indent = null                # null for compact JSON, 2 for pretty
+exclude_sections = []             # Sections to exclude from output formats
+exclude_patterns = ["404.html", "search.html"]  # Files to exclude
+```
+
+### `[graph]`
+
+Knowledge graph visualization.
+
+```toml
+[graph]
+enabled = true           # Enable graph generation
+path = "/graph/"         # URL path for graph page
+```
+
+### `[i18n]`
+
+Internationalization settings.
+
+```toml
+[i18n]
+strategy = null          # null (disabled), "subdir", or "domain"
+default_language = "en"
+default_in_subdir = false  # Put default language in subdir
 ```
 
 ### `[params]`

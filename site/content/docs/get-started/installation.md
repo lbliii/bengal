@@ -22,7 +22,7 @@ category: onboarding
 
 ## Requirements
 
-Bengal requires **Python 3.14 or later**. For best performance, use Python 3.14t (free-threaded build).
+Bengal requires **Python 3.14 or later**. For best performance, use the free-threaded build (Python 3.14t), which enables true parallel processing.
 
 ## Install
 
@@ -30,26 +30,31 @@ Bengal requires **Python 3.14 or later**. For best performance, use Python 3.14t
 :::{tab-item} uv
 :icon: rocket
 :badge: Recommended
+
 ```bash
 uv pip install bengal
 ```
 
-Or for a one-time run:
+Or for a one-time run without installation:
 
 ```bash
 uvx bengal --version
 ```
+
 :::{/tab-item}
 
 :::{tab-item} pip
 :icon: package
+
 ```bash
 pip install bengal
 ```
+
 :::{/tab-item}
 
 :::{tab-item} pipx
 :icon: terminal
+
 ```bash
 pipx install bengal
 ```
@@ -60,6 +65,7 @@ This installs Bengal in an isolated environment while making the `bengal` comman
 :::{tab-item} From Source
 :icon: code
 :badge: Development
+
 ```bash
 git clone https://github.com/lbliii/bengal.git
 cd bengal
@@ -67,7 +73,7 @@ make setup
 make install
 ```
 
-This installs Bengal in development mode.
+This installs Bengal in editable mode with development dependencies.
 :::{/tab-item}
 :::{/tab-set}
 
@@ -77,7 +83,7 @@ This installs Bengal in development mode.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version X.X.X`
+You should see output like: `Bengal SSG, version 0.1.5`
 
 ## Python Version Setup
 
@@ -85,6 +91,7 @@ You should see output like: `Bengal SSG, version X.X.X`
 :::{tab-item} pyenv
 :icon: settings
 :badge: Recommended
+
 pyenv lets you install and switch between multiple Python versions:
 
 ```bash
@@ -100,19 +107,21 @@ pyenv global 3.14.0
 # Verify
 python --version
 ```
+
 :::{/tab-item}
 
 :::{tab-item} Official Installer
 :icon: download
+
 Download Python 3.14 from [python.org/downloads](https://www.python.org/downloads/).
 
 After installation, verify: `python3 --version`
 :::{/tab-item}
 :::{/tab-set}
 
-## Free-Threaded Python (Optional)
+## Free-Threaded Python
 
-For best performance, use the free-threaded build (Python 3.14t):
+For best build performance, use the free-threaded Python build (Python 3.14t). This enables true parallel processing for 1.8-2x faster builds on multi-core machines.
 
 ```bash
 # With pyenv
@@ -123,7 +132,7 @@ pyenv global 3.14.0t
 python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False else 'GIL enabled')"
 ```
 
-**Why?** The free-threaded build enables true parallel processing for 1.8-2x faster builds.
+Bengal automatically detects the free-threaded build and enables parallel processing.
 
 ## Troubleshooting
 
@@ -157,7 +166,7 @@ python --version
 python3 --version
 ```
 
-Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
+Bengal requires Python 3.14 or later. Install using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
 :::
 
 :::{dropdown} Permission errors
@@ -173,6 +182,7 @@ Or use a virtual environment:
 
 ```bash
 python -m venv venv && source venv/bin/activate
+pip install bengal
 ```
 
 :::

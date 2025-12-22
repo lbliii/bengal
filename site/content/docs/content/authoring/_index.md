@@ -9,7 +9,7 @@ card_color: blue
 ---
 # Writing Content
 
-Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/) extensions for rich documentation.
+Bengal uses CommonMark Markdown with MyST-style directive extensions for rich documentation. Write in standard Markdown and extend with 40+ built-in directives.
 
 ## What Do You Need?
 
@@ -181,6 +181,22 @@ This endpoint uses API {{ api_version }}.
 :::{tip}
 **Common use cases**: Product names, version numbers, feature flags, environment-specific values, and cascaded metadata like API versions or status badges.
 :::
+
+## Available Directives
+
+Bengal provides 40+ directives organized by category:
+
+| Category | Directives |
+|----------|------------|
+| **Admonitions** | `note`, `tip`, `warning`, `danger`, `error`, `info`, `example`, `success`, `caution`, `seealso` |
+| **Layout** | `tabs`, `tab-set`, `cards`, `card`, `child-cards`, `grid`, `container`, `steps`, `step`, `dropdown` |
+| **Tables** | `list-table`, `data-table` |
+| **Code** | `code-tabs`, `literalinclude` |
+| **Media** | `youtube`, `vimeo`, `video`, `audio`, `figure`, `gallery` |
+| **Embeds** | `gist`, `codepen`, `codesandbox`, `stackblitz`, `asciinema` |
+| **Navigation** | `breadcrumbs`, `siblings`, `prev-next`, `related` |
+| **Versioning** | `since`, `deprecated`, `changed` |
+| **Utilities** | `badge`, `button`, `icon`, `rubric`, `target`, `include`, `glossary`, `checklist` |
 
 ::::{seealso}
 - [[docs/reference/directives|Directives Reference]] — Complete directive documentation

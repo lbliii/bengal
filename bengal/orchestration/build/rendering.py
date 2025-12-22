@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
     from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
+    from bengal.core.output import OutputCollector
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
@@ -84,6 +85,7 @@ def phase_assets(
     incremental: bool,
     parallel: bool,
     assets_to_process: list[Asset],
+    collector: OutputCollector | None = None,
 ) -> list[Asset]:
     """
     Phase 13: Process Assets.
@@ -96,6 +98,7 @@ def phase_assets(
         incremental: Whether this is an incremental build
         parallel: Whether to use parallel processing
         assets_to_process: List of assets to process
+        collector: Optional output collector for hot reload tracking
 
     Returns:
         Updated assets_to_process list (may be expanded if theme assets need processing)
@@ -123,7 +126,9 @@ def phase_assets(
                     # Theme assets not in output - re-process all assets
                     assets_to_process = orchestrator.site.assets
 
-        orchestrator.assets.process(assets_to_process, parallel=parallel, progress_manager=None)
+        orchestrator.assets.process(
+            assets_to_process, parallel=parallel, progress_manager=None, collector=collector
+        )
 
         # Rewrite fonts.css to use fingerprinted font filenames
         # This must happen after asset fingerprinting is complete
@@ -156,6 +161,7 @@ def phase_render(
     profile_templates: bool = False,
     early_context: BuildContext | None = None,
     changed_sources: set[Path] | None = None,
+    collector: OutputCollector | None = None,
 ) -> BuildContext:
     """
     Phase 14: Render Pages.
@@ -179,6 +185,7 @@ def phase_render(
         early_context: Optional BuildContext created during discovery phase with
                       cached content. If provided, its cached content is preserved
                       in the final context for use by validators.
+        collector: Optional output collector for hot reload tracking
 
     Returns:
         BuildContext used for rendering (needed by postprocess)
@@ -213,6 +220,7 @@ def phase_render(
                 reporter=reporter,
                 profile_templates=profile_templates,
                 incremental=bool(incremental),
+                output_collector=collector,
             )
             # Transfer cached content from early context (build-integrated validation)
             if early_context and early_context.has_cached_content:
@@ -244,6 +252,7 @@ def phase_render(
                 reporter=reporter,
                 profile_templates=profile_templates,
                 incremental=bool(incremental),
+                output_collector=collector,
             )
             # Transfer cached content from early context (build-integrated validation)
             if early_context and early_context.has_cached_content:

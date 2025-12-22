@@ -31,6 +31,8 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 Create tabbed interfaces for multi-language code examples.
 
+**Aliases**: `{code_tabs}`
+
 **Syntax**:
 
 ````markdown
@@ -49,9 +51,7 @@ more code
 :::{/code-tabs}
 ````
 
-**Note**: You can also use `### Language Name` (without "Tab:" prefix).
-
-**Alias**: `{code_tabs}` (underscore variant)
+**Note**: You can also use `### Language Name` (without "Tab:" prefix) for simpler headings.
 
 ### Examples
 

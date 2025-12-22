@@ -37,7 +37,7 @@ See [[docs/about/philosophy|Project Philosophy]] for the full rationale.
 
 :::{dropdown} What Python version does Bengal require?
 :icon: code
-**Python 3.14 or later** (3.14t free-threaded build recommended for best performance).
+**Python 3.14 or later.** For best performance, use a free-threaded build (`python3.14t`) and set `PYTHON_GIL=0` to enable true parallelism (PEP 703).
 
 See the [[docs/get-started/installation|Installation Guide]] for why and how to set it up.
 :::

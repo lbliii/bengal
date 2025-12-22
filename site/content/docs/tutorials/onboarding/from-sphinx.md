@@ -41,7 +41,7 @@ The only syntax change: `.. name::` becomes `:::{name}`.
 
 :::{tab-set}
 
-:::{tab-item} Sphinx (RST)
+:::{tab} Sphinx (RST)
 ```rst
 .. note:: Important
 
@@ -54,9 +54,9 @@ The only syntax change: `.. name::` becomes `:::{name}`.
    def hello():
        print("Hello, World!")
 ```
-:::
+:::{/tab}
 
-:::{tab-item} Bengal (MyST)
+:::{tab} Bengal (MyST)
 ````markdown
 :::{note} Important
 This is a note with **bold** text.
@@ -67,7 +67,7 @@ def hello():
     print("Hello, World!")
 ```
 ````
-:::
+:::{/tab}
 
 :::{/tab-set}
 
@@ -84,8 +84,9 @@ def hello():
 | `.. tip::` | `:::{tip}` | Identical semantics |
 | `.. danger::` | `:::{danger}` | Identical semantics |
 | `.. seealso::` | `:::{seealso}` | Supported |
-| `.. versionadded::` | Use `:::{info}` | Manual text |
-| `.. deprecated::` | Use `:::{warning}` | Manual text |
+| `.. versionadded::` | `:::{since}` | Semantic versioning directive |
+| `.. deprecated::` | `:::{deprecated}` | Semantic deprecation notice |
+| `.. versionchanged::` | `:::{changed}` | Version change notice |
 | `.. admonition:: Custom` | `:::{note} Custom Title` | Title in directive |
 
 ### Code Blocks
@@ -106,8 +107,7 @@ def hello():
 | `:language: python` | `:language: python` | ✅ Same option |
 | `.. include:: file.md` | `:::{include} file.md` | ✅ Same |
 
-:::{example-label}
-:::
+**Example:**
 
 ```markdown
 :::{literalinclude} ../examples/hello.py
@@ -192,52 +192,53 @@ theme = "bengal"
 
 ## What Bengal Adds (Sphinx Doesn't Have)
 
-### Cards for Feature Grids
+:::::{tab-set}
 
+::::{tab} Cards
 ```markdown
 :::{cards}
 :columns: 3
 
 :::{card} Quick Start
-:icon: 🚀
+:icon: rocket
 :link: quickstart
 
 Get started in 5 minutes
-:::
+:::{/card}
 
 :::{card} API Reference
-:icon: 📚
+:icon: book
 :link: api/
 
 Complete API docs
-:::
+:::{/card}
 
 :::{/cards}
 ```
+::::{/tab}
 
-### Tab Sets
-
-```markdown
+::::{tab} Tab Sets
+````markdown
 :::{tab-set}
 
-:::{tab-item} pip
+:::{tab} pip
 ```bash
 pip install mypackage
 ```
-:::
+:::{/tab}
 
-:::{tab-item} conda
+:::{tab} conda
 ```bash
 conda install mypackage
 ```
-:::
+:::{/tab}
 
 :::{/tab-set}
-```
+````
+::::{/tab}
 
-### Visual Steps
-
-```markdown
+::::{tab} Visual Steps
+````markdown
 :::{steps}
 
 :::{step} Install Dependencies
@@ -253,10 +254,10 @@ bengal new site mysite
 :::{/step}
 
 :::{/steps}
-```
+````
+::::{/tab}
 
-### Dropdowns (Collapsible Sections)
-
+::::{tab} Dropdowns
 ```markdown
 :::{dropdown} Click to expand
 :icon: info
@@ -264,8 +265,10 @@ bengal new site mysite
 Hidden content here. Supports **full markdown**.
 :::
 ```
+::::{/tab}
 
-### Variable Substitution in Content
+::::{tab} Variables
+Bengal supports `{{ variable }}` substitution directly in markdown content:
 
 ```markdown
 ---
@@ -276,15 +279,25 @@ version: "2.0"
 # Welcome to version {{ page.metadata.version }}
 
 The current page is: {{ page.title }}
+
+Site name: {{ site.config.title }}
 ```
 
-### Hot Reload Development Server
+Variables available in content:
+- `page.title`, `page.url`, `page.date` - Page properties
+- `page.metadata.xxx` - Custom frontmatter fields
+- `site.config.xxx` - Site configuration values
+::::{/tab}
 
+::::{tab} Dev Server
 ```bash
 bengal serve
 # Live preview at http://localhost:5173
 # Auto-reloads on file changes
 ```
+::::{/tab}
+
+:::::{/tab-set}
 
 ---
 
@@ -292,25 +305,27 @@ bengal serve
 
 | Sphinx Feature | Bengal Status | Workaround |
 |----------------|---------------|------------|
-| `autodoc` (Python introspection) | Config-driven | Configure in `bengal.toml` |
+| `autodoc` (Python introspection) | Built-in | Configure in `bengal.toml` |
 | `intersphinx` (cross-project refs) | Not built-in | Use explicit URLs |
 | Custom builders (PDF, ePub) | HTML only | External tools |
 | Domain-specific roles | Not built-in | Use directives |
 | Numbered figures | Manual numbering | CSS counters |
-| Math/LaTeX | Extension needed | KaTeX CSS/JS |
+| Math/LaTeX | Built-in support | KaTeX rendering |
 
 ### autodoc Alternative
 
-Bengal has a separate autodoc system:
+Bengal has a built-in autodoc system that generates API documentation from Python source:
 
-```bash
-# Configure autodoc in bengal.toml
-[autodoc.python]
-enabled = true
-source_dirs = ["src/"]
+```yaml
+# config/_default/autodoc.yaml
+autodoc:
+  python:
+    enabled: true
+    source_dirs: ["src/"]
+    output_prefix: "api"  # Pages appear under /api/
 ```
 
-This creates markdown files you can customize, unlike Sphinx's runtime introspection.
+This generates virtual pages during the build process, unlike Sphinx's runtime introspection. Run `bengal build` to generate API documentation from your Python source.
 
 ---
 
@@ -359,8 +374,37 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 
 ---
 
+## Common Questions
+
+:::{dropdown} Can I still use RST files?
+:icon: question
+
+Not directly. Bengal uses MyST Markdown, which has similar directive syntax to RST. You'll need to convert `.rst` files to `.md`, but the concepts transfer directly—`.. note::` becomes `:::{note}`, etc.
+:::
+
+:::{dropdown} What about my Sphinx extensions?
+:icon: question
+
+Bengal has built-in directives that cover most common extension functionality (tabs, cards, admonitions, literalinclude). For specialized extensions, check if there's a built-in directive equivalent or use custom templates.
+:::
+
+:::{dropdown} Can I use intersphinx for cross-project references?
+:icon: question
+
+Not built-in. Use explicit URLs for cross-project links. If you're documenting multiple projects, consider a monorepo structure with all docs in one Bengal site.
+:::
+
+:::{dropdown} What about autodoc for Python API docs?
+:icon: question
+
+Bengal has built-in autodoc! Configure it in `config/_default/autodoc.yaml` to generate API documentation from your Python source. It works differently from Sphinx (build-time vs runtime), but achieves similar results.
+:::
+
+---
+
 ## Next Steps
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration](/docs/about/concepts/configuration/) - Full config options
+- [Configuration Reference](/docs/building/configuration/) - Full config options
+- [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

@@ -87,16 +87,23 @@ The current page being rendered.
 | Attribute | Type | Description |
 | :--- | :--- | :--- |
 | `page.title` | `str` | Page title |
+| `page.nav_title` | `str` | Short title for navigation (falls back to title) |
 | `page.content` | `str` | Raw content |
 | `page.rendered_html` | `str` | Rendered HTML content |
 | `page.date` | `datetime` | Publication date |
-| `page.url` | `str` | URL with baseurl applied (for display in templates) |
-| `page.relative_url` | `str` | Relative URL without baseurl (for comparisons) |
-| `page.permalink` | `str` | Alias for `url` (backward compatibility) |
+| `page.href` | `str` | URL with baseurl applied (for display in templates) |
+| `page._path` | `str` | Site-relative URL without baseurl (for comparisons) |
+| `page.slug` | `str` | URL slug for the page |
 | `page.metadata` | `dict` | All frontmatter keys |
-| `page.toc` | `str` | Auto-generated Table of Contents |
+| `page.toc` | `str` | Auto-generated Table of Contents HTML |
+| `page.toc_items` | `list[dict]` | Structured TOC data (id, title, level) |
 | `page.is_home` | `bool` | True if homepage |
 | `page.is_section` | `bool` | True if section index |
+| `page.is_page` | `bool` | True if regular page (not section) |
+| `page.kind` | `str` | Returns 'home', 'section', or 'page' |
+| `page.type` | `str` | Page type from frontmatter |
+| `page.draft` | `bool` | True if page is a draft |
+| `page.description` | `str` | Page description |
 
 #### Navigation Properties
 
@@ -115,7 +122,7 @@ The current page being rendered.
 <nav class="breadcrumbs">
   <a href="/">Home</a>
   {% for ancestor in page.ancestors %}
-    > <a href="{{ ancestor.url }}">{{ ancestor.title }}</a>
+    > <a href="{{ ancestor.href }}">{{ ancestor.title }}</a>
   {% endfor %}
   > <span>{{ page.title }}</span>
 </nav>
@@ -127,10 +134,10 @@ The current page being rendered.
 ```jinja2
 <nav class="prev-next">
   {% if page.prev_in_section %}
-    <a href="{{ page.prev_in_section.url }}">← {{ page.prev_in_section.title }}</a>
+    <a href="{{ page.prev_in_section.href }}">← {{ page.prev_in_section.title }}</a>
   {% endif %}
   {% if page.next_in_section %}
-    <a href="{{ page.next_in_section.url }}">{{ page.next_in_section.title }} →</a>
+    <a href="{{ page.next_in_section.href }}">{{ page.next_in_section.title }} →</a>
   {% endif %}
 </nav>
 ```
@@ -144,7 +151,7 @@ The current page being rendered.
   <h3>Related Articles</h3>
   <ul>
     {% for post in page.related_posts[:5] %}
-      <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+      <li><a href="{{ post.href }}">{{ post.title }}</a></li>
     {% endfor %}
   </ul>
 </aside>
@@ -153,43 +160,39 @@ The current page being rendered.
 
 #### URL Properties
 
-Bengal provides three URL properties with clear purposes:
+Bengal provides two URL properties with clear purposes:
 
-**`page.url`** - **Primary property for display**
+**`page.href`** - **Primary property for display**
 - Automatically includes baseurl (e.g., `/bengal/docs/page/`)
 - Use in `<a href>`, `<link>`, `<img src>` attributes
 - Works correctly for all deployment scenarios (GitHub Pages, Netlify, S3, etc.)
 
-**`page.relative_url`** - **For comparisons and logic**
-- Relative URL without baseurl (e.g., `/docs/page/`)
-- Use for comparisons: `{% if page.relative_url == '/docs/' %}`
+**`page._path`** - **For comparisons and logic**
+- Site-relative URL without baseurl (e.g., `/docs/page/`)
+- Use for comparisons: `{% if page._path == '/docs/' %}`
 - Use for menu activation, filtering, and conditional logic
-
-**`page.permalink`** - **Backward compatibility**
-- Alias for `url` (same value)
-- Maintained for compatibility with existing themes
+- NEVER use in template href attributes
 
 :::{example-label} Usage
 :::
 
 ```jinja2
 {# Display URL (includes baseurl) #}
-<a href="{{ page.url }}">{{ page.title }}</a>
+<a href="{{ page.href }}">{{ page.title }}</a>
 
 {# Comparison (without baseurl) #}
-{% if page.relative_url == '/docs/' %}
+{% if page._path == '/docs/' %}
   <span class="active">Current Section</span>
 {% endif %}
 
-{# Both work the same #}
-<a href="{{ page.url }}">Link 1</a>
-<a href="{{ page.permalink }}">Link 2</a>  {# Same as page.url #}
+{# url_for() also works for URL generation #}
+<a href="{{ url_for(page) }}">{{ page.title }}</a>
 ```
 
 **Why This Pattern?**
 
-- **Ergonomic**: Templates use `{{ page.url }}` for display - it "just works"
-- **Clear**: `relative_url` makes comparisons explicit
+- **Ergonomic**: Templates use `{{ page.href }}` for display - it "just works"
+- **Clear**: `_path` makes comparisons explicit (without baseurl)
 - **No wrappers**: Page objects handle baseurl via their `_site` reference
 - **Works everywhere**: Supports file://, S3, GitHub Pages, Netlify, Vercel, etc.
 
@@ -205,9 +208,10 @@ Generates a fingerprint-aware URL for an asset.
 ```
 
 ### `url_for(page_or_slug)`
-Generates a URL for a page object or slug.
+Generates a URL for a page object or slug. Applies baseurl automatically.
 ```html
 <a href="{{ url_for(page) }}">Link</a>
+<a href="{{ url_for('/docs/getting-started/') }}">Getting Started</a>
 ```
 
 ### `dateformat(date, format)`

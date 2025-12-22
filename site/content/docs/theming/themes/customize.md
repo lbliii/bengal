@@ -85,7 +85,7 @@ default_appearance = "light"
 You don't need to copy all templates. Override only what you need:
 
 **`themes/my-custom-theme/templates/base.html`:**
-```html
+```jinja2
 {# Extend default theme's base template #}
 {% extends "default::base.html" %}
 
@@ -95,7 +95,7 @@ You don't need to copy all templates. Override only what you need:
     <h1>{{ site.title }}</h1>
     <nav>
         {% for item in menu.main %}
-        <a href="{{ item.url }}">{{ item.name }}</a>
+        <a href="{{ item.href }}">{{ item.name }}</a>
         {% endfor %}
     </nav>
 </header>
@@ -109,7 +109,7 @@ You don't need to copy all templates. Override only what you need:
 Override specific partials:
 
 **`themes/my-custom-theme/templates/partials/footer.html`:**
-```html
+```jinja2
 <footer class="custom-footer">
     <p>&copy; {{ site.author }} {{ "now" | date("%Y") }}</p>
     <p>Custom footer content</p>
@@ -146,7 +146,7 @@ To customize the hero for API documentation pages:
 
 **For element pages (modules, classes, functions, commands):**
 
-```html
+```jinja2
 {# themes/my-theme/templates/partials/page-hero/element.html #}
 {% include 'partials/page-hero/_wrapper.html' %}
 
@@ -167,7 +167,7 @@ To customize the hero for API documentation pages:
 
 **For section-index pages:**
 
-```html
+```jinja2
 {# themes/my-theme/templates/partials/page-hero/section.html #}
 {% set is_cli = (hero_context.is_cli if (hero_context is defined and hero_context and hero_context.is_cli is defined) else false) %}
 
@@ -190,7 +190,7 @@ To customize the hero for API documentation pages:
 
 For CLI reference sections, pass explicit context to avoid URL sniffing:
 
-```html
+```jinja2
 {# In autodoc/cli/section-index.html #}
 {% set hero_context = {'is_cli': true} %}
 {% include 'partials/page-hero/section.html' %}
@@ -238,7 +238,7 @@ Create your own CSS file that overrides theme styles:
 Include in your base template:
 
 **`themes/my-custom-theme/templates/base.html`:**
-```html
+```jinja2
 {% extends "default::base.html" %}
 
 {% block extra_head %}
@@ -279,7 +279,7 @@ params:
 
 Access in templates:
 
-```html
+```jinja2
 {% if theme.config.params.show_author %}
 <p>By {{ page.author or site.author }}</p>
 {% endif %}
@@ -317,7 +317,7 @@ bengal new theme my-theme
 ### Use Theme Inheritance
 
 ✅ **Good:**
-```html
+```jinja2
 {% extends "default::base.html" %}
 {% block header %}
   {# Only override header #}
@@ -325,7 +325,7 @@ bengal new theme my-theme
 ```
 
 ❌ **Bad:**
-```html
+```jinja2
 {# Copying entire base.html #}
 <!DOCTYPE html>
 <html>
@@ -370,16 +370,14 @@ bengal new theme my-theme
 
 ## Navigation with NavTree
 
-Bengal provides a pre-computed navigation tree (`NavTree`) for efficient template rendering. Use `get_nav_tree(page)` to access the navigation structure.
+Bengal provides a pre-computed navigation tree for efficient template rendering. Use `get_nav_tree(page)` to access the navigation structure.
 
 ### Basic Usage
 
 ```jinja2
-{% set nav = get_nav_tree(page) %}
-
 <nav class="sidebar">
-  {% for item in nav.root.children %}
-    <a href="{{ item.url }}"
+  {% for item in get_nav_tree(page) %}
+    <a href="{{ item.href }}"
        {% if item.is_current %}class="active"{% endif %}
        {% if item.is_in_trail %}class="in-trail"{% endif %}>
       {{ item.title }}
@@ -389,7 +387,7 @@ Bengal provides a pre-computed navigation tree (`NavTree`) for efficient templat
       <ul>
         {% for child in item.children %}
           <li>
-            <a href="{{ child.url }}">{{ child.title }}</a>
+            <a href="{{ child.href }}">{{ child.title }}</a>
           </li>
         {% endfor %}
       </ul>
@@ -398,23 +396,15 @@ Bengal provides a pre-computed navigation tree (`NavTree`) for efficient templat
 </nav>
 ```
 
-### NavTree Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `nav.root` | `NavNode` | Root node containing all top-level sections |
-| `nav.root.children` | `list[NavNode]` | Top-level navigation items |
-| `nav.version_id` | `str \| None` | Current version ID (for versioned sites) |
-| `nav.versions` | `list[str]` | All available versions |
-
 ### NavNode Properties
 
-Each navigation node (`NavNode`) provides:
+Each navigation node provides:
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `item.title` | `str` | Display title |
-| `item.url` | `str` | Page URL |
+| `item.href` | `str` | Page URL with baseurl applied |
+| `item._path` | `str` | Site-relative URL without baseurl |
 | `item.icon` | `str \| None` | Icon identifier |
 | `item.weight` | `int` | Sort weight |
 | `item.children` | `list[NavNode]` | Child navigation items |
@@ -424,25 +414,14 @@ Each navigation node (`NavNode`) provides:
 | `item.has_children` | `bool` | True if node has children |
 | `item.depth` | `int` | Nesting level (0 = top level) |
 
-### Migration from Direct Section Access
+### Scoped Navigation
 
-**Before (direct section access):**
+For section-specific navigation (e.g., docs-only sidebar):
+
 ```jinja2
-{% set current_version_id = current_version.id if current_version else None %}
-{% set version_filter = current_version_id if site.versioning_enabled else None %}
-{% set sorted_pages = root_section.pages_for_version(version_filter) %}
-
-{% for page in sorted_pages %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
-{% endfor %}
-```
-
-**After (using NavTree):**
-```jinja2
-{% set nav = get_nav_tree(page) %}
-
-{% for item in nav.root.children %}
-  <a href="{{ item.url }}">{{ item.title }}</a>
+{% set root = page._section.root if page._section else none %}
+{% for item in get_nav_tree(page, root_section=root) %}
+  <a href="{{ item.href }}">{{ item.title }}</a>
 {% endfor %}
 ```
 
@@ -452,10 +431,6 @@ Each navigation node (`NavNode`) provides:
 - **Simplicity**: Single function call replaces version-filtering boilerplate
 - **Consistency**: Pre-computed structure ensures consistent navigation across pages
 - **Version-aware**: Automatic version filtering and shared content injection
-
-:::{tip}
-**Backward Compatible**: The `get_nav_tree()` function signature is preserved, so existing templates continue to work. The function now returns a `NavTreeContext` object instead of a list, but it's backward compatible for most use cases.
-:::
 
 :::{seealso}
 - [Templating](/docs/theming/templating/) — Template basics

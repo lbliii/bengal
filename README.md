@@ -23,18 +23,7 @@ bengal new site mysite && cd mysite && bengal serve
 
 ---
 
-## Quick Start
-
-```bash
-pip install bengal
-bengal new site mysite
-cd mysite
-bengal serve
-```
-
-Open `localhost:5173`. Edit files in `content/`, changes appear instantly.
-
-**Commands:**
+## Quick Commands
 
 | Command | Description |
 |---------|-------------|
@@ -48,156 +37,221 @@ Aliases: `b` (build), `s` (serve), `v` (validate)
 
 ---
 
-## What's New in 0.1.5
+## Site Scaffolding
 
-**Performance:**
-- **NavTree architecture** — Pre-computed navigation with O(1) template access
-- **Zstandard caching** — 12-14x compression, 10x faster cache I/O (PEP 784)
-- **Parallel health checks** — 50-70% faster validation
+<details>
+<summary><strong>Interactive Wizard</strong> — Guided setup with presets</summary>
 
-**Developer Experience:**
-- **Directive system v2** — Named closers, typed options, nesting contracts
-- **Dev server modernization** — Process isolation, Rust-based file watching
-- **Media embed directives** — YouTube, Vimeo, Gist, CodePen, Asciinema
+Run without arguments for a guided experience:
 
-**Robustness:**
-- **Proactive template validation** — Syntax errors caught before build
-- **Autodoc incremental builds** — Only regenerate changed source files
-- **Build-integrated validation** — Tiered health checks during builds
+```bash
+bengal new site
+```
 
-See the [full changelog](changelog.md) for details.
+The wizard prompts for site name, base URL, and presents preset options:
+
+```
+🎯 What kind of site are you building?
+  📝 Blog            - Personal or professional blog
+  📚 Documentation   - Technical docs or guides
+  💼 Portfolio       - Showcase your work
+  🏢 Business        - Company or product site
+  📄 Resume          - Professional resume/CV site
+  📦 Blank           - Empty site, no initial structure
+  ⚙️  Custom         - Define your own structure
+```
+
+Each preset creates a complete site with appropriate sections, sample content, and configuration.
+
+</details>
+
+<details>
+<summary><strong>Direct Template Selection</strong> — Skip prompts with explicit options</summary>
+
+Create sites non-interactively with `--template`:
+
+```bash
+bengal new site my-docs --template docs
+bengal new site my-blog --template blog
+bengal new site portfolio --template portfolio
+```
+
+**Available templates:**
+
+| Template | Description | Sections Created |
+|----------|-------------|------------------|
+| `default` | Minimal starter | Home page only |
+| `blog` | Personal/professional blog | blog, about |
+| `docs` | Technical documentation | getting-started, guides, api |
+| `portfolio` | Showcase work | about, projects, blog, contact |
+| `product` | Product/company site | products, features, pricing, contact |
+| `landing` | Single-page landing | Home, privacy, terms |
+| `resume` | Professional CV | Single resume page |
+| `changelog` | Release notes | Changelog with YAML data |
+
+</details>
+
+<details>
+<summary><strong>Add Sections to Existing Sites</strong> — Expand without recreating</summary>
+
+Add new content sections to an existing Bengal site:
+
+```bash
+# Add multiple sections
+bengal project init --sections docs --sections tutorials
+
+# Add sections with sample content
+bengal project init --sections blog --with-content --pages-per-section 5
+
+# Preview without creating files
+bengal project init --sections api --dry-run
+```
+
+**Section type inference:**
+
+| Name Pattern | Inferred Type | Behavior |
+|--------------|---------------|----------|
+| blog, posts, articles, news | `blog` | Date-sorted, post-style |
+| docs, documentation, guides, tutorials | `doc` | Weight-sorted, doc-style |
+| projects, portfolio | `section` | Standard section |
+| about, contact | `section` | Standard section |
+
+</details>
+
+<details>
+<summary><strong>Custom Skeleton Manifests</strong> — YAML-defined site structures</summary>
+
+For complex or repeatable scaffolding, define structures in YAML manifests:
+
+```bash
+# Preview what would be created
+bengal project skeleton apply my-structure.yaml --dry-run
+
+# Apply the skeleton
+bengal project skeleton apply my-structure.yaml
+
+# Overwrite existing files
+bengal project skeleton apply my-structure.yaml --force
+```
+
+**Example manifest** (`docs-skeleton.yaml`):
+
+```yaml
+name: Documentation Site
+description: Technical docs with navigation sections
+version: "1.0"
+
+cascade:
+  type: doc  # Applied to all pages
+
+structure:
+  - path: _index.md
+    props:
+      title: Documentation
+      description: Project documentation
+      weight: 100
+    content: |
+      # Documentation
+      Welcome! Start with our [Quick Start](getting-started/quickstart/).
+
+  - path: getting-started/_index.md
+    props:
+      title: Getting Started
+      weight: 10
+    cascade:
+      type: doc
+    pages:
+      - path: installation.md
+        props:
+          title: Installation
+          weight: 20
+        content: |
+          # Installation
+          ```bash
+          pip install your-package
+          ```
+
+      - path: quickstart.md
+        props:
+          title: Quick Start
+          weight: 30
+        content: |
+          # Quick Start
+          Your first project in 5 minutes.
+
+  - path: api/_index.md
+    props:
+      title: API Reference
+      weight: 30
+    content: |
+      # API Reference
+      Complete API documentation.
+```
+
+**Component Model:**
+- `path` — File or directory path
+- `type` — Component identity (blog, doc, landing)
+- `variant` — Visual style variant
+- `props` — Frontmatter data (title, weight, etc.)
+- `content` — Markdown body content
+- `pages` — Child components (makes this a section)
+- `cascade` — Values inherited by all descendants
+
+</details>
 
 ---
 
 ## Features
 
-### Content Authoring
+| Feature | Description | Docs |
+|---------|-------------|------|
+| **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
+| **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/extending/autodoc/) |
+| **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
+| **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
+| **Validation** | Health checks, broken link detection, auto-fix | [Building →](https://lbliii.github.io/bengal/docs/building/) |
+| **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/building/performance/large-sites/) |
 
-Markdown with directives — tabs, admonitions, code blocks, cards, and more:
-
-~~~markdown
-:::{note} Pro tip
-Nest **any markdown** inside directives.
-:::
-
-:::{tabs}
-### Python
-```python
-print("Hello")
-```
-### JavaScript
-```js
-console.log("Hello")
-```
-:::
-~~~
-
-Frontmatter for metadata and visibility control:
-
-```yaml
----
-title: My Page
-date: 2025-12-01
-hidden: true           # Exclude from nav, search, sitemap
-template: custom.html  # Custom template
----
-```
-
-### Auto-Generated Documentation
-
-Generate docs from source code without imports:
-
-```yaml
-# config/_default/autodoc.yaml
-python:
-  enabled: true
-  source_dirs: [mypackage]
-
-cli:
-  enabled: true
-  app_module: mypackage.cli:main
-
-openapi:
-  enabled: true
-  spec_file: openapi.yaml
-```
-
-### Remote Content Sources
-
-Pull content from GitHub, Notion, or REST APIs:
-
-```bash
-pip install bengal[github]      # GitHub source
-pip install bengal[notion]      # Notion source
-pip install bengal[all-sources] # All remote sources
-```
-
-```python
-# collections.py
-from bengal.content_layer import github_loader
-
-collections = {
-    "external-docs": define_collection(
-        schema=Doc,
-        loader=github_loader(repo="myorg/docs", path="content/"),
-    ),
-}
-```
-
-### Build Performance
-
-| Feature | Benefit |
-|---------|---------|
-| Parallel builds | Utilizes all CPU cores |
-| Incremental rebuilds | Only rebuild changed files |
-| Zstd cache | 12-14x compression, 10x faster I/O |
-| Memory-optimized | Streaming mode for 5K+ page sites |
-
-### Site Analysis & Validation
-
-```bash
-bengal graph report    # Full connectivity analysis
-bengal graph orphans   # Find unlinked pages
-bengal validate        # Run health checks
-bengal validate --watch # Continuous validation
-bengal fix             # Auto-fix common issues
-```
+📚 **Full documentation**: [lbliii.github.io/bengal](https://lbliii.github.io/bengal/)
 
 ---
 
 ## Configuration
 
-Directory-based config with environment and profile support:
-
-```
-mysite/
-├── bengal.toml              # Simple single-file (optional)
-└── config/
-    ├── _default/            # Base configuration
-    │   ├── site.yaml
-    │   ├── build.yaml
-    │   └── autodoc.yaml
-    ├── environments/        # Environment overrides
-    │   └── production.yaml
-    └── profiles/            # Build profiles
-        └── dev.yaml
-```
-
-**Minimal config:**
+<details>
+<summary><strong>Single-file</strong> — Simple projects</summary>
 
 ```toml
+# bengal.toml
 [site]
 title = "My Site"
 baseurl = "https://example.com"
 ```
 
-**Environment and profile builds:**
+</details>
+
+<details>
+<summary><strong>Directory-based</strong> — Multi-environment projects</summary>
+
+```
+config/
+├── _default/           # Base configuration
+│   ├── site.yaml
+│   └── build.yaml
+├── environments/       # Environment overrides
+│   └── production.yaml
+└── profiles/           # Build profiles
+    └── dev.yaml
+```
 
 ```bash
-bengal build -e production       # Production environment
-bengal build --profile writer    # Fast, clean output
-bengal build --profile dev       # Full observability
+bengal build -e production    # Production environment
+bengal build --profile dev    # Development profile
 ```
+
+</details>
+
+📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/reference/configuration/)
 
 ---
 

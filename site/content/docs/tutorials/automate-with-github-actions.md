@@ -158,7 +158,7 @@ jobs:
         run: pip install bengal
 
       - name: Build site
-        run: bengal build --environment preview --build-drafts
+        run: bengal build --environment preview
 
       - name: Comment PR with preview
         uses: actions/github-script@v7

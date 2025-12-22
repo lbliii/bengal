@@ -42,9 +42,11 @@ Open `http://localhost:5173` to see your scaffolded site.
 
 | Template | Best For | Command |
 |----------|----------|---------|
+| `default` | Minimal single-page site | `bengal new site --template default` |
 | `docs` | Technical documentation, knowledge bases | `bengal new site --template docs` |
 | `blog` | Personal blogs, news sites | `bengal new site --template blog` |
 | `portfolio` | Developer portfolios, project showcases | `bengal new site --template portfolio` |
+| `product` | Product showcase sites | `bengal new site --template product` |
 | `resume` | CV/Resume with structured data | `bengal new site --template resume` |
 | `landing` | Marketing landing pages | `bengal new site --template landing` |
 | `changelog` | Version history, release notes | `bengal new site --template changelog` |

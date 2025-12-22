@@ -19,7 +19,7 @@ Bengal provides a template system for scaffolding new sites with predefined stru
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
 | `bengal new site` | Create new site from template | Starting a new project |
-| `bengal project init` | Add sections to existing site | Expanding site structure |
+| `bengal init` | Add sections to existing site | Expanding site structure |
 | `bengal config init` | Initialize config directory | Converting single-file to directory config |
 
 ---
@@ -71,14 +71,14 @@ All templates create:
 
 ---
 
-## `bengal project init`
+## `bengal init`
 
-Initialize content sections in an existing Bengal site.
+Initialize content sections in an existing Bengal site. Uses the skeleton system under the hood.
 
 ### Syntax
 
 ```bash
-bengal project init [OPTIONS]
+bengal init [OPTIONS]
 ```
 
 ### Options
@@ -95,19 +95,19 @@ bengal project init [OPTIONS]
 
 ```bash
 # Default: create blog section
-bengal project init
+bengal init
 
 # Multiple sections
-bengal project init --sections blog --sections projects --sections about
+bengal init --sections blog --sections projects --sections about
 
 # Short form
-bengal project init -s docs -s tutorials -s api
+bengal init -s docs -s tutorials -s api
 
 # With sample content
-bengal project init --sections blog --with-content --pages-per-section 10
+bengal init --sections blog --with-content --pages-per-section 10
 
 # Preview first
-bengal project init --sections docs --dry-run
+bengal init --sections docs --dry-run
 ```
 
 ### Section Type Inference
@@ -321,6 +321,32 @@ data/
 ```
 
 **Best for:** Release notes, version history.
+
+---
+
+### `product`
+
+Product showcase with catalog and pricing.
+
+**Structure:**
+```text
+content/
+├── _index.md
+├── contact.md
+├── features.md
+├── pricing.md
+└── products/
+    ├── _index.md
+    ├── product-1.md
+    └── product-2.md
+
+data/
+└── products.yaml
+```
+
+**Config preset:** Enables product catalog, structured data for products.
+
+**Best for:** Product websites, e-commerce showcases, SaaS landing pages.
 
 ---
 

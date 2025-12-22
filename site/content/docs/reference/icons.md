@@ -15,9 +15,10 @@ keywords:
 - inline icons
 - theme-aware
 ---
+
 # Icon Reference
 
-Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a comprehensive open-source icon library with 6,000+ icons. All icons adapt to light/dark mode using `currentColor`.
+Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). All icons adapt to light/dark mode using `currentColor`.
 
 ## Syntax
 
@@ -28,13 +29,15 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a
 | `{icon}`name:size`` | Inline + size | `{icon}`terminal:16`` |
 | `{icon}`name:size:class`` | Inline + size + class | `{icon}`terminal:24:icon-primary`` |
 
+**Aliases**: `{svg-icon}`
+
 ## Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:size:` | 24 | Icon size in pixels |
 | `:class:` | — | CSS classes (`icon-primary`, `icon-success`, etc.) |
-| `:aria-label:` | — | Accessibility label |
+| `:aria-label:` | — | Accessibility label for screen readers |
 
 ## Color Classes
 
@@ -63,36 +66,67 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a
 | Icon | Name | Description |
 |------|------|-------------|
 | {icon}`search:24` | `search` | Search |
+| {icon}`magnifying-glass:24` | `magnifying-glass` | Search (alternative) |
 | {icon}`menu:24` | `menu` | Menu toggle |
 | {icon}`close:24` | `close` | Close/dismiss |
+| {icon}`x:24` | `x` | Close (alternative) |
 | {icon}`chevron-right:24` | `chevron-right` | Navigate forward |
 | {icon}`chevron-left:24` | `chevron-left` | Navigate back |
 | {icon}`chevron-down:24` | `chevron-down` | Expand |
 | {icon}`chevron-up:24` | `chevron-up` | Collapse |
+| {icon}`caret-right:24` | `caret-right` | Caret forward |
+| {icon}`caret-left:24` | `caret-left` | Caret back |
+| {icon}`caret-down:24` | `caret-down` | Caret expand |
+| {icon}`caret-up:24` | `caret-up` | Caret collapse |
+| {icon}`arrow-right:24` | `arrow-right` | Arrow forward |
+| {icon}`arrow-left:24` | `arrow-left` | Arrow back |
+| {icon}`arrow-up:24` | `arrow-up` | Arrow up |
+| {icon}`arrow-clockwise:24` | `arrow-clockwise` | Refresh/reload |
 | {icon}`link:24` | `link` | Internal link |
 | {icon}`external:24` | `external` | External link |
+| {icon}`house:24` | `house` | Home |
+| {icon}`compass:24` | `compass` | Explore/discover |
+| {icon}`map:24` | `map` | Map/sitemap |
+| {icon}`sidebar:24` | `sidebar` | Sidebar toggle |
+| {icon}`sidebar-simple:24` | `sidebar-simple` | Sidebar (simple) |
 
 ### Content
 
 | Icon | Name | Description |
 |------|------|-------------|
 | {icon}`file:24` | `file` | File/document |
+| {icon}`file-text:24` | `file-text` | Text document |
 | {icon}`folder:24` | `folder` | Folder/directory |
 | {icon}`code:24` | `code` | Code block |
 | {icon}`notepad:24` | `notepad` | Notes/text |
+| {icon}`book:24` | `book` | Book/guide |
+| {icon}`book-open:24` | `book-open` | Open book |
 | {icon}`copy:24` | `copy` | Copy |
 | {icon}`edit:24` | `edit` | Edit |
+| {icon}`pencil:24` | `pencil` | Pencil/write |
 | {icon}`bookmark:24` | `bookmark` | Bookmark |
 | {icon}`tag:24` | `tag` | Tag/label |
+| {icon}`image:24` | `image` | Image |
+| {icon}`list:24` | `list` | List |
+| {icon}`layers:24` | `layers` | Layers/stack |
+| {icon}`funnel:24` | `funnel` | Filter |
 
-### Status
+### Status & Admonitions
 
 | Icon | Name | Description |
 |------|------|-------------|
-| {icon}`check:24` | `check` | Success |
+| {icon}`check:24` | `check` | Success/check |
+| {icon}`check-circle:24` | `check-circle` | Success (circled) |
+| {icon}`success:24` | `success` | Success admonition |
 | {icon}`info:24` | `info` | Information |
+| {icon}`note:24` | `note` | Note admonition |
+| {icon}`tip:24` | `tip` | Tip admonition |
 | {icon}`warning:24` | `warning` | Warning |
+| {icon}`caution:24` | `caution` | Caution |
+| {icon}`danger:24` | `danger` | Danger |
 | {icon}`error:24` | `error` | Error |
+| {icon}`example:24` | `example` | Example |
+| {icon}`question:24` | `question` | Help/question |
 
 ### Actions
 
@@ -103,6 +137,15 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a
 | {icon}`trash:24` | `trash` | Delete |
 | {icon}`star:24` | `star` | Favorite |
 | {icon}`heart:24` | `heart` | Like |
+| {icon}`share:24` | `share` | Share |
+| {icon}`eye:24` | `eye` | View/preview |
+| {icon}`zoom-in:24` | `zoom-in` | Zoom in |
+| {icon}`zoom-out:24` | `zoom-out` | Zoom out |
+| {icon}`enlarge:24` | `enlarge` | Expand/enlarge |
+| {icon}`reset:24` | `reset` | Reset |
+| {icon}`recycle:24` | `recycle` | Recycle/refresh |
+| {icon}`zap:24` | `zap` | Quick action/lightning |
+| {icon}`rocket:24` | `rocket` | Launch/start |
 
 ### Time & Location
 
@@ -120,6 +163,33 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a
 | {icon}`palette:24` | `palette` | Theme |
 | {icon}`sun:24` | `sun` | Light mode |
 | {icon}`moon:24` | `moon` | Dark mode |
+| {icon}`monitor:24` | `monitor` | System/display |
+
+### Users
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`user:24` | `user` | User/profile |
+| {icon}`users:24` | `users` | Multiple users/team |
+| {icon}`graduation-cap:24` | `graduation-cap` | Education/learning |
+
+### Social & Platforms
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`github-logo:24` | `github-logo` | GitHub |
+| {icon}`twitter-logo:24` | `twitter-logo` | Twitter/X |
+| {icon}`linkedin-logo:24` | `linkedin-logo` | LinkedIn |
+| {icon}`facebook-logo:24` | `facebook-logo` | Facebook |
+
+### AI Providers
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`ai-chatgpt:24` | `ai-chatgpt` | ChatGPT |
+| {icon}`ai-claude:24` | `ai-claude` | Claude |
+| {icon}`ai-copilot:24` | `ai-copilot` | GitHub Copilot |
+| {icon}`ai-gemini:24` | `ai-gemini` | Google Gemini |
 
 ### Mid-Century Modern
 
@@ -133,19 +203,25 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/), a
 
 ## Quick Preview
 
-All icons at 32px for easy viewing:
+All icons at 32px:
 
-**Navigation**: {icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`link:32` {icon}`external:32`
+**Navigation**: {icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`arrow-left:32` {icon}`arrow-right:32` {icon}`link:32` {icon}`external:32` {icon}`house:32` {icon}`compass:32`
 
-**Status**: {icon}`check:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32`
+**Status**: {icon}`check:32` {icon}`check-circle:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32` {icon}`note:32` {icon}`tip:32` {icon}`danger:32`
 
-**Files**: {icon}`file:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`copy:32` {icon}`edit:32`
+**Files**: {icon}`file:32` {icon}`file-text:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`book:32` {icon}`copy:32` {icon}`edit:32`
 
-**Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`bookmark:32` {icon}`tag:32`
+**Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`share:32` {icon}`eye:32` {icon}`rocket:32` {icon}`zap:32`
 
 **Time & Location**: {icon}`clock:32` {icon}`calendar:32` {icon}`pin:32`
 
-**Theme**: {icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32`
+**Theme**: {icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32` {icon}`monitor:32`
+
+**Users**: {icon}`user:32` {icon}`users:32` {icon}`graduation-cap:32`
+
+**Social**: {icon}`github-logo:32` {icon}`twitter-logo:32` {icon}`linkedin-logo:32`
+
+**AI**: {icon}`ai-chatgpt:32` {icon}`ai-claude:32` {icon}`ai-copilot:32` {icon}`ai-gemini:32`
 
 **Bengal**: {icon}`bengal-rosette:32` {icon}`terminal:32` {icon}`docs:32`
 
@@ -171,17 +247,15 @@ Then use with the same syntax:
 
 ### Icon Source
 
-Bengal uses [Phosphor Icons](https://phosphoricons.com/) - a high-quality, open-source icon library with:
+Bengal uses [Phosphor Icons](https://phosphoricons.com/) as its base icon set:
 
-- **6,000+ icons** covering all common use cases
-- **Multiple weights**: Thin, Light, Regular, Bold, Fill, Duotone
-- **MIT License** - free for commercial use
-- **Consistent design** - all icons follow the same design principles
-- **Theme-aware** - uses `currentColor` for automatic light/dark mode support
+- **MIT License**: Free for commercial use
+- **Consistent design**: All icons follow the same design principles
+- **Theme-aware**: Uses `currentColor` for automatic light/dark mode support
 
 ### SVG Format
 
-Phosphor icons use:
+Icons use:
 - `viewBox="0 0 256 256"` (scales automatically via width/height)
 - `fill="currentColor"` on paths (theme-aware)
 - `fill="none"` on root SVG element

@@ -26,12 +26,12 @@ Generate API documentation automatically from source code during site builds.
 
 :::{note}
 **Skip this if**: You write all documentation manually.  
-**Read this if**: You want API docs from Python docstrings, CLI help from Click commands, or API specs from OpenAPI.
+**Read this if**: You want API docs from Python docstrings, CLI help from Click/Typer commands, or API specs from OpenAPI.
 :::
 
 ## How It Works
 
-Autodoc generates **virtual pages** during your site build — no intermediate markdown files are created. Simply configure the sources in your `bengal.toml` and the documentation appears in your built site.
+Autodoc generates **virtual pages** during your site build. No intermediate markdown files are created. Configure sources in your `bengal.toml` and documentation appears in your built site.
 
 ```mermaid
 flowchart LR
@@ -73,14 +73,14 @@ Extracts:
 - Module and class docstrings
 - Function signatures and type hints
 - Examples from docstrings
-:::
+:::{/tab-item}
 
 :::{tab-item} CLI
 ```toml
 # bengal.toml
 [autodoc.cli]
 enabled = true
-app_module = "mypackage.cli:main"  # Click app entry point
+app_module = "mypackage.cli:main"  # Click/Typer app entry point
 framework = "click"  # click, argparse, or typer
 include_hidden = false
 ```
@@ -89,7 +89,7 @@ Extracts:
 - Command descriptions
 - Argument documentation
 - Option flags and defaults
-:::
+:::{/tab-item}
 
 :::{tab-item} OpenAPI
 ```toml
@@ -103,7 +103,7 @@ Extracts:
 - Endpoint documentation
 - Request/response schemas
 - Authentication requirements
-:::
+:::{/tab-item}
 :::{/tab-set}
 
 ## Python Configuration Options

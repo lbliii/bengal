@@ -41,12 +41,13 @@ Content with **full markdown** support.
 | `{note}` | General information | `admonition note` |
 | `{tip}` | Helpful tips | `admonition tip` |
 | `{warning}` | Warnings | `admonition warning` |
-| `{caution}` | Cautions | `admonition warning` |
+| `{caution}` | Cautions (renders as warning) | `admonition warning` |
 | `{danger}` | Critical warnings | `admonition danger` |
 | `{error}` | Error messages | `admonition error` |
 | `{info}` | Informational content | `admonition info` |
 | `{example}` | Examples | `admonition example` |
 | `{success}` | Success messages | `admonition success` |
+| `{seealso}` | Cross-references and related links | `admonition seealso` |
 
 ## Examples
 
@@ -126,7 +127,12 @@ Success message
 :::
 
 :::{caution} Caution
-Cautionary note
+Cautionary note (renders as warning)
+:::
+
+:::{seealso} See Also
+- [Related Topic](/docs/related/)
+- [API Reference](/docs/api/)
 :::
 ````
 

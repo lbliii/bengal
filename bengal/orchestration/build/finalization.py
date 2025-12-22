@@ -11,6 +11,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
@@ -24,6 +25,7 @@ def phase_postprocess(
     parallel: bool,
     ctx: BuildContext | Any | None,
     incremental: bool,
+    collector: OutputCollector | None = None,
 ) -> None:
     """
     Phase 17: Post-processing.
@@ -36,6 +38,7 @@ def phase_postprocess(
         parallel: Whether to use parallel processing
         ctx: Build context
         incremental: Whether this is an incremental build
+        collector: Optional output collector for hot reload tracking
     """
     with orchestrator.logger.phase("postprocessing", parallel=parallel):
         postprocess_start = time.time()
@@ -45,6 +48,7 @@ def phase_postprocess(
             progress_manager=None,
             build_context=ctx,
             incremental=incremental,
+            collector=collector,
         )
 
         orchestrator.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000

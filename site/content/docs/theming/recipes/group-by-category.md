@@ -32,7 +32,7 @@ Display content organized by category, tag, or any frontmatter field.
   <h2>{{ category | title }}</h2>
   <ul>
   {% for page in pages | sort_by('weight') %}
-    <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+    <li><a href="{{ page.href }}">{{ page.title }}</a></li>
   {% endfor %}
   </ul>
 </section>
@@ -63,7 +63,7 @@ Display content organized by category, tag, or any frontmatter field.
     {% set current_year = post_year %}
     <h2>{{ post_year }}</h2>
   {% endif %}
-  <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+  <li><a href="{{ post.href }}">{{ post.title }}</a></li>
 {% endfor %}
 ```
 
@@ -73,7 +73,7 @@ Display content organized by category, tag, or any frontmatter field.
 {# Show all tags with their post counts #}
 {% for tag, data in site.taxonomies.tags.items() | sort %}
 <div class="tag">
-  <a href="{{ data.url }}">{{ tag }}</a>
+  <a href="{{ data.href }}">{{ tag }}</a>
   <span class="count">{{ data.pages | length }}</span>
 </div>
 {% endfor %}

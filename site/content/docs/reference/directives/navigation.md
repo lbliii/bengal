@@ -110,25 +110,31 @@ Generate hierarchical breadcrumb navigation showing the page's location in the s
 
 ```markdown
 :::{breadcrumbs}
-:separator: >
-:include-home: true
+:separator: ›
+:show-home: true
 :home-text: Home
+:home-url: /
 :::
 ```
 
 ### Options
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `:separator:` | Any string | `>` | Separator between breadcrumb items |
-| `:include-home:` | `true`, `false` | `true` | Include home link at start |
-| `:home-text:` | Any string | `Home` | Text for home link |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:separator:` | `›` | Separator character between items |
+| `:show-home:` | `true` | Whether to show home link |
+| `:home-text:` | `Home` | Text for home link |
+| `:home-url:` | `/` | URL for home link |
 
 ### Example Output
 
 ```html
-<nav class="breadcrumbs">
-  <a href="/">Home</a> > <a href="/docs/">Docs</a> > <a href="/docs/theming/">Theming</a> > <span>Templating</span>
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <a class="breadcrumb-item" href="/">Home</a>
+  <span class="breadcrumb-separator">›</span>
+  <a class="breadcrumb-item" href="/docs/">Docs</a>
+  <span class="breadcrumb-separator">›</span>
+  <span class="breadcrumb-item breadcrumb-current">Current Page</span>
 </nav>
 ```
 
@@ -140,26 +146,34 @@ List sibling pages (pages in the same section as the current page).
 
 ```markdown
 :::{siblings}
-:show-current: false
 :limit: 10
+:exclude-current: true
+:show-description: false
 :::
 ```
 
 ### Options
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `:show-current:` | `true`, `false` | `false` | Highlight/include current page |
-| `:limit:` | Number | `10` | Maximum siblings to show |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:limit:` | `0` (no limit) | Maximum number of siblings to show |
+| `:exclude-current:` | `true` | Whether to exclude the current page |
+| `:show-description:` | `false` | Whether to show page descriptions |
 
 ### Example Output
 
 ```html
-<ul class="siblings">
-  <li><a href="/docs/theming/assets/">Assets</a></li>
-  <li><a href="/docs/theming/themes/">Themes</a></li>
-  <li><a href="/docs/theming/recipes/">Recipes</a></li>
-</ul>
+<div class="siblings">
+  <ul class="siblings-list">
+    <li>
+      <a href="/docs/theming/assets/">Assets</a>
+      <span class="sibling-description">Managing static assets</span>
+    </li>
+    <li>
+      <a href="/docs/theming/themes/">Themes</a>
+    </li>
+  </ul>
+</div>
 ```
 
 ## Prev/Next Navigation
@@ -171,23 +185,29 @@ Generate previous/next links for sequential navigation within a section.
 ```markdown
 :::{prev-next}
 :show-title: true
-:labels: Previous, Next
+:show-section: false
 :::
 ```
 
 ### Options
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `:show-title:` | `true`, `false` | `true` | Show page titles in links |
-| `:labels:` | Comma-separated | `Previous, Next` | Labels for prev/next links |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:show-title:` | `true` | Show page titles in links |
+| `:show-section:` | `false` | Show section names (reserved for future use) |
 
 ### Example Output
 
 ```html
 <nav class="prev-next">
-  <a class="prev" href="/docs/theming/templating/">← Previous: Templating</a>
-  <a class="next" href="/docs/theming/themes/">Next: Themes →</a>
+  <a class="prev-next-link prev-link" href="/docs/theming/templating/">
+    <span class="prev-next-label">← Previous</span>
+    <span class="prev-next-title">Templating</span>
+  </a>
+  <a class="prev-next-link next-link" href="/docs/theming/themes/">
+    <span class="prev-next-label">Next →</span>
+    <span class="prev-next-title">Themes</span>
+  </a>
 </nav>
 ```
 
@@ -200,24 +220,34 @@ List pages that share tags with the current page.
 ```markdown
 :::{related}
 :limit: 5
+:title: Related Articles
 :show-tags: true
 :::
 ```
 
 ### Options
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `:limit:` | Number | `5` | Maximum related pages to show |
-| `:show-tags:` | `true`, `false` | `false` | Show matching tags |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:limit:` | `5` | Maximum number of related pages to show |
+| `:title:` | `Related Articles` | Section title |
+| `:show-tags:` | `false` | Whether to show matching tags |
 
 ### Example Output
 
 ```html
-<ul class="related">
-  <li><a href="/docs/tutorials/theming/">Theming Tutorial</a></li>
-  <li><a href="/docs/theming/assets/">Custom CSS Guide</a></li>
-</ul>
+<aside class="related">
+  <h3 class="related-title">Related Articles</h3>
+  <ul class="related-list">
+    <li>
+      <a href="/docs/tutorials/theming/">Theming Tutorial</a>
+      <span class="related-tags">theming, css, customization</span>
+    </li>
+    <li>
+      <a href="/docs/theming/assets/">Custom CSS Guide</a>
+    </li>
+  </ul>
+</aside>
 ```
 
 ## How It Works
@@ -256,7 +286,7 @@ To get the best results, add these fields to your pages' frontmatter:
 title: My Page
 description: A helpful description for cards
 icon: book           # Icon name (book, code, rocket, etc.)
-  card_color: blue     # Card color (blue, green, purple, orange, etc.)
+card_color: blue     # Card color (blue, green, purple, orange, etc.)
 weight: 10           # Sort order (lower = first)
 tags: [guide, python]  # For related pages
 ---

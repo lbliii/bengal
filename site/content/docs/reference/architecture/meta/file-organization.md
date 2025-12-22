@@ -37,66 +37,75 @@ mysite/
 ├── public/               # Build outputs (generated, .gitignored)
 │   ├── index.html
 │   ├── assets/
-│   ├── .bengal-cache.json           # Build cache (metadata)
-│   └── .bengal-cache/
-│       └── templates/                # Jinja2 bytecode cache
+│   └── asset-manifest.json
 │
-└── .bengal/              # Development files (generated, .gitignored)
-    ├── profiles/         # Performance profiling data
-    │   ├── profile.stats
+└── .bengal/              # All Bengal state (generated, .gitignored)
+    ├── cache.json.zst           # Main build cache (Zstandard compressed)
+    ├── page_metadata.json       # Page discovery cache
+    ├── asset_deps.json          # Asset dependency map
+    ├── taxonomy_index.json      # Tag/category index
+    ├── build_history.json       # Build history for delta analysis
+    ├── server.pid               # Dev server PID
+    ├── asset-manifest.json      # Asset manifest
+    ├── indexes/                 # Query indexes (section, author, etc.)
+    ├── templates/               # Jinja2 bytecode cache
+    ├── content_cache/           # Remote content cache
+    ├── generated/               # Generated content (auto-pages, etc.)
+    ├── logs/                    # Build/serve logs
+    │   ├── build.log
+    │   └── serve.log
+    ├── metrics/                 # Performance metrics
+    ├── profiles/                # Profiling output
     │   └── build_profile.stats
-    └── logs/             # Build logs (future)
-        └── build.log
+    ├── themes/                  # Theme state (swizzle registry)
+    │   └── sources.json
+    ├── js_bundle/               # JS bundle temporary files
+    └── pipeline_out/            # Asset pipeline temporary output
 ```
 
 ## File Categories
 
-Bengal organizes generated files into three categories:
+Bengal organizes generated files into two categories:
 
 1. **Build Outputs** (`public/`)
    - Deployable website files
    - Should be .gitignored
    - Example: `public/index.html`, `public/assets/`
 
-2. **Build Metadata** (`public/.bengal-cache*`)
-   - Cache files that improve rebuild performance
-   - Stored alongside outputs for atomic cleanup
+2. **Bengal State** (`.bengal/`)
+   - All Bengal-managed state in one place
+   - Cache files, logs, metrics, and development artifacts
    - Should be .gitignored
-   - Examples:
-     - `.bengal-cache.json` - Incremental build cache
-     - `.bengal-cache/templates/` - Jinja2 bytecode cache
-
-3. **Development Files** (`.bengal/`)
-   - Performance profiles, logs, and debugging data
-   - Separate from source and outputs
-   - Should be .gitignored
-   - Examples:
-     - `.bengal/profiles/profile.stats` - Performance profiling data
-     - `.bengal-build.log` - Build logs (currently at root for backward compatibility)
+   - Key files:
+     - `.bengal/cache.json.zst` - Main build cache (Zstandard compressed, 92-93% smaller)
+     - `.bengal/templates/` - Jinja2 bytecode cache
+     - `.bengal/logs/build.log` - Build logs
+     - `.bengal/profiles/` - Performance profiling data
+     - `.bengal/metrics/` - Performance metrics for trend analysis
 
 ## Usage in Code
 
-The `BengalPaths` utility class (`bengal/utils/paths.py`) provides consistent path management:
+The `BengalPaths` class (`bengal/cache/paths.py`) provides consistent path management:
 
 ```python
-from bengal.utils.paths import BengalPaths
+from bengal.cache.paths import BengalPaths
 
-# Get profile directory (creates if needed)
-profile_dir = BengalPaths.get_profile_dir(source_dir)
+# Create paths accessor from project root
+paths = BengalPaths(site.root_path)
 
-# Get profile file path with custom or default name
-profile_path = BengalPaths.get_profile_path(
-    source_dir,
-    custom_path=None,  # or Path("custom.stats")
-    filename='build_profile.stats'
-)
+# Access specific paths
+cache_path = paths.build_cache       # .bengal/cache.json
+logs_dir = paths.logs_dir            # .bengal/logs/
+build_log = paths.build_log          # .bengal/logs/build.log
+profiles_dir = paths.profiles_dir    # .bengal/profiles/
+templates_dir = paths.templates_dir  # .bengal/templates/
+metrics_dir = paths.metrics_dir      # .bengal/metrics/
 
-# Get cache paths
-cache_path = BengalPaths.get_cache_path(output_dir)
-template_cache = BengalPaths.get_template_cache_dir(output_dir)
+# Create all directories
+paths.ensure_dirs()
 
-# Get log path
-log_path = BengalPaths.get_build_log_path(source_dir)
+# Also accessible via Site object
+cache_path = site.paths.build_cache
 ```
 
 ## CLI Integration
@@ -110,29 +119,30 @@ bengal build --perf-profile
 # Custom path
 bengal build --perf-profile my-profile.stats
 
-# Build log: defaults to .bengal-build.log
+# Build log: defaults to .bengal/logs/build.log
 bengal build --log-file custom.log
 ```
 
 ## Design Rationale
 
-1. **Separation of Concerns**:
-   - Source files (content/) - version controlled
-   - Build outputs (public/) - deployable, .gitignored
-   - Build cache (public/.bengal-cache*) - improves performance, .gitignored
-   - Dev tools (.bengal/) - profiling/debugging, .gitignored
+1. **Centralized State**:
+   - All Bengal state in `.bengal/` directory
+   - Easy `.gitignore` management (just ignore `.bengal/`)
+   - Centralized debugging info (logs, metrics, profiles in one place)
+   - Safe cache clearing (`rm -rf .bengal/` to reset state)
 
 2. **Easy Cleanup**:
-   - `rm -rf public/` removes all build outputs including cache
-   - `rm -rf .bengal/` removes all development artifacts
+   - `rm -rf public/` removes all build outputs
+   - `rm -rf .bengal/` removes all Bengal state and cache
    - Source files remain untouched
 
-3. **Backward Compatibility**:
-   - `.bengal-build.log` stays at root for now (may move to `.bengal/logs/` in future)
-   - Cache files in `public/` ensure they're cleaned up with outputs
+3. **Zstandard Compression**:
+   - Main build cache compressed with Zstd (92-93% smaller)
+   - Faster CI/CD cache upload/download
+   - Automatic migration from old uncompressed caches
 
 4. **Git-Friendly**:
-   - All generated files are properly ignored via `.gitignore`
+   - All generated files properly ignored via `.gitignore`
    - Clear separation between tracked and generated files
 
 ## Extension Points

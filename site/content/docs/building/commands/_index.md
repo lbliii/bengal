@@ -19,33 +19,43 @@ Workflow guides for Bengal's command-line interface.
 | `bengal serve` | Dev server with live reload | Local development |
 | `bengal new` | Scaffold projects/content | Starting new work |
 | `bengal validate` | Run health checks | Before deploying |
+| `bengal clean` | Remove generated files | Clear stale output |
 
 ## Quick Reference
 
 :::{tab-set}
 :::{tab-item} Build
 ```bash
-# Development build
+# Development build (default: parallel + incremental)
 bengal build
 
-# Production build
+# Production build with strict validation
 bengal build --environment production --strict
 
-# Clean output and rebuild
+# Fast mode (quiet output, max parallelism)
+bengal build --fast
+
+# Clean output directory before building
 bengal build --clean-output
+
+# Memory-optimized build for large sites
+bengal build --memory-optimized
 ```
 :::
 
 :::{tab-item} Serve
 ```bash
-# Start dev server
+# Start dev server (opens browser by default)
 bengal serve
 
 # Custom port
 bengal serve --port 8080
 
-# Open browser automatically
-bengal serve --open
+# Disable auto-open browser
+bengal serve --no-open
+
+# Theme development mode
+bengal serve --theme-dev
 ```
 :::
 
@@ -54,11 +64,50 @@ bengal serve --open
 # New project
 bengal new site my-site
 
-# New page
+# New page in a section
 bengal new page "My Post" --section blog
+
+# New layout template
+bengal new layout article
+
+# New theme scaffold
+bengal new theme custom-theme
+```
+:::
+
+:::{tab-item} Validate
+```bash
+# Run health checks
+bengal validate
+
+# Validate specific files
+bengal validate --file content/page.md
+
+# Watch mode (validate on file changes)
+bengal validate --watch
+
+# Verbose output (show all checks)
+bengal validate --verbose
 ```
 :::
 :::{/tab-set}
+
+## Build Profiles
+
+Bengal includes three profiles optimized for different workflows:
+
+```bash
+# Writer (default): Fast, clean builds
+bengal build
+
+# Theme development: Template debugging
+bengal build --theme-dev
+
+# Developer: Full observability
+bengal build --dev
+```
+
+See [Build Profiles](../configuration/profiles/) for details.
 
 ## Getting Help
 
@@ -69,6 +118,12 @@ bengal --help
 # Command-specific help
 bengal build --help
 bengal serve --help
+
+# Short aliases (power users)
+bengal b     # build
+bengal s     # serve
+bengal c     # clean
+bengal v     # validate
 ```
 
 :::{seealso}

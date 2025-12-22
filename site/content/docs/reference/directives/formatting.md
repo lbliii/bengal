@@ -1,7 +1,7 @@
 ---
 title: Formatting Directives
 nav_title: Formatting
-description: Reference for formatting directives (badge, button, steps, checklist,
+description: Reference for formatting directives (badge, icon, button, steps, checklist,
   rubric, list-table)
 weight: 13
 tags:
@@ -9,10 +9,12 @@ tags:
 - directives
 - formatting
 - badge
+- icon
 - button
 - steps
 keywords:
 - badge
+- icon
 - button
 - steps
 - checklist
@@ -35,6 +37,8 @@ Formatting directives provide styled components for badges, buttons, step-by-ste
 
 Create styled badges for labels, tags, or status indicators.
 
+**Aliases**: `{bdg}`
+
 **Syntax**:
 
 ````markdown
@@ -45,9 +49,11 @@ Create styled badges for labels, tags, or status indicators.
 
 **Options**:
 
-- `:class:` - CSS classes (default: `badge badge-secondary`)
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:class:` | `badge badge-secondary` | CSS classes for the badge |
 
-**Alias**: `{bdg}` (Sphinx-Design compatibility)
+Common badge classes: `badge-primary`, `badge-secondary`, `badge-success`, `badge-danger`, `badge-warning`, `badge-info`, `badge-cli-command`, `api-badge`
 
 ### Examples
 
@@ -73,6 +79,63 @@ Create styled badges for labels, tags, or status indicators.
 :class: badge-cli-command
 :::
 ````
+
+## Icon
+
+Embed inline SVG icons from Bengal's built-in icon library.
+
+**Aliases**: `icon`, `svg-icon`
+
+**Syntax**:
+
+```markdown
+:::{icon} terminal
+:::
+
+:::{icon} docs
+:size: 16
+:class: text-muted
+:::
+```
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:size:` | `24` | Icon size in pixels |
+| `:class:` | — | Additional CSS classes |
+| `:aria-label:` | — | Accessibility label (uses icon name if omitted) |
+
+Icons are loaded from Bengal's theme assets. If an icon is not found, a placeholder is rendered.
+
+### Examples
+
+**Basic Icon**:
+
+```markdown
+:::{icon} home
+:::
+```
+
+**Sized Icon**:
+
+```markdown
+:::{icon} arrow-right
+:size: 16
+:::
+```
+
+**With Accessibility Label**:
+
+```markdown
+:::{icon} external-link
+:aria-label: Opens in new window
+:::
+```
+
+:::{tip}
+Use `bengal icons list` to see all available icons in your theme.
+:::
 
 ## Button
 
@@ -147,6 +210,7 @@ Container for multiple steps. Use `:::{/steps}` to close.
 :::{steps}
 :class: custom-class
 :style: compact
+:start: 1
 
 :::{step} Step Title
 Step content with **markdown** support.
@@ -161,8 +225,11 @@ More content
 
 **Options**:
 
-- `:class:` - Custom CSS class
-- `:style:` - Style: `default`, `compact`
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:class:` | — | Custom CSS class for the container |
+| `:style:` | `default` | Visual style: `default`, `compact` |
+| `:start:` | `1` | Start numbering from this value |
 
 ### Individual Step (`{step}`)
 
@@ -171,8 +238,11 @@ Single step within a steps container. Use `:::{/step}` to close.
 **Syntax**:
 
 ```markdown
-:::{step} Optional Title
+:::{step} Step Title
 :class: custom-class
+:description: Brief context before diving into the step content.
+:duration: 5 min
+:optional:
 
 Step content with **markdown** and nested directives.
 :::{/step}
@@ -180,7 +250,12 @@ Step content with **markdown** and nested directives.
 
 **Options**:
 
-- `:class:` - Custom CSS class
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:class:` | — | Custom CSS class for the step |
+| `:description:` | — | Lead-in text rendered before main content |
+| `:optional:` | `false` | Mark step as optional/skippable |
+| `:duration:` | — | Estimated time (e.g., "5 min", "1 hour") |
 
 ### Examples
 
@@ -234,22 +309,31 @@ More content
 
 ## Checklist
 
-Create styled checklist containers for bullet lists and task lists.
+Create styled checklist containers for bullet lists and task lists with optional progress tracking.
 
 **Syntax**:
 
 ````markdown
 :::{checklist} Optional Title
+:style: numbered
+:show-progress:
+:compact:
 - Item one
 - Item two
 - [x] Completed item
 - [ ] Unchecked item
-:::
+:::{/checklist}
 ````
 
 **Options**:
 
-- Title (optional) - Checklist title
+| Option | Default | Description |
+|--------|---------|-------------|
+| Title | — | Optional title shown above the list |
+| `:style:` | `default` | Visual style: `default`, `numbered`, `minimal` |
+| `:show-progress:` | `false` | Display completion percentage for task lists |
+| `:compact:` | `false` | Tighter spacing between items |
+| `:class:` | — | Additional CSS classes |
 
 ### Examples
 
@@ -260,17 +344,29 @@ Create styled checklist containers for bullet lists and task lists.
 - Python 3.10+
 - Git installed
 - Text editor
-:::
+:::{/checklist}
 ````
 
-**Task List**:
+**Task List with Progress**:
 
 ````markdown
 :::{checklist} Setup Tasks
+:show-progress:
 - [x] Install dependencies
 - [x] Configure site
 - [ ] Deploy to production
-:::
+:::{/checklist}
+````
+
+**Numbered Checklist**:
+
+````markdown
+:::{checklist} Getting Started Steps
+:style: numbered
+- Create a new project
+- Install dependencies
+- Configure settings
+:::{/checklist}
 ````
 
 ## Rubric

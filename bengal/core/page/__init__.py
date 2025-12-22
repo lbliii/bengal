@@ -48,12 +48,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 
+if TYPE_CHECKING:
+    from bengal.core.section import Section
+    from bengal.core.site import Site
+
 from .computed import PageComputedMixin
 from .content import PageContentMixin
+from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
@@ -151,6 +156,9 @@ class Page(
     # Optional fields (with defaults)
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
+    # The ASTNode types in bengal.rendering.ast_types are for future AST-based
+    # processing. See plan/ready/plan-type-system-hardening.md for migration path.
     parsed_ast: Any | None = None
     rendered_html: str = ""
     output_path: Path | None = None
@@ -172,7 +180,7 @@ class Page(
     aliases: list[str] = field(default_factory=list)
 
     # References for navigation (set during site building)
-    _site: Any | None = field(default=None, repr=False)
+    _site: Site | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
     _section_path: Path | None = field(default=None, repr=False)
     # URL-based section reference for virtual sections (path=None)
@@ -181,6 +189,9 @@ class Page(
 
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
+
+    # Private cache for lazy frontmatter property
+    _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
 
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
@@ -302,6 +313,23 @@ class Page(
         and use this HTML directly in the template.
         """
         return self._prerendered_html
+
+    @property
+    def frontmatter(self) -> Frontmatter:
+        """
+        Typed access to frontmatter fields.
+
+        Lazily created from metadata dict on first access.
+
+        Example:
+            >>> page.frontmatter.title  # Typed: str
+            'My Post'
+            >>> page.frontmatter["title"]  # Dict syntax for templates
+            'My Post'
+        """
+        if self._frontmatter is None:
+            self._frontmatter = Frontmatter.from_dict(self.metadata)
+        return self._frontmatter
 
     @classmethod
     def create_virtual(
@@ -557,4 +585,4 @@ class Page(
             self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
 
-__all__ = ["Page", "PageProxy"]
+__all__ = ["Frontmatter", "Page", "PageProxy"]

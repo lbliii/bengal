@@ -24,9 +24,9 @@ flowchart LR
     A[Your Site] --> B[Analysis Engine]
 
     subgraph Outputs
-        C[Graph Visualization]
+        C[Connectivity Report]
         D[Link Suggestions]
-        E[Page Rankings]
+        E[PageRank]
     end
 
     B --> C
@@ -37,32 +37,47 @@ flowchart LR
 ## Quick Start
 
 :::{tab-set}
-:::{tab-item} Graph
+:::{tab-item} Report
 ```bash
-bengal utils graph analyze --output graph.html
+# Unified connectivity report
+bengal graph report
+
+# Brief output for CI
+bengal graph report --brief
+
+# CI mode with thresholds
+bengal graph report --ci --threshold-isolated 5
 ```
 
-Visualizes:
-- Page connections
-- Orphan pages (no incoming links)
-- Hub pages (many connections)
-- Content clusters
+Shows:
+- Connectivity distribution
+- Isolated/lightly-linked pages
+- Bridge pages
+- Actionable recommendations
 :::
 
-:::{tab-item} Suggestions
+:::{tab-item} Orphans
 ```bash
-bengal utils graph suggest --min-score 0.5 --top-n 50
+# Find isolated pages
+bengal graph orphans
+
+# Find lightly-linked pages
+bengal graph orphans --level lightly
+
+# JSON output for processing
+bengal graph orphans --format json
 ```
 
-Suggests links based on:
-- Content similarity
-- Taxonomy overlap
-- Structural proximity
+Identifies pages by connectivity level:
+- 🔴 Isolated (score < 0.25)
+- 🟠 Lightly linked (0.25-1.0)
+- 🟡 Adequately linked (1.0-2.0)
+- 🟢 Well-connected (≥ 2.0)
 :::
 
 :::{tab-item} PageRank
 ```bash
-bengal utils graph pagerank --top-n 20
+bengal graph pagerank --top-n 20
 ```
 
 Identifies:
@@ -76,10 +91,11 @@ Identifies:
 
 | Goal | Command | Output |
 |------|---------|--------|
-| Find orphan pages | `bengal utils graph analyze` | Pages with no incoming links |
-| Improve internal linking | `bengal utils graph suggest` | Suggested link additions |
-| Identify key content | `bengal utils graph pagerank` | Pages ranked by importance |
+| Get site health overview | `bengal graph report` | Connectivity distribution and recommendations |
+| Find isolated pages | `bengal graph orphans` | Pages needing attention |
+| Find bridge pages | `bengal graph bridges` | Navigation bottlenecks |
+| Identify key content | `bengal graph pagerank` | Pages ranked by importance |
 
 :::{tip}
-**Start with graph analysis** to visualize your site structure. The visual output often reveals issues that metrics alone miss.
+**Start with `bengal graph report`** for a unified view of your site structure. Use `--ci` mode in pipelines to fail builds when connectivity thresholds are exceeded.
 :::

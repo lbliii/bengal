@@ -24,7 +24,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : Adding a content-based hash to filenames (e.g., `style.a1b2c3.css`) for cache-busting. When file content changes, the hash changes, forcing browsers to fetch the new version. Enabled by default.
 
 **Autodoc**
-: Bengal's automatic documentation generator. Extracts docstrings and signatures from Python source code or CLI applications to generate API reference pages.
+: Bengal's automatic documentation generator. Extracts docstrings and signatures from Python source code (via AST parsing), CLI applications (Click, Typer, argparse), and OpenAPI specifications to generate API reference pages as virtual pages during the build.
 
 ---
 
@@ -76,7 +76,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : YAML or TOML metadata at the top of a Markdown file, delimited by `---`. Controls page properties like title, date, tags, layout, and custom fields.
 
 **Free-Threaded Python**
-: Python 3.14+ builds with the GIL disabled (`PYTHON_GIL=0`). Enables true parallel execution for 1.5-2x faster builds.
+: Python 3.14+ builds with the GIL disabled (`PYTHON_GIL=0`). Per PEP 703, this enables true parallel execution in `ThreadPoolExecutor`, providing 1.5–2x faster builds. Bengal auto-detects free-threaded Python and logs when true parallelism is active.
 
 ---
 
@@ -97,7 +97,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## I
 
 **Incremental Build**
-: Building only files that changed since the last build, rather than regenerating the entire site. Enabled by default. Typically 50-100x faster than full builds.
+: Building only files that changed since the last build, rather than regenerating the entire site. Bengal's incremental rebuilds complete in 35–50 ms compared to 3–8 s for Jekyll—60–200x faster. Tracks dependencies so template changes also trigger appropriate rebuilds.
 
 **Index File**
 : Special Markdown files that define sections or pages:

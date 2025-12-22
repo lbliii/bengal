@@ -21,84 +21,108 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 
 ## Quick Reference
 
-| Directive | Syntax | Purpose | Category |
-|-----------|--------|---------|----------|
-| `{note}` | ` ```{note} ` | Information callout | Admonitions |
-| `{warning}` | ` ```{warning} ` | Warning callout | Admonitions |
-| `{tip}` | ` ```{tip} ` | Tip callout | Admonitions |
-| `{danger}` | ` ```{danger} ` | Danger callout | Admonitions |
-| `{cards}` | ` :::{cards} ` | Card grid layout | Layout |
-| `{card}` | ` :::{card} ` | Individual card | Layout |
-| `{tab-set}` | ` :::{tab-set} ` | Tab container | Layout |
-| `{tab-item}` | ` :::{tab-item} ` | Individual tab | Layout |
-| `{dropdown}` | ` ```{dropdown} ` | Collapsible section | Layout |
-| `{code-tabs}` | ` ```{code-tabs} ` | Multi-language code | Interactive |
-| `{badge}` | ` ```{badge} ` | Styled badge | Formatting |
-| `{button}` | ` :::{button} ` | Link button | Formatting |
-| `{build}` | ` :::{build} ` | Build-time badge (from last build) | Formatting |
-| `{steps}` | ` :::{steps} ` | Step-by-step guide | Formatting |
-| `{step}` | ` :::{step} ` | Individual step | Formatting |
-| `{checklist}` | ` ```{checklist} ` | Styled checklist | Formatting |
-| `{rubric}` | ` ```{rubric} ` | Pseudo-heading | Formatting |
-| `{include}` | ` ```{include} ` | Include markdown file | Content Reuse |
-| `{literalinclude}` | ` ```{literalinclude} ` | Include code file | Content Reuse |
-| `{list-table}` | ` :::{list-table} ` | Table from lists | Formatting |
-| `{data-table}` | ` :::{data-table} ` | Interactive data table | Interactive |
-| `{youtube}` | ` :::{youtube} ` | YouTube embed (privacy default) | Media |
-| `{vimeo}` | ` :::{vimeo} ` | Vimeo embed (DNT default) | Media |
-| `{video}` | ` :::{video} ` | Self-hosted HTML5 video | Media |
-| `{figure}` | ` :::{figure} ` | Image with caption | Media |
-| `{since}` | ` :::{since} ` | Mark feature as new | Versioning |
-| `{deprecated}` | ` :::{deprecated} ` | Mark feature as deprecated | Versioning |
-| `{changed}` | ` :::{changed} ` | Mark behavior change | Versioning |
-| `{audio}` | ` :::{audio} ` | Self-hosted HTML5 audio | Media |
-| `{gist}` | ` :::{gist} ` | GitHub Gist embed | Media |
-| `{codepen}` | ` :::{codepen} ` | CodePen embed | Media |
-| `{codesandbox}` | ` :::{codesandbox} ` | CodeSandbox embed | Media |
-| `{stackblitz}` | ` :::{stackblitz} ` | StackBlitz embed | Media |
-| `{asciinema}` | ` :::{asciinema} ` | Terminal recording | Media |
-| `{child-cards}` | ` :::{child-cards} ` | Auto-generate cards from children | Navigation |
-| `{breadcrumbs}` | ` :::{breadcrumbs} ` | Breadcrumb navigation | Navigation |
-| `{siblings}` | ` :::{siblings} ` | Sibling page list | Navigation |
-| `{prev-next}` | ` :::{prev-next} ` | Prev/next links | Navigation |
-| `{related}` | ` :::{related} ` | Related pages by tags | Navigation |
-| `{glossary}` | ` :::{glossary} ` | Render terms from glossary data | Data |
-| `{icon}` | `` {icon}`name` `` | Inline SVG icon | [Icons](/docs/reference/icons/) |
+### Admonitions
+
+| Directive | Purpose |
+|-----------|---------|
+| `{note}` | Information callout |
+| `{tip}` | Helpful suggestion |
+| `{warning}` | Warning callout |
+| `{caution}` | Cautionary note (renders as warning) |
+| `{danger}` | Critical warning |
+| `{error}` | Error message |
+| `{info}` | Informational content |
+| `{example}` | Example usage |
+| `{success}` | Success message |
+| `{seealso}` | Cross-reference callout |
+
+### Layout
+
+| Directive | Aliases | Purpose |
+|-----------|---------|---------|
+| `{cards}` | `{grid}` | Card grid container |
+| `{card}` | `{grid-item-card}` | Individual card |
+| `{child-cards}` | — | Auto-generate cards from children |
+| `{tab-set}` | `{tabs}` | Tab container |
+| `{tab-item}` | `{tab}` | Individual tab |
+| `{dropdown}` | `{details}` | Collapsible section |
+| `{container}` | `{div}` | Generic wrapper |
+
+### Formatting
+
+| Directive | Aliases | Purpose |
+|-----------|---------|---------|
+| `{badge}` | `{bdg}` | Styled badge |
+| `{button}` | — | Link button |
+| `{build}` | — | Build-time badge |
+| `{steps}` | — | Step-by-step guide |
+| `{step}` | — | Individual step |
+| `{checklist}` | — | Styled checklist |
+| `{rubric}` | — | Pseudo-heading (not in TOC) |
+| `{list-table}` | — | Table from lists |
+
+### Content Reuse
+
+| Directive | Purpose |
+|-----------|---------|
+| `{include}` | Include markdown file |
+| `{literalinclude}` | Include code file with syntax highlighting |
+
+### Interactive
+
+| Directive | Aliases | Purpose |
+|-----------|---------|---------|
+| `{code-tabs}` | `{code_tabs}` | Multi-language code tabs |
+| `{data-table}` | — | Interactive data table |
+
+### Media Embeds
+
+| Directive | Purpose |
+|-----------|---------|
+| `{youtube}` | YouTube embed (privacy-enhanced by default) |
+| `{vimeo}` | Vimeo embed (DNT by default) |
+| `{video}` | Self-hosted HTML5 video |
+| `{audio}` | Self-hosted HTML5 audio |
+| `{figure}` | Image with caption |
+| `{gist}` | GitHub Gist embed |
+| `{codepen}` | CodePen embed |
+| `{codesandbox}` | CodeSandbox embed |
+| `{stackblitz}` | StackBlitz embed |
+| `{asciinema}` | Terminal recording |
+| `{gallery}` | Image gallery |
+
+### Navigation
+
+| Directive | Purpose |
+|-----------|---------|
+| `{child-cards}` | Auto-generate cards from child sections/pages |
+| `{breadcrumbs}` | Breadcrumb navigation trail |
+| `{siblings}` | Sibling page links |
+| `{prev-next}` | Previous/next navigation links |
+| `{related}` | Related pages by shared tags |
+
+### Versioning
+
+| Directive | Aliases | Purpose |
+|-----------|---------|---------|
+| `{since}` | `{versionadded}` | Mark feature as new |
+| `{deprecated}` | `{versionremoved}` | Mark feature as deprecated |
+| `{changed}` | `{versionchanged}` | Mark behavior change |
+
+### Other
+
+| Directive | Aliases | Purpose |
+|-----------|---------|---------|
+| `{glossary}` | — | Render terms from glossary data |
+| `{target}` | `{anchor}` | Create link target |
+| `{icon}` | `{svg-icon}` | Inline SVG icon |
+| `{example-label}` | — | Example label for documentation |
+| `{marimo}` | — | Interactive Python notebook |
+| `{gallery}` | — | Image gallery |
 
 ## Directive Syntax
 
-Bengal supports two directive syntax styles:
-
-## Build badge `{build}`
-
-The `{build}` directive embeds the build badge generated by Bengal during the build finalization phase.
-
-```markdown
-:::{build}
-:::
-
-:::{build}
-:json: true
-:::
-```
-
-#### Layout options
-
-```markdown
-Inline in a sentence: :::{build} :inline: true :::
-
-Centered under a heading:
-:::{build}
-:align: center
-:::
-
-Right-aligned (still block-level):
-:::{build}
-:align: right
-:::
-```
-
-### Fenced Syntax (3 backticks)
+Bengal supports MyST-style directive syntax using triple colons `:::`. Most directives use this format:
 
 ```markdown
 :::{directive-name} Optional Title
@@ -108,42 +132,28 @@ Content here
 :::
 ```
 
-**Used for**: Admonitions, dropdowns, badges, checklists, code-tabs, include, literalinclude, rubric
+### Named Closers
 
-### MyST Syntax (3 colons)
-
-```markdown
-:::{directive-name} Optional Title
-:option: value
-
-Content here
-:::
-```
-
-**Used for**: Cards, tabs, buttons, steps, list-table
-
-### Nesting with Named Closers
-
-Bengal supports **named closers** to avoid fence-counting when nesting directives. Use `:::{/name}` to explicitly close a directive:
-
-**Basic Nesting** (container with items):
+For nested directives, use named closers (`:::{/name}`) to avoid ambiguity:
 
 ```markdown
 :::{cards}
 :columns: 3
 
-:::{card} Card Title
-Card content here
-:::
+:::{card} First Card
+Content
+:::{/card}
 
-:::{card} Card Title 2
-More content
-:::
+:::{card} Second Card
+Content
+:::{/card}
 
 :::{/cards}
 ```
 
-**Deep Nesting** (admonitions within steps, tabs within cards, etc.):
+### Deep Nesting
+
+Named closers are particularly useful for deeply nested structures:
 
 ```markdown
 :::{steps}
@@ -155,13 +165,37 @@ Remember to check the logs!
 :::{/step}
 
 :::{step} Second Step
-More content
+:::{warning}
+This step requires admin access.
+:::
 :::{/step}
 
 :::{/steps}
 ```
 
-**Rule**: Use `:::{/directive-name}` to close any container directive. This eliminates the need to count colons.
+### Directive Options
+
+Options are specified with `:option: value` syntax on separate lines after the directive name:
+
+```markdown
+:::{card} Card Title
+:icon: rocket
+:link: /docs/quickstart/
+:color: blue
+
+Card content here.
+:::
+```
+
+Boolean options can omit the value:
+
+```markdown
+:::{tab-item} Python
+:selected:
+
+Python code here.
+:::
+```
 
 ## Categories
 

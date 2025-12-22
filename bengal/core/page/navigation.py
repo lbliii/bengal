@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from bengal.core.page import Page
     from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class PageNavigationMixin:
@@ -40,7 +41,7 @@ class PageNavigationMixin:
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
-    _site: Any
+    _site: Site | None
     _section: Section | None
     _section_path: Path | None
 

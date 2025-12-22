@@ -286,6 +286,8 @@ Create tabbed content sections for organizing related content.
 
 Container for tab items. Use `:::{/tab-set}` to close.
 
+**Aliases**: `{tabs}`
+
 **Syntax**:
 
 ````markdown
@@ -307,18 +309,24 @@ More content
 
 **Options**:
 
-- `:sync:` - Sync key for multiple tab-sets (same key = synchronized selection)
-- `:id:` - Tab set ID
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:sync:` | — | Sync key for synchronizing tabs across multiple tab-sets |
+| `:id:` | auto-generated | Tab set ID for targeting |
 
 ### Tab Item (`{tab-item}`)
 
 Individual tab within a tab-set.
+
+**Aliases**: `{tab}`
 
 **Syntax**:
 
 ````markdown
 :::{tab-item} Tab Title
 :selected:
+:icon: python
+:badge: Recommended
 
 Tab content
 :::
@@ -326,7 +334,12 @@ Tab content
 
 **Options**:
 
-- `:selected:` - Mark this tab as initially selected (no value needed)
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:selected:` | `false` | Mark this tab as initially selected |
+| `:icon:` | — | Icon name to display next to the tab label |
+| `:badge:` | — | Badge text (e.g., "New", "Beta", "Pro") |
+| `:disabled:` | `false` | Mark tab as disabled/unavailable |
 
 ### Examples
 
@@ -372,6 +385,34 @@ Same Python code (synced)
 :::{/tab-set}
 ````
 
+**Tabs with Icons and Badges**:
+
+````markdown
+:::{tab-set}
+
+:::{tab-item} Python
+:icon: python
+:badge: Recommended
+:selected:
+
+Python code here.
+:::
+
+:::{tab-item} JavaScript
+:icon: javascript
+
+JavaScript code here.
+:::
+
+:::{tab-item} Ruby
+:disabled:
+
+Ruby support coming soon.
+:::
+
+:::{/tab-set}
+````
+
 **Tabs with Nested Admonitions**:
 
 Named closers eliminate fence-counting for complex nesting:
@@ -400,7 +441,9 @@ Use `:::{/name}` to explicitly close any container directive, eliminating the ne
 
 ## Dropdown
 
-Collapsible sections for optional or advanced content.
+Collapsible sections for optional or advanced content. Renders as HTML5 `<details>`/`<summary>` elements for native browser support without JavaScript.
+
+**Aliases**: `{details}`
 
 **Syntax**:
 
@@ -408,6 +451,7 @@ Collapsible sections for optional or advanced content.
 :::{dropdown} Title
 :open: true
 :icon: info
+:description: Additional context about what is inside
 
 Content with **markdown** support.
 
@@ -419,13 +463,14 @@ Nested directives work!
 
 **Options**:
 
-- `:open:` - Open by default: `true`, `false` (default)
-- `:icon:` - Icon name to display next to title (e.g., `info`, `settings`, `star`)
-- `:badge:` - Badge text (e.g., "New", "Advanced")
-- `:color:` - Color variant: `success`, `warning`, `danger`, `info`, `minimal`
-- `:class:` - Additional CSS classes
-
-**Alias**: `{details}` works the same as `{dropdown}`.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:open:` | `false` | Open by default |
+| `:icon:` | — | Icon name to display next to title |
+| `:badge:` | — | Badge text (e.g., "New", "Advanced") |
+| `:color:` | — | Color variant: `success`, `warning`, `danger`, `info`, `minimal` |
+| `:description:` | — | Secondary text below the title to elaborate on content |
+| `:class:` | — | Additional CSS classes |
 
 ### Examples
 
@@ -434,6 +479,7 @@ Nested directives work!
 ````markdown
 :::{dropdown} Advanced Options
 :icon: settings
+
 Click to expand advanced configuration options.
 :::
 ````
@@ -449,6 +495,17 @@ Common commands and shortcuts.
 :::
 ````
 
+**With Description**:
+
+````markdown
+:::{dropdown} API Authentication
+:icon: lock
+:description: Learn about OAuth 2.0, API keys, and JWT tokens
+
+Detailed authentication documentation here.
+:::
+````
+
 **With Badge and Color**:
 
 ````markdown
@@ -458,6 +515,18 @@ Common commands and shortcuts.
 :color: success
 
 Check out the latest features!
+:::
+````
+
+**Warning Dropdown**:
+
+````markdown
+:::{dropdown} Breaking Changes
+:icon: alert
+:color: warning
+:badge: v2.0
+
+Review breaking changes before upgrading.
 :::
 ````
 

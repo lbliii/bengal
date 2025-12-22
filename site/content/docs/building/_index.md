@@ -54,7 +54,27 @@ flowchart LR
 | Build for production | [Commands](./commands/) |
 | Speed up builds | [Performance](./performance/) |
 | Deploy my site | [Deployment](./deployment/) |
+| Fix build errors | [Troubleshooting](./troubleshooting/) |
+
+## Essential Commands
+
+```bash
+# Development (live reload, opens browser)
+bengal serve
+
+# Production build
+bengal build --environment production --strict
+
+# Fast CI build
+bengal build --fast --environment production
+
+# Validate content
+bengal validate
+
+# Clean and rebuild
+bengal clean --cache && bengal build
+```
 
 :::{tip}
-**Quick start**: Run `bengal build` for production, `bengal serve` for development. Add `--environment production` for production builds with optimizations.
+**Quick start**: Run `bengal serve` for development with live reload. For production, use `bengal build --environment production --strict`.
 :::

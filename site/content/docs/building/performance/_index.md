@@ -22,12 +22,11 @@ Speed up Bengal with incremental builds, parallel processing, and smart caching.
 ```toml
 # bengal.toml
 [build]
-parallel = true
-incremental = true
-cache = true
+parallel = true      # Enabled by default
+incremental = true   # Enabled by default
 ```
 
-These three settings handle most performance needs automatically.
+These settings are enabled by default and handle most performance needs automatically.
 
 ## How Builds Get Faster
 
@@ -48,12 +47,15 @@ flowchart LR
 |----------|--------|---------|----------|
 | **Incremental** | Zero | 10-50x | Development |
 | **Parallel** | Zero | 2-8x | Large sites |
-| **Caching** | Zero | 5-20x | Repeated builds |
-| **Content splitting** | Medium | Variable | Very large sites |
+| **Fast Mode** | Zero | 2-3x | CI/CD |
+| **Memory Optimized** | Zero | N/A | 5K+ pages |
 
 ## Common Commands
 
 ```bash
+# Maximum performance (quiet, parallel)
+bengal build --fast
+
 # Force full rebuild
 bengal build --no-incremental
 
@@ -61,7 +63,10 @@ bengal build --no-incremental
 bengal clean --cache
 
 # Profile build time
-bengal build --profile
+bengal build --perf-profile
+
+# Profile template rendering
+bengal build --profile-templates
 ```
 
 :::{tip}

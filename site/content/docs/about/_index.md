@@ -16,7 +16,7 @@ Bengal is a high-performance static site generator built in Python for Python 3.
 
 ## Use Cases
 
-- **Documentation Sites** — Technical docs with automatic API reference generation from Python source code
+- **Documentation Sites** — Technical docs with automatic API reference generation from Python, CLI, and OpenAPI sources
 - **Blogs & Journals** — Personal and professional writing with tags, categories, and related posts
 - **Product & Marketing Sites** — Landing pages, portfolios, and company websites
 - **Knowledge Bases** — Internal wikis and help centers with full-text search
@@ -25,11 +25,11 @@ Bengal is a high-performance static site generator built in Python for Python 3.
 
 | Benefit | What It Means |
 |---------|---------------|
-| **Fast Builds** | Parallel processing + incremental builds = 18-42× faster rebuilds on large sites |
-| **Python-Native** | Built for Python 3.14+ with free-threading support; no Node.js required |
-| **Auto API Docs** | AST-based autodoc generates reference docs from your Python source and CLI tools |
-| **Batteries Included** | Dev server, live reload, syntax highlighting, sitemap, RSS, search—all built in |
-| **Flexible Theming** | Theme inheritance, template swizzling, and 200+ CSS design tokens |
+| **Fast Builds** | Parallel processing + incremental builds; see [[docs/about/benchmarks\|Benchmarks]] for measured times |
+| **Python-Native** | Built for Python 3.14+ with free-threading support (PEP 703); no Node.js required |
+| **Auto API Docs** | AST-based autodoc generates reference docs from Python source, CLI tools, and OpenAPI specs |
+| **Batteries Included** | Dev server, live reload, syntax highlighting, sitemap, RSS, Lunr search—all built in |
+| **Flexible Theming** | Theme inheritance, template swizzling, and 1000+ CSS design tokens |
 | **Content First** | Markdown with MyST directives, YAML/TOML front matter, and cascading config |
 
 ## Philosophy

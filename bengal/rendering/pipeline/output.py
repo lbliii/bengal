@@ -41,6 +41,7 @@ from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.core.page import Page
 
 logger = get_logger(__name__)
@@ -103,6 +104,7 @@ def write_output(
     page: Page,
     site: Any,
     dependency_tracker: Any = None,
+    collector: OutputCollector | None = None,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -112,11 +114,13 @@ def write_output(
     - Atomic writes for crash safety (optional)
     - Fast writes for dev server performance
     - Source→output tracking for incremental cleanup
+    - Output tracking for hot reload (when collector provided)
 
     Args:
         page: Page with rendered content
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
+        collector: Optional output collector for hot reload tracking
     """
     # Ensure output_path is set
     if page.output_path is None:
@@ -175,6 +179,12 @@ def write_output(
         and dependency_tracker.cache
     ):
         dependency_tracker.cache.track_output(page.source_path, page.output_path, site.output_dir)
+
+    # Record output for hot reload tracking
+    if collector and page.output_path:
+        from bengal.core.output import OutputType
+
+        collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
 def format_html(html: str, page: Page, site: Any) -> str:

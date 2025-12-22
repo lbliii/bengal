@@ -20,9 +20,9 @@ flowchart LR
     end
 
     subgraph Process
-        D[Parse]
-        E[Render]
-        F[Optimize]
+        D[Discovery]
+        E[Rendering]
+        F[Post-process]
     end
 
     subgraph Output
@@ -41,9 +41,10 @@ flowchart LR
 |---------|---------------|
 | **Page** | A single content file (`.md`) → single HTML output |
 | **Section** | A directory with `_index.md` → list page with children |
-| **Bundle** | A directory with `index.md` → page with co-located assets |
+| **Leaf Bundle** | A directory with `index.md` → page with co-located assets |
 | **Template** | Jinja2 HTML that wraps your content |
-| **Asset** | CSS, JS, images — processed and optimized |
+| **Asset** | CSS, JS, images — processed, optimized, and fingerprinted |
+| **Cascade** | Metadata inheritance from section `_index.md` to child pages |
 
 ## Mental Model
 
@@ -51,29 +52,32 @@ flowchart LR
 :::{tab-item} Files → Pages
 Your file structure becomes your URL structure:
 
-```
+```text
 content/blog/hello.md → /blog/hello/
 content/docs/_index.md → /docs/
 ```
+
 :::
 
 :::{tab-item} Templates → Layouts
-Templates wrap content in HTML:
+Templates wrap content in HTML. Bengal provides 80+ template helpers:
 
-```
+```text
 page.content + single.html → final HTML
 ```
+
 :::
 
 :::{tab-item} Assets → Output
-Static files are copied and optionally processed:
+Static files are copied, optimized, and fingerprinted for cache-busting:
 
+```text
+assets/css/main.css → public/assets/css/main.a1b2c3.css
 ```
-static/css/main.css → public/css/main.a1b2c3.css
-```
+
 :::
 :::{/tab-set}
 
 :::{tip}
-**Start simple**: Most sites only need pages and a theme. Add sections when you need grouping, bundles when you need co-located assets.
+**Start simple**: Most sites only need pages and a theme. Add sections when you need grouping, leaf bundles when you need co-located assets.
 :::

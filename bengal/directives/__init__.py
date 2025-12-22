@@ -110,6 +110,7 @@ from bengal.directives.registry import (
     register_all,
 )
 from bengal.directives.tokens import DirectiveToken as _DirectiveToken  # noqa: F811
+from bengal.directives.tokens import DirectiveType
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -161,6 +162,7 @@ __all__ = [
     # Base classes
     "BengalDirective",
     "DirectiveToken",
+    "DirectiveType",
     "DirectiveOptions",
     "DirectiveContract",
     "ContractValidator",

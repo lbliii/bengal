@@ -113,7 +113,7 @@ python --version
 python3 --version
 ```
 
-Install Python 3.14+ using [pyenv](https://github.com/pyenv/pyenv) or the [official installer](https://www.python.org/downloads/).
+Bengal requires Python 3.14 or later. Install using [pyenv](https://github.com/pyenv/pyenv), [uv](https://docs.astral.sh/uv/), or the [official installer](https://www.python.org/downloads/).
 :::
 
 :::{dropdown} Permission errors

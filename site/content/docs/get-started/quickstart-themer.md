@@ -19,6 +19,7 @@ category: onboarding
 id: themer-qs
 icon: palette
 ---
+
 # Themer Quickstart
 
 Learn to customize Bengal themes and create your own designs.
@@ -27,9 +28,9 @@ Learn to customize Bengal themes and create your own designs.
 
 :::{checklist}
 :show-progress:
-- [ ] [Bengal installed](/docs/get-started/installation/)
+- [ ] [[docs/get-started/installation|Bengal installed]]
 - [ ] Basic knowledge of HTML
-- [ ] Familiarity with CSS (or willingness to learn)
+- [ ] Familiarity with CSS
 - [ ] Basic Jinja2 template syntax
 :::{/checklist}
 
@@ -39,7 +40,7 @@ Bengal looks for templates in this order:
 
 1. **Your project** — `templates/` (overrides everything)
 2. **Your theme** — `themes/your-theme/templates/`
-3. **Installed themes** — Via pip/uv
+3. **Installed themes** — Via pip or uv
 4. **Default theme** — Built into Bengal
 
 You only need to override what you want to change.
@@ -54,18 +55,19 @@ This creates:
 
 ```
 themes/my-theme/
-├── theme.yaml
 ├── templates/
 │   ├── base.html
+│   ├── home.html
 │   ├── page.html
 │   └── partials/
 │       ├── header.html
 │       └── footer.html
-└── static/
+└── assets/
     ├── css/
     │   └── style.css
-    └── js/
-        └── main.js
+    ├── js/
+    │   └── main.js
+    └── images/
 ```
 
 ## Configure Your Theme
@@ -77,30 +79,36 @@ theme:
   name: "my-theme"
 ```
 
+Or update `bengal.toml` if using single-file configuration:
+
+```toml
+[theme]
+name = "my-theme"
+```
+
 ## Override Templates Selectively
 
-You don't need to copy all templates. Extend the default:
+You do not need to copy all templates. Extend the default:
 
 ```html
 {# themes/my-theme/templates/base.html #}
-{# Extend the base template if you want to reuse structure #}
 {% extends "base.html" %}
 
 {% block header %}
 <header class="custom-header">
-    <h1>{{ site.title }}</h1>
-    {% for item in menu.main %}
+    <h1>{{ site.config.title }}</h1>
+    {% for item in site.menu.get('main', []) %}
     <a href="{{ item.url }}">{{ item.name }}</a>
     {% endfor %}
 </header>
 {% endblock %}
 ```
 
-Everything not overridden inherits from the default theme (or parent theme).
+Everything not overridden inherits from the default theme or parent theme.
 
 ## Add Custom CSS
 
-Create `themes/my-theme/static/css/custom.css`:
+Create `themes/my-theme/assets/css/custom.css`:
 
 ```css
 :root {
@@ -128,30 +136,52 @@ Key variables available in templates:
 
 | Variable | Description |
 |----------|-------------|
-| `site.title` | Site title |
-| `site.pages` | All pages |
+| `site.config.title` | Site title from configuration |
+| `site.config.description` | Site description |
+| `site.config.baseurl` | Site base URL |
+| `site.pages` | All pages in the site |
+| `site.menu` | Menu dictionary (access via `site.menu.get('main', [])`) |
 | `page.title` | Current page title |
-| `page.content` | Raw content |
-| `page.rendered_html` | Rendered HTML |
-| `page.url` | Page URL |
-| `menu.main` | Main navigation menu |
+| `page.content` | Rendered HTML content (use with `\| safe`) |
+| `page.url` | Page URL path |
+| `page.date` | Publication date |
+| `page.tags` | List of tags |
+| `page.description` | Page description |
+| `page.metadata` | Full frontmatter dictionary |
+| `page.props` | Custom frontmatter fields |
+| `theme` | Theme configuration dictionary |
+| `bengal` | Engine metadata |
+
+Bengal provides 80+ template functions. Common ones:
+
+- `asset_url('path')` — Generate asset URLs
+- `url_for('path')` — Generate page URLs
+- `get_menu('name')` — Get a navigation menu
+- `strftime(date, format)` — Format dates
+- `truncate(text, length)` — Truncate text
 
 ## Debug Theme Issues
 
 ```bash
-# Check theme resolution
-bengal utils theme debug
-
 # List available themes
 bengal utils theme list
 
 # Get theme info
 bengal utils theme info default
+
+# Debug theme resolution
+bengal utils theme debug
+
+# Discover installed themes
+bengal utils theme discover
+
+# Swizzle a template for customization
+bengal utils theme swizzle partials/header.html
 ```
 
 ## Next Steps
 
-- **[Theme Customization](/docs/theming/themes/customize/)** — Deep dive into overrides
-- **[Template Functions](/docs/theming/templating/functions/)** — Available filters
-- **[Variables Reference](/docs/theming/variables/)** — All template variables
-- **[Assets](/docs/theming/assets/)** — CSS, JS, and image handling
+- **[[docs/theming/themes/customize|Theme Customization]]** — Deep dive into overrides
+- **[[docs/theming/templating/functions|Template Functions]]** — All available filters and functions
+- **[[docs/theming/variables|Variables Reference]]** — Complete template variables
+- **[[docs/theming/assets|Assets]]** — CSS, JS, and image handling

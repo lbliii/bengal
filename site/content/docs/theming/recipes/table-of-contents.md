@@ -83,10 +83,10 @@ Then in template:
     {% endif %}
   </aside>
 
-  <article>
+  <main>
     <h1>{{ page.title }}</h1>
     {{ page.rendered_html | safe }}
-  </article>
+  </main>
 </div>
 ```
 

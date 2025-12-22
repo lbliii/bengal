@@ -100,14 +100,16 @@ class BuildResult:
         pages_built: Number of pages rendered
         build_time_ms: Build duration in milliseconds
         error_message: Error message if build failed
-        changed_outputs: List of changed output paths (for reload decision)
+        changed_outputs: Serialized output records as (path, type, phase) tuples
+            for reload decision. Type is the OutputType.value string.
     """
 
     success: bool
     pages_built: int
     build_time_ms: float
     error_message: str | None = None
-    changed_outputs: tuple[str, ...] = field(default_factory=tuple)
+    # Serialized OutputRecords as (path_str, type_value, phase) tuples
+    changed_outputs: tuple[tuple[str, str, str], ...] = field(default_factory=tuple)
 
 
 def _execute_build(request: BuildRequest) -> BuildResult:
@@ -169,10 +171,13 @@ def _execute_build(request: BuildRequest) -> BuildResult:
 
         build_time_ms = (time.time() - start_time) * 1000
 
-        # Get changed outputs if available
-        changed_outputs: tuple[str, ...] = ()
+        # Serialize changed outputs to picklable tuples
+        changed_outputs: tuple[tuple[str, str, str], ...] = ()
         if hasattr(stats, "changed_outputs") and stats.changed_outputs:
-            changed_outputs = tuple(str(p) for p in stats.changed_outputs)
+            changed_outputs = tuple(
+                (str(record.path), record.output_type.value, record.phase)
+                for record in stats.changed_outputs
+            )
 
         return BuildResult(
             success=True,
