@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
 from .computed import PageComputedMixin
 from .content import PageContentMixin
+from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
@@ -186,6 +187,9 @@ class Page(
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
 
+    # Private cache for lazy frontmatter property
+    _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
+
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
     _ast_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
@@ -306,6 +310,23 @@ class Page(
         and use this HTML directly in the template.
         """
         return self._prerendered_html
+
+    @property
+    def frontmatter(self) -> Frontmatter:
+        """
+        Typed access to frontmatter fields.
+
+        Lazily created from metadata dict on first access.
+
+        Example:
+            >>> page.frontmatter.title  # Typed: str
+            'My Post'
+            >>> page.frontmatter["title"]  # Dict syntax for templates
+            'My Post'
+        """
+        if self._frontmatter is None:
+            self._frontmatter = Frontmatter.from_dict(self.metadata)
+        return self._frontmatter
 
     @classmethod
     def create_virtual(
@@ -561,4 +582,4 @@ class Page(
             self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
 
-__all__ = ["Page", "PageProxy"]
+__all__ = ["Frontmatter", "Page", "PageProxy"]
