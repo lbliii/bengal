@@ -1,8 +1,34 @@
 """
 URL Strategy - Centralized URL and path computation.
 
-Provides pure utility functions for computing output paths and URLs.
-Used by orchestrators to ensure consistent path generation across the system.
+This module provides the `URLStrategy` class with pure, stateless utility
+functions for computing output paths and URLs throughout the Bengal SSG.
+All path computation logic is centralized here to ensure consistency and
+prevent path-related bugs across different parts of the system.
+
+Key Features:
+    - Output path computation for regular pages, archives, and taxonomy pages
+    - Version-aware path transformations for multi-version documentation
+    - i18n-aware URL prefixing for multilingual sites
+    - Virtual path generation for dynamically generated pages (archives, tags)
+    - URL generation from output paths with pretty URL support
+
+Design Principles:
+    - **Pure Functions**: No side effects, no state mutation
+    - **No Global State**: All inputs passed explicitly via parameters
+    - **Easy Testing**: Static methods can be tested in isolation
+    - **Reusable**: Used by render orchestrator, taxonomy builder, etc.
+
+Usage:
+    >>> from bengal.utils.url_strategy import URLStrategy
+    >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
+    >>> url = URLStrategy.url_from_output_path(output_path, site)
+
+Related:
+    - `bengal.orchestration.render_orchestrator`: Uses for output path computation
+    - `bengal.core.page`: Page objects passed to compute methods
+    - `bengal.core.site`: Site object provides configuration and output directory
+    - `bengal.utils.url_normalization`: URL validation and normalization utilities
 """
 
 from __future__ import annotations
@@ -23,11 +49,32 @@ class URLStrategy:
     Centralizes all path/URL logic to ensure consistency and prevent bugs.
     All methods are static - no state, pure logic.
 
-    Design principles:
-    - Pure functions (no side effects)
-    - No dependencies on global state
-    - Easy to test in isolation
-    - Reusable across orchestrators
+    Design Principles:
+        - Pure functions (no side effects)
+        - No dependencies on global state
+        - Easy to test in isolation
+        - Reusable across orchestrators
+
+    Usage:
+        >>> from bengal.utils.url_strategy import URLStrategy
+        >>> # Compute output path for a page
+        >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
+        >>> # PosixPath('/path/to/site/public/docs/guide/index.html')
+
+        >>> # Generate URL from output path
+        >>> url = URLStrategy.url_from_output_path(output_path, site)
+        >>> # '/docs/guide/'
+
+        >>> # Compute archive page path
+        >>> archive_path = URLStrategy.compute_archive_output_path(section, page_num=1, site=site)
+        >>> # PosixPath('/path/to/site/public/blog/index.html')
+
+    See Also:
+        - `compute_regular_page_output_path`: For regular content pages
+        - `compute_archive_output_path`: For section archive pages
+        - `compute_tag_output_path`: For tag listing pages
+        - `url_from_output_path`: For generating URLs from paths
+        - `make_virtual_path`: For generated/virtual pages
     """
 
     @staticmethod
@@ -35,21 +82,34 @@ class URLStrategy:
         """
         Compute output path for a regular content page.
 
+        Transforms a page's source path into its corresponding output path,
+        applying pretty URL rules, version prefixes, and i18n path strategies.
+
         Args:
-            page: Page object (must have source_path set)
-            site: Site object (for output_dir and config)
+            page: Page object with `source_path` attribute set.
+            site: Site object providing `output_dir`, `config`, and version info.
+            pre_cascade: If True, use the raw source path without any modifications
+                         from frontmatter cascade. Used during early page discovery
+                         before cascade values are applied. Defaults to False.
 
         Returns:
-            Absolute path where the page HTML should be written
+            Absolute Path where the page HTML should be written.
 
         Examples:
-            content/about.md → public/about/index.html (pretty URLs)
-            content/blog/post.md → public/blog/post/index.html
-            content/docs/_index.md → public/docs/index.html
+            Pretty URLs (default):
+                content/about.md → public/about/index.html
+                content/blog/post.md → public/blog/post/index.html
+                content/docs/_index.md → public/docs/index.html
 
-        Version-aware examples:
-            content/docs/guide.md (v3, latest) → public/docs/guide/index.html
-            _versions/v2/docs/guide.md → public/docs/v2/guide/index.html
+            Flat URLs (pretty_urls=False):
+                content/about.md → public/about.html
+
+            Version-aware:
+                content/docs/guide.md (latest) → public/docs/guide/index.html
+                _versions/v2/docs/guide.md → public/docs/v2/guide/index.html
+
+            i18n prefix strategy:
+                content/about.md (lang=fr) → public/fr/about/index.html
         """
         content_dir = site.root_path / "content"
         pretty_urls = site.config.get("pretty_urls", True)

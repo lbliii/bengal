@@ -1,8 +1,33 @@
 """
 Theme configuration models and YAML loader.
 
-Provides ThemeConfig dataclass with nested configuration models for features,
-appearance, and icons. Supports loading from theme.yaml files with validation.
+Provides dataclass models for theme configuration, loaded from theme.yaml files
+in theme directories. Supports nested configuration for features, appearance,
+and icons with validation.
+
+Models:
+    FeatureFlags: Category-organized boolean feature toggles
+    AppearanceConfig: Theme mode and palette selection
+    IconConfig: Icon library and semantic aliases
+    ThemeConfig: Root configuration combining all settings
+
+Architecture:
+    Configuration models are passive dataclasses with factory methods for
+    loading from dictionaries or YAML files. Validation occurs in __post_init__
+    for immediate feedback on invalid values.
+
+Example:
+    >>> config = ThemeConfig.load(Path("themes/default"))
+    >>> config.name
+    'default'
+    >>> config.features.has_feature("navigation.toc")
+    True
+    >>> config.appearance.default_mode
+    'system'
+
+Related:
+    bengal/themes/tokens.py: Design tokens used with theme config
+    bengal/themes/default/theme.yaml: Example theme configuration
 """
 
 from __future__ import annotations
@@ -22,11 +47,26 @@ logger = get_logger(__name__)
 @dataclass
 class FeatureFlags:
     """
-    Feature flags configuration.
+    Feature flags organized by category.
 
-    Features are organized by category (navigation, content, etc.) and can be
-    enabled/disabled individually. Each feature can have a description for
-    documentation purposes.
+    Features are grouped into categories (navigation, content, search, etc.)
+    with boolean toggles for each feature. Use dotted notation to query
+    features (e.g., "navigation.toc").
+
+    Attributes:
+        navigation: Navigation features (toc, breadcrumbs, prev_next, etc.)
+        content: Content features (code_copy, syntax_highlight, etc.)
+        search: Search features (enabled, keyboard_shortcuts, etc.)
+        header: Header features (logo, theme_toggle, etc.)
+        footer: Footer features (copyright, social_links, etc.)
+        accessibility: Accessibility features (skip_links, focus_visible, etc.)
+
+    Example:
+        >>> flags = FeatureFlags(navigation={"toc": True, "breadcrumbs": False})
+        >>> flags.has_feature("navigation.toc")
+        True
+        >>> flags.get_enabled_features()
+        ['navigation.toc']
     """
 
     navigation: dict[str, bool] = field(default_factory=dict)
@@ -99,9 +139,17 @@ class FeatureFlags:
 @dataclass
 class AppearanceConfig:
     """
-    Appearance configuration (theme mode and palette).
+    Appearance configuration for theme mode and color palette.
 
-    Controls default appearance mode (light/dark/system) and color palette.
+    Controls the default visual appearance including light/dark mode preference
+    and optional color palette variant. Validates mode against allowed values.
+
+    Attributes:
+        default_mode: Theme mode preference ("light", "dark", or "system")
+        default_palette: Optional palette variant name (e.g., "blue-bengal")
+
+    Raises:
+        BengalConfigError: If default_mode is not one of: light, dark, system
     """
 
     default_mode: str = "system"

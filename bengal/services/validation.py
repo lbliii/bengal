@@ -1,25 +1,41 @@
 """
-Validation service protocol and implementations.
+Template validation service protocol and default implementation.
 
-Provides protocol-based validation service interface with default implementation.
-Enables decoupled validation logic that can be swapped for different validation
-strategies or testing.
+This module defines the TemplateValidationService protocol and provides
+DefaultTemplateValidationService as the standard implementation. The service
+pattern decouples CLI commands and other consumers from concrete validation
+internals, enabling easy testing and alternative implementations.
 
-Key Concepts:
-    - Validation protocol: Protocol-based interface for validation services
-    - Template validation: Template rendering validation
-    - Service pattern: Decoupled validation logic
-    - Default implementation: DefaultTemplateValidationService adapter
-    - Dependency injection: Engine factory and validator are injectable for testing
+Architecture:
+    The validation service follows a dependency injection pattern:
 
-Related Modules:
-    - bengal.health.validators.templates: Template validation implementation
-    - bengal.rendering.template_engine: Template engine for validation
-    - bengal.cli.commands.validate: CLI validation command
+    1. TemplateValidationService defines the contract (Protocol)
+    2. DefaultTemplateValidationService adapts bengal.health.validators
+    3. Dependencies (engine factory, validator) are injectable
 
-See Also:
-    - bengal/services/validation.py:TemplateValidationService for validation protocol
-    - bengal/services/validation.py:DefaultTemplateValidationService for default implementation
+    This allows tests to inject mock factories/validators without patching.
+
+Example:
+    Using the default service::
+
+        from bengal.services.validation import DefaultTemplateValidationService
+
+        service = DefaultTemplateValidationService(strict=True)
+        errors = service.validate(site)
+        if errors > 0:
+            print(f"Found {errors} template validation errors")
+
+    Custom validator for testing::
+
+        def mock_validator(engine: Any) -> int:
+            return 0  # No errors
+
+        service = DefaultTemplateValidationService(validator=mock_validator)
+
+Related:
+    bengal.health.validators.templates: Concrete validate_templates implementation.
+    bengal.rendering.template_engine: TemplateEngine created by default factory.
+    bengal.cli.commands.validate: CLI command that consumes this service.
 """
 
 from __future__ import annotations

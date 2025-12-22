@@ -33,7 +33,7 @@ Architecture:
 
     BuildTrigger → notify_clients_reload() → increment generation
                                            → notify_all() on condition
-    
+
     SSE Handler → wait on condition with timeout (keepalive interval)
                → if generation changed: send event
                → else: send keepalive comment
