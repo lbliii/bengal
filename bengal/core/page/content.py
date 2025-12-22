@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
-    pass
+    from bengal.rendering.ast_types import ASTNode
 
 
 class PageContentMixin:
@@ -48,7 +48,7 @@ class PageContentMixin:
 
     # Fields from Page that this mixin accesses
     content: str
-    parsed_ast: Any  # Contains HTML (not AST)
+    parsed_ast: list[ASTNode] | None
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)

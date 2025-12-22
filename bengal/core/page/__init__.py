@@ -55,6 +55,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.rendering.ast_types import ASTNode
 
 from .computed import PageComputedMixin
 from .content import PageContentMixin
@@ -156,7 +157,7 @@ class Page(
     # Optional fields (with defaults)
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
-    parsed_ast: Any | None = None
+    parsed_ast: list[ASTNode] | None = None
     rendered_html: str = ""
     output_path: Path | None = None
     links: list[str] = field(default_factory=list)
