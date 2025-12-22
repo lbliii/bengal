@@ -122,6 +122,39 @@ class ResourceManager:
             self._resources.append((name, resource, cleanup_fn))
         return resource
 
+    def register_sse_shutdown(self) -> None:
+        """
+        Register SSE client shutdown for graceful cleanup.
+
+        This must be registered AFTER the HTTP server because cleanup happens
+        in LIFO (reverse) order. By registering SSE shutdown last, it runs
+        FIRST during cleanup, signaling SSE handlers to exit before the
+        server shutdown is attempted.
+
+        The SSE shutdown:
+        1. Sets a global shutdown flag
+        2. Wakes all SSE handlers waiting on the condition variable
+        3. Handlers check the flag and exit their loops cleanly
+        4. Brief sleep allows handlers to complete their exit
+
+        Without this, long-lived SSE connections (/__bengal_reload__) would
+        block server shutdown indefinitely, causing orphaned processes.
+
+        Note:
+            Call this AFTER register_server() to ensure correct cleanup order.
+        """
+        from bengal.server.live_reload import reset_sse_shutdown, shutdown_sse_clients
+
+        # Reset shutdown flag in case a previous server instance set it
+        reset_sse_shutdown()
+
+        def cleanup(_: None) -> None:
+            shutdown_sse_clients()
+            # Give SSE handlers a moment to exit cleanly
+            time.sleep(0.1)
+
+        self.register("SSE Clients", None, cleanup)
+
     def register_server(self, server: Any) -> Any:
         """
         Register HTTP server for cleanup.
@@ -134,6 +167,7 @@ class ResourceManager:
         """
 
         def cleanup(s: Any) -> None:
+            icons = get_icon_set(should_use_emoji())
             try:
                 # Shutdown in a thread with timeout to avoid hanging
                 shutdown_thread = threading.Thread(target=s.shutdown)
@@ -141,7 +175,6 @@ class ResourceManager:
                 shutdown_thread.start()
                 shutdown_thread.join(timeout=2.0)
 
-                icons = get_icon_set(should_use_emoji())
                 if shutdown_thread.is_alive():
                     print(
                         f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"

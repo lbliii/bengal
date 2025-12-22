@@ -85,6 +85,9 @@ _last_action: str = "reload"
 _reload_sent_count: int = 0
 _reload_condition = threading.Condition()
 
+# Shutdown flag to signal SSE handlers to exit
+_shutdown_requested: bool = False
+
 
 # Diagnostic: allow suppressing reload events via environment variable
 def _reload_events_disabled() -> bool:
@@ -289,8 +292,27 @@ class LiveReloadMixin:
             while True:
                 try:
                     with _reload_condition:
+                        # Check shutdown flag before waiting
+                        if _shutdown_requested:
+                            logger.debug(
+                                "sse_handler_shutdown_detected",
+                                client_address=client_addr,
+                                reason="shutdown_flag_set_before_wait",
+                            )
+                            break
+
                         # Wait up to keepalive_interval for a generation change, then send keepalive
                         _reload_condition.wait(timeout=keepalive_interval)
+
+                        # Check shutdown flag after waking up
+                        if _shutdown_requested:
+                            logger.debug(
+                                "sse_handler_shutdown_detected",
+                                client_address=client_addr,
+                                reason="shutdown_flag_set_after_wait",
+                            )
+                            break
+
                         current_generation = _reload_generation
 
                     if current_generation != last_seen_generation:
@@ -466,6 +488,41 @@ class LiveReloadMixin:
             Modified response with live reload script injected
         """
         return inject_live_reload_into_response(response)
+
+
+def shutdown_sse_clients() -> None:
+    """
+    Signal all SSE handlers to exit gracefully.
+
+    Sets the shutdown flag and wakes all handlers waiting on the condition
+    variable. Each handler will check the flag and exit its loop cleanly.
+
+    Thread Safety:
+        Safe to call from any thread. Uses condition variable for synchronization.
+
+    Note:
+        Should be called BEFORE shutting down the HTTP server to ensure
+        SSE connections close cleanly and don't block server shutdown.
+    """
+    global _shutdown_requested
+    with _reload_condition:
+        _shutdown_requested = True
+        _reload_condition.notify_all()
+    logger.info("sse_shutdown_requested", message="All SSE handlers signaled to exit")
+
+
+def reset_sse_shutdown() -> None:
+    """
+    Reset the shutdown flag for a fresh server start.
+
+    Called when starting a new server instance to clear any previous
+    shutdown state. Without this, SSE handlers would exit immediately
+    if a previous server instance requested shutdown.
+    """
+    global _shutdown_requested
+    with _reload_condition:
+        _shutdown_requested = False
+    logger.debug("sse_shutdown_reset")
 
 
 def notify_clients_reload() -> None:
