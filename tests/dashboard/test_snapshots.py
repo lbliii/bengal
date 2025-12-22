@@ -11,12 +11,20 @@ Run tests:
 Update snapshots after intentional changes:
     pytest tests/dashboard/test_snapshots.py --snapshot-update
 
+Install dependency if not present:
+    pip install pytest-textual-snapshot
+
 Reference: https://textual.textualize.io/guide/testing/#snapshot-testing
 """
 
 from __future__ import annotations
 
+import pytest
+
 from tests.dashboard.conftest import APP_PATH
+
+# Skip all tests in this module if pytest-textual-snapshot is not installed
+pytest.importorskip("pytest_textual_snapshot", reason="pytest-textual-snapshot not installed")
 
 
 class TestScreenSnapshots:
