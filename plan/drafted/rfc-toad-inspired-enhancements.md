@@ -706,9 +706,339 @@ serve = ["textual-serve>=0.1.0"]
 ## References
 
 - [Toad Repository](https://github.com/batrachianai/toad)
+- [Dolphie Repository](https://github.com/charles-001/dolphie)
 - [Textual Documentation](https://textual.textualize.io/)
 - [textual-serve](https://github.com/Textualize/textual-serve)
 - [Textual Examples](https://github.com/Textualize/textual/tree/main/examples)
+
+---
+
+## Appendix G: Dolphie Patterns Analysis
+
+### Overview
+
+Dolphie is a real-time MySQL/MariaDB & ProxySQL monitoring TUI with 500+ stars. It provides excellent patterns for:
+- Real-time data refresh with background workers
+- Multi-tab connection management
+- Comprehensive keyboard command system
+- Time-series graphing with plotext
+- Command palette with full command discovery
+
+### Architecture Highlights
+
+**File Structure**:
+```
+dolphie/
+├── App.py              # Main app (639 lines)
+├── Dolphie.py          # Core data/connection logic
+├── Dolphie.tcss        # Styling (662 lines)
+├── DataTypes.py        # Type definitions
+├── Modules/
+│   ├── TabManager.py       # Multi-tab management (900+ lines)
+│   ├── KeyEventManager.py  # Full keyboard handler (1600 lines)
+│   ├── CommandManager.py   # Command registry
+│   ├── CommandPalette.py   # Command palette provider
+│   ├── MetricManager.py    # Time-series graphing (1450 lines)
+│   ├── WorkerManager.py    # Background workers
+│   └── WorkerDataProcessor.py
+├── Panels/             # Dashboard panels (12 panels)
+└── Widgets/            # Custom widgets (9 widgets)
+```
+
+### Key Patterns for Bengal
+
+#### 1. TabManager with Multi-Connection Support
+
+```python
+class Tab:
+    """Individual tab with its own connection state."""
+    def __init__(self, id: str, name: str, dolphie: Dolphie):
+        self.id = id
+        self.name = name
+        self.dolphie = dolphie
+        self.worker: Worker = None
+        self.worker_timer: Timer = None
+    
+    def save_references_to_components(self):
+        """Cache widget references for performance."""
+        app = self.dolphie.app
+        self.panel_dashboard = app.query_one("#panel_dashboard")
+        self.panel_processlist = app.query_one("#panel_processlist")
+        # ... cache all frequently accessed widgets
+
+class TabManager:
+    def __init__(self, app: App, config: Config):
+        self.tabs: Dict[str, Tab] = {}
+        self.active_tab: Tab = None
+    
+    async def create_tab(self, tab_name: str) -> Tab:
+        tab_id = self.generate_tab_id()
+        tab = Tab(id=tab_id, name=tab_name)
+        tab.save_references_to_components()
+        self.tabs[tab_id] = tab
+        return tab
+```
+
+**Bengal Adaptation**: Multi-site dashboard tabs (monitor multiple sites)
+
+#### 2. KeyEventManager (Centralized Keyboard Handling)
+
+```python
+class KeyEventManager:
+    """Centralized keyboard event processing with debouncing."""
+    
+    def __init__(self, app: DolphieApp):
+        self.last_key_time = {}
+        self.default_debounce_interval = timedelta(milliseconds=50)
+        self.key_debounce_intervals = {
+            "space": timedelta(milliseconds=300),  # Expensive ops
+            "minus": timedelta(milliseconds=300),  # Destructive
+        }
+    
+    async def process_key_event(self, key: str) -> None:
+        # Debouncing
+        now = datetime.now()
+        debounce = self.key_debounce_intervals.get(key, self.default_debounce_interval)
+        if now - self.last_key_time.get(key, datetime.min) < debounce:
+            return
+        self.last_key_time[key] = now
+        
+        # Validate command
+        if not self.app.command_manager.get_commands().get(key):
+            self.app.notify(f"Key {key} is not valid", severity="warning")
+            return
+        
+        # Execute command
+        if key == "1":
+            self.app.toggle_panel("dashboard")
+        elif key == "r":
+            self.app.push_screen(CommandModal(command=HotkeyCommands.refresh_interval))
+        # ... 50+ key handlers
+```
+
+**Bengal Adaptation**: Centralized key handling with validation and debouncing
+
+#### 3. CommandPalette with Discovery
+
+```python
+class CommandPaletteCommands(Provider):
+    """Full command discovery and search."""
+    
+    def get_command_hits(self):
+        commands = self.app.command_manager.get_commands(
+            self.app.tab_manager.active_tab.dolphie.connection_source
+        )
+        
+        max_key_length = max(len(data["human_key"]) for data in commands.values())
+        
+        return {
+            key: {
+                "display": f"[{data['human_key'].center(max_key_length)}] {data['description']}",
+                "command": partial(self.async_command, key),
+            }
+            for key, data in commands.items()
+        }
+    
+    async def discover(self):
+        for data in self.get_command_hits().values():
+            yield DiscoveryHit(display=data["display"], command=data["command"])
+    
+    async def search(self, query: str):
+        hits = []
+        for data in self.get_command_hits().values():
+            score = self.matcher(query).match(data["text"])
+            if score > 0:
+                hits.append(Hit(score=score, match_display=data["display"], ...))
+        hits.sort(key=lambda h: h.score, reverse=True)
+        for hit in hits:
+            yield hit
+```
+
+**Bengal Adaptation**: Show all commands with key bindings in discovery mode
+
+#### 4. TopBar with Reactive Status
+
+```python
+class TopBar(Container):
+    """Status bar with reactive properties."""
+    
+    host = reactive("", always_update=True)
+    replay_file_size = reactive("", always_update=True)
+    connection_status = reactive("")
+    
+    def _update_topbar_host(self):
+        recording = f"| RECORDING: {format_bytes(self.replay_file_size)}" if self.replay_file_size else ""
+        self.topbar_host.update(f"[{self.connection_status}] {self.host} {recording}")
+    
+    def watch_host(self):
+        self._update_topbar_host()
+    
+    def compose(self) -> ComposeResult:
+        yield Label(self.app_title, id="topbar_title")
+        yield Label("", id="topbar_host")
+        yield Label("press ? for commands", id="topbar_help")
+```
+
+**Bengal Adaptation**: Build status in top bar with reactive updates
+
+#### 5. SpinnerWidget for Background Operations
+
+```python
+class SpinnerWidget(Static):
+    """Animated spinner using Rich Spinner."""
+    
+    def __init__(self, id, text):
+        super().__init__("")
+        self._spinner = Spinner("bouncingBar", text=f"[label]{text}", speed=0.7)
+    
+    def on_mount(self) -> None:
+        self.update_render = self.set_interval(1 / 60, self.update_spinner)
+    
+    def hide(self) -> None:
+        self.display = False
+    
+    def show(self) -> None:
+        self.display = True
+    
+    def update_spinner(self) -> None:
+        self.update(self._spinner)
+```
+
+**Bengal Adaptation**: Spinner during build operations
+
+#### 6. MetricManager with Plotext Graphs
+
+```python
+class Graph(Static):
+    """Time-series graph widget using plotext."""
+    
+    def render_graph(self, metric_instance, datetimes):
+        plt.clf()
+        plt.date_form("d/m/y H:M:S")
+        plt.canvas_color((10, 14, 27))
+        plt.plotsize(self.size.width, self.size.height)
+        
+        for metric_name, metric_data in metric_instance.__dict__.items():
+            if isinstance(metric_data, MetricData) and metric_data.visible:
+                plt.plot(datetimes, metric_data.values, 
+                        label=metric_data.label, color=metric_data.color)
+        
+        self.update(Text.from_ansi(plt.build()))
+
+@dataclass
+class MetricData:
+    label: str
+    color: tuple
+    values: deque = field(default_factory=lambda: deque(maxlen=60))
+    visible: bool = True
+    graphable: bool = True
+```
+
+**Bengal Adaptation**: Build time graphs, page count trends
+
+#### 7. Panel Toggle Pattern
+
+```python
+def toggle_panel(self, panel_name: str):
+    """Toggle panel visibility with state tracking."""
+    panel = self.tab_manager.active_tab.get_panel_widget(panel_name)
+    new_display = not panel.display
+    
+    # Update internal state
+    setattr(getattr(self.tab_manager.active_tab.dolphie.panels, panel_name), "visible", new_display)
+    
+    # Refresh panel content if now visible
+    if panel_name not in ["graphs"]:
+        self.refresh_panel(self.tab_manager.active_tab, panel_name, toggled=True)
+    
+    panel.display = new_display
+```
+
+#### 8. Background Worker Pattern with Thread Safety
+
+```python
+class KeyEventManager:
+    def execute_command_in_thread(self, key: str, additional_data=None):
+        """Run command in background thread."""
+        def _run_command():
+            self._execute_command(key, additional_data)
+        
+        thread = threading.Thread(target=_run_command, daemon=True)
+        thread.start()
+    
+    def _execute_command(self, key: str, additional_data=None):
+        """Internal implementation with thread-safe UI updates."""
+        tab = self.app.tab_manager.active_tab
+        
+        # Show spinner safely
+        self.app.call_from_thread(tab.spinner.show)
+        
+        try:
+            # Do expensive work...
+            result = self.fetch_data()
+            
+            # Update UI safely
+            self.app.call_from_thread(self.show_result_screen, result)
+        finally:
+            self.app.call_from_thread(tab.spinner.hide)
+```
+
+### Dolphie CSS Patterns
+
+```css
+/* Custom scrollbar colors */
+* {
+    scrollbar-background: #161e31;
+    scrollbar-color: #33405d;
+    scrollbar-color-hover: #404f71;
+}
+
+/* DataTable styling with zebra stripes */
+DataTable {
+    background: #0f1525;
+    
+    & > .datatable--odd-row { background: #131a2c; }
+    & > .datatable--even-row { background: #0f1525; }
+    & > .datatable--header { background: transparent; }
+}
+
+/* TopBar layout */
+TopBar {
+    dock: top;
+    background: #192036;
+    height: 1;
+    layout: horizontal;
+}
+
+/* Percentage-based widths for responsive layout */
+#topbar_title { width: 15%; }
+#topbar_host { width: 70%; content-align: center middle; }
+#topbar_help { width: 15%; content-align: right middle; }
+
+/* Modal styling */
+ModalScreen {
+    background: #0d1015 70%;
+    align: center middle;
+}
+```
+
+### Priority Updates from Dolphie
+
+| Pattern | Priority | Effort |
+|---------|----------|--------|
+| SpinnerWidget (Rich Spinner) | **P1** | Low |
+| KeyEventManager (debouncing) | **P2** | Medium |
+| TopBar with reactive status | **P1** | Low |
+| Plotext graphs for metrics | **P3** | Medium |
+| Multi-tab TabManager | **P3** | High |
+| Command discovery in palette | **P1** | Medium |
+
+### New Bengal Widgets (from Dolphie)
+
+1. **BengalSpinner** - Rich Spinner wrapper for async operations
+2. **BengalTopBar** - Reactive status bar with build info
+3. **BuildGraph** - Plotext time-series for build metrics
+4. **BengalKeyManager** - Centralized keyboard handling with debouncing
 
 ---
 
