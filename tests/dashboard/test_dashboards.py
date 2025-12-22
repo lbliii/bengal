@@ -93,6 +93,20 @@ class TestDashboardImports:
         assert Tree is not None
         assert TabbedContent is not None
 
+    def test_import_custom_widgets(self):
+        """Test custom Bengal widget imports."""
+        from bengal.cli.dashboard.widgets import (
+            BengalThrobber,
+            BuildFlash,
+            BuildPhasePlan,
+            QuickAction,
+        )
+
+        assert BengalThrobber is not None
+        assert BuildFlash is not None
+        assert BuildPhasePlan is not None
+        assert QuickAction is not None
+
 
 class TestMessages:
     """Test message dataclasses."""
@@ -247,6 +261,7 @@ class TestScreens:
             BuildScreen,
             HealthScreen,
             HelpScreen,
+            LandingScreen,
             ServeScreen,
         )
 
@@ -255,6 +270,7 @@ class TestScreens:
         assert ServeScreen is not None
         assert HealthScreen is not None
         assert HelpScreen is not None
+        assert LandingScreen is not None
 
 
 class TestCommands:
@@ -280,3 +296,139 @@ class TestCommands:
         command_names = [c["name"] for c in BengalCommandProvider.COMMANDS]
         assert "Rebuild Site" in command_names
         assert "Quit" in command_names
+
+    def test_discover_method_exists(self):
+        """Test BengalCommandProvider has discover method."""
+        import inspect
+
+        from bengal.cli.dashboard.commands import BengalCommandProvider
+
+        # Provider should have discover method for showing hits before typing
+        assert hasattr(BengalCommandProvider, "discover")
+        assert inspect.iscoroutinefunction(BengalCommandProvider.discover)
+
+
+class TestCustomWidgets:
+    """Test custom Bengal widgets."""
+
+    def test_throbber_visual_import(self):
+        """Test BengalThrobberVisual can be imported."""
+        from bengal.cli.dashboard.widgets.throbber import BengalThrobberVisual
+
+        assert BengalThrobberVisual is not None
+
+    def test_throbber_widget_init(self):
+        """Test BengalThrobber widget initialization."""
+        from bengal.cli.dashboard.widgets import BengalThrobber
+
+        throbber = BengalThrobber()
+        assert throbber.active is False
+
+    def test_flash_widget_init(self):
+        """Test BuildFlash widget initialization."""
+        from bengal.cli.dashboard.widgets import BuildFlash
+
+        flash = BuildFlash()
+        assert flash is not None
+
+    def test_phase_plan_widget_import(self):
+        """Test BuildPhasePlan widget can be imported."""
+        from bengal.cli.dashboard.widgets import BuildPhasePlan
+        from bengal.cli.dashboard.widgets.phase_plan import BuildPhase
+
+        assert BuildPhasePlan is not None
+        assert BuildPhase is not None
+
+    def test_build_phase_dataclass(self):
+        """Test BuildPhase dataclass."""
+        from bengal.cli.dashboard.widgets.phase_plan import BuildPhase
+
+        phase = BuildPhase(
+            name="discovery",
+            status="running",
+            duration_ms=150,
+        )
+        assert phase.name == "discovery"
+        assert phase.status == "running"
+        assert phase.duration_ms == 150
+
+    def test_build_phase_plan_status_icons(self):
+        """Test BuildPhasePlan has status icons."""
+        from bengal.cli.dashboard.widgets import BuildPhasePlan
+
+        # Test all status icons via the class
+        icons = BuildPhasePlan.STATUS_ICONS
+        assert icons["pending"] == "○"
+        assert icons["running"] == "●"
+        assert icons["complete"] == "✓"
+        assert icons["error"] == "✗"
+
+    def test_quick_action_widget_init(self):
+        """Test QuickAction widget initialization."""
+        from bengal.cli.dashboard.widgets import QuickAction
+
+        # QuickAction uses positional args: emoji, title, description
+        action = QuickAction(
+            "🚀",
+            "Test Action",
+            "Test description",
+            id="test-action",
+        )
+        assert action.emoji == "🚀"
+        assert action.action_title == "Test Action"  # Note: stored as action_title
+        assert action.description == "Test description"
+        assert action.id == "test-action"
+
+    def test_quick_action_message(self):
+        """Test QuickAction.Selected message."""
+        from bengal.cli.dashboard.widgets.quick_action import QuickAction
+
+        # Check message class exists
+        assert hasattr(QuickAction, "Selected")
+
+
+class TestAppConfiguration:
+    """Test BengalApp configuration and signals."""
+
+    def test_app_with_start_screen(self):
+        """Test BengalApp with different start screens."""
+        from bengal.cli.dashboard.app import BengalApp
+
+        # Test build start screen
+        app = BengalApp(site=None, start_screen="build")
+        assert app.start_screen == "build"
+
+        # Test serve start screen
+        app = BengalApp(site=None, start_screen="serve")
+        assert app.start_screen == "serve"
+
+        # Test health start screen
+        app = BengalApp(site=None, start_screen="health")
+        assert app.start_screen == "health"
+
+    def test_app_config_signal_exists(self):
+        """Test BengalApp has config_changed_signal."""
+        from bengal.cli.dashboard.app import BengalApp
+
+        app = BengalApp(site=None)
+        assert hasattr(app, "config_changed_signal")
+
+    def test_app_update_config(self):
+        """Test BengalApp.update_config method."""
+        from bengal.cli.dashboard.app import BengalApp
+
+        app = BengalApp(site=None)
+
+        # Update config
+        app.update_config("test_key", "test_value")
+
+        # Check config was stored
+        assert app._config["test_key"] == "test_value"
+
+    def test_app_command_providers(self):
+        """Test BengalApp has command providers."""
+        from bengal.cli.dashboard.app import BengalApp
+
+        # BengalApp registers command providers via COMMANDS class var
+        assert hasattr(BengalApp, "COMMANDS")
+        assert len(BengalApp.COMMANDS) > 0

@@ -60,7 +60,38 @@ from .base import BengalCommand, BengalGroup
     is_flag=True,
     help="Launch unified interactive dashboard (Textual TUI)",
 )
-def main(ctx: click.Context, dashboard: bool = False) -> None:
+@click.option(
+    "--start",
+    "-s",
+    type=click.Choice(["build", "serve", "health", "landing"]),
+    default="build",
+    help="Start dashboard on specific screen (requires --dashboard)",
+)
+@click.option(
+    "--serve",
+    "serve_web",
+    is_flag=True,
+    help="Serve dashboard as web app via textual-serve (requires --dashboard)",
+)
+@click.option(
+    "--port",
+    type=int,
+    default=8000,
+    help="Port for web dashboard server (default: 8000)",
+)
+@click.option(
+    "--host",
+    default="localhost",
+    help="Host for web dashboard server (default: localhost)",
+)
+def main(
+    ctx: click.Context,
+    dashboard: bool = False,
+    start: str = "build",
+    serve_web: bool = False,
+    port: int = 8000,
+    host: str = "localhost",
+) -> None:
     """
     Bengal Static Site Generator CLI.
 
@@ -76,7 +107,26 @@ def main(ctx: click.Context, dashboard: bool = False) -> None:
     if dashboard:
         from bengal.cli.dashboard import run_unified_dashboard
 
-        run_unified_dashboard()
+        if serve_web:
+            # Serve dashboard as web app via textual-serve
+            try:
+                from textual_serve.server import Server
+            except ImportError:
+                cli = CLIOutput()
+                cli.error_header("textual-serve not installed", mouse=True)
+                cli.info("Install with: pip install 'bengal[serve]' or pip install textual-serve")
+                raise SystemExit(1) from None
+
+            # Reconstruct command without --serve to avoid recursion
+            import sys
+
+            cmd = f"{sys.executable} -m bengal --dashboard --start {start}"
+            server = Server(cmd, host=host, port=port, title="Bengal Dashboard")
+            cli = CLIOutput()
+            cli.success(f"Starting Bengal Dashboard at http://{host}:{port}")
+            server.serve()
+        else:
+            run_unified_dashboard(start_screen=start)
         return
 
     # Show welcome banner if no command provided (but not if --help was used)

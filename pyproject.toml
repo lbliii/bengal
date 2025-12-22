@@ -48,6 +48,9 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Web-based dashboard access
+serve = ["textual-serve>=0.1.0"]
+
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
 github = ["aiohttp>=3.9.0"]

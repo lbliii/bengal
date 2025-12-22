@@ -4,46 +4,62 @@ Widget imports and custom widgets for Bengal dashboards.
 Re-exports commonly used Textual widgets and provides
 Bengal-specific widget customizations.
 
+DEPRECATION: This module is now a compatibility shim.
+Import directly from bengal.cli.dashboard.widgets package instead.
+
 Usage:
     from bengal.cli.dashboard.widgets import (
-        Header, Footer, ProgressBar, DataTable, Log, Tree
+        Header, Footer, ProgressBar, DataTable, Log, Tree,
+        BengalThrobber, BuildFlash, BuildPhasePlan, QuickAction
     )
 """
 
 from __future__ import annotations
 
-# Re-export containers
-from textual.containers import (
+# Re-export everything from the widgets package
+from bengal.cli.dashboard.widgets import (
+    # Custom Bengal Widgets
+    BengalThrobber,
+    BengalThrobberVisual,
+    BuildFlash,
+    BuildPhase,
+    BuildPhasePlan,
+    # Standard Widgets
+    Button,
     Center,
     Container,
-    Grid,
-    Horizontal,
-    HorizontalScroll,
-    ScrollableContainer,
-    Vertical,
-    VerticalScroll,
-)
-
-# Re-export Textual widgets for convenience
-from textual.widgets import (
-    Button,
     DataTable,
     Footer,
+    Grid,
     Header,
+    Horizontal,
+    HorizontalScroll,
     Label,
     ListItem,
     ListView,
     Log,
     ProgressBar,
+    QuickAction,
     Rule,
+    ScrollableContainer,
+    Sparkline,
     Static,
     TabbedContent,
     TabPane,
     Tree,
+    Vertical,
+    VerticalScroll,
 )
 
 __all__ = [
-    # Widgets
+    # Custom Bengal Widgets
+    "BengalThrobber",
+    "BengalThrobberVisual",
+    "BuildFlash",
+    "BuildPhase",
+    "BuildPhasePlan",
+    "QuickAction",
+    # Standard Widgets
     "Header",
     "Footer",
     "ProgressBar",
@@ -58,6 +74,7 @@ __all__ = [
     "TabPane",
     "ListView",
     "ListItem",
+    "Sparkline",
     # Containers
     "Container",
     "Vertical",

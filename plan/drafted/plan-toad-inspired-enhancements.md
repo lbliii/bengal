@@ -3,7 +3,7 @@
 **Status**: Draft  
 **RFC**: [rfc-toad-inspired-enhancements.md](./rfc-toad-inspired-enhancements.md)  
 **Created**: 2024-12-21  
-**Estimated Total Effort**: ~20 hours
+**Estimated Total Effort**: ~23 hours
 
 ---
 
@@ -12,11 +12,12 @@
 Implement dashboard enhancements inspired by Toad and Dolphie patterns, prioritized by impact/effort ratio.
 
 **Key Deliverables**:
-1. CLI enhancements (`--start`, `--serve`)
+1. CLI enhancements (`--start`, `--serve`, `--palette`)
 2. New widgets (Throbber, Flash, BuildPhasePlan)
 3. Command palette providers
 4. CSS state management patterns
 5. Landing screen (P2)
+6. Dashboard theme token sync with palette variants (P2)
 
 ---
 
@@ -414,6 +415,126 @@ git add -A && git commit -m "perf: verify dashboard performance meets targets"
 
 ---
 
+## Phase 7: Dashboard Theme Token Sync (P2)
+
+**Effort**: 3 hours  
+**Dependencies**: Phase 0 (CSS state classes)
+
+### Context
+
+Currently, `bengal.tcss` uses **hardcoded hex values** while the site themes use a
+comprehensive token system with **5 palette variants** (default, blue-bengal, charcoal-bengal,
+silver-bengal, snow-lynx). This phase synchronizes dashboard styling with the site theme system.
+
+### Task 7.1: Extend Token Generator for TCSS Variables
+
+**File**: `bengal/themes/generate.py`
+
+- [ ] Add `generate_tcss_variables(palette)` function
+- [ ] Generate Textual CSS variable syntax (`$primary: #FF9D00;`)
+- [ ] Support all fields from `BengalPalette` and `PaletteVariant`
+- [ ] Add CLI command to generate TCSS variables block
+
+```bash
+git add -A && git commit -m "themes(generate): add TCSS variable generation from palette tokens"
+```
+
+### Task 7.2: Create Base Variables TCSS
+
+**File**: `bengal/cli/dashboard/tokens.tcss` (new)
+
+- [ ] Generate default palette variables:
+  ```tcss
+  $primary: #FF9D00;
+  $secondary: #3498DB;
+  $accent: #F1C40F;
+  $success: #2ECC71;
+  $warning: #E67E22;
+  $error: #E74C3C;
+  $info: #95A5A6;
+  $surface: #1e1e1e;
+  $background: #121212;
+  $foreground: #e0e0e0;
+  $border: #3a3a3a;
+  ```
+- [ ] Add generation comment header
+
+```bash
+git add -A && git commit -m "cli(dashboard): add tokens.tcss with palette variables from tokens.py"
+```
+
+### Task 7.3: Refactor bengal.tcss to Use Variables
+
+**File**: `bengal/cli/dashboard/bengal.tcss`
+
+- [ ] Replace all hardcoded `#FF9D00` → `$primary`
+- [ ] Replace all hardcoded `#2ECC71` → `$success`
+- [ ] Replace all hardcoded `#E74C3C` → `$error`
+- [ ] Replace all hardcoded `#E67E22` → `$warning`
+- [ ] Replace all hardcoded `#3498DB` → `$secondary`
+- [ ] Replace all hardcoded `#1e1e1e` → `$surface`
+- [ ] Replace all hardcoded `#121212` → `$background`
+- [ ] Replace all hardcoded `#3a3a3a` → `$border`
+- [ ] Keep color reference comment at top updated
+
+```bash
+git add -A && git commit -m "cli(dashboard): refactor bengal.tcss to use $variables from tokens.tcss"
+```
+
+### Task 7.4: Generate Palette Variant TCSS Files
+
+**Files**: `bengal/cli/dashboard/palettes/` (new directory)
+
+- [ ] Create `default.tcss` (variables only)
+- [ ] Create `blue-bengal.tcss`
+- [ ] Create `charcoal-bengal.tcss`
+- [ ] Create `silver-bengal.tcss`
+- [ ] Create `snow-lynx.tcss`
+- [ ] Each file contains only variable overrides
+
+```bash
+git add -A && git commit -m "cli(dashboard): generate palette variant TCSS files from tokens.py"
+```
+
+### Task 7.5: Add `--palette` CLI Flag
+
+**File**: `bengal/cli/commands/dashboard.py`
+
+- [ ] Add `--palette` option with choices from `PALETTE_VARIANTS.keys()`
+- [ ] Default to `"default"`
+- [ ] Pass palette name to `BengalApp`
+
+```bash
+git add -A && git commit -m "cli(dashboard): add --palette flag for theme variant selection"
+```
+
+### Task 7.6: Load Palette TCSS in BengalApp
+
+**File**: `bengal/cli/dashboard/app.py`
+
+- [ ] Accept `palette` parameter in `__init__`
+- [ ] Load `tokens.tcss` first (base variables)
+- [ ] Load `palettes/{palette}.tcss` to override variables
+- [ ] Use `CSS_PATH` list or dynamic CSS loading
+
+```bash
+git add -A && git commit -m "cli(dashboard): dynamically load palette TCSS based on --palette flag"
+```
+
+### Task 7.7: Add Validation to Token Generator
+
+**File**: `bengal/themes/generate.py`
+
+- [ ] Update `validate_tcss_tokens()` to check for `$variable` usage
+- [ ] Warn if hardcoded hex values found in `bengal.tcss`
+- [ ] Add `--validate-tcss` CLI option
+
+```bash
+git add -A && git commit -m "themes(generate): validate TCSS uses variables, not hardcoded colors"
+```
+
+---
+
 ## Backlog (P3)
 
 Future enhancements not in current scope:
@@ -457,6 +578,12 @@ Future enhancements not in current scope:
 | `bengal/cli/dashboard/widgets/quick_action.py` | Landing screen grid item |
 | `bengal/cli/dashboard/commands.py` | Command palette providers |
 | `bengal/cli/dashboard/screens/landing.py` | Landing screen |
+| `bengal/cli/dashboard/tokens.tcss` | Base palette variables |
+| `bengal/cli/dashboard/palettes/default.tcss` | Default palette |
+| `bengal/cli/dashboard/palettes/blue-bengal.tcss` | Blue Bengal palette |
+| `bengal/cli/dashboard/palettes/charcoal-bengal.tcss` | Charcoal Bengal palette |
+| `bengal/cli/dashboard/palettes/silver-bengal.tcss` | Silver Bengal palette |
+| `bengal/cli/dashboard/palettes/snow-lynx.tcss` | Snow Lynx palette |
 | `tests/unit/cli/dashboard/test_widgets.py` | Widget tests |
 | `tests/unit/cli/dashboard/test_commands.py` | Provider tests |
 
@@ -464,14 +591,15 @@ Future enhancements not in current scope:
 
 | File | Changes |
 |------|---------|
-| `bengal/cli/commands/dashboard.py` | Add `--start`, `--serve`, `--port`, `--host` |
-| `bengal/cli/dashboard/app.py` | Add MODES, signal, providers |
-| `bengal/cli/dashboard/bengal.tcss` | Add state classes |
+| `bengal/cli/commands/dashboard.py` | Add `--start`, `--serve`, `--port`, `--host`, `--palette` |
+| `bengal/cli/dashboard/app.py` | Add MODES, signal, providers, palette loading |
+| `bengal/cli/dashboard/bengal.tcss` | Refactor to use `$variables`, add state classes |
 | `bengal/cli/dashboard/base.py` | Update footer |
 | `bengal/cli/dashboard/build.py` | Add throbber, getters, reactives |
 | `bengal/cli/dashboard/serve.py` | Add getters |
 | `bengal/cli/dashboard/health.py` | Add getters |
 | `bengal/cli/dashboard/screens.py` | Add signal subscription |
+| `bengal/themes/generate.py` | Add TCSS generation and validation |
 | `pyproject.toml` | Add textual-serve optional dep |
 
 ---
@@ -480,10 +608,13 @@ Future enhancements not in current scope:
 
 - [ ] `bengal --dashboard --serve` opens in browser
 - [ ] `bengal --dashboard --start health` jumps to health screen
+- [ ] `bengal --dashboard --palette charcoal-bengal` uses charcoal theme
 - [ ] Throbber animates during builds
 - [ ] Command palette finds pages by title
 - [ ] Command palette shows keyboard shortcuts
 - [ ] Landing screen displays site summary
+- [ ] Dashboard uses `$variables` (no hardcoded colors in bengal.tcss)
+- [ ] All 5 palette variants render correctly
 - [ ] All existing tests pass
 - [ ] No performance regression (build dashboard <100ms)
 
@@ -510,6 +641,6 @@ Future enhancements not in current scope:
 - Command palette + Config signal
 - ~5 hours
 
-**Sprint 3** (Week 3): Phases 5-6
-- Landing screen + Tests
-- ~8 hours
+**Sprint 3** (Week 3): Phases 5-7
+- Landing screen + Tests + Theme token sync
+- ~11 hours

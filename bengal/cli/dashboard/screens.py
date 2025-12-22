@@ -2,11 +2,12 @@
 Screen classes for Bengal unified dashboard.
 
 Each screen represents a mode of the unified dashboard:
+- LandingScreen: Site overview and quick actions
 - BuildScreen: Build progress and phase timing
 - ServeScreen: Dev server with file watching
 - HealthScreen: Site health explorer
 
-Screens are navigated via number keys (1, 2, 3) or command palette.
+Screens are navigated via number keys (0, 1, 2, 3) or command palette.
 """
 
 from __future__ import annotations
@@ -15,9 +16,9 @@ from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Header, Log, Static
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -28,15 +29,38 @@ class BengalScreen(Screen):
     Base screen for Bengal unified dashboard.
 
     All screens share common bindings and styling.
+    Subscribes to config_changed_signal for reactive updates.
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
+        Binding("0", "goto_landing", "Home", show=False),
         Binding("1", "goto_build", "Build", show=True),
         Binding("2", "goto_serve", "Serve", show=True),
         Binding("3", "goto_health", "Health", show=True),
         Binding("q", "quit", "Quit"),
         Binding("?", "toggle_help", "Help"),
     ]
+
+    def on_mount(self) -> None:
+        """Subscribe to config changes when mounted."""
+        # Subscribe to config signal if app supports it
+        if hasattr(self.app, "config_changed_signal"):
+            self.app.config_changed_signal.subscribe(self, self.on_config_changed)
+
+    def on_config_changed(self, data: tuple[str, object]) -> None:
+        """
+        Handle config changes from app.
+
+        Args:
+            data: Tuple of (key, value) for the changed config
+        """
+        key, value = data
+        # Subclasses can override to handle specific config changes
+        pass
+
+    def action_goto_landing(self) -> None:
+        """Switch to landing screen."""
+        self.app.switch_screen("landing")
 
     def action_goto_build(self) -> None:
         """Switch to build screen."""
@@ -55,30 +79,162 @@ class BengalScreen(Screen):
         self.app.push_screen("help")
 
 
+class LandingScreen(BengalScreen):
+    """
+    Landing screen with site overview and quick actions.
+
+    Shows:
+    - Bengal branding with version
+    - Site summary (pages, assets, last build)
+    - Quick action grid (Build, Serve, Health)
+    - Recent activity log
+    """
+
+    BINDINGS: ClassVar[list[Binding]] = [
+        *BengalScreen.BINDINGS,
+        Binding("b", "goto_build", "Build", show=False),
+        Binding("s", "goto_serve", "Serve", show=False),
+        Binding("h", "goto_health", "Health", show=False),
+    ]
+
+    def __init__(self, site: Site | None = None, **kwargs) -> None:
+        """Initialize landing screen."""
+        super().__init__(**kwargs)
+        self.site = site
+
+    def compose(self) -> ComposeResult:
+        """Compose landing screen layout."""
+        from bengal.cli.dashboard.widgets import Grid, QuickAction
+
+        yield Header()
+
+        with Vertical(id="main-content"):
+            # Branding section
+            with Vertical(id="landing-header"):
+                yield Static(self._get_branding(), id="branding")
+                yield Static(self._get_site_summary(), id="site-summary")
+
+            # Quick action grid
+            with Grid(id="quick-actions"):
+                yield QuickAction(
+                    "🔨",
+                    "Build Site",
+                    "Run a full site build",
+                    id="action-build",
+                )
+                yield QuickAction(
+                    "🌐",
+                    "Dev Server",
+                    "Start development server",
+                    id="action-serve",
+                )
+                yield QuickAction(
+                    "🏥",
+                    "Health Check",
+                    "Run site validators",
+                    id="action-health",
+                )
+
+            # Activity log
+            with Vertical(id="activity"):
+                yield Static("Recent Activity:", classes="section-header")
+                yield Log(id="activity-log", auto_scroll=True)
+
+        yield Footer()
+
+    def _get_branding(self) -> str:
+        """Get Bengal branding text with version."""
+        try:
+            from bengal import __version__
+
+            version = __version__
+        except ImportError:
+            version = "0.1.0"
+
+        # ASCII art Bengal cat
+        mascot = getattr(self.app, "mascot", "🐱")
+
+        return f"""
+{mascot}  Bengal v{version}
+Static Site Generator
+"""
+
+    def _get_site_summary(self) -> str:
+        """Get site summary text."""
+        if not self.site:
+            return "No site loaded. Run 'bengal new site' to create one."
+
+        title = getattr(self.site, "title", "Untitled Site")
+        pages = getattr(self.site, "pages", [])
+        assets = getattr(self.site, "assets", [])
+
+        page_count = len(pages) if pages else 0
+        asset_count = len(assets) if assets else 0
+
+        return f"""Site: {title}
+Pages: {page_count} | Assets: {asset_count}
+"""
+
+    def on_mount(self) -> None:
+        """Set up landing screen."""
+        super().on_mount()
+
+        # Add welcome message to activity log
+        log = self.query_one("#activity-log", Log)
+        log.write_line("Welcome to Bengal Dashboard!")
+        log.write_line("Press 1, 2, or 3 to switch screens")
+        log.write_line("Press ? for keyboard shortcuts")
+
+    def on_quick_action_selected(self, message) -> None:
+        """Handle quick action selection."""
+        action_id = message.action_id
+        if action_id == "action-build":
+            self.app.switch_screen("build")
+        elif action_id == "action-serve":
+            self.app.switch_screen("serve")
+        elif action_id == "action-health":
+            self.app.switch_screen("health")
+
+
 class BuildScreen(BengalScreen):
     """
     Build screen for the unified dashboard.
 
     Shows build progress, phase timing, and output log.
-    Reuses components from BengalBuildDashboard.
+    Integrates BengalThrobber for animated loading and BuildFlash for status.
     """
 
-    def __init__(self, site: Site | None = None, **kwargs):
+    BINDINGS: ClassVar[list[Binding]] = [
+        *BengalScreen.BINDINGS,
+        Binding("r", "rebuild", "Rebuild"),
+        Binding("c", "clear_log", "Clear"),
+    ]
+
+    def __init__(self, site: Site | None = None, **kwargs) -> None:
         """Initialize build screen."""
         super().__init__(**kwargs)
         self.site = site
 
     def compose(self) -> ComposeResult:
         """Compose build screen layout."""
-        from textual.widgets import DataTable, Log, ProgressBar
+        from textual.widgets import DataTable, ProgressBar
+
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
 
         yield Header()
 
         with Vertical(id="main-content"):
             yield Static("🔨 Build Dashboard", id="screen-title", classes="section-header")
+
+            # Throbber for animated loading
+            yield BengalThrobber(id="build-throbber")
+
+            # Flash notifications
+            yield BuildFlash(id="build-flash")
+
             yield ProgressBar(total=100, show_eta=False, id="build-progress")
 
-            with Vertical(classes="section"):
+            with Vertical(classes="section", id="build-stats"):
                 yield Static("Build Phases:", classes="section-header")
                 yield DataTable(id="phase-table")
 
@@ -90,6 +246,7 @@ class BuildScreen(BengalScreen):
 
     def on_mount(self) -> None:
         """Set up build screen."""
+        super().on_mount()
         from textual.widgets import DataTable
 
         table = self.query_one("#phase-table", DataTable)
@@ -97,7 +254,32 @@ class BuildScreen(BengalScreen):
 
         phases = ["Discovery", "Taxonomies", "Rendering", "Assets", "Postprocess"]
         for phase in phases:
-            table.add_row("·", phase, "-", "", key=phase)
+            table.add_row("○", phase, "-", "", key=phase)
+
+    def on_config_changed(self, data: tuple[str, object]) -> None:
+        """Handle config changes for UI toggles."""
+        key, value = data
+        if key == "show_stats":
+            self.set_class(not value, "-hide-stats")
+
+    def action_rebuild(self) -> None:
+        """Trigger rebuild."""
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+
+        # Show throbber and flash
+        throbber = self.query_one("#build-throbber", BengalThrobber)
+        throbber.active = True
+
+        flash = self.query_one("#build-flash", BuildFlash)
+        flash.show_building("Starting build...")
+
+        self.app.notify("Rebuild triggered...", title="Build")
+
+    def action_clear_log(self) -> None:
+        """Clear the build log."""
+        log = self.query_one("#build-log", Log)
+        log.clear()
+        self.app.notify("Log cleared")
 
 
 class ServeScreen(BengalScreen):
@@ -172,7 +354,6 @@ class HealthScreen(BengalScreen):
 
     def compose(self) -> ComposeResult:
         """Compose health screen layout."""
-        from textual.containers import Horizontal
         from textual.widgets import Static, Tree
 
         yield Header()
