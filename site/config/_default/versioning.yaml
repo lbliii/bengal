@@ -2,7 +2,7 @@
 # See: docs/content/versioning/ for full documentation
 
 versioning:
-  enabled: true
+  enabled: false
 
   # Sections to version (only these sections get version prefixes)
   sections:

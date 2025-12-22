@@ -24,3 +24,7 @@ assets:
 health_check:
   enabled: true   # Enable for local dev to catch issues early
   verbose: true   # Show INFO-level warnings (broken links, directive issues)
+
+# Enable versioning for local development
+versioning:
+  enabled: true
