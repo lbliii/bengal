@@ -1,0 +1,80 @@
+{#-
+Product JSON-LD Structured Data Component
+
+Generates schema.org Product structured data for SEO optimization.
+Only renders when:
+  1. page.structured_data is true
+  2. page.type == 'product'
+
+Uses page frontmatter:
+  - title: Product name
+  - description: Product description
+  - price: Product price
+  - currency: Currency code (default: USD)
+  - sku: Stock keeping unit
+  - in_stock: Boolean availability
+  - images: List of image URLs
+
+Example frontmatter:
+  ---
+  title: Product Name
+  type: product
+  price: 99.99
+  currency: USD
+  sku: "PROD-001"
+  in_stock: true
+  images:
+    - /images/product.jpg
+  structured_data: true
+  ---
+
+Usage in base.html or product layout:
+  {% include "partials/product-jsonld.html" %}
+-#}
+
+{%- if page.structured_data and page.type == 'product' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": {{ page.title | tojson }},
+  "description": {{ (page.description | default(page.summary | default(''))) | tojson }},
+  {%- if page.images %}
+  "image": {{ page.images | tojson }},
+  {%- elif page.image %}
+  "image": {{ [page.image] | tojson }},
+  {%- else %}
+  "image": [],
+  {%- endif %}
+  {%- if page.sku %}
+  "sku": {{ page.sku | tojson }},
+  {%- endif %}
+  {%- if page.brand %}
+  "brand": {
+    "@type": "Brand",
+    "name": {{ page.brand | tojson }}
+  },
+  {%- endif %}
+  "offers": {
+    "@type": "Offer",
+    {%- if page.price %}
+    "price": {{ page.price | string | tojson }},
+    {%- endif %}
+    "priceCurrency": {{ (page.currency | default("USD")) | tojson }},
+    "availability": "https://schema.org/{% if page.in_stock | default(true) %}InStock{% else %}OutOfStock{% endif %}",
+    {%- if page.url %}
+    "url": "{{ site.baseurl }}{{ page.url }}",
+    {%- endif %}
+    "priceValidUntil": "{{ (page.price_valid_until | default((now() | dateformat('%Y-12-31')))) }}"
+  }
+  {%- if page.aggregate_rating %}
+  ,
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": {{ page.aggregate_rating.value | default(4.5) | string | tojson }},
+    "reviewCount": {{ page.aggregate_rating.count | default(1) | string | tojson }}
+  }
+  {%- endif %}
+}
+</script>
+{%- endif %}

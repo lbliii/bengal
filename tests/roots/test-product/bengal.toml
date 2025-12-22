@@ -1,0 +1,12 @@
+[site]
+title = "Test Product Site"
+baseurl = "/"
+description = "Test site for product template integration tests"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[data]
+dir = "data"

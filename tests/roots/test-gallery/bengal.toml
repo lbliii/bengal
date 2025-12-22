@@ -1,0 +1,9 @@
+[site]
+title = "Test Gallery"
+baseurl = "/"
+description = "Test site for gallery directive integration tests"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"

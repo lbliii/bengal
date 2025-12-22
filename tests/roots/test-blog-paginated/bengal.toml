@@ -1,0 +1,28 @@
+[site]
+title = "Test Blog Paginated"
+baseurl = "/"
+description = "Test site for blog pagination scenarios"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
+
+[content]
+default_type = "blog"
+sort_pages_by = "date"
+sort_order = "desc"
+
+[pagination]
+per_page = 5
+
+[taxonomies]
+tags = "tags"
+categories = "categories"
+
+[rss]
+enabled = true
+limit = 20

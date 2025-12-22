@@ -1,0 +1,12 @@
+[site]
+title = "Test Changelog"
+baseurl = "/"
+description = "Test site for changelog template integration tests"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[data]
+dir = "data"

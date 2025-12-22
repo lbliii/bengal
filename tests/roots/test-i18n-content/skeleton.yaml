@@ -1,0 +1,103 @@
+name: test-i18n-content
+description: Tests directory-based i18n content structure - en/ and fr/ directories
+version: "1.0"
+
+structure:
+  # English content
+  - path: en/_index.md
+    props:
+      title: "Home"
+      lang: en
+    content: |
+      # Welcome
+
+      This is the English home page.
+
+  - path: en/about.md
+    props:
+      title: "About"
+      lang: en
+      translation_key: about
+    content: |
+      # About Us
+
+      This is the English about page.
+
+      ## Our Mission
+
+      Building great documentation.
+
+  - path: en/docs/_index.md
+    props:
+      title: "Documentation"
+      lang: en
+    content: |
+      # Documentation
+
+      English documentation section.
+
+  - path: en/docs/guide.md
+    props:
+      title: "Getting Started"
+      lang: en
+      translation_key: docs/guide
+    content: |
+      # Getting Started Guide
+
+      Welcome to the documentation.
+
+      ## Installation
+
+      ```bash
+      pip install mypackage
+      ```
+
+  # French content
+  - path: fr/_index.md
+    props:
+      title: "Accueil"
+      lang: fr
+    content: |
+      # Bienvenue
+
+      Ceci est la page d'accueil en français.
+
+  - path: fr/about.md
+    props:
+      title: "À propos"
+      lang: fr
+      translation_key: about
+    content: |
+      # À propos de nous
+
+      Ceci est la page à propos en français.
+
+      ## Notre mission
+
+      Créer une excellente documentation.
+
+  - path: fr/docs/_index.md
+    props:
+      title: "Documentation"
+      lang: fr
+    content: |
+      # Documentation
+
+      Section de documentation en français.
+
+  - path: fr/docs/guide.md
+    props:
+      title: "Guide de démarrage"
+      lang: fr
+      translation_key: docs/guide
+    content: |
+      # Guide de démarrage
+
+      Bienvenue dans la documentation.
+
+      ## Installation
+
+      ```bash
+      pip install mypackage
+      ```
+

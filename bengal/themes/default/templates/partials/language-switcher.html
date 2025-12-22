@@ -1,0 +1,111 @@
+{#-
+Language Switcher Component
+
+Displays a dropdown menu for switching between language versions of the current page.
+
+Requires:
+  - i18n configuration in bengal.toml
+  - Pages with translation_key for linking translations
+  - i18n/*.yaml translation files
+
+Uses:
+  - alternate_links(page): Get list of alternate language versions
+  - languages(): Get configured languages list
+  - current_lang(): Get current page language
+  - t(key): Translate UI strings
+
+Example usage in base.html:
+  {% include "partials/language-switcher.html" %}
+-#}
+
+{%- set current = current_lang() -%}
+{%- set alternates = alternate_links(page) -%}
+{%- set langs = languages() -%}
+
+{%- if langs|length > 1 %}
+<div class="language-switcher" role="navigation" aria-label="{{ t('ui.language_selection', 'Language') }}">
+  <button
+    class="language-switcher__toggle"
+    aria-expanded="false"
+    aria-haspopup="listbox"
+    type="button"
+  >
+    <span class="language-switcher__current">{{ current|upper }}</span>
+    <svg class="language-switcher__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M3.6 9h16.8"/>
+      <path d="M3.6 15h16.8"/>
+      <path d="M12 3c2.5 2.8 4 6 4 9s-1.5 6.2-4 9"/>
+      <path d="M12 3c-2.5 2.8-4 6-4 9s1.5 6.2 4 9"/>
+    </svg>
+  </button>
+
+  <ul class="language-switcher__menu" role="listbox" hidden>
+    {%- for alt in alternates if alt.hreflang != 'x-default' %}
+    {%- set lang_info = langs|selectattr('code', 'equalto', alt.hreflang)|first %}
+    <li
+      role="option"
+      {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% endif %}
+    >
+      <a href="{{ alt.href }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
+        {%- if lang_info %}
+        {{ lang_info.name }}
+        {%- else %}
+        {{ alt.hreflang|upper }}
+        {%- endif %}
+      </a>
+    </li>
+    {%- endfor %}
+
+    {#- Fallback: show all languages if no alternates -#}
+    {%- if alternates|length == 0 %}
+    {%- for lang in langs %}
+    <li
+      role="option"
+      {%- if lang.code == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% endif %}
+    >
+      <a href="/{{ lang.code }}/" hreflang="{{ lang.code }}" lang="{{ lang.code }}">
+        {{ lang.name }}
+      </a>
+    </li>
+    {%- endfor %}
+    {%- endif %}
+  </ul>
+</div>
+
+<script>
+// Language switcher dropdown functionality
+(function() {
+  const switcher = document.querySelector('.language-switcher');
+  if (!switcher) return;
+
+  const toggle = switcher.querySelector('.language-switcher__toggle');
+  const menu = switcher.querySelector('.language-switcher__menu');
+
+  if (!toggle || !menu) return;
+
+  toggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', !isExpanded);
+    menu.hidden = isExpanded;
+  });
+
+  // Close on click outside
+  document.addEventListener('click', function(e) {
+    if (!switcher.contains(e.target)) {
+      toggle.setAttribute('aria-expanded', 'false');
+      menu.hidden = true;
+    }
+  });
+
+  // Close on escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      toggle.setAttribute('aria-expanded', 'false');
+      menu.hidden = true;
+    }
+  });
+})();
+</script>
+{%- endif %}

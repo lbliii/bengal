@@ -1,0 +1,21 @@
+# French translations for test-i18n-content
+ui:
+  home: "Accueil"
+  about: "À propos"
+  language_selection: "Langue"
+  read_more: "Lire la suite"
+  posted_on: "Publié le"
+  by_author: "par"
+  back_to_home: "Retour à l'accueil"
+
+nav:
+  main: "Navigation principale"
+  footer: "Navigation de pied de page"
+
+meta:
+  site_name: "Site de test i18n"
+  description: "Site de test pour les tests d'intégration i18n"
+
+pages:
+  welcome: "Bienvenue sur notre site de test"
+  about_intro: "En savoir plus sur ce site de test"

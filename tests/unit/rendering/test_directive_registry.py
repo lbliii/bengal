@@ -212,6 +212,8 @@ class TestDirectiveClassesCompleteness:
             "AsciinemaDirective",
             "FigureDirective",
             "AudioDirective",
+            # Gallery Directive
+            "GalleryDirective",
             # Versioning Directives (RFC: plan/drafted/rfc-versioned-documentation.md)
             "SinceDirective",
             "DeprecatedDirective",
@@ -311,8 +313,9 @@ class TestKnownDirectiveNamesContent:
         # + 1 build badge (build)
         # + 3 video (youtube, vimeo, video) + 4 dev tools (gist, codepen, codesandbox, stackblitz)
         # + 1 asciinema + 1 figure + 1 audio = 58 base
-        # + 6 versioning (since, deprecated, changed, versionadded, versionchanged, versionremoved) = 64 total
-        expected_count = 64
+        # + 1 gallery = 59 base
+        # + 6 versioning (since, deprecated, changed, versionadded, versionchanged, versionremoved) = 65 total
+        expected_count = 65
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "

@@ -83,3 +83,16 @@ def mark_dir_created(dir_path: str) -> bool:
         True if directory was newly added, False if already tracked
     """
     return _created_dirs.add_if_new(dir_path)
+
+
+def reset_parser_cache() -> None:
+    """
+    Reset the parser cache for the current thread.
+
+    This is primarily used in tests to ensure fresh parser instances
+    when directive registration has changed.
+
+    Thread Safety:
+        Only clears cache for the current thread.
+    """
+    _parser_cache.clear_all()

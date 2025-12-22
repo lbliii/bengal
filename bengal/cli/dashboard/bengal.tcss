@@ -1,0 +1,732 @@
+/* Bengal Dashboard Textual CSS
+ *
+ * Styling for Bengal's interactive terminal dashboards.
+ * Uses design tokens from bengal/themes/tokens.py.
+ *
+ * Color Reference (from BENGAL_PALETTE):
+ *   primary:   #FF9D00 (Bengal Orange)
+ *   secondary: #3498DB (Bright Blue)
+ *   accent:    #F1C40F (Sunflower Yellow)
+ *   success:   #2ECC71 (Emerald Green)
+ *   warning:   #E67E22 (Carrot Orange)
+ *   error:     #E74C3C (Alizarin Crimson)
+ *   info:      #95A5A6 (Silver)
+ *   surface:   #1e1e1e
+ *   background: #121212
+ */
+
+/* === Global Styles === */
+
+Screen {
+    background: #121212;
+    color: #e0e0e0;
+}
+
+/* === Header === */
+
+Header {
+    background: #FF9D00;
+    color: #121212;
+    text-style: bold;
+}
+
+HeaderTitle {
+    color: #121212;
+}
+
+/* === Footer === */
+
+Footer {
+    background: #1e1e1e;
+    color: #9e9e9e;
+}
+
+FooterKey {
+    background: #2d2d2d;
+    color: #FF9D00;
+}
+
+/* === Progress Bar === */
+
+ProgressBar {
+    padding: 0 1;
+}
+
+ProgressBar > Bar {
+    color: #FF9D00;
+    background: #3a3a3a;
+}
+
+ProgressBar > Bar > .bar--complete {
+    color: #2ECC71;
+}
+
+ProgressBar > Bar > .bar--indeterminate {
+    color: #3498DB;
+}
+
+/* === Data Table (Phase Timing) === */
+
+DataTable {
+    background: #1e1e1e;
+    border: solid #3a3a3a;
+    height: auto;
+    max-height: 15;
+}
+
+DataTable > .datatable--header {
+    background: #2d2d2d;
+    color: #FF9D00;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: #3a3a3a;
+}
+
+DataTable > .datatable--hover {
+    background: #2a2a2a;
+}
+
+/* Row styling for phase status */
+.phase-pending {
+    color: #757575;
+}
+
+.phase-running {
+    color: #3498DB;
+}
+
+.phase-complete {
+    color: #2ECC71;
+}
+
+.phase-error {
+    color: #E74C3C;
+}
+
+/* === Log Widget === */
+
+Log {
+    background: #1e1e1e;
+    border: solid #3a3a3a;
+    padding: 0 1;
+    height: auto;
+    min-height: 5;
+    max-height: 20;
+}
+
+/* Log severity colors */
+.log-info {
+    color: #95A5A6;
+}
+
+.log-success {
+    color: #2ECC71;
+}
+
+.log-warning {
+    color: #E67E22;
+}
+
+.log-error {
+    color: #E74C3C;
+    text-style: bold;
+}
+
+/* === Tree Widget (Health Dashboard) === */
+
+Tree {
+    background: #1e1e1e;
+    border: solid #3a3a3a;
+    padding: 0 1;
+}
+
+Tree > .tree--cursor {
+    background: #3a3a3a;
+}
+
+Tree > .tree--guides {
+    color: #3a3a3a;
+}
+
+Tree > .tree--guides-hover {
+    color: #FF9D00;
+}
+
+/* Tree node styling for issue severity */
+.issue-error {
+    color: #E74C3C;
+}
+
+.issue-warning {
+    color: #E67E22;
+}
+
+.issue-info {
+    color: #95A5A6;
+}
+
+/* === Tabbed Content (Serve Dashboard) === */
+
+TabbedContent {
+    background: #121212;
+}
+
+Tabs {
+    background: #1e1e1e;
+    height: 3;
+    min-height: 3;
+    dock: top;
+}
+
+Tab {
+    background: #1e1e1e;
+    color: #9e9e9e;
+    padding: 0 2;
+}
+
+Tab:hover {
+    background: #2d2d2d;
+}
+
+Tab.-active {
+    background: #2d2d2d;
+    color: #FF9D00;
+    text-style: bold;
+}
+
+TabPane {
+    background: #121212;
+    padding: 1;
+}
+
+/* === Static Widgets === */
+
+Static {
+    background: transparent;
+}
+
+.panel {
+    background: #1e1e1e;
+    border: solid #3a3a3a;
+    padding: 1 2;
+}
+
+.panel-title {
+    color: #FF9D00;
+    text-style: bold;
+}
+
+/* === Labels === */
+
+Label {
+    background: transparent;
+}
+
+.label-primary {
+    color: #FF9D00;
+}
+
+.label-success {
+    color: #2ECC71;
+}
+
+.label-warning {
+    color: #E67E22;
+}
+
+.label-error {
+    color: #E74C3C;
+}
+
+.label-muted {
+    color: #757575;
+}
+
+/* === Buttons === */
+
+Button {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border: solid #3a3a3a;
+}
+
+Button:hover {
+    background: #3a3a3a;
+    border: solid #FF9D00;
+}
+
+Button:focus {
+    border: solid #FF9D00;
+}
+
+Button.-primary {
+    background: #FF9D00;
+    color: #121212;
+}
+
+Button.-primary:hover {
+    background: #ffb333;
+}
+
+Button.-success {
+    background: #2ECC71;
+    color: #121212;
+}
+
+Button.-error {
+    background: #E74C3C;
+    color: #e0e0e0;
+}
+
+/* === Containers === */
+
+Container {
+    background: transparent;
+}
+
+Vertical {
+    background: transparent;
+}
+
+Horizontal {
+    background: transparent;
+}
+
+/* Layout containers for dashboard sections */
+.section {
+    padding: 1;
+    margin: 1 0;
+}
+
+/* Main content area - must fill available space */
+#main-content {
+    height: 1fr;
+    width: 100%;
+}
+
+.section-header {
+    color: #FF9D00;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+/* === Sparkline (Build History) === */
+
+Sparkline {
+    height: 3;
+    color: #3498DB;
+}
+
+Sparkline > .sparkline--max {
+    color: #2ECC71;
+}
+
+Sparkline > .sparkline--min {
+    color: #E74C3C;
+}
+
+/* === Rule (Dividers) === */
+
+Rule {
+    color: #3a3a3a;
+}
+
+Rule.-horizontal {
+    margin: 1 0;
+}
+
+/* === Status Indicators === */
+
+.status-running {
+    color: #3498DB;
+}
+
+.status-success {
+    color: #2ECC71;
+}
+
+.status-warning {
+    color: #E67E22;
+}
+
+.status-error {
+    color: #E74C3C;
+}
+
+.status-idle {
+    color: #757575;
+}
+
+/* === Notifications/Toasts === */
+
+Toast {
+    background: #2d2d2d;
+    border: solid #3a3a3a;
+}
+
+Toast.-information {
+    border: solid #3498DB;
+}
+
+Toast.-warning {
+    border: solid #E67E22;
+}
+
+Toast.-error {
+    border: solid #E74C3C;
+}
+
+/* === Animations (Phase 8) === */
+
+/* Progress bar smooth fill */
+ProgressBar > Bar {
+    transition: width 300ms out_cubic;
+}
+
+/* Tab switch fade - removed transition to prevent tab collapse bug */
+TabPane {
+    /* transition: opacity 150ms in_out_cubic; */
+}
+
+/* Log entry fade-in */
+Log > .log-entry {
+    transition: opacity 200ms in_cubic;
+}
+
+/* Phase status change */
+.phase-transition {
+    transition: color 200ms in_out_cubic, background 200ms in_out_cubic;
+}
+
+/* Screen transitions */
+Screen {
+    transition: opacity 150ms in_out_cubic;
+}
+
+/* Tree expand/collapse animation */
+Tree {
+    transition: height 200ms in_out_cubic;
+}
+
+/* Sparkline value animation */
+Sparkline {
+    transition: color 300ms in_out_cubic;
+}
+
+/* Toast slide in */
+Toast {
+    transition: offset 300ms out_cubic, opacity 200ms in_cubic;
+}
+
+/* Button hover effect */
+Button {
+    transition: background 150ms in_out_cubic, border 150ms in_out_cubic;
+}
+
+/* Focus ring animation */
+*:focus {
+    transition: border 100ms in_cubic;
+}
+
+/* Data table row selection */
+DataTable > .datatable--cursor {
+    transition: background 100ms in_out_cubic;
+}
+
+/* Tree cursor animation */
+Tree > .tree--cursor {
+    transition: background 100ms in_out_cubic;
+}
+
+/* === Scrollbars === */
+
+* {
+    scrollbar-background: #1e1e1e;
+    scrollbar-color: #3a3a3a;
+    scrollbar-color-hover: #FF9D00;
+    scrollbar-color-active: #FF9D00;
+}
+
+/* === Focus Styles === */
+
+*:focus {
+    border: solid #FF9D00;
+}
+
+/* === Build Dashboard Specific === */
+
+#build-progress {
+    height: 3;
+    margin: 1 0;
+}
+
+#phase-table {
+    height: auto;
+    max-height: 12;
+}
+
+#build-log {
+    height: 1fr;
+    min-height: 5;
+}
+
+/* === Serve Dashboard Specific === */
+
+#serve-tabs {
+    height: 1fr;
+    min-height: 15;
+}
+
+#serve-tabs ContentSwitcher {
+    height: 1fr;
+}
+
+#serve-tabs TabPane {
+    height: 1fr;
+}
+
+#serve-sparkline {
+    height: 5;
+    margin: 1 0;
+}
+
+#changes-log {
+    height: 1fr;
+}
+
+/* === Health Dashboard Specific === */
+
+#health-tree {
+    width: 1fr;
+    max-width: 50%;
+}
+
+#health-details {
+    width: 1fr;
+    padding: 1 2;
+}
+
+/* Horizontal layout for tree + details */
+.health-layout {
+    layout: horizontal;
+}
+
+/* === State Classes (Toad-Inspired) === */
+
+/* Visibility toggles */
+.widget.-hidden {
+    display: none;
+}
+
+.widget.-collapsed {
+    height: auto;
+}
+
+/* Loading states */
+.widget.-loading {
+    opacity: 0.5;
+}
+
+.widget.-busy {
+    /* Used with throbber animation */
+}
+
+/* Status colors */
+.status.-success {
+    color: #2ECC71;
+}
+
+.status.-warning {
+    color: #E67E22;
+}
+
+.status.-error {
+    color: #E74C3C;
+}
+
+.status.-info {
+    color: #95A5A6;
+}
+
+/* Phase states (for BuildPhasePlan widget) */
+.phase.-pending {
+    opacity: 0.6;
+    color: #757575;
+}
+
+.phase.-running {
+    background: #FF9D00 20%;
+    color: #FF9D00;
+}
+
+.phase.-complete {
+    color: #2ECC71;
+    text-style: bold;
+}
+
+.phase.-error {
+    background: #E74C3C 20%;
+    color: #E74C3C;
+}
+
+/* Panel visibility toggles */
+BengalBuildDashboard.-hide-stats #build-stats {
+    display: none;
+}
+
+BengalBuildDashboard.-hide-log #build-log {
+    display: none;
+}
+
+BengalBuildDashboard.-compact-mode .section {
+    margin: 0;
+    padding: 0;
+}
+
+/* === Throbber Widget === */
+
+BengalThrobber {
+    height: 1;
+    width: 100%;
+    visibility: hidden;
+}
+
+BengalThrobber.-active {
+    visibility: visible;
+}
+
+/* === BuildFlash Widget === */
+
+BuildFlash {
+    height: 1;
+    visibility: hidden;
+    text-align: center;
+}
+
+BuildFlash.-building {
+    visibility: visible;
+    background: #FF9D00 20%;
+    color: #FF9D00;
+}
+
+BuildFlash.-success {
+    visibility: visible;
+    background: #2ECC71 20%;
+    color: #2ECC71;
+}
+
+BuildFlash.-error {
+    visibility: visible;
+    background: #E74C3C 20%;
+    color: #E74C3C;
+}
+
+/* === BuildPhasePlan Widget === */
+
+BuildPhasePlan {
+    height: auto;
+    max-height: 10;
+}
+
+BuildPhasePlan .phase-status {
+    width: 3;
+}
+
+BuildPhasePlan .phase-name {
+    padding: 0 1;
+}
+
+BuildPhasePlan .phase-time {
+    color: #757575;
+    text-align: right;
+}
+
+/* === Quick Action Widget (Landing Screen) === */
+
+QuickAction {
+    width: 1fr;
+    height: auto;
+    min-height: 5;
+    padding: 1 2;
+    background: #1e1e1e;
+    border: solid #3a3a3a;
+}
+
+QuickAction:hover {
+    background: #2d2d2d;
+    border: solid #FF9D00;
+}
+
+QuickAction:focus {
+    background: #2d2d2d;
+    border: solid #FF9D00;
+}
+
+QuickAction .quick-action-emoji {
+    text-style: bold;
+    width: 4;
+}
+
+QuickAction .quick-action-title {
+    text-style: bold;
+    color: #FF9D00;
+}
+
+QuickAction .quick-action-description {
+    color: #9e9e9e;
+}
+
+/* === Serve Screen Stats === */
+
+.serve-stats {
+    height: auto;
+    padding: 1 2;
+}
+
+.stat-box {
+    width: 1fr;
+    height: auto;
+    text-align: center;
+    padding: 1;
+    background: $surface;
+    margin: 0 1;
+}
+
+.stat-icon {
+    text-align: center;
+    text-style: bold;
+}
+
+#server-info {
+    padding: 1 2;
+    text-align: center;
+}
+
+/* === Landing Screen === */
+
+#landing-header {
+    height: auto;
+    padding: 1 2;
+}
+
+#branding {
+    text-align: center;
+    padding: 1;
+}
+
+#site-summary {
+    text-align: center;
+    color: #9e9e9e;
+}
+
+#quick-actions {
+    padding: 1;
+    height: auto;
+}
+
+#activity {
+    height: 1fr;
+    padding: 1;
+}

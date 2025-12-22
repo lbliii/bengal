@@ -137,6 +137,11 @@ from bengal.utils.logger import (
     help="Show full traditional output instead of live progress (useful for debugging)",
 )
 @click.option(
+    "--dashboard",
+    is_flag=True,
+    help="Launch interactive Textual dashboard (experimental)",
+)
+@click.option(
     "--log-file",
     type=click.Path(),
     help="Write detailed logs to file (default: .bengal/logs/build.log)",
@@ -174,6 +179,7 @@ def build(
     quiet: bool,
     fast: bool,
     full_output: bool,
+    dashboard: bool,
     log_file: str,
     build_version: str | None,
     all_versions: bool,
@@ -302,6 +308,20 @@ def build(
 
         # Autodoc virtual pages are now generated during content discovery
         # No separate pre-build step needed
+
+        # Launch interactive dashboard if requested
+        if dashboard:
+            from bengal.cli.dashboard.build import run_build_dashboard
+
+            run_build_dashboard(
+                site=site,
+                parallel=parallel,
+                incremental=incremental,
+                memory_optimized=memory_optimized,
+                strict=strict,
+                profile=build_profile,
+            )
+            return  # Dashboard handles its own exit
 
         # Handle git version mode
         if build_version or all_versions:

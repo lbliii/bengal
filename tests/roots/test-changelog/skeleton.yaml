@@ -1,0 +1,9 @@
+name: Test Changelog
+description: Test site for changelog template integration tests
+
+structure:
+  - path: _index.md
+    type: changelog
+    props:
+      title: Changelog
+      layout: changelog/single

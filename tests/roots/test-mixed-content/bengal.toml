@@ -1,0 +1,22 @@
+[site]
+title = "Test Mixed Content Site"
+baseurl = "/"
+description = "Test site combining docs, blog, and portfolio content types"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
+
+[taxonomies]
+tags = "tags"
+
+[menu.main]
+items = [
+    { name = "Docs", url = "/docs/", weight = 10 },
+    { name = "Blog", url = "/blog/", weight = 20 },
+    { name = "Projects", url = "/projects/", weight = 30 },
+]

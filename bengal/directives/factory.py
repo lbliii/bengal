@@ -53,6 +53,7 @@ from bengal.directives.embed import (
 from bengal.directives.example_label import ExampleLabelDirective
 from bengal.directives.fenced import FencedDirective
 from bengal.directives.figure import AudioDirective, FigureDirective
+from bengal.directives.gallery import GalleryDirective
 from bengal.directives.glossary import GlossaryDirective
 from bengal.directives.icon import IconDirective
 from bengal.directives.include import IncludeDirective
@@ -123,7 +124,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
             directives_list = [
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
                 BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
-                BuildDirective(),  # Build badge: embeds /bengal/build.svg (optional link to build.json)
+                BuildDirective(),  # Build badge: embeds /bengal/build.svg
                 TabSetDirective(),  # MyST tab-set
                 TabItemDirective(),  # MyST tab-item
                 DropdownDirective(),
@@ -167,6 +168,8 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 # Figure and audio
                 FigureDirective(),  # Semantic images with captions
                 AudioDirective(),  # Self-hosted audio files
+                # Gallery
+                GalleryDirective(),  # Responsive image galleries with lightbox
                 # Version-aware directives
                 SinceDirective(),  # Mark features added in a version
                 DeprecatedDirective(),  # Mark deprecated features

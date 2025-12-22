@@ -37,7 +37,8 @@ dependencies = [
     "jsmin>=3.0.1",
     "pillow>=10.0.0",
     "psutil>=5.9.0",                           # For better process management in cleanup
-    "rich>=13.7.0",                            # Enhanced terminal output
+    "textual>=0.89",                            # Interactive dashboards (includes Rich)
+    "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
@@ -118,6 +119,7 @@ dev = [
     "pytest-timeout>=2.2.0",
     "pytest-asyncio>=0.23.0",
     "pytest-forked>=1.6.0",   # Isolated test execution for stateful tests
+    "pytest-textual-snapshot>=0.4.0",  # Textual dashboard snapshot testing
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "mypy>=1.11.0",

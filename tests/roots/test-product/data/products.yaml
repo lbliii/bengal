@@ -1,0 +1,30 @@
+# Test Product Data
+products:
+  - sku: "TEST-001"
+    name: "Test Product One"
+    slug: "product-1"
+    price: 99.99
+    currency: "USD"
+    in_stock: true
+    featured: true
+    images:
+      - "/images/products/test-1.jpg"
+    description: "A test product for integration testing."
+    features:
+      - "Feature A"
+      - "Feature B"
+    category: "Test Category"
+
+  - sku: "TEST-002"
+    name: "Test Product Two"
+    slug: "product-2"
+    price: 149.99
+    currency: "USD"
+    in_stock: false
+    featured: false
+    images:
+      - "/images/products/test-2.jpg"
+    description: "Another test product."
+    features:
+      - "Feature C"
+    category: "Test Category"

@@ -55,7 +55,43 @@ from .base import BengalCommand, BengalGroup
 @click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
 @click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main(ctx: click.Context) -> None:
+@click.option(
+    "--dashboard",
+    is_flag=True,
+    help="Launch unified interactive dashboard (Textual TUI)",
+)
+@click.option(
+    "--start",
+    "-s",
+    type=click.Choice(["build", "serve", "health", "landing"]),
+    default="build",
+    help="Start dashboard on specific screen (requires --dashboard)",
+)
+@click.option(
+    "--serve",
+    "serve_web",
+    is_flag=True,
+    help="Serve dashboard as web app via textual-serve (requires --dashboard)",
+)
+@click.option(
+    "--port",
+    type=int,
+    default=8000,
+    help="Port for web dashboard server (default: 8000)",
+)
+@click.option(
+    "--host",
+    default="localhost",
+    help="Host for web dashboard server (default: localhost)",
+)
+def main(
+    ctx: click.Context,
+    dashboard: bool = False,
+    start: str = "build",
+    serve_web: bool = False,
+    port: int = 8000,
+    host: str = "localhost",
+) -> None:
     """
     Bengal Static Site Generator CLI.
 
@@ -67,12 +103,42 @@ def main(ctx: click.Context) -> None:
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     TracebackConfig.from_environment().install()
 
+    # Launch unified dashboard if requested
+    if dashboard:
+        from pathlib import Path
+
+        from bengal.cli.dashboard import run_unified_dashboard
+        from bengal.core.site import Site
+
+        # Load site from current directory
+        site = None
+        startup_error: str | None = None
+        try:
+            site = Site.from_config(Path.cwd())
+        except Exception as e:
+            startup_error = str(e)
+
+        if serve_web:
+            # Serve dashboard as web app via textual-serve
+            import sys
+
+            from textual_serve.server import Server
+
+            # Reconstruct command without --serve to avoid recursion
+            cmd = f"{sys.executable} -m bengal --dashboard --start {start}"
+            server = Server(cmd, host=host, port=port, title="Bengal Dashboard")
+            cli = CLIOutput()
+            cli.success(f"Starting Bengal Dashboard at http://{host}:{port}")
+            server.serve()
+        else:
+            run_unified_dashboard(site=site, start_screen=start, startup_error=startup_error)
+        return
+
     # Show welcome banner if no command provided (but not if --help was used)
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
         from click.core import HelpFormatter
 
         from bengal.orchestration.stats import show_welcome
-        from bengal.output import CLIOutput
 
         show_welcome()
         formatter = HelpFormatter()

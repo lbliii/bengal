@@ -1,0 +1,162 @@
+/**
+ * Language Switcher Component
+ *
+ * A dropdown component for switching between language versions of the current page.
+ * Uses CSS custom properties for theming and integrates with the design system.
+ *
+ * Structure:
+ *   .language-switcher
+ *     .language-switcher__toggle
+ *       .language-switcher__current
+ *       .language-switcher__icon
+ *     .language-switcher__menu
+ *       .language-switcher__item
+ *         a
+ */
+
+/* Container */
+.language-switcher {
+  position: relative;
+  display: inline-block;
+  font-size: var(--text-sm, 0.875rem);
+}
+
+/* Toggle Button */
+.language-switcher__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 0.375rem);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  color: var(--color-text, inherit);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.language-switcher__toggle:hover {
+  background: var(--color-surface-hover, #f9fafb);
+  border-color: var(--color-border-hover, #d1d5db);
+}
+
+.language-switcher__toggle:focus {
+  outline: 2px solid var(--color-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Current Language Label */
+.language-switcher__current {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Globe Icon */
+.language-switcher__icon {
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* Dropdown Menu */
+.language-switcher__menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  min-width: 140px;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 0.375rem);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1));
+  list-style: none;
+  overflow: hidden;
+}
+
+.language-switcher__menu[hidden] {
+  display: none;
+}
+
+/* Menu Items */
+.language-switcher__item {
+  margin: 0;
+  padding: 0;
+}
+
+.language-switcher__item a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--color-text, inherit);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.language-switcher__item a:hover {
+  background: var(--color-surface-hover, #f9fafb);
+}
+
+.language-switcher__item a:focus {
+  outline: none;
+  background: var(--color-surface-hover, #f9fafb);
+}
+
+/* Active Language */
+.language-switcher__item--active a {
+  font-weight: 600;
+  color: var(--color-primary, #3b82f6);
+  background: var(--color-primary-bg, rgba(59, 130, 246, 0.1));
+}
+
+.language-switcher__item--active a:hover {
+  background: var(--color-primary-bg-hover, rgba(59, 130, 246, 0.15));
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .language-switcher__toggle {
+    border-color: var(--color-border-dark, #374151);
+  }
+
+  .language-switcher__toggle:hover {
+    background: var(--color-surface-hover-dark, #1f2937);
+    border-color: var(--color-border-hover-dark, #4b5563);
+  }
+
+  .language-switcher__menu {
+    background: var(--color-surface-dark, #1f2937);
+    border-color: var(--color-border-dark, #374151);
+    box-shadow: var(--shadow-md-dark, 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2));
+  }
+
+  .language-switcher__item a:hover,
+  .language-switcher__item a:focus {
+    background: var(--color-surface-hover-dark, #374151);
+  }
+}
+
+/* RTL Support */
+[dir="rtl"] .language-switcher__menu {
+  right: auto;
+  left: 0;
+}
+
+[dir="rtl"] .language-switcher__toggle {
+  flex-direction: row-reverse;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+  .language-switcher__menu {
+    min-width: 120px;
+  }
+
+  .language-switcher__toggle {
+    padding: 0.375rem 0.5rem;
+  }
+}
