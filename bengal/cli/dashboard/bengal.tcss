@@ -373,62 +373,62 @@ Toast.-error {
 
 /* Progress bar smooth fill */
 ProgressBar > Bar {
-    transition: width 300ms ease-out;
+    transition: width 300ms out_cubic;
 }
 
 /* Tab switch fade */
 TabPane {
-    transition: opacity 150ms ease-in-out;
+    transition: opacity 150ms in_out_cubic;
 }
 
 /* Log entry fade-in */
 Log > .log-entry {
-    transition: opacity 200ms ease-in;
+    transition: opacity 200ms in_cubic;
 }
 
 /* Phase status change */
 .phase-transition {
-    transition: color 200ms ease-in-out, background 200ms ease-in-out;
+    transition: color 200ms in_out_cubic, background 200ms in_out_cubic;
 }
 
 /* Screen transitions */
 Screen {
-    transition: opacity 150ms ease-in-out;
+    transition: opacity 150ms in_out_cubic;
 }
 
 /* Tree expand/collapse animation */
 Tree {
-    transition: height 200ms ease-in-out;
+    transition: height 200ms in_out_cubic;
 }
 
 /* Sparkline value animation */
 Sparkline {
-    transition: color 300ms ease-in-out;
+    transition: color 300ms in_out_cubic;
 }
 
 /* Toast slide in */
 Toast {
-    transition: offset 300ms ease-out, opacity 200ms ease-in;
+    transition: offset 300ms out_cubic, opacity 200ms in_cubic;
 }
 
 /* Button hover effect */
 Button {
-    transition: background 150ms ease-in-out, border 150ms ease-in-out;
+    transition: background 150ms in_out_cubic, border 150ms in_out_cubic;
 }
 
 /* Focus ring animation */
 *:focus {
-    transition: border 100ms ease-in;
+    transition: border 100ms in_cubic;
 }
 
 /* Data table row selection */
 DataTable > .datatable--cursor {
-    transition: background 100ms ease-in-out;
+    transition: background 100ms in_out_cubic;
 }
 
 /* Tree cursor animation */
 Tree > .tree--cursor {
-    transition: background 100ms ease-in-out;
+    transition: background 100ms in_out_cubic;
 }
 
 /* === Scrollbars === */
