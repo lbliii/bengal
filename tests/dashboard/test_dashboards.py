@@ -305,7 +305,8 @@ class TestCommands:
 
         # Provider should have discover method for showing hits before typing
         assert hasattr(BengalCommandProvider, "discover")
-        assert inspect.iscoroutinefunction(BengalCommandProvider.discover)
+        # discover is an async generator (async def ... yield)
+        assert inspect.isasyncgenfunction(BengalCommandProvider.discover)
 
 
 class TestCustomWidgets:
