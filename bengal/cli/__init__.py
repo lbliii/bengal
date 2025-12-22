@@ -109,17 +109,11 @@ def main(
 
         if serve_web:
             # Serve dashboard as web app via textual-serve
-            try:
-                from textual_serve.server import Server
-            except ImportError:
-                cli = CLIOutput()
-                cli.error_header("textual-serve not installed", mouse=True)
-                cli.info("Install with: pip install 'bengal[serve]' or pip install textual-serve")
-                raise SystemExit(1) from None
-
-            # Reconstruct command without --serve to avoid recursion
             import sys
 
+            from textual_serve.server import Server
+
+            # Reconstruct command without --serve to avoid recursion
             cmd = f"{sys.executable} -m bengal --dashboard --start {start}"
             server = Server(cmd, host=host, port=port, title="Bengal Dashboard")
             cli = CLIOutput()

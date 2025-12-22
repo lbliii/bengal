@@ -38,6 +38,7 @@ dependencies = [
     "pillow>=10.0.0",
     "psutil>=5.9.0",                           # For better process management in cleanup
     "textual>=0.89",                            # Interactive dashboards (includes Rich)
+    "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
@@ -47,9 +48,6 @@ dependencies = [
 [project.optional-dependencies]
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
-
-# Web-based dashboard access
-serve = ["textual-serve>=0.1.0"]
 
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
