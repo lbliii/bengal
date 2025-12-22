@@ -1,12 +1,36 @@
 """
-Standardized template engine errors.
+Standardized exception types for template engines.
 
-All engines MUST use these error types for consistency.
+This module defines the error hierarchy for template-related failures. All
+engines MUST use these types for consistent error handling and reporting.
 
-Example:
-    from bengal.rendering.engines.errors import TemplateNotFoundError
+Exception Hierarchy:
+    BengalRenderingError (base)
+    ├── TemplateNotFoundError  - Template file doesn't exist
+    └── TemplateRenderError    - Rendering failed (see bengal.rendering.errors)
 
-    raise TemplateNotFoundError("page.html", template_dirs)
+    TemplateError (dataclass)  - Validation result, not an exception
+
+Usage:
+    >>> from bengal.rendering.engines.errors import TemplateNotFoundError
+    >>>
+    >>> # Raise when template lookup fails
+    >>> if not template_path.exists():
+    ...     raise TemplateNotFoundError("page.html", search_paths)
+
+    >>> # Return TemplateError from validate()
+    >>> errors = [TemplateError("bad.html", "syntax error", line=5)]
+
+Error Handling Guidelines:
+    - render_template() MUST raise TemplateNotFoundError if template missing
+    - render_template() MUST raise TemplateRenderError if rendering fails
+    - validate() MUST NOT raise; return list of TemplateError instead
+    - template_exists() MUST NOT raise; return False instead
+
+Related Modules:
+    - bengal.rendering.errors: TemplateRenderError with rich context
+    - bengal.errors: Base BengalRenderingError class
+    - bengal.rendering.engines.protocol: Protocol defining error contracts
 """
 
 from __future__ import annotations

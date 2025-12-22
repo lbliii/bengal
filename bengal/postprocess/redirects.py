@@ -65,12 +65,36 @@ class RedirectGenerator:
     """
     Generates redirect HTML pages for page aliases.
 
-    For each page with aliases, creates lightweight HTML files at the
-    alias paths that redirect to the canonical URL. Includes proper
-    SEO signals (canonical link, noindex, meta refresh).
+    For each page with aliases defined in frontmatter, creates lightweight
+    HTML files at the alias paths that redirect to the canonical URL.
+    Includes proper SEO signals (canonical link, noindex, meta refresh).
 
-    Optionally generates a _redirects file for Netlify/Vercel for
-    faster server-side redirects.
+    Creation:
+        Direct instantiation: RedirectGenerator(site)
+            - Created by PostprocessOrchestrator for redirect generation
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with pages containing aliases
+        logger: Logger instance for redirect generation events
+
+    Relationships:
+        - Used by: PostprocessOrchestrator for redirect generation
+        - Uses: Site for page access, URLRegistry for conflict detection
+
+    Features:
+        - HTML meta refresh with 0-second delay (immediate redirect)
+        - Canonical link tag pointing to target URL
+        - noindex meta tag to prevent redirect pages in search results
+        - Fallback link for browsers without JavaScript/meta refresh
+        - Conflict detection when multiple pages claim same alias
+        - URL registry integration (priority 5 = lowest, never shadows content)
+        - Optional _redirects file for Netlify/Vercel server-side redirects
+
+    Example:
+        >>> generator = RedirectGenerator(site)
+        >>> count = generator.generate()
+        >>> print(f"Generated {count} redirect pages")
     """
 
     def __init__(self, site: Site) -> None:
