@@ -11,6 +11,8 @@
 
 This RFC defines a comprehensive terminal UX style guide for Bengal's CLI output, establishing visual identity, component patterns, and implementation standards that align with Bengal's web design system.
 
+**Implementation Note**: This style guide is implemented by the [Textual RFC](rfc-terminal-ux-textual.md) for interactive dashboards and the standard Rich-based output for static commands.
+
 ---
 
 ## Motivation
@@ -139,18 +141,9 @@ Semantic tokens for Rich console styling:
 | `metric_label` | Metric names | `#F1C40F` | bold |
 | `metric_value` | Metric values | — | — |
 
-#### 2.3 Palette-Aware Theming (Future)
+#### 2.3 Palette-Aware Theming
 
-Support `--palette` flag or `BENGAL_PALETTE` env var to switch terminal colors:
-
-```bash
-# Use charcoal bengal palette in terminal
-bengal build --palette charcoal-bengal
-
-# Or via environment
-export BENGAL_PALETTE=snow-lynx
-bengal build
-```
+Support switching terminal colors via design tokens. As defined in the [Textual RFC](rfc-terminal-ux-textual.md#3-shared-token-system), these tokens generate both web CSS and terminal `.tcss` variables.
 
 **Palette mappings** (derive from CSS tokens):
 
@@ -706,6 +699,7 @@ class IconSet:
 
 ## References
 
+- [RFC: Bengal Terminal UX with Textual](rfc-terminal-ux-textual.md) — Technical implementation framework
 - `bengal/utils/rich_console.py` - Current Rich theme definition
 - `bengal/output/icons.py` - Icon set definitions
 - `bengal/output/core.py` - CLIOutput implementation
