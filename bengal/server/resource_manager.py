@@ -1,12 +1,46 @@
 """
 Resource lifecycle management for Bengal dev server.
 
-Provides centralized cleanup handling for all termination scenarios:
-- Normal exit (context manager)
-- Ctrl+C (KeyboardInterrupt + signal handler)
-- kill/SIGTERM (signal handler)
-- Parent death (atexit handler)
-- Exceptions (context manager __exit__)
+Provides centralized cleanup coordination to ensure all resources are
+properly released regardless of how the process terminates.
+
+Features:
+    - Context manager interface for automatic cleanup
+    - Signal handlers for Ctrl+C (SIGINT) and kill (SIGTERM)
+    - atexit handler for unexpected termination
+    - LIFO cleanup order (like nested context managers)
+    - Idempotent cleanup (safe to call multiple times)
+    - Timeout protection for shutdown operations
+    - Thread-safe resource registration
+
+Termination Scenarios Handled:
+    - Normal exit: __exit__ from context manager
+    - Ctrl+C: SIGINT signal handler → cleanup()
+    - kill command: SIGTERM signal handler → cleanup()
+    - Parent death: atexit handler → cleanup()
+    - Uncaught exceptions: __exit__ from context manager
+    - Second Ctrl+C: Force exit without waiting
+
+Classes:
+    ResourceManager: Central coordinator for resource lifecycle
+
+Resource Types Supported:
+    - HTTP servers (TCPServer)
+    - File watchers (WatcherRunner)
+    - Build triggers (BuildTrigger)
+    - PID files (Path)
+    - Custom resources (via register() with cleanup function)
+
+Example:
+    >>> with ResourceManager() as rm:
+    ...     server = rm.register_server(httpd)
+    ...     watcher = rm.register_watcher(watcher_runner)
+    ...     # Resources automatically cleaned up on exit
+
+Related:
+    - bengal/server/dev_server.py: Creates and uses ResourceManager
+    - bengal/server/pid_manager.py: PID file cleanup
+    - bengal/server/watcher_runner.py: File watcher cleanup
 """
 
 from __future__ import annotations
@@ -31,22 +65,38 @@ logger = get_logger(__name__)
 
 class ResourceManager:
     """
-    Centralized resource lifecycle management.
+    Centralized resource lifecycle management for the dev server.
 
-    Ensures all resources are cleaned up regardless of how the process exits.
+    Coordinates cleanup of all server resources (HTTP server, file watcher,
+    PID files, etc.) across all termination scenarios. Uses context manager
+    protocol for automatic setup and teardown.
 
-    Usage:
-        with ResourceManager() as rm:
-            server = rm.register_server(httpd)
-            watcher = rm.register_watcher(watcher_runner)
-            # Resources automatically cleaned up on exit
+    Attributes:
+        _resources: List of (name, resource, cleanup_fn) tuples
+        _cleanup_done: Flag preventing duplicate cleanup
+        _lock: Thread lock for safe registration
+        _original_signals: Original signal handlers for restoration
 
     Features:
-    - Idempotent cleanup (safe to call multiple times)
-    - LIFO cleanup order (like context managers)
-    - Timeout protection (won't hang forever)
-    - Thread-safe registration
-    - Handles all termination scenarios
+        - Context manager interface (with ResourceManager() as rm)
+        - Idempotent cleanup (safe to call multiple times)
+        - LIFO cleanup order (last registered = first cleaned)
+        - Timeout protection on HTTP server shutdown
+        - Thread-safe resource registration
+        - Signal handler registration/restoration
+        - atexit registration for unexpected termination
+
+    Cleanup Order:
+        Resources are cleaned up in reverse registration order (LIFO),
+        mirroring the behavior of nested context managers.
+
+    Example:
+        >>> with ResourceManager() as rm:
+        ...     httpd = rm.register_server(create_server())
+        ...     watcher = rm.register_watcher(create_watcher())
+        ...     pid_path = rm.register_pidfile(Path(".bengal/server.pid"))
+        ...     # Server runs until Ctrl+C or error
+        ... # All resources cleaned up automatically
     """
 
     def __init__(self) -> None:

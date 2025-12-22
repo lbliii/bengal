@@ -5,57 +5,85 @@ Provides a local HTTP server with file watching and automatic rebuilds
 for a smooth development experience.
 
 Components:
-- DevServer: Main development server with HTTP serving and file watching
-- WatcherRunner: Async-to-sync bridge for FileWatcher with debouncing
-- BuildTrigger: Build execution handler with pre/post hooks
-- BuildExecutor: Process-isolated build execution for resilience
-- FileWatcher: Rust-based file watching (watchfiles)
-- IgnoreFilter: Configurable file ignore patterns (glob + regex)
-- LiveReloadMixin: Server-Sent Events (SSE) for browser hot reload
-- RequestHandler: Custom HTTP request handler with beautiful logging
-- ResourceManager: Graceful cleanup of server resources on shutdown
-- PIDManager: Process tracking and stale process recovery
+    Core Server:
+    - DevServer: Main orchestrator with HTTP serving and file watching
+    - BengalRequestHandler: HTTP handler with live reload and custom 404s
+    - ResourceManager: Graceful cleanup of resources on shutdown
+    - PIDManager: Process tracking and stale process recovery
+
+    File Watching:
+    - FileWatcher: Rust-based file watching (watchfiles backend)
+    - WatcherRunner: Async-to-sync bridge with debouncing
+    - IgnoreFilter: Configurable ignore patterns (glob + regex)
+
+    Build System:
+    - BuildTrigger: Build orchestration with pre/post hooks
+    - BuildExecutor: Process-isolated build execution for crash resilience
+    - ReloadController: Smart reload decisions (CSS-only vs full)
+
+    Live Reload:
+    - LiveReloadMixin: SSE endpoint and HTML script injection
+    - notify_clients_reload: Trigger browser refresh
+    - send_reload_payload: Send structured reload events
+
+    Utilities:
+    - ComponentPreviewServer: UI component catalog at /__bengal_components__/
+    - RequestLogger: Beautiful, filtered HTTP request logging
 
 Features:
-- Automatic incremental rebuilds on file changes
-- Event type detection (created/modified/deleted) for smart rebuild decisions
-- Beautiful, minimal request logging
-- Custom 404 error pages
-- Graceful shutdown handling (Ctrl+C, SIGTERM)
-- Stale process detection and cleanup
-- Automatic port fallback if port is in use
-- Optional browser auto-open
-- Pre/post build hooks for custom workflows
-- Process-isolated builds for crash resilience
-- Configurable ignore patterns (exclude_patterns, exclude_regex)
-- Fast file watching via watchfiles (Rust-based, 10-50x faster)
-- Default ignore patterns for common cache/build directories (.bengal, .git, etc.)
+    - Automatic incremental rebuilds on file changes
+    - Event type detection (created/modified/deleted) for smart rebuild decisions
+    - CSS-only hot reload (no page refresh for style changes)
+    - Beautiful, minimal request logging with filtering
+    - Custom 404 error pages (serves user's 404.html if present)
+    - Graceful shutdown handling (Ctrl+C, SIGTERM)
+    - Stale process detection and cleanup
+    - Automatic port fallback if port is in use
+    - Optional browser auto-open
+    - Pre/post build hooks for custom workflows
+    - Process-isolated builds for crash resilience
+    - Configurable ignore patterns (exclude_patterns, exclude_regex)
+    - Fast file watching via watchfiles (Rust-based, 10-50x faster)
+    - Component preview server for theme development
+    - Rebuilding placeholder page during active builds
+
+Architecture:
+    The dev server coordinates several subsystems in a pipeline:
+
+    FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor
+                                       ↓
+                              ReloadController → LiveReload → Browser
+
+    All resources are managed by ResourceManager for reliable cleanup.
 
 Usage:
+    ```python
+    from bengal.server import DevServer
+    from bengal.core import Site
 
-```python
-from bengal.server import DevServer
-from bengal.core import Site
+    site = Site.from_config()
+    server = DevServer(
+        site,
+        host="localhost",
+        port=5173,
+        watch=True,
+        auto_port=True,
+        open_browser=True
+    )
+    server.start()
+    ```
 
-site = Site.from_config()
-server = DevServer(
-    site,
-    host="localhost",
-    port=5173,
-    watch=True,
-    auto_port=True,
-    open_browser=True
-)
-server.start()
-```
+Watched Directories:
+    - content/ - Markdown content files
+    - assets/ - CSS, JS, images
+    - templates/ - Jinja2 templates
+    - data/ - YAML/JSON data files
+    - themes/ - Theme files
+    - bengal.toml - Configuration file
 
-The server watches for changes in:
-- content/ - Markdown content files
-- assets/ - CSS, JS, images
-- templates/ - Jinja2 templates
-- data/ - YAML/JSON data files
-- themes/ - Theme files
-- bengal.toml - Configuration file
+Related:
+    - bengal/cli/serve.py: CLI command for starting dev server
+    - bengal/orchestration/build_orchestrator.py: Build logic
 """
 
 from __future__ import annotations

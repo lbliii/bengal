@@ -1,21 +1,48 @@
 """
-Build trigger for the dev server.
+Build trigger orchestrating the dev server rebuild pipeline.
 
-Handles build execution via BuildExecutor when file changes are detected.
-This is the clean, process-isolated build path - no legacy in-process mode.
+Coordinates the complete rebuild workflow when file changes are detected,
+from pre-build hooks through build execution to client reload notification.
+
+Features:
+    - Event type classification (created/modified/deleted → full/incremental)
+    - Pre/post build hook execution with timeout handling
+    - Process-isolated build submission via BuildExecutor
+    - Smart reload decisions (CSS-only vs full page reload)
+    - Navigation change detection for taxonomy rebuilds
+    - Build state tracking for UI feedback (rebuilding page)
+
+Classes:
+    BuildTrigger: Main orchestrator coordinating the rebuild pipeline
 
 Architecture:
-    BuildTrigger is the single entry point for triggering builds:
-    1. Receives changed paths from WatcherRunner
-    2. Runs pre-build hooks
-    3. Submits build to BuildExecutor (subprocess)
-    4. Runs post-build hooks
-    5. Notifies clients to reload
+    BuildTrigger is the central coordinator in the rebuild pipeline:
+
+    WatcherRunner → BuildTrigger → BuildExecutor
+                        ↓
+                   ReloadController → LiveReload → Browser
+
+    Rebuild Flow:
+    1. WatcherRunner detects file changes, calls on_file_change()
+    2. BuildTrigger classifies event types (structural vs content-only)
+    3. Pre-build hooks execute (e.g., npm build, tailwind)
+    4. BuildExecutor runs Site.build() in subprocess
+    5. Post-build hooks execute
+    6. ReloadController decides reload type (CSS-only vs full)
+    7. LiveReload notifies connected browsers
+
+    Rebuild Decisions:
+    - Created/deleted files → Full rebuild (structural change)
+    - Modified content files → Incremental rebuild
+    - Modified CSS/assets → CSS-only hot reload (if no template changes)
+    - Navigation frontmatter changes → Full rebuild (affects menus/breadcrumbs)
 
 Related:
     - bengal/server/watcher_runner.py: Calls BuildTrigger on changes
     - bengal/server/build_executor.py: Executes builds in subprocess
-    - bengal/server/build_hooks.py: Pre/post build hooks
+    - bengal/server/build_hooks.py: Pre/post build hook execution
+    - bengal/server/reload_controller.py: Reload type decisions
+    - bengal/server/live_reload.py: Client notification
 """
 
 from __future__ import annotations

@@ -1,14 +1,43 @@
 """
-ReloadController: Decide when and how to reload based on output diffs.
+Intelligent reload decision engine for Bengal dev server.
 
-Scans the built output directory (e.g., public/) after each build and
-compares against the prior snapshot to determine whether:
- - no reload is needed
- - CSS-only hot reload is sufficient
- - a full page reload is required
+Analyzes output directory changes after each build to determine the optimal
+reload strategy: no reload, CSS-only hot reload, or full page reload.
 
-Uses file size and modification time for fast diffing. This is sufficient
-for dev; a hashing option can be added later if needed.
+Features:
+    - Fast diffing using file size and mtime (no hashing by default)
+    - CSS-only hot reload when only stylesheets change
+    - Configurable throttling to coalesce rapid rebuild sequences
+    - Glob-based ignore patterns for output paths
+    - Optional content hashing for suspected false positives
+    - Thread-safe configuration updates
+
+Classes:
+    ReloadController: Main decision engine with snapshot diffing
+    SnapshotEntry: Immutable file metadata (size, mtime)
+    OutputSnapshot: Directory state at a point in time
+    ReloadDecision: Action recommendation with reason and changed paths
+
+Constants:
+    MAX_CHANGED_PATHS_TO_SEND: Limit paths sent to client (20)
+
+Architecture:
+    The controller maintains a baseline snapshot of the output directory.
+    After each build, it takes a new snapshot and diffs against baseline:
+
+    1. Take snapshot (walk output dir, collect size/mtime)
+    2. Diff against previous (find added/modified/deleted files)
+    3. Apply ignore globs and optional hash verification
+    4. Decide action: 'none', 'reload-css', or 'reload'
+    5. Update baseline for next comparison
+
+    CSS-only reload is chosen when ALL changed files are CSS. Any non-CSS
+    change triggers a full page reload.
+
+Related:
+    - bengal/server/build_trigger.py: Calls decide_and_update after builds
+    - bengal/server/live_reload.py: Sends reload events to connected clients
+    - bengal/utils/hashing.py: Content hashing for suspect verification
 """
 
 from __future__ import annotations
@@ -28,17 +57,41 @@ from bengal.utils.rich_console import should_use_emoji
 
 @dataclass(frozen=True)
 class SnapshotEntry:
+    """
+    Immutable file metadata for snapshot comparison.
+
+    Attributes:
+        size: File size in bytes
+        mtime: Modification time as float (from os.stat)
+    """
+
     size: int
     mtime: float
 
 
 @dataclass
 class OutputSnapshot:
+    """
+    Point-in-time snapshot of output directory state.
+
+    Attributes:
+        files: Map of relative paths to their metadata entries
+    """
+
     files: dict[str, SnapshotEntry]
 
 
 @dataclass
 class ReloadDecision:
+    """
+    Reload action recommendation from the controller.
+
+    Attributes:
+        action: One of 'none', 'reload-css', or 'reload'
+        reason: Machine-readable reason (e.g., 'css-only', 'throttled')
+        changed_paths: List of changed output paths (limited to MAX_CHANGED_PATHS_TO_SEND)
+    """
+
     action: str  # 'none' | 'reload-css' | 'reload'
     reason: str
     changed_paths: list[str]
@@ -48,6 +101,30 @@ MAX_CHANGED_PATHS_TO_SEND = 20
 
 
 class ReloadController:
+    """
+    Intelligent reload decision engine based on output directory diffs.
+
+    Compares output directory snapshots to determine optimal reload strategy.
+    Supports throttling, ignore patterns, and optional content hashing.
+
+    Attributes:
+        _previous: Last baseline snapshot for comparison
+        _last_notify_time_ms: Timestamp of last reload notification
+        _min_interval_ms: Minimum interval between notifications (throttling)
+        _ignored_globs: Glob patterns for paths to ignore
+        _hash_on_suspect: Enable content hashing for suspected false positives
+        _hash_cache: LRU cache of path → (size, digest) for hash verification
+
+    Thread Safety:
+        Configuration setters are protected by _config_lock for runtime updates.
+
+    Example:
+        >>> controller = ReloadController(min_notify_interval_ms=500)
+        >>> decision = controller.decide_and_update(Path("public/"))
+        >>> if decision.action == "reload-css":
+        ...     send_css_reload(decision.changed_paths)
+    """
+
     def __init__(
         self,
         min_notify_interval_ms: int = 300,
@@ -56,6 +133,18 @@ class ReloadController:
         suspect_hash_limit: int = 200,
         suspect_size_limit_bytes: int = 2_000_000,
     ) -> None:
+        """
+        Initialize the reload controller.
+
+        Args:
+            min_notify_interval_ms: Minimum milliseconds between reload notifications.
+                                    Helps coalesce rapid rebuild sequences.
+            ignored_globs: Glob patterns for output paths to ignore (e.g., '*.map').
+            hash_on_suspect: Enable MD5 hashing to verify suspected changes.
+                            Catches false positives from mtime-only changes.
+            suspect_hash_limit: Maximum files to hash per decision (performance cap).
+            suspect_size_limit_bytes: Skip hashing files larger than this (2MB default).
+        """
         self._previous: OutputSnapshot | None = None
         self._last_notify_time_ms: int = 0
         self._min_interval_ms: int = min_notify_interval_ms
@@ -140,6 +229,26 @@ class ReloadController:
         return changed, css_changed
 
     def decide_and_update(self, output_dir: Path) -> ReloadDecision:
+        """
+        Take a snapshot, diff against baseline, and decide reload action.
+
+        This is the main entry point called after each build completes.
+        It performs the full decision workflow:
+        1. Snapshot current output directory
+        2. Diff against previous baseline
+        3. Apply ignore globs and optional hash verification
+        4. Choose action based on changed file types
+        5. Update baseline for next comparison
+
+        Args:
+            output_dir: Path to the output directory (e.g., public/)
+
+        Returns:
+            ReloadDecision with action, reason, and changed paths.
+            Action is 'none' if no reload needed (baseline, no change, throttled).
+            Action is 'reload-css' if only CSS files changed.
+            Action is 'reload' for any other changes.
+        """
         curr = self._take_snapshot(output_dir)
 
         if self._previous is None:
@@ -301,9 +410,19 @@ class ReloadController:
         return decision
 
     def decide_from_changed_paths(self, changed_paths: list[str]) -> ReloadDecision:
-        """Classify a given list of changed output paths.
+        """
+        Classify pre-computed changed paths into a reload decision.
 
-        Applies ignore globs and throttling consistently with decide_and_update.
+        Alternative entry point when changed paths are already known
+        (e.g., from incremental build output). Applies the same ignore
+        globs and throttling as decide_and_update.
+
+        Args:
+            changed_paths: List of changed output paths (relative to output dir)
+
+        Returns:
+            ReloadDecision with action based on file types in changed_paths.
+            CSS-only changes → 'reload-css', otherwise → 'reload'.
         """
         # Apply ignore globs first
         paths = list(changed_paths or [])

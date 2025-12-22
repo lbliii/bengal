@@ -1,7 +1,45 @@
 """
-Custom HTTP request handler for the dev server.
+HTTP request handler for Bengal dev server.
 
-Provides beautiful logging, custom 404 pages, and live reload support.
+Provides the main request handler that combines file serving, live reload
+injection, custom error pages, and component preview functionality.
+
+Features:
+    - Automatic live reload script injection into HTML responses
+    - Custom 404.html page support (serves user's error page if present)
+    - Component preview routes (/__bengal_components__/*)
+    - Rebuild-aware directory listing (shows "rebuilding" page during builds)
+    - HTML response caching for rapid navigation
+    - Cache-busting headers for development
+
+Classes:
+    BengalRequestHandler: Main HTTP handler combining all features
+
+Functions:
+    get_rebuilding_page_html: Generate themed "rebuilding" placeholder page
+
+Constants:
+    REBUILDING_PAGE_HTML: HTML template for rebuild placeholder
+    PALETTE_COLORS: Theme color definitions for rebuilding page
+    DEFAULT_PALETTE: Default theme (snow-lynx)
+
+Architecture:
+    The handler uses multiple inheritance (mixins) to compose functionality:
+    - RequestLogger: Beautiful HTTP request logging
+    - LiveReloadMixin: SSE endpoint and script injection
+    - SimpleHTTPRequestHandler: Base file serving
+
+    Request flow:
+    1. Component preview routes → ComponentPreviewServer
+    2. SSE endpoint (/__bengal_reload__) → LiveReloadMixin.handle_sse()
+    3. HTML files → inject live reload script via mixin
+    4. Other files → default SimpleHTTPRequestHandler behavior
+
+Related:
+    - bengal/server/live_reload.py: LiveReloadMixin implementation
+    - bengal/server/request_logger.py: RequestLogger mixin
+    - bengal/server/component_preview.py: Component preview functionality
+    - bengal/server/dev_server.py: Creates and manages this handler
 """
 
 from __future__ import annotations
@@ -240,15 +278,24 @@ DEFAULT_PALETTE = "snow-lynx"
 
 def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
     """
-    Generate the rebuilding page HTML with the appropriate palette colors.
+    Generate themed HTML for the "rebuilding" placeholder page.
+
+    Creates a visually appealing loading page shown during site rebuilds.
+    The page features Bengal branding, animated elements, and automatically
+    refreshes when the build completes (via meta refresh and live reload).
 
     Args:
-        path: The URL path being rebuilt
-        palette: The palette name (e.g., 'snow-lynx', 'charcoal-bengal')
-                 If None, uses the default palette.
+        path: URL path that triggered the rebuild (shown to user for context)
+        palette: Theme name from PALETTE_COLORS (e.g., 'snow-lynx', 'charcoal-bengal').
+                 Falls back to DEFAULT_PALETTE if None or invalid.
 
     Returns:
-        Bytes containing the complete HTML with colors applied
+        Complete HTML document as bytes, ready to serve.
+
+    Example:
+        >>> html = get_rebuilding_page_html("/blog/my-post", "charcoal-bengal")
+        >>> b"Rebuilding" in html
+        True
     """
     # Get colors for the palette (or default)
     palette_key = palette or DEFAULT_PALETTE
@@ -271,16 +318,39 @@ def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
 
 class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
     """
-    Custom HTTP request handler with beautiful logging, custom 404 page, and live reload support.
+    HTTP request handler for Bengal dev server with live reload and error pages.
 
-    This handler combines:
-    - RequestLogger: Beautiful, minimal HTTP request logging
-    - LiveReloadMixin: Server-Sent Events for hot reload
-    - SimpleHTTPRequestHandler: Standard HTTP file serving
+    Combines multiple mixins to provide a complete development experience:
+    - RequestLogger: Beautiful, filtered HTTP request logging
+    - LiveReloadMixin: SSE endpoint and automatic script injection
+    - SimpleHTTPRequestHandler: Static file serving
 
-    Build resilience:
-    - Shows "rebuilding" page instead of directory listing during builds
-    - Auto-refreshes when build completes via live reload
+    Features:
+        - Live reload script auto-injection into HTML pages
+        - Server-Sent Events endpoint at /__bengal_reload__
+        - Custom 404.html page support
+        - Component preview at /__bengal_components__/
+        - "Rebuilding" placeholder during active builds
+        - HTML response caching (LRU, 50 pages)
+        - Aggressive cache-busting headers
+
+    Class Attributes:
+        server_version: HTTP server version header ("Bengal/1.0")
+        protocol_version: HTTP protocol version ("HTTP/1.1" for keep-alive)
+        _cached_site: Cached Site instance for component preview
+        _html_cache: LRU cache for injected HTML responses
+        _build_in_progress: Flag indicating active rebuild
+        _active_palette: Theme for rebuilding page styling
+
+    Thread Safety:
+        - _html_cache is protected by _html_cache_lock
+        - _build_in_progress is protected by _build_lock
+        - Safe for use with ThreadingTCPServer
+
+    Example:
+        >>> from functools import partial
+        >>> handler = partial(BengalRequestHandler, directory="/path/to/public")
+        >>> server = TCPServer(("localhost", 5173), handler)
     """
 
     # Suppress default server version header
@@ -310,15 +380,17 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
-        Initialize the request handler.
+        Initialize the request handler with optional directory override.
 
-        Pre-initializes headers and request_version to avoid AttributeError
-        when tests bypass normal request parsing flow. The parent class will
-        properly set these during normal HTTP request handling.
+        Pre-initializes HTTP attributes (headers, request_version, etc.) to
+        avoid AttributeError when tests bypass normal request parsing. The
+        parent class sets these properly during real HTTP handling.
 
         Args:
-            directory: Directory to serve files from. If provided, passed to parent
-                       to avoid os.getcwd() which can fail if CWD is deleted during rebuilds.
+            *args: Positional arguments passed to SimpleHTTPRequestHandler
+            directory: Root directory for file serving. Avoids os.getcwd() call
+                      which can fail if CWD is deleted during rebuilds.
+            **kwargs: Additional keyword arguments for parent class
         """
         # Pass directory to parent to avoid os.getcwd() call (which fails if CWD is deleted during rebuilds)
         if directory is not None:
@@ -387,12 +459,13 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     @override
     def do_GET(self) -> None:
         """
-        Override GET to support SSE and safe HTML injection via mixin.
+        Handle GET requests with live reload injection and special routes.
 
-        Request flow:
-        - Serve SSE endpoint at /__bengal_reload__ (long-lived connection)
-        - Try to serve HTML with injected live-reload script
-        - Fallback to default file serving for non-HTML
+        Request routing (in priority order):
+        1. /__bengal_components__/* → Component preview server
+        2. /__bengal_reload__ → SSE endpoint (long-lived connection)
+        3. *.html files → Inject live reload script, serve with cache
+        4. Other files → Default SimpleHTTPRequestHandler behavior
         """
         # Component preview routes
         if self.path.startswith("/__bengal_components__/") or self.path.startswith(
@@ -461,16 +534,17 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
     def _might_be_html(self, path: str) -> bool:
         """
-        Quick check if request might return HTML.
+        Fast pre-filter to check if a request path might return HTML.
 
-        This is a fast pre-filter to avoid buffering responses that are
-        definitely not HTML (like CSS, JS, images).
+        Used to avoid unnecessary response buffering for files that are
+        definitely not HTML (CSS, JS, images, fonts, etc.).
 
         Args:
-            path: Request path
+            path: URL path from request (e.g., "/blog/post" or "/assets/style.css")
 
         Returns:
-            True if request might return HTML, False if definitely not HTML
+            True if the path might return HTML (no extension, .html, .htm, or unknown).
+            False if the path has a known non-HTML extension.
         """
         # Check if path has a non-HTML extension
         if "/" not in path:
@@ -521,13 +595,17 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
     def _is_html_response(self, response_data: bytes) -> bool:
         """
-        Check if response is HTML by inspecting headers and content.
+        Determine if an HTTP response contains HTML content.
+
+        Checks Content-Type header first (most reliable), then falls back
+        to inspecting the response body for HTML markers.
 
         Args:
-            response_data: Complete HTTP response (headers + body)
+            response_data: Complete HTTP response bytes (headers + body)
 
         Returns:
-            True if response is HTML, False otherwise
+            True if Content-Type is text/html or body contains HTML markers.
+            False for non-HTML responses or malformed data.
         """
         try:
             # HTTP response format: headers\r\n\r\nbody
@@ -603,23 +681,29 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     @override
     def list_directory(self, path: str) -> io.BytesIO | None:
         """
-        Override list_directory to show a "rebuilding" page during builds.
+        Show themed "rebuilding" page during builds instead of directory listing.
 
-        When a build is in progress and the user navigates to a page whose
-        index.html doesn't exist yet (e.g., autodoc pages being regenerated),
-        show a friendly "rebuilding" page instead of an ugly directory listing.
+        When a build is in progress and index.html doesn't exist yet (common
+        for autodoc pages being regenerated), displays a friendly placeholder
+        instead of an ugly Apache-style directory listing.
 
-        The rebuilding page:
-        - Has a loading spinner
-        - Auto-refreshes every 2 seconds via meta refresh
-        - Also connects to live reload for faster refresh
-        - Shows the requested path for context
+        Rebuilding page features:
+        - Bengal-themed styling with animated loading indicators
+        - Auto-refresh every 2 seconds via meta refresh tag
+        - Live reload connection for instant refresh when build completes
+        - Displays requested path for user context
 
         Args:
-            path: Filesystem path to the directory
+            path: Filesystem path to the directory being listed
 
         Returns:
-            BytesIO with HTML content, or None if not handled
+            BytesIO containing "rebuilding" HTML if build in progress.
+            Delegates to parent's directory listing otherwise.
+
+        Note:
+            Only shows rebuilding page when _build_in_progress is True.
+            Does NOT show rebuilding page for missing index.html when no
+            build is active (prevents infinite refresh loops).
         """
         # Check if build is in progress
         with BengalRequestHandler._build_lock:
@@ -653,7 +737,12 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
 
     @classmethod
     def clear_cached_site(cls) -> None:
-        """Clear the cached Site instance (used for component preview)."""
+        """
+        Clear the cached Site instance used for component preview.
+
+        Should be called after site configuration changes to ensure
+        component preview uses fresh site data.
+        """
         cls._cached_site = None
         cls._cached_site_root = None
         logger.debug("handler_site_cache_cleared")
@@ -661,12 +750,16 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     @classmethod
     def set_build_in_progress(cls, in_progress: bool) -> None:
         """
-        Set the build-in-progress state.
+        Update the build-in-progress state flag.
 
-        Called by BuildHandler at the start and end of rebuilds.
+        Controls whether directory listings show the "rebuilding" placeholder
+        page. Called by BuildTrigger at the start and end of rebuilds.
 
         Args:
-            in_progress: True when build starts, False when build ends
+            in_progress: True when build starts, False when build completes
+
+        Thread Safety:
+            Protected by _build_lock for concurrent request handling.
         """
         with cls._build_lock:
             cls._build_in_progress = in_progress

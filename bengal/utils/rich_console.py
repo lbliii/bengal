@@ -1,15 +1,49 @@
 """
 Rich console wrapper with profile-aware output.
 
-Provides a singleton console instance that respects:
-- Build profiles (Writer/Theme-Dev/Developer)
-- Terminal capabilities
-- CI/CD environments
-- Emoji preferences (BENGAL_EMOJI env var)
+Provides a singleton Rich console instance that respects build profiles,
+terminal capabilities, CI/CD environments, and user preferences. This module
+is the central point for all Bengal CLI output formatting.
+
+Key Features:
+    - Singleton console with Bengal color theme
+    - Profile-aware output (Writer/Theme-Dev/Developer)
+    - CI/CD detection (disables fancy output)
+    - Emoji preference via BENGAL_EMOJI environment variable
+    - Live display detection for progress coordination
 
 Configuration:
-    Set BENGAL_EMOJI=1 to enable emoji in CLI output.
-    Default is ASCII-first output with cat+mouse branding.
+    Environment Variables:
+        - BENGAL_EMOJI=1: Enable emoji in CLI output (default: ASCII)
+        - NO_COLOR: Disable all colors (follows NO_COLOR standard)
+        - CI: Detected automatically, disables fancy terminal features
+        - TERM=dumb: Disables rich features
+
+Bengal Color Palette:
+    - primary: #FF9D00 (Vivid Orange) - Brand color
+    - secondary: #3498DB (Bright Blue) - Links, paths
+    - accent: #F1C40F (Sunflower Yellow) - Highlights
+    - success: #2ECC71 (Emerald Green) - Success messages
+    - error: #E74C3C (Alizarin Crimson) - Errors
+    - warning: #E67E22 (Carrot Orange) - Warnings
+
+Usage:
+    >>> from bengal.utils.rich_console import get_console, should_use_rich
+    >>>
+    >>> console = get_console()
+    >>> console.print("[success]Build complete![/success]")
+    >>>
+    >>> if should_use_rich():
+    ...     # Use rich progress bars
+    ...     pass
+
+Related Modules:
+    - bengal/cli/progress.py: Live progress display
+    - bengal/utils/logger.py: Structured logging (uses rich for output)
+    - bengal/output.py: CLI output coordination
+
+See Also:
+    - bengal/utils/COLOR_PALETTE.md: Color palette documentation
 """
 
 from __future__ import annotations
@@ -130,8 +164,26 @@ def detect_environment() -> dict[str, bool | str | int | None]:
     """
     Detect terminal and environment capabilities.
 
+    Gathers comprehensive information about the execution environment
+    to help with debugging and adaptive output formatting.
+
     Returns:
-        Dictionary with environment info
+        Dictionary containing:
+            - is_terminal (bool): Whether stdout is a TTY
+            - color_system (str | None): Detected color capability
+            - width (int): Terminal width in characters
+            - height (int): Terminal height in characters
+            - is_ci (bool): Whether running in CI environment
+            - is_docker (bool): Whether running in Docker/container
+            - is_git_repo (bool): Whether .git directory exists
+            - cpu_count (int): Number of CPU cores
+            - terminal_app (str): Terminal emulator name
+
+    Example:
+        >>> env = detect_environment()
+        >>> if env["is_ci"]:
+        ...     # Simplify output for CI logs
+        ...     pass
     """
     env: dict[str, bool | str | int | None] = {}
 
