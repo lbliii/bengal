@@ -207,14 +207,288 @@ Footer {
 }
 ```
 
-### 4. Component Library
+### 4. Widget Specification
+
+Reference: [Textual Widget Gallery](https://textual.textualize.io/widget_gallery/)
+
+#### Widget Selection by Priority
+
+| Widget | Bengal Use Case | Priority |
+|--------|-----------------|----------|
+| `Header` | `ᓚᘏᗢ Bengal Build` branding | 🔴 Critical |
+| `Footer` | `[q] Quit [r] Rebuild [o] Open` | 🔴 Critical |
+| `DataTable` | Build phase timing, page stats | 🔴 Critical |
+| `ProgressBar` | Build progress (65% complete) | 🔴 Critical |
+| `Log` / `RichLog` | Streaming build output | 🔴 Critical |
+| `Tree` | Content section hierarchy, health report | 🔴 Critical |
+| `Static` | Mascot display, status text | 🟢 Medium |
+| `TabbedContent` | Switch: Stats / Output / Errors | 🟡 High |
+| `TabPane` | Individual tab content | 🟡 High |
+| `Sparkline` | Build time history trend | 🟡 High |
+| `MarkdownViewer` | Preview rendered content | 🟡 High |
+| `Collapsible` | Expandable phase details | 🟢 Medium |
+| `Rule` | Section separators | 🟢 Medium |
+| `LoadingIndicator` | Spinner for active phase | 🟢 Medium |
+| `Digits` | Large build time display | 🟢 Medium |
+| `Select` | Theme/palette dropdown | 🔵 Future |
+| `Switch` | Toggle settings | 🔵 Future |
+| `DirectoryTree` | File picker for `bengal new` | 🔵 Future |
+
+#### Widget Imports
+
+```python
+# bengal/cli/dashboard/widgets.py
+from textual.widgets import (
+    # Core (must have)
+    Header,
+    Footer,
+    DataTable,
+    ProgressBar,
+    Log,
+    RichLog,
+    Static,
+
+    # Navigation (high value)
+    TabbedContent,
+    TabPane,
+    Tree,
+
+    # Data visualization (nice to have)
+    Sparkline,
+    Digits,
+
+    # Content (nice to have)
+    MarkdownViewer,
+    Markdown,
+    Collapsible,
+    Rule,
+    LoadingIndicator,
+
+    # Interactive (future)
+    Select,
+    Switch,
+    Input,
+)
+
+from textual.containers import (
+    Container,
+    Horizontal,
+    Vertical,
+    ScrollableContainer,
+)
+```
+
+### 5. API Integration
+
+Reference: [Textual API Reference](https://textual.textualize.io/api/)
+
+#### Key API Modules
+
+| Module | Purpose | Bengal Use |
+|--------|---------|------------|
+| `textual.app` | Core App class | Dashboard base class |
+| `textual.reactive` | Reactive variables | Live build progress updates |
+| `textual.worker` | Background tasks | Run builds without blocking UI |
+| `textual.on` | Event decorators | Handle keyboard/build events |
+| `textual.binding` | Keyboard shortcuts | `q`, `r`, `o`, `c` commands |
+| `textual.message` | Custom messages | Build phase completion signals |
+| `textual.timer` | Periodic updates | Refresh file watcher status |
+
+#### Reactive Build State
+
+```python
+# bengal/cli/dashboard/state.py
+from textual.reactive import reactive
+
+class BengalBuildDashboard(App):
+    """Dashboard with reactive state updates."""
+
+    # Reactive variables auto-update UI when changed
+    pages_built = reactive(0)
+    total_pages = reactive(0)
+    current_phase = reactive("Initializing")
+    build_time_ms = reactive(0)
+    is_building = reactive(False)
+
+    def watch_pages_built(self, count: int) -> None:
+        """Called automatically when pages_built changes."""
+        progress = self.query_one("#progress", ProgressBar)
+        if self.total_pages > 0:
+            progress.update(progress=count / self.total_pages * 100)
+
+    def watch_current_phase(self, phase: str) -> None:
+        """Called automatically when phase changes."""
+        status = self.query_one("#status", Static)
+        status.update(f"ᓚᘏᗢ  {phase}...")
+```
+
+#### Background Workers for Builds
+
+```python
+# bengal/cli/dashboard/workers.py
+from textual.worker import Worker, get_current_worker, work
+
+class BengalBuildDashboard(App):
+
+    @work(exclusive=True, thread=True)
+    async def run_build(self, output: str) -> None:
+        """Run build in background worker (doesn't block UI)."""
+        worker = get_current_worker()
+
+        from bengal.orchestration import BuildOrchestrator
+        orchestrator = BuildOrchestrator(output=output)
+
+        for event in orchestrator.build_with_events():
+            if worker.is_cancelled:
+                break
+
+            # Update UI from worker thread safely
+            self.call_from_thread(self.handle_build_event, event)
+
+        self.call_from_thread(self.on_build_complete)
+
+    def action_rebuild(self) -> None:
+        """Triggered by pressing 'r'."""
+        self.run_build(self.output_dir)
+
+    def action_cancel_build(self) -> None:
+        """Triggered by pressing 'escape'."""
+        self.workers.cancel_all()
+```
+
+#### Custom Messages for Build Events
+
+```python
+# bengal/cli/dashboard/messages.py
+from dataclasses import dataclass
+from textual.message import Message
+
+@dataclass
+class BuildEvent(Message):
+    """Base build event for dashboard integration."""
+    pass
+
+@dataclass
+class PhaseStarted(BuildEvent):
+    """Emitted when a build phase begins."""
+    phase: str
+    total_items: int
+
+@dataclass
+class PhaseProgress(BuildEvent):
+    """Emitted during phase execution."""
+    phase: str
+    current: int
+    total: int
+    item: str  # e.g., "content/docs/guide.md"
+
+@dataclass
+class PhaseComplete(BuildEvent):
+    """Emitted when a build phase completes."""
+    phase: str
+    duration_ms: int
+    items_processed: int
+
+@dataclass
+class BuildComplete(BuildEvent):
+    """Emitted when entire build finishes."""
+    total_duration_ms: int
+    pages: int
+    assets: int
+    errors: int
+
+# Dashboard handles these events
+class BengalBuildDashboard(App):
+
+    def on_phase_started(self, event: PhaseStarted) -> None:
+        self.current_phase = event.phase
+        self.total_pages = event.total_items
+
+    def on_phase_progress(self, event: PhaseProgress) -> None:
+        self.pages_built = event.current
+        log = self.query_one("#output", Log)
+        log.write_line(f"Rendering {event.item}...")
+
+    def on_phase_complete(self, event: PhaseComplete) -> None:
+        table = self.query_one("#phases", DataTable)
+        table.add_row(
+            event.phase,
+            f"{event.duration_ms}ms",
+            f"{event.items_processed} items",
+            "✓"
+        )
+
+    def on_build_complete(self, event: BuildComplete) -> None:
+        self.is_building = False
+        status = self.query_one("#status", Static)
+        status.update(f"ᓚᘏᗢ  Build complete in {event.total_duration_ms}ms")
+```
+
+#### Keyboard Bindings
+
+```python
+# bengal/cli/dashboard/bindings.py
+from textual.binding import Binding
+
+class BengalDashboard(App):
+    """Base dashboard with common bindings."""
+
+    BINDINGS = [
+        Binding("q", "quit", "Quit", show=True),
+        Binding("r", "rebuild", "Rebuild", show=True),
+        Binding("c", "clear_cache", "Clear Cache", show=True),
+        Binding("?", "show_help", "Help", show=True),
+        Binding("escape", "cancel", "Cancel", show=False),
+    ]
+
+class BengalBuildDashboard(BengalDashboard):
+    """Build-specific bindings."""
+
+    BINDINGS = BengalDashboard.BINDINGS + [
+        Binding("v", "toggle_verbose", "Verbose", show=True),
+    ]
+
+class BengalServeDashboard(BengalDashboard):
+    """Serve-specific bindings."""
+
+    BINDINGS = BengalDashboard.BINDINGS + [
+        Binding("o", "open_browser", "Open", show=True),
+        Binding("l", "show_logs", "Logs", show=True),
+    ]
+```
+
+#### Timer for Live Updates
+
+```python
+# bengal/cli/dashboard/timers.py
+
+class BengalServeDashboard(App):
+
+    def on_mount(self) -> None:
+        """Start periodic updates when dashboard mounts."""
+        # Update file watcher status every second
+        self.set_interval(1.0, self.refresh_watcher_status)
+        # Update build history sparkline every 5 seconds
+        self.set_interval(5.0, self.refresh_build_history)
+
+    def refresh_watcher_status(self) -> None:
+        """Update file watcher status display."""
+        status = self.query_one("#watcher-status", Static)
+        status.update(f"○ Watching {self.watched_files} files...")
+
+    def refresh_build_history(self) -> None:
+        """Update build time sparkline."""
+        sparkline = self.query_one("#history", Sparkline)
+        sparkline.data = self.build_times[-20:]  # Last 20 builds
+```
+
+### 6. Component Library
 
 #### Standard Output (Rich-based, unchanged)
 
 ```python
 # bengal/output/core.py
 from rich.console import Console
-from textual.app import App  # Available if needed
 
 class CLIOutput:
     """Standard CLI output using Rich (included in Textual)."""
@@ -229,26 +503,59 @@ class CLIOutput:
         self.console.print(f"[green]✓[/] {text}")
 
     def error(self, text: str) -> None:
-        self.console.print(f"[red bold]x[/] {text}")
+        self.console.print(f"[red bold]ᘛ⁐̤ᕐᐷ[/] {text}")
 ```
 
-#### Dashboard Mode (Textual TUI)
+#### Dashboard Base Class
+
+```python
+# bengal/cli/dashboard/base.py
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.reactive import reactive
+
+class BengalDashboard(App):
+    """Bengal interactive dashboard base class."""
+
+    CSS_PATH = "bengal.tcss"
+    TITLE = "Bengal"
+
+    # Common reactive state
+    status = reactive("Ready")
+    is_busy = reactive(False)
+
+    BINDINGS = [
+        Binding("q", "quit", "Quit"),
+        Binding("r", "rebuild", "Rebuild"),
+        Binding("c", "clear_cache", "Clear"),
+        Binding("?", "help", "Help"),
+    ]
+
+    def action_clear_cache(self) -> None:
+        """Clear build cache."""
+        from bengal.cache import clear_all_caches
+        clear_all_caches()
+        self.notify("Cache cleared", severity="information")
+```
+
+#### Build Dashboard
 
 ```python
 # bengal/cli/dashboard/build.py
-from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, DataTable, ProgressBar, Static, Log
-from textual.containers import Container, Horizontal, Vertical
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal
+from textual.widgets import Header, Footer, DataTable, ProgressBar, Log, Static
+from textual.worker import work
 
-class BengalBuildDashboard(App):
+from bengal.cli.dashboard.base import BengalDashboard
+from bengal.cli.dashboard.messages import PhaseComplete, BuildComplete
+
+class BengalBuildDashboard(BengalDashboard):
     """Interactive build dashboard."""
 
-    CSS_PATH = "bengal.tcss"
-
-    BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("r", "rebuild", "Rebuild"),
-        ("c", "clear_cache", "Clear Cache"),
+    BINDINGS = BengalDashboard.BINDINGS + [
+        Binding("escape", "cancel_build", "Cancel"),
+        Binding("v", "toggle_verbose", "Verbose"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -256,80 +563,140 @@ class BengalBuildDashboard(App):
         yield Container(
             Horizontal(
                 Static("ᓚᘏᗢ", id="mascot", classes="mascot"),
-                Static("Bengal Build", id="title"),
+                Static("Building...", id="status"),
             ),
             ProgressBar(id="progress", total=100),
             DataTable(id="phases"),
-            Log(id="output"),
+            Log(id="output", highlight=True, markup=True),
             id="main"
         )
         yield Footer()
 
     def on_mount(self) -> None:
-        # Initialize phase table
         table = self.query_one("#phases", DataTable)
         table.add_columns("Phase", "Time", "Details", "Status")
+        # Start build automatically
+        self.run_build()
 
-    def update_phase(self, name: str, time_ms: int, details: str, status: str) -> None:
-        """Update phase in the table."""
+    @work(exclusive=True, thread=True)
+    async def run_build(self) -> None:
+        """Execute build in background."""
+        # Build logic here...
+        pass
+
+    def on_phase_complete(self, event: PhaseComplete) -> None:
         table = self.query_one("#phases", DataTable)
-        icon = "✓" if status == "complete" else "⠹" if status == "running" else "·"
-        table.add_row(name, f"{time_ms}ms", details, icon)
+        table.add_row(event.phase, f"{event.duration_ms}ms", "✓")
 ```
 
-#### Dev Server Dashboard
+#### Serve Dashboard with Tabs and Sparkline
 
 ```python
 # bengal/cli/dashboard/serve.py
-class BengalServeDashboard(App):
-    """Live dev server dashboard."""
+from textual.app import ComposeResult
+from textual.containers import Container
+from textual.widgets import (
+    Header, Footer, Log, DataTable, Static,
+    TabbedContent, TabPane, Sparkline
+)
 
-    CSS_PATH = "bengal.tcss"
+from bengal.cli.dashboard.base import BengalDashboard
 
-    BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("r", "rebuild", "Rebuild"),
-        ("o", "open_browser", "Open"),
-        ("c", "clear_cache", "Clear"),
+class BengalServeDashboard(BengalDashboard):
+    """Live dev server dashboard with tabs."""
+
+    BINDINGS = BengalDashboard.BINDINGS + [
+        Binding("o", "open_browser", "Open"),
     ]
+
+    # Track build times for sparkline
+    build_times: list[float] = []
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
             Static("ᓚᘏᗢ  Serving at http://localhost:3000", id="status"),
             TabbedContent(
-                TabPane("Changes", Log(id="changes")),
-                TabPane("Build", DataTable(id="stats")),
-                TabPane("Errors", Log(id="errors")),
+                TabPane("Changes", Log(id="changes"), id="tab-changes"),
+                TabPane("Stats", DataTable(id="stats"), id="tab-stats"),
+                TabPane("Errors", Log(id="errors"), id="tab-errors"),
+                TabPane("Preview", id="tab-preview"),  # Future: MarkdownViewer
             ),
+            Sparkline(self.build_times, id="history"),
             id="main"
         )
         yield Footer()
+
+    def on_mount(self) -> None:
+        self.set_interval(1.0, self.refresh_status)
+
+    def action_open_browser(self) -> None:
+        import webbrowser
+        webbrowser.open("http://localhost:3000")
+
+    def log_change(self, path: str) -> None:
+        log = self.query_one("#changes", Log)
+        log.write_line(f"● {path} modified")
+
+    def update_build_time(self, duration: float) -> None:
+        self.build_times.append(duration)
+        self.build_times = self.build_times[-20:]  # Keep last 20
+        sparkline = self.query_one("#history", Sparkline)
+        sparkline.data = self.build_times
 ```
 
-#### Health Report Explorer
+#### Health Dashboard with Tree
 
 ```python
 # bengal/cli/dashboard/health.py
-class BengalHealthDashboard(App):
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal
+from textual.widgets import Header, Footer, Tree, Static, Markdown
+
+from bengal.cli.dashboard.base import BengalDashboard
+
+class BengalHealthDashboard(BengalDashboard):
     """Interactive health report explorer."""
+
+    BINDINGS = BengalDashboard.BINDINGS + [
+        Binding("f", "fix_issue", "Fix"),
+        Binding("e", "export_report", "Export"),
+        Binding("enter", "expand_node", "Expand"),
+    ]
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
-            Tree("Health Report", id="tree"),
-            Static(id="details"),
+            Horizontal(
+                Tree("Health Report", id="tree"),
+                Static(id="details", classes="details-panel"),
+            ),
             id="main"
         )
         yield Footer()
 
-    def on_tree_node_selected(self, event) -> None:
-        """Show details when node selected."""
+    def on_mount(self) -> None:
+        tree = self.query_one("#tree", Tree)
+        root = tree.root
+
+        # Build tree from health report
+        links = root.add("Links", expand=True)
+        links.add_leaf("✓ Internal (45)")
+        links.add_leaf("⚠ External (2)")
+
+        images = root.add("Images")
+        images.add_leaf("✓ All valid")
+
+        frontmatter = root.add("Frontmatter")
+        frontmatter.add_leaf("⚠ Missing required (3)")
+
+    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         details = self.query_one("#details", Static)
-        details.update(event.node.data.get("details", ""))
+        # Show details for selected node
+        details.update(f"Selected: {event.node.label}")
 ```
 
-### 5. CLI Integration
+### 7. CLI Integration
 
 ```python
 # bengal/cli/commands/build.py
@@ -345,15 +712,46 @@ def build(output: str, dashboard: bool, parallel: bool) -> None:
 
     if dashboard:
         from bengal.cli.dashboard.build import BengalBuildDashboard
-        app = BengalBuildDashboard()
+        app = BengalBuildDashboard(output=output, parallel=parallel)
         app.run()
     else:
         # Standard Rich output (existing behavior)
         from bengal.orchestration import build_site
         build_site(output=output, parallel=parallel)
+
+
+# bengal/cli/commands/serve.py
+@click.command(cls=BengalCommand)
+@click.option("--port", "-p", default=3000, help="Server port")
+@click.option("--dashboard", is_flag=True, help="Show interactive dashboard")
+def serve(port: int, dashboard: bool) -> None:
+    """Start development server with live reload."""
+
+    if dashboard:
+        from bengal.cli.dashboard.serve import BengalServeDashboard
+        app = BengalServeDashboard(port=port)
+        app.run()
+    else:
+        from bengal.server import run_dev_server
+        run_dev_server(port=port)
+
+
+# bengal/cli/commands/health.py
+@click.command(cls=BengalCommand)
+@click.option("--dashboard", is_flag=True, help="Show interactive explorer")
+def health(dashboard: bool) -> None:
+    """Run health checks and validation."""
+
+    if dashboard:
+        from bengal.cli.dashboard.health import BengalHealthDashboard
+        app = BengalHealthDashboard()
+        app.run()
+    else:
+        from bengal.health import run_health_checks
+        run_health_checks()
 ```
 
-### 6. Brand Identity
+### 8. Brand Identity
 
 #### Mascots (Always Shown)
 
@@ -467,16 +865,21 @@ dashboard = ["textual>=0.89"]
 - `bengal/output/core.py` — CLIOutput class
 - `bengal/output/icons.py` — Icon definitions
 - `bengal/themes/default/assets/css/tokens/` — Web token system
+- `bengal/cli/commands/` — Current Click commands
 
 ### Textual Documentation
-- [Textual Home](https://textual.textualize.io/)
-- [Textual CSS Guide](https://textual.textualize.io/guide/CSS/)
-- [Textual Widgets](https://textual.textualize.io/widgets/)
-- [Textual Themes](https://textual.textualize.io/guide/themes/)
+- [Textual Home](https://textual.textualize.io/) — Framework overview
+- [Textual Widget Gallery](https://textual.textualize.io/widget_gallery/) — Visual widget reference
+- [Textual API Reference](https://textual.textualize.io/api/) — Full API docs
+- [Textual CSS Guide](https://textual.textualize.io/guide/CSS/) — Styling reference
+- [Textual Themes](https://textual.textualize.io/guide/themes/) — Theming system
+- [Textual Reactivity](https://textual.textualize.io/guide/reactivity/) — Reactive variables
+- [Textual Workers](https://textual.textualize.io/guide/workers/) — Background tasks
+- [Textual Events](https://textual.textualize.io/guide/events/) — Event handling
 
 ---
 
-## Appendix: Dashboard Mockup
+## Appendix A: Dashboard Mockups
 
 ### Build Dashboard
 
@@ -503,22 +906,28 @@ dashboard = ["textual>=0.89"]
 │  │ Rendering content/blog/2024/new-release.md...          │ │
 │  └────────────────────────────────────────────────────────┘ │
 │                                                             │
-│  [q] Quit  [r] Rebuild  [c] Clear Cache                     │
+│  [q] Quit  [r] Rebuild  [c] Clear Cache  [v] Verbose        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Serve Dashboard
+### Serve Dashboard with Tabs and Sparkline
 
 ```
 ┌─ Bengal Dev Server ─────────────────────────────────────────┐
 │                                                             │
 │  ᓚᘏᗢ  Serving at http://localhost:3000                      │
 │                                                             │
-│  ┌─ Changes ─────────────────────────────────────────────┐  │
-│  │ ● content/blog/new-post.md          Modified  2s ago  │  │
-│  │ ● themes/default/templates/base.html  Modified  45s   │  │
-│  │ ○ Watching 245 files...                               │  │
-│  └───────────────────────────────────────────────────────┘  │
+│  ┌─ Changes ─┬─ Stats ─┬─ Errors ─┬─ Preview ─┐             │
+│  ━━━━━━━━━━━━╸━━━━━━━━━╺━━━━━━━━━━━━━━━━━━━━━━━             │
+│  │                                                          │
+│  │  ● content/blog/new-post.md          Modified  2s ago    │
+│  │  ● themes/default/base.html          Modified  45s ago   │
+│  │  ○ Watching 245 files...                                 │
+│  │                                                          │
+│  └──────────────────────────────────────────────────────────┘
+│                                                             │
+│  Build History (last 20 builds)                             │
+│  ▂▄▂▄▃▃▆▅▃▂▃▂▃▂▄▇▃▃▇▅▄▃▄▄▃▂▃▂▃▄▄█▆▂▃▃▅▃▃▄▃▇▃▃▃              │
 │                                                             │
 │  ┌─ Last Build ──────────────────────────────────────────┐  │
 │  │ ✓ 0.82s  │  245 pages  │  134 assets  │  A (94/100)   │  │
@@ -526,4 +935,253 @@ dashboard = ["textual>=0.89"]
 │                                                             │
 │  [q] Quit  [r] Rebuild  [o] Open Browser  [c] Clear Cache   │
 └─────────────────────────────────────────────────────────────┘
+```
+
+### Health Dashboard with Tree Explorer
+
+```
+┌─ Bengal Health ─────────────────────────────────────────────┐
+│                                                             │
+│  ᓚᘏᗢ  Health Report                                         │
+│                                                             │
+│  ┌─ Issues ─────────────────┐  ┌─ Details ────────────────┐ │
+│  │ ▼ Health Report          │  │                          │ │
+│  │ ├── ▼ Links              │  │  ⚠️ Broken External Link  │ │
+│  │ │   ├── ✓ Internal (45)  │  │                          │ │
+│  │ │   └── ⚠ External (2)   │  │  File: docs/api/ref.md   │ │
+│  │ ├── ▼ Images             │  │  Line: 45                │ │
+│  │ │   └── ✓ All valid      │  │  Link: /api/deprecated   │ │
+│  │ ├── ▼ Frontmatter        │  │                          │ │
+│  │ │   └── ⚠ Missing (3)    │  │  Suggestion:             │ │
+│  │ └── ▼ Performance        │  │  Update to /api/v2       │ │
+│  │     └── ✓ Grade: A       │  │                          │ │
+│  └──────────────────────────┘  └──────────────────────────┘ │
+│                                                             │
+│  Summary: 48 checks passed, 5 warnings, 0 errors            │
+│                                                             │
+│  [q] Quit  [f] Fix Issue  [e] Export  [Enter] Expand        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Appendix B: Textual CSS Stylesheet
+
+```css
+/* bengal/cli/dashboard/bengal.tcss */
+
+/* === Token Variables === */
+$primary: #FF9D00;
+$secondary: #3498DB;
+$accent: #F1C40F;
+$success: #2ECC71;
+$warning: #E67E22;
+$error: #E74C3C;
+$info: #95A5A6;
+$muted: #7F8C8D;
+
+$surface: #1a1a1a;
+$surface-elevated: #252525;
+$background: #0d0d0d;
+$text: #ECF0F1;
+$text-muted: #95A5A6;
+
+/* === Global Styles === */
+Screen {
+    background: $background;
+}
+
+/* === Header === */
+Header {
+    background: $primary;
+    color: $surface;
+    text-style: bold;
+}
+
+/* === Footer === */
+Footer {
+    background: $surface-elevated;
+}
+
+FooterKey {
+    background: $surface;
+    color: $text;
+}
+
+FooterKey:hover {
+    background: $primary;
+}
+
+/* === Mascot === */
+.mascot {
+    color: $primary;
+    text-style: bold;
+    padding: 0 1;
+}
+
+.error-mascot {
+    color: $error;
+    text-style: bold;
+}
+
+/* === Status Indicators === */
+.phase-complete {
+    color: $success;
+}
+
+.phase-running {
+    color: $primary;
+}
+
+.phase-pending {
+    color: $text-muted;
+}
+
+.phase-error {
+    color: $error;
+}
+
+.phase-warning {
+    color: $warning;
+}
+
+/* === DataTable === */
+DataTable {
+    height: auto;
+    max-height: 50%;
+    background: $surface;
+}
+
+DataTable > .datatable--header {
+    background: $surface-elevated;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary 20%;
+}
+
+/* === ProgressBar === */
+ProgressBar {
+    padding: 1 2;
+}
+
+ProgressBar > .bar--bar {
+    color: $primary;
+}
+
+ProgressBar > .bar--complete {
+    color: $success;
+}
+
+/* === Log === */
+Log {
+    background: $surface;
+    border: solid $surface-elevated;
+    height: 1fr;
+}
+
+RichLog {
+    background: $surface;
+    border: solid $surface-elevated;
+}
+
+/* === Tree === */
+Tree {
+    background: $surface;
+    width: 50%;
+}
+
+Tree > .tree--cursor {
+    background: $primary 20%;
+}
+
+Tree > .tree--guides {
+    color: $muted;
+}
+
+/* === Tabs === */
+TabbedContent {
+    height: 1fr;
+}
+
+Tabs {
+    background: $surface-elevated;
+}
+
+Tab {
+    padding: 0 2;
+}
+
+Tab:focus {
+    text-style: bold;
+}
+
+Tab.-active {
+    color: $primary;
+    text-style: bold underline;
+}
+
+/* === Sparkline === */
+Sparkline {
+    height: 3;
+    margin: 1 0;
+}
+
+Sparkline > .sparkline--max {
+    color: $warning;
+}
+
+Sparkline > .sparkline--min {
+    color: $success;
+}
+
+/* === Static (status text) === */
+#status {
+    padding: 1 2;
+    text-style: bold;
+}
+
+/* === Details Panel (Health) === */
+.details-panel {
+    width: 50%;
+    background: $surface;
+    border: solid $surface-elevated;
+    padding: 1 2;
+}
+
+/* === Container Layout === */
+#main {
+    padding: 1;
+}
+
+Horizontal {
+    height: auto;
+}
+```
+
+---
+
+## Appendix C: File Structure
+
+```
+bengal/
+├── cli/
+│   ├── commands/
+│   │   ├── build.py         # --dashboard flag
+│   │   ├── serve.py         # --dashboard flag
+│   │   └── health.py        # --dashboard flag
+│   └── dashboard/
+│       ├── __init__.py
+│       ├── base.py          # BengalDashboard base class
+│       ├── build.py         # BengalBuildDashboard
+│       ├── serve.py         # BengalServeDashboard
+│       ├── health.py        # BengalHealthDashboard
+│       ├── messages.py      # Custom Textual messages
+│       ├── widgets.py       # Widget imports/aliases
+│       └── bengal.tcss      # Textual CSS stylesheet
+├── themes/
+│   └── tokens.py            # Shared token definitions
+└── output/
+    └── core.py              # CLIOutput (Rich, unchanged)
 ```
