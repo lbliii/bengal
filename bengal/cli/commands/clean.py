@@ -41,7 +41,7 @@ def clean(
     force: bool, cache: bool, clean_all: bool, stale_server: bool, config: str, source: str
 ) -> None:
     """
-    🧹 Clean generated files and stale processes.
+    Clean generated files and stale processes.
 
     By default, removes only the output directory (public/).
 

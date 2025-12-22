@@ -87,7 +87,7 @@ def validate(
     source: str,
 ) -> None:
     """
-    🔍 Validate site health and content quality.
+    Validate site health and content quality.
 
     Runs health checks on your site to find errors, warnings, and issues.
     By default, shows only problems (errors and warnings).

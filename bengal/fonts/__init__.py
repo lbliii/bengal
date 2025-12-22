@@ -127,7 +127,6 @@ class FontHelper:
         from bengal.output import CLIOutput
 
         cli = CLIOutput()
-        cli.blank()
         cli.section("Fonts")
 
         # Download fonts

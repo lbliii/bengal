@@ -108,7 +108,7 @@ def serve(
     source: str,
 ) -> None:
     """
-    🚀 Start development server with hot reload.
+    Start development server with hot reload.
 
     Watches for changes in content, assets, and templates,
     automatically rebuilding the site when files are modified.
@@ -126,9 +126,7 @@ def serve(
     # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
     # Validate version flags
     if version_scope and all_versions:
-        raise click.UsageError(
-            "--version and --all-versions cannot be used together"
-        )
+        raise click.UsageError("--version and --all-versions cannot be used together")
 
     # Configure logging based on flags
     if debug:

@@ -58,7 +58,7 @@ def fix(
     source: str,
 ) -> None:
     """
-    🔧 Auto-fix common health check issues.
+    Auto-fix common health check issues.
 
     Analyzes health check results and applies safe fixes automatically.
     By default, only applies SAFE fixes (reversible, no side effects).

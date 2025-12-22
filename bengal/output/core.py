@@ -130,12 +130,15 @@ class CLIOutput(DevServerOutputMixin):
         self,
         text: str,
         mascot: bool = True,
-        leading_blank: bool = True,
+        leading_blank: bool = False,
         trailing_blank: bool = True,
     ) -> None:
         """
         Print a header message.
         Example: "ᓚᘏᗢ  Building your site..."
+
+        Note: leading_blank defaults to False because shell prompt already
+        provides spacing before command output.
         """
         if not self.should_show(MessageLevel.INFO):
             return
@@ -213,7 +216,7 @@ class CLIOutput(DevServerOutputMixin):
         Print a section header (e.g., 'Post-processing:').
 
         Uses sentence case for consistency. Section icon is empty by default
-        in ASCII mode for clean headers.
+        in ASCII mode for clean headers. Adds a blank line before if needed.
 
         Args:
             title: Section title (will have ':' appended)
@@ -222,15 +225,18 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        # Add blank line before section (uses tracking to prevent doubles)
+        self.blank()
         self._mark_output()
+
         # Use section icon from icon set (empty by default in ASCII mode)
         section_icon = icon if icon is not None else self.icons.section
         icon_str = f"{section_icon} " if section_icon else ""
 
         if self.use_rich:
-            self.console.print(f"\n[header]{icon_str}{title}:[/header]")
+            self.console.print(f"[header]{icon_str}{title}:[/header]")
         else:
-            click.echo(f"\n{icon_str}{title}:")
+            click.echo(f"{icon_str}{title}:")
 
     def phase(
         self,
@@ -301,17 +307,16 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(line)
 
     def success(self, text: str, icon: str | None = None) -> None:
-        """Print a success message."""
+        """Print a success message (use blank() before if spacing needed)."""
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
         self._mark_output()
         success_icon = icon if icon is not None else self.icons.success
         if self.use_rich:
-            self.console.print()
             self.console.print(f"{success_icon} [success]{text}[/success]")
         else:
-            click.echo(f"\n{success_icon} {text}", color=True)
+            click.echo(f"{success_icon} {text}", color=True)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
@@ -448,23 +453,29 @@ class CLIOutput(DevServerOutputMixin):
         if self.use_rich:
             from rich.prompt import Prompt
 
-            return Prompt.ask(
+            result = Prompt.ask(
                 f"[prompt]{text}[/prompt]",
                 default=default,
                 console=self.console,
                 show_default=show_default,
             )
         else:
-            return click.prompt(text, default=default, type=type, show_default=show_default)
+            result = click.prompt(text, default=default, type=type, show_default=show_default)
+        # User's Enter press added a newline, mark it
+        self._last_was_blank = True
+        return result
 
     def confirm(self, text: str, default: bool = False) -> bool:
         """Prompt user for yes/no confirmation with themed styling."""
         if self.use_rich:
             from rich.prompt import Confirm
 
-            return Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
+            result = Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
         else:
-            return click.confirm(text, default=default)
+            result = click.confirm(text, default=default)
+        # User's Enter press added a newline, mark it
+        self._last_was_blank = True
+        return result
 
     def blank(self) -> None:
         """Print a blank line (max one consecutive)."""

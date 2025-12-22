@@ -250,7 +250,6 @@ class AssetOrchestrator:
             from bengal.output import CLIOutput
 
             cli = CLIOutput()
-            cli.blank()
             cli.section("Assets")
             cli.detail(f"{cli.icons.tree_end} Discovered: {total_discovered} files", indent=1)
             if css_modules:

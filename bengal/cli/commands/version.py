@@ -23,7 +23,7 @@ from bengal.core.version import Version, VersionConfig
 @click.group("version", cls=BengalGroup)
 def version_cli() -> None:
     """
-    📚 Version management for documentation.
+    Version management for documentation.
 
     Commands:
         list     Display all configured versions
@@ -124,7 +124,7 @@ def list_versions(output_format: str, source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def info(version_id: str, source: str) -> None:
     """
-    🔍 Show details about a specific version.
+    Show details about a specific version.
 
     Accepts version ID or alias (e.g., 'v2', 'latest', 'stable').
 
@@ -233,7 +233,7 @@ def create(
     source: str,
 ) -> None:
     """
-    ✨ Create a new version snapshot.
+    Create a new version snapshot.
 
     Copies the current documentation to a versioned directory and updates
     configuration to include the new version.
@@ -408,7 +408,7 @@ def diff_versions(
     source: str,
 ) -> None:
     """
-    📊 Compare documentation between two versions.
+    Compare documentation between two versions.
 
     Shows added, removed, and modified pages between versions.
 

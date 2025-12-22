@@ -292,7 +292,7 @@ def info(slug: str, source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def discover(source: str) -> None:
     """
-    🔍 List swizzlable templates from the active theme chain.
+    List swizzlable templates from the active theme chain.
 
     Shows all templates available in your active theme(s) that can be
     swizzled (copied) to your project for customization.
@@ -584,7 +584,7 @@ SAFE_PACKAGE_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._-]*$")
 @click.option("--force", is_flag=True, help="Install even if name is non-canonical")
 def install(name: str, force: bool) -> None:
     """
-    📦 Install a theme via uv pip.
+    Install a theme via uv pip.
 
     Installs a theme package from PyPI. NAME may be a package name or a slug.
     If a slug without prefix is provided, suggests canonical 'bengal-theme-<slug>'.

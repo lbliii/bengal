@@ -54,7 +54,7 @@ PROFILES: dict[str, dict[str, Any]] = {
 @click.group("project", cls=BengalGroup)
 def project_cli() -> None:
     """
-    📦 Project management and setup commands.
+    Project management and setup commands.
 
     Commands:
         init       Initialize project structure and content sections
@@ -371,7 +371,7 @@ def info() -> None:
 @click.option("--list", "list_all", is_flag=True, help="List all configuration options")
 def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
     """
-    ⚙️  Manage Bengal configuration.
+    Manage Bengal configuration.
 
     Examples:
         bengal project config                    # Show current config

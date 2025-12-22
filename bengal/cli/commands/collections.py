@@ -112,7 +112,7 @@ collections = {
 @click.pass_context
 def collections(ctx: click.Context) -> None:
     """
-    📚 Manage content collections.
+    Manage content collections.
 
     Collections provide type-safe schemas for your content's frontmatter.
     Define schemas to validate content during builds and catch errors early.

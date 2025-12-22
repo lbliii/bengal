@@ -77,7 +77,7 @@ def report(
     source: str,
 ) -> None:
     """
-    📊 Generate comprehensive site analysis report.
+    Generate comprehensive site analysis report.
 
     Combines multiple analyses into a single unified report:
     - Connectivity analysis (orphans, link density)
