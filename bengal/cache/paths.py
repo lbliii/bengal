@@ -1,16 +1,19 @@
 """
 Single source of truth for Bengal state directory paths.
 
-The .bengal directory stores all project-specific state:
-- Build caches for incremental builds
-- Query indexes for fast lookups
-- Template bytecode cache
-- Logs, metrics, and profiles
-- Runtime state (PID files, etc.)
+This module defines all paths within the `.bengal` state directory, providing
+a centralized location for cache files, indexes, logs, and runtime state.
+Use BengalPaths instead of hardcoding `.bengal` strings throughout the codebase.
 
-Structure:
+Constants:
+    STATE_DIR_NAME: The state directory name (".bengal")
+
+Classes:
+    BengalPaths: Accessor for all state directory paths
+
+Directory Structure:
     .bengal/
-    ├── cache.json           # Main build cache
+    ├── cache.json.zst       # Main build cache (compressed)
     ├── page_metadata.json   # Page discovery cache
     ├── asset_deps.json      # Asset dependency map
     ├── taxonomy_index.json  # Taxonomy index
@@ -32,13 +35,23 @@ Structure:
 Usage:
     from bengal.cache.paths import BengalPaths, STATE_DIR_NAME
 
-    # With site root
+    # Create paths accessor
     paths = BengalPaths(site.root_path)
-    cache_path = paths.build_cache
+
+    # Access specific paths
+    cache_path = paths.build_cache      # .bengal/cache.json
+    logs_dir = paths.logs_dir           # .bengal/logs/
+
+    # Create all directories
     paths.ensure_dirs()
 
-    # Or via Site property
+    # Or access via Site
     cache_path = site.paths.build_cache
+
+Related:
+    - bengal.cache.build_cache: Uses paths.build_cache
+    - bengal.rendering.template_engine: Uses paths.templates_dir
+    - bengal.core.site: Site.paths property returns BengalPaths
 """
 
 from __future__ import annotations

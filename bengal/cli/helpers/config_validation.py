@@ -1,4 +1,23 @@
-"""Configuration validation helpers for CLI commands."""
+"""
+Configuration validation helpers for CLI commands.
+
+Provides utilities for validating Bengal configuration files, including
+YAML syntax checking, type validation, value range checking, and
+detection of unknown/misspelled configuration keys.
+
+Functions:
+    check_yaml_syntax: Validate YAML syntax for all config files
+    validate_config_types: Check that config values have expected types
+    validate_config_values: Validate value ranges and production requirements
+    check_unknown_keys: Detect typos/unknown keys with fuzzy suggestions
+
+Usage:
+    >>> errors, warnings = [], []
+    >>> check_yaml_syntax(config_dir, errors, warnings)
+    >>> validate_config_types(config, errors, warnings)
+    >>> if errors:
+    ...     for e in errors: print(f"Error: {e}")
+"""
 
 from __future__ import annotations
 
@@ -10,7 +29,17 @@ import yaml
 
 
 def check_yaml_syntax(config_dir: Path, errors: list[str], warnings: list[str]) -> None:
-    """Check YAML syntax for all config files."""
+    """
+    Check YAML syntax for all config files in a directory.
+
+    Recursively finds and parses all .yaml and .yml files, appending
+    any syntax errors to the errors list.
+
+    Args:
+        config_dir: Root directory to scan for YAML files
+        errors: List to append error messages to (modified in place)
+        warnings: List to append warning messages to (modified in place)
+    """
     yaml_files = list(config_dir.glob("**/*.yaml")) + list(config_dir.glob("**/*.yml"))
 
     for yaml_file in yaml_files:
@@ -22,7 +51,17 @@ def check_yaml_syntax(config_dir: Path, errors: list[str], warnings: list[str]) 
 
 
 def validate_config_types(config: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
-    """Validate config value types."""
+    """
+    Validate that configuration values have the expected types.
+
+    Checks known boolean fields like 'parallel', 'incremental', 'minify_html',
+    etc. to ensure they are actually boolean values.
+
+    Args:
+        config: Parsed configuration dictionary
+        errors: List to append error messages to (modified in place)
+        warnings: List to append warning messages to (modified in place)
+    """
     # Known boolean fields
     boolean_fields = [
         "parallel",
@@ -41,7 +80,18 @@ def validate_config_types(config: dict[str, Any], errors: list[str], warnings: l
 def validate_config_values(
     config: dict[str, Any], environment: str, errors: list[str], warnings: list[str]
 ) -> None:
-    """Validate config values and ranges."""
+    """
+    Validate configuration values and check for reasonable ranges.
+
+    Performs environment-specific validation (e.g., production requires
+    site.title) and checks that numeric values are within acceptable ranges.
+
+    Args:
+        config: Parsed configuration dictionary
+        environment: Target environment ("local", "preview", "production")
+        errors: List to append error messages to (modified in place)
+        warnings: List to append warning messages to (modified in place)
+    """
     # Check required fields for production
     if environment == "production" and "site" in config:
         if not config["site"].get("title"):
@@ -64,7 +114,16 @@ def validate_config_values(
 
 
 def check_unknown_keys(config: dict[str, Any], warnings: list[str]) -> None:
-    """Check for unknown/typo keys."""
+    """
+    Check for unknown or misspelled configuration keys.
+
+    Compares top-level keys against known sections and suggests corrections
+    using fuzzy matching when possible typos are detected.
+
+    Args:
+        config: Parsed configuration dictionary
+        warnings: List to append warning messages to (modified in place)
+    """
     known_sections = {
         "site",
         "build",

@@ -1,4 +1,34 @@
-"""Category Index - Index pages by category."""
+"""
+Category index for O(1) lookup of pages by category.
+
+This module provides CategoryIndex, a QueryIndex implementation that indexes
+pages by their category. Unlike tags (multi-valued), categories are typically
+single-valued, representing a primary classification.
+
+Frontmatter Format:
+    category: tutorial
+    category: guide
+    category: reference
+
+Template Usage:
+    {# Get all tutorials #}
+    {% set tutorials = site.indexes.category.get('tutorial') %}
+
+    {# List all categories #}
+    {% for category in site.indexes.category.keys() %}
+      {{ category }}: {{ site.indexes.category.get(category)|length }} pages
+    {% endfor %}
+
+Common Patterns:
+    Documentation: 'tutorial', 'guide', 'reference', 'howto', 'explanation'
+    Blog: 'tech', 'business', 'personal', 'news'
+    Recipes: 'appetizer', 'main-course', 'dessert', 'beverage'
+
+Related:
+    - bengal.cache.query_index: Base QueryIndex class
+    - bengal.cache.indexes.author_index: Similar single-valued index
+    - bengal.cache.taxonomy_index: For multi-valued tags
+"""
 
 from __future__ import annotations
 

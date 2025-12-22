@@ -1,4 +1,36 @@
-"""Cache management utilities for Bengal."""
+"""
+Cache management utilities for clearing and resetting Bengal caches.
+
+This module provides functions for clearing various caches when a clean rebuild
+is needed, such as after configuration changes or suspected cache corruption.
+
+Functions:
+    clear_build_cache: Remove the main build cache (.bengal/cache.json.zst)
+        to force file fingerprint recalculation on next build.
+
+    clear_template_cache: Remove Jinja2 bytecode cache (.bengal/templates/)
+        to force template recompilation.
+
+    clear_output_directory: Remove the entire output directory (public/)
+        to force complete regeneration of all output files.
+
+When to Clear Caches:
+    - Build cache: Config changes affecting output (baseurl, theme), stale cache
+    - Template cache: Template file changes not being detected, theme switching
+    - Output directory: Baseurl changes, orphaned files from deleted content
+
+Usage:
+    from bengal.cache.utils import clear_build_cache, clear_template_cache
+
+    # Clear all caches for a site
+    clear_build_cache(site.root_path, logger)
+    clear_template_cache(site.root_path, logger)
+    clear_output_directory(site.output_dir, logger)
+
+Related:
+    - bengal.cache.paths: BengalPaths for cache file locations
+    - bengal.cli.commands: CLI commands using these utilities
+"""
 
 from __future__ import annotations
 

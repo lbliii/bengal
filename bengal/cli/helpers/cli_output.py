@@ -1,4 +1,16 @@
-"""Helper for creating standardized CLIOutput instances."""
+"""
+Helper for creating standardized CLIOutput instances.
+
+Provides a factory function for creating CLIOutput instances with
+consistent default configuration. Use this helper in CLI commands
+to ensure uniform output behavior across all commands.
+
+Functions:
+    get_cli_output: Create a CLIOutput with optional quiet/verbose flags
+
+See Also:
+    bengal.cli.output.globals: For global singleton CLIOutput management
+"""
 
 from __future__ import annotations
 

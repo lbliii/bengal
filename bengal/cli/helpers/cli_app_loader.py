@@ -1,4 +1,13 @@
-"""Helper for loading CLI applications from module paths."""
+"""
+Helper for loading CLI applications from module paths.
+
+Provides a utility to dynamically import and load Click applications
+from a string path specification. Used primarily by plugin systems
+and extension mechanisms.
+
+Functions:
+    load_cli_app: Load a Click app from "module.path:attribute_name" format
+"""
 
 from __future__ import annotations
 

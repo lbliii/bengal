@@ -1,4 +1,30 @@
-"""Command metadata system for discovery and documentation."""
+"""
+Command metadata system for discovery and documentation.
+
+Provides a decorator-based system for attaching metadata to CLI commands,
+enabling automatic documentation generation, command categorization,
+tag-based filtering, and discovery of command requirements.
+
+Classes:
+    CommandMetadata: Dataclass holding command metadata
+
+Functions:
+    command_metadata: Decorator to attach metadata to commands
+    get_command_metadata: Extract metadata from a command
+    list_commands_by_category: Group commands by their category
+    find_commands_by_tag: Find commands with a specific tag
+
+Example:
+    @click.command()
+    @command_metadata(
+        category="build",
+        description="Build the static site",
+        requires_site=True,
+        tags=["production"]
+    )
+    def build():
+        pass
+"""
 
 from __future__ import annotations
 
@@ -13,7 +39,22 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 @dataclass
 class CommandMetadata:
-    """Metadata for a CLI command."""
+    """
+    Metadata for a CLI command.
+
+    Stores information about a command that can be used for documentation,
+    categorization, and runtime validation. Attach to commands using the
+    @command_metadata decorator.
+
+    Attributes:
+        category: Functional grouping (build, content, config, dev)
+        description: One-line summary of command purpose
+        examples: List of example invocations
+        requires_site: True if command needs a valid Bengal site
+        requires_build: True if site must be built first
+        tags: Searchable tags for filtering
+        aliases: Alternative names for command discovery
+    """
 
     category: str = "general"
     """Command category (e.g., 'build', 'content', 'config', 'dev')"""
@@ -37,7 +78,12 @@ class CommandMetadata:
     """Command aliases (for discovery)"""
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert metadata to dictionary."""
+        """
+        Convert metadata to a dictionary representation.
+
+        Returns:
+            Dict with all metadata fields for serialization/display.
+        """
         return {
             "category": self.category,
             "description": self.description,

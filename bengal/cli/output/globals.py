@@ -25,7 +25,15 @@ _cli_output: CLIOutput | None = None
 
 
 def get_cli_output() -> CLIOutput:
-    """Get the global CLI output instance."""
+    """
+    Get the global CLI output instance.
+
+    Creates a default CLIOutput instance if one hasn't been initialized.
+    Use init_cli_output() first if you need custom settings.
+
+    Returns:
+        The global CLIOutput instance.
+    """
     global _cli_output
     if _cli_output is None:
         from bengal.cli.output.core import CLIOutput
@@ -37,7 +45,20 @@ def get_cli_output() -> CLIOutput:
 def init_cli_output(
     profile: Any | None = None, quiet: bool = False, verbose: bool = False
 ) -> CLIOutput:
-    """Initialize the global CLI output instance with settings."""
+    """
+    Initialize the global CLI output instance with custom settings.
+
+    Should be called early in CLI startup to configure output behavior
+    for the current command execution.
+
+    Args:
+        profile: Build profile (Writer, Theme-Dev, Developer)
+        quiet: Suppress non-critical output
+        verbose: Show detailed output
+
+    Returns:
+        The newly initialized CLIOutput instance.
+    """
     global _cli_output
     from bengal.cli.output.core import CLIOutput
 

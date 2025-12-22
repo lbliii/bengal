@@ -1,15 +1,31 @@
-"""Template system primitives used by all built‑in site templates.
+"""
+Template system primitives for site scaffolding.
 
-This module defines two dataclasses that describe what a site template is and
-the files it contributes when instantiated via CLI commands (e.g.
-`bengal new site --template blog`). These classes are intentionally small and
-framework‑agnostic so they can be reused by both built‑in and custom templates.
+Defines the core dataclasses used by all built-in and custom site templates.
+These primitives are used when instantiating new sites via `bengal new site`.
 
-Key concepts:
-- ``TemplateFile``: a single file that will be written to a target area of the
-  project (``content/``, ``data/``, ``templates/``, etc.).
-- ``SiteTemplate``: a collection of ``TemplateFile`` items plus optional
-  directory scaffolding and menu hints that describe a complete starter layout.
+Key Concepts:
+    TemplateFile: Single file to write (path, content, target directory)
+    SiteTemplate: Collection of files plus directories and menu hints
+    TemplateProvider: Protocol for custom template implementations
+
+Usage:
+    Templates typically define a TEMPLATE module-level variable:
+
+    TEMPLATE = SiteTemplate(
+        id="blog",
+        name="Blog",
+        description="A blog with posts and about page",
+        files=[
+            TemplateFile("_index.md", "---\\ntitle: Home\\n---", "content"),
+            TemplateFile("posts/first-post.md", "...", "content"),
+        ],
+        menu_sections=["posts", "about"],
+    )
+
+See Also:
+    bengal.cli.templates.registry: Template discovery and registration
+    bengal.cli.skeleton: Alternative YAML-based skeleton definitions
 """
 
 from __future__ import annotations

@@ -1,4 +1,20 @@
-"""Helper for configuring traceback behavior in CLI commands."""
+"""
+Helper for configuring traceback behavior in CLI commands.
+
+Provides a unified function for setting up traceback display with
+proper precedence handling for CLI flags, environment variables,
+and file-based configuration.
+
+Functions:
+    configure_traceback: Set up traceback handling with proper precedence
+
+Precedence (highest to lowest):
+    1. CLI --traceback flag
+    2. CLI --debug flag (maps to full traceback)
+    3. File config ([dev.traceback] in site config)
+    4. BENGAL_TRACEBACK environment variable
+    5. Default (minimal)
+"""
 
 from __future__ import annotations
 

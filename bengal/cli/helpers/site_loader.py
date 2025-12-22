@@ -1,4 +1,19 @@
-"""Helper for loading Site instances from CLI arguments."""
+"""
+Helper for loading Site instances from CLI arguments.
+
+Provides a centralized function for loading Bengal sites from CLI
+context, with intelligent error handling, directory structure validation,
+and detection of common mistakes like running from the wrong directory.
+
+Functions:
+    load_site_from_cli: Load a Site with CLI-friendly error handling
+
+The loader performs several helpful checks:
+- Validates that source directory exists
+- Detects parent directories with Bengal projects (common cd mistake)
+- Detects subdirectories with more content (site/ folder pattern)
+- Provides clear error messages with suggestions
+"""
 
 from __future__ import annotations
 
