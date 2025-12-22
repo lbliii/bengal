@@ -96,8 +96,13 @@ def reset_loggers():
         logger._events.clear()
         logger._phase_stack.clear()
     yield
+    # Close file handles but DON'T clear the registry - module-level
+    # logger references must remain valid for subsequent tests
     close_all_loggers()
-    _loggers.clear()
+    # Clear events again for clean slate, but keep loggers in registry
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
 
 
 class TestLoggingIntegration:
