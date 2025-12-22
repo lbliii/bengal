@@ -101,6 +101,8 @@ async def pilot(bengal_app: BengalApp) -> AsyncGenerator[Pilot]:
     """
     Async fixture providing Textual pilot for interaction testing.
 
+    Waits for app to mount before yielding.
+
     Usage:
         @pytest.mark.asyncio
         async def test_navigation(pilot):
@@ -108,6 +110,8 @@ async def pilot(bengal_app: BengalApp) -> AsyncGenerator[Pilot]:
             assert pilot.app.screen.name == "build"
     """
     async with bengal_app.run_test() as pilot:
+        # Wait for app to fully mount and install screens
+        await pilot.pause()
         yield pilot
 
 
@@ -119,6 +123,7 @@ async def pilot_no_site(bengal_app_no_site: BengalApp) -> AsyncGenerator[Pilot]:
     Useful for testing error states and notifications.
     """
     async with bengal_app_no_site.run_test() as pilot:
+        await pilot.pause()
         yield pilot
 
 

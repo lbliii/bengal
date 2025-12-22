@@ -678,6 +678,32 @@ QuickAction .quick-action-description {
     color: #9e9e9e;
 }
 
+/* === Serve Screen Stats === */
+
+.serve-stats {
+    height: auto;
+    padding: 1 2;
+}
+
+.stat-box {
+    width: 1fr;
+    height: auto;
+    text-align: center;
+    padding: 1;
+    background: $surface;
+    margin: 0 1;
+}
+
+.stat-icon {
+    text-align: center;
+    text-style: bold;
+}
+
+#server-info {
+    padding: 1 2;
+    text-align: center;
+}
+
 /* === Landing Screen === */
 
 #landing-header {

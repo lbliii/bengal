@@ -285,6 +285,26 @@ class BuildScreen(BengalScreen):
         for phase in phases:
             table.add_row("○", phase, "-", "", key=phase)
 
+        # Log site context
+        log = self.query_one("#build-log", Log)
+        if self.site:
+            title = getattr(self.site, "title", None) or "Untitled"
+            pages = getattr(self.site, "pages", []) or []
+            sections = getattr(self.site, "sections", []) or []
+            assets = getattr(self.site, "assets", []) or []
+            output_dir = getattr(self.site, "output_dir", "public")
+
+            log.write_line(f"[bold]Site:[/bold] {title}")
+            log.write_line(
+                f"  📄 {len(pages)} pages | 📁 {len(sections)} sections | 🎨 {len(assets)} assets"
+            )
+            log.write_line(f"  Output: {output_dir}/")
+            log.write_line("")
+            log.write_line("Press [bold]r[/bold] to build")
+        else:
+            log.write_line("[yellow]No site loaded[/yellow]")
+            log.write_line("Run from a Bengal site directory")
+
     def on_config_changed(self, data: tuple[str, object]) -> None:
         """Handle config changes for UI toggles."""
         key, value = data
@@ -441,21 +461,74 @@ class ServeScreen(BengalScreen):
 
         with Vertical(id="main-content"):
             yield Static("🌐 Serve Dashboard", id="screen-title", classes="section-header")
-            yield Static("", id="server-url", classes="label-primary")
+            yield Static(self._get_server_info(), id="server-info")
+
+            with Horizontal(classes="serve-stats"):
+                with Vertical(classes="stat-box"):
+                    yield Static("📄", classes="stat-icon")
+                    yield Static(self._get_page_count(), id="stat-pages")
+                with Vertical(classes="stat-box"):
+                    yield Static("🎨", classes="stat-icon")
+                    yield Static(self._get_asset_count(), id="stat-assets")
+                with Vertical(classes="stat-box"):
+                    yield Static("⏱️", classes="stat-icon")
+                    yield Static("0ms", id="stat-last-build")
 
             with Vertical(classes="section"):
-                yield Static("Build History (ms):", classes="section-header")
+                yield Static("Build History:", classes="section-header")
                 yield Sparkline([0], id="build-sparkline")
 
             with TabbedContent(id="serve-tabs"):
                 with TabPane("Changes", id="changes-tab"):
                     yield Log(id="changes-log", auto_scroll=True)
-                with TabPane("Stats", id="stats-tab"):
-                    yield Static("Server statistics will appear here")
+                with TabPane("Pages", id="pages-tab"):
+                    yield Log(id="pages-log", auto_scroll=True)
                 with TabPane("Errors", id="errors-tab"):
                     yield Log(id="errors-log", auto_scroll=True)
 
         yield Footer()
+
+    def _get_server_info(self) -> str:
+        """Get server info text."""
+        url = (
+            getattr(self.app, "server_url", "http://localhost:1313")
+            if self.app
+            else "http://localhost:1313"
+        )
+        return f"[bold]Server:[/bold] {url}  [dim]Press 'o' to open in browser[/dim]"
+
+    def _get_page_count(self) -> str:
+        """Get page count."""
+        if self.site:
+            pages = getattr(self.site, "pages", []) or []
+            return f"{len(pages)} pages"
+        return "- pages"
+
+    def _get_asset_count(self) -> str:
+        """Get asset count."""
+        if self.site:
+            assets = getattr(self.site, "assets", []) or []
+            return f"{len(assets)} assets"
+        return "- assets"
+
+    def on_mount(self) -> None:
+        """Set up serve screen."""
+        super().on_mount()
+
+        # Populate pages log
+        pages_log = self.query_one("#pages-log", Log)
+        if self.site:
+            pages = getattr(self.site, "pages", []) or []
+            pages_log.write_line(f"[bold]{len(pages)} pages in site:[/bold]")
+            pages_log.write_line("")
+            for page in pages[:20]:  # Show first 20
+                title = getattr(page, "title", None) or "Untitled"
+                url = getattr(page, "url", None) or "/"
+                pages_log.write_line(f"  {title[:40]:<40} {url}")
+            if len(pages) > 20:
+                pages_log.write_line(f"  ... and {len(pages) - 20} more")
+        else:
+            pages_log.write_line("[yellow]No site loaded[/yellow]")
 
     def action_open_browser(self) -> None:
         """Open browser to dev server."""

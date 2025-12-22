@@ -99,6 +99,7 @@ class BengalApp(App):
         site: Site | None = None,
         *,
         start_screen: str = "build",
+        startup_error: str | None = None,
         **kwargs: Any,
     ):
         """
@@ -107,11 +108,13 @@ class BengalApp(App):
         Args:
             site: Site instance
             start_screen: Initial screen to show (landing, build, serve, health)
+            startup_error: Error message from site loading (shown as notification)
             **kwargs: Additional app options
         """
         super().__init__(**kwargs)
         self.site = site
         self.start_screen = start_screen
+        self.startup_error = startup_error
 
         # Config signal for reactive updates (Toad pattern)
         self.config_changed_signal: Signal[tuple[str, Any]] = Signal(self, "config_changed")
@@ -137,6 +140,20 @@ class BengalApp(App):
 
         # Push initial screen onto stack
         self.push_screen(self.start_screen)
+
+        # Show startup error notification if site failed to load
+        if self.startup_error:
+            self.notify(
+                f"{self.error_mascot}  {self.startup_error}",
+                title="Site Load Failed",
+                severity="warning",
+                timeout=10,  # Longer timeout for important info
+            )
+            self.notify(
+                "Running in demo mode without site features",
+                severity="information",
+                timeout=5,
+            )
 
     @property
     def mascot(self) -> str:
@@ -255,6 +272,7 @@ def run_unified_dashboard(
     site: Site | None = None,
     *,
     start_screen: str = "build",
+    startup_error: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -265,11 +283,13 @@ def run_unified_dashboard(
     Args:
         site: Site instance (optional, will load from current dir if not provided)
         start_screen: Initial screen to show (build, serve, health)
+        startup_error: Error from site loading (displayed as notification on mount)
         **kwargs: Additional options
     """
     app = BengalApp(
         site=site,
         start_screen=start_screen,
+        startup_error=startup_error,
         **kwargs,
     )
     app.run()

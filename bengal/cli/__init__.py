@@ -112,12 +112,11 @@ def main(
 
         # Load site from current directory
         site = None
+        startup_error: str | None = None
         try:
             site = Site.from_config(Path.cwd())
         except Exception as e:
-            cli = CLIOutput()
-            cli.warning(f"Could not load site: {e}")
-            cli.info("Dashboard will run without site features")
+            startup_error = str(e)
 
         if serve_web:
             # Serve dashboard as web app via textual-serve
@@ -132,7 +131,7 @@ def main(
             cli.success(f"Starting Bengal Dashboard at http://{host}:{port}")
             server.serve()
         else:
-            run_unified_dashboard(site=site, start_screen=start)
+            run_unified_dashboard(site=site, start_screen=start, startup_error=startup_error)
         return
 
     # Show welcome banner if no command provided (but not if --help was used)
