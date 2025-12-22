@@ -1,8 +1,27 @@
 """
 Live progress display system with profile-aware output.
 
-Provides in-place progress updates that minimize terminal scrolling
-while showing appropriate detail for each user profile.
+This module provides the LiveProgressManager class for displaying
+real-time build progress in the terminal. It supports multiple
+user profiles (Writer, Theme-Dev, Developer) with varying levels
+of detail, and gracefully falls back to sequential output in
+non-TTY environments.
+
+Classes:
+    PhaseStatus: Enum for tracking build phase states
+    PhaseProgress: Dataclass for individual phase progress data
+    LiveProgressManager: Main progress display manager
+
+Features:
+    - Profile-aware display density
+    - In-place terminal updates (no scrolling)
+    - Graceful fallback for CI/non-TTY environments
+    - Context manager for clean setup/teardown
+    - Throttled rendering to reduce overhead
+
+Related:
+    - bengal/utils/profile.py: BuildProfile definitions
+    - bengal/output/: CLI output utilities
 """
 
 from __future__ import annotations
@@ -25,7 +44,15 @@ logger = get_logger(__name__)
 
 
 class PhaseStatus(Enum):
-    """Status of a build phase."""
+    """
+    Status of a build phase.
+
+    Values:
+        PENDING: Phase not yet started
+        RUNNING: Phase currently in progress
+        COMPLETE: Phase finished successfully
+        FAILED: Phase encountered an error
+    """
 
     PENDING = "pending"
     RUNNING = "running"
@@ -35,7 +62,20 @@ class PhaseStatus(Enum):
 
 @dataclass
 class PhaseProgress:
-    """Track progress for a single build phase."""
+    """
+    Track progress for a single build phase.
+
+    Attributes:
+        name: Display name for the phase (e.g., 'Rendering', 'Discovery')
+        status: Current phase status
+        current: Number of items processed so far
+        total: Total items to process (None if unknown)
+        current_item: Name/path of item currently being processed
+        elapsed_ms: Time elapsed since phase start in milliseconds
+        start_time: Unix timestamp when phase started
+        metadata: Additional phase-specific data (e.g., error messages)
+        recent_items: Rolling list of recently processed items
+    """
 
     name: str
     status: PhaseStatus = PhaseStatus.PENDING
@@ -48,13 +88,23 @@ class PhaseProgress:
     recent_items: list[str] = field(default_factory=list)
 
     def get_percentage(self) -> float | None:
-        """Get completion percentage."""
+        """
+        Get completion percentage.
+
+        Returns:
+            Percentage complete (0-100), or None if total is unknown.
+        """
         if self.total and self.total > 0:
             return (self.current / self.total) * 100
         return None
 
     def get_elapsed_str(self) -> str:
-        """Get formatted elapsed time string."""
+        """
+        Get human-readable elapsed time string.
+
+        Returns:
+            Formatted string like '245ms' or '1.2s', or empty string if no time recorded.
+        """
         if self.elapsed_ms > 0:
             if self.elapsed_ms < 1000:
                 return f"{int(self.elapsed_ms)}ms"
@@ -306,9 +356,14 @@ class LiveProgressManager:
 
     def _render_writer(self) -> RenderableType:
         """
-        Compact display for writers.
+        Render compact display for Writer profile.
 
-        Shows: phase name, progress bar, current count, current item
+        Optimized for minimal distraction during content creation.
+        Shows only essential progress: phase name, progress bar,
+        current count, and current item being processed.
+
+        Returns:
+            Rich renderable group of styled text lines.
         """
         lines = []
 
@@ -356,9 +411,14 @@ class LiveProgressManager:
 
     def _render_theme_dev(self) -> RenderableType:
         """
-        Detailed display with recent items for theme developers.
+        Render detailed display for Theme-Dev profile.
 
-        Shows: progress bar, recent items, elapsed time
+        Provides more context than Writer profile, including
+        recently processed items and elapsed time. Useful for
+        theme developers debugging template rendering issues.
+
+        Returns:
+            Rich renderable group of styled text lines.
         """
         lines = []
 
@@ -423,9 +483,14 @@ class LiveProgressManager:
 
     def _render_developer(self) -> RenderableType:
         """
-        Full observability display for developers.
+        Render full observability display for Developer profile.
 
-        Shows: all phases, metrics, performance stats
+        Shows maximum detail including all phases, throughput
+        metrics, performance statistics, and error details.
+        Intended for debugging build performance issues.
+
+        Returns:
+            Rich renderable group of styled text lines.
         """
         lines = []
 
@@ -513,7 +578,15 @@ class LiveProgressManager:
         return Group(*lines)
 
     def _get_status_icon(self, status: PhaseStatus) -> str:
-        """Get icon for phase status."""
+        """
+        Get display icon for phase status.
+
+        Args:
+            status: Current phase status
+
+        Returns:
+            Unicode character representing the status.
+        """
         if status == PhaseStatus.COMPLETE:
             return "✓"
         elif status == PhaseStatus.RUNNING:
@@ -525,9 +598,11 @@ class LiveProgressManager:
 
     def _print_fallback(self) -> None:
         """
-        Fallback for non-TTY environments (CI, redirected output).
+        Fallback output for non-TTY environments.
 
-        Prints traditional sequential output with minimal updates.
+        Used in CI systems or when output is redirected to a file.
+        Prints traditional sequential lines rather than in-place
+        updates, showing phase starts and completions.
         """
         for phase_id in self.phase_order:
             phase = self.phases[phase_id]

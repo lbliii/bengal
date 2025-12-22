@@ -1,8 +1,36 @@
 """
 Schema validation engine for content collections.
 
-Validates frontmatter against dataclass or Pydantic schemas with
-type coercion, helpful error messages, and support for nested types.
+Validates frontmatter dictionaries against dataclass or Pydantic schemas,
+with automatic type coercion, helpful error messages, and nested type support.
+
+Key Features:
+    - **Dual backend support**: Works with Python dataclasses or Pydantic models
+    - **Type coercion**: Automatically converts strings to datetime, date, etc.
+    - **Nested validation**: Validates nested dataclass fields recursively
+    - **Strict mode**: Optionally reject unknown frontmatter fields
+    - **Detailed errors**: Reports all validation failures, not just the first
+
+Classes:
+    - :class:`SchemaValidator`: Main validation engine
+    - :class:`ValidationResult`: Result of schema validation
+
+Example:
+    >>> from dataclasses import dataclass
+    >>> from datetime import datetime
+    >>>
+    >>> @dataclass
+    ... class BlogPost:
+    ...     title: str
+    ...     date: datetime
+    ...     draft: bool = False
+    ...
+    >>> validator = SchemaValidator(BlogPost)
+    >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
+    >>> result.valid
+    True
+    >>> result.data.title
+    'Hello'
 """
 
 from __future__ import annotations
@@ -24,11 +52,23 @@ class ValidationResult:
     """
     Result of schema validation.
 
+    Encapsulates the outcome of validating frontmatter against a schema,
+    including the validated instance (on success) or detailed errors (on failure).
+
     Attributes:
-        valid: True if validation passed
-        data: Validated instance (dataclass or Pydantic model) or None if invalid
-        errors: List of validation errors (empty if valid)
-        warnings: List of non-fatal warnings
+        valid: ``True`` if validation passed; ``False`` if any errors occurred.
+        data: The validated and coerced schema instance (dataclass or Pydantic
+            model) on success, or ``None`` if validation failed.
+        errors: List of :class:`ValidationError` instances describing each
+            field that failed validation. Empty if ``valid`` is ``True``.
+        warnings: List of non-fatal warning messages (e.g., deprecated fields).
+
+    Example:
+        >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
+        >>> if result.valid:
+        ...     print(result.data.title)
+        ... else:
+        ...     print(result.error_summary)
     """
 
     valid: bool
@@ -39,11 +79,16 @@ class ValidationResult:
     @property
     def error_summary(self) -> str:
         """
-        Human-readable summary of all errors.
+        Human-readable summary of all validation errors.
 
         Returns:
-            Multi-line string with each error on its own line,
-            or empty string if no errors.
+            Multi-line string with each error on its own line, formatted as
+            ``"  - field: message"``. Returns an empty string if no errors.
+
+        Example:
+            >>> print(result.error_summary)
+              - title: Required field 'title' is missing
+              - date: Cannot parse 'invalid' as datetime
         """
         if not self.errors:
             return ""
@@ -53,15 +98,29 @@ class ValidationResult:
 
 class SchemaValidator:
     """
-    Validates frontmatter against dataclass or Pydantic schemas.
+    Validates frontmatter dictionaries against dataclass or Pydantic schemas.
 
-    Supports:
-    - Dataclass schemas (Python standard library)
-    - Pydantic models (optional, auto-detected)
-    - Type coercion for common types (datetime, date, lists)
-    - Optional/Union types
-    - Nested dataclasses
-    - Strict mode (reject unknown fields)
+    Supports automatic type coercion, nested validation, and strict mode for
+    rejecting unknown fields.
+
+    Supported Schema Types:
+        - **Dataclasses**: Python standard library dataclasses (recommended)
+        - **Pydantic models**: Auto-detected via ``model_validate`` method
+
+    Type Coercion:
+        The validator automatically coerces common types:
+
+        - ``datetime``: From ISO 8601 strings (e.g., ``"2025-01-15T10:30:00"``)
+        - ``date``: From ISO 8601 date strings (e.g., ``"2025-01-15"``)
+        - ``bool``: From strings (``"true"``/``"false"``, ``"yes"``/``"no"``)
+        - ``int``, ``float``, ``str``: Standard Python coercion
+        - ``list[T]``: Validates each item against type ``T``
+        - ``Optional[T]``: Accepts ``None`` or validates against ``T``
+        - Nested dataclasses: Validates recursively
+
+    Attributes:
+        schema: The schema class being validated against.
+        strict: Whether unknown fields raise errors.
 
     Example:
         >>> from dataclasses import dataclass
@@ -82,15 +141,26 @@ class SchemaValidator:
         True
         >>> result.data.title
         'Hello World'
+
+    Example:
+        Strict mode rejects unknown fields:
+
+        >>> validator = SchemaValidator(BlogPost, strict=True)
+        >>> result = validator.validate({"title": "Hi", "date": "2025-01-15", "unknown": "value"})
+        >>> result.valid
+        False
+        >>> result.errors[0].field
+        'unknown'
     """
 
     def __init__(self, schema: type, strict: bool = True) -> None:
         """
-        Initialize validator for a schema.
+        Initialize a validator for the given schema.
 
         Args:
-            schema: Dataclass or Pydantic model class
-            strict: If True, reject unknown fields in frontmatter
+            schema: Dataclass or Pydantic model class to validate against.
+            strict: If ``True`` (default), reject frontmatter with fields not
+                defined in the schema. If ``False``, ignore unknown fields.
         """
         self.schema = schema
         self.strict = strict
@@ -115,14 +185,28 @@ class SchemaValidator:
         source_file: Path | None = None,
     ) -> ValidationResult:
         """
-        Validate frontmatter data against schema.
+        Validate frontmatter data against the schema.
+
+        Performs type coercion, checks required fields, validates nested
+        structures, and optionally rejects unknown fields (strict mode).
 
         Args:
-            data: Raw frontmatter dictionary from content file
-            source_file: Optional source file path for error context
+            data: Raw frontmatter dictionary parsed from the content file.
+            source_file: Optional path to the source file, used for error
+                context in logging and exceptions.
 
         Returns:
-            ValidationResult with validated data or errors
+            A :class:`ValidationResult` containing:
+            - ``valid=True`` and ``data`` set to the validated instance, or
+            - ``valid=False`` and ``errors`` listing all validation failures
+
+        Example:
+            >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
+            >>> if result.valid:
+            ...     blog_post = result.data
+            ... else:
+            ...     for error in result.errors:
+            ...         print(f"{error.field}: {error.message}")
         """
         if self._is_pydantic:
             return self._validate_pydantic(data, source_file)
@@ -133,7 +217,12 @@ class SchemaValidator:
         data: dict[str, Any],
         source_file: Path | None,
     ) -> ValidationResult:
-        """Validate using Pydantic model."""
+        """
+        Validate data using a Pydantic model.
+
+        Delegates to Pydantic's ``model_validate()`` and converts any
+        Pydantic validation errors to our :class:`ValidationError` format.
+        """
         try:
             # Type guard: we know schema is Pydantic if _is_pydantic is True
             # Use getattr to avoid mypy error - we've already checked _is_pydantic
@@ -183,7 +272,12 @@ class SchemaValidator:
         data: dict[str, Any],
         source_file: Path | None,
     ) -> ValidationResult:
-        """Validate using dataclass schema."""
+        """
+        Validate data using a dataclass schema.
+
+        Iterates through schema fields, coerces types, applies defaults,
+        and checks for unknown fields (in strict mode).
+        """
         errors: list[ValidationError] = []
         warnings: list[str] = []
         validated_data: dict[str, Any] = {}
@@ -274,21 +368,25 @@ class SchemaValidator:
         expected: type,
     ) -> tuple[Any, list[ValidationError]]:
         """
-        Attempt to coerce value to expected type.
+        Coerce a value to the expected type with error handling.
 
-        Handles:
-        - Optional[X] (Union[X, None])
-        - list[X]
-        - datetime and date (from strings)
-        - Basic types (str, int, float, bool)
+        Handles complex types including:
+        - ``Optional[X]`` / ``X | None``: Accepts None or validates against X
+        - ``Union[A, B]`` / ``A | B``: Tries each type in order
+        - ``list[X]``: Validates each list item against X
+        - ``dict[K, V]``: Validates dict structure (keys/values not yet typed)
+        - ``datetime`` / ``date``: Parses from ISO strings or other formats
+        - Basic types (``str``, ``int``, ``float``, ``bool``): Standard coercion
+        - Nested dataclasses: Recursive validation
 
         Args:
-            name: Field name (for error messages)
-            value: Value to coerce
-            expected: Expected type
+            name: Field name for error messages (may include path, e.g., ``"tags[0]"``).
+            value: The value to coerce.
+            expected: The expected type (may be a generic like ``list[str]``).
 
         Returns:
-            Tuple of (coerced_value, list_of_errors)
+            Tuple of ``(coerced_value, errors)`` where ``errors`` is empty on
+            success or contains :class:`ValidationError` instances on failure.
         """
         origin = get_origin(expected)
         args = get_args(expected)
@@ -456,7 +554,14 @@ class SchemaValidator:
         name: str,
         value: Any,
     ) -> tuple[datetime | None, list[ValidationError]]:
-        """Coerce value to datetime."""
+        """
+        Coerce a value to datetime.
+
+        Accepts:
+        - ``datetime`` objects (returned as-is)
+        - ``date`` objects (converted to datetime at midnight)
+        - Strings (parsed via dateutil.parser if available, then ISO format)
+        """
         if isinstance(value, datetime):
             return value, []
 
@@ -503,7 +608,14 @@ class SchemaValidator:
         name: str,
         value: Any,
     ) -> tuple[date | None, list[ValidationError]]:
-        """Coerce value to date."""
+        """
+        Coerce a value to date.
+
+        Accepts:
+        - ``date`` objects (returned as-is, unless it's a datetime)
+        - ``datetime`` objects (extracts the date portion)
+        - Strings (parsed via dateutil.parser if available, then ISO format)
+        """
         if isinstance(value, date) and not isinstance(value, datetime):
             return value, []
 
@@ -545,7 +657,12 @@ class SchemaValidator:
         ]
 
     def _is_optional(self, type_hint: type) -> bool:
-        """Check if type hint is Optional (Union with None)."""
+        """
+        Check if a type hint is Optional (i.e., allows None).
+
+        Returns ``True`` for ``Optional[X]``, ``X | None``, or any Union
+        that includes ``NoneType``.
+        """
         origin = get_origin(type_hint)
         if origin is Union or origin is types.UnionType:
             args = get_args(type_hint)
@@ -553,7 +670,12 @@ class SchemaValidator:
         return False
 
     def _type_name(self, t: type) -> str:
-        """Get human-readable type name."""
+        """
+        Get a human-readable name for a type.
+
+        Handles generics like ``list[str]``, ``Optional[int]``, and unions.
+        Used for error messages.
+        """
         origin = get_origin(t)
 
         if origin is Union or origin is types.UnionType:

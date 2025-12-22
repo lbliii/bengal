@@ -1,3 +1,26 @@
+"""
+Custom Click classes and CLI infrastructure for Bengal.
+
+This module provides the core Click extensions that give Bengal's CLI
+its distinctive themed output, fuzzy command matching, and alias support.
+
+Classes:
+    BengalCommand: Custom Click command with themed help output
+    BengalGroup: Custom Click group with typo detection and themed help
+
+The module also maintains the alias registry that maps short commands
+(e.g., 'b', 's', 'dev') to their canonical counterparts.
+
+Example:
+    >>> @click.command(cls=BengalCommand)
+    ... def my_command():
+    ...     pass
+
+Related:
+    - bengal/cli/__init__.py: Main CLI assembly
+    - bengal/output/: Output formatting utilities
+"""
+
 from __future__ import annotations
 
 import re
@@ -9,7 +32,8 @@ from bengal.output import CLIOutput
 # =============================================================================
 # ALIAS REGISTRY
 # =============================================================================
-# Maps aliases to their canonical command names for help and typo detection
+# Maps aliases to their canonical command names for help and typo detection.
+# This enables power users to use shortcuts like 'b' for 'build'.
 
 COMMAND_ALIASES: dict[str, str] = {
     # Short aliases
@@ -52,12 +76,43 @@ SHORTCUTS_DISPLAY: list[tuple[str, str]] = [
 
 
 def get_aliases_for_command(cmd_name: str) -> list[str]:
-    """Get all aliases for a canonical command name."""
+    """
+    Get all aliases for a canonical command name.
+
+    Args:
+        cmd_name: The canonical command name (e.g., 'build', 'serve')
+
+    Returns:
+        List of alias strings, or empty list if no aliases exist.
+
+    Example:
+        >>> get_aliases_for_command('build')
+        ['b']
+        >>> get_aliases_for_command('serve')
+        ['s', 'dev']
+    """
     return CANONICAL_TO_ALIASES.get(cmd_name, [])
 
 
 def get_canonical_name(cmd_or_alias: str) -> str:
-    """Get the canonical command name for an alias (or return as-is if not an alias)."""
+    """
+    Get the canonical command name for an alias.
+
+    If the input is already a canonical name (or not a known alias),
+    returns the input unchanged.
+
+    Args:
+        cmd_or_alias: A command name or alias string
+
+    Returns:
+        The canonical command name.
+
+    Example:
+        >>> get_canonical_name('b')
+        'build'
+        >>> get_canonical_name('build')
+        'build'
+    """
     return COMMAND_ALIASES.get(cmd_or_alias, cmd_or_alias)
 
 
@@ -65,8 +120,15 @@ def _sanitize_help_text(text: str) -> str:
     """
     Remove Commands section from help text to avoid duplication.
 
-    Click automatically generates a Commands section, so we remove it
-    from the docstring to avoid showing it twice.
+    Click automatically generates a Commands section in group help output,
+    so we remove any manually-written Commands section from docstrings
+    to avoid showing duplicated information.
+
+    Args:
+        text: Raw help text from command/group docstring
+
+    Returns:
+        Sanitized help text with Commands section removed.
     """
     if not text:
         return ""
@@ -88,10 +150,36 @@ def _sanitize_help_text(text: str) -> str:
 
 
 class BengalCommand(click.Command):
-    """Custom Click command with themed help output."""
+    """
+    Custom Click command with themed help output.
+
+    Extends Click's Command class to provide Bengal-branded help formatting
+    using Rich console output with consistent styling.
+
+    Features:
+        - Bengal mascot in headers (ᓚᘏᗢ)
+        - Themed options and arguments display
+        - Automatic fallback to plain text for non-TTY
+
+    Example:
+        >>> @click.command(cls=BengalCommand)
+        ... @click.option('--verbose', is_flag=True)
+        ... def my_command(verbose):
+        ...     '''My command description.'''
+        ...     pass
+    """
 
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
-        """Format help output using our themed CLIOutput."""
+        """
+        Format help output using Bengal's themed CLIOutput.
+
+        Renders command help with Bengal styling, including mascot header,
+        formatted options table, and styled usage patterns.
+
+        Args:
+            ctx: Click context
+            formatter: Click help formatter (used for fallback)
+        """
         cli = CLIOutput()
 
         if cli.use_rich:
@@ -158,13 +246,40 @@ class BengalCommand(click.Command):
 
 
 class BengalGroup(click.Group):
-    """Custom Click group with typo detection and themed help output."""
+    """
+    Custom Click group with typo detection and themed help output.
+
+    Extends Click's Group class to provide:
+    - Fuzzy command matching with helpful suggestions for typos
+    - Bengal-themed help output with Quick Start section
+    - Alias display in shortcuts section
+    - Filtered command list (hides aliases from main list)
+
+    The group automatically uses BengalCommand for all subcommands.
+
+    Example:
+        >>> @click.group(cls=BengalGroup)
+        ... def my_group():
+        ...     '''My command group.'''
+        ...     pass
+    """
 
     # Use our custom command class by default
     command_class = BengalCommand
 
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
-        """Format help output using our themed CLIOutput."""
+        """
+        Format group help output using Bengal's themed CLIOutput.
+
+        For the root group, displays:
+        - Quick Start section with common commands
+        - Shortcuts section showing all aliases
+        - Filtered commands list (excluding aliases)
+
+        Args:
+            ctx: Click context
+            formatter: Click help formatter (used for fallback)
+        """
         cli = CLIOutput()
 
         if not cli.use_rich:
@@ -260,7 +375,22 @@ class BengalGroup(click.Group):
     def resolve_command(
         self, ctx: click.Context, args: list[str]
     ) -> tuple[str | None, click.Command | None, list[str]]:
-        """Resolve command with fuzzy matching for typos."""
+        """
+        Resolve command with fuzzy matching for typos.
+
+        Extends Click's command resolution to catch unknown commands
+        and suggest similar alternatives using difflib matching.
+
+        Args:
+            ctx: Click context
+            args: Command-line arguments
+
+        Returns:
+            Tuple of (command_name, command, remaining_args)
+
+        Raises:
+            SystemExit: If command not found, after showing suggestions
+        """
         try:
             return super().resolve_command(ctx, args)
         except click.exceptions.UsageError as e:
@@ -305,7 +435,20 @@ class BengalGroup(click.Group):
             raise
 
     def _get_similar_commands(self, unknown_cmd: str, max_suggestions: int = 3) -> list[str]:
-        """Find similar command names using simple string similarity."""
+        """
+        Find similar command names using string similarity.
+
+        Uses difflib's get_close_matches to find commands that are
+        similar to the unknown input, prioritizing canonical names
+        over aliases.
+
+        Args:
+            unknown_cmd: The unrecognized command string
+            max_suggestions: Maximum number of suggestions to return
+
+        Returns:
+            List of similar canonical command names.
+        """
         from difflib import get_close_matches
 
         # Get all available commands, but prefer canonical names over aliases

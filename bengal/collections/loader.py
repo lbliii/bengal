@@ -51,18 +51,23 @@ def load_collections(
     collection_file: str = "collections.py",
 ) -> dict[str, CollectionConfig[Any]]:
     """
-    Load collection definitions from project's collections.py file.
+    Load collection definitions from the project's collections file.
 
-    Searches for collections.py in the project root and loads the
-    `collections` dictionary containing CollectionConfig instances.
+    Dynamically imports the ``collections.py`` file from the project root
+    and extracts the ``collections`` dictionary. If no file exists or the
+    file doesn't define ``collections``, returns an empty dict.
 
     Args:
-        project_root: Path to project root directory
-        collection_file: Name of collections file (default: collections.py)
+        project_root: Path to the project root directory.
+        collection_file: Name of the collections file. Defaults to
+            ``collections.py``.
 
     Returns:
-        Dictionary mapping collection names to CollectionConfig instances.
-        Returns empty dict if no collections file found.
+        Dictionary mapping collection names to :class:`CollectionConfig`
+        instances. Returns an empty dict if:
+        - The collections file doesn't exist
+        - The file doesn't define a ``collections`` variable
+        - The ``collections`` variable isn't a dict
 
     Example:
         >>> collections = load_collections(Path("/path/to/project"))
@@ -72,22 +77,24 @@ def load_collections(
         docs: content/docs
 
     Note:
-        The collections file should export a `collections` dict:
+        The collections file must export a ``collections`` dictionary:
 
-        ```python
-        # collections.py
-        from dataclasses import dataclass
-        from bengal.collections import define_collection
+        >>> # collections.py
+        >>> from dataclasses import dataclass
+        >>> from bengal.collections import define_collection
+        >>>
+        >>> @dataclass
+        ... class BlogPost:
+        ...     title: str
+        ...
+        >>> collections = {
+        ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
+        ... }
 
-        @dataclass
-        class BlogPost:
-            title: str
-            ...
-
-        collections = {
-            "blog": define_collection(schema=BlogPost, directory="content/blog"),
-        }
-        ```
+    Warning:
+        This function executes user code via ``importlib``. The collections
+        file runs at import time, so side effects in module-level code will
+        execute. Keep collections.py focused on schema and collection definitions.
     """
     collections_path = project_root / collection_file
 
@@ -160,23 +167,34 @@ def get_collection_for_path(
     """
     Determine which collection a content file belongs to.
 
-    Matches the file path against collection directories to find
-    the applicable collection.
+    Matches the file path against collection directories to find the
+    applicable collection. Used during content discovery to apply the
+    correct schema validation.
 
     Args:
-        file_path: Path to content file
-        content_root: Root content directory
-        collections: Dictionary of loaded collections
+        file_path: Absolute or relative path to the content file.
+        content_root: Root content directory (e.g., ``site/content/``).
+        collections: Dictionary of loaded collections from :func:`load_collections`.
 
     Returns:
-        Tuple of (collection_name, CollectionConfig) if file is in a collection,
-        or (None, None) if file doesn't belong to any collection.
+        A tuple of ``(collection_name, config)`` if the file is within a
+        collection's directory, or ``(None, None)`` if the file doesn't
+        belong to any defined collection.
 
     Example:
         >>> file_path = Path("content/blog/my-post.md")
-        >>> name, config = get_collection_for_path(file_path, Path("content"), collections)
+        >>> name, config = get_collection_for_path(
+        ...     file_path, Path("content"), collections
+        ... )
         >>> name
         'blog'
+        >>> config.schema
+        <class 'BlogPost'>
+
+    Note:
+        - Files outside the content root always return ``(None, None)``
+        - Remote collections (with ``loader`` but no ``directory``) are skipped
+        - First matching collection wins if directories overlap (avoid this)
     """
     try:
         rel_path = file_path.relative_to(content_root)
@@ -204,16 +222,29 @@ def validate_collections_config(
     content_root: Path,
 ) -> list[str]:
     """
-    Validate collection configurations.
+    Validate collection configurations for common issues.
 
-    Checks that collection directories exist and are valid.
+    Checks that local collection directories exist and are valid directories.
+    Remote collections (with loaders) are skipped.
 
     Args:
-        collections: Dictionary of loaded collections
-        content_root: Root content directory
+        collections: Dictionary of loaded collections from :func:`load_collections`.
+        content_root: Root content directory to resolve relative paths.
 
     Returns:
-        List of warning messages for invalid configurations.
+        List of warning messages for invalid configurations. Empty list if
+        all configurations are valid.
+
+    Example:
+        >>> warnings = validate_collections_config(collections, Path("content"))
+        >>> for warning in warnings:
+        ...     print(f"Warning: {warning}")
+        Warning: Collection 'blog' directory does not exist: content/blog
+
+    Note:
+        This performs filesystem checks and should be called during site
+        initialization, not during hot-reload. Remote collections with
+        ``loader`` but no ``directory`` are automatically skipped.
     """
     warnings: list[str] = []
 

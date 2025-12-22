@@ -1,5 +1,17 @@
 """
 Global CLI output instance management.
+
+This module manages a singleton CLIOutput instance for consistent
+output formatting across all CLI commands. The global instance can
+be initialized with profile-specific settings.
+
+Functions:
+    get_cli_output: Get the global CLIOutput instance (creates if needed)
+    init_cli_output: Initialize global instance with custom settings
+
+Note:
+    The global instance pattern is used here to allow commands to share
+    a single output configuration without passing it through every function.
 """
 
 from __future__ import annotations
