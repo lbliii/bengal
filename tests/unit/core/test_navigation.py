@@ -363,3 +363,33 @@ class TestNavigationEdgeCases:
         assert guides.root == docs  # Stops at docs (nav_root)
         assert docs.root == docs  # docs is its own root now
         assert site_root.root == site_root  # site_root unchanged
+
+    def test_section_root_stops_at_versions_boundary(self):
+        """Test section.root stops at _versions boundary for versioned content.
+
+        For versioned content in _versions/<version_id>/docs/..., the root
+        should be the top-level section inside the version folder (docs/),
+        not the version folder itself or _versions/.
+
+        This ensures versioned docs pages get properly scoped navigation
+        that matches the transformed URL structure (/docs/v1/... not /_versions/v1/...).
+        """
+        # Hierarchy: _versions > v1 > docs > about
+        versions = Section(name="_versions", path=Path("/_versions"))
+        v1 = Section(name="v1", path=Path("/_versions/v1"))
+        docs = Section(name="docs", path=Path("/_versions/v1/docs"))
+        about = Section(name="about", path=Path("/_versions/v1/docs/about"))
+
+        versions.add_subsection(v1)
+        v1.add_subsection(docs)
+        docs.add_subsection(about)
+
+        # Root should be docs (top-level section inside version folder)
+        # Not v1 (version container) or _versions (system folder)
+        assert about.root == docs
+        assert docs.root == docs
+        # v1 is directly under _versions - since _versions has no parent,
+        # v1.root traverses to _versions (the topmost ancestor)
+        assert v1.root == versions
+        # _versions has no parent, so it's its own root
+        assert versions.root == versions

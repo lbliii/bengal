@@ -295,10 +295,15 @@ class Section:
         Traverses up the parent chain until reaching either:
         - A section with no parent (topmost ancestor)
         - A section with nav_root: true metadata (navigation boundary)
+        - The top-level section inside a version folder (for versioned content)
 
         The nav_root metadata allows sections to act as their own navigation
         root, useful for autodoc collections (e.g., /api/python/) that should
         not show their parent aggregator (/api/) in the sidebar.
+
+        For versioned content in _versions/<id>/docs/, the root is docs/
+        (the top-level content section within that version), not the version
+        folder or _versions/ itself.
 
         Returns:
             The navigation root section
@@ -311,7 +316,15 @@ class Section:
             # Stop if current section declares itself as a nav root
             if current.metadata.get("nav_root"):
                 return current
-            current = current.parent
+            # Stop at top-level section inside a version folder
+            # Hierarchy is: _versions/<version_id>/<section>/...
+            # We want <section> as root, not <version_id> or _versions
+            parent = current.parent
+            if parent.parent and parent.parent.name == "_versions":
+                # current.parent is the version folder (e.g., v1)
+                # current is the top-level section (e.g., docs)
+                return current
+            current = parent
         return current
 
     # Section navigation properties

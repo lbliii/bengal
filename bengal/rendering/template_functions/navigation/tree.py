@@ -125,12 +125,8 @@ def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeC
     if root_section is not None:
         root_url = getattr(root_section, "_path", None) or f"/{root_section.name}/"
         root_node = tree.find(root_url)
-        if root_node is None:
-            from bengal.errors import BengalRenderingError
-
-            raise BengalRenderingError(
-                f"Root section not found in NavTree: {root_url}",
-                suggestion=f"Ensure section with URL '{root_url}' exists in the site",
-            )
+        # If root_section not found (e.g., _versions/ folder for versioned content),
+        # fall back to unscoped navigation rather than raising an error.
+        # This allows versioned docs pages to render with full navigation.
 
     return tree.context(page, mark_active_trail=True, root_node=root_node)
