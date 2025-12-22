@@ -112,13 +112,37 @@ BENGAL_PALETTE = BengalPalette()
 @dataclass(frozen=True)
 class BengalMascots:
     """
-    Bengal brand mascots for terminal output.
+    Bengal brand mascots and status icons for terminal output.
 
-    The Bengal cat appears in success/help headers.
-    The mouse appears in error headers (cats catch bugs/mice).
+    Provides ASCII-compatible characters for terminal UI elements including
+    the Bengal cat mascot, status indicators, navigation symbols, and
+    performance grades. All characters render across modern terminals.
 
-    Both mascots are Unicode characters that render well
-    across most modern terminals.
+    Attributes:
+        cat: Bengal cat mascot for success/help headers (ᓚᘏᗢ)
+        mouse: Mouse for error headers - cat catches bugs (ᘛ⁐̤ᕐᐷ)
+        success: Checkmark for success status (✓)
+        warning: Exclamation for warnings (!)
+        error: X mark for errors (x)
+        info: Dash for informational messages (-)
+        tip: Asterisk for tips (*)
+        pending: Middle dot for pending state (·)
+        arrow: Right arrow for navigation (→)
+        tree_branch: Tree branch for hierarchy (├─)
+        tree_end: Tree end for last item (└─)
+        grade_excellent: Excellent performance (++)
+        grade_fast: Fast performance (+)
+        grade_moderate: Moderate performance (~)
+        grade_slow: Slow performance (-)
+
+    Example:
+        >>> mascots = BengalMascots()
+        >>> print(f"{mascots.cat} Build successful {mascots.success}")
+        ᓚᘏᗢ Build successful ✓
+
+    Note:
+        Status icons are ASCII-first for compatibility. Set BENGAL_EMOJI=1
+        environment variable to enable emoji alternatives.
     """
 
     # Mascot characters
@@ -152,10 +176,31 @@ BENGAL_MASCOT = BengalMascots()
 @dataclass(frozen=True)
 class PaletteVariant:
     """
-    A color palette variant for theming.
+    Named color palette variant for theming.
 
-    Bengal supports multiple palette variants that can be applied
-    to both web and terminal output via BENGAL_PALETTE env var.
+    Provides a subset of color tokens that define a cohesive visual theme.
+    Variants can be applied via the BENGAL_PALETTE environment variable or
+    theme configuration.
+
+    Attributes:
+        name: Variant identifier (e.g., "blue-bengal", "charcoal-bengal")
+        primary: Primary brand color for the variant
+        accent: Accent/highlight color
+        success: Success state color
+        error: Error state color
+        surface: Widget surface color (default: #1e1e1e)
+        background: Base background color (default: #121212)
+
+    Example:
+        >>> variant = PaletteVariant(
+        ...     name="custom",
+        ...     primary="#1976D2",
+        ...     accent="#FF9800",
+        ...     success="#388E3C",
+        ...     error="#D32F2F"
+        ... )
+        >>> variant.primary
+        '#1976D2'
     """
 
     name: str
@@ -220,11 +265,24 @@ def get_palette(name: str = "default") -> BengalPalette | PaletteVariant:
     """
     Get a color palette by name.
 
+    Retrieves either the default BengalPalette or a named PaletteVariant.
+    Falls back to the default palette if the requested name is not found.
+
     Args:
-        name: Palette name (default, blue-bengal, etc.)
+        name: Palette variant name. Use "default" for the full BengalPalette,
+            or a variant name like "blue-bengal", "charcoal-bengal", etc.
 
     Returns:
-        The palette instance
+        BengalPalette for "default", or the matching PaletteVariant.
+        Falls back to BENGAL_PALETTE if name is not found.
+
+    Example:
+        >>> palette = get_palette("default")
+        >>> palette.primary
+        '#FF9D00'
+        >>> variant = get_palette("blue-bengal")
+        >>> variant.primary
+        '#1976D2'
     """
     if name == "default":
         return BENGAL_PALETTE
