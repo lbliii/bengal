@@ -1,25 +1,69 @@
 """
 Session-level error tracking for pattern detection across builds.
 
-Tracks errors across a build session to:
-- Detect recurring error patterns
-- Identify systemic issues
-- Provide summary statistics
-- Support dev server hot-reload error continuity
+This module provides error session tracking to detect patterns, identify
+systemic issues, and provide investigation hints across builds.
 
-Usage:
-    from bengal.errors.session import get_session, reset_session
+Key Features
+============
+
+- **Pattern Detection**: Groups similar errors by signature to identify
+  recurring patterns.
+- **Systemic Issue Detection**: Identifies errors affecting multiple files
+  (likely template or config issues).
+- **Investigation Hints**: Generates actionable hints based on error patterns.
+- **Session Statistics**: Provides comprehensive summary with error rates,
+  phase distribution, and most affected files.
+- **Dev Server Support**: Persists across hot reloads for continuous tracking.
+
+Components
+==========
+
+**ErrorOccurrence**
+    Record of a single error occurrence with timestamp and context.
+
+**ErrorPattern**
+    Aggregated pattern for similar errors with occurrence count and
+    affected files.
+
+**ErrorSession**
+    Thread-safe session tracking with indexing by file, code, and phase.
+
+Module Functions
+================
+
+- ``get_session()`` - Get the current session singleton
+- ``reset_session()`` - Reset to a fresh session
+- ``record_error()`` - Convenience function to record an error
+
+Usage
+=====
+
+Record errors and detect patterns::
+
+    from bengal.errors.session import get_session, record_error
 
     # Record an error
-    session = get_session()
-    pattern_info = session.record(error, file_path="content/post.md")
+    pattern_info = record_error(error, file_path="content/post.md")
 
     # Check if error is recurring
     if pattern_info["is_recurring"]:
         print(f"This error has occurred {pattern_info['occurrence_number']} times")
 
-    # Get session summary at end of build
+Get session summary and hints::
+
+    session = get_session()
     summary = session.get_summary()
+    hints = session.get_investigation_hints()
+
+    for hint in hints:
+        print(hint)
+
+See Also
+========
+
+- ``bengal/orchestration/build.py`` - Session usage in builds
+- ``bengal/errors/aggregation.py`` - Error aggregation (different scope)
 """
 
 from __future__ import annotations
@@ -94,11 +138,34 @@ class ErrorSession:
     Track errors across a build session for pattern detection.
 
     Thread-safe error tracking that persists across incremental builds
-    and dev server hot reloads.
+    and dev server hot reloads. Errors are indexed by:
+
+    - **Pattern signature**: Groups similar errors for recurrence detection
+    - **File path**: Find all errors for a specific file
+    - **Error code**: Find all errors with a specific Bengal error code
+    - **Build phase**: Find all errors in a specific phase
+
+    The session is a singleton accessed via ``get_session()``. Use
+    ``reset_session()`` to start fresh (e.g., at start of new build).
+
+    Attributes:
+        _patterns: Map of error signatures to ErrorPattern objects.
+        _errors_by_file: Index of errors by file path.
+        _errors_by_code: Index of errors by error code.
+        _errors_by_phase: Index of errors by build phase.
+        _start_time: Session start timestamp.
+        _total_errors: Total error count.
+
+    Example:
+        >>> session = get_session()
+        >>> info = session.record(error, file_path="content/post.md")
+        >>> print(f"Occurrence #{info['occurrence_number']}")
+        >>> summary = session.get_summary()
+        >>> hints = session.get_investigation_hints()
     """
 
     def __init__(self) -> None:
-        """Initialize error session."""
+        """Initialize a new error session with empty indexes."""
         self._patterns: dict[str, ErrorPattern] = {}
         self._errors_by_file: dict[str, list[ErrorOccurrence]] = defaultdict(list)
         self._errors_by_code: dict[str, list[ErrorOccurrence]] = defaultdict(list)
