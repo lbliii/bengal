@@ -109,9 +109,19 @@ class GoogleFontsDownloader:
                         output_path = output_dir / variant.filename
                         if not output_path.exists():
                             self._download_file(url, output_path)
-                            print(f"     ✓ Downloaded: {variant.filename}")
+                            from bengal.output import CLIOutput
+
+                            cli = CLIOutput()
+                            cli.detail(
+                                f"Downloaded: {variant.filename}", indent=2, icon=cli.icons.success
+                            )
                         else:
-                            print(f"     ✓ Cached: {variant.filename}")
+                            from bengal.output import CLIOutput
+
+                            cli = CLIOutput()
+                            cli.detail(
+                                f"Cached: {variant.filename}", indent=2, icon=cli.icons.success
+                            )
 
                         variants.append(variant)
 

@@ -136,7 +136,7 @@ class FontHelper:
 
         all_variants = {}
         for font_name, font_spec in fonts_to_download.items():
-            print(f"   {font_spec['family']}...")
+            cli.detail(f"{font_spec['family']}...", indent=1)
             variants = self.downloader.download_font(
                 family=font_spec["family"],
                 weights=font_spec["weights"],
@@ -149,7 +149,7 @@ class FontHelper:
         css_content = self.generator.generate(all_variants)
 
         if not css_content:
-            print("   └─ No fonts generated")
+            cli.detail("No fonts generated", indent=1, icon=cli.icons.tree_end)
             return None
 
         css_path = assets_dir / "fonts.css"
@@ -159,11 +159,17 @@ class FontHelper:
         if css_path.exists():
             existing_content = css_path.read_text(encoding="utf-8")
             if existing_content == css_content:
-                print(f"   └─ Cached: fonts.css ({total_variants} variants)")
+                cli.detail(
+                    f"Cached: fonts.css ({total_variants} variants)",
+                    indent=1,
+                    icon=cli.icons.tree_end,
+                )
                 return css_path
 
         css_path.write_text(css_content, encoding="utf-8")
-        print(f"   └─ Generated: fonts.css ({total_variants} variants)")
+        cli.detail(
+            f"Generated: fonts.css ({total_variants} variants)", indent=1, icon=cli.icons.tree_end
+        )
 
         return css_path
 
