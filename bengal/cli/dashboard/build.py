@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import DataTable, Footer, Header, Log, ProgressBar, Static
 
@@ -136,7 +136,15 @@ class BengalBuildDashboard(BengalDashboard):
             # Progress bar
             yield ProgressBar(total=100, show_eta=False, id="build-progress")
 
-            # Phase table
+            # Build statistics panel (Task 1.1)
+            with Horizontal(classes="section"):
+                yield Static(
+                    self._get_build_stats_content(),
+                    id="build-stats",
+                    classes="panel",
+                )
+
+            # Phase table with profiling (Task 1.2)
             with Vertical(classes="section"):
                 yield Static("Build Phases:", classes="section-header")
                 yield DataTable(id="phase-table")
@@ -150,23 +158,61 @@ class BengalBuildDashboard(BengalDashboard):
 
     def on_mount(self) -> None:
         """Set up widgets when dashboard mounts."""
-        # Configure phase table
+        # Configure phase table with percentage column (Task 1.2)
         table = self.query_one("#phase-table", DataTable)
-        table.add_columns("Status", "Phase", "Time", "Details")
+        table.add_columns("Status", "Phase", "Time", "%", "Details")
 
-        # Initialize rows for each phase
+        # Initialize rows for each phase with waiting state (Task 1.3)
         for phase_name in self.PHASES:
             table.add_row(
-                "·",  # pending icon
+                "○",  # waiting icon
                 phase_name,
                 "-",
                 "",
+                "Waiting...",
                 key=phase_name,
             )
 
         # Start build if site provided
         if self.site:
             self._start_build()
+
+    def _get_build_stats_content(self) -> str:
+        """Generate build stats panel content (Task 1.1)."""
+        stats = self.stats or {}
+
+        # Cache hit rate calculation
+        hits = stats.get("cache_hits", 0)
+        misses = stats.get("cache_misses", 0)
+        total = hits + misses
+        hit_rate = f"{(hits / total * 100):.0f}%" if total > 0 else "N/A"
+
+        # Memory from BuildStats (already tracked, no tracemalloc overhead)
+        memory_mb = stats.get("memory_rss_mb", 0)
+
+        # Build mode
+        mode = "Incremental" if stats.get("incremental") else "Full"
+
+        # Pages and assets
+        pages = stats.get("total_pages", 0)
+        assets = stats.get("total_assets", 0)
+        sections = stats.get("total_sections", 0)
+
+        return (
+            f"[bold]Build Statistics[/bold]\n"
+            f"─────────────────────────────────\n"
+            f"[bold]Pages:[/]    {pages:>6}  │  [bold]Cache:[/]  {hit_rate}\n"
+            f"[bold]Assets:[/]   {assets:>6}  │  [bold]Memory:[/] {memory_mb:.0f} MB\n"
+            f"[bold]Sections:[/] {sections:>6}  │  [bold]Mode:[/]   {mode}"
+        )
+
+    def _update_build_stats(self) -> None:
+        """Update the build stats panel with current stats."""
+        try:
+            stats_panel = self.query_one("#build-stats", Static)
+            stats_panel.update(self._get_build_stats_content())
+        except Exception:
+            pass  # Panel may not exist yet
 
     def _start_build(self) -> None:
         """Start the build in a background worker."""
@@ -267,7 +313,7 @@ class BengalBuildDashboard(BengalDashboard):
         """Mark a phase as running."""
         if phase_name in self.phases:
             self.phases[phase_name].status = "running"
-        self._update_phase_row(phase_name, status="⠹", time="...")
+        self._update_phase_row(phase_name, status="⠹", time="...", percent="", details="")
 
     def _update_phases_from_stats(self, stats: Any) -> None:
         """Update phase display from build stats."""
@@ -370,9 +416,10 @@ class BengalBuildDashboard(BengalDashboard):
         phase_name: str,
         status: str | None = None,
         time: str | None = None,
+        percent: str | None = None,
         details: str | None = None,
     ) -> None:
-        """Update a row in the phase table."""
+        """Update a row in the phase table (Task 1.2)."""
         table = self.query_one("#phase-table", DataTable)
 
         try:
@@ -382,6 +429,8 @@ class BengalBuildDashboard(BengalDashboard):
                 table.update_cell(row_key, "Status", status)
             if time is not None:
                 table.update_cell(row_key, "Time", time)
+            if percent is not None:
+                table.update_cell(row_key, "%", percent)
             if details is not None:
                 table.update_cell(row_key, "Details", details)
         except Exception:
