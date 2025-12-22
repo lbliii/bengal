@@ -1,8 +1,40 @@
 """
 Graph Visualization Generator for Bengal SSG.
 
-Generates interactive D3.js visualizations of the site's knowledge graph.
-Inspired by Obsidian's graph view.
+Creates interactive D3.js visualizations of the site's knowledge graph,
+inspired by Obsidian's graph view. The visualizations are standalone HTML
+files that can be served alongside the site or used for offline analysis.
+
+Features:
+    - Force-directed graph layout with physics simulation
+    - Interactive node exploration (hover, click, drag)
+    - Search and filtering by page title, tags, or type
+    - Responsive design with zoom and pan
+    - Theme-aware styling (light/dark mode)
+    - Customizable node colors based on connectivity
+
+Node Types:
+    - Hub: Highly connected pages (large, prominent color)
+    - Regular: Normal pages
+    - Orphan: Pages with no incoming links (warning color)
+    - Generated: Taxonomy and other generated pages
+
+Classes:
+    GraphNode: Data structure for visualization nodes
+    GraphEdge: Data structure for visualization edges
+    GraphVisualizer: Main visualization generator
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph, GraphVisualizer
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> visualizer = GraphVisualizer(site, graph)
+    >>> html = visualizer.generate_html(title="My Site Graph")
+    >>> Path('public/graph.html').write_text(html)
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Graph data source
+    - bengal/themes/*/assets/css/style.css: Theme CSS variables
 """
 
 from __future__ import annotations

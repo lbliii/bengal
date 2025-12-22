@@ -1,9 +1,45 @@
 """
 Persistent asset manifest for deterministic asset URL resolution.
 
+This module provides the AssetManifest and AssetManifestEntry classes for
+tracking the mapping between logical asset paths and their fingerprinted
+output files.
+
 The manifest maps logical asset paths (e.g. ``css/style.css``) to the
 fingerprinted files actually written to ``public/assets`` along with basic
 metadata that deployment tooling can inspect.
+
+Key Features:
+    - **Deterministic URLs**: Logical paths resolve to consistent output paths
+    - **Fingerprinting Support**: Tracks content hashes for cache-busting
+    - **Metadata Tracking**: Records file size and update timestamps
+    - **Atomic Writes**: Uses atomic file operations for safe updates
+    - **JSON Serialization**: Human-readable manifest format
+
+Manifest Format:
+    The manifest is stored as JSON with the following structure::
+
+        {
+            "version": 1,
+            "generated_at": "2025-01-15T10:30:00Z",
+            "assets": {
+                "css/style.css": {
+                    "output_path": "assets/css/style.abc123.css",
+                    "fingerprint": "abc123def456",
+                    "size_bytes": 4096,
+                    "updated_at": "2025-01-15T10:30:00Z"
+                }
+            }
+        }
+
+Architecture:
+    This module is designed to be used by AssetOrchestrator during builds.
+    Templates access resolved URLs via the ``asset()`` filter, which reads
+    from the manifest to resolve logical paths.
+
+Related:
+    - bengal/orchestration/asset_orchestrator.py: Uses manifest during builds
+    - bengal/rendering/filters.py: asset() filter reads from manifest
 """
 
 from __future__ import annotations
@@ -21,28 +57,68 @@ logger = get_logger(__name__)
 
 
 def _isoformat(timestamp: float | None) -> str | None:
-    """Convert a POSIX timestamp (seconds) to an ISO-8601 string."""
+    """
+    Convert a POSIX timestamp to an ISO-8601 UTC string.
+
+    Args:
+        timestamp: Unix timestamp in seconds, or None.
+
+    Returns:
+        ISO-8601 formatted string with 'Z' suffix for UTC, or None if input is None.
+
+    Example:
+        >>> _isoformat(1705315800.0)
+        '2024-01-15T10:30:00Z'
+    """
     if timestamp is None:
         return None
     return datetime.fromtimestamp(timestamp, tz=UTC).isoformat().replace("+00:00", "Z")
 
 
 def _posix(path_like: str) -> str:
-    """Normalize to POSIX-style paths for portability."""
+    """
+    Normalize a path to POSIX-style forward slashes for cross-platform portability.
+
+    Args:
+        path_like: Path string, potentially with backslashes on Windows.
+
+    Returns:
+        Path string with forward slashes only.
+
+    Example:
+        >>> _posix("css\\\\style.css")
+        'css/style.css'
+    """
     return PurePosixPath(path_like).as_posix()
 
 
 @dataclass(slots=True)
 class AssetManifestEntry:
     """
-    Immutable manifest entry for a single logical asset.
+    Manifest entry for a single logical asset.
+
+    Represents the mapping from a logical asset path (as used in templates) to
+    its actual output location, along with metadata for debugging and deployment.
+
+    Uses ``slots=True`` for memory efficiency when tracking many assets.
 
     Attributes:
         logical_path: Logical path requested from templates (e.g. ``css/style.css``).
         output_path: Relative path under the output directory (e.g. ``assets/css/style.X.css``).
-        fingerprint: Optional hash used when fingerprinting is enabled.
-        size_bytes: File size for visibility / debugging.
-        updated_at: ISO-8601 timestamp of the file write.
+        fingerprint: Content hash used for cache-busting, or None if disabled.
+        size_bytes: File size in bytes for visibility and debugging.
+        updated_at: ISO-8601 timestamp of the last file write.
+
+    Example:
+        >>> entry = AssetManifestEntry(
+        ...     logical_path="css/style.css",
+        ...     output_path="assets/css/style.abc123.css",
+        ...     fingerprint="abc123def456",
+        ...     size_bytes=4096,
+        ...     updated_at="2025-01-15T10:30:00Z",
+        ... )
+        >>> entry.to_dict()
+        {'output_path': 'assets/css/style.abc123.css', 'fingerprint': 'abc123def456', ...}
     """
 
     logical_path: str
@@ -52,7 +128,14 @@ class AssetManifestEntry:
     updated_at: str | None = None
 
     def to_dict(self) -> dict[str, str | int]:
-        """Serialize entry to a JSON-friendly dict."""
+        """
+        Serialize entry to a JSON-friendly dictionary.
+
+        Only includes non-None optional fields to keep the manifest compact.
+
+        Returns:
+            Dictionary with 'output_path' and any present optional fields.
+        """
         data: dict[str, str | int] = {
             "output_path": self.output_path,
         }
@@ -66,7 +149,16 @@ class AssetManifestEntry:
 
     @classmethod
     def from_dict(cls, logical_path: str, data: Mapping[str, object]) -> AssetManifestEntry:
-        """Create an entry from a JSON payload."""
+        """
+        Create an entry from a JSON payload.
+
+        Args:
+            logical_path: The logical asset path (dict key from manifest).
+            data: Dictionary containing 'output_path' and optional metadata.
+
+        Returns:
+            Populated AssetManifestEntry with normalized paths.
+        """
         size_bytes_val = data.get("size_bytes")
         return cls(
             logical_path=_posix(logical_path),
@@ -84,10 +176,30 @@ class AssetManifest:
     """
     Asset manifest container with serialization helpers.
 
-    Example usage:
-        manifest = AssetManifest()
-        manifest.set_entry("css/style.css", "assets/css/style.ABC.css", fingerprint="ABC123")
-        manifest.write(path)
+    Manages a collection of AssetManifestEntry objects and provides methods
+    for reading, writing, and querying the manifest.
+
+    The manifest is the single source of truth for asset URL resolution during
+    rendering. Templates use the ``asset()`` filter which queries this manifest
+    to resolve logical paths to fingerprinted output URLs.
+
+    Attributes:
+        version: Manifest format version for future compatibility.
+        generated_at: ISO-8601 timestamp when manifest was created/updated.
+        _entries: Internal dictionary mapping logical paths to entries.
+
+    Example:
+        >>> manifest = AssetManifest()
+        >>> manifest.set_entry(
+        ...     "css/style.css",
+        ...     "assets/css/style.ABC.css",
+        ...     fingerprint="ABC123",
+        ...     size_bytes=4096,
+        ...     updated_at=time.time(),
+        ... )
+        >>> manifest.get("css/style.css").output_path
+        'assets/css/style.ABC.css'
+        >>> manifest.write(Path("public/asset-manifest.json"))
     """
 
     version: int = 1
@@ -105,7 +217,16 @@ class AssetManifest:
         size_bytes: int | None,
         updated_at: float | None,
     ) -> None:
-        """Add or replace a manifest entry for the logical asset."""
+        """
+        Add or replace a manifest entry for a logical asset.
+
+        Args:
+            logical_path: Logical path as used in templates (e.g. ``css/style.css``).
+            output_path: Actual output path relative to public dir.
+            fingerprint: Content hash for cache-busting, or None if disabled.
+            size_bytes: File size in bytes, or None if unknown.
+            updated_at: Unix timestamp of last modification, or None.
+        """
         normalized_logical = _posix(logical_path)
         self._entries[normalized_logical] = AssetManifestEntry(
             logical_path=normalized_logical,
@@ -116,16 +237,37 @@ class AssetManifest:
         )
 
     def get(self, logical_path: str) -> AssetManifestEntry | None:
-        """Return the entry for the logical path, if present."""
+        """
+        Retrieve the entry for a logical path.
+
+        Args:
+            logical_path: Logical asset path to look up.
+
+        Returns:
+            AssetManifestEntry if found, None otherwise.
+        """
         return self._entries.get(_posix(logical_path))
 
     @property
     def entries(self) -> Mapping[str, AssetManifestEntry]:
-        """Read-only view of entries for inspection."""
+        """
+        Read-only view of all manifest entries.
+
+        Returns:
+            Mapping from logical paths to their AssetManifestEntry objects.
+        """
         return self._entries
 
     def write(self, path: Path) -> None:
-        """Serialize the manifest to disk using an atomic write."""
+        """
+        Serialize the manifest to disk using an atomic write.
+
+        Creates parent directories if needed. Entries are sorted by key
+        for deterministic output.
+
+        Args:
+            path: Destination path for the manifest JSON file.
+        """
         payload = {
             "version": self.version,
             "generated_at": self.generated_at,
@@ -136,7 +278,18 @@ class AssetManifest:
 
     @classmethod
     def load(cls, path: Path) -> AssetManifest | None:
-        """Load a manifest from disk, returning None when missing or invalid."""
+        """
+        Load a manifest from disk.
+
+        Gracefully handles missing or malformed files by returning None,
+        allowing callers to fall back to a fresh manifest.
+
+        Args:
+            path: Path to the manifest JSON file.
+
+        Returns:
+            Populated AssetManifest, or None if file is missing or invalid.
+        """
         if not path.exists():
             return None
 

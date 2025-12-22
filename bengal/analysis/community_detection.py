@@ -1,16 +1,42 @@
 """
 Community Detection for Bengal SSG.
 
-Implements the Louvain method for discovering topical clusters in content.
-The algorithm optimizes modularity to find natural groupings of pages.
+Discovers topical clusters in content using the Louvain method, a fast and
+scalable algorithm for community detection. Communities represent natural
+groupings of related pages based on link structure, useful for understanding
+content organization and identifying topic areas.
 
-The Louvain method works in two phases:
-1. Local optimization: Move nodes to communities that maximize modularity gain
-2. Aggregation: Treat each community as a single node and repeat
+Algorithm:
+    The Louvain method optimizes modularity (network clustering quality) in two phases:
+    1. Local optimization: Move nodes to communities that maximize modularity gain
+    2. Aggregation: Treat each community as a single node and repeat
+    Phases repeat until no further improvement is possible.
+
+Key Concepts:
+    - Modularity: Quality metric for network partitions (-1.0 to 1.0, higher is better)
+    - Community: Group of densely connected pages sharing topics/themes
+    - Resolution: Parameter controlling community granularity (higher = more communities)
+
+Classes:
+    Community: A detected group of related pages
+    CommunityDetectionResults: All communities with quality metrics
+    LouvainCommunityDetector: Main detection algorithm
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> results = graph.detect_communities(resolution=1.0)
+    >>> print(f"Found {len(results.communities)} communities")
+    >>> for community in results.get_largest_communities(5):
+    ...     print(f"Community {community.id}: {community.size} pages")
 
 References:
-    - Blondel, V. D., et al. (2008). Fast unfolding of communities in large networks.
-      Journal of Statistical Mechanics: Theory and Experiment.
+    Blondel, V. D., et al. (2008). Fast unfolding of communities in large networks.
+    Journal of Statistical Mechanics: Theory and Experiment.
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Graph coordination
 """
 
 from __future__ import annotations

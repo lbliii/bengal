@@ -1,17 +1,41 @@
 """
 Link Suggestion Engine for Bengal SSG.
 
-Provides smart cross-linking recommendations based on:
-- Topic similarity (shared tags, categories, keywords)
-- PageRank importance (prioritize linking to high-value pages)
-- Navigation patterns (betweenness, closeness)
-- Current link structure (avoid over-linking, find gaps)
+Generates intelligent cross-linking recommendations to improve site connectivity,
+SEO, and content discoverability. The engine combines multiple signals to suggest
+high-value links that would naturally fit in content.
 
-Helps improve:
-- Internal linking structure
-- SEO through better site connectivity
-- Content discoverability
-- User navigation
+Scoring Signals:
+    - Topic Similarity (40%): Shared tags and categories indicate related content
+    - Category Match (30%): Pages in the same category should link to each other
+    - PageRank (20%): Prioritize linking to important pages
+    - Centrality (10%): Link to bridge pages for better navigation
+    - Underlink Bonus: Extra weight for orphaned or underlinked pages
+
+Benefits:
+    - Improved internal linking structure for SEO
+    - Better content discoverability for users
+    - Reduced orphan pages and dead ends
+    - More cohesive topic coverage
+
+Classes:
+    LinkSuggestion: A single recommended link with score and reasons
+    LinkSuggestionResults: All suggestions with filtering methods
+    LinkSuggestionEngine: Main suggestion generator
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> results = graph.suggest_links(min_score=0.3)
+    >>> for suggestion in results.get_top_suggestions(20):
+    ...     print(f"{suggestion.source.title} → {suggestion.target.title}")
+    ...     print(f"  Score: {suggestion.score:.2f}, Reasons: {suggestion.reasons}")
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Graph coordination
+    - bengal/analysis/page_rank.py: Importance scoring
+    - bengal/analysis/path_analysis.py: Centrality metrics
 """
 
 from __future__ import annotations

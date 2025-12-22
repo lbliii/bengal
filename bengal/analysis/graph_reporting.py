@@ -1,8 +1,33 @@
 """
 Graph reporting module for Bengal SSG.
 
-Provides human-readable reports and insights from knowledge graph analysis
-including statistics, recommendations, SEO insights, and content gap detection.
+Transforms raw graph analysis into actionable insights for content strategy,
+SEO optimization, and site architecture improvements. The reporter generates
+human-readable statistics, identifies content gaps, and provides prioritized
+recommendations.
+
+Report Types:
+    - Statistics: Page counts, link density, connectivity distribution
+    - Recommendations: Prioritized actions for improving site structure
+    - SEO Insights: Link depth analysis, link equity flow, orphan risks
+    - Content Gaps: Missing cross-links, underlinked sections, tag coverage
+
+Classes:
+    GraphReporter: Main reporter that delegates from KnowledgeGraph
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> # Reporting is typically accessed via KnowledgeGraph methods
+    >>> print(graph.format_stats())
+    >>> recommendations = graph.get_actionable_recommendations()
+    >>> seo_insights = graph.get_seo_insights()
+    >>> content_gaps = graph.get_content_gaps()
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Main graph coordinator
+    - bengal/analysis/graph_analysis.py: Underlying analysis
 """
 
 from __future__ import annotations

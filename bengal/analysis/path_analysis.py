@@ -1,21 +1,50 @@
 """
 Path Analysis for Bengal SSG.
 
-Implements algorithms for understanding navigation patterns and page accessibility:
-- Shortest paths between pages (BFS-based)
-- Betweenness centrality (identifies bridge pages)
-- Closeness centrality (measures accessibility)
+Analyzes navigation patterns and page accessibility through centrality metrics.
+Identifies bridge pages (critical for navigation), accessible pages (easy to
+reach), and computes network-wide statistics like diameter and average path length.
 
-These metrics help optimize navigation structure and identify critical pages.
+Centrality Metrics:
+    - Betweenness: How often a page appears on shortest paths between others.
+      High betweenness indicates bridge pages that connect different site areas.
+    - Closeness: How close a page is to all other pages (average distance).
+      High closeness indicates easily accessible, well-connected pages.
 
-For large sites (>500 pages), pivot-based approximation is used automatically
-to maintain O(k*N) complexity instead of O(N²).
+Network Metrics:
+    - Diameter: Longest shortest path (maximum clicks between any two pages)
+    - Average Path Length: Mean shortest path length across all page pairs
+
+Performance:
+    For large sites (>500 pages by default), automatically uses pivot-based
+    approximation for O(k*N) complexity instead of O(N²). This provides
+    ~100x speedup for 10K page sites while maintaining accurate rankings.
+
+Classes:
+    PathAnalysisResults: Centrality scores and network metrics
+    PathSearchResult: Results from path finding with safety metadata
+    PathAnalyzer: Main analysis algorithms
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> results = graph.analyze_paths()
+    >>> bridges = results.get_top_bridges(10)
+    >>> accessible = results.get_most_accessible(10)
+    >>> print(f"Diameter: {results.diameter} clicks")
+    >>> print(f"Approximate: {results.is_approximate}")
 
 References:
-    - Brandes, U. (2001). A faster algorithm for betweenness centrality.
-      Journal of Mathematical Sociology.
-    - Bader, D. A., et al. (2007). Approximating betweenness centrality.
-      Algorithms and Models for the Web-Graph.
+    Brandes, U. (2001). A faster algorithm for betweenness centrality.
+    Journal of Mathematical Sociology.
+
+    Bader, D. A., et al. (2007). Approximating betweenness centrality.
+    Algorithms and Models for the Web-Graph.
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Graph coordination
+    - bengal/analysis/link_suggestions.py: Uses centrality for suggestions
 """
 
 from __future__ import annotations
