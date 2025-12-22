@@ -98,6 +98,9 @@ class CLIOutput(DevServerOutputMixin):
         self._last_phase_key: str | None = None
         self._last_phase_time_ms: int = 0
 
+        # Track blank lines to prevent consecutive blanks
+        self._last_was_blank: bool = False
+
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
 
@@ -137,6 +140,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         if self.use_rich:
             mascot_str = "[bengal]ᓚᘏᗢ[/bengal]  " if mascot else ""
             if leading_blank:
@@ -218,6 +222,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         # Use section icon from icon set (empty by default in ASCII mode)
         section_icon = icon if icon is not None else self.icons.section
         icon_str = f"{section_icon} " if section_icon else ""
@@ -246,6 +251,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
+        self._mark_output()
         phase_icon = icon if icon is not None else self.icons.success
 
         if self.use_rich:
@@ -284,6 +290,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         indent_str = self.indent_char * (self.indent_size * indent)
         icon_str = f"{icon} " if icon else ""
         line = f"{indent_str}{icon_str}{text}"
@@ -298,19 +305,20 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
+        self._mark_output()
         success_icon = icon if icon is not None else self.icons.success
         if self.use_rich:
             self.console.print()
             self.console.print(f"{success_icon} [success]{text}[/success]")
-            self.console.print()
         else:
-            click.echo(f"\n{success_icon} {text}\n", color=True)
+            click.echo(f"\n{success_icon} {text}", color=True)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         icon_str = f"{icon} " if icon else ""
 
         if self.use_rich:
@@ -323,6 +331,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.WARNING):
             return
 
+        self._mark_output()
         warning_icon = icon if icon is not None else self.icons.warning
         if self.use_rich:
             self.console.print(f"{warning_icon}  [warning]{text}[/warning]")
@@ -334,6 +343,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.ERROR):
             return
 
+        self._mark_output()
         error_icon = icon if icon is not None else self.icons.error
         if self.use_rich:
             self.console.print(f"{error_icon} [error]{text}[/error]")
@@ -345,6 +355,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         tip_icon = icon if icon is not None else self.icons.tip
         if self.use_rich:
             self.console.print(f"{tip_icon} [tip]{text}[/tip]")
@@ -455,13 +466,19 @@ class CLIOutput(DevServerOutputMixin):
         else:
             return click.confirm(text, default=default)
 
-    def blank(self, count: int = 1) -> None:
-        """Print blank lines."""
-        for _ in range(count):
-            if self.use_rich:
-                self.console.print()
-            else:
-                click.echo()
+    def blank(self) -> None:
+        """Print a blank line (max one consecutive)."""
+        if self._last_was_blank:
+            return  # Prevent consecutive blank lines
+        self._last_was_blank = True
+        if self.use_rich:
+            self.console.print()
+        else:
+            click.echo()
+
+    def _mark_output(self) -> None:
+        """Mark that non-blank output was printed (resets blank tracking)."""
+        self._last_was_blank = False
 
     # === Internal helpers ===
 
