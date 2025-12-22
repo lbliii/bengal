@@ -159,18 +159,85 @@ class BengalHealthDashboard(BengalDashboard):
 
     async def _scan_site(self) -> None:
         """Run health scan in background thread."""
-        from bengal.health.report import HealthReporter
-
         try:
-            # Create reporter and run scan
-            reporter = HealthReporter(self.site)
-            report = reporter.generate_report()
+            if self.site is None:
+                # No site - show demo/placeholder
+                self.call_from_thread(self._populate_demo)
+                return
 
-            # Update UI from main thread
-            self.call_from_thread(self._populate_from_report, report)
+            # Try to run link check if available
+            try:
+                from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
+
+                orchestrator = LinkCheckOrchestrator(
+                    self.site,
+                    check_internal=True,
+                    check_external=False,
+                )
+                results, summary = orchestrator.check_all_links()
+
+                # Convert to our format
+                self.call_from_thread(self._populate_from_linkcheck, results, summary)
+
+            except ImportError:
+                # Fallback to demo mode
+                self.call_from_thread(self._populate_demo)
 
         except Exception as e:
             self.call_from_thread(self._on_scan_error, str(e))
+
+    def _populate_demo(self) -> None:
+        """Populate tree with demo/placeholder data."""
+        tree = self.query_one("#health-tree", Tree)
+        tree.clear()
+
+        # Show placeholder message
+        no_issues = tree.root.add("✓ No issues found", expand=True)
+        no_issues.add_leaf("Run 'bengal health' for full link check")
+
+        summary = self.query_one("#health-summary", Static)
+        summary.update(f"{self.mascot}  Health check complete (demo mode)")
+
+        self.notify("No site loaded - showing demo", title="Health")
+
+    def _populate_from_linkcheck(self, results: list, summary) -> None:
+        """Populate tree from link check results."""
+        tree = self.query_one("#health-tree", Tree)
+        tree.clear()
+
+        broken_links = [r for r in results if not r.ok]
+        valid_links = [r for r in results if r.ok]
+
+        # Add broken links category
+        if broken_links:
+            broken_node = tree.root.add(f"❌ Broken Links ({len(broken_links)})", expand=True)
+            for link in broken_links[:20]:  # Limit display
+                issue = HealthIssue(
+                    category="Links",
+                    severity="error",
+                    message=f"{link.status_code}: {link.url}",
+                    file=str(link.source_page) if hasattr(link, "source_page") else None,
+                )
+                self.issues.append(issue)
+                broken_node.add_leaf(f"⛔ {link.url[:50]}...")
+
+        # Add valid links summary
+        if valid_links:
+            valid_node = tree.root.add(f"✓ Valid Links ({len(valid_links)})", expand=False)
+            valid_node.add_leaf("All links verified")
+
+        # Update summary
+        summary_widget = self.query_one("#health-summary", Static)
+        if broken_links:
+            summary_widget.update(f"🐭  {len(broken_links)} broken links found")
+        else:
+            summary_widget.update(f"{self.mascot}  All {len(valid_links)} links valid!")
+
+        self.notify(
+            f"Found {len(broken_links)} issues" if broken_links else "No issues!",
+            title="Health Check",
+            severity="error" if broken_links else "information",
+        )
 
     def _populate_from_report(self, report: HealthReport) -> None:
         """Populate tree from health report."""
