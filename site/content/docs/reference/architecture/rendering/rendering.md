@@ -106,41 +106,83 @@ Orchestrates the flow for each page. Organized as a package with focused modules
 
 ## Mistune Directives
 
-Bengal extends Markdown with directives using `:::{name}` syntax.
+Bengal extends Markdown with directives using `:::{name}` syntax. Directives are lazy-loaded on demand for fast startup times.
 
-::::{cards}
-:columns: 3
-:gap: small
-:variant: info
+::::{tab-set}
+:::{tab-item} Content Blocks
+**Admonitions**: `note`, `tip`, `warning`, `danger`, `error`, `info`, `example`, `success`, `caution`, `seealso`
 
-:::{card} Admonitions
-:icon: info
-Callouts like Note, Warning, Tip.
+**Structural**:
+- `dropdown` / `details` - Collapsible sections
+- `container` / `div` - Generic wrapper with CSS classes
+- `steps` / `step` - Numbered step sequences
+
+**Interactive**:
+- `tab-set` / `tabs` + `tab-item` / `tab` - Tabbed content
+- `checklist` - Interactive task lists
 :::
 
-:::{card} Tabs
-:icon: layers
-Tabbed content sections.
+:::{tab-item} Cards & Layout
+**Cards**:
+- `cards` - Card grid container
+- `card` - Individual card
+- `child-cards` - Auto-generate cards from child pages
+- `grid` / `grid-item-card` - Sphinx-compatible grid aliases
+
+**Layout**:
+- `gallery` - Image gallery with lightbox
+- `figure` - Enhanced figure with caption
 :::
 
-:::{card} Dropdowns
-:icon: chevron-down
-Collapsible details.
+:::{tab-item} Code
+**Code Blocks**:
+- `code-tabs` - Multi-language code blocks
+- `literalinclude` - Include code from external files
+
+**Embeds**:
+- `gist` - GitHub Gist embed
+- `codepen` - CodePen embed
+- `codesandbox` - CodeSandbox embed
+- `stackblitz` - StackBlitz embed
 :::
 
-:::{card} Cards
-:icon: layers
-Grid layouts (like this one!).
+:::{tab-item} Media
+**Video**:
+- `youtube` - YouTube embed
+- `vimeo` - Vimeo embed
+- `video` - Generic video embed
+
+**Audio & Terminal**:
+- `audio` - Audio player
+- `asciinema` - Terminal recording playback
+- `marimo` - Marimo notebook embed
 :::
 
-:::{card} Code Tabs
-:icon: code
-Multi-language code blocks.
+:::{tab-item} Navigation
+**Page Navigation**:
+- `breadcrumbs` - Breadcrumb trail
+- `siblings` - Sibling page links
+- `prev-next` - Previous/next navigation
+- `related` - Related content links
 :::
 
-:::{card} Buttons
-:icon: star
-Call-to-action buttons.
+:::{tab-item} Reference
+**API & Versioning**:
+- `since` / `versionadded` - Version introduction
+- `deprecated` / `versionremoved` - Deprecation notices
+- `changed` / `versionchanged` - Change notices
+
+**Utilities**:
+- `badge` / `bdg` - Inline badges
+- `button` - CTA buttons
+- `icon` / `svg-icon` - Icon insertion
+- `target` / `anchor` - Explicit anchor targets
+- `rubric` - Section headings without TOC entry
+- `glossary` - Term definitions
+- `list-table` / `data-table` - Structured tables
+- `include` - Include markdown files
+- `example-label` - Example block labels
+- `build` - Build status badges
 :::
 ::::
 

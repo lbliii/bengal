@@ -16,41 +16,41 @@ Present related content in switchable tabs:
 
 ```markdown
 :::{tab-set}
-:::{tab} macOS
+:::{tab-item} macOS
 ```bash
 brew install bengal
 ```
-:::{/tab}
-:::{tab} Linux
+:::
+:::{tab-item} Linux
 ```bash
 pip install bengal
 ```
-:::{/tab}
-:::{tab} Windows
+:::
+:::{tab-item} Windows
 ```powershell
 pip install bengal
 ```
-:::{/tab}
-:::{/tab-set}
+:::
+:::
 ```
 
 :::{tab-set}
-:::{tab} macOS
+:::{tab-item} macOS
 ```bash
 brew install bengal
 ```
-:::{/tab}
-:::{tab} Linux
+:::
+:::{tab-item} Linux
 ```bash
 pip install bengal
 ```
-:::{/tab}
-:::{tab} Windows
+:::
+:::{tab-item} Windows
 ```powershell
 pip install bengal
 ```
-:::{/tab}
-:::{/tab-set}
+:::
+:::
 
 ### When to Use Tabs
 
@@ -266,18 +266,18 @@ Create rich, interactive content by combining elements:
 :description: Select installation method
 
 :::{tab-set}
-:::{tab} pip
+:::{tab-item} pip
 ```bash
 pip install bengal
 ```
-:::{/tab}
-:::{tab} pipx
+:::
+:::{tab-item} pipx
 ```bash
 pipx install bengal
 ```
-:::{/tab}
-:::{/tab-set}
-:::{/step}
+:::
+:::
+:::
 
 :::{step} Verify Installation
 
@@ -290,9 +290,9 @@ bengal --version
 
 If you see "command not found", ensure Python's bin directory is in your PATH.
 :::
-:::{/step}
+:::
 
-:::{/steps}
+:::
 ```
 
 ## Best Practices

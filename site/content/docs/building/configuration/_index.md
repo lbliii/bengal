@@ -39,12 +39,13 @@ Overrides apply in order: Base Config → Environment Overrides → CLI Flags.
 # bengal.toml
 [site]
 title = "My Site"
-base_url = "https://example.com"
+baseurl = "https://example.com"
 language = "en"
 
 [build]
 output_dir = "public"
-clean = true
+parallel = true
+incremental = true
 
 [theme]
 name = "default"
@@ -96,10 +97,13 @@ bengal build --environment production
 ```yaml
 # config/environments/production.yaml
 site:
-  base_url: "https://example.com"
+  baseurl: "https://example.com"
 
 build:
-  minify: true
+  minify_html: true
+  strict_mode: true
+
+assets:
   fingerprint: true
 ```
 
@@ -114,13 +118,31 @@ Key `[build]` configuration options:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `output_dir` | string | `"public"` | Directory for generated files |
-| `clean` | bool | `false` | Remove output directory before build |
-| `minify` | bool | `false` | Minify HTML/CSS/JS output |
-| `fingerprint` | bool | `false` | Add content hash to asset URLs |
+| `parallel` | bool | `true` | Enable parallel processing |
+| `incremental` | bool | `true` | Only rebuild changed content |
+| `minify_html` | bool | `true` | Minify HTML output |
 | `validate_templates` | bool | `false` | Proactive template syntax validation |
 | `validate_build` | bool | `true` | Post-build validation checks |
 | `validate_links` | bool | `true` | Check for broken internal links |
 | `strict_mode` | bool | `false` | Fail build on any error or warning |
+| `fast_mode` | bool | `false` | Enable maximum performance optimizations |
+
+### Asset Options
+
+Configure asset processing in the `[assets]` section:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `minify` | bool | `true` | Minify CSS/JS assets |
+| `optimize` | bool | `true` | Optimize images |
+| `fingerprint` | bool | `true` | Add content hash to asset URLs |
+
+```toml
+[assets]
+minify = true
+optimize = true
+fingerprint = true
+```
 
 ### Template Validation
 

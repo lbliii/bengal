@@ -33,7 +33,7 @@ Display the most recent posts from a section using Bengal's query filters.
 <ul class="recent-posts">
 {% for post in posts %}
   <li>
-    <a href="{{ post.url }}">{{ post.title }}</a>
+    <a href="{{ post.href }}">{{ post.title }}</a>
     <time>{{ post.date | date('%B %d, %Y') }}</time>
   </li>
 {% endfor %}
@@ -75,7 +75,7 @@ Display the most recent posts from a section using Bengal's query filters.
 
 <ul class="more-posts">
 {% for post in rest %}
-  <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+  <li><a href="{{ post.href }}">{{ post.title }}</a></li>
 {% endfor %}
 </ul>
 ```
@@ -89,8 +89,8 @@ Display the most recent posts from a section using Bengal's query filters.
   | sort_by('date', reverse=true)
   | limit(6) %}
 
-{% for post in others if post.url != page.url %}
-  <a href="{{ post.url }}">{{ post.title }}</a>
+{% for post in others if post._path != page._path %}
+  <a href="{{ post.href }}">{{ post.title }}</a>
 {% endfor %}
 ```
 

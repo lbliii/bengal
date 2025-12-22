@@ -27,7 +27,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
 :::{tab-set}
 :::{tab-item} Basic Template
-```jinja
+```jinja2
 {# templates/layouts/single.html #}
 {% extends "baseof.html" %}
 
@@ -41,7 +41,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 :::
 
 :::{tab-item} Base Layout
-```jinja
+```jinja2
 {# templates/baseof.html #}
 <!DOCTYPE html>
 <html>
@@ -58,12 +58,12 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 :::
 
 :::{tab-item} Partial
-```jinja
+```jinja2
 {# templates/partials/header.html #}
 <header>
   <nav>
     {% for item in site.menus.main %}
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.href }}">{{ item.title }}</a>
     {% endfor %}
   </nav>
 </header>
@@ -96,5 +96,5 @@ flowchart TB
 ```
 
 :::{tip}
-**Override sparingly**: You only need to create templates you want to customize. Start by copying one template from your theme, modify it, and let the rest fall through to defaults.
+**Override sparingly**: You only need to create templates you want to customize. Use `bengal utils theme swizzle <template>` to copy a template for customization. Let the rest fall through to theme defaults.
 :::

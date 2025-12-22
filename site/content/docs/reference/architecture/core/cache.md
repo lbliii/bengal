@@ -109,15 +109,31 @@ flowchart LR
 
 ### File Format
 
-Cache files use the `.json.zst` extension:
+Cache files are stored as JSON and transparently compressed/decompressed:
 
 ```
 .bengal/
-├── cache.json.zst          # Main build cache (compressed)
-├── taxonomy_index.json.zst # Tag/category index (compressed)
-├── asset_deps.json.zst     # Asset dependencies (compressed)
-└── page_metadata.json.zst  # Page metadata (compressed)
+├── cache.json.zst           # Main build cache (compressed)
+├── page_metadata.json       # Page discovery cache
+├── asset_deps.json          # Asset dependency map
+├── taxonomy_index.json      # Tag/category index
+├── build_history.json       # Build history for delta analysis
+├── server.pid               # Dev server PID
+├── asset-manifest.json      # Asset manifest
+├── indexes/                 # Query indexes (section, author, etc.)
+├── templates/               # Jinja bytecode cache
+├── content_cache/           # Remote content cache
+├── logs/                    # Build/serve logs
+├── metrics/                 # Performance metrics
+├── profiles/                # Profiling output
+├── themes/                  # Theme state (swizzle registry)
+│   └── sources.json
+├── js_bundle/               # JS bundle temporary files
+├── pipeline_out/            # Asset pipeline temporary output
+└── generated/               # Generated content (auto-pages, etc.)
 ```
+
+The main build cache (`cache.json.zst`) is always compressed with Zstandard for optimal performance. Other cache files remain uncompressed JSON for easier debugging and external tool integration.
 
 ### Backward Compatibility
 

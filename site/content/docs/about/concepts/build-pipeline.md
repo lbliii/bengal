@@ -22,48 +22,54 @@ category: documentation
 
 This guide explains what happens when you run `bengal build`.
 
-Bengal's build system is orchestrated by the `BuildOrchestrator` and executes in distinct phases.
+Bengal's build system is orchestrated by the `BuildOrchestrator` and executes in 21 distinct phases.
 
-## The Phases
+## Build Phases Overview
 
-### 1. Initialization
-*   **Config Loading**: Bengal loads `bengal.toml` (or `config/` directory) and establishes the environment context.
-*   **Cache Loading**: If incremental build is enabled, the previous build cache (`.bengal/cache.json`) is loaded.
+The build executes the following phases in sequence:
 
-### 2. Content Discovery (`ContentOrchestrator`)
-*   **Scanning**: The `content/` directory is scanned recursively.
-*   **Page Creation**: `Page` objects are created for each markdown file.
-*   **Schema Validation**: If `collections.py` exists, frontmatter is validated against defined schemas (see [Content Collections](/docs/content/collections/)).
-*   **Lazy Loading**: In incremental builds, unchanged pages are loaded as `PageProxy` objects (lightweight metadata only), saving parsing time.
-*   **Section Registry**: A path-based registry is built for O(1) section lookups.
+| Group | Phases | Description |
+|-------|--------|-------------|
+| **Initialization** | 1-5 | Font processing, template validation, content discovery, caching |
+| **Content Setup** | 6-11 | Sections, taxonomies, menus, related posts, indexes |
+| **Rendering** | 13-16 | Asset processing, page rendering, dependency tracking |
+| **Finalization** | 17-21 | Post-processing, cache save, health checks, cleanup |
 
-### 3. Structure & Metadata
+## Key Phases
+
+### Initialization (Phases 1-5)
+
+*   **Font Processing**: Download Google Fonts and generate CSS if configured.
+*   **Template Validation**: Validate template syntax (optional, strict mode only).
+*   **Content Discovery**: Scan `content/` directory, create `Page` objects.
+*   **Schema Validation**: If `collections.py` exists, frontmatter is validated against defined schemas.
+*   **Cache Integration**: Load previous build cache for incremental builds.
+
+### Content Setup (Phases 6-11)
+
 *   **Section Finalization**: Ensures every folder has a corresponding Section object (creating virtual sections if `_index.md` is missing).
-*   **Cascading**: Metadata from section `_index.md` files is applied to all descendant pages (e.g., `cascade: type: doc`).
-*   **URL Generation**: Output paths and URLs are computed for all pages.
-
-### 4. Taxonomy & Menus
+*   **Cascading**: Metadata from section `_index.md` files is applied to all descendant pages.
 *   **Taxonomy Collection**: Tags, categories, and other terms are collected from all pages.
 *   **Menu Generation**: Navigation menus are built from config and page frontmatter.
-*   **Incremental Optimization**: Only changed pages are re-scanned for taxonomy updates.
+*   **Related Posts**: Computes related posts based on tag overlap.
 
-### 5. Asset Processing (`AssetOrchestrator`)
-*   **Discovery**: Assets are found in `assets/` and theme directories.
-*   **Processing**: SCSS is compiled, JS is minified, and images are optimized (if pipelines are enabled).
-*   **Fingerprinting**: Hashes are generated for cache busting (e.g., `style.a1b2c3.css`).
+### Rendering (Phases 13-16)
 
-### 6. Rendering (`RenderOrchestrator`)
 This is the heavy lifting phase.
 
-*   **Parallel Execution**: Pages are rendered in parallel using `ThreadPoolExecutor`.
-    *   Bengal supports **Free-Threaded Python (3.13t+)**, allowing true parallelism without the GIL.
+*   **Asset Processing**: Copy, minify, optimize, and fingerprint assets.
+*   **Parallel Rendering**: Pages are rendered in parallel using `ThreadPoolExecutor`.
+    *   Bengal supports **Free-Threaded Python (PEP 703)**, allowing true parallelism without the GIL on Python 3.14+.
 *   **Jinja2 Context**: Each page is rendered with the `site` and `page` context.
 *   **Markdown Parsing**: Markdown content is converted to HTML (cached by file hash).
 
-### 7. Post-Processing
+### Finalization (Phases 17-21)
+
 *   **Sitemap**: `sitemap.xml` is generated.
 *   **RSS**: RSS feeds are built.
-*   **Validation**: Internal links are checked (if `--strict` is enabled).
+*   **Output Formats**: JSON and LLM text files are generated.
+*   **Health Checks**: Validation runs (if enabled).
+*   **Cache Save**: Persist cache for incremental builds.
 
 ## Incremental Builds
 
@@ -79,37 +85,14 @@ Bengal's incremental build system relies on **Change Detection** and **Dependenc
     *   **Config Change**: If `bengal.toml` changes, a **Full Rebuild** is triggered.
 
 ### Performance
-*   **Cached Pages**: ~0ms (Metadata loaded from JSON).
-*   **Rendered Pages**: ~10-50ms per page (depending on complexity).
-*   **Parallelism**: Scales linearly with CPU cores on Python 3.13t+.
+*   **Cached Pages**: ~0 ms (Metadata loaded from JSON).
+*   **Rendered Pages**: ~10-50 ms per page (depending on complexity).
+*   **Parallelism**: Scales linearly with CPU cores on Python 3.14+ with free-threading enabled.
 
 ## Memory Optimization
 
-For massive sites (>10,000 pages), Bengal offers a `--memory-optimized` flag. This uses a **Streaming Orchestrator** to process pages in batches, keeping memory usage constant rather than linear to site size.
+For large sites (>5,000 pages), Bengal's incremental build system minimizes memory usage by:
 
-## Reactive Dataflow Pipeline
-
-Bengal also provides a **Reactive Dataflow Pipeline** for declarative, stream-based builds:
-
-```python
-from bengal.pipeline import Pipeline
-
-pipeline = (
-    Pipeline("build")
-    .source("files", discover_files)
-    .map("parse", parse_markdown)
-    .parallel(workers=4)
-    .for_each("write", write_output)
-)
-
-result = pipeline.run()
-```
-
-Key benefits:
-
-*   **Declarative**: Define what, not how
-*   **Automatic Caching**: Version-based cache invalidation
-*   **Watch Mode**: Built-in file watching with debouncing
-*   **Composable**: Chain operations fluently
-
-See [Reactive Pipeline Architecture](/docs/reference/architecture/core/pipeline/) for details.
+*   **Lazy Loading**: Unchanged pages load as lightweight `PageProxy` objects with only metadata.
+*   **Dependency Tracking**: Only affected pages are fully loaded and re-rendered.
+*   **Section-Level Filtering**: Entire unchanged sections are skipped during change detection.

@@ -61,15 +61,15 @@ fingerprint = true   # main.css → main.a1b2c3.css
 :::
 
 :::{tab-item} Template Usage
-```jinja
-{# Basic asset URL #}
-<link rel="stylesheet" href="{{ 'css/main.css' | asset_url }}">
+```jinja2
+{# Basic asset URL (function syntax) #}
+<link rel="stylesheet" href="{{ asset_url('css/main.css') }}">
 
-{# With fingerprint for cache-busting #}
-<link rel="stylesheet" href="{{ 'css/main.css' | fingerprint }}">
+{# Fingerprinting is automatic when enabled in config #}
+{# Outputs: /assets/css/main.a1b2c3.css #}
 
 {# Images #}
-<img src="{{ 'images/logo.png' | asset_url }}" alt="Logo">
+<img src="{{ asset_url('images/logo.png') }}" alt="Logo">
 ```
 :::
 

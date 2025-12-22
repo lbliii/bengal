@@ -118,27 +118,28 @@ graph TB
 
 ### Supporting Modules
 
-- **`cache/`**: Build cache, dependency tracking, query indexes
-- **`collections/`**: Type-safe content schemas with validation
-- **`content_layer/`**: Unified API for local/remote content sources
-- **`content_types/`**: Content strategies (Blog, Docs, Portfolio)
-- **`directives/`**: MyST-style directives for markdown (cards, tabs, navigation, etc.)
+- **`cache/`**: Build cache with Zstandard compression, dependency tracking, query indexes, and incremental build support
+- **`collections/`**: Type-safe content schemas with validation for frontmatter
+- **`content_layer/`**: Unified API for local/remote content sources (GitHub, Notion, REST)
+- **`content_types/`**: Content strategies (Blog, Docs, Portfolio, Landing) with Strategy Pattern
+- **`directives/`**: 50+ MyST-style directives for markdown (admonitions, cards, tabs, code-tabs, embeds, navigation, versioning)
 - **`postprocess/`**: Sitemap, RSS, link validation
-- **`health/`**: Content validation and health checks
-- **`config/`**: Configuration loading and validation
-- **`cli/`**: Command-line interface
-- **`output/`**: Centralized CLI output system
-- **`server/`**: Development server with live reload
-- **`utils/`**: Shared utilities
+- **`health/`**: Comprehensive build validation with 20+ validators organized in tiers
+- **`config/`**: Format-agnostic configuration loading, environment detection, build profiles
+- **`cli/`**: Command-line interface with typo detection and Rich output
+- **`output/`**: Centralized CLI output system with profile-aware formatting
+- **`server/`**: Development server with SSE-based live reload
+- **`utils/`**: Shared utilities (paths, file I/O, dates, pagination, atomic writes)
+- **`errors/`**: Structured error system with actionable suggestions
 
 ### Feature Subsystems
 
-- **`autodoc/`**: Generate docs from Python, CLI, OpenAPI
-- **`analysis/`**: Graph analysis, PageRank, link suggestions
-- **`fonts/`**: Google Fonts download and self-hosting
-- **`debug/`**: Diagnostic tools for understanding builds
+- **`autodoc/`**: Generate docs from Python (AST-based), CLI (Click), and OpenAPI specs
+- **`analysis/`**: Knowledge graph, PageRank, community detection, link suggestions, graph visualization
+- **`fonts/`**: Google Fonts download, self-hosting, and CSS generation
+- **`debug/`**: Diagnostic tools (Page Explainer, Delta Analyzer, Dependency Visualizer)
 - **`services/`**: Service interfaces and implementations
-- **`assets/`**: Asset processing pipeline and manifest generation
+- **`assets/`**: Asset processing pipeline (minification, optimization, fingerprinting)
 
 ## Pointers
 

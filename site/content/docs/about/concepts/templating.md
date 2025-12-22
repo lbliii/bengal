@@ -24,11 +24,23 @@ Bengal uses Jinja2 as its template engine. This guide explains what data is avai
 
 ## The Template Context
 
-Every template in Bengal receives three primary objects:
+Every template in Bengal receives the following primary objects:
 
-1.  **`page`**: The current page being rendered.
-2.  **`site`**: Global site information and collections.
-3.  **`config`**: The full configuration dictionary.
+| Object | Description |
+|--------|-------------|
+| `page` | The current page being rendered |
+| `site` | Global site information and collections |
+| `config` | The full configuration dictionary |
+| `content` | Pre-rendered HTML content (marked safe) |
+| `toc` | Table of contents HTML (marked safe) |
+| `toc_items` | Structured TOC data for custom rendering |
+| `bengal` | Engine metadata (name, version) |
+
+Additional globals available:
+
+- `versioning_enabled` - Whether versioning is enabled
+- `versions` - List of available versions
+- `theme` - Theme configuration object
 
 ### 1. The `page` Object
 
@@ -37,14 +49,30 @@ The `page` object represents the current markdown file being rendered. It gives 
 | Attribute | Description | Example |
 | :--- | :--- | :--- |
 | `page.title` | The page title. | `{{ page.title }}` |
+| `page.nav_title` | Short title for navigation (falls back to title). | `{{ page.nav_title }}` |
 | `page.content` | The raw content (rarely used directly). | `{{ page.content }}` |
 | `page.metadata` | Dictionary of all frontmatter variables. | `{{ page.metadata.tags }}` |
 | `page.rendered_html` | The compiled HTML of the content. | `{{ page.rendered_html }}` |
 | `page.toc` | Auto-generated Table of Contents (HTML). | `{{ page.toc }}` |
+| `page.toc_items` | Structured TOC data (list of dicts with id, title, level). | `{{ page.toc_items }}` |
 | `page.date` | Python `datetime` object. | `{{ page.date.strftime('%Y-%m-%d') }}` |
-| `page.url` | URL with baseurl applied (for display). | `{{ page.url }}` |
-| `page.relative_url` | Relative URL without baseurl (for comparisons). | `{{ page.relative_url }}` |
-| `page.permalink` | Alias for `url` (backward compatibility). | `{{ page.permalink }}` |
+| `page.href` | URL with baseurl applied (for display). | `{{ page.href }}` |
+| `page.meta_description` | SEO description (max 160 chars, auto-generated). | `{{ page.meta_description }}` |
+| `page.reading_time` | Estimated reading time in minutes. | `{{ page.reading_time }}` |
+| `page.excerpt` | Content excerpt (max 200 chars). | `{{ page.excerpt }}` |
+
+**Type Checking Properties**:
+
+| Attribute | Description |
+| :--- | :--- |
+| `page.is_home` | True if this is the home page |
+| `page.is_section` | True if this is a section page |
+| `page.is_page` | True if this is a regular page |
+| `page.kind` | Returns "home", "section", or "page" |
+| `page.type` | Page type (e.g., "doc", "post") |
+| `page.variant` | Visual variant for CSS customization |
+| `page.draft` | True if page is a draft |
+| `page.hidden` | True if page is hidden |
 
 #### Accessing Custom Frontmatter
 
@@ -92,43 +120,45 @@ To list all blog posts:
 
 #### URL Pattern Best Practices
 
-Bengal provides three URL properties with clear purposes:
+Bengal provides URL properties with clear purposes:
 
-**`page.url`** - **Primary property for display**
+**`page.href`** - **Primary property for display**
+
 - Automatically includes baseurl (e.g., `/bengal/docs/page/`)
 - Use in `<a href>`, `<link>`, `<img src>` attributes
 - Works correctly for all deployment scenarios (GitHub Pages, Netlify, S3, file://, etc.)
 
-**`page.relative_url`** - **For comparisons and logic**
-- Relative URL without baseurl (e.g., `/docs/page/`)
-- Use for comparisons: `{% if page.relative_url == '/docs/' %}`
-- Use for menu activation, filtering, and conditional logic
+**`page._path`** - **For internal comparisons** (internal use)
 
-**`page.permalink`** - **Backward compatibility**
-- Alias for `url` (same value)
-- Maintained for compatibility with existing themes
+- Relative URL without baseurl (e.g., `/docs/page/`)
+- Use for menu activation, filtering, and conditional logic
+- Note: This is an internal property; prefer using template helpers for comparisons
+
+**`page.absolute_href`** - **For meta tags and sitemaps**
+
+- Fully-qualified URL when site URL is configured
+- Falls back to `href` if no absolute URL configured
 
 :::{example-label} Usage
 :::
 
 ```html
 {# Display URL (includes baseurl) #}
-<a href="{{ page.url }}">{{ page.title }}</a>
+<a href="{{ page.href }}">{{ page.title }}</a>
 
-{# Comparison (without baseurl) #}
-{% if page.relative_url == '/docs/' %}
-  <span class="active">Current Section</span>
+{# For SEO meta tags #}
+<meta property="og:url" content="{{ page.absolute_href }}">
+
+{# Check page type #}
+{% if page.is_section %}
+  <span class="section-badge">Section</span>
 {% endif %}
-
-{# Both work the same #}
-<a href="{{ page.url }}">Link 1</a>
-<a href="{{ page.permalink }}">Link 2</a>  {# Same as page.url #}
 ```
 
 **Why This Pattern?**
 
-- **Ergonomic**: Templates use `{{ page.url }}` for display - it "just works"
-- **Clear**: `relative_url` makes comparisons explicit
+- **Ergonomic**: Templates use `{{ page.href }}` for display - it "just works"
+- **Clear**: Type checking properties (`is_home`, `is_section`) make logic explicit
 - **No wrappers**: Page objects handle baseurl via their `_site` reference
 - **Works everywhere**: Supports file://, S3, GitHub Pages, Netlify, Vercel, etc.
 
@@ -197,13 +227,45 @@ Extends the base template and fills in the blocks.
 {% endblock %}
 ```
 
-## Common Helpers
+## Template Functions
 
-Bengal provides several Jinja2 filters and functions.
+Bengal provides 80+ template functions organized into categories:
 
-*   **`url_for(page)`**: Returns the relative URL for a page object.
-*   **`date_format(date, format)`**: Formats a date object.
-*   **`| safe`**: Marks HTML as safe to render (prevents escaping).
+### Essential Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `url_for(page)` | Returns the URL for a page object | `{{ url_for(page) }}` |
+| `asset_url(path)` | Returns fingerprinted asset URL | `{{ asset_url('css/style.css') }}` |
+| `get_page(path)` | Get a page by path | `{% set p = get_page('/docs/intro/') %}` |
+| `get_menu(name)` | Get menu items by name | `{% for item in get_menu('main') %}` |
+
+### String Filters
+
+| Filter | Description | Example |
+|--------|-------------|---------|
+| `truncate(n)` | Truncate to n characters | `{{ text \| truncate(100) }}` |
+| `slugify` | Convert to URL slug | `{{ title \| slugify }}` |
+| `titlecase` | Title case text | `{{ name \| titlecase }}` |
+| `markdown` | Render markdown to HTML | `{{ content \| markdown \| safe }}` |
+
+### Collection Filters
+
+| Filter | Description | Example |
+|--------|-------------|---------|
+| `sort_by(key)` | Sort list by key | `{{ pages \| sort_by('date', reverse=True) }}` |
+| `group_by(key)` | Group items by key | `{{ pages \| group_by('category') }}` |
+| `where(key, val)` | Filter items | `{{ pages \| where('draft', false) }}` |
+
+### Date Formatting
+
+| Filter | Description | Example |
+|--------|-------------|---------|
+| `date_format(fmt)` | Format date | `{{ page.date \| date_format('%B %d, %Y') }}` |
+
+### Built-in Jinja2
+
+- **`| safe`**: Marks HTML as safe to render (prevents escaping).
 
 ## Debugging
 

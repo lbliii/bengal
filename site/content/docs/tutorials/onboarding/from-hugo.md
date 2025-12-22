@@ -1,5 +1,6 @@
 ---
 title: From Hugo
+nav_title: Hugo
 description: Onboarding guide for Hugo users migrating to Bengal
 weight: 20
 tags:
@@ -375,18 +376,18 @@ weight = 20
 :columns: 3
 
 :::{card} Feature 1
-:icon: 🚀
+:icon: rocket
 :link: /docs/feature1/
 
 Quick description
-:::
+:::{/card}
 
 :::{card} Feature 2
-:icon: 📦
+:icon: package
 :link: /docs/feature2/
 
 Another feature
-:::
+:::{/card}
 
 :::{/cards}
 ```
@@ -441,17 +442,26 @@ bengal serve
 ### Navigation Directives
 
 ```markdown
-<!-- Auto-generate from section children -->
+<!-- Auto-generate cards from section children -->
 :::{child-cards}
 :columns: 2
 :::
 
-<!-- Show sibling pages -->
+<!-- Show sibling pages in the current section -->
 :::{siblings}
 :::
 
-<!-- Prev/Next navigation -->
+<!-- Prev/Next navigation links -->
 :::{prev-next}
+:::
+
+<!-- Breadcrumb navigation -->
+:::{breadcrumbs}
+:::
+
+<!-- Related pages by tag -->
+:::{related}
+:tags: api, authentication
 :::
 ```
 
@@ -595,4 +605,6 @@ bengal serve
 ## Next Steps
 
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration](/docs/about/concepts/configuration/) - Full config reference
+- [Configuration Reference](/docs/reference/configuration/) - Full config reference
+- [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference
+- [Theme Variables](/docs/reference/theme-variables/) - Theme customization

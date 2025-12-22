@@ -70,13 +70,13 @@ bengal build --validate
 
 ```bash
 # Link checking (internal + external)
-bengal linkcheck
+bengal health linkcheck
 
 # Internal links only (fast)
-bengal linkcheck --internal-only
+bengal health linkcheck --internal-only
 
 # External links only
-bengal linkcheck --external-only
+bengal health linkcheck --external-only
 ```
 
 ---
@@ -342,7 +342,13 @@ bengal validate --verbose
 bengal validate --changed
 
 # Pre-deploy validation
-bengal linkcheck && bengal build --strict
+bengal health linkcheck && bengal build --strict
+
+# Writer profile (fast, less strict)
+bengal validate --profile writer
+
+# Developer profile (strict, all checks)
+bengal validate --profile developer
 ```
 
 ---
@@ -377,13 +383,13 @@ health:
 
 ```bash
 # Check internal links only (fast)
-bengal linkcheck --internal-only
+bengal health linkcheck --internal-only
 
 # Limit concurrent connections
-bengal linkcheck --max-concurrency 5
+bengal health linkcheck --max-concurrency 5
 
 # Exclude slow domains
-bengal linkcheck --exclude-domain api.slow-service.com
+bengal health linkcheck --exclude-domain api.slow-service.com
 ```
 
 ### Validation Cache
@@ -405,21 +411,23 @@ bengal validate --no-cache
 ```bash
 # Validate
 bengal validate              # Run all validators
-bengal validate --changed    # Only changed files
+bengal validate --changed    # Only changed files (incremental)
 bengal validate --verbose    # Show all checks
+bengal validate --suggestions  # Show quality suggestions
+bengal validate --watch      # Watch mode (experimental)
 
 # Auto-fix
 bengal fix --dry-run         # Preview fixes
 bengal fix                   # Apply safe fixes
-bengal fix --all             # Apply all fixes
+bengal fix --all             # Apply all fixes including confirmations
+bengal fix --validator Directives  # Fix specific validator
 
 # Links
-bengal linkcheck             # Check all links
-bengal linkcheck --internal-only  # Internal only
+bengal health linkcheck      # Check all links
+bengal health linkcheck --internal-only  # Internal only
 
 # Build
 bengal build --strict        # Fail on warnings
-bengal build --validate      # Pre-validate templates
 ```
 
 ---

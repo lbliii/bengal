@@ -66,7 +66,7 @@ Bengal includes a comprehensive health check system that validates builds across
 
 **Validators**:
 
-**Basic Validation:**
+**Phase 1 - Basic Validation:**
 | Validator | Validates |
 |-----------|-----------|
 | **ConfigValidatorWrapper** | Configuration validity, essential fields, common issues |
@@ -74,28 +74,43 @@ Bengal includes a comprehensive health check system that validates builds across
 | **MenuValidator** | Menu structure integrity, circular reference detection |
 | **LinkValidatorWrapper** | Broken links detection (internal and external) |
 
-**Content Validation:**
+**Phase 2 - Build-Time Validation:**
 | Validator | Validates |
 |-----------|-----------|
 | **NavigationValidator** | Page navigation (next/prev, breadcrumbs, ancestors) |
 | **TaxonomyValidator** | Tags, categories, archives, pagination integrity |
 | **RenderingValidator** | HTML quality, template function usage, SEO metadata |
 | **DirectiveValidator** | Directive syntax, completeness, and performance |
+| **TemplateValidator** | Jinja2 template syntax and best practices |
 
-**Advanced Validation:**
+**Phase 3 - Advanced Validation:**
 | Validator | Validates |
 |-----------|-----------|
-| **ConnectivityValidator** | Page connectivity using semantic link model and weighted scoring |
 | **CacheValidator** | Incremental build cache integrity and consistency |
 | **PerformanceValidator** | Build performance metrics and bottleneck detection |
 
-**Output artifacts:**
+**Phase 4 - Production-Ready Validation:**
 | Validator | Validates |
 |-----------|-----------|
 | **RSSValidator** | RSS feed quality, XML validity, URL formatting |
 | **SitemapValidator** | Sitemap.xml validity for SEO, no duplicate URLs |
 | **FontValidator** | Font downloads, CSS generation, file sizes |
 | **AssetValidator** | Asset optimization, minification hints, size analysis |
+
+**Phase 5 - Knowledge Graph Validation:**
+| Validator | Validates |
+|-----------|-----------|
+| **ConnectivityValidator** | Page connectivity using semantic link model and weighted scoring |
+| **AnchorValidator** | Explicit anchor targets and cross-reference integrity |
+| **CrossReferenceValidator** | Internal cross-reference resolution |
+| **TrackValidator** | Learning track structure and progression |
+
+**Specialized Validators:**
+| Validator | Validates |
+|-----------|-----------|
+| **AutodocValidator** | API documentation HTML structure validation |
+| **OwnershipPolicyValidator** | URL ownership and content governance |
+| **URLCollisionValidator** | Duplicate URL detection |
 
 ## Connectivity Validator
 
@@ -152,36 +167,53 @@ bengal graph report --ci --threshold-isolated 5
 ```
 
 ## Configuration
-Health checks can be configured via `bengal.toml`:
+
+Health checks use a **tiered validation system** for optimal performance:
+
+| Tier | Name | Time | Trigger | Validators |
+|------|------|------|---------|------------|
+| 1 | `build` | <100ms | Always | Output, Config, Menu, Navigation, Taxonomy, Rendering, Directives |
+| 2 | `full` | ~500ms | `--full` flag | + Connectivity, Cache, Performance |
+| 3 | `ci` | ~30s | `--ci` flag or CI env | + External link checking |
+
+**Configuration via `bengal.toml`:**
+
 ```toml
 [health_check]
-# Globally enable/disable health checks
-validate_build = true
+enabled = true
+verbose = false
+strict_mode = false
 
-# Per-validator configuration (all enabled by default)
-[health_check.validators]
-# Basic
-configuration = true
-output = true
-navigation_menus = true
-links = true
+# Connectivity thresholds
+isolated_threshold = 5        # Max isolated pages before error
+lightly_linked_threshold = 20 # Max lightly-linked before warning
 
-# Content
-navigation = true
-taxonomies = true
-rendering = true
-directives = true
+# Connectivity score thresholds
+[health_check.connectivity_thresholds]
+well_connected = 2.0    # Score >= 2.0
+adequately_linked = 1.0 # Score 1.0-2.0
+lightly_linked = 0.25   # Score 0.25-1.0
+# Score < 0.25 = isolated
 
-# Advanced
-cache_integrity = true
-performance = true
-
-# Output artifacts
-rss_feed = true
-sitemap = true
-fonts = true
-asset_processing = true
+# Link type weights for scoring
+[health_check.link_weights]
+explicit = 1.0    # Human-authored markdown links
+menu = 10.0       # Navigation menu items
+taxonomy = 1.0    # Shared tags/categories
+related = 0.75    # Algorithm-computed related posts
+topical = 0.5     # Section hierarchy (parent → child)
+sequential = 0.25 # Next/prev navigation
 ```
+
+**Per-profile validator filtering:**
+
+Validators run based on the active build profile:
+
+| Profile | Validators Enabled |
+|---------|-------------------|
+| `writer` | Output, Config, Menu (fast feedback) |
+| `theme-dev` | + Rendering, Templates, Directives |
+| `dev` | All validators (full observability) |
 
 ## Integration
 Health checks run automatically after builds in strict mode and can be triggered manually:

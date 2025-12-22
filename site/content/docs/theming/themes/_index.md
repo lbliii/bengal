@@ -93,7 +93,7 @@ your-project/
         └── header.html  # Your version wins
 ```
 
-Copy the original from `themes/default/templates/`, modify as needed.
+Use `bengal utils theme swizzle partials/header.html` to copy the original, then modify as needed.
 :::
 :::{/tab-set}
 

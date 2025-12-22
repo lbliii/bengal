@@ -202,16 +202,21 @@ Templates in higher-priority directories override lower ones.
 # bengal.toml
 [build]
 validate_templates = true
-debug = true
 ```
 
 ### Enable Strict Mode in CI
 
 ```toml
-# config/environments/ci.yaml
+# config/environments/production.yaml
 build:
   validate_templates: true
   strict_mode: true
+```
+
+Or via CLI:
+
+```bash
+bengal build --validate --strict
 ```
 
 ## Getting Help
@@ -220,5 +225,6 @@ If you're stuck:
 
 1. **Check the full error message** - Bengal provides detailed context
 2. **Review template search paths** - Ensure templates are in the right location
-3. **Enable debug mode** - Set `debug = true` for more verbose output
-4. **Check the template documentation** - See [Template Functions](/docs/reference/template-functions/)
+3. **Use verbose mode** - Run `bengal build --verbose` for more output
+4. **Use developer profile** - Run `bengal build --dev` for full debug output
+5. **Check the template documentation** - See [Template Functions](/docs/reference/template-functions/)

@@ -41,7 +41,7 @@ The only syntax change: `.. name::` becomes `:::{name}`.
 
 :::{tab-set}
 
-:::{tab-item} Sphinx (RST)
+:::{tab} Sphinx (RST)
 ```rst
 .. note:: Important
 
@@ -54,9 +54,9 @@ The only syntax change: `.. name::` becomes `:::{name}`.
    def hello():
        print("Hello, World!")
 ```
-:::
+:::{/tab}
 
-:::{tab-item} Bengal (MyST)
+:::{tab} Bengal (MyST)
 ````markdown
 :::{note} Important
 This is a note with **bold** text.
@@ -67,7 +67,7 @@ def hello():
     print("Hello, World!")
 ```
 ````
-:::
+:::{/tab}
 
 :::{/tab-set}
 
@@ -84,8 +84,9 @@ def hello():
 | `.. tip::` | `:::{tip}` | Identical semantics |
 | `.. danger::` | `:::{danger}` | Identical semantics |
 | `.. seealso::` | `:::{seealso}` | Supported |
-| `.. versionadded::` | Use `:::{info}` | Manual text |
-| `.. deprecated::` | Use `:::{warning}` | Manual text |
+| `.. versionadded::` | `:::{since}` | Semantic versioning directive |
+| `.. deprecated::` | `:::{deprecated}` | Semantic deprecation notice |
+| `.. versionchanged::` | `:::{changed}` | Version change notice |
 | `.. admonition:: Custom` | `:::{note} Custom Title` | Title in directive |
 
 ### Code Blocks
@@ -106,8 +107,7 @@ def hello():
 | `:language: python` | `:language: python` | ✅ Same option |
 | `.. include:: file.md` | `:::{include} file.md` | ✅ Same |
 
-:::{example-label}
-:::
+**Example:**
 
 ```markdown
 :::{literalinclude} ../examples/hello.py
@@ -199,18 +199,18 @@ theme = "bengal"
 :columns: 3
 
 :::{card} Quick Start
-:icon: 🚀
+:icon: rocket
 :link: quickstart
 
 Get started in 5 minutes
-:::
+:::{/card}
 
 :::{card} API Reference
-:icon: 📚
+:icon: book
 :link: api/
 
 Complete API docs
-:::
+:::{/card}
 
 :::{/cards}
 ```
@@ -220,17 +220,17 @@ Complete API docs
 ```markdown
 :::{tab-set}
 
-:::{tab-item} pip
+:::{tab} pip
 ```bash
 pip install mypackage
 ```
-:::
+:::{/tab}
 
-:::{tab-item} conda
+:::{tab} conda
 ```bash
 conda install mypackage
 ```
-:::
+:::{/tab}
 
 :::{/tab-set}
 ```
@@ -267,6 +267,8 @@ Hidden content here. Supports **full markdown**.
 
 ### Variable Substitution in Content
 
+Bengal supports `{{ variable }}` substitution directly in markdown content:
+
 ```markdown
 ---
 title: My Page
@@ -276,7 +278,14 @@ version: "2.0"
 # Welcome to version {{ page.metadata.version }}
 
 The current page is: {{ page.title }}
+
+Site name: {{ site.config.title }}
 ```
+
+Variables available in content:
+- `page.title`, `page.url`, `page.date` - Page properties
+- `page.metadata.xxx` - Custom frontmatter fields
+- `site.config.xxx` - Site configuration values
 
 ### Hot Reload Development Server
 
@@ -292,25 +301,27 @@ bengal serve
 
 | Sphinx Feature | Bengal Status | Workaround |
 |----------------|---------------|------------|
-| `autodoc` (Python introspection) | Config-driven | Configure in `bengal.toml` |
+| `autodoc` (Python introspection) | Built-in | Configure in `bengal.toml` |
 | `intersphinx` (cross-project refs) | Not built-in | Use explicit URLs |
 | Custom builders (PDF, ePub) | HTML only | External tools |
 | Domain-specific roles | Not built-in | Use directives |
 | Numbered figures | Manual numbering | CSS counters |
-| Math/LaTeX | Extension needed | KaTeX CSS/JS |
+| Math/LaTeX | Built-in support | KaTeX rendering |
 
 ### autodoc Alternative
 
-Bengal has a separate autodoc system:
+Bengal has a built-in autodoc system that generates API documentation from Python source:
 
-```bash
-# Configure autodoc in bengal.toml
-[autodoc.python]
-enabled = true
-source_dirs = ["src/"]
+```yaml
+# config/_default/autodoc.yaml
+autodoc:
+  python:
+    enabled: true
+    source_dirs: ["src/"]
+    output_prefix: "api"  # Pages appear under /api/
 ```
 
-This creates markdown files you can customize, unlike Sphinx's runtime introspection.
+This generates virtual pages during the build process, unlike Sphinx's runtime introspection. Run `bengal build` to generate API documentation from your Python source.
 
 ---
 
@@ -363,4 +374,5 @@ This creates markdown files you can customize, unlike Sphinx's runtime introspec
 
 - [Writer Quickstart](/docs/get-started/quickstart-writer/) - Full markdown reference
 - [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration](/docs/about/concepts/configuration/) - Full config options
+- [Configuration Reference](/docs/reference/configuration/) - Full config options
+- [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference

@@ -101,7 +101,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 <h1>Posts tagged: {{ page.metadata.filter_tags | join(', ') }}</h1>
 
 {% for post in matches | sort_by('date', reverse=true) %}
-  <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+  <li><a href="{{ post.href }}">{{ post.title }}</a></li>
 {% endfor %}
 ```
 

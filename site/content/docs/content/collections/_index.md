@@ -56,18 +56,20 @@ Done. Build as normal—validation happens automatically.
 
 Bengal provides schemas for common content types:
 
-| Schema | Required Fields | Optional Fields |
-|--------|-----------------|-----------------|
-| `BlogPost` | title, date | author, tags, draft, description, image |
-| `DocPage` | title | weight, category, tags, toc, deprecated |
-| `APIReference` | title, endpoint | method, version, auth_required, rate_limit |
-| `Tutorial` | title | difficulty, duration, prerequisites, series |
-| `Changelog` | title, date | version, breaking, summary |
+| Schema | Alias | Required Fields | Optional Fields |
+|--------|-------|-----------------|-----------------|
+| `BlogPost` | `Post` | title, date | author, tags, draft, description, image |
+| `DocPage` | `Doc` | title | weight, category, tags, toc, deprecated |
+| `APIReference` | `API` | title, endpoint | method, version, auth_required, rate_limit |
+| `Tutorial` | — | title | difficulty, duration, prerequisites, series |
+| `Changelog` | — | title, date | version, breaking, summary |
 
 Import any of these:
 
 ```python
-from bengal.collections import BlogPost, DocPage, APIReference
+from bengal.collections import BlogPost, DocPage, APIReference, Tutorial, Changelog
+# Or use short aliases:
+from bengal.collections import Post, Doc, API
 ```
 
 ## Custom Schemas

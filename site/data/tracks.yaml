@@ -10,6 +10,7 @@ zero-to-deployed:
   items:
     - docs/get-started/installation
     - docs/get-started/quickstart-writer
+    - docs/tutorials/scaffold-your-site
     - docs/tutorials/build-a-blog
     - docs/building/deployment/_index
     - docs/tutorials/automate-with-github-actions
@@ -21,9 +22,13 @@ content-mastery:
   audience: "Writers who completed quickstart"
   items:
     - docs/content/authoring/_index
+    - docs/content/authoring/linking
+    - docs/content/authoring/code-blocks
+    - docs/content/authoring/tables
     - docs/reference/directives/_index
     - docs/reference/directives/admonitions
     - docs/reference/directives/layout
+    - docs/reference/directives/interactive
     - docs/content/reuse/_index
     - docs/content/reuse/snippets
 
@@ -35,6 +40,8 @@ theme-developer:
   items:
     - docs/get-started/quickstart-themer
     - docs/theming/themes/customize
+    - docs/tutorials/swizzle-default-theme
+    - docs/theming/assets/_index
     - docs/theming/recipes/_index
     - docs/theming/recipes/reading-time
     - docs/theming/recipes/list-recent-posts
@@ -50,7 +57,9 @@ team-lead:
   items:
     - docs/content/collections/_index
     - docs/content/sources/_index
-    - docs/extending/validation/_index
+    - docs/content/validation/_index
+    - docs/content/validation/validate-and-fix
+    - docs/content/analysis/_index
     - docs/building/configuration/_index
     - docs/building/deployment/_index
     - docs/tutorials/automate-with-github-actions
@@ -59,10 +68,13 @@ migration-express:
   title: "Migration Express"
   description: "Migrate your existing static site to Bengal while preserving URLs."
   duration: "60 min"
-  audience: "Hugo, Jekyll, Gatsby users"
+  audience: "Hugo, Sphinx, Docusaurus users"
   items:
     - docs/about/comparison
-    - docs/tutorials/migrate-from-hugo
+    - docs/tutorials/onboarding/_index
+    - docs/tutorials/onboarding/from-hugo
+    - docs/tutorials/onboarding/from-sphinx
+    - docs/tutorials/onboarding/from-docusaurus
     - docs/content/organization/_index
     - docs/content/organization/frontmatter
     - docs/building/configuration/_index
@@ -73,6 +85,46 @@ api-docs-specialist:
   duration: "60 min"
   audience: "Developer advocates, API teams, SDK maintainers"
   items:
-    - docs/extending/autodoc/_index
+    - docs/content/sources/_index
+    - docs/content/sources/autodoc
+    - docs/extending/custom-sources
     - docs/content/collections/_index
+    - docs/content/validation/_index
     - docs/building/deployment/_index
+
+versioning-expert:
+  title: "Versioning Expert"
+  description: "Maintain multiple versions of documentation for different releases."
+  duration: "45 min"
+  audience: "Library authors, API teams, enterprise docs"
+  items:
+    - docs/content/versioning/_index
+    - docs/content/versioning/folder-mode
+    - docs/content/versioning/git-mode
+    - docs/content/versioning/cross-version-links
+    - docs/content/versioning/directives
+
+performance-optimizer:
+  title: "Performance Optimizer"
+  description: "Build and maintain large documentation sites efficiently."
+  duration: "30 min"
+  audience: "DevOps, large doc teams, enterprise"
+  items:
+    - docs/building/performance/_index
+    - docs/building/performance/large-sites
+    - docs/content/analysis/_index
+    - docs/content/analysis/graph
+    - docs/about/benchmarks
+
+extension-developer:
+  title: "Extension Developer"
+  description: "Create custom directives, content sources, and build integrations."
+  duration: "90 min"
+  audience: "Python developers, plugin authors"
+  items:
+    - docs/extending/_index
+    - docs/extending/build-hooks
+    - docs/extending/custom-directives
+    - docs/extending/custom-sources
+    - docs/extending/collections
+    - docs/extending/theme-customization

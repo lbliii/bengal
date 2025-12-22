@@ -66,7 +66,7 @@ rss:
 ### 5. Build and Preview
 
 ```bash
-bengal site serve
+bengal serve
 ```
 
 ---
@@ -422,4 +422,3 @@ releases:
 - See [Templates Reference](/docs/reference/site-templates/) for template details
 - Read [Configuration Guide](/docs/building/configuration/) for advanced settings
 - Explore [Theming](/docs/theming/) for customization
-

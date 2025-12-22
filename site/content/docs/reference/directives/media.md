@@ -127,6 +127,7 @@ Embed Vimeo videos with Do Not Track enabled by default.
 | `:title:` | (required) | Accessible title for the iframe |
 | `:dnt:` | `true` | Enable Do Not Track mode |
 | `:color:` | — | Player accent color (hex without `#`) |
+| `:autopause:` | `true` | Pause when another video starts |
 | `:background:` | `false` | Background mode (no controls) |
 | `:autoplay:` | `false` | Auto-start video |
 | `:muted:` | `false` | Start muted |
@@ -177,6 +178,7 @@ Embed videos from your own server using HTML5 `<video>`.
 | `:loop:` | `false` | Loop video |
 | `:controls:` | `true` | Show player controls |
 | `:preload:` | `metadata` | Preload strategy (`none`, `metadata`, `auto`) |
+| `:width:` | `100%` | Video width (px or %) |
 | `:aspect:` | `16/9` | Aspect ratio |
 | `:class:` | — | Additional CSS classes |
 
@@ -290,12 +292,13 @@ Embed self-hosted audio files using HTML5 `<audio>`.
 |--------|---------|-------------|
 | `:title:` | (required) | Accessible title |
 | `:autoplay:` | `false` | Auto-start audio |
+| `:muted:` | `false` | Start muted |
 | `:loop:` | `false` | Loop audio |
 | `:controls:` | `true` | Show player controls |
 | `:preload:` | `metadata` | Preload strategy |
 | `:class:` | — | Additional CSS classes |
 
-**Supported formats**: `.mp3`, `.ogg`, `.wav`, `.m4a`
+**Supported formats**: `.mp3`, `.ogg`, `.wav`, `.flac`, `.m4a`, `.aac`
 
 :::{example-label} Examples
 :::
@@ -376,7 +379,9 @@ Embed CodePen pens.
 | `:title:` | (required) | Accessible title |
 | `:default-tab:` | `result` | Default tab (`html`, `css`, `js`, `result`) |
 | `:theme:` | `dark` | Theme (`dark`, `light`) |
-| `:height:` | `400` | Embed height in pixels |
+| `:height:` | `300` | Embed height in pixels |
+| `:editable:` | `false` | Allow editing in embed |
+| `:preview:` | `true` | Show preview on load |
 | `:class:` | — | Additional CSS classes |
 
 :::{example-label} Examples
@@ -420,6 +425,9 @@ Embed CodeSandbox projects.
 | `:module:` | — | Initial file to open (`/src/App.js`) |
 | `:view:` | `split` | View mode (`editor`, `preview`, `split`) |
 | `:height:` | `500` | Embed height in pixels |
+| `:fontsize:` | `14` | Editor font size in pixels |
+| `:hidenavigation:` | `false` | Hide file navigation sidebar |
+| `:theme:` | `dark` | Color theme (`dark`, `light`) |
 | `:class:` | — | Additional CSS classes |
 
 :::{example-label} Examples
@@ -463,6 +471,8 @@ Embed StackBlitz projects.
 | `:file:` | — | Initial file to open |
 | `:view:` | `both` | View mode (`editor`, `preview`, `both`) |
 | `:height:` | `500` | Embed height in pixels |
+| `:hidenavigation:` | `false` | Hide file navigation sidebar |
+| `:hidedevtools:` | `false` | Hide dev tools panel |
 | `:class:` | — | Additional CSS classes |
 
 :::{example-label} Examples
@@ -505,12 +515,15 @@ Embed terminal recordings from asciinema.org.
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:title:` | (required) | Accessible ARIA label |
-| `:cols:` | — | Terminal width in columns |
-| `:rows:` | — | Terminal height in rows |
+| `:cols:` | `80` | Terminal width in columns |
+| `:rows:` | `24` | Terminal height in rows |
 | `:speed:` | `1.0` | Playback speed multiplier |
 | `:autoplay:` | `false` | Auto-start playback |
 | `:loop:` | `false` | Loop recording |
-| `:preload:` | `false` | Preload recording data |
+| `:theme:` | `asciinema` | Color theme name |
+| `:poster:` | `npt:0:0` | Preview frame (`npt:MM:SS` format) |
+| `:idle-time-limit:` | — | Max idle time between frames (seconds) |
+| `:start-at:` | — | Start playback at specific time |
 | `:class:` | — | Additional CSS classes |
 
 :::{example-label} Examples
@@ -533,6 +546,17 @@ With custom size and speed:
 :rows: 30
 :speed: 2.0
 :autoplay: true
+:::
+```
+
+With custom theme and idle time limit:
+
+```markdown
+:::{asciinema} 590029
+:title: Build process demo
+:theme: monokai
+:idle-time-limit: 2
+:poster: npt:0:5
 :::
 ```
 

@@ -52,9 +52,9 @@ flowchart TB
 | Level | Effort | What You Can Change |
 |-------|--------|---------------------|
 | **CSS Variables** | Low | Colors, fonts, spacing via `--var` overrides |
-| **Template Overrides** | Medium | Copy and modify specific templates |
+| **Template Overrides** | Medium | Copy and modify specific templates with [swizzling](./themes/customize/) |
 | **Custom Theme** | High | Full control over all templates and assets |
 
 :::{tip}
-**Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Graduate to [Template Customization](./themes/customize/) when you need structural changes.
+**Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Use `bengal utils theme swizzle` to copy and customize specific templates when you need structural changes.
 :::

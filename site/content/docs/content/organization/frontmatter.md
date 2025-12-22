@@ -39,6 +39,7 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `slug` | string | filename | URL slug override |
 | `url` | string | — | Complete URL path override |
 | `aliases` | list | `[]` | Additional URLs that redirect to this page |
+| `lang` | string | site default | Language code for i18n (e.g., `en`, `fr`) |
 
 ## Taxonomy Fields
 
@@ -47,8 +48,8 @@ Complete reference for all frontmatter fields available in Bengal pages.
 | `tags` | list | Tags for categorization |
 | `categories` | list | Categories for grouping |
 | `keywords` | list | SEO keywords |
+| `category` | string | Single category for grouping |
 | `authors` | list | Page authors (strings or objects) |
-| `author` | string/object | Single author (string key or nested object) |
 
 ### Author Patterns
 
@@ -116,13 +117,17 @@ Access in templates:
 {{ author_info.name }} — {{ author_info.bio }}
 ```
 
-## Layout Fields
+## Component Model Fields
+
+Bengal uses a Component Model where every page has three aspects: identity (`type`), appearance (`variant`), and data (`props`).
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `layout` | string | — | Visual variant (maps to `data-variant` on body). To change the template file, use `template`. |
-| `type` | string | section name | Content type (determines default strategy and template) |
-| `template` | string | — | Explicit template path (e.g., `blog/single.html`) |
+| `type` | string | section name | Content type that determines sorting logic and template family (e.g., `doc`, `blog`, `page`) |
+| `variant` | string | `standard` | Visual presentation variant (e.g., `editorial`, `magazine`, `wide`, `overview`) |
+| `layout` | string | — | Legacy field, normalized to `variant`. Use `variant` instead. |
+| `template` | string | — | Explicit template path override (e.g., `blog/single.html`) |
+| `nav_title` | string | — | Short title for navigation, falls back to `title` |
 
 ## SEO Fields
 
@@ -149,9 +154,9 @@ Access in templates:
 | `outputs` | list | Output formats (html, rss, json) |
 | `resources` | list | Page bundle resource metadata |
 
-## Custom Fields
+## Custom Fields (Props)
 
-Any fields not part of Bengal's standard frontmatter are automatically available as custom fields. Simply add them at the top level of your frontmatter.
+Any fields not part of Bengal's standard frontmatter are automatically available as custom props. Add them at the top level of your frontmatter.
 
 **Standard fields** (extracted to PageCore):
 - `title`, `description`, `date`, `draft`, `weight`, `slug`, `url`, `aliases`, `lang`
@@ -161,9 +166,9 @@ Any fields not part of Bengal's standard frontmatter are automatically available
 - `menu`, `nav_title`, `parent`
 - `cascade`, `outputs`, `resources`, `toc`
 
-**Custom fields** (any other fields):
+**Custom fields** (Component Model props):
 - Any field not listed above goes into `page.props`
-- Access via `page.metadata.get('field_name')` or `page.props.get('field_name')`
+- Access in templates via `page.props.icon` or `page.metadata.get('icon')`
 
 :::{example-label}
 :::

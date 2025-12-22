@@ -47,7 +47,7 @@ keywords:
   - Granular taxonomy tracking (only rebuilds affected tag pages)
   - Verbose mode for debugging (`--verbose` flag)
   - 18-42x faster for single-file changes (measured on 10-100 page sites)
-  - Automatic caching with `.bengal-cache.json`
+  - Automatic caching with Zstandard-compressed `.bengal/cache.json.zst` (92-93% smaller)
 - **Caching**: Build cache persists between builds
 - **Lazy Loading**: Parse content only when needed
 

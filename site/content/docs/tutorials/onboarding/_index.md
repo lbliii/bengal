@@ -18,11 +18,12 @@ keywords:
 - onboarding
 icon: boomerang
 ---
+
 # Coming From Another Tool?
 
 Choose the guide that matches your background:
 
-::::{cards}
+:::{cards}
 :columns: 3
 
 :::{card} From Sphinx/RST
@@ -30,33 +31,34 @@ Choose the guide that matches your background:
 :link: from-sphinx
 
 You know RST directives, `.. note::`, and `conf.py`. Bengal's MyST syntax will feel familiar.
-:::
+:::{/card}
 
 :::{card} From Hugo
 :icon: zap
 :link: from-hugo
 
 You use Hugo shortcodes like `{{</* highlight */>}}` and Go templates. Bengal directives work similarly.
-:::
+:::{/card}
 
 :::{card} From Docusaurus/MDX
 :icon: rocket
 :link: from-docusaurus
 
 You write MDX with React components like `<Tabs>`. Bengal offers the same features without JSX.
-:::
+:::{/card}
 
-::::
+:::{/cards}
 
 ## Quick Comparison
 
 | Feature | Sphinx/RST | Hugo | Docusaurus | **Bengal** |
 |---------|------------|------|------------|------------|
 | Callouts | `.. note::` | `{{</* notice */>}}` | `:::note` | `:::{note}` |
-| Tabs | Extension | `{{</* tabs */>}}` | `<Tabs>` | `:::{tab-set}` |
+| Tabs | Extension | `{{</* tabs */>}}` | `<Tabs>` | `:::{tab-set}` or `:::{tabs}` |
 | Code inclusion | `.. literalinclude::` | `readFile` | Import | `:::{literalinclude}` |
 | Config format | `conf.py` | `config.toml` | `docusaurus.config.js` | `bengal.toml` |
 | Template engine | Jinja2 | Go templates | React | Jinja2 |
+| Dev server | `sphinx-autobuild` | `hugo server` | `npm start` | `bengal serve` (port 5173) |
 
 ## Common Ground
 

@@ -46,19 +46,20 @@ Enable output formats in `bengal.toml`:
 ```toml
 [output_formats]
 enabled = true
-per_page = ["json", "llm_txt"]        # Formats for individual pages
-site_wide = ["index_json", "llm_full"] # Formats for the whole site
+per_page = ["json"]                   # Default: JSON only
+site_wide = ["index_json"]            # Default: site index only
 
 [output_formats.options]
-include_html_content = true    # Include full HTML in JSON
-include_plain_text = true      # Include plain text in JSON
-excerpt_length = 200           # Excerpt length for site index
-json_indent = 2                # Pretty-print JSON (use null for compact)
-# exclude_sections = ["private"] # Sections to exclude from output formats
+excerpt_length = 200                  # Excerpt length for site index
+json_indent = null                    # null for compact JSON, 2 for pretty-print
+llm_separator_width = 80              # Width of LLM text separators
+include_full_content_in_index = false # Include full content in site index
+exclude_sections = []                 # Sections to exclude from output formats
+exclude_patterns = ["404.html", "search.html"]  # Files to exclude
 ```
 
 :::{note}
-**Visibility**: Output formats currently expose all rendered pages unless specifically excluded via `exclude_sections` or `exclude_patterns`. Drafts are handled by the main build configuration (excluded by default unless `--drafts` is used).
+**Visibility**: Output formats respect page visibility settings. Hidden pages and drafts are excluded by default. Use `exclude_sections` or `exclude_patterns` for additional filtering.
 :::
 
 ## Use Cases
@@ -71,10 +72,10 @@ Fetch the site index to implement fast, client-side search without a backend.
 For larger sites, enable the **Pre-built Lunr Index** to improve performance. This requires the `search` optional dependency:
 
 ```bash
-pip install bengal[search]
+pip install "bengal[search]"
 ```
 
-This generates `search-index.json` (a pre-serialized index) instead of just `index.json`, which loads 50% faster in the browser.
+This generates `search-index.json` (a pre-serialized Lunr index) in addition to `index.json`, which loads faster in the browser.
 :::
 
 ```html

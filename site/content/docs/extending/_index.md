@@ -1,49 +1,145 @@
 ---
-title: Extending
-description: Plugins, custom parsers, and extension points
+title: Extending Bengal
+description: Create custom directives, content sources, collections, and build hooks
 weight: 35
 cascade:
   type: doc
 icon: starburst
-draft: true
 ---
-# Extend Bengal
 
-Build plugins, custom parsers, and hook into Bengal's extension points.
-
-:::{note}
-**Coming soon.** Plugin architecture and extension point documentation is under development.
-
-For now, see [Architecture Reference](/docs/reference/architecture/) to understand Bengal's internals.
-:::
-
-## Planned Topics
-
-- **Custom Directives** — Create your own MyST directives
-- **Content Loaders** — Build loaders for new content sources
-- **Post-Processors** — Hook into the build pipeline
-- **Custom Parsers** — Support new content formats
-- **Template Functions** — Add custom Jinja filters and functions
+Bengal provides extension points for customizing content processing, adding new content sources, defining typed content schemas, and integrating external build tools.
 
 ## Extension Points
 
+Bengal supports several extension mechanisms:
+
+| Extension Type | Use Case | Difficulty |
+|----------------|----------|------------|
+| [Build Hooks](build-hooks/) | Run external tools (Tailwind, esbuild) before/after builds | Easy |
+| [Theme Customization](theme-customization/) | Override templates and CSS | Easy |
+| [Content Collections](collections/) | Type-safe frontmatter with schema validation | Moderate |
+| [Custom Directives](custom-directives/) | Create new MyST directive blocks | Advanced |
+| [Custom Content Sources](custom-sources/) | Fetch content from APIs, databases, or remote services | Advanced |
+
+## Architecture Overview
+
+Extensions integrate at different stages of the build pipeline:
+
 ```mermaid
 flowchart TB
-    subgraph "Your Extensions"
-        A[Custom Directives]
-        B[Content Loaders]
-        C[Post-Processors]
-        D[Template Functions]
+    subgraph "Pre-Build"
+        A[Build Hooks]
     end
 
-    subgraph "Bengal Pipeline"
-        E[Discovery] --> F[Processing]
-        F --> G[Rendering]
-        G --> H[Post-Process]
+    subgraph "Discovery Phase"
+        B[Content Sources]
+        C[Collections & Schemas]
     end
 
-    B -.->|feeds| E
-    A -.->|extends| F
-    D -.->|extends| G
-    C -.->|hooks| H
+    subgraph "Processing Phase"
+        D[Custom Directives]
+    end
+
+    subgraph "Rendering Phase"
+        E[Theme Templates]
+        F[CSS Customization]
+    end
+
+    subgraph "Post-Build"
+        G[Build Hooks]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
 ```
+
+## Quick Start Examples
+
+### Build Hooks
+
+Integrate external tools by adding hooks to your `bengal.toml`:
+
+```toml
+[dev_server]
+pre_build_hooks = [
+    "npx tailwindcss -i src/input.css -o assets/style.css"
+]
+post_build_hooks = [
+    "echo 'Build complete!'"
+]
+```
+
+### Theme Customization
+
+Override any theme template by placing a file with the same name in your project's `templates/` directory:
+
+```
+your-project/
+├── templates/
+│   └── page.html      # Overrides theme's page.html
+└── bengal.toml
+```
+
+### Content Collections
+
+Define typed schemas for your content:
+
+```python
+# collections.py
+from dataclasses import dataclass
+from datetime import datetime
+from bengal.collections import define_collection
+
+@dataclass
+class BlogPost:
+    title: str
+    date: datetime
+    author: str = "Anonymous"
+
+collections = {
+    "blog": define_collection(schema=BlogPost, directory="content/blog"),
+}
+```
+
+### Custom Directives
+
+Create new directive blocks by subclassing `BengalDirective`:
+
+```python
+from bengal.directives import BengalDirective, DirectiveToken
+
+class AlertDirective(BengalDirective):
+    NAMES = ["alert"]
+    TOKEN_TYPE = "alert"
+
+    def parse_directive(self, title, options, content, children, state):
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={"level": title or "info"},
+            children=children,
+        )
+
+    def render(self, renderer, text, **attrs):
+        level = attrs.get("level", "info")
+        return f'<div class="alert alert-{level}">{text}</div>'
+```
+
+## When to Extend
+
+Choose the right extension mechanism for your needs:
+
+- **Build hooks**: Integrate CSS preprocessors, JavaScript bundlers, or custom scripts
+- **Theme customization**: Modify page layouts, add partials, or change styling
+- **Collections**: Enforce frontmatter requirements and get IDE autocompletion
+- **Custom directives**: Add domain-specific content blocks (alerts, embeds, widgets)
+- **Content sources**: Pull content from GitHub, Notion, REST APIs, or databases
+
+## Related Resources
+
+- [Architecture Reference](/docs/reference/architecture/) for understanding Bengal internals
+- [Build Pipeline](/docs/about/concepts/build-pipeline/) for pipeline phase details
+- [Configuration](/docs/about/concepts/configuration/) for `bengal.toml` options

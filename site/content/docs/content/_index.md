@@ -8,7 +8,7 @@ icon: file-text
 ---
 # The Content System
 
-Bengal turns your Markdown files into a structured, validated documentation site.
+Bengal transforms Markdown files into structured, validated documentation sites with rich directives, cross-references, and automated validation.
 
 ## What Do You Need?
 
@@ -30,12 +30,13 @@ flowchart LR
 
     subgraph Processing
         D[Discovery]
-        E[Schema Validation]
-        F[Markdown Rendering]
+        E[Frontmatter Parsing]
+        F[MyST Directives]
+        G[Cross-References]
     end
 
     subgraph Output
-        G[HTML Pages]
+        H[HTML Pages]
     end
 
     A --> D
@@ -44,10 +45,21 @@ flowchart LR
     D --> E
     E --> F
     F --> G
+    G --> H
 ```
 
-:::{tip}
-**New to Bengal content?** Start with [Organization](./organization/) to understand how files become pages, then explore [Authoring](./authoring/) for writing syntax.
+## Key Features
 
-**Larger sites?** Check out [Analysis](./analysis/) to optimize internal linking and [Validation](./validation/) for automated quality checks.
+| Feature | Description |
+|---------|-------------|
+| **Component Model** | `type`, `variant`, and `props` define page identity, appearance, and data |
+| **MyST Directives** | Tabs, cards, admonitions, code blocks, and 40+ directives |
+| **Cross-References** | `[[path]]` syntax with O(1) lookups and auto-title resolution |
+| **Validation** | `bengal validate` checks links, directives, and frontmatter |
+| **Graph Analysis** | `bengal graph report` finds orphan pages and suggests links |
+
+:::{tip}
+**New to Bengal?** Start with [Organization](./organization/) to understand how files become pages, then explore [Authoring](./authoring/) for MyST syntax.
+
+**Working on a larger site?** Use [Analysis](./analysis/) to optimize internal linking and [Validation](./validation/) for automated quality checks.
 :::

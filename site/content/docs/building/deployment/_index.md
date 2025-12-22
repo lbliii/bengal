@@ -33,7 +33,7 @@ bengal build --environment production
 This command:
 
 - Loads configuration from `config/environments/production.yaml` (if it exists)
-- Minifies assets (if enabled)
+- Minifies HTML output (enabled by default)
 - Generates the `public/` directory with your complete site
 
 ### Common Build Flags
@@ -43,6 +43,7 @@ This command:
 | `--environment production` | Loads production config overrides. | **Always use for shipping.** |
 | `--strict` | Fails the build on warnings (e.g., broken links). | **Highly Recommended for CI/CD.** |
 | `--clean-output` | Cleans the `public/` directory before building. | Recommended to avoid stale files. |
+| `--fast` | Maximum performance (quiet output, full parallelism). | Fast CI builds. |
 | `--verbose` | Shows detailed logs. | Useful for debugging CI failures. |
 
 Example full command for CI:
@@ -75,13 +76,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.12'
 
       - name: Install Bengal
         run: pip install bengal
 
       - name: Build Site
-        run: bengal build --environment production --strict
+        run: bengal build --environment production --strict --clean-output
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -110,7 +111,7 @@ Create a `netlify.toml` in your repository root:
   command = "bengal build --environment production"
 
 [build.environment]
-  PYTHON_VERSION = "3.14"
+  PYTHON_VERSION = "3.12"
 ```
 
 ## Vercel
@@ -140,7 +141,8 @@ Before you merge to main or deploy:
 
 1. **Run `bengal config doctor`**: Checks for common configuration issues.
 2. **Run `bengal build --strict` locally**: Ensures no broken links or missing templates.
-3. **Check `config/environments/production.yaml`**: Ensure your `baseurl` is set to your production domain.
+3. **Run `bengal validate`**: Runs health checks on your site content.
+4. **Check `config/environments/production.yaml`**: Ensure your `baseurl` is set to your production domain.
 
 ```yaml
 # config/environments/production.yaml
@@ -149,7 +151,6 @@ site:
 ```
 
 :::{seealso}
-- [Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/) — Full CI/CD tutorial
-- [Configuration](/docs/building/configuration/) — Environment-specific settings
-- [Performance](/docs/building/performance/) — Optimize build times
+- [Configuration](../configuration/) — Environment-specific settings
+- [Performance](../performance/) — Optimize build times
 :::

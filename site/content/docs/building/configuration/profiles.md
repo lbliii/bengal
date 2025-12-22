@@ -59,6 +59,7 @@ bengal build --profile writer
 **Features:**
 - ✅ Fast builds with minimal output
 - ✅ Content-focused health checks (links, directives)
+- ✅ Live progress display
 - ❌ No phase timing
 - ❌ No memory tracking
 - ❌ No debug output
@@ -82,8 +83,9 @@ bengal build --profile theme-dev
 **Features:**
 - ✅ Phase timing displayed
 - ✅ Template-focused health checks
-- ✅ Live progress with recent items
+- ✅ Live progress with recent items (3 shown)
 - ✅ Build metrics collected
+- ✅ Verbose build stats
 - ❌ No memory tracking
 
 **Health Checks Enabled:**
@@ -110,6 +112,7 @@ bengal build --debug
 - ✅ Debug output enabled
 - ✅ All metrics collected
 - ✅ All health checks enabled
+- ✅ Recent items shown (5)
 
 **Health Checks Enabled:**
 - All validators (config, output, links, directives, rendering, navigation, menu, performance, cache, taxonomy)
@@ -146,6 +149,15 @@ bengal build --dev          # Same as --profile dev
 bengal build --debug        # Maps to --profile dev
 ```
 
+### Profile Precedence
+
+When multiple flags are provided, precedence (highest to lowest):
+1. `--dev` flag
+2. `--theme-dev` flag
+3. `--profile` option
+4. `--debug` flag
+5. Default (writer)
+
 ### Profile + Other Options
 
 Profiles can be combined with other build options:
@@ -159,6 +171,9 @@ bengal build --dev --incremental
 
 # Theme dev with template profiling
 bengal build --theme-dev --profile-templates
+
+# Fast mode overrides profile settings
+bengal build --fast
 ```
 
 ### Verbose vs Profile
@@ -168,6 +183,7 @@ bengal build --theme-dev --profile-templates
 | Flag | What It Does |
 |------|--------------|
 | `--verbose` | Controls output verbosity (show/hide details) |
+| `--quiet` | Minimal output (errors and summary only) |
 | `--profile` | Controls feature enablement (metrics, health checks) |
 
 ```bash
@@ -218,84 +234,6 @@ The dev profile gives you:
 - Memory tracking for leak detection
 - Full debug output
 - Metrics saved to `.bengal/metrics/`
-
----
-
-## Configuration File
-
-Set default profile in configuration:
-
-```toml
-# bengal.toml
-[build]
-default_profile = "writer"  # or "theme-dev" or "dev"
-```
-
-```yaml
-# config/_default/build.yaml
-build:
-  default_profile: "writer"
-```
-
-CLI flags always override configuration:
-
-```bash
-# Uses dev profile even if config says writer
-bengal build --dev
-```
-
----
-
-## Environment-Based Profiles
-
-Use different profiles per environment:
-
-```yaml
-# config/local/build.yaml (development)
-build:
-  default_profile: "theme-dev"
-
-# config/production/build.yaml (CI/CD)
-build:
-  default_profile: "writer"
-```
-
-```bash
-# Local development uses theme-dev
-bengal serve
-
-# CI uses writer (fast, clean)
-bengal build --environment production
-```
-
----
-
-## Health Check Customization
-
-Override which health checks run per profile:
-
-```yaml
-# config/_default/health.yaml
-health:
-  profiles:
-    writer:
-      enabled:
-        - config
-        - links
-        - directives
-      disabled:
-        - performance
-        - cache
-
-    theme-dev:
-      enabled:
-        - config
-        - links
-        - rendering
-        - navigation
-      disabled:
-        - performance
-```
 
 ---
 

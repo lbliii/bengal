@@ -12,6 +12,8 @@ Mark content as added, changed, or deprecated in specific versions.
 
 Marks content that was **added** in a specific version.
 
+**Alias**: `{versionadded}`
+
 ### Syntax
 
 ```markdown
@@ -25,6 +27,7 @@ This feature was added in version 2.0.
 | Option | Type | Description |
 |--------|------|-------------|
 | (argument) | `string` | Version identifier (e.g., `v2.0`, `2.0`, `2024.1`) |
+| `:class:` | `string` | Additional CSS class (default: `version-since`) |
 
 ### Examples
 
@@ -72,6 +75,8 @@ Renders with Bengal's theme aesthetic:
 
 Marks content that is **deprecated** and will be removed.
 
+**Alias**: `{versionremoved}`
+
 ### Syntax
 
 ```markdown
@@ -85,6 +90,7 @@ Use `new_function()` instead.
 | Option | Type | Description |
 |--------|------|-------------|
 | (argument) | `string` | Version when deprecated (e.g., `v3.0`) |
+| `:class:` | `string` | Additional CSS class (default: `version-deprecated`) |
 
 ### Examples
 
@@ -138,6 +144,8 @@ Renders with Bengal's theme aesthetic:
 
 Marks content where **behavior changed** in a specific version.
 
+**Alias**: `{versionchanged}`
+
 ### Syntax
 
 ```markdown
@@ -151,6 +159,7 @@ Default timeout changed from 30s to 60s.
 | Option | Type | Description |
 |--------|------|-------------|
 | (argument) | `string` | Version when changed (e.g., `v2.5`) |
+| `:class:` | `string` | Additional CSS class (default: `version-changed`) |
 
 ### Examples
 

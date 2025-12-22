@@ -9,9 +9,9 @@ Package Structure:
     __init__.py (this file)
         BuildOrchestrator class - main coordinator
     initialization.py
-        Phases 1-5: fonts, discovery, cache, config, filtering
+        Phases 1-5: fonts, template validation, discovery, cache, config, filtering
     content.py
-        Phases 6-11: sections, taxonomies, menus, related posts, indexes
+        Phases 6-12: sections, taxonomies, taxonomy index, menus, related posts, query indexes, update pages list
     rendering.py
         Phases 13-16: assets, render, update pages, track dependencies
     finalization.py

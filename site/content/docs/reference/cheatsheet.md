@@ -22,18 +22,29 @@ Single-page quick reference for Bengal. Print it, pin it, bookmark it.
 ```bash
 # Build site
 bengal build                           # Full build
-bengal build --fast                    # Parallel + quiet output
-bengal build --incremental             # Only changed files
-PYTHON_GIL=0 bengal build --fast       # Maximum speed (Python 3.14+)
+bengal build --fast                    # Parallel + quiet, max speed
+bengal build --incremental             # Only changed files (auto if cache exists)
+bengal build --profile dev             # Developer profile (full debug)
+bengal build --profile theme-dev       # Themer profile (template focus)
+bengal build --dashboard               # Interactive TUI dashboard
+bengal build --strict                  # Fail on template errors (CI/CD)
+bengal build --validate                # Validate templates before build
+bengal build --memory-optimized        # Streaming build (5K+ pages)
+PYTHON_GIL=0 bengal build --fast       # Free-threaded mode (Python 3.13+)
 
 # Development server
 bengal serve                           # Default port 5173
 bengal serve --port 8080               # Custom port
 bengal serve --no-open                 # Don't open browser
+bengal serve --no-watch                # Disable file watching
+bengal serve --dashboard               # Interactive TUI dashboard
+bengal serve --version v2              # Focus on single version
 
 # Clean
 bengal clean                           # Remove output directory
 bengal clean --cache                   # Also clear build cache
+bengal clean --all                     # Remove output + cache
+bengal clean --stale-server            # Kill stale server processes
 ```
 
 ### Create Content
@@ -41,14 +52,14 @@ bengal clean --cache                   # Also clear build cache
 ```bash
 # New project
 bengal new site mysite                 # Interactive wizard
-bengal new site mysite --init-preset blog   # Skip wizard
+bengal new site mysite --preset blog   # Skip wizard with preset
 
 # New content
 bengal new page my-page                # Page at content/my-page.md
 bengal new page post --section blog    # Page at content/blog/post.md
 
 # New templates
-bengal new layout article              # templates/article/single.html
+bengal new layout article              # templates/layouts/article.html
 bengal new partial sidebar             # templates/partials/sidebar.html
 bengal new theme mytheme               # themes/mytheme/
 ```
@@ -57,17 +68,23 @@ bengal new theme mytheme               # themes/mytheme/
 
 ```bash
 bengal validate                        # Full validation
-bengal validate --strict               # Fail on warnings (for CI)
 bengal validate --changed              # Only changed files
+bengal validate --watch                # Watch mode (continuous)
+bengal validate --verbose              # Show all checks
+bengal validate --suggestions          # Show quality suggestions
 bengal health linkcheck                # Check all links
+bengal health linkcheck --external-only # External links only
+bengal health linkcheck --internal-only # Internal links only
+bengal health --dashboard              # Interactive health dashboard
 ```
 
 ### Configuration
 
 ```bash
 bengal config show                     # Show effective config
-bengal config doctor                   # Diagnose issues
-bengal config diff                     # Compare environments
+bengal config show --origin            # Show config source files
+bengal config doctor                   # Validate configuration
+bengal config diff --against production # Compare environments
 bengal config init                     # Create config directory
 ```
 
@@ -76,9 +93,13 @@ bengal config init                     # Create config directory
 ```bash
 bengal utils theme list                # List available themes
 bengal utils theme debug               # Debug theme resolution
+bengal utils theme swizzle TEMPLATE    # Copy template for customization
 bengal utils perf                      # Performance metrics
-bengal utils graph analyze             # Site structure analysis
-bengal utils graph suggest             # Link suggestions
+bengal graph analyze                   # Site structure analysis
+bengal graph analyze --tree            # Tree visualization
+bengal graph suggest                   # Link suggestions
+bengal graph orphans                   # Find disconnected pages
+bengal explain PAGE                    # Introspect page rendering
 ```
 
 ---
@@ -337,11 +358,25 @@ weight = 2
 | Task | Command |
 |------|---------|
 | Build site | `bengal build` |
+| Fast build | `bengal build --fast` |
 | Dev server | `bengal serve` |
 | New page | `bengal new page <name>` |
 | Validate | `bengal validate` |
+| Link check | `bengal health linkcheck` |
 | Show config | `bengal config show` |
+| Analyze site | `bengal graph analyze` |
 | Help | `bengal --help` |
+
+### Short Aliases
+
+| Alias | Command |
+|-------|---------|
+| `bengal b` | `bengal build` |
+| `bengal s` | `bengal serve` |
+| `bengal c` | `bengal clean` |
+| `bengal v` | `bengal validate` |
+| `bengal dev` | `bengal serve` |
+| `bengal check` | `bengal validate` |
 
 ---
 

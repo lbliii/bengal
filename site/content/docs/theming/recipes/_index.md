@@ -43,7 +43,7 @@ Add features to individual pages.
 | Example | What You'll Learn |
 |---------|-------------------|
 | [Add Table of Contents](./table-of-contents/) | `page.toc`, scroll highlighting |
-| [Show Reading Time](./reading-time/) | `reading_time` filter |
+| [Show Reading Time](./reading-time/) | `page.reading_time` property and filter |
 
 ---
 

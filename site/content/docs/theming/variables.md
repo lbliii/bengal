@@ -54,41 +54,37 @@ The current page being rendered.
 | `page.content` | `str` | Raw content |
 | `page.rendered_html` | `str` | Rendered HTML content |
 | `page.date` | `datetime` | Publication date |
-| `page.url` | `str` | URL with baseurl applied (for display in templates) |
-| `page.relative_url` | `str` | Relative URL without baseurl (for comparisons) |
-| `page.permalink` | `str` | Alias for `url` (backward compatibility) |
+| `page.href` | `str` | URL with baseurl applied (for display in templates) |
+| `page._path` | `str` | Site-relative URL without baseurl (for comparisons) |
 | `page.metadata` | `dict` | All frontmatter keys |
 | `page.toc` | `str` | Auto-generated Table of Contents |
 | `page.is_home` | `bool` | True if homepage |
 | `page.is_section` | `bool` | True if section index |
+| `page.reading_time` | `int` | Estimated reading time in minutes |
 
 #### URL Properties
 
-Bengal provides three URL properties with clear purposes:
+Bengal provides two URL properties with clear purposes:
 
-**`page.url`** - **Primary property for display**
+**`page.href`** - **Primary property for display**
 - Automatically includes baseurl (e.g., `/bengal/docs/page/`)
 - Use in `<a href>`, `<link>`, `<img src>` attributes
 - Works correctly for all deployment scenarios
 
-**`page.relative_url`** - **For comparisons and logic**
-- Relative URL without baseurl (e.g., `/docs/page/`)
-- Use for comparisons: `{% if page.relative_url == '/docs/' %}`
+**`page._path`** - **For comparisons and logic**
+- Site-relative URL without baseurl (e.g., `/docs/page/`)
+- Use for comparisons: `{% if page._path == '/docs/' %}`
 - Use for menu activation, filtering, and conditional logic
-
-**`page.permalink`** - **Backward compatibility**
-- Alias for `url` (same value)
-- Maintained for compatibility with existing themes
 
 :::{example-label} Usage
 :::
 
 ```jinja2
 {# Display URL (includes baseurl) #}
-<a href="{{ page.url }}">{{ page.title }}</a>
+<a href="{{ page.href }}">{{ page.title }}</a>
 
 {# Comparison (without baseurl) #}
-{% if page.relative_url == '/docs/' %}
+{% if page._path == '/docs/' %}
   <span class="active">Current Section</span>
 {% endif %}
 ```
@@ -101,16 +97,16 @@ Functions available in all templates.
 
 Generates a fingerprint-aware URL for an asset.
 
-```html
+```jinja2
 <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
-<!-- Outputs: /assets/css/style.a1b2c3d4.css -->
+{# Outputs: /assets/css/style.a1b2c3d4.css #}
 ```
 
 ### `url_for(page_or_slug)`
 
 Generates a URL for a page object or slug.
 
-```html
+```jinja2
 <a href="{{ url_for(page) }}">Link</a>
 ```
 
@@ -118,7 +114,7 @@ Generates a URL for a page object or slug.
 
 Formats a date object.
 
-```html
+```jinja2
 {{ dateformat(page.date, "%B %d, %Y") }}
 ```
 
@@ -126,9 +122,22 @@ Formats a date object.
 
 Retrieves a navigation menu.
 
-```html
+```jinja2
 {% for item in get_menu('main') %}
-  <a href="{{ item.url }}">{{ item.name }}</a>
+  <a href="{{ item.href }}">{{ item.name }}</a>
+{% endfor %}
+```
+
+### `get_nav_tree(page)`
+
+Builds navigation tree with active trail marking. Returns a list of navigation items for sidebar menus.
+
+```jinja2
+{% for item in get_nav_tree(page) %}
+  <a href="{{ item.href }}"
+     {% if item.is_current %}class="active"{% endif %}>
+    {{ item.title }}
+  </a>
 {% endfor %}
 ```
 

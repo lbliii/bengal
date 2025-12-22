@@ -99,7 +99,7 @@ Group items by a key value, returning a dictionary.
 <h2>{{ category }}</h2>
 <ul>
   {% for page in pages %}
-  <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+  <li><a href="{{ page.href }}">{{ page.title }}</a></li>
   {% endfor %}
 </ul>
 {% endfor %}

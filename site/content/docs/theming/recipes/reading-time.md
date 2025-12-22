@@ -17,9 +17,19 @@ category: cookbook
 
 # Show Reading Time
 
-Display estimated reading time using Bengal's `reading_time` filter.
+Display estimated reading time using Bengal's `reading_time` property or filter.
 
 ## The Pattern
+
+### Use the page property (recommended)
+
+```jinja2
+<span class="reading-time">
+  {{ page.reading_time }} min read
+</span>
+```
+
+### Use the filter on content
 
 ```jinja2
 <span class="reading-time">
@@ -27,14 +37,14 @@ Display estimated reading time using Bengal's `reading_time` filter.
 </span>
 ```
 
-That's it. Bengal's `reading_time` filter calculates based on word count (200 wpm default).
+Both approaches calculate reading time at 200 words per minute by default.
 
 ## What's Happening
 
 | Component | Purpose |
 |-----------|---------|
-| `page.content` | Raw content of the page |
-| `reading_time` | Bengal filter: counts words, divides by 200 |
+| `page.reading_time` | Property: returns reading time in minutes (cached) |
+| `reading_time` | Filter: counts words, divides by 200 |
 
 ## Variations
 
@@ -96,6 +106,8 @@ reading_time: 25  # Override calculated time
 ```
 
 :::{seealso}
+
 - [Template Functions](/docs/theming/templating/functions/) — All filters
 - [List Recent Posts](/docs/theming/recipes/list-recent-posts/) — Include reading time in post lists
+
 :::
