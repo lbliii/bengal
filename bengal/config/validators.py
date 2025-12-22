@@ -1,8 +1,37 @@
 """
 Configuration validation without external dependencies.
 
-Provides type-safe configuration validation with helpful error messages,
-following Bengal's minimal dependencies and single-responsibility principles.
+This module provides type-safe configuration validation with helpful error
+messages for Bengal sites. It validates configuration values for type
+correctness, acceptable ranges, and logical dependencies.
+
+The validator follows Bengal's minimal dependencies principle by avoiding
+external validation libraries in favor of straightforward Python validation.
+
+Validation Categories:
+    - **Type validation**: Ensures boolean, integer, and string fields have
+      correct types. Performs sensible coercion where appropriate (e.g.,
+      ``"true"`` → ``True``).
+    - **Range validation**: Checks numeric fields are within acceptable bounds
+      (e.g., ``max_workers >= 0``, ``port`` between 1-65535).
+    - **Dependency validation**: Validates logical consistency between related
+      configuration options (reserved for future use).
+
+Classes:
+    ConfigValidationError: Raised when validation fails.
+    ConfigValidator: Main validator class.
+
+Example:
+    >>> from bengal.config.validators import ConfigValidator
+    >>> validator = ConfigValidator()
+    >>> config = {"parallel": "yes", "max_workers": 8}
+    >>> validated = validator.validate(config)
+    >>> validated["parallel"]
+    True
+
+See Also:
+    - :mod:`bengal.config.loader`: Uses validator during configuration loading.
+    - :mod:`bengal.errors`: Base error classes.
 """
 
 from __future__ import annotations
@@ -20,8 +49,14 @@ class ConfigValidationError(BengalConfigError, ValueError):
     """
     Raised when configuration validation fails.
 
-    Extends both BengalConfigError and ValueError for backward compatibility
-    with code that catches ValueError.
+    This exception is raised when one or more configuration values fail
+    validation. It extends both :class:`~bengal.errors.BengalConfigError`
+    for consistent error handling and :class:`ValueError` for backward
+    compatibility with code that catches standard value errors.
+
+    The error message includes the count of validation errors found.
+    Detailed error messages are printed to the console before the
+    exception is raised.
     """
 
     pass
@@ -29,13 +64,28 @@ class ConfigValidationError(BengalConfigError, ValueError):
 
 class ConfigValidator:
     """
-    Validates configuration with helpful error messages.
+    Validate configuration with helpful error messages.
 
-    Single-responsibility validator class that checks:
-    - Type correctness (bool, int, str)
-    - Value ranges (min/max)
-    - Required fields
-    - Type coercion where sensible
+    This validator checks configuration values for type correctness, valid
+    ranges, and logical consistency. It performs sensible type coercion
+    where appropriate (e.g., string ``"true"`` → boolean ``True``).
+
+    Validation Checks:
+        - **Type correctness**: Boolean, integer, and string fields.
+        - **Range validation**: Numeric bounds (min/max workers, port numbers).
+        - **Dependency validation**: Related field consistency (future).
+
+    Class Attributes:
+        BOOLEAN_FIELDS: Set of field names expected to be boolean.
+        INTEGER_FIELDS: Set of field names expected to be integers.
+        STRING_FIELDS: Set of field names expected to be strings.
+
+    Example:
+        >>> validator = ConfigValidator()
+        >>> config = {"parallel": "yes", "max_workers": 8}
+        >>> validated = validator.validate(config)
+        >>> validated["parallel"]
+        True
     """
 
     # Define expected types for known fields
@@ -81,17 +131,23 @@ class ConfigValidator:
 
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:
         """
-        Validate configuration and return normalized version.
+        Validate configuration and return a normalized version.
+
+        Performs type validation, range checking, and dependency validation
+        on the provided configuration. Type coercion is applied where sensible
+        (e.g., string ``"true"`` to boolean ``True``).
 
         Args:
-            config: Raw configuration dictionary
-            source_file: Optional source file for error context
+            config: Raw configuration dictionary to validate.
+            source_file: Optional source file path for error context in messages.
 
         Returns:
-            Validated and normalized configuration
+            Validated and normalized configuration dictionary. Type coercion
+            has been applied where appropriate.
 
         Raises:
-            ConfigValidationError: If validation fails
+            ConfigValidationError: If any validation errors are found.
+                Error messages are printed to the console before raising.
         """
         errors = []
 
@@ -117,9 +173,18 @@ class ConfigValidator:
         """
         Flatten nested configuration for validation.
 
-        Supports both:
-        - Flat: {parallel: true, title: "Site"}
-        - Nested: {build: {parallel: true}, site: {title: "Site"}}
+        Extracts values from known sections (``site``, ``build``, ``assets``,
+        ``features``, ``dev``) to the top level for uniform validation.
+
+        Supports both formats:
+            - Flat: ``{parallel: true, title: "Site"}``
+            - Nested: ``{build: {parallel: true}, site: {title: "Site"}}``
+
+        Args:
+            config: Configuration dictionary (flat or nested).
+
+        Returns:
+            Flattened configuration dictionary.
         """
         flat = {}
 
@@ -143,7 +208,18 @@ class ConfigValidator:
         return flat
 
     def _validate_types(self, config: dict[str, Any]) -> list[str]:
-        """Validate and coerce config value types."""
+        """
+        Validate and coerce configuration value types.
+
+        Checks that known fields have the expected types and performs
+        sensible coercion where possible (e.g., ``"true"`` → ``True``).
+
+        Args:
+            config: Configuration dictionary (mutated for coercion).
+
+        Returns:
+            List of error messages for type violations that couldn't be coerced.
+        """
         errors = []
 
         # Boolean fields
@@ -201,7 +277,18 @@ class ConfigValidator:
         return errors
 
     def _validate_ranges(self, config: dict[str, Any]) -> list[str]:
-        """Validate numeric ranges."""
+        """
+        Validate numeric configuration values are within acceptable ranges.
+
+        Checks fields like ``max_workers``, ``min_page_size``, ``port``,
+        and ``pagination.per_page`` for valid bounds.
+
+        Args:
+            config: Configuration dictionary.
+
+        Returns:
+            List of error messages for out-of-range values.
+        """
         errors = []
 
         # max_workers: must be >= 0
@@ -237,7 +324,18 @@ class ConfigValidator:
         return errors
 
     def _validate_dependencies(self, config: dict[str, Any]) -> list[str]:
-        """Validate field dependencies and logical consistency."""
+        """
+        Validate logical dependencies between configuration fields.
+
+        Reserved for future validation of field interdependencies
+        (e.g., incremental builds require valid cache settings).
+
+        Args:
+            config: Configuration dictionary.
+
+        Returns:
+            List of error messages for dependency violations (currently empty).
+        """
         errors: list[str] = []
 
         # Future: Add dependency validation here
@@ -246,7 +344,16 @@ class ConfigValidator:
         return errors
 
     def _print_errors(self, errors: list[str], source_file: Path | None = None) -> None:
-        """Print formatted validation errors."""
+        """
+        Print formatted validation errors to the console.
+
+        Outputs a numbered list of validation errors with contextual
+        information about the source file.
+
+        Args:
+            errors: List of error message strings.
+            source_file: Optional source file path for context.
+        """
         source_info = f" in {source_file}" if source_file else ""
 
         # Log for observability

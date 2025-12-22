@@ -1,8 +1,37 @@
 """
-Deep merge utilities for config system.
+Deep merge utilities for the configuration system.
 
-Provides deterministic deep merging of configuration dictionaries
-with clear override semantics.
+This module provides deterministic deep merging of configuration dictionaries
+with clear, predictable override semantics. It's used throughout the config
+system to combine base configurations with environment-specific and
+profile-specific overrides.
+
+Override Semantics:
+    - **Dictionaries**: Recursively merged (keys combined, nested dicts merged).
+    - **Lists**: Replaced entirely (override wins).
+    - **Primitives**: Replaced (override wins).
+
+Key Functions:
+    deep_merge: Recursively merge two dictionaries.
+    set_nested_key: Set a value at a dot-separated path.
+    get_nested_key: Get a value from a dot-separated path.
+
+Example:
+    >>> base = {"site": {"title": "Base"}, "build": {"parallel": True}}
+    >>> override = {"site": {"baseurl": "https://example.com"}}
+    >>> result = deep_merge(base, override)
+    >>> result["site"]["title"]
+    'Base'
+    >>> result["site"]["baseurl"]
+    'https://example.com'
+
+Note:
+    All functions in this module create new dictionaries rather than
+    mutating inputs, except where explicitly documented (e.g., ``set_nested_key``).
+
+See Also:
+    - :mod:`bengal.config.directory_loader`: Uses deep_merge for config layering.
+    - :mod:`bengal.config.deprecation`: Uses nested key functions for migration.
 """
 
 from __future__ import annotations
@@ -12,29 +41,27 @@ from typing import Any
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """
-    Deep merge override dict into base dict.
+    Deep merge an override dictionary into a base dictionary.
 
-    Override semantics:
-    - Dicts: recursively merge
-    - Lists: replace entirely (override wins)
-    - Primitives: replace (override wins)
+    Creates a new dictionary containing all keys from both inputs. When keys
+    exist in both dictionaries, the override value takes precedence for
+    primitives and lists, while nested dictionaries are recursively merged.
 
     Args:
-        base: Base configuration dictionary
-        override: Override configuration dictionary
+        base: Base configuration dictionary (not mutated).
+        override: Override configuration dictionary (not mutated).
 
     Returns:
-        Merged dictionary (new dict, does not mutate inputs)
+        New merged dictionary. Neither input is mutated.
 
-    Examples:
+    Example:
         >>> base = {"site": {"title": "Base"}, "build": {"parallel": True}}
         >>> override = {"site": {"baseurl": "https://example.com"}}
         >>> result = deep_merge(base, override)
-        >>> result
-        {
-            "site": {"title": "Base", "baseurl": "https://example.com"},
-            "build": {"parallel": True}
-        }
+        >>> result["site"]
+        {'title': 'Base', 'baseurl': 'https://example.com'}
+        >>> result["build"]
+        {'parallel': True}
     """
     result = base.copy()
 
@@ -51,20 +78,25 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 def set_nested_key(config: dict[str, Any], key_path: str, value: Any) -> None:
     """
-    Set a nested key in config dictionary using dot notation.
+    Set a nested key in a configuration dictionary using dot notation.
 
-    Creates intermediate dicts as needed.
+    Creates intermediate dictionaries as needed to reach the target key.
+    If a non-dictionary value is encountered while traversing the path,
+    the operation is aborted silently.
 
     Args:
-        config: Configuration dictionary to modify (mutates in place)
-        key_path: Dot-separated path (e.g., "site.theme.name")
-        value: Value to set
+        config: Configuration dictionary to modify (**mutated in place**).
+        key_path: Dot-separated path to the key (e.g., ``"site.theme.name"``).
+        value: Value to set at the specified path.
 
-    Examples:
+    Warning:
+        This function mutates the input dictionary.
+
+    Example:
         >>> config = {}
         >>> set_nested_key(config, "site.theme.name", "default")
         >>> config
-        {"site": {"theme": {"name": "default"}}}
+        {'site': {'theme': {'name': 'default'}}}
     """
     keys = key_path.split(".")
     current = config
@@ -85,22 +117,27 @@ def set_nested_key(config: dict[str, Any], key_path: str, value: Any) -> None:
 
 def get_nested_key(config: dict[str, Any], key_path: str, default: Any = None) -> Any:
     """
-    Get a nested key from config dictionary using dot notation.
+    Get a nested key from a configuration dictionary using dot notation.
+
+    Safely traverses nested dictionaries following the dot-separated path.
+    Returns the default value if any key in the path doesn't exist or
+    if a non-dictionary value is encountered before reaching the target.
 
     Args:
-        config: Configuration dictionary
-        key_path: Dot-separated path (e.g., "site.theme.name")
-        default: Default value if key not found
+        config: Configuration dictionary to read from.
+        key_path: Dot-separated path to the key (e.g., ``"site.theme.name"``).
+        default: Value to return if the key is not found.
 
     Returns:
-        Value at key_path, or default if not found
+        Value at the specified path, or ``default`` if not found.
 
-    Examples:
+    Example:
         >>> config = {"site": {"theme": {"name": "default"}}}
         >>> get_nested_key(config, "site.theme.name")
-        "default"
+        'default'
         >>> get_nested_key(config, "site.missing", "fallback")
-        "fallback"
+        'fallback'
+        >>> get_nested_key(config, "nonexistent.path")  # Returns None
     """
     keys = key_path.split(".")
     current = config

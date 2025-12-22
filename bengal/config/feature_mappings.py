@@ -1,8 +1,46 @@
 """
-Feature group mappings for ergonomic config.
+Feature group mappings for ergonomic configuration.
 
-Maps simple feature toggles (features.rss = true) to detailed
-configuration sections.
+This module maps simple feature toggles (e.g., ``features.rss: true``) to
+detailed configuration settings. This allows users to enable features with
+a single boolean while Bengal expands them to the full configuration.
+
+The feature expansion happens during configuration loading, before the
+configuration is used by the build system.
+
+Supported Features:
+    - ``rss``: RSS feed generation
+    - ``sitemap``: XML sitemap generation
+    - ``search``: Site search functionality
+    - ``json``: Per-page JSON output
+    - ``llm_txt``: LLM-friendly text output
+    - ``validate_links``: Link validation during build
+    - ``minify_assets``: Asset minification
+    - ``minify_html``: HTML output minification
+    - ``syntax_highlighting``: Code syntax highlighting (reserved for future use)
+
+Module Attributes:
+    FEATURE_MAPPINGS: Dictionary mapping feature names to their expanded config.
+
+Key Functions:
+    expand_features: Expand feature toggles in a configuration dictionary.
+    get_available_features: List all available feature names.
+    get_feature_expansion: Get the expansion mapping for a specific feature.
+
+Example:
+    >>> config = {"features": {"rss": True, "search": True}}
+    >>> expanded = expand_features(config)
+    >>> expanded["generate_rss"]
+    True
+    >>> expanded["search"]["enabled"]
+    True
+
+Note:
+    Feature expansion only sets values that aren't already explicitly
+    configured, preserving user overrides.
+
+See Also:
+    - :mod:`bengal.config.directory_loader`: Calls expand_features during loading.
 """
 
 from __future__ import annotations
@@ -112,12 +150,21 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
 
 def _set_if_missing(config: dict[str, Any], key_path: str, value: Any) -> None:
     """
-    Set nested key only if it doesn't exist.
+    Set a nested key only if it doesn't already exist.
 
-    Handles special cases:
-    - Lists: append to existing list instead of replacing
-    - Dicts: don't override if already present
-    - Primitives: set if missing
+    This helper preserves explicit user configuration by only setting values
+    that haven't been configured. For list values, it appends unique items
+    to existing lists rather than replacing them.
+
+    Args:
+        config: Configuration dictionary to modify (mutated in place).
+        key_path: Dot-separated path to the key (e.g., ``"search.enabled"``).
+        value: Value to set if the key doesn't exist.
+
+    Behavior:
+        - **Missing key**: Sets the value.
+        - **Existing list + list value**: Appends unique items from value.
+        - **Existing primitive/dict**: Does nothing (preserves user config).
     """
     keys = key_path.split(".")
     existing = get_nested_key(config, key_path)

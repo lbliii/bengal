@@ -1,21 +1,43 @@
 """
 Configuration hash utility for cache invalidation.
 
-This module provides deterministic hashing of configuration state,
-enabling automatic cache invalidation when the effective configuration
-changes (including env vars, profiles, and split config files).
+This module provides deterministic hashing of the resolved configuration state,
+enabling automatic cache invalidation when any effective configuration changes.
+The hash captures the *resolved* configuration, not raw file contents, ensuring
+correctness across environment variables, profiles, and split config files.
 
-Architecture:
-    The hash captures the *resolved* configuration state, not just file contents.
-    This ensures cache correctness when:
-    - Environment variables change (BENGAL_*)
-    - Build profiles change (--profile writer)
-    - Split config files change (config/environments/local.yaml)
+Use Cases:
+    - **Build cache validation**: Detect when configuration changes require
+      a full rebuild rather than incremental updates.
+    - **Cache key generation**: Include config hash in cache keys to ensure
+      cache entries are invalidated when configuration changes.
+    - **Configuration comparison**: Determine if two resolved configurations
+      are functionally identical regardless of source file order.
 
-Related:
-    - bengal/cache/build_cache.py: Uses config_hash for validation
-    - bengal/config/loader.py: Produces the config dict to hash
-    - plan/active/rfc-zensical-inspired-patterns.md: Design rationale
+Hash Characteristics:
+    - **Deterministic**: Same configuration always produces same hash,
+      regardless of dictionary key order or file loading order.
+    - **Truncated SHA-256**: Returns first 16 characters (64 bits) for
+      practical uniqueness while keeping identifiers manageable.
+    - **Cross-platform**: Uses POSIX paths for consistent hashing across
+      operating systems.
+
+Key Functions:
+    compute_config_hash: Compute deterministic hash of configuration state.
+
+Example:
+    >>> from bengal.config.hash import compute_config_hash
+    >>> config = {"title": "My Site", "baseurl": "/"}
+    >>> hash1 = compute_config_hash(config)
+    >>> len(hash1)
+    16
+    >>> config2 = {"baseurl": "/", "title": "My Site"}  # Same values, different order
+    >>> compute_config_hash(config2) == hash1
+    True
+
+See Also:
+    - :mod:`bengal.cache.build_cache`: Uses config_hash for cache validation.
+    - :mod:`bengal.config.loader`: Produces the configuration dict to hash.
 """
 
 from __future__ import annotations
@@ -29,16 +51,22 @@ from bengal.utils.hashing import hash_str
 
 def _json_default(obj: Any) -> str:
     """
-    Handle non-JSON-serializable types for hashing.
+    Handle non-JSON-serializable types for deterministic hashing.
 
-    Converts Path, set, frozenset, and other types to strings
-    for consistent serialization.
+    Converts Python types that aren't natively JSON-serializable into
+    string representations suitable for consistent hashing.
+
+    Supported Types:
+        - ``Path``: Converted to POSIX path string for cross-platform consistency.
+        - ``set``, ``frozenset``: Sorted and converted to string.
+        - Objects with ``__dict__``: Dictionary representation as string.
+        - Other types: ``str()`` fallback.
 
     Args:
-        obj: Object to convert
+        obj: Object to convert to a hashable string representation.
 
     Returns:
-        String representation suitable for hashing
+        String representation suitable for deterministic hashing.
     """
     if isinstance(obj, Path):
         # Use POSIX paths for cross-platform consistency

@@ -1,8 +1,35 @@
 """
 Collection loader - loads collection definitions from project files.
 
-Discovers and loads collection schemas from the user's collections.py file
-at the project root.
+Discovers and loads collection schemas from the user's ``collections.py``
+file at the project root. This module handles the dynamic import and
+validation of user-defined collection configurations.
+
+Functions:
+    - :func:`load_collections`: Load collections dict from project file
+    - :func:`get_collection_for_path`: Find which collection owns a file
+    - :func:`validate_collections_config`: Check collection directories exist
+
+Usage:
+    Collections are automatically loaded during site discovery:
+
+    >>> from bengal.collections.loader import load_collections
+    >>> collections = load_collections(Path("/path/to/project"))
+    >>> for name, config in collections.items():
+    ...     print(f"{name}: {config.directory}")
+    blog: content/blog
+    docs: content/docs
+
+The ``collections.py`` file should define a ``collections`` dictionary:
+
+    >>> # collections.py
+    >>> from bengal.collections import define_collection
+    >>> from my_schemas import BlogPost, DocPage
+    >>>
+    >>> collections = {
+    ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
+    ...     "docs": define_collection(schema=DocPage, directory="content/docs"),
+    ... }
 """
 
 from __future__ import annotations
