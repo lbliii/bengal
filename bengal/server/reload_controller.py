@@ -49,10 +49,14 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.output.icons import get_icon_set
 from bengal.utils.hashing import hash_file
 from bengal.utils.rich_console import should_use_emoji
+
+if TYPE_CHECKING:
+    from bengal.core.output import OutputRecord
 
 
 @dataclass(frozen=True)
@@ -408,6 +412,63 @@ class ReloadController:
             pass
 
         return decision
+
+    def decide_from_outputs(self, outputs: list[OutputRecord]) -> ReloadDecision:
+        """
+        Decide reload action from typed output records.
+
+        This is the preferred entry point when builder provides typed output information.
+        No snapshot diffing required - uses OutputType classification directly.
+
+        Args:
+            outputs: List of OutputRecord from the build
+
+        Returns:
+            ReloadDecision with action based on output types.
+            CSS-only changes → 'reload-css', otherwise → 'reload'.
+        """
+        from bengal.core.output import OutputType
+
+        if not outputs:
+            return ReloadDecision(action="none", reason="no-outputs", changed_paths=[])
+
+        # Throttle
+        now = self._now_ms()
+        if now - self._last_notify_time_ms < self._min_interval_ms:
+            return ReloadDecision(action="none", reason="throttled", changed_paths=[])
+        self._last_notify_time_ms = now
+
+        # Convert to paths for ignore glob filtering
+        paths = [str(o.path) for o in outputs]
+
+        # Apply ignore globs
+        if self._ignored_globs:
+
+            def _is_ignored(p: str) -> bool:
+                return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
+
+            filtered_outputs = [o for o in outputs if not _is_ignored(str(o.path))]
+            paths = [str(o.path) for o in filtered_outputs]
+        else:
+            filtered_outputs = outputs
+
+        if not filtered_outputs:
+            return ReloadDecision(action="none", reason="all-ignored", changed_paths=[])
+
+        # Classify by output type - use typed classification, not extension checking
+        css_only = all(o.output_type == OutputType.CSS for o in filtered_outputs)
+
+        if css_only:
+            return ReloadDecision(
+                action="reload-css",
+                reason="css-only",
+                changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+            )
+        return ReloadDecision(
+            action="reload",
+            reason="content-changed",
+            changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+        )
 
     def decide_from_changed_paths(self, changed_paths: list[str]) -> ReloadDecision:
         """

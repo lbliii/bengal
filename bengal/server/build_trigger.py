@@ -526,9 +526,14 @@ class BuildTrigger:
     def _handle_reload(
         self,
         changed_files: list[str],
-        changed_outputs: tuple[str, ...],
+        changed_outputs: tuple[tuple[str, str, str], ...],
     ) -> None:
-        """Handle reload decision and notification."""
+        """Handle reload decision and notification.
+
+        Args:
+            changed_files: List of source file paths that changed
+            changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
+        """
         decision = None
 
         # Source-gated reload decision
@@ -549,9 +554,9 @@ class BuildTrigger:
                 )
 
                 if css_only:
-                    # Use changed_outputs to get actual CSS output paths for targeted reload
+                    # Use typed outputs to get CSS paths
                     css_paths = (
-                        [p for p in changed_outputs if p.lower().endswith(".css")]
+                        [path for path, type_val, _phase in changed_outputs if type_val == "css"]
                         if changed_outputs
                         else []
                     )
@@ -565,9 +570,30 @@ class BuildTrigger:
             except Exception as e:
                 logger.debug("reload_decision_failed", error=str(e))
 
-        # Use builder hints if available
+        # Use typed builder outputs if available - preferred path (no snapshot diffing)
         if decision is None and changed_outputs:
-            decision = controller.decide_from_changed_paths(list(changed_outputs))
+            # Reconstruct OutputRecord objects for decide_from_outputs
+            from pathlib import Path
+
+            from bengal.core.output import OutputRecord, OutputType
+
+            records = []
+            for path_str, type_val, phase in changed_outputs:
+                try:
+                    output_type = OutputType(type_val)
+                    # phase needs to be a valid literal
+                    if phase in ("render", "asset", "postprocess"):
+                        records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
+                except (ValueError, TypeError):
+                    # Invalid type value, skip
+                    pass
+
+            if records:
+                decision = controller.decide_from_outputs(records)
+            else:
+                # Fall back to path-based decision
+                paths = [path for path, _type, _phase in changed_outputs]
+                decision = controller.decide_from_changed_paths(paths)
 
         # Default: suppress reload
         if decision is None:
