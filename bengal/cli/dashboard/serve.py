@@ -353,18 +353,24 @@ class BengalServeDashboard(BengalDashboard):
             else:
                 # Task 4.2: Empty state for no site
                 watcher_summary.update("[dim]No site loaded[/dim]")
-        except Exception:
-            # Widget may not be mounted yet during initialization
-            pass
+        except Exception as exc:
+            # Swallowing errors here keeps the dashboard running; log for debugging.
+            if hasattr(self, "log"):
+                self.log(f"Failed to update watcher summary: {exc}")
+            else:
+                print(f"Failed to update watcher summary: {exc}")
 
     def _update_stat(self, key: str, value: str) -> None:
         """Update a row in the stats table."""
         try:
             stats_table = self.query_one("#stats-table", DataTable)
             stats_table.update_cell(key, "Value", value)
-        except Exception:
-            # Widget may not be mounted yet during initialization
-            pass
+        except Exception as exc:
+            # Ignore non-critical UI update errors but log them for diagnosis.
+            if hasattr(self, "log"):
+                self.log(f"Failed to update stat '{key}' to '{value}': {exc}")
+            else:
+                print(f"Failed to update stat '{key}' to '{value}': {exc}")
 
     def _add_build_to_history(self, duration_ms: float) -> None:
         """Add a build duration to history and update sparkline."""

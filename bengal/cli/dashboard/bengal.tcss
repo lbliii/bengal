@@ -175,6 +175,9 @@ TabbedContent {
 
 Tabs {
     background: #1e1e1e;
+    height: 3;
+    min-height: 3;
+    dock: top;
 }
 
 Tab {
@@ -297,6 +300,12 @@ Horizontal {
     margin: 1 0;
 }
 
+/* Main content area - must fill available space */
+#main-content {
+    height: 1fr;
+    width: 100%;
+}
+
 .section-header {
     color: #FF9D00;
     text-style: bold;
@@ -376,9 +385,9 @@ ProgressBar > Bar {
     transition: width 300ms out_cubic;
 }
 
-/* Tab switch fade */
+/* Tab switch fade - removed transition to prevent tab collapse bug */
 TabPane {
-    transition: opacity 150ms in_out_cubic;
+    /* transition: opacity 150ms in_out_cubic; */
 }
 
 /* Log entry fade-in */
@@ -466,6 +475,15 @@ Tree > .tree--cursor {
 /* === Serve Dashboard Specific === */
 
 #serve-tabs {
+    height: 1fr;
+    min-height: 15;
+}
+
+#serve-tabs ContentSwitcher {
+    height: 1fr;
+}
+
+#serve-tabs TabPane {
     height: 1fr;
 }
 

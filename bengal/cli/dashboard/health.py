@@ -418,6 +418,8 @@ class BengalHealthDashboard(BengalDashboard):
             progress_bar = self.query_one("#health-score-bar", ProgressBar)
             progress_bar.update(progress=score)
         except Exception:
+            # Silently ignore if widget not mounted yet or query fails;
+            # progress bar update is non-critical UI feedback
             pass
 
     def _extract_categories_by_validator(self, report: HealthReport) -> dict[str, dict]:

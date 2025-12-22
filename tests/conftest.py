@@ -1,9 +1,12 @@
+import logging
 import os
 import shutil
 from datetime import datetime
 from pathlib import Path
 
 import pytest
+
+logger = logging.getLogger(__name__)
 
 from bengal.core.site import Site
 from bengal.utils.file_io import write_text_file
@@ -287,7 +290,7 @@ def reset_bengal_state():
 
         reset_parser_cache()
     except ImportError:
-        pass
+        logger.debug("Parser cache reset skipped: reset_parser_cache not available")
 
     # Setup: Force reload directives factory to pick up any new directives
     # This is needed because directive imports happen at module load time
@@ -297,8 +300,10 @@ def reset_bengal_state():
         import bengal.directives.factory
 
         importlib.reload(bengal.directives.factory)
-    except (ImportError, AttributeError):
-        pass
+    except ImportError:
+        logger.debug("Directives factory reload skipped: module not available")
+    except AttributeError as e:
+        logger.debug("Directives factory reload failed: %s", e)
 
     yield
 
@@ -310,7 +315,7 @@ def reset_bengal_state():
 
         reset_console()
     except ImportError:
-        pass
+        logger.debug("Rich console reset skipped: reset_console not available")
 
     # 2. Reset logger state (close file handles, clear registry)
     try:
@@ -318,7 +323,7 @@ def reset_bengal_state():
 
         reset_loggers()
     except ImportError:
-        pass
+        logger.debug("Logger reset skipped: reset_loggers not available")
 
     # 3. Clear theme cache (forces fresh discovery)
     try:
@@ -326,7 +331,7 @@ def reset_bengal_state():
 
         clear_theme_cache()
     except ImportError:
-        pass
+        logger.debug("Theme cache clear skipped: clear_theme_cache not available")
 
     # 4. Clear created directories cache (ensures fresh directory tracking per test)
     try:
@@ -334,7 +339,7 @@ def reset_bengal_state():
 
         get_created_dirs().clear()
     except ImportError:
-        pass
+        logger.debug("Created dirs cache clear skipped: get_created_dirs not available")
 
 
 @pytest.fixture(scope="class")
