@@ -2,6 +2,7 @@
 
 **Status**: Evaluated
 **Created**: 2025-12-22
+**Updated**: 2025-12-22
 **Author**: AI-assisted
 **Confidence**: 97% 🟢
 **Category**: Architecture / Type Safety
@@ -381,6 +382,22 @@ class Page:
 - `page.frontmatter["title"]` works for templates
 - Existing code unchanged
 
+**Integration Pattern (BuildContext)**:
+The `BuildContext` dataclass (`bengal/utils/build_context.py`) is the standard way to pass
+typed objects through build phases. If lazy `Frontmatter` creation becomes a bottleneck,
+consider adding a `frontmatter_cache` to BuildContext for shared access across phases.
+
+> **Reference**: Build Output Tracking RFC used this pattern for `OutputCollector` - see
+> `bengal/core/output/collector.py` and `bengal/utils/build_context.py`.
+
+**Thread Safety**:
+If `_frontmatter` is lazily cached on `Page` and builds run in parallel, ensure cache
+population is thread-safe. Options:
+- Use `threading.Lock` for atomic cache writes
+- Make the property compute on every call (micro-cost for `Frontmatter.from_dict` is negligible)
+
+> **Reference**: `BuildOutputCollector` uses `threading.Lock` for parallel safety.
+
 ### Phase 3: AST Node Types
 
 Define typed AST nodes for parsed content:
@@ -511,6 +528,14 @@ class Page:
     _ast_cache: list[ASTNode] | None = field(default=None, repr=False)
 ```
 
+**Subprocess Serialization**:
+If AST types are ever passed through `BuildExecutor` (subprocess boundary via `multiprocessing`),
+they must be serializable. TypedDicts are naturally pickle-compatible since they're just dicts,
+but verify this works if AST data needs to cross process boundaries.
+
+> **Reference**: Build Output Tracking serialized `OutputRecord` as `tuple[str, str, str]`
+> for `BuildResult` IPC - see `bengal/server/build_executor.py`.
+
 ### Phase 4: Directive Token Types
 
 Type the directive validation tokens:
@@ -555,6 +580,7 @@ def validate_children(
 | Core | **Medium** | Frontmatter dataclass, AST types on Page |
 | Directives | **Low** | DirectiveToken type, validator signatures |
 | Rendering | **Low** | ast_types.py module, parser return types |
+| Utils | **Low** | BuildContext may gain typed cache fields |
 | Cache | **None** | PageCore unchanged (already typed) |
 | Templates | **None** | Dict compatibility preserved |
 | CLI | **None** | No changes |
@@ -676,6 +702,8 @@ tags: list[str] = fm.tags  # OK
 | Incomplete AST types | Medium | Low | Start with common nodes, extend as needed |
 | mypy errors in user code | Low | Low | Types are internal, user code unchanged |
 | Circular import issues | Low | Medium | TYPE_CHECKING pattern well-established |
+| Thread safety in caches | Low | Medium | Use Lock or compute-on-access (see Phase 2) |
+| Subprocess serialization | Low | Low | TypedDicts are pickle-compatible; test if needed |
 
 ---
 
@@ -747,7 +775,23 @@ tags: list[str] = fm.tags  # OK
 - [ ] Should `Frontmatter` support `**kwargs` for unknown fields in constructor?
 - [ ] Should we add runtime validation (pydantic-style) or stay pure types?
 - [ ] Which AST node types are essential vs. nice-to-have?
-- [ ] Should `DirectiveToken` use `Literal` for known directive types?
+- [x] Should `DirectiveToken` use `Literal` for known directive types?
+
+  **Recommendation**: Yes, consider using an enum similar to `OutputType`:
+  ```python
+  from enum import Enum
+
+  class DirectiveType(Enum):
+      STEP = "step"
+      TAB_ITEM = "tab_item"
+      NOTE = "note"
+      WARNING = "warning"
+      # ... other known directives
+  ```
+  This provides IDE autocomplete for directive type strings and prevents typos.
+
+  > **Reference**: `OutputType` enum in `bengal/core/output/types.py` worked well
+  > for discriminated unions in the Build Output Tracking implementation.
 
 ---
 
@@ -759,6 +803,46 @@ tags: list[str] = fm.tags  # OK
 - **Rule**: `bengal/.cursor/rules/python-style.mdc` - Type hint requirements
 - **Guide**: `TYPE_CHECKING_GUIDE.md` - Forward reference patterns
 - **Config**: `pyproject.toml` - mypy strict settings
+- **Related RFC**: `plan/ready/rfc-build-output-tracking.md` - Working example of typed
+  protocol + dataclass pattern (`OutputCollector`, `OutputRecord`, `OutputType`)
+- **Implementation Example**: `bengal/core/output/` - OutputType enum, OutputRecord dataclass,
+  BuildOutputCollector with thread-safety
+
+---
+
+## Appendix: Bengal Logger Pattern
+
+Bengal uses structured logging where the **event name is the first positional argument**.
+This pattern affects any new code with type validation warnings:
+
+```python
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+# ✅ CORRECT - event name first, then key=value pairs
+logger.warning(
+    "frontmatter_type_mismatch",  # Event name (first positional arg)
+    field="date",
+    expected="datetime",
+    actual="str",
+)
+
+# ❌ WRONG - causes TypeError: got multiple values for argument 'message'
+logger.warning(
+    "frontmatter_type_mismatch",
+    message="Date field has wrong type",  # Don't use 'message' kwarg
+)
+
+# ❌ WRONG - standard logging style doesn't work
+logger.warning("Date field %s has wrong type", field_name)  # No format strings
+```
+
+This differs from Python's standard `logging` module. The structured logs are written
+to stdout/stderr with JSON-like formatting, not through the standard logging handlers.
+
+> **Reference**: This caused friction in Build Output Tracking - see
+> `BuildOutputCollector.validate()` in `bengal/core/output/collector.py`.
 
 ---
 
