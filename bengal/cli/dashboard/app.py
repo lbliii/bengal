@@ -210,8 +210,13 @@ class BengalApp(App):
 
     def action_rebuild(self) -> None:
         """Trigger a site rebuild."""
-        self.notify("Rebuild triggered...", title="Build")
-        # TODO: Actually trigger rebuild via build orchestrator
+        # If on build screen, delegate to its rebuild action
+        if hasattr(self.screen, "action_rebuild") and self.screen.name == "build":
+            self.screen.action_rebuild()
+        else:
+            # Switch to build screen and trigger rebuild
+            self.push_screen("build")
+            self.notify("Switch to Build screen and press 'r' to rebuild", title="Build")
 
     def action_open_browser(self) -> None:
         """Open site in browser."""

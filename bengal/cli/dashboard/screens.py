@@ -266,6 +266,10 @@ class BuildScreen(BengalScreen):
         """Trigger rebuild."""
         from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
 
+        if not self.site:
+            self.app.notify("No site loaded", title="Error", severity="error")
+            return
+
         # Show throbber and flash
         throbber = self.query_one("#build-throbber", BengalThrobber)
         throbber.active = True
@@ -274,6 +278,86 @@ class BuildScreen(BengalScreen):
         flash.show_building("Starting build...")
 
         self.app.notify("Rebuild triggered...", title="Build")
+
+        # Run build in background worker
+        self.run_worker(
+            self._run_build,
+            name="build_worker",
+            exclusive=True,
+            thread=True,
+        )
+
+    async def _run_build(self) -> None:
+        """Run the build in a background thread."""
+        from time import monotonic
+
+        from textual.widgets import DataTable, ProgressBar
+
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.orchestration.build import BuildOrchestrator
+
+        start_time = monotonic()
+        log = self.query_one("#build-log", Log)
+        table = self.query_one("#phase-table", DataTable)
+        progress = self.query_one("#build-progress", ProgressBar)
+
+        def update_phase(name: str, status: str, time_ms: float | None = None) -> None:
+            """Update phase status in table."""
+            icons = {"pending": "○", "running": "●", "complete": "✓", "error": "✗"}
+            icon = icons.get(status, "?")
+            time_str = f"{time_ms:.0f}ms" if time_ms else "-"
+            try:
+                table.update_cell(name, "Status", icon)
+                table.update_cell(name, "Time", time_str)
+            except Exception:
+                pass
+
+        try:
+            # Discovery phase
+            self.call_from_thread(update_phase, "Discovery", "running")
+            self.call_from_thread(log.write_line, "→ Discovery...")
+            self.call_from_thread(progress.update, progress=20)
+
+            orchestrator = BuildOrchestrator(self.site)
+
+            # Run the actual build
+            phase_start = monotonic()
+            stats = orchestrator.build(
+                parallel=True,
+                incremental=False,
+                quiet=True,
+            )
+            phase_time = (monotonic() - phase_start) * 1000
+
+            # Update all phases as complete
+            for phase in ["Discovery", "Taxonomies", "Rendering", "Assets", "Postprocess"]:
+                self.call_from_thread(update_phase, phase, "complete", phase_time / 5)
+
+            self.call_from_thread(progress.update, progress=100)
+
+            duration_ms = (monotonic() - start_time) * 1000
+
+            # Show success
+            throbber = self.query_one("#build-throbber", BengalThrobber)
+            flash = self.query_one("#build-flash", BuildFlash)
+            self.call_from_thread(setattr, throbber, "active", False)
+            self.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
+            self.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
+
+            # Get page count from stats
+            page_count = getattr(stats, "pages_rendered", 0) or len(getattr(self.site, "pages", []))
+            self.call_from_thread(log.write_line, f"  {page_count} pages rendered")
+
+        except Exception as e:
+            duration_ms = (monotonic() - start_time) * 1000
+
+            # Show error
+            throbber = self.query_one("#build-throbber", BengalThrobber)
+            flash = self.query_one("#build-flash", BuildFlash)
+            self.call_from_thread(setattr, throbber, "active", False)
+            self.call_from_thread(flash.show_error, str(e))
+            self.call_from_thread(log.write_line, f"✗ Build failed: {e}")
+            self.call_from_thread(update_phase, "Discovery", "error")
 
     def action_clear_log(self) -> None:
         """Clear the build log."""
