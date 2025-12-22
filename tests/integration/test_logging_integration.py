@@ -72,14 +72,29 @@ parallel = false
 
     yield tmp_path
 
-    # Cleanup loggers
-    _loggers.clear()
+    # Cleanup loggers - clear events, don't remove from registry
+    # (module-level logger references must remain valid)
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
 
 
 @pytest.fixture(autouse=True)
 def reset_loggers():
-    """Reset logger state before each test."""
-    _loggers.clear()
+    """Reset logger state before each test.
+
+    Note: We clear events and phase stacks from existing loggers rather than
+    removing loggers from the registry. This is necessary because Python
+    caches module imports - module-level `logger = get_logger(__name__)`
+    only executes once at import time. If we clear `_loggers`, those
+    module-level variables still reference the old (orphaned) logger
+    instances, and events get logged there instead of new loggers.
+    """
+    # Clear events from existing loggers instead of removing them from registry
+    # This preserves module-level logger references
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
     yield
     close_all_loggers()
     _loggers.clear()
