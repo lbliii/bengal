@@ -1,0 +1,23 @@
+[site]
+title = "Test i18n Content Site"
+baseurl = "/"
+description = "Test site for directory-based i18n content structure"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
+
+[i18n]
+default_language = "en"
+strategy = "prefix"
+content_structure = "dir"
+fallback_to_default = true
+languages = [
+    { code = "en", name = "English", weight = 1 },
+    { code = "fr", name = "Français", weight = 2 },
+]
+

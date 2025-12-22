@@ -28,7 +28,7 @@ from bengal.cli.dashboard.screens import (
     HelpScreen,
     ServeScreen,
 )
-from bengal.themes.tokens import BENGAL_MASCOT, BENGAL_PALETTE
+from bengal.themes.tokens import BENGAL_MASCOT, BENGAL_PALETTE, BengalPalette
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -117,7 +117,7 @@ class BengalApp(App):
         return BENGAL_MASCOT.mouse
 
     @property
-    def palette(self):
+    def palette(self) -> BengalPalette:
         """Get the color palette."""
         return BENGAL_PALETTE
 
@@ -148,7 +148,7 @@ class BengalApp(App):
         # Full implementation would use Textual's CommandPalette
         self.notify("Command palette: Ctrl+P (coming soon)", title="Commands")
 
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
         """Quit the app."""
         self.exit()
 

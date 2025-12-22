@@ -29,13 +29,13 @@ from pathlib import Path
 from bengal.cli.dashboard.app import BengalApp
 
 
-def create_demo_site():
+def create_demo_site() -> None:
     """Create a minimal demo site for testing."""
     # Return None - dashboards handle missing site gracefully
     return None
 
 
-def main():
+def main() -> None:
     """Run dashboard in development mode."""
     parser = argparse.ArgumentParser(
         description="Bengal Dashboard Development Mode",

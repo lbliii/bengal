@@ -37,14 +37,19 @@ def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
         template: Template name to test
         tmp_path: Pytest temporary directory fixture
     """
-    site_dir = tmp_path / f"site-{template}"
+    site_name = f"site-{template}"
+    site_dir = tmp_path / site_name
 
-    # Scaffold
+    # Scaffold - run from tmp_path so site is created there
     result = run_cli(
-        ["new", "site", str(site_dir), "--template", template, "--no-init"],
+        ["new", "site", site_name, "--template", template, "--no-init"],
+        cwd=str(tmp_path),
         timeout=60,
     )
     assert result.returncode == 0, f"Scaffold failed for {template}: {result.stderr}"
+
+    # Verify site directory was created
+    assert site_dir.exists(), f"Site directory not created for {template}"
 
     # Build
     result = run_cli(
@@ -72,14 +77,19 @@ def test_template_has_valid_structure(template: str, tmp_path) -> None:
         template: Template name to test
         tmp_path: Pytest temporary directory fixture
     """
-    site_dir = tmp_path / f"site-{template}"
+    site_name = f"site-{template}"
+    site_dir = tmp_path / site_name
 
-    # Scaffold
+    # Scaffold - run from tmp_path so site is created there
     result = run_cli(
-        ["new", "site", str(site_dir), "--template", template, "--no-init"],
+        ["new", "site", site_name, "--template", template, "--no-init"],
+        cwd=str(tmp_path),
         timeout=60,
     )
     assert result.returncode == 0, f"Scaffold failed for {template}: {result.stderr}"
+
+    # Verify site directory was created
+    assert site_dir.exists(), f"Site directory not created for {template}"
 
     # Check required structure
     assert (site_dir / "config").exists(), f"config/ not created for {template}"
@@ -98,11 +108,13 @@ def test_template_has_valid_structure(template: str, tmp_path) -> None:
 @pytest.mark.integration
 def test_blog_template_generates_rss(tmp_path) -> None:
     """Blog template should generate RSS feed."""
-    site_dir = tmp_path / "site-blog-rss"
+    site_name = "site-blog-rss"
+    site_dir = tmp_path / site_name
 
-    # Scaffold blog
+    # Scaffold blog - run from tmp_path
     result = run_cli(
-        ["new", "site", str(site_dir), "--template", "blog", "--no-init"],
+        ["new", "site", site_name, "--template", "blog", "--no-init"],
+        cwd=str(tmp_path),
         timeout=60,
     )
     assert result.returncode == 0, f"Scaffold failed: {result.stderr}"
@@ -130,11 +142,13 @@ def test_blog_template_generates_rss(tmp_path) -> None:
 @pytest.mark.integration
 def test_docs_template_generates_search_index(tmp_path) -> None:
     """Docs template should generate search index."""
-    site_dir = tmp_path / "site-docs-search"
+    site_name = "site-docs-search"
+    site_dir = tmp_path / site_name
 
-    # Scaffold docs
+    # Scaffold docs - run from tmp_path
     result = run_cli(
-        ["new", "site", str(site_dir), "--template", "docs", "--no-init"],
+        ["new", "site", site_name, "--template", "docs", "--no-init"],
+        cwd=str(tmp_path),
         timeout=60,
     )
     assert result.returncode == 0, f"Scaffold failed: {result.stderr}"
@@ -169,15 +183,21 @@ def test_template_dev_server_starts(tmp_path) -> None:
     import subprocess
     import sys
     import time
+    import signal
 
-    site_dir = tmp_path / "site-dev-server"
+    site_name = "site-dev-server"
+    site_dir = tmp_path / site_name
 
-    # Scaffold
+    # Scaffold - run from tmp_path
     result = run_cli(
-        ["new", "site", str(site_dir), "--template", "default", "--no-init"],
+        ["new", "site", site_name, "--template", "default", "--no-init"],
+        cwd=str(tmp_path),
         timeout=60,
     )
     assert result.returncode == 0, f"Scaffold failed: {result.stderr}"
+
+    # Verify site directory was created
+    assert site_dir.exists(), "Site directory not created"
 
     # Start dev server as subprocess
     proc = subprocess.Popen(
@@ -185,6 +205,7 @@ def test_template_dev_server_starts(tmp_path) -> None:
         cwd=str(site_dir),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        start_new_session=True,  # Create new process group for clean termination
     )
 
     try:
@@ -195,9 +216,9 @@ def test_template_dev_server_starts(tmp_path) -> None:
         assert proc.poll() is None, "Dev server crashed on startup"
 
     finally:
-        # Clean up
-        proc.terminate()
+        # Clean up - use SIGKILL for reliable termination in tests
         try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
             proc.kill()
+            proc.wait(timeout=5)
+        except (ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError):
+            pass  # Process already exited, timed out, or permission denied - OK in cleanup
