@@ -146,7 +146,7 @@ Call-to-action buttons.
 
 ## Performance
 
-For benchmarks and reproducible measurements, refer to [Performance](../meta/performance/) and the `benchmarks/` directory.
+For benchmarks and reproducible measurements, refer to [Performance](../meta/performance.md) and the `benchmarks/` directory.
 
 ## Template Functions
 

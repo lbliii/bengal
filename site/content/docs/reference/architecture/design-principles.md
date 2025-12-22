@@ -278,6 +278,6 @@ def create_markdown_parser(engine='mistune'):
 ## Related Documentation
 
 - [Architecture Overview](./) - High-level architecture
-- [Orchestration](core/orchestration/) - Build coordination
-- [Performance](meta/performance/) - Benchmarks and hot paths
-- [Testing](meta/testing/) - Test strategy
+- [Orchestration](core/orchestration.md) - Build coordination
+- [Performance](meta/performance.md) - Benchmarks and hot paths
+- [Testing](meta/testing.md) - Test strategy

@@ -268,7 +268,7 @@ class BengalLogger:
         show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
 
         if show_console:
-            # Add visual separation before warnings/errors
+            # Add visual separation around warnings/errors
             needs_separation = level.value >= LogLevel.WARNING.value
 
             try:
@@ -279,6 +279,8 @@ class BengalLogger:
                 if needs_separation:
                     console.print()  # Blank line before warning/error
                 console.print(event.format_console(verbose=self.verbose))
+                if needs_separation:
+                    console.print()  # Blank line after warning/error
             except ImportError:
                 # Fallback to plain print if Rich not available
                 # Strip markup for plain output
@@ -290,6 +292,8 @@ class BengalLogger:
                 if needs_separation:
                     print()  # Blank line before warning/error
                 print(message)
+                if needs_separation:
+                    print()  # Blank line after warning/error
 
         # Output to file (JSON format)
         if self._file_handle:

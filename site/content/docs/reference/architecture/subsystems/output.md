@@ -220,5 +220,5 @@ cli.set_style(OutputStyle.QUIET)  # Minimal output
 
 ## Related
 
-- [CLI](../tooling/cli/) - Command-line interface
-- [Performance](../meta/performance/) - Benchmarks and hot paths
+- [CLI](../tooling/cli.md) - Command-line interface
+- [Performance](../meta/performance.md) - Benchmarks and hot paths
