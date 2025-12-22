@@ -73,15 +73,6 @@ class BengalApp(App):
     TITLE: ClassVar[str] = "Bengal"
     SUB_TITLE: ClassVar[str] = "Dashboard"
 
-    # Screen registry (lazy loading)
-    SCREENS: ClassVar[dict] = {
-        "landing": LandingScreen,
-        "build": BuildScreen,
-        "serve": ServeScreen,
-        "health": HealthScreen,
-        "help": HelpScreen,
-    }
-
     # Command palette providers
     COMMANDS: ClassVar[set[type]] = {
         BengalCommandProvider,
@@ -137,12 +128,12 @@ class BengalApp(App):
 
     def on_mount(self) -> None:
         """Set up the app when it mounts."""
-        # Install all screens
-        for name, screen_class in self.SCREENS.items():
-            if name == "help":
-                self.install_screen(screen_class(), name=name)
-            else:
-                self.install_screen(screen_class(site=self.site), name=name)
+        # Install all screens with site reference
+        self.install_screen(LandingScreen(site=self.site), name="landing")
+        self.install_screen(BuildScreen(site=self.site), name="build")
+        self.install_screen(ServeScreen(site=self.site), name="serve")
+        self.install_screen(HealthScreen(site=self.site), name="health")
+        self.install_screen(HelpScreen(), name="help")
 
         # Switch to initial screen
         self.switch_screen(self.start_screen)
