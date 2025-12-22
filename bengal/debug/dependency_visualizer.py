@@ -2,21 +2,41 @@
 Dependency visualizer for understanding build dependencies.
 
 Generates visual representations of dependency graphs to help understand
-what depends on what, and the blast radius of changes.
+what depends on what, and the "blast radius" of changes (what would
+rebuild if a file changed).
 
 Key Features:
-    - Visualize page dependencies (templates, partials, data)
-    - Show reverse dependencies (what would rebuild if X changed)
-    - Generate Mermaid diagrams for documentation
-    - Export to DOT format for Graphviz
+    - DependencyNode: Single node with forward/reverse dependencies
+    - DependencyGraph: Complete graph with traversal and visualization
+    - DependencyVisualizer: Debug tool for analysis and export
+    - Multiple output formats: Mermaid, DOT (Graphviz), ASCII tree
+
+Use Cases:
+    - Visualize what templates a page uses
+    - See blast radius of changing a template
+    - Identify highly-connected files (change triggers many rebuilds)
+    - Export dependency diagrams for documentation
+
+Example:
+    >>> from bengal.debug import DependencyVisualizer
+    >>> viz = DependencyVisualizer(cache=cache)
+    >>> print(viz.visualize_page("content/docs/guide.md"))
+    📄 guide.md
+    ├─ 🎨 page.html
+    │  └─ 🎨 base.html
+    └─ 📊 authors.yaml
+
+    >>> # What would rebuild if base.html changed?
+    >>> affected = viz.get_blast_radius("templates/base.html")
+    >>> print(f"{len(affected)} pages would rebuild")
 
 Related Modules:
-    - bengal.cache.dependency_tracker: Dependency tracking
-    - bengal.cache.build_cache: Cached dependencies
-    - bengal.analysis.knowledge_graph: Content relationships
+    - bengal.cache.dependency_tracker: Dependency tracking during builds
+    - bengal.cache.build_cache: Persisted dependency information
+    - bengal.debug.incremental_debugger: Rebuild analysis
 
 See Also:
-    - bengal/debug/base.py: Debug tool infrastructure
+    - bengal/cli/commands/debug.py: CLI integration
 """
 
 from __future__ import annotations
@@ -34,14 +54,23 @@ if TYPE_CHECKING:
 @dataclass
 class DependencyNode:
     """
-    A node in the dependency graph.
+    A single node in the dependency graph.
+
+    Represents a file and tracks both forward dependencies (what this
+    file depends on) and reverse dependencies (what depends on this file).
 
     Attributes:
-        path: File path of this node
-        node_type: Type of node (page, template, partial, data, config)
-        dependencies: Files this node depends on
-        dependents: Files that depend on this node
-        metadata: Additional node metadata
+        path: File path of this node.
+        node_type: Classification: "page", "template", "partial", "data", "config".
+        dependencies: Paths of files this node depends on.
+        dependents: Paths of files that depend on this node.
+        metadata: Additional node-specific data.
+
+    Example:
+        >>> node = DependencyNode(path="content/guide.md", node_type="page")
+        >>> node.dependencies.add("templates/page.html")
+        >>> node.is_leaf
+        False
     """
 
     path: str
@@ -52,17 +81,30 @@ class DependencyNode:
 
     @property
     def is_leaf(self) -> bool:
-        """Check if node has no dependencies."""
+        """
+        Check if node has no dependencies.
+
+        Leaf nodes don't depend on anything else.
+        """
         return len(self.dependencies) == 0
 
     @property
     def is_root(self) -> bool:
-        """Check if nothing depends on this node."""
+        """
+        Check if nothing depends on this node.
+
+        Root nodes are typically content pages that depend on
+        templates but have nothing depending on them.
+        """
         return len(self.dependents) == 0
 
     @property
     def short_path(self) -> str:
-        """Get shortened path for display."""
+        """
+        Get shortened path for compact display.
+
+        Truncates long paths to ".../parent/file.ext" format.
+        """
         path = Path(self.path)
         if len(path.parts) > 3:
             return f".../{'/'.join(path.parts[-2:])}"
@@ -74,24 +116,52 @@ class DependencyGraph:
     """
     Complete dependency graph for a project.
 
-    Provides methods for traversal, analysis, and visualization.
+    Provides methods for traversal, querying, and visualization.
+    Supports both forward (dependencies) and reverse (dependents)
+    traversal, transitive closure, and multiple output formats.
 
     Attributes:
-        nodes: All nodes in the graph
-        edges: Edges as (from, to) tuples
+        nodes: Dictionary mapping file paths to DependencyNode instances.
+        edges: Set of (from, to) tuples representing dependencies.
+
+    Example:
+        >>> graph = DependencyGraph()
+        >>> graph.add_edge("page.md", "template.html")
+        >>> deps = graph.get_dependencies("page.md")
+        >>> blast = graph.get_blast_radius("template.html")
     """
 
     nodes: dict[str, DependencyNode] = field(default_factory=dict)
     edges: set[tuple[str, str]] = field(default_factory=set)
 
     def add_node(self, path: str, node_type: str = "unknown") -> DependencyNode:
-        """Add or get a node."""
+        """
+        Add or get a node by path.
+
+        If the node already exists, returns it without modification.
+
+        Args:
+            path: File path for the node.
+            node_type: Node classification type.
+
+        Returns:
+            The new or existing DependencyNode.
+        """
         if path not in self.nodes:
             self.nodes[path] = DependencyNode(path=path, node_type=node_type)
         return self.nodes[path]
 
     def add_edge(self, from_path: str, to_path: str) -> None:
-        """Add a dependency edge (from depends on to)."""
+        """
+        Add a dependency edge (from depends on to).
+
+        Creates nodes if they don't exist and updates both forward
+        and reverse dependency sets.
+
+        Args:
+            from_path: Path that has the dependency.
+            to_path: Path that is depended upon.
+        """
         from_node = self.add_node(from_path)
         to_node = self.add_node(to_path)
 
@@ -372,7 +442,15 @@ class DependencyGraph:
         return "\n".join(lines)
 
     def _get_icon(self, path: str) -> str:
-        """Get icon for file type."""
+        """
+        Get emoji icon for file type.
+
+        Args:
+            path: File path to classify.
+
+        Returns:
+            Emoji icon based on file extension.
+        """
         if path.endswith((".md", ".markdown", ".rst")):
             return "📄"
         if path.endswith((".html", ".jinja2")):

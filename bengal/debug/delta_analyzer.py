@@ -307,7 +307,15 @@ class BuildDelta:
         return " | ".join(parts) if parts else "No significant changes"
 
     def format_detailed(self) -> str:
-        """Format with full details."""
+        """
+        Format with full details for verbose output.
+
+        Includes timestamps, page changes (with samples), timing
+        breakdown by phase, and configuration change warnings.
+
+        Returns:
+            Multi-line formatted string.
+        """
         lines = ["📊 Build Delta Analysis", ""]
 
         # Overview
@@ -356,7 +364,16 @@ class BuildDelta:
         return "\n".join(lines)
 
     def _format_time_change(self, ms: float, pct: float) -> str:
-        """Format time change with color indicators."""
+        """
+        Format time change with emoji indicators.
+
+        Args:
+            ms: Time change in milliseconds.
+            pct: Percentage change.
+
+        Returns:
+            Formatted string like "+150ms (+12%) 🐌" or "-50ms (-5%) 🚀"
+        """
         sign = "+" if ms > 0 else ""
 
         time_str = f"{sign}{ms:.0f}ms" if abs(ms) < 1000 else f"{sign}{ms / 1000:.2f}s"
@@ -371,11 +388,21 @@ class BuildHistory:
     """
     Tracks build history for trend analysis.
 
-    Stores snapshots of builds over time and provides trend analysis.
+    Stores snapshots of builds over time to enable trend analysis,
+    baseline comparisons, and performance regression detection.
+    History is persisted to disk and automatically pruned to
+    max_snapshots.
 
     Attributes:
-        snapshots: List of build snapshots in chronological order
-        max_snapshots: Maximum number of snapshots to keep
+        storage_path: Path to JSON file storing history.
+        max_snapshots: Maximum number of snapshots to retain.
+        snapshots: List of BuildSnapshot in chronological order.
+
+    Example:
+        >>> history = BuildHistory(max_snapshots=100)
+        >>> history.add(current_snapshot)
+        >>> trend = history.compute_trend()
+        >>> print(f"Avg build time: {trend['avg_build_time_ms']:.0f}ms")
     """
 
     def __init__(self, storage_path: Path | None = None, max_snapshots: int = 50):
@@ -383,8 +410,10 @@ class BuildHistory:
         Initialize build history.
 
         Args:
-            storage_path: Path to store history (defaults to .bengal/build_history.json)
-            max_snapshots: Maximum snapshots to retain
+            storage_path: Path to store history JSON file.
+                Defaults to .bengal/build_history.json.
+            max_snapshots: Maximum snapshots to retain. Older snapshots
+                are pruned when limit is exceeded.
         """
         self.storage_path = storage_path or Path(".bengal/build_history.json")
         self.max_snapshots = max_snapshots
@@ -392,7 +421,7 @@ class BuildHistory:
         self._load()
 
     def _load(self) -> None:
-        """Load history from disk."""
+        """Load history from disk if storage file exists."""
         if self.storage_path.exists():
             try:
                 data = json.loads(self.storage_path.read_text())
@@ -401,13 +430,20 @@ class BuildHistory:
                 self.snapshots = []
 
     def _save(self) -> None:
-        """Save history to disk."""
+        """Save history to disk, creating parent directories if needed."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         data = {"snapshots": [s.to_dict() for s in self.snapshots]}
         self.storage_path.write_text(json.dumps(data, indent=2))
 
     def add(self, snapshot: BuildSnapshot) -> None:
-        """Add a snapshot to history."""
+        """
+        Add a snapshot to history.
+
+        Automatically prunes oldest snapshots if max_snapshots is exceeded.
+
+        Args:
+            snapshot: BuildSnapshot to add.
+        """
         self.snapshots.append(snapshot)
         # Trim to max
         if len(self.snapshots) > self.max_snapshots:
@@ -415,15 +451,41 @@ class BuildHistory:
         self._save()
 
     def get_latest(self, n: int = 1) -> list[BuildSnapshot]:
-        """Get the N most recent snapshots."""
+        """
+        Get the N most recent snapshots.
+
+        Args:
+            n: Number of snapshots to return.
+
+        Returns:
+            List of most recent snapshots (may be fewer than n if history is short).
+        """
         return self.snapshots[-n:]
 
     def get_baseline(self) -> BuildSnapshot | None:
-        """Get the baseline (first) snapshot."""
+        """
+        Get the baseline (first) snapshot in history.
+
+        Returns:
+            First recorded snapshot, or None if history is empty.
+        """
         return self.snapshots[0] if self.snapshots else None
 
     def compute_trend(self) -> dict[str, Any]:
-        """Compute trend statistics over history."""
+        """
+        Compute trend statistics over history.
+
+        Returns:
+            Dictionary with keys:
+                - build_count: Number of builds in history
+                - avg_build_time_ms: Average build time
+                - min_build_time_ms: Fastest build time
+                - max_build_time_ms: Slowest build time
+                - time_trend: Change in build time (first to last)
+                - page_trend: Change in page count (first to last)
+
+            Returns empty dict if fewer than 2 snapshots.
+        """
         if len(self.snapshots) < 2:
             return {}
 
@@ -630,20 +692,40 @@ class BuildDeltaAnalyzer(DebugTool):
         return BuildDelta.compute(baseline, current)
 
     def save_baseline(self) -> None:
-        """Save current state as new baseline (clears history)."""
+        """
+        Save current state as new baseline.
+
+        Clears history and starts fresh with current build as baseline.
+        Useful after major changes or optimizations.
+        """
         current = self._get_current_snapshot()
         if current:
             self.history.snapshots = [current]
             self.history._save()
 
     def _get_current_snapshot(self) -> BuildSnapshot | None:
-        """Get snapshot of current state."""
+        """
+        Get snapshot of current build state.
+
+        Creates snapshot from cache if available.
+
+        Returns:
+            BuildSnapshot or None if no cache available.
+        """
         if self.cache:
             return BuildSnapshot.from_cache(self.cache)
         return None
 
     def _generate_recommendations(self, report: DebugReport) -> list[str]:
-        """Generate recommendations based on analysis."""
+        """
+        Generate actionable recommendations based on analysis.
+
+        Args:
+            report: Completed DebugReport with findings.
+
+        Returns:
+            List of recommendation strings.
+        """
         recommendations: list[str] = []
 
         for finding in report.findings:

@@ -5,20 +5,41 @@ Provides URLRegistry for centralized URL claim management with priority-based
 conflict resolution. Enables explicit ownership tracking across content,
 autodoc, taxonomy, special pages, and redirects.
 
+Public API:
+    URLClaim: Immutable record of URL ownership (owner, source, priority)
+    URLCollisionError: Exception raised when URL collision detected
+    URLRegistry: Central authority for URL claims with conflict resolution
+
 Key Concepts:
-    - URLClaim: Immutable record of URL ownership
-    - URLRegistry: Central authority for URL claims
-    - Priority-based resolution: Higher priority wins conflicts
-    - Claim-time enforcement: Fail fast before file writes
+    Claim-Time Enforcement: URLs are claimed before file writes. Conflicts
+        detected early prevent silent overwrites and broken navigation.
 
-Related Modules:
-    - bengal.config.url_policy: Reserved namespace definitions
-    - bengal.health.validators.ownership_policy: Policy validation
-    - bengal.utils.url_strategy: URL computation utilities
+    Priority-Based Resolution: Higher priority claims win. This allows
+        user content (priority 100) to override generated pages (priority 50).
 
-See Also:
-    - plan/drafted/plan-url-ownership-architecture.md: Implementation plan
-    - plan/evaluated/rfc-url-ownership-architecture.md: Design rationale
+    Priority Levels (by convention):
+        100: User content (content/ pages)
+         80: User redirects (explicit aliases)
+         50: Generated content (autodoc, taxonomy)
+         40: System pages (404, sitemap)
+
+    Ownership Tracking: Each claim records owner (e.g., "content",
+        "autodoc:python"), source file, and optional version/lang.
+
+Usage:
+    registry = URLRegistry()
+    registry.claim("/about/", owner="content", source="content/about.md", priority=100)
+    registry.claim("/api/", owner="autodoc:python", source="bengal.core", priority=50)
+
+    # Check for existing claim
+    claim = registry.get_claim("/about/")
+    if claim:
+        print(f"Owned by {claim.owner}")
+
+Related Packages:
+    bengal.config.url_policy: Reserved namespace definitions
+    bengal.health.validators.ownership_policy: Policy validation
+    bengal.utils.url_strategy: URL computation utilities
 """
 
 from __future__ import annotations

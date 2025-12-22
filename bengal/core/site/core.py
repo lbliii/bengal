@@ -1,24 +1,38 @@
 """
 Core Site dataclass for Bengal SSG.
 
-The Site object is the central container for all content (pages, sections,
-assets) and coordinates discovery, rendering, and output generation. It
-maintains caches for expensive operations and provides query interfaces
-for templates.
+Provides the Site class—the central container coordinating pages, sections,
+assets, themes, and the build process. Site is the primary entry point for
+building and serving Bengal sites.
 
-Key Concepts:
-    - Content organization: Pages, sections, and assets organized hierarchically
-    - Caching: Expensive property caches invalidated when content changes
-    - Theme integration: Theme resolution and template/asset discovery
-    - Query interfaces: Taxonomy, menu, and page query APIs for templates
+Public API:
+    Site: Central container with build(), serve(), and clean() methods
 
-Related Modules:
-    - bengal.orchestration.build: Build orchestration using Site
-    - bengal.rendering.template_engine: Template rendering with Site context
-    - bengal.cache.build_cache: Build state persistence
+Key Responsibilities:
+    Content Organization: Manages pages, sections, and assets in hierarchy
+    Build Coordination: site.build() orchestrates full build pipeline
+    Dev Server: site.serve() provides live-reload development server
+    Theme Integration: Resolves theme chains for template/asset lookup
+    Query Interfaces: Provides taxonomy, menu, and page query APIs
 
-See Also:
-    - plan/active/rfc-incremental-builds.md: Incremental build design
+Mixin Architecture:
+    Site is composed of focused mixins for separation of concerns:
+    - SitePropertiesMixin: Config property accessors
+    - PageCachesMixin: Cached page lists
+    - SiteFactoriesMixin: Factory methods (from_config, for_testing)
+    - ContentDiscoveryMixin: Content/asset discovery
+    - ThemeIntegrationMixin: Theme resolution
+    - DataLoadingMixin: data/ directory loading
+    - SectionRegistryMixin: O(1) section lookups
+
+Caching Strategy:
+    Expensive computations (page lists, section lookups) are cached and
+    invalidated when content changes via invalidate_page_caches().
+
+Related Packages:
+    bengal.orchestration.build: Build phase orchestration
+    bengal.rendering.template_engine: Template rendering with Site context
+    bengal.cache.build_cache: Build state persistence
 """
 
 from __future__ import annotations

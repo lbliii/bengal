@@ -6,19 +6,30 @@ sorting, and hierarchical query interfaces. Sections can be nested and
 maintain parent-child relationships. Each section can have an index page
 and contains both regular pages and subsections.
 
+Public API:
+    Section: Content directory representation with pages and subsections
+    WeightedPage: Helper for weight-based page sorting
+
 Key Concepts:
-    - Hierarchy: Sections form a tree structure with parent-child relationships
-    - Index pages: Special pages (_index.md or index.md) that represent the section
-    - Weight-based sorting: Pages and subsections sorted by weight metadata
-    - Hashability: Sections are hashable by path for set operations
+    Hierarchy: Sections form a tree structure with parent-child relationships.
+        Access via section.parent, section.subsections, section.root.
 
-Related Modules:
-    - bengal.core.page: Page objects contained within sections
-    - bengal.core.site: Site container that manages all sections
-    - bengal.orchestration.content: Content discovery that builds section hierarchy
+    Index Pages: Special pages (_index.md or index.md) that represent the section.
+        Provides section-level metadata (title, description, cascade values).
 
-See Also:
-    - bengal/core/section.py:Section class for section representation
+    Weight-based Sorting: Pages and subsections sorted by weight metadata.
+        Lower weights appear first; unweighted items sort to end.
+
+    Virtual Sections: Sections without a disk directory (e.g., autodoc API docs).
+        Created via Section.create_virtual() for dynamically-generated content.
+
+    Hashability: Sections hashable by path for set operations and dict keys.
+        Two sections with same path are considered equal.
+
+Related Packages:
+    bengal.core.page: Page objects contained within sections
+    bengal.core.site: Site container that manages all sections
+    bengal.orchestration.content: Content discovery that builds section hierarchy
 """
 
 from __future__ import annotations

@@ -1,17 +1,48 @@
 """
 Configuration Inspector and Diff Tool.
 
-Advanced configuration comparison and analysis beyond the basic `bengal config diff`.
-Supports comparing arbitrary config sources, explaining effective values, and
-identifying potential configuration issues.
+Advanced configuration comparison and analysis beyond the basic
+`bengal config diff` command. Provides deep comparison between config
+sources, explains how effective values are resolved through the layer
+system, and identifies potential configuration issues.
 
-Example usage:
+Key Features:
+    - ConfigDiff: Single configuration key difference
+    - ConfigComparisonResult: Complete diff between two sources
+    - KeyExplanation: Resolution chain for a specific key
+    - ConfigInspector: Debug tool combining all capabilities
 
-```python
-inspector = ConfigInspector(site)
-diff = inspector.compare(source1="local", source2="production")
-print(diff.format_detailed())
-```
+Use Cases:
+    - Compare local vs production configuration
+    - Understand why a config key has a specific value
+    - Detect configuration drift between environments
+    - Find deprecated or suspicious configuration
+
+Example:
+    >>> from bengal.debug.config_inspector import ConfigInspector
+    >>> inspector = ConfigInspector(site)
+    >>> diff = inspector.compare("local", "production")
+    >>> print(diff.format_detailed())
+    Comparing: local → production
+      Added: 1
+      Removed: 0
+      Changed: 3
+
+    >>> explanation = inspector.explain_key("site.baseurl")
+    >>> print(explanation.format())
+    site.baseurl: https://example.com
+      Source: environments/production.yaml
+      Resolution chain:
+        ○ _default: /
+        → environments/production: https://example.com
+
+Related Modules:
+    - bengal.config.directory_loader: Config loading and layering
+    - bengal.config.environment: Environment detection
+    - bengal.debug.base: Debug tool infrastructure
+
+See Also:
+    - bengal/cli/commands/config.py: CLI integration
 """
 
 from __future__ import annotations
@@ -28,18 +59,43 @@ logger = get_logger(__name__)
 
 @dataclass
 class ConfigDiff:
-    """A single configuration difference."""
+    """
+    A single configuration key difference between two sources.
 
-    path: str  # Dot-separated key path (e.g., "site.title")
+    Attributes:
+        path: Dot-separated key path (e.g., "site.title", "build.parallel").
+        type: Type of change: "added", "removed", or "changed".
+        old_value: Previous value (None for added keys).
+        new_value: New value (None for removed keys).
+        old_origin: Source file where old value came from.
+        new_origin: Source file where new value comes from.
+        impact: Potential impact description of this change.
+
+    Example:
+        >>> diff = ConfigDiff(
+        ...     path="site.baseurl",
+        ...     type="changed",
+        ...     old_value="/",
+        ...     new_value="https://example.com",
+        ...     impact="Changes output URLs and may break links",
+        ... )
+    """
+
+    path: str
     type: Literal["added", "removed", "changed"]
     old_value: Any = None
     new_value: Any = None
     old_origin: str | None = None
     new_origin: str | None = None
-    impact: str | None = None  # Potential impact of this change
+    impact: str | None = None
 
     def format(self) -> str:
-        """Format the diff for display."""
+        """
+        Format the diff for display.
+
+        Returns:
+            Single line like "+ key: value" or "~ key: old → new"
+        """
         if self.type == "added":
             return f"+ {self.path}: {self.new_value}"
         elif self.type == "removed":
@@ -50,7 +106,24 @@ class ConfigDiff:
 
 @dataclass
 class ConfigComparisonResult:
-    """Result of comparing two configurations."""
+    """
+    Complete result of comparing two configuration sources.
+
+    Contains all differences found, categorized by type, with the
+    full configuration dictionaries for reference.
+
+    Attributes:
+        source1: Name of first (earlier/base) configuration source.
+        source2: Name of second (later/target) configuration source.
+        diffs: List of all ConfigDiff instances found.
+        config1: Complete configuration dictionary from source1.
+        config2: Complete configuration dictionary from source2.
+
+    Example:
+        >>> result = inspector.compare("local", "production")
+        >>> if result.has_changes:
+        ...     print(f"{len(result.changed)} keys changed")
+    """
 
     source1: str
     source2: str
@@ -65,21 +138,26 @@ class ConfigComparisonResult:
 
     @property
     def added(self) -> list[ConfigDiff]:
-        """Get added keys."""
+        """Get keys that were added in source2."""
         return [d for d in self.diffs if d.type == "added"]
 
     @property
     def removed(self) -> list[ConfigDiff]:
-        """Get removed keys."""
+        """Get keys that were removed from source1."""
         return [d for d in self.diffs if d.type == "removed"]
 
     @property
     def changed(self) -> list[ConfigDiff]:
-        """Get changed keys."""
+        """Get keys with different values between sources."""
         return [d for d in self.diffs if d.type == "changed"]
 
     def format_summary(self) -> str:
-        """Format a summary of differences."""
+        """
+        Format a brief summary of differences.
+
+        Returns:
+            Multi-line summary with counts by change type.
+        """
         lines = [
             f"Comparing: {self.source1} → {self.source2}",
             f"  Added: {len(self.added)}",
@@ -89,7 +167,15 @@ class ConfigComparisonResult:
         return "\n".join(lines)
 
     def format_detailed(self) -> str:
-        """Format detailed diff output."""
+        """
+        Format detailed diff output with all changes.
+
+        Shows added, removed, and changed keys with their values
+        and origin files.
+
+        Returns:
+            Multi-line detailed diff output.
+        """
         lines = [self.format_summary(), ""]
 
         if self.added:
@@ -123,18 +209,48 @@ class ConfigComparisonResult:
 
 @dataclass
 class KeyExplanation:
-    """Explanation of how a config key got its value."""
+    """
+    Explanation of how a configuration key got its effective value.
+
+    Shows the complete resolution chain through defaults, environment,
+    and profile layers, indicating which layer provided the final value.
+
+    Attributes:
+        key_path: Dot-separated key path (e.g., "site.baseurl").
+        effective_value: The final resolved value for this key.
+        origin: Source file where the effective value came from.
+        layer_values: Resolution chain as (source, value) tuples.
+        is_default: Whether the value comes from _default layer.
+        deprecated: Whether this key is deprecated.
+        deprecation_message: Message explaining deprecation.
+
+    Example:
+        >>> explanation = inspector.explain_key("build.parallel")
+        >>> print(explanation.format())
+        build.parallel: True
+          Source: environments/production.yaml
+          Resolution chain:
+            ○ _default: False
+            → environments/production: True
+    """
 
     key_path: str
     effective_value: Any
     origin: str | None = None
-    layer_values: list[tuple[str, Any]] = field(default_factory=list)  # (source, value)
+    layer_values: list[tuple[str, Any]] = field(default_factory=list)
     is_default: bool = False
     deprecated: bool = False
     deprecation_message: str | None = None
 
     def format(self) -> str:
-        """Format the explanation."""
+        """
+        Format the explanation for display.
+
+        Shows key, value, origin, and full resolution chain.
+
+        Returns:
+            Multi-line formatted explanation.
+        """
         lines = [f"{self.key_path}: {self.effective_value}"]
 
         if self.origin:
@@ -159,13 +275,30 @@ class ConfigInspector(DebugTool):
     """
     Advanced configuration inspector and diff tool.
 
-    Provides:
-    - Deep comparison between any config sources
-    - Origin tracking for each value
-    - Impact analysis for differences
-    - Key-level explanation of value resolution
-    - Default value detection
-    - Deprecation warnings
+    Provides deep comparison between configuration sources (environments,
+    profiles), explains how values are resolved through the layer system,
+    and identifies potential configuration issues.
+
+    Capabilities:
+        - Deep comparison between any config sources
+        - Origin tracking for each value
+        - Impact analysis for configuration changes
+        - Key-level explanation of value resolution
+        - Default value detection
+        - Deprecation warnings
+        - Issue detection (missing protocols, trailing slashes)
+
+    Creation:
+        Instantiate with a Site instance:
+            inspector = ConfigInspector(site)
+
+    Example:
+        >>> inspector = ConfigInspector(site)
+        >>> diff = inspector.compare("local", "production")
+        >>> print(diff.format_detailed())
+        >>>
+        >>> explanation = inspector.explain_key("site.baseurl")
+        >>> print(explanation.format())
     """
 
     name: str = "config"

@@ -2,22 +2,50 @@
 Content migration assistant for safe content restructuring.
 
 Provides tools to safely move, split, merge, and reorganize content files
-while maintaining link integrity and generating necessary redirects.
+while maintaining link integrity and automatically generating redirects.
+All operations can be previewed before execution.
 
 Key Features:
-    - Preview moves before executing
-    - Automatic redirect generation
-    - Link update across the site
-    - Split large pages into smaller ones
-    - Merge related pages
+    - MoveOperation: Planned content move
+    - MovePreview: Preview showing affected links and redirects
+    - LinkUpdate: Link that needs updating after a move
+    - Redirect: Redirect rule in multiple formats
+    - PageDraft: Draft for split/merge operations
+    - ContentMigrator: Debug tool combining all capabilities
+
+Operations:
+    - preview_move(): Preview what a move would do
+    - execute_move(): Execute with link updates and redirects
+    - split_page(): Split large page into sections
+    - merge_pages(): Merge multiple pages into one
+    - generate_redirects(): Create redirect rules
+
+Example:
+    >>> from bengal.debug import ContentMigrator
+    >>> migrator = ContentMigrator(site=site)
+    >>> preview = migrator.preview_move("docs/old.md", "guides/new.md")
+    >>> print(preview.format_summary())
+    📦 Move Preview: docs/old.md → guides/new.md
+
+    🔗 3 links would be updated:
+       • content/index.md:15
+       • content/about.md:42
+
+    ↪️  1 redirect(s) would be created:
+       • /docs/old → /guides/new
+
+    ✅ Safe to proceed
+
+    >>> if preview.can_proceed:
+    ...     actions = migrator.execute_move(preview)
 
 Related Modules:
     - bengal.health.validators.links: Link validation
-    - bengal.analysis.knowledge_graph: Content relationships
+    - bengal.postprocess.redirects: Redirect handling
     - bengal.debug.base: Debug tool infrastructure
 
 See Also:
-    - bengal/postprocess/redirects.py: Redirect handling
+    - bengal/cli/commands/debug.py: CLI integration
 """
 
 from __future__ import annotations
@@ -41,10 +69,22 @@ class MoveOperation:
     """
     A planned content move operation.
 
+    Describes the source and destination of a content file move.
+    Used as input to preview_move() and stored in MovePreview.
+
     Attributes:
-        source: Source path (relative to content dir)
-        destination: Destination path (relative to content dir)
-        reason: Why this move is happening
+        source: Source path (relative to content directory).
+        destination: Destination path (relative to content directory).
+        reason: Optional explanation of why this move is needed.
+
+    Example:
+        >>> op = MoveOperation(
+        ...     source="docs/api-old.md",
+        ...     destination="reference/api.md",
+        ...     reason="Reorganizing documentation structure",
+        ... )
+        >>> print(op)
+        docs/api-old.md → reference/api.md
     """
 
     source: str
@@ -52,20 +92,33 @@ class MoveOperation:
     reason: str = ""
 
     def __str__(self) -> str:
+        """Format as source → destination."""
         return f"{self.source} → {self.destination}"
 
 
 @dataclass
 class LinkUpdate:
     """
-    A link that needs to be updated.
+    A link that needs to be updated after a content move.
+
+    Identifies where a link exists and what it should change to.
+    Includes context for review before making changes.
 
     Attributes:
-        file_path: File containing the link
-        old_link: Current link target
-        new_link: New link target
-        line: Line number in file
-        context: Surrounding text context
+        file_path: Path to the file containing the link.
+        old_link: Current link target (to be replaced).
+        new_link: New link target (replacement).
+        line: Line number where the link appears.
+        context: Surrounding text (markdown link syntax).
+
+    Example:
+        >>> update = LinkUpdate(
+        ...     file_path="content/index.md",
+        ...     old_link="/docs/api-old",
+        ...     new_link="/reference/api",
+        ...     line=42,
+        ...     context="[API Reference](/docs/api-old)",
+        ... )
     """
 
     file_path: str
@@ -80,10 +133,22 @@ class Redirect:
     """
     A redirect rule for moved content.
 
+    Supports generating redirect rules in multiple formats for
+    different hosting platforms.
+
     Attributes:
-        from_path: Old URL path
-        to_path: New URL path
-        status_code: HTTP status code (301 permanent, 302 temporary)
+        from_path: Old URL path (source of redirect).
+        to_path: New URL path (destination of redirect).
+        status_code: HTTP status code (301 permanent, 302 temporary).
+
+    Example:
+        >>> redirect = Redirect(
+        ...     from_path="/docs/api-old",
+        ...     to_path="/reference/api",
+        ...     status_code=301,
+        ... )
+        >>> print(redirect.to_netlify())
+        /docs/api-old /reference/api 301
     """
 
     from_path: str
@@ -91,15 +156,15 @@ class Redirect:
     status_code: int = 301
 
     def to_nginx(self) -> str:
-        """Generate nginx redirect rule."""
+        """Generate nginx redirect rule for server config."""
         return f"rewrite ^{self.from_path}$ {self.to_path} permanent;"
 
     def to_netlify(self) -> str:
-        """Generate Netlify _redirects format."""
+        """Generate Netlify _redirects file format."""
         return f"{self.from_path} {self.to_path} {self.status_code}"
 
     def to_apache(self) -> str:
-        """Generate Apache .htaccess rule."""
+        """Generate Apache .htaccess redirect directive."""
         return f"Redirect {self.status_code} {self.from_path} {self.to_path}"
 
 
@@ -108,12 +173,24 @@ class MovePreview:
     """
     Preview of what a move operation would do.
 
+    Generated by preview_move() to show all effects before execution.
+    Allows review of link updates, redirects, and any warnings before
+    committing to the move.
+
     Attributes:
-        operation: The move operation being previewed
-        affected_links: Links that would need updating
-        redirects_needed: Redirects that would be generated
-        warnings: Any warnings about the move
-        can_proceed: Whether the move can safely proceed
+        operation: The move operation being previewed.
+        affected_links: Links that would need updating across the site.
+        redirects_needed: Redirect rules that would be generated.
+        warnings: Any warnings about potential issues.
+        can_proceed: Whether the move can safely proceed.
+
+    Example:
+        >>> preview = migrator.preview_move("docs/old.md", "guides/new.md")
+        >>> if not preview.can_proceed:
+        ...     for warning in preview.warnings:
+        ...         print(f"⚠️ {warning}")
+        >>> else:
+        ...     migrator.execute_move(preview)
     """
 
     operation: MoveOperation
@@ -123,7 +200,12 @@ class MovePreview:
     can_proceed: bool = True
 
     def format_summary(self) -> str:
-        """Format preview as summary."""
+        """
+        Format preview as human-readable summary.
+
+        Returns:
+            Multi-line summary with affected links, redirects, and status.
+        """
         lines = [f"📦 Move Preview: {self.operation}"]
         lines.append("")
 

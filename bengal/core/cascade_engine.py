@@ -1,26 +1,35 @@
 """
 Isolated cascade engine for applying metadata cascades.
 
-This module provides the CascadeEngine class which handles all cascade
-application logic independently from Site and ContentOrchestrator.
+Provides the CascadeEngine class which handles all cascade application logic
+independently from Site and ContentOrchestrator. Pre-computes page-section
+relationships for O(1) top-level page detection.
 
-The engine pre-computes page-section relationships for O(1) top-level
-page detection, improving performance from O(n²) to O(n).
+Public API:
+    CascadeEngine: Applies cascade metadata from sections to pages
 
 Key Concepts:
-    - Cascade: Metadata propagation from section index pages to descendants
-    - Accumulation: Cascades accumulate through the hierarchy (child extends parent)
-    - Precedence: Page-level metadata always overrides cascaded values
-    - Pre-computation: O(1) top-level page detection via pre-computed sets
+    Cascade: Metadata propagation from section _index.md files to all
+        descendant pages. Define once at section level, apply everywhere.
 
-Related Modules:
-    - bengal.core.site.discovery: ContentDiscoveryMixin calls _apply_cascades()
-    - bengal.core.section: Section objects that define cascade metadata
-    - bengal.core.page: Page objects that receive cascaded metadata
+    Accumulation: Cascades accumulate through the hierarchy. Child sections
+        inherit parent cascade and can extend/override values.
 
-See Also:
-    - bengal/core/cascade_engine.py:CascadeEngine for implementation
-    - plan/active/rfc-cascade-metadata.md: Cascade system design
+    Precedence: Page-level metadata always overrides cascaded values.
+        Cascades only fill in missing fields, never replace existing.
+
+    Pre-computation: Page-section relationships computed once at init
+        for O(1) top-level page detection (vs O(n) per-page lookup).
+
+Usage:
+    engine = CascadeEngine(site.pages, site.sections)
+    stats = engine.apply()
+    # stats contains: pages_processed, pages_with_cascade, etc.
+
+Related Packages:
+    bengal.core.site.discovery: ContentDiscoveryMixin calls _apply_cascades()
+    bengal.core.section: Section objects that define cascade metadata
+    bengal.core.page: Page objects that receive cascaded metadata
 """
 
 from __future__ import annotations
