@@ -1,5 +1,20 @@
 """
 Async external link checker with retries, backoff, and concurrency control.
+
+Uses httpx for async HTTP requests with connection pooling and DNS caching.
+Implements exponential backoff with jitter for resilient retry behavior.
+
+Features:
+    - Global concurrency limit via asyncio.Semaphore
+    - Per-host concurrency to avoid rate limiting
+    - HEAD-first requests with GET fallback
+    - Configurable timeout, retries, and backoff
+    - Ignore policies for patterns, domains, and status codes
+
+Related:
+    - bengal.health.linkcheck.ignore_policy: IgnorePolicy configuration
+    - bengal.health.linkcheck.models: LinkCheckResult data model
+    - bengal.utils.retry: Shared backoff calculation
 """
 
 from __future__ import annotations
@@ -21,13 +36,28 @@ class AsyncLinkChecker:
     """
     Async HTTP link checker with retries, backoff, and concurrency control.
 
-    Features:
-    - Global concurrency limit via semaphore
-    - Per-host concurrency limit to avoid rate limits
-    - Exponential backoff with jitter for retries
-    - HEAD request first, fallback to GET on 405/403
-    - Connection pooling and DNS caching via httpx
-    - Ignore policies for patterns, domains, and status ranges
+    Uses httpx AsyncClient with connection pooling for efficient concurrent
+    requests. Implements two-tier concurrency limiting (global and per-host)
+    to balance throughput against rate limiting risks.
+
+    Request Strategy:
+        1. Send HEAD request (lightweight)
+        2. On 405/501, fallback to GET
+        3. Retry on timeout/network errors with exponential backoff
+
+    Attributes:
+        max_concurrency: Global concurrent request limit
+        per_host_limit: Per-host concurrent request limit
+        timeout: Request timeout in seconds
+        retries: Number of retry attempts before giving up
+        retry_backoff: Base delay for exponential backoff
+        ignore_policy: IgnorePolicy for filtering URLs/statuses
+        user_agent: User-Agent header sent with requests
+
+    Example:
+        >>> checker = AsyncLinkChecker(max_concurrency=10, timeout=5.0)
+        >>> urls = [("https://example.com", "index.html")]
+        >>> results = await checker.check_links(urls)
     """
 
     def __init__(
@@ -44,12 +74,12 @@ class AsyncLinkChecker:
         Initialize async link checker.
 
         Args:
-            max_concurrency: Maximum concurrent requests across all hosts
-            per_host_limit: Maximum concurrent requests per host
-            timeout: Request timeout in seconds
-            retries: Number of retry attempts
-            retry_backoff: Base backoff time for exponential backoff (seconds)
-            ignore_policy: Policy for ignoring links/statuses
+            max_concurrency: Maximum concurrent requests globally (default: 20)
+            per_host_limit: Maximum concurrent requests per host (default: 4)
+            timeout: Request timeout in seconds (default: 10.0)
+            retries: Number of retry attempts on failure (default: 2)
+            retry_backoff: Base backoff time in seconds (default: 0.5)
+            ignore_policy: Policy for ignoring URLs/statuses (default: allow all)
             user_agent: User-Agent header value
         """
         self.max_concurrency = max_concurrency
@@ -70,12 +100,15 @@ class AsyncLinkChecker:
         """
         Check multiple external URLs concurrently.
 
+        Deduplicates URLs, creates an httpx client with connection pooling,
+        and checks all URLs concurrently respecting concurrency limits.
+
         Args:
             urls: List of (url, first_ref) tuples where first_ref is the page
-                  that first referenced this URL
+                that first referenced this URL. Duplicates are consolidated.
 
         Returns:
-            Dict mapping URL to LinkCheckResult
+            Dict mapping URL string to LinkCheckResult.
         """
         # Group URLs by destination and count references
         url_refs: dict[str, list[str]] = {}
@@ -129,15 +162,18 @@ class AsyncLinkChecker:
         self, client: httpx.AsyncClient, url: str, refs: list[str]
     ) -> LinkCheckResult:
         """
-        Check a single URL with retries and backoff.
+        Check a single URL with concurrency control.
+
+        Acquires global and per-host semaphores before making requests.
+        Applies ignore policy and delegates to _check_with_retries.
 
         Args:
-            client: httpx AsyncClient
-            url: URL to check
-            refs: List of pages that reference this URL
+            client: httpx AsyncClient with connection pooling.
+            url: External URL to check.
+            refs: List of pages that reference this URL.
 
         Returns:
-            LinkCheckResult
+            LinkCheckResult with status, code, and metadata.
         """
         # Check ignore policy
         should_ignore, ignore_reason = self.ignore_policy.should_ignore_url(url)
@@ -182,13 +218,16 @@ class AsyncLinkChecker:
         """
         Check URL with exponential backoff retries.
 
+        Attempts HEAD request first, falling back to GET on 405/501.
+        Retries on timeout and request errors with exponential backoff.
+
         Args:
-            client: httpx AsyncClient
-            url: URL to check
-            refs: List of pages that reference this URL
+            client: httpx AsyncClient with connection pooling.
+            url: External URL to check.
+            refs: List of pages that reference this URL.
 
         Returns:
-            LinkCheckResult
+            LinkCheckResult with OK/BROKEN/ERROR status.
         """
         last_error: Exception | None = None
 
@@ -303,14 +342,14 @@ class AsyncLinkChecker:
         """
         Calculate exponential backoff with jitter.
 
-        Delegates to centralized calculate_backoff utility for consistent
+        Delegates to bengal.utils.retry.calculate_backoff for consistent
         backoff behavior across the codebase.
 
         Args:
-            attempt: Attempt number (0-indexed)
+            attempt: Attempt number (0-indexed).
 
         Returns:
-            Backoff time in seconds
+            Backoff delay in seconds (capped at 10.0).
         """
         return calculate_backoff(
             attempt=attempt,
@@ -322,13 +361,21 @@ class AsyncLinkChecker:
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> AsyncLinkChecker:
         """
-        Create AsyncLinkChecker from config dict.
+        Create AsyncLinkChecker from configuration dict.
 
         Args:
-            config: Configuration dict
+            config: Dict with optional keys:
+                - max_concurrency: Global concurrency limit
+                - per_host_limit: Per-host concurrency limit
+                - timeout: Request timeout in seconds
+                - retries: Number of retry attempts
+                - retry_backoff: Base backoff time
+                - exclude: URL patterns to ignore
+                - exclude_domain: Domains to ignore
+                - ignore_status: Status codes to ignore
 
         Returns:
-            Configured AsyncLinkChecker instance
+            Configured AsyncLinkChecker instance.
         """
         ignore_policy = IgnorePolicy.from_config(config)
 

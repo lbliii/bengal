@@ -2,18 +2,31 @@
 Unique error codes for Bengal errors.
 
 Error codes enable quick identification, searchability, and documentation linking.
-Each code is prefixed by category:
-- C: Config errors
-- N: Content errors
-- R: Rendering errors
-- D: Discovery errors
-- A: Cache errors
-- S: Server errors
-- T: Template errors
-- P: Parsing errors
-- X: Asset errors
+Each code follows the format ``[Category][Number]`` where the category is a single
+letter prefix indicating the error domain.
 
-Usage:
+Category Prefixes
+=================
+
+====  ================  =================================
+Code  Category          Description
+====  ================  =================================
+C     Config            Configuration loading and validation
+N     Content           Frontmatter, markdown, taxonomy
+R     Rendering         Template rendering and output
+D     Discovery         Content and section discovery
+A     Cache             Build cache operations
+S     Server            Development server
+T     Template          Template functions, shortcodes, directives
+P     Parsing           YAML, JSON, TOML, markdown parsing
+X     Asset             Static asset processing
+====  ================  =================================
+
+Usage
+=====
+
+Raise an error with a code::
+
     from bengal.errors import ErrorCode, BengalRenderingError
 
     raise BengalRenderingError(
@@ -21,6 +34,25 @@ Usage:
         code=ErrorCode.R001,
         file_path=template_path,
     )
+
+Look up a code by name::
+
+    from bengal.errors import get_error_code_by_name
+
+    code = get_error_code_by_name("R001")  # By code name
+    code = get_error_code_by_name("template_not_found")  # By value
+
+Get all codes in a category::
+
+    from bengal.errors import get_codes_by_category
+
+    rendering_codes = get_codes_by_category("rendering")
+
+See Also
+========
+
+- Each code maps to documentation at ``/docs/errors/{code}/``
+- ``bengal/errors/exceptions.py`` - Exception classes using these codes
 """
 
 from __future__ import annotations
@@ -32,11 +64,40 @@ class ErrorCode(Enum):
     """
     Unique error codes for Bengal errors.
 
-    Format: [Category][Number]
-    - Category: Single letter indicating error domain
-    - Number: 3-digit sequential number
+    Each code follows the format ``[Category][Number]`` where:
 
-    Each code maps to documentation at /docs/errors/{code}/
+    - **Category**: Single letter indicating error domain (C, N, R, D, A, S, T, P, X)
+    - **Number**: 3-digit sequential number within the category (001-099)
+
+    Codes are organized into ranges by category:
+
+    - ``C001-C099``: Configuration errors
+    - ``N001-N099``: Content errors (frontmatter, markdown)
+    - ``R001-R099``: Rendering errors (templates, output)
+    - ``D001-D099``: Discovery errors (content paths, sections)
+    - ``A001-A099``: Cache errors (corruption, versioning)
+    - ``S001-S099``: Server errors (dev server, ports)
+    - ``T001-T099``: Template function errors (shortcodes, directives)
+    - ``P001-P099``: Parsing errors (YAML, JSON, markdown)
+    - ``X001-X099``: Asset errors (static files, processing)
+
+    Each code maps to documentation at ``/docs/errors/{code}/``.
+
+    Attributes:
+        value: Human-readable identifier (e.g., "template_not_found")
+        name: Code identifier (e.g., "R001")
+
+    Example:
+        >>> from bengal.errors import ErrorCode
+        >>> code = ErrorCode.R001
+        >>> code.name
+        'R001'
+        >>> code.value
+        'template_not_found'
+        >>> code.category
+        'rendering'
+        >>> code.docs_url
+        '/docs/errors/r001/'
     """
 
     # ============================================================
@@ -144,12 +205,26 @@ class ErrorCode(Enum):
 
     @property
     def docs_url(self) -> str:
-        """Get documentation URL for this error code."""
+        """
+        Documentation URL for this error code.
+
+        Returns:
+            URL path to error documentation (e.g., "/docs/errors/r001/")
+        """
         return f"/docs/errors/{self.name.lower()}/"
 
     @property
     def category(self) -> str:
-        """Get error category from code prefix."""
+        """
+        Human-readable error category derived from the code prefix.
+
+        Maps single-letter prefixes to descriptive category names:
+        C→config, N→content, R→rendering, D→discovery, A→cache,
+        S→server, T→template_function, P→parsing, X→asset.
+
+        Returns:
+            Category name (e.g., "rendering", "config") or "unknown"
+        """
         categories = {
             "C": "config",
             "N": "content",
@@ -166,7 +241,15 @@ class ErrorCode(Enum):
 
     @property
     def subsystem(self) -> str:
-        """Get Bengal subsystem for this error."""
+        """
+        Bengal package subsystem where this error typically originates.
+
+        Maps error codes to the primary Bengal package responsible
+        for handling errors of this type. Used for investigation.
+
+        Returns:
+            Subsystem name (e.g., "rendering", "core") or "unknown"
+        """
         subsystem_map = {
             "C": "config",
             "N": "core",
@@ -182,7 +265,12 @@ class ErrorCode(Enum):
         return subsystem_map.get(prefix, "unknown")
 
     def __str__(self) -> str:
-        """Return code name for display."""
+        """
+        String representation of the error code.
+
+        Returns:
+            The code name (e.g., "R001")
+        """
         return self.name
 
 

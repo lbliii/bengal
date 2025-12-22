@@ -1,7 +1,37 @@
 """
-Font downloader using Google Fonts API.
+Google Fonts downloader for self-hosted font files.
 
-No external dependencies - uses only Python stdlib.
+Downloads .woff2 font files from Google Fonts using only Python stdlib
+(no external HTTP libraries required). Fonts are fetched via the Google
+Fonts CSS API, which provides direct URLs to font files.
+
+Key Features:
+    - No external dependencies (uses urllib.request)
+    - Automatic SSL fallback for macOS certificate issues
+    - Atomic file writes to prevent corruption
+    - Support for multiple weights and italic styles
+
+Architecture:
+    This module is a pure utility—it performs network I/O but does not
+    interact with Site or Page models. It is used by FontHelper in the
+    package's __init__.py.
+
+Example:
+    >>> from bengal.fonts.downloader import GoogleFontsDownloader
+    >>> downloader = GoogleFontsDownloader()
+    >>> variants = downloader.download_font(
+    ...     family="Inter",
+    ...     weights=[400, 700],
+    ...     output_dir=Path("assets/fonts")
+    ... )
+    >>> for v in variants:
+    ...     print(f"{v.family} {v.weight}: {v.filename}")
+    Inter 400: inter-400.woff2
+    Inter 700: inter-700.woff2
+
+Related:
+    - bengal/fonts/__init__.py: FontHelper integration
+    - bengal/fonts/generator.py: CSS generation from variants
 """
 
 from __future__ import annotations
@@ -20,16 +50,45 @@ logger = get_logger(__name__)
 
 @dataclass
 class FontVariant:
-    """A specific font variant (weight + style)."""
+    """
+    Represents a specific font variant (family + weight + style combination).
+
+    Each FontVariant corresponds to a single downloadable font file from
+    Google Fonts. The variant includes all metadata needed to generate
+    @font-face CSS rules.
+
+    Attributes:
+        family: Font family name as displayed (e.g., "Inter", "Playfair Display").
+        weight: Numeric font weight (100-900, typically 400 for regular, 700 for bold).
+        style: Font style, either "normal" or "italic".
+        url: Direct URL to the font file on Google's CDN (.woff2 or .ttf).
+
+    Example:
+        >>> variant = FontVariant("Inter", 400, "normal", "https://fonts.gstatic.com/...")
+        >>> print(variant.filename)
+        inter-400.woff2
+        >>> variant_italic = FontVariant("Inter", 400, "italic", "https://...")
+        >>> print(variant_italic.filename)
+        inter-400-italic.woff2
+    """
 
     family: str
     weight: int
-    style: str  # 'normal' or 'italic'
-    url: str  # Direct URL to font file (.woff2 or .ttf)
+    style: str
+    url: str
 
     @property
     def filename(self) -> str:
-        """Generate filename for this variant."""
+        """
+        Generate a filesystem-safe filename for this variant.
+
+        Creates a kebab-case filename combining the family name, weight,
+        optional italic suffix, and file extension derived from the URL.
+
+        Returns:
+            Filename in format ``{family}-{weight}[-italic].{ext}``.
+            Example: ``inter-700.woff2`` or ``playfair-display-400-italic.woff2``.
+        """
         style_suffix = "-italic" if self.style == "italic" else ""
         safe_name = self.family.lower().replace(" ", "-")
         # Preserve original file extension from URL
@@ -39,15 +98,43 @@ class FontVariant:
 
 class GoogleFontsDownloader:
     """
-    Downloads fonts from Google Fonts.
+    Downloads font files from Google Fonts for self-hosting.
 
-    Uses the Google Fonts CSS API to get font URLs, then downloads
-    the actual .woff2 files. No API key required.
+    Uses the Google Fonts CSS2 API to discover font file URLs, then downloads
+    the actual .woff2 (or .ttf) files. No API key is required—the CSS API is
+    public and the User-Agent header determines the returned font format.
+
+    The downloader handles:
+        - Building properly formatted CSS API URLs
+        - Parsing CSS to extract font file URLs
+        - SSL certificate issues on macOS (automatic fallback)
+        - Atomic file writes to prevent corruption
+
+    Attributes:
+        BASE_URL: Google Fonts CSS2 API endpoint.
+        USER_AGENT: Browser user-agent that requests woff2 format.
+
+    Example:
+        >>> downloader = GoogleFontsDownloader()
+        >>> variants = downloader.download_font(
+        ...     family="Inter",
+        ...     weights=[400, 600, 700],
+        ...     styles=["normal", "italic"],
+        ...     output_dir=Path("assets/fonts")
+        ... )
+        >>> len(variants)
+        6
+
+    Note:
+        The User-Agent string mimics a modern browser to ensure Google
+        returns .woff2 format (the most efficient web font format).
     """
 
     BASE_URL = "https://fonts.googleapis.com/css2"
-    # User-Agent that gets WOFF2 files (modern browser)
-    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    USER_AGENT = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
 
     def download_font(
         self,
@@ -134,8 +221,21 @@ class GoogleFontsDownloader:
             return []
 
     def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:
-        """Build Google Fonts CSS API URL."""
-        # Format: family:wght@400;700 or family:ital,wght@0,400;1,400;0,700;1,700
+        """
+        Build a Google Fonts CSS2 API URL for the specified font configuration.
+
+        Constructs the URL according to Google Fonts API format:
+            - Normal only: ``family:wght@400;700``
+            - With italic: ``family:ital,wght@0,400;1,400;0,700;1,700``
+
+        Args:
+            family: Font family name (spaces will be URL-encoded as ``+``).
+            weights: List of numeric weights to include.
+            styles: List of styles (``"normal"`` and/or ``"italic"``).
+
+        Returns:
+            Complete Google Fonts CSS2 API URL with ``display=swap`` parameter.
+        """
         family_encoded = family.replace(" ", "+")
 
         if len(styles) == 1 and styles[0] == "normal":
@@ -156,10 +256,21 @@ class GoogleFontsDownloader:
 
     def _extract_font_urls(self, css_url: str) -> dict[str, str]:
         """
-        Fetch CSS from Google Fonts and extract .woff2 URLs.
+        Fetch CSS from Google Fonts and extract font file URLs.
+
+        Requests the CSS2 API endpoint, parses the returned @font-face rules,
+        and extracts direct URLs to .woff2 or .ttf files.
+
+        Args:
+            css_url: Complete Google Fonts CSS2 API URL.
 
         Returns:
-            Dict mapping weight-style to URL (e.g., "400-normal" -> "https://...")
+            Dictionary mapping ``"{weight}-{style}"`` keys to font file URLs.
+            Example: ``{"400-normal": "https://fonts.gstatic.com/...", ...}``
+
+        Raises:
+            urllib.error.URLError: If the network request fails.
+            ssl.SSLError: If SSL verification fails (handled with fallback).
         """
         req = urllib.request.Request(css_url, headers={"User-Agent": self.USER_AGENT})
 
@@ -209,7 +320,21 @@ class GoogleFontsDownloader:
         return font_urls
 
     def _download_file(self, url: str, output_path: Path) -> None:
-        """Download a file from URL to output path."""
+        """
+        Download a file from URL and save it atomically.
+
+        Uses atomic write (write to temp file, then rename) to prevent
+        corruption if the download is interrupted. Handles SSL certificate
+        issues on macOS with automatic fallback to unverified context.
+
+        Args:
+            url: Direct URL to the font file.
+            output_path: Destination path for the downloaded file.
+
+        Raises:
+            urllib.error.URLError: If the download fails after SSL fallback.
+            OSError: If the file cannot be written.
+        """
         req = urllib.request.Request(url, headers={"User-Agent": self.USER_AGENT})
 
         # Try with standard SSL verification first, fall back to unverified on macOS

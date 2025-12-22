@@ -1,5 +1,20 @@
 """
-Link check orchestrator - coordinates internal and external checking.
+Link check orchestrator coordinating internal and external validation.
+
+The orchestrator extracts links from built HTML files, classifies them as
+internal or external, and delegates to specialized checkers. Results are
+consolidated into reports for console output and JSON serialization.
+
+Architecture:
+    1. Extract links from output_dir/*.html using HTML parsing
+    2. Classify links (http/https -> external, else -> internal)
+    3. Run InternalLinkChecker and AsyncLinkChecker concurrently
+    4. Build consolidated results and summary
+
+Related:
+    - bengal.health.linkcheck.async_checker: External link checking
+    - bengal.health.linkcheck.internal_checker: Internal link checking
+    - bengal.health.validators.links: LinkValidator health check
 """
 
 from __future__ import annotations
@@ -26,14 +41,32 @@ logger = get_logger(__name__)
 
 class LinkCheckOrchestrator:
     """
-    Orchestrates link checking across internal and external links.
+    Orchestrates internal and external link checking.
+
+    Extracts links from built HTML files, classifies them, and delegates to
+    specialized checkers. Provides consolidated results and multiple output
+    formats (console, JSON).
 
     Features:
-    - Extracts links from all pages
-    - Separates internal vs external
-    - Checks both concurrently
-    - Applies ignore policies
-    - Returns consolidated results
+        - HTML parsing to extract href attributes
+        - Automatic internal/external classification
+        - Concurrent checking with ignore policies
+        - Console and JSON report formatting
+
+    Attributes:
+        site: Site instance with output_dir
+        check_internal: Whether to validate internal links
+        check_external: Whether to validate external links
+        config: Configuration dict for checkers and ignore policy
+        ignore_policy: IgnorePolicy instance for filtering
+        internal_checker: InternalLinkChecker (if check_internal)
+        external_checker: AsyncLinkChecker (if check_external)
+
+    Example:
+        >>> orchestrator = LinkCheckOrchestrator(site, check_external=True)
+        >>> results, summary = orchestrator.check_all_links()
+        >>> if not summary.passed:
+        ...     print(orchestrator.format_console_report(results, summary))
     """
 
     def __init__(
@@ -47,10 +80,15 @@ class LinkCheckOrchestrator:
         Initialize link check orchestrator.
 
         Args:
-            site: Site instance
-            check_internal: Whether to check internal links
-            check_external: Whether to check external links
-            config: Configuration dict for checkers
+            site: Site instance with built output directory
+            check_internal: Whether to check internal page/anchor links
+            check_external: Whether to check external HTTP links
+            config: Configuration dict with optional keys:
+                - exclude: URL patterns to ignore
+                - exclude_domain: Domains to ignore
+                - ignore_status: Status codes to ignore
+                - max_concurrency: Concurrent request limit
+                - timeout: Request timeout in seconds
         """
         self.site = site
         self.check_internal = check_internal
@@ -68,10 +106,14 @@ class LinkCheckOrchestrator:
 
     def check_all_links(self) -> tuple[list[LinkCheckResult], LinkCheckSummary]:
         """
-        Check all links in the site.
+        Check all links in the built site.
+
+        Extracts links from HTML files, checks internal and external links
+        according to configuration, and returns consolidated results.
 
         Returns:
-            Tuple of (results list, summary)
+            Tuple of (results, summary) where results is a list of
+            LinkCheckResult and summary is LinkCheckSummary.
         """
         start_time = time.time()
 
@@ -135,11 +177,19 @@ class LinkCheckOrchestrator:
 
     def _extract_links(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
         """
-        Extract all links from built HTML files, separated by internal vs external.
+        Extract all links from built HTML files.
+
+        Parses HTML files in output_dir, extracts href attributes from anchor
+        tags (excluding those inside code blocks), and classifies as internal
+        or external based on URL scheme.
 
         Returns:
             Tuple of (internal_links, external_links) where each is a list of
-            (url, page_path) tuples
+            (url, page_path) tuples. page_path is the relative path of the
+            HTML file that contains the link.
+
+        Note:
+            Skips mailto:, tel:, data:, and javascript: URLs.
         """
         from html.parser import HTMLParser
 
@@ -157,7 +207,12 @@ class LinkCheckOrchestrator:
             return internal_links, external_links
 
         class LinkExtractor(HTMLParser):
-            """Extract links from HTML, skipping links inside code blocks."""
+            """
+            HTML parser that extracts href links, skipping code blocks.
+
+            Tracks nesting depth in <code> and <pre> tags to avoid extracting
+            code examples as real links.
+            """
 
             def __init__(self) -> None:
                 super().__init__()
@@ -219,14 +274,14 @@ class LinkCheckOrchestrator:
         self, results: list[LinkCheckResult], duration_ms: float
     ) -> LinkCheckSummary:
         """
-        Build summary from results.
+        Build aggregate summary from individual results.
 
         Args:
-            results: List of check results
-            duration_ms: Total duration in milliseconds
+            results: List of LinkCheckResult objects.
+            duration_ms: Total check duration in milliseconds.
 
         Returns:
-            LinkCheckSummary
+            LinkCheckSummary with counts by status and total duration.
         """
         summary = LinkCheckSummary(
             total_checked=len(results),
@@ -249,14 +304,16 @@ class LinkCheckOrchestrator:
         self, results: list[LinkCheckResult], summary: LinkCheckSummary
     ) -> dict[str, Any]:
         """
-        Format results as JSON report.
+        Format results as JSON-serializable report.
+
+        Suitable for CI integration, API responses, or file output.
 
         Args:
-            results: List of check results
-            summary: Summary statistics
+            results: List of LinkCheckResult objects.
+            summary: LinkCheckSummary with aggregate statistics.
 
         Returns:
-            JSON-serializable dict
+            Dict with status ("passed"/"failed"), summary, and results array.
         """
         return {
             "status": "passed" if summary.passed else "failed",
@@ -268,14 +325,17 @@ class LinkCheckOrchestrator:
         self, results: list[LinkCheckResult], summary: LinkCheckSummary
     ) -> str:
         """
-        Format results as console report.
+        Format results as human-readable console report.
+
+        Includes summary statistics, broken link details (first 20), and
+        error details (first 10) with emoji status indicators.
 
         Args:
-            results: List of check results
-            summary: Summary statistics
+            results: List of LinkCheckResult objects.
+            summary: LinkCheckSummary with aggregate statistics.
 
         Returns:
-            Formatted string for console output
+            Multi-line string formatted for terminal output.
         """
         lines = []
         lines.append("\n" + "=" * 70)
