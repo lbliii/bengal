@@ -162,7 +162,15 @@ class BengalDirective(DirectivePlugin):
     # -------------------------------------------------------------------------
 
     def __init__(self) -> None:
-        """Initialize the directive with a module-level logger."""
+        """Initialize the directive with a subclass-aware logger.
+
+        Note:
+            This uses ``self.__class__.__module__`` rather than ``__name__``
+            so that logs are attributed to the concrete directive subclass
+            (e.g., ``bengal.directives.admonition``) instead of this base
+            module. This is intentional and documented in the codebase
+            consolidation RFC (plan-hardening-consolidation.md, Task 6.2).
+        """
         super().__init__()
         self.logger = get_logger(self.__class__.__module__)
 

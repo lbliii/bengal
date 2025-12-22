@@ -71,7 +71,6 @@ class ContentOrchestrator:
             site: Site instance to populate with content
         """
         self.site = site
-        self.logger = get_logger(__name__)
 
     def discover(
         self,
@@ -133,17 +132,17 @@ class ContentOrchestrator:
         # Ensure absolute path - relative paths break URL computation silently
         if not content_dir.is_absolute():
             content_dir = content_dir.resolve()
-            self.logger.debug(
+            logger.debug(
                 "content_dir_resolved_to_absolute",
                 original=str(content_dir),
                 resolved=str(content_dir),
             )
 
         if not content_dir.exists():
-            self.logger.warning("content_dir_not_found", path=str(content_dir))
+            logger.warning("content_dir_not_found", path=str(content_dir))
             return
 
-        self.logger.debug(
+        logger.debug(
             "discovering_content",
             path=str(content_dir),
             incremental=incremental,
@@ -193,7 +192,7 @@ class ContentOrchestrator:
         proxy_count = sum(1 for p in self.site.pages if isinstance(p, PageProxy))
         full_page_count = len(self.site.pages) - proxy_count
 
-        self.logger.debug(
+        logger.debug(
             "raw_content_discovered",
             pages=len(self.site.pages),
             sections=len(self.site.sections),
@@ -212,7 +211,7 @@ class ContentOrchestrator:
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
             self.site.sections.extend(autodoc_sections)
-            self.logger.info(
+            logger.info(
                 "autodoc_virtual_pages_integrated",
                 pages=len(autodoc_pages),
                 sections=len(autodoc_sections),
@@ -223,34 +222,32 @@ class ContentOrchestrator:
         t0 = time.perf_counter()
         self.site.register_sections()
         breakdown_ms["register_sections"] = (time.perf_counter() - t0) * 1000
-        self.logger.debug("section_registry_built")
+        logger.debug("section_registry_built")
 
         # Set up page references for navigation
         t0 = time.perf_counter()
         self._setup_page_references()
         breakdown_ms["setup_page_references"] = (time.perf_counter() - t0) * 1000
-        self.logger.debug("page_references_setup")
+        logger.debug("page_references_setup")
 
         # Apply cascading frontmatter from sections to pages
         t0 = time.perf_counter()
         self._apply_cascades()
         breakdown_ms["cascades"] = (time.perf_counter() - t0) * 1000
-        self.logger.debug("cascades_applied")
+        logger.debug("cascades_applied")
 
         # Set output paths for all pages immediately after discovery
         # This ensures page.href and page._path work correctly before rendering
         t0 = time.perf_counter()
         self.site._set_output_paths()
         breakdown_ms["output_paths"] = (time.perf_counter() - t0) * 1000
-        self.logger.debug("output_paths_set")
+        logger.debug("output_paths_set")
 
         # Build cross-reference index for O(1) lookups
         t0 = time.perf_counter()
         self._build_xref_index()
         breakdown_ms["xref_index"] = (time.perf_counter() - t0) * 1000
-        self.logger.debug(
-            "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
-        )
+        logger.debug("xref_index_built", index_size=len(self.site.xref_index.get("by_path", {})))
 
         breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
         # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
@@ -282,7 +279,7 @@ class ContentOrchestrator:
             orchestrator = VirtualAutodocOrchestrator(self.site)
 
             if not orchestrator.is_enabled():
-                self.logger.debug("virtual_autodoc_not_enabled")
+                logger.debug("virtual_autodoc_not_enabled")
                 return [], []
 
             cache_key = "__autodoc_elements_v1"
@@ -332,7 +329,7 @@ class ContentOrchestrator:
                         pages, sections, _run = orchestrator.generate_from_cache_payload(
                             cached_payload
                         )
-                        self.logger.debug(
+                        logger.debug(
                             "autodoc_cache_hit",
                             pages=len(pages),
                             sections=len(sections),
@@ -357,7 +354,7 @@ class ContentOrchestrator:
                             cache.add_autodoc_dependency(source_file, page_path)
 
                     if run_result.autodoc_dependencies:
-                        self.logger.debug(
+                        logger.debug(
                             "autodoc_dependencies_registered",
                             source_files=len(run_result.autodoc_dependencies),
                             total_mappings=sum(
@@ -378,7 +375,7 @@ class ContentOrchestrator:
                             if src_path.exists():
                                 cache.update_file(src_path)
                     except Exception as e:
-                        self.logger.debug(
+                        logger.debug(
                             "autodoc_source_fingerprints_update_failed",
                             error=str(e),
                             error_type=type(e).__name__,
@@ -394,12 +391,12 @@ class ContentOrchestrator:
                             and payload.get("autodoc_config_hash") == current_cfg_hash
                         ):
                             cache.set_page_cache(cache_key, payload)
-                            self.logger.debug(
+                            logger.debug(
                                 "autodoc_cache_saved",
                                 types=list((payload.get("elements") or {}).keys()),
                             )
                     except Exception as e:
-                        self.logger.debug(
+                        logger.debug(
                             "autodoc_cache_save_failed",
                             error=str(e),
                             error_type=type(e).__name__,
@@ -412,7 +409,7 @@ class ContentOrchestrator:
             return pages, sections
 
         except ImportError as e:
-            self.logger.debug("autodoc_import_failed", error=str(e))
+            logger.debug("autodoc_import_failed", error=str(e))
             return [], []
         # Note: Other exceptions (e.g., RuntimeError from strict mode) propagate
         # to allow strict mode enforcement. Non-strict failures are logged in summary.
@@ -459,9 +456,9 @@ class ContentOrchestrator:
 
         # Log at warning level if failures, info if only warnings
         if result.has_failures():
-            self.logger.warning("autodoc_run_summary", summary=summary)
+            logger.warning("autodoc_run_summary", summary=summary)
         else:
-            self.logger.info("autodoc_run_summary", summary=summary)
+            logger.info("autodoc_run_summary", summary=summary)
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
@@ -480,7 +477,7 @@ class ContentOrchestrator:
         if self.site.theme:
             theme_assets_dir = self._get_theme_assets_dir()
             if theme_assets_dir and theme_assets_dir.exists():
-                self.logger.debug(
+                logger.debug(
                     "discovering_theme_assets", theme=self.site.theme, path=str(theme_assets_dir)
                 )
                 theme_discovery = AssetDiscovery(theme_assets_dir)
@@ -493,16 +490,16 @@ class ContentOrchestrator:
             assets_dir = self.site.root_path / "assets"
 
         if assets_dir.exists():
-            self.logger.debug("discovering_site_assets", path=str(assets_dir))
+            logger.debug("discovering_site_assets", path=str(assets_dir))
             site_discovery = AssetDiscovery(assets_dir)
             site_assets = site_discovery.discover()
             self.site.assets.extend(site_assets)
             site_asset_count = len(site_assets)
         elif not self.site.assets:
             # Only warn if we have no theme assets either
-            self.logger.warning("assets_dir_not_found", path=str(assets_dir))
+            logger.warning("assets_dir_not_found", path=str(assets_dir))
 
-        self.logger.debug(
+        logger.debug(
             "assets_discovered",
             theme_assets=theme_asset_count,
             site_assets=site_asset_count,
@@ -556,7 +553,7 @@ class ContentOrchestrator:
             keys_info = ", ".join(
                 f"{k}({v})" for k, v in sorted(stats["cascade_keys_applied"].items())
             )
-            self.logger.info(
+            logger.info(
                 "cascades_applied",
                 pages_processed=stats["pages_processed"],
                 pages_affected=stats["pages_with_cascade"],
@@ -564,7 +561,7 @@ class ContentOrchestrator:
                 cascade_keys=keys_info,
             )
         else:
-            self.logger.debug(
+            logger.debug(
                 "cascades_applied",
                 pages_processed=stats["pages_processed"],
                 pages_affected=0,
@@ -599,7 +596,7 @@ class ContentOrchestrator:
                 for p in missing_weight_pages[:5]
             ]
 
-            self.logger.info(
+            logger.info(
                 "pages_without_weight",
                 count=len(missing_weight_pages),
                 content_types=list(doc_types),
@@ -683,7 +680,7 @@ class ContentOrchestrator:
                         if same_version_entry:
                             # Collision within same version - warn but keep existing (target directives will overwrite later)
                             existing_page, existing_anchor, _ = same_version_entry
-                            self.logger.warning(
+                            logger.warning(
                                 "anchor_collision",
                                 anchor_id=anchor_id,
                                 target_page=str(getattr(page, "source_path", "unknown")),
@@ -730,7 +727,7 @@ class ContentOrchestrator:
                         existing_page, existing_anchor, _ = next(
                             (p, a, v) for p, a, v in existing_entries if v == page_version
                         )
-                        self.logger.warning(
+                        logger.warning(
                             "anchor_collision",
                             anchor_id=anchor_id,
                             target_page=str(getattr(page, "source_path", "unknown")),

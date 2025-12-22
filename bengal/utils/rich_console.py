@@ -49,6 +49,7 @@ See Also:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from rich.console import Console
 from rich.theme import Theme
@@ -207,10 +208,10 @@ def detect_environment() -> dict[str, bool | str | int | None]:
     )
 
     # Docker detection
-    env["is_docker"] = os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv")
+    env["is_docker"] = Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
 
     # Git detection
-    env["is_git_repo"] = os.path.exists(".git")
+    env["is_git_repo"] = Path(".git").exists()
 
     # CPU cores (for parallel suggestions)
     import multiprocessing

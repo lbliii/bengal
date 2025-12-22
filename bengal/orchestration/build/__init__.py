@@ -9,9 +9,9 @@ Package Structure:
     __init__.py (this file)
         BuildOrchestrator class - main coordinator
     initialization.py
-        Phases 1-5: fonts, template validation, discovery, cache, config, filtering
+        Phases 1-5: fonts, discovery, cache, config, filtering
     content.py
-        Phases 6-12: sections, taxonomies, taxonomy index, menus, related posts, query indexes, update pages list
+        Phases 6-11: sections, taxonomies, menus, related posts, indexes
     rendering.py
         Phases 13-16: assets, render, update pages, track dependencies
     finalization.py
@@ -50,7 +50,6 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.output import BuildOutputCollector
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
@@ -63,6 +62,8 @@ from bengal.utils.logger import get_logger
 
 from . import content, finalization, initialization, rendering
 from .options import BuildOptions
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -240,9 +241,6 @@ class BuildOrchestrator:
         # Start timing
         build_start = time.time()
 
-        # Create output collector for hot reload tracking
-        output_collector = BuildOutputCollector(self.site.output_dir)
-
         # Clear directory creation cache to ensure robustness if output was cleaned
         from bengal.rendering.pipeline.thread_local import get_created_dirs
 
@@ -260,7 +258,7 @@ class BuildOrchestrator:
         self.stats = BuildStats(parallel=parallel, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
-        self.logger.info(
+        logger.info(
             "build_start",
             parallel=parallel,
             incremental=incremental,
@@ -302,7 +300,7 @@ class BuildOrchestrator:
 
         # Initialize cache and tracker (ALWAYS, even for full builds)
         # We need cache for cleanup of deleted files and auto-mode decision
-        with self.logger.phase("initialization"):
+        with logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
 
         # Resolve incremental mode (auto when None)
@@ -319,7 +317,7 @@ class BuildOrchestrator:
                     incremental = False
                     auto_reason = "auto: no cache yet"
             except Exception as e:
-                self.logger.debug(
+                logger.debug(
                     "incremental_cache_check_failed",
                     error=str(e),
                     error_type=type(e).__name__,
@@ -417,11 +415,11 @@ class BuildOrchestrator:
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
         if collisions:
             for msg in collisions:
-                self.logger.warning(msg, event="url_collision_detected")
+                logger.warning(msg, event="url_collision_detected")
 
         # Phase 13: Process Assets
         assets_to_process = rendering.phase_assets(
-            self, cli, incremental, parallel, assets_to_process, collector=output_collector
+            self, cli, incremental, parallel, assets_to_process
         )
 
         # Phase 14: Render Pages (with cached content from discovery)
@@ -441,7 +439,6 @@ class BuildOrchestrator:
             profile_templates=profile_templates,
             early_context=early_ctx,
             changed_sources=changed_sources,
-            collector=output_collector,
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
@@ -451,9 +448,7 @@ class BuildOrchestrator:
         rendering.phase_track_assets(self, pages_to_build, cli=cli)
 
         # Phase 17: Post-processing
-        finalization.phase_postprocess(
-            self, cli, parallel, ctx, incremental, collector=output_collector
-        )
+        finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
 
         # Phase 18: Save Cache
         finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
@@ -462,14 +457,11 @@ class BuildOrchestrator:
         finalization.phase_collect_stats(self, build_start, cli=cli)
 
         # Phase 20: Health Check
-        with self.logger.phase("health_check"):
+        with logger.phase("health_check"):
             finalization.run_health_check(self, profile=profile, build_context=ctx)
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
-
-        # Populate stats with typed outputs for hot reload
-        self.stats.changed_outputs = output_collector.get_outputs()
 
         return self.stats
 

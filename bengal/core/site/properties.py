@@ -208,6 +208,112 @@ class SitePropertiesMixin:
         return self._query_registry
 
     # =========================================================================
+    # CONFIG SECTION ACCESSORS
+    # =========================================================================
+
+    @property
+    def assets_config(self) -> dict[str, Any]:
+        """
+        Get the assets configuration section.
+
+        Provides safe access to assets configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("assets", {})`` pattern.
+
+        Returns:
+            Assets configuration dict (empty dict if not configured)
+
+        Example:
+            pipeline_enabled = site.assets_config.get("pipeline", False)
+        """
+        value = self.config.get("assets")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def build_config(self) -> dict[str, Any]:
+        """
+        Get the build configuration section.
+
+        Provides safe access to build configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("build", {})`` pattern.
+
+        Returns:
+            Build configuration dict (empty dict if not configured)
+
+        Example:
+            parallel = site.build_config.get("parallel", True)
+        """
+        value = self.config.get("build")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def i18n_config(self) -> dict[str, Any]:
+        """
+        Get the internationalization configuration section.
+
+        Provides safe access to i18n configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("i18n", {})`` pattern.
+
+        Returns:
+            i18n configuration dict (empty dict if not configured)
+
+        Example:
+            default_lang = site.i18n_config.get("default_language", "en")
+        """
+        value = self.config.get("i18n")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def menu_config(self) -> dict[str, Any]:
+        """
+        Get the menu configuration section.
+
+        Provides safe access to menu configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("menu", {})`` pattern.
+
+        Returns:
+            Menu configuration dict (empty dict if not configured)
+
+        Example:
+            main_menu = site.menu_config.get("main", [])
+        """
+        value = self.config.get("menu")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def content_config(self) -> dict[str, Any]:
+        """
+        Get the content configuration section.
+
+        Provides safe access to content configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("content", {})`` pattern.
+
+        Returns:
+            Content configuration dict (empty dict if not configured)
+
+        Example:
+            content_dir = site.content_config.get("dir", "content")
+        """
+        value = self.config.get("content")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def output_config(self) -> dict[str, Any]:
+        """
+        Get the output configuration section.
+
+        Provides safe access to output configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("output", {})`` pattern.
+
+        Returns:
+            Output configuration dict (empty dict if not configured)
+
+        Example:
+            output_dir = site.output_config.get("dir", "public")
+        """
+        value = self.config.get("output")
+        return dict(value) if isinstance(value, dict) else {}
+
+    # =========================================================================
     # VERSIONING PROPERTIES
     # =========================================================================
 

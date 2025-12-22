@@ -8,6 +8,11 @@ class DummySite:
         self.theme = theme
         self.output_dir = root_path / "public"
 
+    @property
+    def assets_config(self) -> dict:
+        """Get the 'assets' configuration section."""
+        return self.config.get("assets", {})
+
 
 def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Path):
     # Arrange: site with assets.pipeline = true

@@ -3,6 +3,9 @@ Property-based tests for path utilities using Hypothesis.
 
 These tests verify that path generation maintains critical invariants
 across ALL possible inputs.
+
+Note: These tests use LegacyBengalPaths for the static method interface.
+For new code, prefer the instance-based bengal.cache.paths.BengalPaths.
 """
 
 import string
@@ -13,7 +16,7 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from bengal.utils.paths import BengalPaths
+from bengal.utils.paths import LegacyBengalPaths as BengalPaths
 
 
 class TestProfileDirProperties:

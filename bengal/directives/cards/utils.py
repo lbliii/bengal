@@ -354,13 +354,19 @@ def render_child_card(
 
 
 def escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    if not text:
-        return ""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#x27;")
-    )
+    """Escape HTML special characters for safe use in attributes.
+
+    This is a convenience re-export of the canonical implementation.
+
+    Args:
+        text: Raw text to escape.
+
+    Returns:
+        HTML-escaped string safe for use in attribute values.
+
+    See Also:
+        ``bengal.utils.text.escape_html``: Canonical implementation.
+    """
+    from bengal.utils.text import escape_html as _escape_html
+
+    return _escape_html(text)

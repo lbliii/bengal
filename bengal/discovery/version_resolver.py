@@ -36,6 +36,8 @@ from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.version import Version, VersionConfig
@@ -95,7 +97,6 @@ class VersionResolver:
         """
         self.version_config = version_config
         self.root_path = root_path
-        self.logger = get_logger(__name__)
 
         # Build source -> version mapping for fast lookups
         self._source_version_map: dict[str, Version] = {}
@@ -207,7 +208,7 @@ class VersionResolver:
             if full_path.exists() and full_path.is_dir():
                 paths.append(full_path)
             else:
-                self.logger.debug(
+                logger.debug(
                     "shared_content_path_not_found",
                     path=str(full_path),
                 )

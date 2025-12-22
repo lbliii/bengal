@@ -1,5 +1,26 @@
 ## [Unreleased]
 
+### AST-Based Content Pipeline ✅
+- **rendering(ast_types)**: add `RawHTMLNode` for directive/prerendered content representation
+- **rendering(ast_types)**: add type guards `is_link()`, `is_image()`, `is_raw_html()` for type-safe AST traversal
+- **rendering(ast_utils)**: add `walk_ast()` generator for depth-first AST traversal
+- **rendering(ast_utils)**: add `extract_toc_from_ast()` for AST-based TOC extraction (replaces HTMLParser)
+- **rendering(ast_utils)**: add `extract_links_from_ast()` for link extraction from AST
+- **rendering(ast_utils)**: add `extract_plain_text()` for search indexing (replaces regex-based extraction)
+- **rendering(ast_utils)**: add `generate_heading_id()` for slug generation from heading nodes
+- **rendering(ast_transforms)**: add `transform_links_in_ast()` for type-safe link manipulation
+- **rendering(ast_transforms)**: add `normalize_md_links_in_ast()` for `.md` → clean URL conversion
+- **rendering(ast_transforms)**: add `add_baseurl_to_ast()` for baseurl prepending at AST level
+- **rendering(ast_transforms)**: add `transform_ast_for_output()` convenience function
+- **rendering(parsers/mistune)**: fix `create_ast_parser()` to filter renderer-dependent plugins (syntax highlighting)
+- **core(page/content)**: update `plain_text` property to use AST extraction when cache available
+- **core(page/content)**: migrate `_extract_text_from_ast()` and `_extract_links_from_ast()` to use ast_utils
+- **tests(unit)**: add 29 unit tests for `ast_utils` (walk, extract, generate)
+- **tests(unit)**: add 29 unit tests for `ast_transforms` (transform, normalize, baseurl)
+- **tests(integration)**: add 10 integration tests for AST pipeline (parsing, TOC, links, thread safety)
+- **docs(architecture)**: add `page.ast` and content representation properties to Content Processing API
+- **plan**: move rfc-ast-content-pipeline.md to ready with "Implemented" status
+
 ### Configuration System Cleanup ✅
 - **config(defaults)**: add centralized `defaults.py` with ~300 lines of config defaults and helper functions
 - **config(defaults)**: add `get_max_workers()` auto-detection (CPU count - 1, min 4) adopted in 6+ files

@@ -69,6 +69,7 @@ import json
 import os
 import threading
 from io import BufferedIOBase
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
@@ -353,11 +354,12 @@ class LiveReloadMixin:
             return False
 
         # If path is a directory, look for index.html
-        if os.path.isdir(path):
+        path_obj = Path(path)
+        if path_obj.is_dir():
             for index in ["index.html", "index.htm"]:
-                index_path = os.path.join(path, index)
-                if os.path.exists(index_path):
-                    path = index_path
+                index_path = path_obj / index
+                if index_path.exists():
+                    path = str(index_path)
                     break
 
         # If not an HTML file at this point, return False to indicate we didn't handle it
@@ -366,7 +368,7 @@ class LiveReloadMixin:
 
         try:
             # Get file modification time for cache key
-            mtime = os.path.getmtime(path)
+            mtime = Path(path).stat().st_mtime
             cache_key = (path, mtime)
 
             # Check cache (defined in BengalRequestHandler)

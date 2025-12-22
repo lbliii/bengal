@@ -122,6 +122,21 @@ class HardBreakNode(TypedDict):
     type: Literal["linebreak"]
 
 
+class RawHTMLNode(TypedDict):
+    """
+    Pre-rendered HTML block.
+
+    Used for:
+    - Directive output (code blocks, admonitions, tabs)
+    - Virtual page content (page._prerendered_html)
+    - External embeds
+    - Any content that bypasses markdown parsing
+    """
+
+    type: Literal["raw_html"]
+    content: str
+
+
 # Discriminated union of all node types
 type ASTNode = (
     TextNode
@@ -139,6 +154,7 @@ type ASTNode = (
     | ThematicBreakNode
     | SoftBreakNode
     | HardBreakNode
+    | RawHTMLNode
 )
 
 
@@ -156,6 +172,21 @@ def is_text(node: ASTNode) -> bool:
 def is_code_block(node: ASTNode) -> bool:
     """Type guard for code block nodes."""
     return node.get("type") == "block_code"
+
+
+def is_link(node: ASTNode) -> bool:
+    """Type guard for link nodes."""
+    return node.get("type") == "link"
+
+
+def is_image(node: ASTNode) -> bool:
+    """Type guard for image nodes."""
+    return node.get("type") == "image"
+
+
+def is_raw_html(node: ASTNode) -> bool:
+    """Type guard for raw HTML nodes."""
+    return node.get("type") == "raw_html"
 
 
 def get_heading_level(node: ASTNode) -> int | None:

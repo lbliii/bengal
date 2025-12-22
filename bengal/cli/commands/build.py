@@ -242,10 +242,12 @@ def build(
     else:  # WRITER
         log_level = LogLevel.WARNING
 
-    # Determine log file path
-    from bengal.utils.paths import BengalPaths
+    # Determine log file path using canonical BengalPaths
+    from bengal.cache.paths import BengalPaths
 
-    log_path = BengalPaths.get_build_log_path(Path(source), Path(log_file) if log_file else None)
+    paths = BengalPaths(Path(source))
+    paths.logs_dir.mkdir(parents=True, exist_ok=True)
+    log_path = Path(log_file) if log_file else paths.build_log
 
     configure_logging(
         level=log_level,
@@ -477,8 +479,6 @@ def build(
             import pstats
             from io import StringIO
 
-            from bengal.utils.paths import BengalPaths
-
             profiler = cProfile.Profile()
             profiler.enable()
 
@@ -499,9 +499,8 @@ def build(
             # Determine profile output path (use organized directory structure)
             if perf_profile is True:
                 # Flag set without path - use default organized location
-                perf_profile_path = BengalPaths.get_profile_path(
-                    Path(source), filename="profile.stats"
-                )
+                paths.profiles_dir.mkdir(parents=True, exist_ok=True)
+                perf_profile_path = paths.profiles_dir / "profile.stats"
             else:
                 # User specified custom path
                 perf_profile_path = Path(perf_profile)
