@@ -336,34 +336,27 @@ class BengalBuildDashboard(BengalDashboard):
 
     def _update_phases_from_stats(self, stats: Any) -> None:
         """Update phase display from build stats."""
-        # Get timing info from stats if available
-        phase_timings = getattr(stats, "phase_timings", {})
-
-        # Map stats phase names to display names
-        phase_map = {
-            "discovery": "Discovery",
-            "taxonomies": "Taxonomies",
-            "rendering": "Rendering",
-            "assets": "Assets",
-            "postprocess": "Postprocess",
+        # Map BuildStats timing fields to display names
+        # BuildStats has: discovery_time_ms, taxonomy_time_ms, rendering_time_ms, etc.
+        phase_timing_map = {
+            "Discovery": ("discovery_time_ms", None),
+            "Taxonomies": ("taxonomy_time_ms", None),
+            "Rendering": ("rendering_time_ms", "total_pages"),
+            "Assets": ("assets_time_ms", "total_assets"),
+            "Postprocess": ("postprocess_time_ms", None),
         }
 
-        completed_phases = set()
+        for display_name, (time_field, count_field) in phase_timing_map.items():
+            duration_ms = getattr(stats, time_field, 0) or 0
 
-        for internal_name, display_name in phase_map.items():
-            timing = phase_timings.get(internal_name)
-            if timing:
-                duration_ms = timing.get("duration_ms", 0)
-                details = timing.get("details", "")
-                self.call_from_thread(
-                    self._update_phase_complete, display_name, duration_ms, details
-                )
-                completed_phases.add(display_name)
+            # Build details string from count field if available
+            details = ""
+            if count_field:
+                count = getattr(stats, count_field, 0)
+                if count:
+                    details = f"{count} items"
 
-        # Mark any remaining phases as complete with dash
-        for phase_name in self.PHASES:
-            if phase_name not in completed_phases:
-                self.call_from_thread(self._update_phase_complete, phase_name, 0, "")
+            self.call_from_thread(self._update_phase_complete, display_name, duration_ms, details)
 
     def _update_phase_complete(self, phase_name: str, duration_ms: float, details: str) -> None:
         """Mark a phase as complete (Task 1.2)."""

@@ -240,21 +240,27 @@ class BengalHealthDashboard(BengalDashboard):
 
     def _populate_from_linkcheck(self, results: list, summary) -> None:
         """Populate tree from link check results."""
+        from bengal.health.linkcheck.models import LinkStatus
+
         tree = self.query_one("#health-tree", Tree)
         tree.clear()
 
-        broken_links = [r for r in results if not r.ok]
-        valid_links = [r for r in results if r.ok]
+        # LinkCheckResult uses status enum, not .ok boolean
+        broken_links = [r for r in results if r.status != LinkStatus.OK]
+        valid_links = [r for r in results if r.status == LinkStatus.OK]
 
         # Add broken links category
         if broken_links:
             broken_node = tree.root.add(f"❌ Broken Links ({len(broken_links)})", expand=True)
             for link in broken_links[:20]:  # Limit display
+                # Use first_ref (first page referencing this link) for source
+                status_info = f"{link.status_code}" if link.status_code else link.status.value
                 issue = HealthIssue(
                     category="Links",
                     severity="error",
-                    message=f"{link.status_code}: {link.url}",
-                    file=str(link.source_page) if hasattr(link, "source_page") else None,
+                    message=f"{status_info}: {link.url}",
+                    file=link.first_ref,
+                    recommendation=link.reason,
                 )
                 self.issues.append(issue)
                 broken_node.add_leaf(f"⛔ {link.url[:50]}...")
@@ -264,12 +270,27 @@ class BengalHealthDashboard(BengalDashboard):
             valid_node = tree.root.add(f"✓ Valid Links ({len(valid_links)})", expand=False)
             valid_node.add_leaf("All links verified")
 
+        # Update counts
+        self.error_count = len(broken_links)
+        self.warning_count = 0
+        self.total_issues = len(broken_links)
+
+        # Calculate and display health score (Task 3.3)
+        health_score = self._calculate_health_score()
+        self._update_health_score_display(health_score)
+
         # Update summary
         summary_widget = self.query_one("#health-summary", Static)
         if broken_links:
-            summary_widget.update(f"🐭  {len(broken_links)} broken links found")
+            summary_widget.update(
+                f"🐭  Site Health: {health_score}% │ {len(broken_links)} broken links found"
+            )
         else:
-            summary_widget.update(f"{self.mascot}  All {len(valid_links)} links valid!")
+            summary_widget.update(
+                f"{self.mascot}  Site Health: 100% ✨ All {len(valid_links)} links valid!"
+            )
+
+        self.is_loading = False  # Task 4.1
 
         self.notify(
             f"Found {len(broken_links)} issues" if broken_links else "No issues!",
