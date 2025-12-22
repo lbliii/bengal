@@ -456,7 +456,8 @@ jobs:
           python-version: '3.11'
       - run: pip install bengal
       - run: bengal build
-      - uses: peaceiris/actions-gh-pages@v3
+      # Pin to SHA for supply chain security (v3.9.3)
+      - uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
