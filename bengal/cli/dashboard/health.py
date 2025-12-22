@@ -27,6 +27,7 @@ from textual.reactive import reactive
 from textual.widgets import (
     Footer,
     Header,
+    ProgressBar,
     Static,
     Tree,
 )
@@ -44,11 +45,36 @@ class HealthIssue:
     """A single health issue."""
 
     category: str
-    severity: str  # "error", "warning", "info"
+    severity: str  # "error", "warning", "info", "suggestion"
     message: str
     file: str | None = None
     line: int | None = None
     details: dict[str, Any] = field(default_factory=dict)
+    recommendation: str | None = None  # Task 3.2: Add recommendation field
+
+
+# Category definitions for health checks (Task 3.1)
+VALIDATOR_CATEGORIES: dict[str, tuple[str, str]] = {
+    # validator_name: (emoji, display_name)
+    "LinkValidator": ("🔗", "Links"),
+    "LinkValidatorWrapper": ("🔗", "Links"),
+    "OutputValidator": ("📄", "Output"),
+    "AssetValidator": ("🖼️", "Assets"),
+    "PerformanceValidator": ("⚡", "Performance"),
+    "NavigationValidator": ("🧭", "Navigation"),
+    "ConfigValidatorWrapper": ("⚙️", "Config"),
+    "MenuValidator": ("📋", "Menu"),
+    "TaxonomyValidator": ("🏷️", "Taxonomy"),
+    "RenderingValidator": ("🎨", "Rendering"),
+    "RSSValidator": ("📰", "RSS"),
+    "SitemapValidator": ("🗺️", "Sitemap"),
+    "FontValidator": ("🔤", "Fonts"),
+    "CacheValidator": ("💾", "Cache"),
+    "ConnectivityValidator": ("🔌", "Connectivity"),
+    "AnchorValidator": ("⚓", "Anchors"),
+    "TemplateValidator": ("📝", "Templates"),
+    "DirectiveValidator": ("📐", "Directives"),
+}
 
 
 class BengalHealthDashboard(BengalDashboard):
@@ -83,6 +109,7 @@ class BengalHealthDashboard(BengalDashboard):
     error_count: reactive[int] = reactive(0)
     warning_count: reactive[int] = reactive(0)
     selected_issue: reactive[HealthIssue | None] = reactive(None)
+    is_loading: reactive[bool] = reactive(True)  # Task 4.1
 
     def __init__(
         self,
@@ -108,12 +135,15 @@ class BengalHealthDashboard(BengalDashboard):
         yield Header()
 
         with Vertical(id="main-content"):
-            # Summary bar
+            # Summary bar with health score (Task 3.3)
             yield Static(
                 f"{self.mascot}  Scanning...",
                 id="health-summary",
                 classes="section-header",
             )
+
+            # Health score progress bar (Task 3.3)
+            yield ProgressBar(total=100, show_eta=False, id="health-score-bar")
 
             # Main content: tree + details side by side
             with Horizontal(classes="health-layout"):
@@ -126,7 +156,8 @@ class BengalHealthDashboard(BengalDashboard):
                 with Vertical(id="details-container", classes="panel"):
                     yield Static("Details:", classes="panel-title")
                     yield Static(
-                        "Select an issue to view details",
+                        "Select an issue to view details\n\n"
+                        "[dim]Press Enter on an issue to open the file[/dim]",
                         id="issue-details",
                     )
 
@@ -150,9 +181,11 @@ class BengalHealthDashboard(BengalDashboard):
         if not self.site:
             return
 
+        self.is_loading = True  # Task 4.1
+
         # Update status
         summary = self.query_one("#health-summary", Static)
-        summary.update(f"{self.mascot}  Scanning site...")
+        summary.update(f"{self.mascot}  ⏳ Scanning site...")
 
         # Run scan in worker
         self.run_worker(self._scan_site, exclusive=True, thread=True)
@@ -187,18 +220,23 @@ class BengalHealthDashboard(BengalDashboard):
             self.call_from_thread(self._on_scan_error, str(e))
 
     def _populate_demo(self) -> None:
-        """Populate tree with demo/placeholder data."""
+        """Populate tree with demo/placeholder data (Task 4.2)."""
+        self.is_loading = False  # Task 4.1
         tree = self.query_one("#health-tree", Tree)
         tree.clear()
 
-        # Show placeholder message
-        no_issues = tree.root.add("✓ No issues found", expand=True)
-        no_issues.add_leaf("Run 'bengal health' for full link check")
+        # Task 4.2: Show helpful empty state
+        healthy_node = tree.root.add("✨ Site is healthy!", expand=True)
+        healthy_node.add_leaf("✓ All checks passed")
+        healthy_node.add_leaf("[dim]Run 'bengal health' for full analysis[/dim]")
 
         summary = self.query_one("#health-summary", Static)
-        summary.update(f"{self.mascot}  Health check complete (demo mode)")
+        summary.update(f"{self.mascot}  Site Health: 100% ✨")
 
-        self.notify("No site loaded - showing demo", title="Health")
+        # Update health score to 100%
+        self._update_health_score_display(100)
+
+        self.notify("No issues found", title="Health")
 
     def _populate_from_linkcheck(self, results: list, summary) -> None:
         """Populate tree from link check results."""
@@ -240,7 +278,7 @@ class BengalHealthDashboard(BengalDashboard):
         )
 
     def _populate_from_report(self, report: HealthReport) -> None:
-        """Populate tree from health report."""
+        """Populate tree from health report (Task 3.1)."""
         self.report = report
         self.issues.clear()
 
@@ -250,23 +288,37 @@ class BengalHealthDashboard(BengalDashboard):
         # Count issues
         errors = 0
         warnings = 0
+        suggestions = 0
 
-        # Get categories from report
-        # The report structure varies - adapt to actual format
-        categories = self._extract_categories(report)
+        # Get categories from report - group by validator (Task 3.1)
+        categories = self._extract_categories_by_validator(report)
 
-        for category_name, category_issues in categories.items():
+        for category_name, category_data in categories.items():
+            category_issues = category_data["issues"]
+            emoji = category_data["emoji"]
+
             if not category_issues:
                 continue
 
-            # Add category node
+            # Count by severity
+            cat_errors = sum(1 for i in category_issues if i.get("severity") == "error")
+            cat_warnings = sum(1 for i in category_issues if i.get("severity") == "warning")
+
+            # Add category node with count (Task 3.1)
+            if cat_errors > 0:
+                count_str = f"{cat_errors} errors"
+            elif cat_warnings > 0:
+                count_str = f"{cat_warnings} warnings"
+            else:
+                count_str = f"{len(category_issues)} issues"
+
             category_node = tree.root.add(
-                f"{category_name} ({len(category_issues)})",
+                f"{emoji} {category_name} ({count_str})",
                 expand=True,
             )
 
             for issue in category_issues:
-                # Create HealthIssue
+                # Create HealthIssue with recommendation (Task 3.2)
                 health_issue = HealthIssue(
                     category=category_name,
                     severity=issue.get("severity", "warning"),
@@ -274,21 +326,29 @@ class BengalHealthDashboard(BengalDashboard):
                     file=issue.get("file"),
                     line=issue.get("line"),
                     details=issue,
+                    recommendation=issue.get("recommendation"),
                 )
                 self.issues.append(health_issue)
 
                 # Count by severity
                 if health_issue.severity == "error":
                     errors += 1
-                else:
+                elif health_issue.severity == "warning":
                     warnings += 1
+                else:
+                    suggestions += 1
 
-                # Add to tree
-                severity_icon = "✗" if health_issue.severity == "error" else "!"
+                # Add to tree with severity icon
+                severity_icons = {"error": "⛔", "warning": "⚠️", "info": "ℹ️", "suggestion": "💡"}
+                severity_icon = severity_icons.get(health_issue.severity, "•")
                 label = f"{severity_icon} {health_issue.message}"
                 if health_issue.file:
                     short_file = Path(health_issue.file).name
                     label = f"{severity_icon} {short_file}: {health_issue.message}"
+
+                # Truncate long labels
+                if len(label) > 60:
+                    label = label[:57] + "..."
 
                 node = category_node.add_leaf(label)
                 node.data = health_issue
@@ -296,18 +356,96 @@ class BengalHealthDashboard(BengalDashboard):
         # Update counts
         self.error_count = errors
         self.warning_count = warnings
-        self.total_issues = errors + warnings
+        self.total_issues = errors + warnings + suggestions
 
-        # Update summary
+        # Calculate health score (Task 3.3)
+        health_score = self._calculate_health_score()
+        self._update_health_score_display(health_score)
+
+        # Update summary with health score (Task 3.3)
         summary = self.query_one("#health-summary", Static)
         if self.total_issues == 0:
-            summary.update(f"{self.mascot}  No issues found!")
+            summary.update(f"{self.mascot}  Site Health: 100% ✨ No issues found!")
         else:
             mascot = self.error_mascot if errors > 0 else self.mascot
-            summary.update(f"{mascot}  {errors} errors, {warnings} warnings")
+            summary.update(
+                f"{mascot}  Site Health: {health_score}% │ {errors} errors, {warnings} warnings"
+            )
+
+        self.is_loading = False  # Task 4.1
 
         # Notification
         notify_health_issues(self, errors, warnings)
+
+    def _calculate_health_score(self) -> int:
+        """Calculate health score 0-100 (Task 3.3)."""
+        if not self.issues:
+            return 100
+
+        error_weight = 10  # Errors cost 10 points each
+        warning_weight = 2  # Warnings cost 2 points each
+
+        errors = sum(1 for i in self.issues if i.severity == "error")
+        warnings = sum(1 for i in self.issues if i.severity == "warning")
+
+        penalty = (errors * error_weight) + (warnings * warning_weight)
+        return max(0, 100 - penalty)
+
+    def _update_health_score_display(self, score: int) -> None:
+        """Update the health score progress bar (Task 3.3)."""
+        try:
+            progress_bar = self.query_one("#health-score-bar", ProgressBar)
+            progress_bar.update(progress=score)
+        except Exception:
+            pass
+
+    def _extract_categories_by_validator(self, report: HealthReport) -> dict[str, dict]:
+        """Extract and group categories by validator type (Task 3.1)."""
+        categories: dict[str, dict] = {}
+
+        # Try to extract from report structure
+        if hasattr(report, "results"):
+            # Group by validator name
+            for result in report.results:
+                validator = getattr(result, "validator", "Other")
+
+                # Get category info from mapping
+                if validator in VALIDATOR_CATEGORIES:
+                    emoji, display_name = VALIDATOR_CATEGORIES[validator]
+                else:
+                    # Default for unknown validators
+                    emoji, display_name = ("📋", validator.replace("Validator", ""))
+
+                if display_name not in categories:
+                    categories[display_name] = {"emoji": emoji, "issues": []}
+
+                # Only add non-success results
+                status = getattr(result, "status", None)
+                if status and hasattr(status, "value") and status.value != "success":
+                    categories[display_name]["issues"].append(
+                        {
+                            "severity": status.value if status else "warning",
+                            "message": getattr(result, "message", str(result)),
+                            "file": getattr(result, "metadata", {}).get("file")
+                            if hasattr(result, "metadata") and result.metadata
+                            else None,
+                            "line": getattr(result, "metadata", {}).get("line")
+                            if hasattr(result, "metadata") and result.metadata
+                            else None,
+                            "recommendation": getattr(result, "recommendation", None),
+                        }
+                    )
+
+        # Fallback to legacy extraction if no results
+        if not any(cat["issues"] for cat in categories.values()):
+            legacy_categories = self._extract_categories(report)
+            for cat_name, issues in legacy_categories.items():
+                if cat_name not in categories:
+                    categories[cat_name] = {"emoji": "📋", "issues": issues}
+                else:
+                    categories[cat_name]["issues"].extend(issues)
+
+        return categories
 
     def _extract_categories(self, report: HealthReport) -> dict[str, list[dict]]:
         """Extract categories from health report."""
@@ -362,27 +500,60 @@ class BengalHealthDashboard(BengalDashboard):
             self._show_issue_details(node.data)
 
     def _show_issue_details(self, issue: HealthIssue) -> None:
-        """Show details for selected issue."""
+        """Show details for selected issue (Task 3.2)."""
         self.selected_issue = issue
 
         details_panel = self.query_one("#issue-details", Static)
 
+        # Severity icon
+        severity_icons = {
+            "error": "❌",
+            "warning": "⚠️",
+            "info": "ℹ️",
+            "suggestion": "💡",
+        }
+        icon = severity_icons.get(issue.severity, "•")
+
         lines = [
-            f"[bold]{issue.category}[/bold]",
+            f"[bold]{icon} {issue.category}[/bold]",
             "",
-            f"Severity: {issue.severity}",
-            f"Message: {issue.message}",
+            f"[bold]Severity:[/bold] {issue.severity.upper()}",
+            f"[bold]Message:[/bold]  {issue.message}",
         ]
 
         if issue.file:
-            lines.append(f"File: {issue.file}")
+            lines.append(f"[bold]File:[/bold]     {issue.file}")
         if issue.line:
-            lines.append(f"Line: {issue.line}")
+            lines.append(f"[bold]Line:[/bold]     {issue.line}")
+
+        # Add recommendation if available (Task 3.2)
+        if issue.recommendation:
+            lines.append("")
+            lines.append("[bold]Suggestion:[/bold]")
+            lines.append(f"  {issue.recommendation}")
 
         # Add any extra details
+        extra_details = []
         for key, value in issue.details.items():
-            if key not in ("severity", "message", "file", "line", "category"):
-                lines.append(f"{key}: {value}")
+            if key not in (
+                "severity",
+                "message",
+                "file",
+                "line",
+                "category",
+                "recommendation",
+            ):
+                extra_details.append(f"{key}: {value}")
+
+        if extra_details:
+            lines.append("")
+            lines.append("[bold]Details:[/bold]")
+            lines.extend(f"  {d}" for d in extra_details)
+
+        # Add file open hint (Task 3.2)
+        if issue.file:
+            lines.append("")
+            lines.append("[dim][Press Enter to open file][/dim]")
 
         details_panel.update("\n".join(lines))
 

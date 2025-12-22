@@ -1,0 +1,94 @@
+# Product Data
+# This file contains product information in a structured format.
+# Used for product listings and can be extended for e-commerce integrations.
+
+products:
+  - sku: "PROD-001"
+    name: "Product One"
+    slug: "product-1"
+    price: 99.99
+    currency: "USD"
+    in_stock: true
+    featured: true
+    images:
+      - "/images/products/product-1.jpg"
+      - "/images/products/product-1-alt.jpg"
+    description: |
+      A premium product designed for maximum performance and reliability.
+      Perfect for professionals who demand the best.
+    features:
+      - "High-quality materials"
+      - "Durable construction"
+      - "2-year warranty"
+      - "Free shipping"
+    category: "Electronics"
+    tags:
+      - "featured"
+      - "bestseller"
+
+  - sku: "PROD-002"
+    name: "Product Two"
+    slug: "product-2"
+    price: 149.99
+    currency: "USD"
+    in_stock: true
+    featured: false
+    images:
+      - "/images/products/product-2.jpg"
+    description: |
+      An advanced product with cutting-edge technology and sleek design.
+      Ideal for tech enthusiasts and early adopters.
+    features:
+      - "Advanced technology"
+      - "Sleek design"
+      - "3-year warranty"
+      - "24/7 support"
+    category: "Electronics"
+    tags:
+      - "new"
+      - "popular"
+
+  - sku: "PROD-003"
+    name: "Product Three"
+    slug: "product-3"
+    price: 79.99
+    sale_price: 59.99
+    currency: "USD"
+    in_stock: true
+    featured: false
+    images:
+      - "/images/products/product-3.jpg"
+    description: |
+      An affordable option that doesn't compromise on quality.
+      Great value for money with essential features.
+    features:
+      - "Affordable pricing"
+      - "Essential features"
+      - "1-year warranty"
+    category: "Accessories"
+    tags:
+      - "sale"
+      - "value"
+
+# Category definitions
+categories:
+  - name: "Electronics"
+    slug: "electronics"
+    description: "High-tech electronic products"
+
+  - name: "Accessories"
+    slug: "accessories"
+    description: "Complementary accessories and add-ons"
+
+# Store configuration
+store:
+  name: "Example Store"
+  currency: "USD"
+  shipping:
+    free_threshold: 50.00
+    standard_rate: 5.99
+  payment:
+    methods:
+      - "credit_card"
+      - "paypal"
+      - "stripe"

@@ -1,0 +1,21 @@
+# English translations for test-i18n-content
+ui:
+  home: "Home"
+  about: "About"
+  language_selection: "Language"
+  read_more: "Read more"
+  posted_on: "Posted on"
+  by_author: "by"
+  back_to_home: "Back to home"
+
+nav:
+  main: "Main navigation"
+  footer: "Footer navigation"
+
+meta:
+  site_name: "Test i18n Site"
+  description: "Test site for i18n integration tests"
+
+pages:
+  welcome: "Welcome to our test site"
+  about_intro: "Learn more about this test site"

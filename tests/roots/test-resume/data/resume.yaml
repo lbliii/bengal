@@ -1,0 +1,75 @@
+# Test Resume Data
+# Minimal resume data for integration testing
+
+name: Test Candidate
+headline: Software Engineer | Test Expert
+
+contact:
+  email: test@example.com
+  phone: "+1 (555) 123-4567"
+  location: "Test City, TC"
+  website: https://example.com
+
+summary: |
+  Experienced software engineer with focus on testing and quality.
+  Proven track record of delivering reliable software solutions.
+
+experience:
+  - title: Senior Software Engineer
+    company: Test Company Inc.
+    location: Test City, TC
+    start_date: "Jan 2022"
+    end_date: Present
+    description: Leading development of test infrastructure
+    highlights:
+      - Implemented comprehensive testing framework
+      - Improved code coverage by 40%
+      - Mentored junior engineers on best practices
+    technologies:
+      - Python
+      - pytest
+      - CI/CD
+
+  - title: Software Engineer
+    company: Example Corp
+    location: Example City, EC
+    start_date: "Jun 2019"
+    end_date: "Dec 2021"
+    description: Developed and maintained web applications
+    highlights:
+      - Built responsive web applications
+      - Collaborated with design team
+    technologies:
+      - JavaScript
+      - React
+      - Node.js
+
+education:
+  - degree: Bachelor of Science in Computer Science
+    institution: Test University
+    location: Test City, TC
+    start_date: "2015"
+    end_date: "2019"
+    gpa: "3.8/4.0"
+    honors:
+      - Dean's List
+      - Graduated with Honors
+
+skills:
+  - category: Programming Languages
+    items:
+      - Python
+      - JavaScript
+      - TypeScript
+
+  - category: Frameworks & Libraries
+    items:
+      - React
+      - Django
+      - FastAPI
+
+  - category: Tools
+    items:
+      - Git
+      - Docker
+      - AWS

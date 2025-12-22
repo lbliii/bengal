@@ -121,6 +121,8 @@ _DIRECTIVE_MAP: dict[str, str] = {
     # Figure and audio
     "figure": "bengal.directives.figure",
     "audio": "bengal.directives.figure",
+    # Gallery
+    "gallery": "bengal.directives.gallery",
     # Version-aware directives
     "since": "bengal.directives.versioning",
     "versionadded": "bengal.directives.versioning",

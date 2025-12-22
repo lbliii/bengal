@@ -1,0 +1,47 @@
+# Test Changelog Data
+# Minimal changelog data for integration testing
+
+releases:
+  - version: "1.0.0"
+    name: "Initial Release"
+    date: "2025-01-15"
+    status: "stable"
+    summary: |
+      First stable release with core features.
+    added:
+      - User authentication system
+      - RESTful API
+      - Documentation
+    changed:
+      - Improved performance by 40%
+    fixed:
+      - Memory leak in background worker
+    security:
+      - Implemented rate limiting
+
+  - version: "0.9.0"
+    name: "Beta Release"
+    date: "2024-12-01"
+    status: "beta"
+    summary: |
+      Beta release for testing and feedback.
+    added:
+      - User profile management
+      - File upload functionality
+    changed:
+      - Refactored authentication module
+    fixed:
+      - Login redirect issues
+    deprecated:
+      - Old API v1 endpoints
+
+  - version: "0.5.0"
+    name: "Alpha Release"
+    date: "2024-10-15"
+    status: "alpha"
+    summary: |
+      Initial alpha release.
+    added:
+      - Basic user registration
+      - Simple dashboard
+      - Core CRUD operations

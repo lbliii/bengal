@@ -76,6 +76,7 @@ class BengalBuildDashboard(BengalDashboard):
     progress_percent: reactive[float] = reactive(0.0)
     build_complete: reactive[bool] = reactive(False)
     build_success: reactive[bool] = reactive(True)
+    is_loading: reactive[bool] = reactive(True)  # Task 4.1
 
     # Build phases (standard Bengal phases)
     PHASES: ClassVar[list[str]] = [
@@ -179,6 +180,23 @@ class BengalBuildDashboard(BengalDashboard):
 
     def _get_build_stats_content(self) -> str:
         """Generate build stats panel content (Task 1.1)."""
+        # Task 4.1: Show loading state
+        if self.is_loading and not self.stats:
+            return (
+                "[bold]Build Statistics[/bold]\n"
+                "─────────────────────────────────\n"
+                "[dim]Loading... Press 'r' to start build[/dim]"
+            )
+
+        # Task 4.2: Empty state
+        if not self.stats and self.build_complete is False:
+            return (
+                "[bold]Build Statistics[/bold]\n"
+                "─────────────────────────────────\n"
+                "[dim]No builds yet.\n"
+                "Press 'r' to start a build.[/dim]"
+            )
+
         stats = self.stats or {}
 
         # Cache hit rate calculation
@@ -220,6 +238,7 @@ class BengalBuildDashboard(BengalDashboard):
         self.build_success = True
         self.current_phase = ""
         self.progress_percent = 0.0
+        self.is_loading = True  # Task 4.1
 
         # Update status
         status = self.query_one("#status-line", Static)
@@ -347,19 +366,38 @@ class BengalBuildDashboard(BengalDashboard):
                 self.call_from_thread(self._update_phase_complete, phase_name, 0, "")
 
     def _update_phase_complete(self, phase_name: str, duration_ms: float, details: str) -> None:
-        """Mark a phase as complete."""
+        """Mark a phase as complete (Task 1.2)."""
         if phase_name in self.phases:
             self.phases[phase_name].status = "complete"
             self.phases[phase_name].duration_ms = duration_ms
             self.phases[phase_name].details = details
 
         time_str = f"{int(duration_ms)}ms" if duration_ms > 0 else "-"
-        self._update_phase_row(phase_name, status="✓", time=time_str, details=details)
+
+        # Calculate percentage of total build time (Task 1.2)
+        total_time = self._get_total_phase_time()
+        if total_time > 0 and duration_ms > 0:
+            pct = (duration_ms / total_time) * 100
+            bar_len = int(pct / 5)  # 5% per character
+            bar = "█" * bar_len
+            percent_str = f"{pct:.0f}% {bar}"
+        else:
+            percent_str = ""
+
+        self._update_phase_row(
+            phase_name, status="✓", time=time_str, percent=percent_str, details=details
+        )
 
         log = self.query_one("#build-log", Log)
         if duration_ms > 0:
             details_str = f" ({details})" if details else ""
             log.write_line(f"✓ {phase_name} {time_str}{details_str}")
+
+    def _get_total_phase_time(self) -> float:
+        """Get total time across all completed phases."""
+        return sum(
+            phase.duration_ms or 0 for phase in self.phases.values() if phase.status == "complete"
+        )
 
     # === Message Handlers ===
 
@@ -368,6 +406,7 @@ class BengalBuildDashboard(BengalDashboard):
         self.build_complete = True
         self.build_success = message.success
         self.stats = message.stats or {}
+        self.is_loading = False  # Task 4.1
 
         # Update progress to 100% on success
         if message.success:
@@ -375,12 +414,18 @@ class BengalBuildDashboard(BengalDashboard):
             progress = self.query_one("#build-progress", ProgressBar)
             progress.update(progress=100)
 
+        # Update build stats panel (Task 1.1)
+        self._update_build_stats()
+
+        # Recalculate phase percentages now that we have all times (Task 1.2)
+        self._update_phase_percentages()
+
         # Update status line
         status = self.query_one("#status-line", Static)
         duration_s = message.duration_ms / 1000
 
         if message.success:
-            pages = self.stats.get("pages_rendered", self.stats.get("pages", 0))
+            pages = self.stats.get("pages_rendered", self.stats.get("total_pages", 0))
             status.update(f"{self.mascot}  Build complete! {pages} pages in {duration_s:.2f}s")
 
             # Show notification
@@ -410,6 +455,20 @@ class BengalBuildDashboard(BengalDashboard):
                 pages=0,
                 success=False,
             )
+
+    def _update_phase_percentages(self) -> None:
+        """Recalculate and update all phase percentages (Task 1.2)."""
+        total_time = self._get_total_phase_time()
+        if total_time <= 0:
+            return
+
+        for phase_name, phase in self.phases.items():
+            if phase.status == "complete" and phase.duration_ms:
+                pct = (phase.duration_ms / total_time) * 100
+                bar_len = int(pct / 5)  # 5% per character, max 20 chars
+                bar = "█" * bar_len
+                percent_str = f"{pct:.0f}% {bar}"
+                self._update_phase_row(phase_name, percent=percent_str)
 
     def _update_phase_row(
         self,

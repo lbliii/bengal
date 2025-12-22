@@ -1,0 +1,42 @@
+name: Product
+description: A product-focused site with listings, features, and JSON-LD structured data
+
+structure:
+  - path: _index.md
+    type: home
+    props:
+      title: Welcome to Our Products
+      layout: home
+
+  - path: products/_index.md
+    type: section
+    props:
+      title: Our Products
+      layout: section
+
+  - path: products/product-1.md
+    type: product
+    props:
+      title: Product One
+      layout: product
+
+  - path: products/product-2.md
+    type: product
+    props:
+      title: Product Two
+      layout: product
+
+  - path: features.md
+    props:
+      title: Features
+      layout: page
+
+  - path: pricing.md
+    props:
+      title: Pricing
+      layout: page
+
+  - path: contact.md
+    props:
+      title: Contact Us
+      layout: page

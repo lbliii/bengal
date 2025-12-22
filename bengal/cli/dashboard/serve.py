@@ -17,6 +17,7 @@ the UI reactively based on file changes and rebuild events.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -101,6 +102,7 @@ class BengalServeDashboard(BengalDashboard):
     is_watching: reactive[bool] = reactive(False)
     rebuild_count: reactive[int] = reactive(0)
     last_rebuild_ms: reactive[float] = reactive(0)
+    is_loading: reactive[bool] = reactive(True)  # Task 4.1
 
     # Build history (for sparkline)
     MAX_HISTORY: ClassVar[int] = 20
@@ -134,8 +136,8 @@ class BengalServeDashboard(BengalDashboard):
         self.auto_open_browser = open_browser
         self.server_kwargs = kwargs
 
-        # Build history for sparkline (bounded)
-        self.build_history: list[float] = []
+        # Build history for sparkline (bounded) - Task 2.2: Pre-populate with zeros
+        self.build_history: list[float] = [0.0] * 10
 
         # Change log entries
         self.changes: list[ChangeEntry] = []
@@ -146,6 +148,9 @@ class BengalServeDashboard(BengalDashboard):
 
         # Update timer
         self._status_timer: Timer | None = None
+
+        # Server start time for uptime tracking (Task 2.1)
+        self._start_time: float = time.time()
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout."""
@@ -162,14 +167,16 @@ class BengalServeDashboard(BengalDashboard):
             # URL display
             yield Static("", id="server-url", classes="label-primary")
 
-            # Build history sparkline
+            # Build history sparkline (Task 2.2: Initialize with data)
             with Vertical(classes="section", id="sparkline-section"):
                 yield Static("Build History (ms):", classes="section-header")
-                yield Sparkline([], id="build-sparkline")
+                yield Sparkline(self.build_history, id="build-sparkline")
 
             # Tabbed content
             with TabbedContent(id="serve-tabs"):
                 with TabPane("Changes", id="changes-tab"):
+                    # Task 2.3: File watcher summary at top
+                    yield Static("", id="watcher-summary", classes="watcher-summary")
                     yield Log(id="changes-log", auto_scroll=True)
 
                 with TabPane("Stats", id="stats-tab"):
@@ -182,18 +189,24 @@ class BengalServeDashboard(BengalDashboard):
 
     def on_mount(self) -> None:
         """Set up widgets when dashboard mounts."""
-        # Configure stats table
+        # Configure stats table with rich content (Task 2.1)
         stats_table = self.query_one("#stats-table", DataTable)
         stats_table.add_columns("Metric", "Value")
         stats_table.add_row("Status", "Starting...", key="status")
+        stats_table.add_row("Uptime", "-", key="uptime")
         stats_table.add_row("Rebuilds", "0", key="rebuilds")
         stats_table.add_row("Last Build", "-", key="last_build")
+        stats_table.add_row("Avg Build", "-", key="avg_build")
         stats_table.add_row("Watching", "-", key="watching")
-        stats_table.add_row("Cache Hit", "-", key="cache_hit")
+        stats_table.add_row("Content", "-", key="content_files")
+        stats_table.add_row("Assets", "-", key="asset_files")
 
-        # Initialize sparkline with empty data
+        # Initialize sparkline with pre-populated data (Task 2.2)
         sparkline = self.query_one("#build-sparkline", Sparkline)
-        sparkline.data = [0]
+        sparkline.data = self.build_history
+
+        # Initialize file watcher summary (Task 2.3)
+        self._update_watcher_summary()
 
         # Start the server
         if self.site:
@@ -242,6 +255,7 @@ class BengalServeDashboard(BengalDashboard):
         """Handle server started event."""
         self.server_url = url
         self.is_watching = self.watch
+        self.is_loading = False  # Task 4.1
 
         # Update status
         status = self.query_one("#server-status", Static)
@@ -275,13 +289,72 @@ class BengalServeDashboard(BengalDashboard):
         self._update_stat("status", "Error")
 
     def _update_status(self) -> None:
-        """Periodic status update."""
+        """Periodic status update (Task 2.1)."""
+        # Update uptime
+        self._update_stat("uptime", self._get_uptime_str())
+
         # Update rebuild count display
         self._update_stat("rebuilds", str(self.rebuild_count))
 
         # Update last build time
         if self.last_rebuild_ms > 0:
             self._update_stat("last_build", f"{int(self.last_rebuild_ms)}ms")
+
+        # Update average build time (Task 2.1)
+        if self.build_history and any(t > 0 for t in self.build_history):
+            non_zero = [t for t in self.build_history if t > 0]
+            if non_zero:
+                avg = sum(non_zero) / len(non_zero)
+                self._update_stat("avg_build", f"{int(avg)}ms")
+
+    def _get_uptime_str(self) -> str:
+        """Format uptime as human-readable string (Task 2.1)."""
+        elapsed = time.time() - self._start_time
+        minutes, seconds = divmod(int(elapsed), 60)
+        hours, minutes = divmod(minutes, 60)
+        if hours:
+            return f"{hours}h {minutes}m {seconds}s"
+        elif minutes:
+            return f"{minutes}m {seconds}s"
+        return f"{seconds}s"
+
+    def _update_watcher_summary(self) -> None:
+        """Update file watcher summary (Task 2.3, 4.1, 4.2)."""
+        try:
+            watcher_summary = self.query_one("#watcher-summary", Static)
+
+            # Task 4.1: Loading state
+            if self.is_loading:
+                watcher_summary.update("[dim]⏳ Starting server...[/dim]")
+                return
+
+            if self.site:
+                # Get counts from site
+                pages_count = len(self.site.pages) if hasattr(self.site, "pages") else 0
+                assets_count = len(self.site.assets) if hasattr(self.site, "assets") else 0
+                total = pages_count + assets_count
+
+                # Task 4.2: Empty state for no files
+                if total == 0:
+                    summary = (
+                        "[dim]📁 No files detected.[/dim]\n"
+                        "[dim]   Add content to the content/ directory.[/dim]"
+                    )
+                else:
+                    summary = (
+                        f"[bold]📁 Watching[/bold] {total} files\n"
+                        f"   Content: {pages_count} files  │  Assets: {assets_count} files"
+                    )
+                watcher_summary.update(summary)
+
+                # Update stats table too
+                self._update_stat("content_files", str(pages_count))
+                self._update_stat("asset_files", str(assets_count))
+            else:
+                # Task 4.2: Empty state for no site
+                watcher_summary.update("[dim]No site loaded[/dim]")
+        except Exception:
+            pass
 
     def _update_stat(self, key: str, value: str) -> None:
         """Update a row in the stats table."""
@@ -368,9 +441,11 @@ class BengalServeDashboard(BengalDashboard):
         )
 
     def on_watcher_status(self, message: WatcherStatus) -> None:
-        """Handle watcher status update."""
+        """Handle watcher status update (Task 2.3)."""
         self.is_watching = message.watching
         self._update_stat("watching", f"Yes ({message.watched_files} files)")
+        # Update watcher summary when status changes
+        self._update_watcher_summary()
 
     # === Actions ===
 

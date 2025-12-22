@@ -135,3 +135,65 @@ pytest benchmarks/test_build.py -k "fast_mode" -v
 
 - **Full Build**: Standard build with parallel processing enabled (default).
 - **Incremental**: Tests single-page edits, batch edits, and config changes.
+
+## 10k Page Site Benchmarks
+
+The `test_10k_site.py` suite tests performance at scale with 10,000+ page sites.
+
+### Running 10k Benchmarks
+
+```bash
+# Run all 10k benchmarks (slow, use for nightly CI)
+pytest benchmarks/test_10k_site.py -v --benchmark
+
+# Run without benchmark plugin (simpler output)
+pytest benchmarks/test_10k_site.py -v
+
+# Run the faster 1k variant
+pytest benchmarks/test_10k_site.py -k "1k_site" -v
+```
+
+### Performance Gates
+
+| Metric | 10k Pages | 1k Pages |
+|--------|-----------|----------|
+| Discovery Time | <30s | <5s |
+| Peak Memory | <2GB | <500MB |
+| Discovery Rate | >300 pages/sec | >200 pages/sec |
+
+### Expected Baseline Performance
+
+**M1 Pro (8-core)**:
+- 10k page discovery: ~10-15s
+- Peak memory: ~600MB-1GB
+- Per-page overhead: ~60-100KB
+
+**Intel i7 (8-core)**:
+- 10k page discovery: ~12-20s
+- Peak memory: ~700MB-1.2GB
+- Per-page overhead: ~70-120KB
+
+### Tests
+
+1. **`test_10k_site_discovery_performance`**: Measures discovery time for 10k pages
+2. **`test_10k_site_memory_usage`**: Tracks peak memory usage
+3. **`test_1k_site_discovery_performance`**: Faster variant for regular CI
+4. **`test_discovery_scaling`**: Verifies linear scaling behavior
+
+### CI Integration
+
+These tests are marked `@pytest.mark.slow` and should run in nightly CI:
+
+```yaml
+# .github/workflows/nightly.yml
+- name: Run performance benchmarks
+  run: pytest benchmarks/test_10k_site.py -v --benchmark
+```
+
+For regular CI, use the 1k variant:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Run quick performance check
+  run: pytest benchmarks/test_10k_site.py -k "1k_site" -v
+```

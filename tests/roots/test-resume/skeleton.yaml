@@ -1,0 +1,9 @@
+name: Test Resume
+description: Test site for resume template integration tests
+
+structure:
+  - path: _index.md
+    type: resume
+    props:
+      title: Resume
+      layout: resume/single

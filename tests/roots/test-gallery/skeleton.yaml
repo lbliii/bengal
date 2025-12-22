@@ -1,0 +1,11 @@
+name: Test Gallery
+description: Test site for gallery directive integration tests
+
+structure:
+  - path: _index.md
+    props:
+      title: Gallery Test Home
+
+  - path: gallery.md
+    props:
+      title: Photo Gallery
