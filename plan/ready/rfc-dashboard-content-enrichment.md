@@ -1,6 +1,6 @@
 # RFC: Dashboard Content Enrichment
 
-**Status**: Draft → Evaluated  
+**Status**: Evaluated → Ready  
 **Created**: 2024-12-21  
 **Updated**: 2024-12-21  
 **Depends On**: Terminal UX with Textual (implemented)  
