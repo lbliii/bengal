@@ -65,9 +65,10 @@ class TestRemoteLoaderImports:
         """Test notion_loader raises ImportError if aiohttp not installed."""
         try:
             from bengal.content_layer.loaders import notion_loader
+            from bengal.errors import BengalConfigError
 
             # Note: Will fail without token, but tests import works
-            with pytest.raises(ValueError, match="requires a token"):
+            with pytest.raises(BengalConfigError, match="requires a token"):
                 notion_loader(database_id="abc123")
         except ImportError as e:
             assert "aiohttp" in str(e).lower() or "notion" in str(e).lower()

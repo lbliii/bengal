@@ -18,6 +18,62 @@ The Bengal dashboard infrastructure is complete, but it treats Bengal as a black
 
 ---
 
+## 🎯 API Readiness Assessment
+
+**95% of required data is available through existing APIs.** Only streaming/real-time features require new middleware.
+
+### ✅ Existing APIs (Ready to Use)
+
+| Feature | API | Status | Effort |
+|---------|-----|--------|--------|
+| Site context (title, theme, baseurl) | `Site.*` properties | ✅ Ready | Dashboard only |
+| Page browsing (title, date, tags, draft) | `Site.pages`, `Page.*` | ✅ Ready | Dashboard only |
+| Section hierarchy | `Site.sections`, `Section.subsections` | ✅ Ready | Dashboard only |
+| Asset exploration | `Site.assets`, `Asset.suffix` | ✅ Ready | Dashboard only |
+| Taxonomy terms & counts | `Site.taxonomies` | ✅ Ready | Dashboard only |
+| Build stats (20+ fields) | `BuildStats` from `build()` | ✅ Ready | Dashboard only |
+| Health report | `HealthReport.from_site()` | ✅ Ready | Dashboard only |
+| Data files | `Site.data` | ✅ Ready | Dashboard only |
+| Graph analysis | `GraphAnalyzer.analyze()` | ✅ Ready | Dashboard only |
+
+### 🆕 New Middleware Required (Worth Doing)
+
+| Feature | What's Needed | Why It's Worth It | Effort |
+|---------|---------------|-------------------|--------|
+| **Phase streaming** | Add callbacks to `BuildOrchestrator.build()` | Real-time build feedback, no more black-box builds | ~2 hours |
+| **File change events** | Add event bridge from `WatcherRunner` to dashboard | See what triggered rebuilds, debug file watching | ~1 hour |
+| **Request logging** | Add logging to `BengalRequestHandler` | Debug 404s, track request patterns, see live traffic | ~1 hour |
+
+### Implementation Split
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   IMPLEMENTATION BREAKDOWN                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  PHASE 1: Site Data Model (✅ EXISTING APIs)                    │
+│    - Site context panel         → Site.*, config                │
+│    - Content browser            → Site.pages, Site.sections     │
+│    - Asset explorer             → Site.assets                   │
+│                                                                  │
+│  PHASE 2: Build Integration (⚠️ MIXED)                          │
+│    - BuildStats display         → ✅ EXISTING (BuildStats)      │
+│    - Phase streaming            → 🆕 NEW MIDDLEWARE NEEDED      │
+│                                                                  │
+│  PHASE 3: DevServer Integration (🆕 NEW MIDDLEWARE)             │
+│    - File watcher events        → 🆕 NEW: Event bridge          │
+│    - Request logging            → 🆕 NEW: Handler logging       │
+│                                                                  │
+│  PHASE 4: Health & Analysis (✅ EXISTING APIs)                  │
+│    - HealthReport display       → HealthReport.from_site()      │
+│    - Taxonomy explorer          → Site.taxonomies               │
+│    - Graph insights             → GraphAnalyzer.analyze()       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Problem Statement
 
 ### Current Gap: Shallow Data Integration
@@ -66,9 +122,9 @@ The existing RFCs (`rfc-dashboard-content-enrichment`, `rfc-toad-inspired-enhanc
 ## Non-Goals
 
 - New CLI commands (use existing `bengal --dashboard`)
-- Changes to core Bengal APIs (consume only)
+- ~~Changes to core Bengal APIs (consume only)~~ → **Revised**: Minimal, optional callback additions (~4 hours total)
 - Heavy visualizations like graphs (defer to separate tool)
-- Breaking existing functionality
+- Breaking existing functionality (all new callbacks are optional with `None` defaults)
 
 ---
 
@@ -469,15 +525,30 @@ async def _run_build_with_streaming(self) -> None:
 
 ## Implementation Plan
 
-| Phase | Focus | Days | Key Deliverables |
-|-------|-------|------|------------------|
-| 1 | Site Data Model | 1 | Rich site context, content browser, asset explorer |
-| 2 | Build Streaming | 1 | Real-time phase updates, full BuildStats display |
-| 3 | DevServer Integration | 1 | File watcher stream, request log |
-| 4 | Health & Analysis | 1 | HealthReport parsing, taxonomy explorer |
-| **Total** | | **4** | |
+| Phase | Focus | Days | API Status | Key Deliverables |
+|-------|-------|------|------------|------------------|
+| 1 | Site Data Model | 1 | ✅ **Existing APIs** | Rich site context, content browser, asset explorer |
+| 2 | Build Streaming | 1 | ⚠️ **Mixed** | BuildStats display (existing), phase streaming (new) |
+| 3 | DevServer Integration | 1 | 🆕 **New Middleware** | File watcher events, request logging |
+| 4 | Health & Analysis | 1 | ✅ **Existing APIs** | HealthReport parsing, taxonomy explorer, graph insights |
+| **Total** | | **4** | | |
 
-**Phases can be parallelized where data sources don't overlap.**
+### Recommended Execution Order
+
+```
+Phase 1 ──────────┐
+(Site Data)       │
+✅ Existing APIs  ├──▶  Phase 2a ──────────┐
+                  │     (BuildStats)       │
+Phase 4 ──────────┘     ✅ Existing APIs   │
+(Health/Analysis)                          ├──▶  Phase 2b + 3
+✅ Existing APIs                           │     (New Middleware)
+                                           │     🆕 Core changes
+                                           │
+                                           └──▶  Full Dashboard
+```
+
+**Strategy**: Ship dashboard improvements with existing APIs first (Phases 1, 2a, 4), then add streaming features (Phases 2b, 3) as enhancement.
 
 ---
 
@@ -580,35 +651,157 @@ async def test_build_phases_update_in_realtime():
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| BuildOrchestrator lacks callbacks | Medium | High | Use polling or add callback support |
-| Large sites slow browsing | Low | Medium | Virtual scrolling, lazy loading |
-| DevServer not integrated | Medium | Medium | Add message bridge |
-| Complex UI overwhelming | Low | Medium | Progressive disclosure, tabs |
+| Large sites slow browsing | Low | Medium | Virtual scrolling, lazy loading (Textual supports this) |
+| Complex UI overwhelming | Low | Medium | Progressive disclosure, collapsible sections |
+| Core changes break existing behavior | Low | High | Keep callbacks optional with `None` defaults |
+
+### Mitigated Risks (From Analysis)
+
+| Original Risk | Resolution |
+|---------------|------------|
+| "BuildOrchestrator lacks callbacks" | ✅ **Easy to add** - ~2 hours, callbacks are optional |
+| "DevServer not integrated" | ✅ **Easy to add** - ~1 hour per feature |
+| "APIs may not expose needed data" | ✅ **Already exposed** - 95% of data available through existing APIs |
 
 ---
 
 ## Dependencies on Bengal Core
 
-### May Need Core Changes
+### ✅ No Changes Needed (95% of Features)
 
-1. **BuildOrchestrator callbacks** - For streaming phase updates
-   - Add `on_phase_start`, `on_phase_complete` callbacks
-   - Or expose progress via reactive property
+These features use existing APIs with zero core changes:
 
-2. **DevServer watcher events** - For file change stream
-   - Add message passing from `WatcherRunner` to dashboard
-   - Or expose via callback/signal
+- `Site.*` properties (title, theme, baseurl, config)
+- `Site.pages`, `Page.*` (all page metadata)
+- `Site.sections`, `Section.*` (hierarchy, subsections)
+- `Site.assets`, `Asset.*` (file info)
+- `Site.taxonomies` (terms, page assignments)
+- `Site.data` (data files)
+- `BuildStats` (all 20+ fields already populated)
+- `HealthReport`, `CheckResult` (already structured)
+- `GraphAnalyzer.analyze()` (link graph)
 
-3. **Request logging** - For HTTP request display
-   - Add request logging to `BengalRequestHandler`
-   - Track method, path, status, timing
+### 🆕 New Middleware Required (3 Items)
 
-### No Core Changes Needed
+These enable real-time/streaming features and are worth implementing:
 
-- Site, Page, Section, Asset data access (read-only)
-- BuildStats fields (already populated)
-- HealthReport/CheckResult (already structured)
-- Taxonomy data (already in site.taxonomies)
+#### 1. BuildOrchestrator Phase Callbacks (~2 hours)
+
+**Purpose**: Stream build progress instead of waiting for completion
+
+**Current State**: `BuildOrchestrator.build()` returns `BuildStats` only at the end
+
+**Proposed Changes**:
+
+```python
+# bengal/orchestration/build/__init__.py
+
+def build(
+    self,
+    options: BuildOptions | None = None,
+    *,
+    # ... existing params ...
+    # NEW: Streaming callbacks
+    on_phase_start: Callable[[str], None] | None = None,
+    on_phase_complete: Callable[[str, float, str], None] | None = None,
+) -> BuildStats:
+    """
+    Args:
+        on_phase_start: Called when phase begins (phase_name)
+        on_phase_complete: Called when phase ends (phase_name, time_ms, details)
+    """
+```
+
+**Integration Points**:
+- Each `with self.logger.phase("name"):` block calls callbacks
+- Or: Create `PhaseReporter` that wraps existing phase calls
+
+**Value**: Users see "Discovery... Taxonomies... Rendering 50%..." instead of blank screen
+
+---
+
+#### 2. File Watcher Event Bridge (~1 hour)
+
+**Purpose**: Show file changes that trigger rebuilds in dashboard
+
+**Current State**: `WatcherRunner` → `BuildTrigger` is internal, dashboard can't see events
+
+**Proposed Changes**:
+
+```python
+# bengal/server/watcher_runner.py
+
+class WatcherRunner:
+    def __init__(
+        self,
+        # ... existing params ...
+        on_file_change: Callable[[set[Path], set[str]], None] | None = None,
+    ):
+        """
+        Args:
+            on_file_change: Called when files change (paths, event_types)
+                            event_types: {"created", "modified", "deleted"}
+        """
+```
+
+**Integration Points**:
+- Call callback in `_run_build_trigger` before triggering build
+- Or: Use Textual's `Signal` system for decoupled messaging
+
+**Value**: Users see "content/post.md modified → rebuild triggered" instead of just "rebuilding..."
+
+---
+
+#### 3. HTTP Request Logging (~1 hour)
+
+**Purpose**: Show dev server requests in dashboard
+
+**Current State**: `BengalRequestHandler` serves requests but doesn't log them to dashboard
+
+**Proposed Changes**:
+
+```python
+# bengal/server/request_handler.py
+
+@dataclass
+class RequestLogEntry:
+    timestamp: datetime
+    method: str
+    path: str
+    status: int
+    duration_ms: float
+
+class BengalRequestHandler:
+    request_log: ClassVar[list[RequestLogEntry]] = []
+    on_request: ClassVar[Callable[[RequestLogEntry], None] | None] = None
+
+    def do_GET(self):
+        start = time.time()
+        # ... existing handling ...
+        entry = RequestLogEntry(
+            timestamp=datetime.now(),
+            method="GET",
+            path=self.path,
+            status=status_code,
+            duration_ms=(time.time() - start) * 1000,
+        )
+        if self.on_request:
+            self.on_request(entry)
+```
+
+**Value**: Users see live request stream, catch 404s, understand what's being served
+
+---
+
+### Why These Are Worth Doing
+
+| Feature | User Pain Point Solved |
+|---------|------------------------|
+| Phase streaming | "Build takes 5s and I don't know if it's stuck" |
+| File change events | "Something triggered a rebuild but I don't know what" |
+| Request logging | "Page isn't loading but I don't know if server is receiving requests" |
+
+**Total effort**: ~4 hours of core changes, enabling a much richer dashboard experience
 
 ---
 
