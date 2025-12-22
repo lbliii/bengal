@@ -1,15 +1,30 @@
-"""
-Typed token structures for directive AST.
+"""Typed token structures for the directive AST.
 
-Provides DirectiveToken as a typed replacement for ad-hoc dicts,
-ensuring consistent structure and IDE support across all directives.
+This module provides ``DirectiveToken``, a typed dataclass that replaces
+ad-hoc dictionaries for representing directive nodes in Mistune's AST.
+Using a typed class provides type safety, IDE autocomplete, and consistent
+structure across all directive implementations.
 
-Architecture:
-    DirectiveToken wraps the dict structure expected by mistune's AST,
-    providing type safety while maintaining full compatibility via to_dict().
+Key Features:
+    - **Type Safety**: Type annotations catch typos and invalid structures.
+    - **IDE Support**: Autocomplete for ``type``, ``attrs``, ``children``.
+    - **Mistune Compatibility**: ``to_dict()`` converts to the dict format
+      expected by Mistune's AST.
+    - **Immutable Operations**: ``with_attrs()`` and ``with_children()`` return
+      new tokens without mutating the original.
 
-Related:
-    - bengal/directives/base.py: BengalDirective uses these tokens
+Example:
+    Create a token and convert for Mistune::
+
+        token = DirectiveToken(
+            type="dropdown",
+            attrs={"title": "Details", "open": True},
+            children=parsed_children,
+        )
+        return token.to_dict()  # {"type": "dropdown", "attrs": {...}, ...}
+
+See Also:
+    - ``bengal.directives.base``: ``BengalDirective.parse_directive()`` returns tokens.
 """
 
 from __future__ import annotations
@@ -20,42 +35,54 @@ from typing import Any
 
 @dataclass(slots=True)
 class DirectiveToken:
-    """
-    Typed AST token for directives.
+    """Typed AST token for directive nodes.
 
-    Replaces ad-hoc dicts like:
-        {"type": "dropdown", "attrs": {...}, "children": [...]}
-
-    Benefits:
-        - Type checking catches typos
-        - IDE autocomplete for fields
-        - Consistent structure across all directives
-
-    Example:
-        token = DirectiveToken(
-            type="dropdown",
-            attrs={"title": "Details", "open": True},
-            children=parsed_children,
-        )
-        return token.to_dict()  # For mistune compatibility
+    A structured replacement for ad-hoc dictionaries like
+    ``{"type": "dropdown", "attrs": {...}, "children": [...]}``.
+    Provides type safety, IDE support, and consistent structure.
 
     Attributes:
-        type: Token type string (e.g., "dropdown", "step", "tab_item")
-        attrs: Token attributes dict (title, options, etc.)
-        children: Nested tokens (parsed child content)
+        type: Token type string matching the directive's ``TOKEN_TYPE``
+            (e.g., ``"dropdown"``, ``"step"``, ``"tab_item"``).
+        attrs: Dictionary of token attributes (title, options, etc.).
+            Defaults to empty dict.
+        children: List of nested tokens (parsed child content).
+            Defaults to empty list.
+
+    Example:
+        Create a token in ``parse_directive()``::
+
+            token = DirectiveToken(
+                type="dropdown",
+                attrs={"title": "Details", "open": True},
+                children=parsed_children,
+            )
+            return token.to_dict()  # Convert for Mistune compatibility
+
+        Add attributes without mutation::
+
+            updated = token.with_attrs(id="my-dropdown")
     """
 
     type: str
+    """Token type string (e.g., 'dropdown', 'step')."""
+
     attrs: dict[str, Any] = field(default_factory=dict)
+    """Token attributes dictionary."""
+
     children: list[Any] = field(default_factory=list)
+    """Nested child tokens."""
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert to dict for mistune AST compatibility.
+        """Convert to a dictionary for Mistune AST compatibility.
+
+        Mistune expects tokens as dictionaries with ``type``, ``attrs``, and
+        ``children`` keys. Call this method when returning from ``parse_directive()``.
 
         Returns:
-            Dict in the format mistune expects:
-            {"type": str, "attrs": dict, "children": list}
+            Dictionary in Mistune's expected format::
+
+                {"type": str, "attrs": dict, "children": list}
         """
         return {
             "type": self.type,
@@ -65,14 +92,22 @@ class DirectiveToken:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DirectiveToken:
-        """
-        Create from dict (useful for testing and deserialization).
+        """Create a token from a dictionary.
+
+        Useful for testing, deserialization, or converting existing dict-based
+        tokens to typed instances.
 
         Args:
-            data: Dict with "type", optional "attrs", optional "children"
+            data: Dictionary with ``"type"`` (required), and optional ``"attrs"``
+                and ``"children"``.
 
         Returns:
-            DirectiveToken instance
+            A new ``DirectiveToken`` instance.
+
+        Example:
+            >>> token = DirectiveToken.from_dict({"type": "note", "attrs": {"class": "info"}})
+            >>> token.type
+            'note'
         """
         return cls(
             type=data["type"],
@@ -81,16 +116,23 @@ class DirectiveToken:
         )
 
     def with_attrs(self, **extra_attrs: Any) -> DirectiveToken:
-        """
-        Return new token with additional/updated attributes.
+        """Return a new token with additional or updated attributes.
 
-        Useful for adding computed attributes without mutating original.
+        Creates a new token with merged attributes, leaving the original
+        unchanged. Useful for adding computed attributes after initial parsing.
 
         Args:
-            **extra_attrs: Attributes to add or update
+            **extra_attrs: Attributes to add or update. Existing attributes
+                with the same keys are overwritten.
 
         Returns:
-            New DirectiveToken with merged attrs
+            A new ``DirectiveToken`` with merged ``attrs``.
+
+        Example:
+            >>> token = DirectiveToken(type="card", attrs={"title": "My Card"})
+            >>> updated = token.with_attrs(id="card-1", open=True)
+            >>> updated.attrs
+            {'title': 'My Card', 'id': 'card-1', 'open': True}
         """
         return DirectiveToken(
             type=self.type,
@@ -99,14 +141,20 @@ class DirectiveToken:
         )
 
     def with_children(self, children: list[Any]) -> DirectiveToken:
-        """
-        Return new token with different children.
+        """Return a new token with different children.
+
+        Creates a new token with the specified children, leaving the original
+        unchanged. Useful for post-processing or filtering nested content.
 
         Args:
-            children: New children list
+            children: The new children list to use.
 
         Returns:
-            New DirectiveToken with specified children
+            A new ``DirectiveToken`` with the specified ``children``.
+
+        Example:
+            >>> token = DirectiveToken(type="tabs", children=raw_children)
+            >>> filtered = token.with_children([c for c in raw_children if c["type"] == "tab"])
         """
         return DirectiveToken(
             type=self.type,

@@ -1,8 +1,36 @@
-"""
-Pre-parse validation for directives.
+"""Pre-parse validation for directive syntax.
 
-Validates directive syntax before parsing to catch errors early with
-helpful messages.
+This module provides ``DirectiveSyntaxValidator`` for catching common directive
+syntax errors early, before expensive parsing and recursive markdown processing.
+Validation runs at the text level and produces helpful error messages.
+
+Key Classes:
+    - ``DirectiveSyntaxValidator``: Validates directive syntax by type.
+
+Functions:
+    - ``validate_markdown_directives()``: Validate all directives in a file.
+    - ``get_directive_validation_summary()``: Summarize validation results.
+
+Validation Checks:
+    - **Tabs**: Requires ``### Tab:`` markers, minimum 2 tabs, warns on >10.
+    - **Code-tabs**: Requires ``### Tab:`` markers for language tabs.
+    - **Dropdown**: Requires non-empty content.
+    - **Admonitions**: Requires non-empty content.
+    - **Nesting**: Detects unclosed fences, mismatched lengths, ambiguous nesting.
+
+Example:
+    Validate a markdown file::
+
+        from bengal.directives.validator import validate_markdown_directives
+
+        results = validate_markdown_directives(markdown_content, Path("guide.md"))
+        for result in results:
+            if not result["valid"]:
+                print(f"Errors in {result['directive_type']}: {result['errors']}")
+
+See Also:
+    - ``bengal.directives.errors``: ``DirectiveError`` for runtime errors.
+    - ``bengal.directives.contracts``: Contract validation for nesting rules.
 """
 
 from __future__ import annotations
@@ -13,15 +41,30 @@ from typing import Any
 
 
 class DirectiveSyntaxValidator:
-    """
-    Validates directive syntax before parsing.
+    """Validate directive syntax before parsing.
 
-    Catches common errors early with helpful messages before expensive
-    parsing and recursive markdown processing.
+    Catches common errors early with helpful messages, avoiding expensive
+    parsing and recursive markdown processing for malformed content.
+
+    Class Attributes:
+        KNOWN_DIRECTIVES: Set of recognized directive type names.
+        ADMONITION_TYPES: Subset of directives that are admonitions.
+
+    Example:
+        Validate a specific directive::
+
+            errors = DirectiveSyntaxValidator.validate_directive(
+                directive_type="tabs",
+                content=directive_content,
+                file_path=Path("guide.md"),
+                line_number=42,
+            )
+            if errors:
+                for error in errors:
+                    print(f"Validation error: {error}")
     """
 
-    # Known directive types
-    KNOWN_DIRECTIVES = {
+    KNOWN_DIRECTIVES: set[str] = {
         "tabs",
         "note",
         "tip",
@@ -37,9 +80,9 @@ class DirectiveSyntaxValidator:
         "code-tabs",
         "code_tabs",
     }
+    """Set of recognized directive type names for validation."""
 
-    # Admonition types (subset of known directives)
-    ADMONITION_TYPES = {
+    ADMONITION_TYPES: set[str] = {
         "note",
         "tip",
         "warning",
@@ -50,21 +93,26 @@ class DirectiveSyntaxValidator:
         "success",
         "caution",
     }
+    """Subset of KNOWN_DIRECTIVES that are admonition types."""
 
     @staticmethod
     def validate_tabs_directive(
         content: str, file_path: Path | None = None, line_number: int | None = None
     ) -> list[str]:
-        """
-        Validate tabs directive content.
+        """Validate tabs directive content.
+
+        Checks for:
+            - Presence of ``### Tab:`` markers.
+            - Minimum of 2 tabs (suggests admonition for single items).
+            - Maximum of 10 tabs (performance warning).
 
         Args:
-            content: Directive content (between opening and closing backticks)
-            file_path: Optional file path for error messages
-            line_number: Optional line number for error messages
+            content: Directive content between opening and closing fences.
+            file_path: Optional file path for error context.
+            line_number: Optional line number for error context.
 
         Returns:
-            List of validation error messages (empty if valid)
+            List of validation error messages (empty if valid).
         """
         errors = []
 
@@ -107,16 +155,17 @@ class DirectiveSyntaxValidator:
     def validate_code_tabs_directive(
         content: str, file_path: Path | None = None, line_number: int | None = None
     ) -> list[str]:
-        """
-        Validate code-tabs directive content.
+        """Validate code-tabs directive content.
+
+        Checks for ``### Tab:`` markers for language tabs.
 
         Args:
-            content: Directive content
-            file_path: Optional file path
-            line_number: Optional line number
+            content: Directive content between opening and closing fences.
+            file_path: Optional file path for error context.
+            line_number: Optional line number for error context.
 
         Returns:
-            List of validation errors
+            List of validation error messages (empty if valid).
         """
         errors = []
 
@@ -138,17 +187,18 @@ class DirectiveSyntaxValidator:
     def validate_dropdown_directive(
         content: str, title: str = "", file_path: Path | None = None, line_number: int | None = None
     ) -> list[str]:
-        """
-        Validate dropdown directive content.
+        """Validate dropdown directive content.
+
+        Checks for non-empty content. Title is optional but recommended.
 
         Args:
-            content: Directive content
-            title: Directive title
-            file_path: Optional file path
-            line_number: Optional line number
+            content: Directive content between opening and closing fences.
+            title: Directive title (text after directive name).
+            file_path: Optional file path for error context.
+            line_number: Optional line number for error context.
 
         Returns:
-            List of validation errors
+            List of validation error messages (empty if valid).
         """
         errors = []
 
@@ -166,17 +216,18 @@ class DirectiveSyntaxValidator:
     def validate_admonition_directive(
         admon_type: str, content: str, file_path: Path | None = None, line_number: int | None = None
     ) -> list[str]:
-        """
-        Validate admonition directive content.
+        """Validate admonition directive content.
+
+        Checks for non-empty content in admonition blocks.
 
         Args:
-            admon_type: Type of admonition (note, tip, warning, etc.)
-            content: Directive content
-            file_path: Optional file path
-            line_number: Optional line number
+            admon_type: Type of admonition (note, tip, warning, etc.).
+            content: Directive content between opening and closing fences.
+            file_path: Optional file path for error context.
+            line_number: Optional line number for error context.
 
         Returns:
-            List of validation errors
+            List of validation error messages (empty if valid).
         """
         errors = []
 
@@ -187,20 +238,21 @@ class DirectiveSyntaxValidator:
 
     @staticmethod
     def validate_nested_fences(content: str, file_path: Path | None = None) -> list[str]:
-        """
-        Validate nested fence usage (colon fences).
+        """Validate nested colon fence structure in markdown content.
 
-        Checks for:
-        1. Unclosed fences
-        2. Mismatched closing fence lengths
-        3. Nested directives using same fence length as parent (ambiguous)
+        Performs structural validation of directive nesting, checking for:
+            1. Unclosed fences (missing closing ``:::``).
+            2. Mismatched closing fence lengths.
+            3. Ambiguous nesting (same fence length without named closers).
+
+        This is a global check on the entire document, not per-directive.
 
         Args:
-            content: Markdown content
-            file_path: Optional file path
+            content: Full markdown content to validate.
+            file_path: Optional file path for error context.
 
         Returns:
-            List of error/warning messages
+            List of error/warning messages with line numbers.
         """
         errors = []
         lines = content.split("\n")
@@ -358,19 +410,21 @@ class DirectiveSyntaxValidator:
         file_path: Path | None = None,
         line_number: int | None = None,
     ) -> list[str]:
-        """
-        Validate any directive type.
+        """Validate a directive by type.
+
+        Routes validation to the appropriate type-specific validator based on
+        the directive type. Unknown types return an error immediately.
 
         Args:
-            directive_type: Type of directive (tabs, note, dropdown, etc.)
-            content: Directive content
-            title: Directive title (if any)
-            options: Directive options dictionary
-            file_path: Optional file path
-            line_number: Optional line number
+            directive_type: Type of directive (tabs, note, dropdown, etc.).
+            content: Directive content between opening and closing fences.
+            title: Directive title (text after directive name).
+            options: Directive options dictionary (parsed ``:key: value`` lines).
+            file_path: Optional file path for error context.
+            line_number: Optional line number for error context.
 
         Returns:
-            List of validation errors (empty if valid)
+            List of validation error messages (empty if valid).
         """
         options = options or {}
         errors = []
@@ -404,24 +458,27 @@ class DirectiveSyntaxValidator:
     def validate_directive_block(
         cls, directive_block: str, file_path: Path | None = None, start_line: int | None = None
     ) -> dict[str, Any]:
-        """
-        Validate a complete directive block from markdown.
+        """Validate a complete directive block extracted from markdown.
+
+        Parses the block to extract type, title, options, and content, then
+        runs type-specific validation.
 
         Args:
-            directive_block: Full directive block including opening/closing backticks
-            file_path: Optional file path
-            start_line: Optional starting line number
+            directive_block: Full directive block including opening/closing fences.
+            file_path: Optional file path for error context.
+            start_line: Optional starting line number for error context.
 
         Returns:
-            Dictionary with validation results:
-            {
-                'valid': bool,
-                'errors': List[str],
-                'directive_type': str,
-                'content': str,
-                'title': str,
-                'options': Dict[str, Any]
-            }
+            Dictionary with validation results::
+
+                {
+                    "valid": bool,
+                    "errors": list[str],
+                    "directive_type": str | None,
+                    "content": str,
+                    "title": str,
+                    "options": dict[str, Any]
+                }
         """
         result: dict[str, Any] = {
             "valid": True,
@@ -485,15 +542,25 @@ class DirectiveSyntaxValidator:
 def validate_markdown_directives(
     markdown_content: str, file_path: Path | None = None
 ) -> list[dict[str, Any]]:
-    """
-    Validate all directive blocks in a markdown file.
+    """Validate all directive blocks in a markdown file.
+
+    Performs both structural validation (nesting, fence matching) and
+    per-directive content validation.
 
     Args:
-        markdown_content: Full markdown content
-        file_path: Optional file path for error reporting
+        markdown_content: Full markdown content to validate.
+        file_path: Optional file path for error reporting.
 
     Returns:
-        List of validation results, one per directive block
+        List of validation result dictionaries, one per directive block plus
+        any structural issues. Each result has ``valid``, ``errors``,
+        ``directive_type``, ``content``, ``title``, and ``options`` keys.
+
+    Example:
+        >>> results = validate_markdown_directives(content, Path("guide.md"))
+        >>> for r in results:
+        ...     if not r["valid"]:
+        ...         print(f"{r['directive_type']}: {r['errors']}")
     """
     results = []
     validator = DirectiveSyntaxValidator()
@@ -533,14 +600,30 @@ def validate_markdown_directives(
 
 
 def get_directive_validation_summary(validation_results: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Get a summary of directive validation results.
+    """Summarize directive validation results.
+
+    Aggregates validation results into counts and a consolidated error list.
 
     Args:
-        validation_results: List of validation result dictionaries
+        validation_results: List of validation result dictionaries from
+            ``validate_markdown_directives()``.
 
     Returns:
-        Summary dictionary with counts and error lists
+        Summary dictionary::
+
+            {
+                "total_directives": int,
+                "valid": int,
+                "invalid": int,
+                "errors": list[{"directive_type": str, "error": str}],
+                "has_errors": bool
+            }
+
+    Example:
+        >>> results = validate_markdown_directives(content)
+        >>> summary = get_directive_validation_summary(results)
+        >>> if summary["has_errors"]:
+        ...     print(f"{summary['invalid']} directives have errors")
     """
     total = len(validation_results)
     valid = sum(1 for r in validation_results if r["valid"])

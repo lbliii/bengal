@@ -1,22 +1,38 @@
 """
 Build delta analyzer for comparing builds and explaining changes.
 
-Provides tools for comparing two builds to understand what changed,
-why pages were added/removed/modified, and tracking build evolution over time.
+Provides tools for comparing build snapshots to understand what changed
+between builds, tracking build time trends, and identifying performance
+regressions over time.
 
 Key Features:
-    - Compare two build snapshots
-    - Identify added, removed, and changed pages
-    - Explain timing differences between builds
-    - Track build history and trends
+    - BuildSnapshot: Captures build state for comparison
+    - BuildDelta: Computes differences between two snapshots
+    - BuildHistory: Tracks builds over time for trend analysis
+    - BuildDeltaAnalyzer: Debug tool combining all capabilities
+
+Use Cases:
+    - Compare current build to previous build
+    - Track build performance trends over time
+    - Identify when builds started slowing down
+    - Understand what content was added/removed
+
+Example:
+    >>> from bengal.debug import BuildDeltaAnalyzer
+    >>> analyzer = BuildDeltaAnalyzer(cache=cache)
+    >>> delta = analyzer.compare_to_previous()
+    >>> if delta:
+    ...     print(delta.format_summary())
+    +5 pages | +120ms (+8%) | ⚠️ config changed
 
 Related Modules:
-    - bengal.utils.build_stats: Build statistics
-    - bengal.cache.build_cache: Build cache with timestamps
+    - bengal.orchestration.stats: BuildStats from build runs
+    - bengal.cache.build_cache: Cache with build state
     - bengal.debug.base: Debug tool infrastructure
 
 See Also:
-    - bengal/debug/incremental_debugger.py: For cache-specific debugging
+    - bengal/debug/incremental_debugger.py: Cache-specific debugging
+    - bengal/cli/commands/debug.py: CLI integration
 """
 
 from __future__ import annotations
@@ -130,7 +146,12 @@ class BuildSnapshot:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
+        """
+        Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary suitable for json.dumps(). Sets are converted to lists.
+        """
         return {
             "timestamp": self.timestamp.isoformat(),
             "build_time_ms": self.build_time_ms,
@@ -145,7 +166,15 @@ class BuildSnapshot:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BuildSnapshot:
-        """Create from dictionary."""
+        """
+        Create snapshot from dictionary.
+
+        Args:
+            data: Dictionary from to_dict() or JSON parsing.
+
+        Returns:
+            Reconstructed BuildSnapshot instance.
+        """
         return cls(
             timestamp=datetime.fromisoformat(data["timestamp"]),
             build_time_ms=data.get("build_time_ms", 0),
@@ -224,16 +253,36 @@ class BuildDelta:
 
     @property
     def page_change_count(self) -> int:
-        """Total pages added or removed."""
+        """
+        Total pages added or removed.
+
+        Returns:
+            Sum of added and removed page counts.
+        """
         return len(self.added_pages) + len(self.removed_pages)
 
     @property
     def is_significant(self) -> bool:
-        """Check if delta represents significant changes."""
+        """
+        Check if delta represents significant changes.
+
+        A delta is significant if:
+            - Any pages were added or removed
+            - Build time changed by more than 10%
+            - Configuration changed
+
+        Returns:
+            True if changes are significant enough to report.
+        """
         return self.page_change_count > 0 or abs(self.time_change_pct) > 10 or self.config_changed
 
     def format_summary(self) -> str:
-        """Format as brief summary."""
+        """
+        Format as brief one-line summary.
+
+        Returns:
+            String like "+5 pages | +120ms (+8%) 🐌 | ⚠️ config changed"
+        """
         parts = []
 
         if self.added_pages:

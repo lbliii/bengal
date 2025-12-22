@@ -1,14 +1,31 @@
 """
 Rich terminal reporter for page explanations.
 
-Formats PageExplanation data for display in terminal with Rich panels,
-trees, and tables. Optimized for readability and quick scanning.
+Formats PageExplanation data for display in terminal using the Rich
+library. Provides visually organized output with panels, trees, and
+tables optimized for readability and quick information scanning.
 
 Key Features:
-    - Paneled sections for visual organization
-    - Tree view for template chains
-    - Color-coded cache status
-    - Collapsible details for long lists
+    - Paneled sections with colored borders for visual organization
+    - Tree view for template inheritance chains
+    - Color-coded cache status (green=HIT, yellow=STALE, red=MISS)
+    - Truncated lists for long content with "... +N more" indicators
+    - Issue display with severity emojis and actionable suggestions
+
+Example:
+    >>> from bengal.debug import PageExplainer, ExplanationReporter
+    >>> explainer = PageExplainer(site)
+    >>> explanation = explainer.explain("docs/guide.md")
+    >>> reporter = ExplanationReporter()
+    >>> reporter.print(explanation)  # Full formatted output
+    >>> print(reporter.format_summary(explanation))  # One-line summary
+
+Related Modules:
+    - bengal.debug.explainer: Produces PageExplanation instances
+    - bengal.debug.models: Data models being formatted
+
+See Also:
+    - bengal/cli/commands/explain.py: CLI command using this reporter
 """
 
 from __future__ import annotations
@@ -108,7 +125,11 @@ class ExplanationReporter:
             self._print_performance(explanation.performance)
 
     def _print_source(self, source: SourceInfo) -> None:
-        """Print source file information panel."""
+        """
+        Print source file information panel.
+
+        Displays path, size, line count, modification time, and encoding.
+        """
         lines = [
             f"Path:     {source.path}",
             f"Size:     {source.size_human} ({source.line_count} lines)",
@@ -120,7 +141,12 @@ class ExplanationReporter:
         self.console.print(Panel("\n".join(lines), title="📁 Source", border_style="blue"))
 
     def _print_frontmatter(self, frontmatter: dict[str, Any]) -> None:
-        """Print frontmatter panel."""
+        """
+        Print frontmatter metadata panel.
+
+        Shows key fields first (title, description, date, tags, type,
+        template, weight), then remaining fields.
+        """
         lines = []
         # Show key fields first
         priority_keys = ["title", "description", "date", "tags", "type", "template", "weight"]
@@ -140,7 +166,18 @@ class ExplanationReporter:
             )
 
     def _format_value(self, value: object) -> str:
-        """Format a frontmatter value for display."""
+        """
+        Format a frontmatter value for display.
+
+        Truncates long lists (>5 items) and strings (>50 chars) for
+        compact display.
+
+        Args:
+            value: Any frontmatter value.
+
+        Returns:
+            Formatted string representation.
+        """
         if isinstance(value, list):
             if len(value) <= 5:
                 return f"[{', '.join(str(v) for v in value)}]"
@@ -152,7 +189,12 @@ class ExplanationReporter:
         return repr(value)
 
     def _print_template_chain(self, chain: list[TemplateInfo]) -> None:
-        """Print template inheritance chain as tree."""
+        """
+        Print template inheritance chain as a Rich Tree.
+
+        Shows template names with theme info, connected by extends
+        relationships, with includes as child nodes.
+        """
         tree = Tree("🎨 Template Chain")
 
         for i, tpl in enumerate(chain):
@@ -174,7 +216,12 @@ class ExplanationReporter:
         self.console.print(Panel(tree, border_style="magenta"))
 
     def _print_dependencies(self, deps: DependencyInfo) -> None:
-        """Print dependencies panel."""
+        """
+        Print dependencies panel organized by category.
+
+        Groups dependencies into Content, Templates, Data, Assets, and
+        Includes sections. Truncates long lists to 5 items per section.
+        """
         sections = []
 
         if deps.content:
@@ -202,7 +249,12 @@ class ExplanationReporter:
         self.console.print(Panel("\n".join(lines), title="🔗 Dependencies", border_style="cyan"))
 
     def _print_shortcodes(self, shortcodes: list[ShortcodeUsage]) -> None:
-        """Print shortcode usage panel."""
+        """
+        Print shortcode/directive usage as a Rich Table.
+
+        Shows directive name, usage count, and line numbers.
+        Truncates to 10 directives and 5 line numbers per directive.
+        """
         table = Table(show_header=True, header_style="bold")
         table.add_column("Directive")
         table.add_column("Uses", justify="right")
@@ -222,7 +274,12 @@ class ExplanationReporter:
         )
 
     def _print_cache(self, cache: CacheInfo) -> None:
-        """Print cache status panel."""
+        """
+        Print cache status panel with color-coded status.
+
+        Shows status (HIT/MISS/STALE), reason for non-HIT status,
+        cache key, and which cache layers contain data.
+        """
         # Status with color
         if cache.status == "HIT":
             status_str = "[green]✅ HIT[/green]"
@@ -255,7 +312,11 @@ class ExplanationReporter:
         self.console.print(Panel("\n".join(lines), title="💾 Cache Status", border_style="blue"))
 
     def _print_output(self, output: OutputInfo) -> None:
-        """Print output information panel."""
+        """
+        Print output information panel.
+
+        Shows public URL, output file path, and file size if available.
+        """
         lines = [f"URL:  {output.url}"]
         if output.path:
             lines.append(f"Path: {output.path}")
@@ -265,7 +326,12 @@ class ExplanationReporter:
         self.console.print(Panel("\n".join(lines), title="📤 Output", border_style="green"))
 
     def _print_issues(self, issues: list[Issue]) -> None:
-        """Print diagnosed issues."""
+        """
+        Print diagnosed issues with severity indicators.
+
+        Each issue shows severity emoji, type, message, details,
+        and actionable suggestion.
+        """
         self.console.print()
         self.console.print("[bold]⚠️  Issues Found:[/bold]")
         self.console.print()
@@ -296,7 +362,12 @@ class ExplanationReporter:
             self.console.print()
 
     def _print_performance(self, performance: PerformanceInfo) -> None:
-        """Print performance timing information."""
+        """
+        Print performance timing breakdown panel.
+
+        Shows total time and individual phase timings from the
+        breakdown dictionary.
+        """
         lines = [f"Total: {performance.total_ms:.1f}ms"]
 
         if performance.breakdown:

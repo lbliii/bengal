@@ -1,23 +1,38 @@
 """
-Page explainer - generates explanations for how pages are built.
+Page explainer - generates comprehensive explanations for how pages are built.
 
-Provides complete traceability for any page: source file, template chain,
-dependencies, shortcodes, cache status, output location, and diagnostics.
+Provides complete traceability for any page in a Bengal site, including
+source file details, template inheritance chain, all dependencies,
+shortcode/directive usage, cache status, output information, and
+diagnostic checks for potential issues.
 
-Key Concepts:
-    - Read-only introspection: No side effects, pure analysis
-    - Template chain resolution: Shows full inheritance
-    - Dependency tracking: Content, templates, data, assets
-    - Cache status: HIT/MISS/STALE with reasons
+Key Features:
+    - Read-only introspection with no side effects
+    - Full template chain resolution showing inheritance
+    - Dependency tracking across content, templates, data, and assets
+    - Cache status analysis (HIT/MISS/STALE) with detailed reasons
+    - Optional issue diagnosis (broken links, missing assets)
+
+Architecture:
+    PageExplainer is the main class that produces PageExplanation instances.
+    It requires a Site with discovered content and optionally accepts a
+    BuildCache for cache status and a TemplateEngine for template resolution.
+
+Example:
+    >>> from bengal.debug import PageExplainer, ExplanationReporter
+    >>> explainer = PageExplainer(site, cache=cache, template_engine=engine)
+    >>> explanation = explainer.explain("docs/guide.md", diagnose=True)
+    >>> reporter = ExplanationReporter()
+    >>> reporter.print(explanation)
 
 Related Modules:
-    - bengal.debug.models: Data models for explanation components
-    - bengal.debug.reporter: Rich terminal output formatting
-    - bengal.rendering.template_engine: Template resolution
+    - bengal.debug.models: Data models (PageExplanation, SourceInfo, etc.)
+    - bengal.debug.reporter: Rich terminal formatting
+    - bengal.rendering.template_engine: Template resolution logic
     - bengal.cache.build_cache: Cache status introspection
 
 See Also:
-    - plan/active/rfc-explain-page.md: Design RFC
+    - bengal/cli/commands/explain.py: CLI integration
 """
 
 from __future__ import annotations
@@ -47,8 +62,10 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Pattern to match shortcode/directive usage in content
-# Matches MyST directives like ```{name} and :::name
+# Pattern to match shortcode/directive usage in content.
+# Matches MyST directives in both fence styles:
+# - Code fence: ```{directive_name}
+# - Colon fence: :::directive_name
 DIRECTIVE_PATTERN = re.compile(
     r"(?:```\{(\w+)\}|:::(\w+))",
     re.MULTILINE,
@@ -183,7 +200,18 @@ class PageExplainer:
         return None
 
     def _get_source_info(self, page: Page) -> SourceInfo:
-        """Get source file information."""
+        """
+        Get source file information for a page.
+
+        Handles both regular file-backed pages and virtual pages (which
+        have no source file on disk).
+
+        Args:
+            page: Page to get source info for.
+
+        Returns:
+            SourceInfo with file metadata.
+        """
         source_path = page.source_path
 
         # Handle virtual pages
@@ -264,7 +292,21 @@ class PageExplainer:
         return chain
 
     def _get_template_name(self, page: Page) -> str | None:
-        """Get the template name for a page."""
+        """
+        Determine the template name for a page.
+
+        Resolution order:
+            1. Explicit 'template' in frontmatter
+            2. Template override on virtual pages
+            3. Inferred from page 'type' metadata
+            4. Default "page.html"
+
+        Args:
+            page: Page to get template name for.
+
+        Returns:
+            Template filename (e.g., "post.html") or None.
+        """
         # Check for explicit template in metadata
         if page.metadata.get("template"):
             return str(page.metadata["template"])
@@ -283,7 +325,18 @@ class PageExplainer:
         return "page.html"
 
     def _resolve_chain_from_engine(self, template_name: str) -> list[TemplateInfo]:
-        """Resolve template chain using the template engine."""
+        """
+        Resolve complete template inheritance chain using the template engine.
+
+        Recursively follows {% extends %} directives to build the full
+        chain from child template to root parent.
+
+        Args:
+            template_name: Starting template filename.
+
+        Returns:
+            List of TemplateInfo in inheritance order (child first).
+        """
         chain: list[TemplateInfo] = []
 
         # Find the template file
@@ -318,7 +371,18 @@ class PageExplainer:
         return chain
 
     def _get_theme_from_path(self, template_path: Path | None) -> str | None:
-        """Extract theme name from template path."""
+        """
+        Extract theme name from a template file path.
+
+        Parses paths like "themes/default/templates/page.html" to
+        extract the theme name ("default").
+
+        Args:
+            template_path: Full path to template file.
+
+        Returns:
+            Theme name or None if not from a theme directory.
+        """
         if not template_path:
             return None
 
@@ -334,19 +398,53 @@ class PageExplainer:
         return None
 
     def _extract_extends(self, content: str) -> str | None:
-        """Extract extends directive from Jinja2 template."""
-        # Match {% extends "base.html" %} or {% extends 'base.html' %}
+        """
+        Extract extends directive from Jinja2 template content.
+
+        Matches patterns like {% extends "base.html" %} or {% extends 'base.html' %}.
+
+        Args:
+            content: Raw template file content.
+
+        Returns:
+            Parent template name or None if no extends found.
+        """
         match = re.search(r'{%\s*extends\s*["\']([^"\']+)["\']\s*%}', content)
         return match.group(1) if match else None
 
     def _extract_includes(self, content: str) -> list[str]:
-        """Extract include directives from Jinja2 template."""
-        # Match {% include "partial.html" %} patterns
+        """
+        Extract include directives from Jinja2 template content.
+
+        Matches patterns like {% include "partials/header.html" %}.
+
+        Args:
+            content: Raw template file content.
+
+        Returns:
+            List of included template names.
+        """
         matches = re.findall(r'{%\s*include\s*["\']([^"\']+)["\']\s*%}', content)
         return matches
 
     def _get_dependencies(self, page: Page) -> DependencyInfo:
-        """Get all dependencies for a page."""
+        """
+        Collect all dependencies for a page.
+
+        Gathers dependencies from multiple sources:
+            - Content dependencies (section index pages)
+            - Template dependencies (from template chain)
+            - Data file references (from frontmatter)
+            - Asset references (from markdown content)
+            - Include dependencies (from shortcodes)
+            - Cache-tracked dependencies (from build cache)
+
+        Args:
+            page: Page to collect dependencies for.
+
+        Returns:
+            DependencyInfo with categorized dependency lists.
+        """
         deps = DependencyInfo()
 
         # Content dependencies
@@ -395,7 +493,19 @@ class PageExplainer:
         return deps
 
     def _extract_asset_refs(self, content: str) -> list[str]:
-        """Extract asset references from content."""
+        """
+        Extract asset references from markdown content.
+
+        Finds references to local assets (images, etc.) in both
+        markdown image syntax and HTML img tags. Excludes external
+        URLs and data URIs.
+
+        Args:
+            content: Raw markdown content.
+
+        Returns:
+            List of local asset paths referenced in content.
+        """
         assets: list[str] = []
 
         # Match markdown images: ![alt](path)
@@ -416,7 +526,18 @@ class PageExplainer:
         return assets
 
     def _get_shortcode_usage(self, page: Page) -> list[ShortcodeUsage]:
-        """Extract shortcode/directive usage from page content."""
+        """
+        Extract shortcode/directive usage statistics from page content.
+
+        Finds all MyST directive usages and aggregates them by name,
+        counting occurrences and tracking line numbers.
+
+        Args:
+            page: Page to analyze.
+
+        Returns:
+            List of ShortcodeUsage, sorted by count (descending).
+        """
         if not page.content:
             return []
 
@@ -436,7 +557,18 @@ class PageExplainer:
         return sorted(usages.values(), key=lambda x: -x.count)
 
     def _get_cache_status(self, page: Page) -> CacheInfo:
-        """Get cache status for a page."""
+        """
+        Determine cache status for a page.
+
+        Checks if the page is cached, whether it's stale due to
+        source or dependency changes, and what layers are cached.
+
+        Args:
+            page: Page to check cache status for.
+
+        Returns:
+            CacheInfo with status (HIT/MISS/STALE/UNKNOWN) and reason.
+        """
         page_key = str(page.source_path)
 
         # No cache available
@@ -493,7 +625,18 @@ class PageExplainer:
         )
 
     def _get_output_info(self, page: Page) -> OutputInfo:
-        """Get output information for a page."""
+        """
+        Get output information for a page.
+
+        Collects the output file path, public URL, and file size
+        (if the output has been written).
+
+        Args:
+            page: Page to get output info for.
+
+        Returns:
+            OutputInfo with path, URL, and optional size.
+        """
         # Get URL
         url = page.href if hasattr(page, "href") else "/"
 
@@ -514,7 +657,20 @@ class PageExplainer:
         )
 
     def _diagnose_issues(self, page: Page) -> list[Issue]:
-        """Diagnose potential issues with a page."""
+        """
+        Diagnose potential issues with a page.
+
+        Checks for common problems:
+            - Missing templates
+            - Broken internal links
+            - Missing referenced images/assets
+
+        Args:
+            page: Page to diagnose.
+
+        Returns:
+            List of Issue instances describing found problems.
+        """
         issues: list[Issue] = []
 
         # Check template exists

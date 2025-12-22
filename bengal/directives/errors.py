@@ -1,7 +1,29 @@
-"""
-Rich error reporting for directive parsing.
+"""Rich error reporting for directive parsing failures.
 
-Provides detailed, helpful error messages when directives fail to parse.
+This module provides ``DirectiveError``, a specialized exception for directive
+parsing failures that includes detailed context like file path, line number,
+content snippets, and helpful suggestions.
+
+Key Exports:
+    - ``DirectiveError``: Exception class for directive parsing failures.
+    - ``format_directive_error()``: Format error messages without raising.
+    - ``get_suggestion()``: Get suggestions for common error types.
+    - ``DIRECTIVE_SUGGESTIONS``: Dict of common error messages and fixes.
+
+Example:
+    Raise a directive error with full context::
+
+        raise DirectiveError(
+            directive_type="tabs",
+            error_message="Tab markers require a space after colon",
+            file_path=Path("content/guide.md"),
+            line_number=42,
+            content_snippet="### Tab:Python",
+            suggestion="Use '### Tab: Python' (note the space)",
+        )
+
+See Also:
+    - ``bengal.errors.BengalRenderingError``: Base error class.
 """
 
 from __future__ import annotations
@@ -12,16 +34,30 @@ from bengal.errors import BengalRenderingError
 
 
 class DirectiveError(BengalRenderingError):
-    """
-    Rich error for directive parsing failures.
+    """Rich error for directive parsing failures with detailed context.
 
-    Provides detailed context including:
-    - Directive type that failed
-    - File path and line number
-    - Content snippet showing the problem
-    - Helpful suggestions for fixing
+    Provides enhanced error messages including:
+        - Directive type that failed
+        - File path and line number
+        - Content snippet highlighting the problem
+        - Helpful suggestions for fixing the issue
 
-    Extends BengalRenderingError for consistent error handling.
+    Attributes:
+        directive_type: Type of directive that failed (e.g., ``"tabs"``).
+        error_message: Human-readable error description.
+        content_snippet: Content snippet showing the problem area.
+
+    Example:
+        ::
+
+            raise DirectiveError(
+                directive_type="tabs",
+                error_message="Tab markers require a space after colon",
+                file_path=Path("content/guide.md"),
+                line_number=42,
+                content_snippet="### Tab:Python",
+                suggestion="Use '### Tab: Python' (note the space)",
+            )
     """
 
     def __init__(
@@ -35,17 +71,16 @@ class DirectiveError(BengalRenderingError):
         *,
         original_error: Exception | None = None,
     ):
-        """
-        Initialize directive error.
+        """Initialize a directive error with context.
 
         Args:
-            directive_type: Type of directive that failed (e.g., 'tabs', 'note')
-            error_message: Human-readable error description
-            file_path: Path to file containing the directive
-            line_number: Line number where directive starts
-            content_snippet: Snippet of content showing the problem
-            suggestion: Helpful suggestion for fixing the issue
-            original_error: Original exception that caused this error (for chaining)
+            directive_type: Type of directive that failed (e.g., ``"tabs"``, ``"note"``).
+            error_message: Human-readable error description.
+            file_path: Path to the file containing the directive.
+            line_number: Line number where the directive starts.
+            content_snippet: Snippet of content showing the problem.
+            suggestion: Helpful suggestion for fixing the issue.
+            original_error: Original exception for chaining (keyword-only).
         """
         # Set base class fields
         super().__init__(
@@ -62,7 +97,12 @@ class DirectiveError(BengalRenderingError):
         self.content_snippet = content_snippet
 
     def _format_error(self) -> str:
-        """Format a rich error message for display."""
+        """Format a rich error message with emoji indicators and context.
+
+        Returns:
+            Multi-line formatted error string with file location, error message,
+            content snippet, and suggestion.
+        """
         lines = []
 
         # Header with emoji
@@ -92,7 +132,11 @@ class DirectiveError(BengalRenderingError):
         return "\n".join(lines)
 
     def display(self) -> str:
-        """Get formatted error message (same as __str__)."""
+        """Return the formatted error message for display.
+
+        Returns:
+            Formatted error string identical to ``str(error)``.
+        """
         return self._format_error()
 
 
@@ -105,20 +149,37 @@ def format_directive_error(
     error_line_offset: int = 0,
     suggestion: str | None = None,
 ) -> str:
-    """
-    Format a directive error message.
+    """Format a directive error message without raising an exception.
+
+    Creates a rich error message string with file location, context lines,
+    and optional suggestion. Use this when you want to format error output
+    without raising ``DirectiveError``.
 
     Args:
-        directive_type: Type of directive
-        error_message: Error description
-        file_path: File containing the error
-        line_number: Line number of directive
-        content_lines: Lines of content around the error
-        error_line_offset: Which line in content_lines has the error (for highlighting)
-        suggestion: Helpful suggestion
+        directive_type: Type of directive (e.g., ``"tabs"``).
+        error_message: Human-readable error description.
+        file_path: Path to the file containing the error.
+        line_number: Line number where the directive starts.
+        content_lines: Lines of content around the error for context.
+        error_line_offset: Index in ``content_lines`` to mark as the error line.
+        suggestion: Helpful suggestion for fixing the issue.
 
     Returns:
-        Formatted error message
+        Multi-line formatted error message with emoji indicators.
+
+    Example:
+        ::
+
+            msg = format_directive_error(
+                directive_type="tabs",
+                error_message="Requires at least 2 tabs",
+                file_path=Path("content/guide.md"),
+                line_number=42,
+                content_lines=[":::{tabs}", "### Tab: Only One", ":::"],
+                error_line_offset=1,
+                suggestion="Add another tab with ### Tab: Name",
+            )
+            print(msg)
     """
     lines = []
 
@@ -153,22 +214,52 @@ def format_directive_error(
 
 
 # Common directive error messages and suggestions
-
-DIRECTIVE_SUGGESTIONS = {
+DIRECTIVE_SUGGESTIONS: dict[str, str] = {
     "unknown_type": (
         "Check the directive name. Known directives: tabs, note, tip, warning, danger, "
         "error, info, example, success, caution, dropdown, details, code-tabs"
     ),
-    "missing_closing": "Make sure your directive has closing backticks (```) on their own line",
+    "missing_closing": "Make sure your directive has closing colons (:::) on their own line",
     "malformed_tab_marker": "Tab markers should be: ### Tab: Title (note the space after colon)",
     "empty_tabs": "Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs",
     "single_tab": "For single items, use an admonition (note, tip) instead of tabs",
-    "empty_content": "Directive content cannot be empty. Add some markdown content between the opening and closing backticks",
-    "too_many_tabs": "Consider splitting large tabs blocks into separate sections or pages. Each tab adds rendering overhead",
-    "deep_nesting": "Avoid nesting directives more than 3-4 levels deep. This impacts build performance",
+    "empty_content": (
+        "Directive content cannot be empty. Add markdown content between the opening "
+        "and closing :::"
+    ),
+    "too_many_tabs": (
+        "Consider splitting large tabs blocks into separate sections or pages. "
+        "Each tab adds rendering overhead"
+    ),
+    "deep_nesting": (
+        "Avoid nesting directives more than 3-4 levels deep. This impacts build performance"
+    ),
 }
+"""Common directive error keys and their suggestion messages.
+
+Keys:
+    unknown_type: Unrecognized directive name.
+    missing_closing: Directive not properly closed with ``:::``.
+    malformed_tab_marker: Tab marker missing space after colon.
+    empty_tabs: Tabs directive has no tabs.
+    single_tab: Only one tab (use admonition instead).
+    empty_content: Directive body is empty.
+    too_many_tabs: Too many tabs may impact performance.
+    deep_nesting: Directives nested too deeply.
+"""
 
 
 def get_suggestion(error_key: str) -> str | None:
-    """Get a helpful suggestion for a common error type."""
+    """Get a helpful suggestion for a common error type.
+
+    Args:
+        error_key: Key from ``DIRECTIVE_SUGGESTIONS`` (e.g., ``"empty_tabs"``).
+
+    Returns:
+        Suggestion string if key exists, ``None`` otherwise.
+
+    Example:
+        >>> get_suggestion("empty_tabs")
+        'Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs'
+    """
     return DIRECTIVE_SUGGESTIONS.get(error_key)
