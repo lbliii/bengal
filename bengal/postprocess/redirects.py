@@ -1,18 +1,52 @@
 """
-Redirect page generation for page aliases.
+Redirect page generation for page aliases and URL migration.
 
-Generates redirect HTML pages for each page alias, allowing old URLs
-to redirect to new canonical locations. This preserves SEO and maintains
-link stability during content reorganization.
+Generates lightweight HTML redirect pages for each page alias defined in
+frontmatter, allowing old URLs to redirect to new canonical locations.
+This preserves SEO value, maintains link stability during content
+reorganization, and supports URL migration strategies.
 
-Usage:
+Features:
+    - HTML meta refresh redirects with canonical links
+    - SEO-friendly noindex directives on redirect pages
+    - Conflict detection when multiple pages claim the same alias
+    - URL registry integration to prevent shadowing real content
+    - Optional _redirects file generation for Netlify/Vercel
 
-```python
-from bengal.postprocess.redirects import RedirectGenerator
+How It Works:
+    Pages define aliases in frontmatter:
 
-redirect_gen = RedirectGenerator(site)
-redirect_gen.generate()
-```
+    ```yaml
+    ---
+    title: "My New Post"
+    aliases:
+      - /old/posts/my-post/
+      - /legacy/content/post-123/
+    ---
+    ```
+
+    The generator creates redirect HTML files at each alias path that
+    redirect to the page's canonical URL.
+
+Configuration:
+    Optional _redirects file for platform-specific server-side redirects:
+
+    ```toml
+    [redirects]
+    generate_redirects_file = true  # Creates _redirects for Netlify/Vercel
+    ```
+
+Example:
+    >>> from bengal.postprocess.redirects import RedirectGenerator
+    >>>
+    >>> redirect_gen = RedirectGenerator(site)
+    >>> count = redirect_gen.generate()
+    >>> print(f"Generated {count} redirect pages")
+
+Related:
+    - bengal.orchestration.postprocess: Coordinates redirect generation
+    - bengal.core.page: Page objects with aliases metadata
+    - bengal.utils.url_registry: URL conflict detection and priority
 """
 
 from __future__ import annotations

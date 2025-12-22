@@ -1,12 +1,34 @@
 """
-Output handling for rendering pipeline.
+Output handling utilities for the rendering pipeline.
 
-Provides output path determination, template selection, and file writing.
+This module provides the final stage of the rendering pipeline: determining
+output paths, selecting templates, and writing rendered HTML to disk.
+
+Key Functions:
+    - determine_output_path(): Compute output file path for a page
+    - determine_template(): Select template based on page type and metadata
+    - write_output(): Write rendered HTML with atomic writes and caching
+    - format_html(): Apply HTML minification or pretty-printing
+
+Write Strategies:
+    The module supports two write modes controlled by ``build.fast_writes``:
+
+    - **Atomic writes (default)**: Crash-safe using temporary files and rename.
+      Slightly slower but ensures output is never corrupted on interruption.
+
+    - **Fast writes**: Direct file writes without atomicity. Used by dev server
+      for maximum performance during rapid iteration.
+
+Directory Caching:
+    Uses thread-safe directory tracking to minimize syscalls during parallel
+    builds. Once a directory is created, subsequent pages skip the exists check.
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Uses these output utilities
-    - bengal.utils.url_strategy: URL computation
-    - bengal.utils.atomic_write: Atomic file writing
+    - bengal.rendering.pipeline.core: Main pipeline orchestration
+    - bengal.rendering.pipeline.thread_local: Directory creation tracking
+    - bengal.utils.url_strategy: URL and path computation
+    - bengal.utils.atomic_write: Atomic file operations
+    - bengal.postprocess.html_output: HTML formatting implementation
 """
 
 from __future__ import annotations

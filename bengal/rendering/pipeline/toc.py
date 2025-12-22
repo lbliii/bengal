@@ -1,11 +1,44 @@
 """
-Table of Contents (TOC) extraction for rendering pipeline.
+Table of Contents (TOC) extraction and structuring.
 
-Provides TOC parsing and structure extraction from rendered HTML.
+This module extracts structured TOC data from rendered HTML, enabling
+custom TOC rendering in templates with proper hierarchy and navigation.
+
+Supported Formats:
+    The extractor handles TOC HTML from multiple markdown parsers:
+
+    - **Mistune (flat)**: Indentation-based hierarchy using whitespace
+    - **Python-Markdown (nested)**: Nested ``<ul>`` structure
+
+Output Structure:
+    Returns a list of dictionaries, each representing a heading:
+
+    .. code-block:: python
+
+        [
+            {"id": "introduction", "title": "Introduction", "level": 1},
+            {"id": "getting-started", "title": "Getting Started", "level": 2},
+            {"id": "installation", "title": "Installation", "level": 2},
+        ]
+
+    Levels map to heading depths: 1=H2, 2=H3, 3=H4, etc. (H1 is typically
+    the page title and excluded from TOC).
+
+Version Tracking:
+    ``TOC_EXTRACTION_VERSION`` is incremented when extraction logic changes,
+    enabling cache invalidation in incremental builds.
+
+Usage:
+    >>> from bengal.rendering.pipeline.toc import extract_toc_structure
+    >>> toc_html = '<ul><li><a href="#intro">Intro</a></li></ul>'
+    >>> items = extract_toc_structure(toc_html)
+    >>> items[0]['title']
+    'Intro'
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Uses TOC extraction
-    - bengal.core.page: Page model with toc_items property
+    - bengal.rendering.pipeline.core: Calls extraction during rendering
+    - bengal.core.page: Page.toc_items property uses this function
+    - bengal.rendering.parsers.mistune.toc: Mistune TOC plugin
 """
 
 from __future__ import annotations
