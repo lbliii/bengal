@@ -689,9 +689,9 @@ class HealthReport:
         lines.append(
             f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
         )
-        lines.append("")
 
-        return "\n".join(lines)
+        # Indent all lines since this is a sub-item of the Health check phase
+        return "\n".join(f"  {line}" if line.strip() else "" for line in lines)
 
     def _format_verbose(self, show_suggestions: bool = True) -> str:
         """
@@ -783,9 +783,9 @@ class HealthReport:
         lines.append(
             f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
         )
-        lines.append("")
 
-        return "\n".join(lines)
+        # Indent all lines since this is a sub-item of the Health check phase
+        return "\n".join(f"  {line}" if line.strip() else "" for line in lines)
 
     def format_json(self) -> dict[str, Any]:
         """

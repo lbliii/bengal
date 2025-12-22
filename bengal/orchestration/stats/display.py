@@ -39,13 +39,11 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         build_time_s = stats.build_time_ms / 1000
         cli.blank()
         cli.success(f"Built {stats.total_pages} pages in {build_time_s:.1f}s")
-        cli.blank()
     else:
         cli.blank()
         cli.warning(
-            f"⚠️  Built with {error_summary['total_errors']} error(s), {error_summary['total_warnings']} warning(s)"
+            f"Built with {error_summary['total_errors']} error(s), {error_summary['total_warnings']} warning(s)"
         )
-        cli.blank()
 
     # Show errors using new error reporter
     if stats.has_errors:

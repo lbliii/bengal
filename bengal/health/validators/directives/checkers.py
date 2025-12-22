@@ -253,9 +253,9 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
                     details.append(f"{page_path}: {total_count} directives")
 
             results.append(
-                CheckResult.warning(
+                CheckResult.info(
                     f"{len(heavy_pages)} page(s) have heavy directive usage (>{MAX_DIRECTIVES_PER_PAGE} directives)",
-                    recommendation="Consider splitting large pages or reducing directive nesting. Each directive adds ~20-50ms build time.",
+                    recommendation="Consider splitting large pages if performance becomes an issue.",
                     details=details,
                 )
             )
