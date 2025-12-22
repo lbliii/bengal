@@ -5,8 +5,7 @@ This module re-exports path utilities from their canonical locations for
 backward compatibility. New code should import directly from the canonical
 locations:
 
-    - ``BengalPaths``, ``STATE_DIR_NAME``: from bengal.cache.paths
-    - ``format_path_for_display``: from bengal.utils.text
+    - ``BengalPaths``: from bengal.cache.paths
 
 For legacy compatibility, this module also provides ``LegacyBengalPaths``
 with static methods for path resolution.
@@ -23,10 +22,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# Re-export from canonical locations for backward compatibility
-from bengal.cache.paths import STATE_DIR_NAME as STATE_DIR_NAME
+# Re-export from canonical location for backward compatibility
 from bengal.cache.paths import BengalPaths as BengalPaths
-from bengal.utils.text import format_path_for_display as format_path_for_display
+
+__all__ = ["BengalPaths", "LegacyBengalPaths"]
 
 
 class LegacyBengalPaths:
