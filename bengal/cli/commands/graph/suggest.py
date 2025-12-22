@@ -48,7 +48,7 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 @click.argument("source", type=click.Path(exists=True), default=".")
 def suggest(top_n: int, min_score: float, format: str, config: str, source: str) -> None:
     """
-    💡 Generate smart link suggestions to improve internal linking.
+    Generate smart link suggestions to improve internal linking.
 
     Analyzes your content to recommend links based on:
     - Topic similarity (shared tags/categories)

@@ -163,8 +163,9 @@ class BengalGroup(click.Group):
                     cli.info(sanitized)
             cli.blank()
 
-        # Quick Start section (styled like Options/Commands) - only for root
-        if ctx.command_path == "bengal":
+        # Quick Start section (styled like Options/Commands) - only for root command
+        # Check if this is the root command (no parent or parent is None)
+        if ctx.parent is None:
             cli.subheader("Quick Start:", leading_blank=False)
             if cli.use_rich:
                 cli.console.print("  [info]bengal build[/info]          Build your site")

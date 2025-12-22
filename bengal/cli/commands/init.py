@@ -124,7 +124,7 @@ def init(
     force: bool,
 ) -> None:
     """
-    🏗️  Initialize site structure.
+    Initialize site structure.
 
     Uses the Component Model to generate sections and pages.
     """

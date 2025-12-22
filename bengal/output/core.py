@@ -173,14 +173,14 @@ class CLIOutput(DevServerOutputMixin):
         width: int = 60,
     ) -> None:
         """
-        Print a subheader with subtle border (lighter than header).
+        Print a subheader (simple bold text, no decorations).
 
         Args:
             text: The subheader text
             icon: Optional icon/emoji to display before text
             leading_blank: Add blank line before (default: True)
             trailing_blank: Add blank line after (default: False)
-            width: Total width of the border line (default: 60)
+            width: Unused, kept for API compatibility
         """
         if not self.should_show(MessageLevel.INFO):
             return
@@ -188,25 +188,14 @@ class CLIOutput(DevServerOutputMixin):
         if leading_blank:
             self.blank()
 
-        # Format: === icon text ========================================
+        # Simple format: just the text, bold
         icon_str = f"{icon} " if icon else ""
         label = f"{icon_str}{text}"
 
-        # Calculate remaining border length
-        label_len = len(label)
-        prefix = "=== "
-        remaining = width - len(prefix) - label_len - 1
-        if remaining < 0:
-            remaining = 0
-
-        border = "=" * remaining
-
         if self.use_rich:
-            line = f"{prefix}[header]{label}[/header] {border}"
-            self.console.print(line)
+            self.console.print(f"[bold]{label}[/bold]")
         else:
-            line = f"{prefix}{label} {border}"
-            click.echo(click.style(line, bold=True))
+            click.echo(click.style(label, bold=True))
 
         if trailing_blank:
             self.blank()

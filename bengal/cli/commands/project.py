@@ -266,7 +266,7 @@ def validate() -> None:
 @handle_cli_errors(show_art=False)
 def info() -> None:
     """
-    ℹ️  Display project information and statistics.
+    Display project information and statistics.
 
     Shows:
         - Site title, baseurl, theme

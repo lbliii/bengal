@@ -58,7 +58,9 @@ class TestNavTreeVersionedSite:
         changelog_page = next((p for p in shared_pages if "changelog" in str(p.source_path)), None)
         assert changelog_page is not None, "Changelog page should exist"
         # Use relative_url for comparison (excludes baseurl)
-        assert changelog_page._path == "/_shared/changelog/", "Changelog should have correct URL"
+        assert changelog_page.relative_url == "/_shared/changelog/", (
+            "Changelog should have correct URL"
+        )
 
         # TODO: Once shared content injection is implemented in NavTree.build(),
         # uncomment these assertions:
@@ -90,7 +92,7 @@ class TestNavTreeVersionedSite:
         v3_guide_url = "/docs/guide/"
         v3_guide = tree_v3.find(v3_guide_url)
         assert v3_guide is not None, "v3 guide should be in v3 nav tree"
-        assert v3_guide._path == v3_guide_url
+        assert v3_guide.url == v3_guide_url
 
         # v3 docs section should exist
         v3_docs_url = "/docs/"
@@ -140,9 +142,9 @@ class TestNavTreeVersionedSite:
         context = NavTreeContext(tree_v3, v3_guide_page)
 
         # Current page should be active (use relative_url for nav tree lookup)
-        current_node = tree_v3.find(v3_guide_page._path)
+        current_node = tree_v3.find(v3_guide_page.relative_url)
         assert current_node is not None, (
-            f"v3 guide page {v3_guide_page._path} should be in nav tree"
+            f"v3 guide page {v3_guide_page.relative_url} should be in nav tree"
         )
         assert context.is_active(current_node) is True
         assert context.is_current(current_node) is True
@@ -186,20 +188,26 @@ class TestNavTreeVersionedSite:
         assert isinstance(target_v1, str)
         assert len(target_v1) > 0
 
+        # get_version_target_url returns URLs with baseurl, so strip it for comparison
+        baseurl = site.config.get("baseurl", "/").rstrip("/")
+        target_v1_rel = target_v1
+        if baseurl and target_v1.startswith(baseurl):
+            target_v1_rel = target_v1[len(baseurl) :] or "/"
+
         # Target URL should be a valid fallback (exact match, section index, or version root)
         # Note: The Site API guarantees the URL exists, but it may not be in NavTree
         # if the page doesn't exist in that version (fallback cascade)
         v1_tree_urls = tree_v1.urls
         is_valid_fallback = (
-            target_v1 in v1_tree_urls  # Exact match in tree
-            or target_v1 == "/docs/v1/"  # Section index
-            or target_v1 == "/docs/v1"  # Section index (no trailing slash)
-            or target_v1 == "/"  # Root fallback
-            or target_v1.startswith(
+            target_v1_rel in v1_tree_urls  # Exact match in tree
+            or target_v1_rel == "/docs/v1/"  # Section index
+            or target_v1_rel == "/docs/v1"  # Section index (no trailing slash)
+            or target_v1_rel == "/"  # Root fallback
+            or target_v1_rel.startswith(
                 "/docs/v1/"
             )  # Valid v1 URL (may not be in tree if page doesn't exist)
         )
-        assert is_valid_fallback, f"Target URL {target_v1} should be a valid fallback URL"
+        assert is_valid_fallback, f"Target URL {target_v1_rel} should be a valid fallback URL"
 
         # Test switching to v3 (latest)
         v3_version = next((v for v in site.versions if v["id"] == "v3"), None)
@@ -209,15 +217,20 @@ class TestNavTreeVersionedSite:
         assert isinstance(target_v3, str)
         assert len(target_v3) > 0
 
+        # Strip baseurl for comparison
+        target_v3_rel = target_v3
+        if baseurl and target_v3.startswith(baseurl):
+            target_v3_rel = target_v3[len(baseurl) :] or "/"
+
         # Target URL should exist in v3 tree (or be a valid fallback)
         v3_tree_urls = tree_v3.urls
         is_valid_fallback_v3 = (
-            target_v3 in v3_tree_urls  # Exact match
-            or target_v3 == "/docs/"  # Section index
-            or target_v3 == "/docs"  # Section index (no trailing slash)
-            or target_v3 == "/"  # Root fallback
+            target_v3_rel in v3_tree_urls  # Exact match
+            or target_v3_rel == "/docs/"  # Section index
+            or target_v3_rel == "/docs"  # Section index (no trailing slash)
+            or target_v3_rel == "/"  # Root fallback
         )
-        assert is_valid_fallback_v3, f"Target URL {target_v3} should be valid in v3 tree"
+        assert is_valid_fallback_v3, f"Target URL {target_v3_rel} should be valid in v3 tree"
 
     def test_nav_tree_find_all_pages(self, site, build_site):
         """Test that NavTree.find() can locate all pages in the tree."""
@@ -238,9 +251,9 @@ class TestNavTreeVersionedSite:
 
         # All v3 pages should be findable in the tree (NavTree uses relative_url)
         for page in v3_pages:
-            node = tree_v3.find(page._path)
-            assert node is not None, f"Page {page._path} should be findable in v3 nav tree"
-            assert node._path == page._path
+            node = tree_v3.find(page.relative_url)
+            assert node is not None, f"Page {page.relative_url} should be findable in v3 nav tree"
+            assert node.url == page.relative_url
 
         # Index pages are represented by section nodes, not separate page nodes
         # Verify section nodes exist
@@ -258,7 +271,7 @@ class TestNavTreeVersionedSite:
         tree_v3 = NavTree.build(site, version_id="v3")
 
         # Walk the tree and collect all URLs
-        walked_urls = {node._path for node in tree_v3.root.walk()}
+        walked_urls = {node.url for node in tree_v3.root.walk()}
 
         # flat_nodes should contain all walked URLs
         flat_urls = set(tree_v3.flat_nodes.keys())

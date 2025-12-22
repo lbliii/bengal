@@ -197,7 +197,7 @@ def doctor(
     source: str,
 ) -> None:
     """
-    🩺 Validate and lint configuration.
+    Validate and lint configuration.
 
     Checks for:
     - Valid YAML syntax

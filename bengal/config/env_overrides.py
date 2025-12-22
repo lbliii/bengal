@@ -32,7 +32,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
            - Auto-detects user/org sites when repo name is {owner}.github.io
 
     Behavior:
-    - BENGAL_BASEURL (priority 1) can override any baseurl setting (explicit or missing)
+    - Explicit non-empty config baseurl takes precedence over all env vars
+    - BENGAL_BASEURL (priority 1) can override empty or missing baseurl
     - Platform detection (priorities 2-4) only applies when baseurl is missing from config
     - If baseurl is explicitly set (even if empty), platform detection respects it
 
@@ -73,17 +74,19 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         'https://custom.com'
     """
     try:
-        # Check if baseurl is explicitly set in config
+        # Check if baseurl is explicitly set in config (with a non-empty value)
+        current_baseurl = config.get("baseurl", "")
         baseurl_explicitly_set = "baseurl" in config
+        baseurl_has_value = bool(current_baseurl)
 
-        # 1) Explicit override (highest priority) - can override anything
+        # 1) BENGAL_BASEURL can override empty/missing baseurl (but not explicit non-empty)
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
-        if explicit:
+        if explicit and not baseurl_has_value:
             config["baseurl"] = explicit.rstrip("/")
             return config
 
-        # If baseurl is explicitly set (even if empty), don't allow platform detection to override
-        # This respects explicit empty baseurl in config files and test overrides
+        # If baseurl is explicitly set (even if empty), respect it
+        # This means explicit config baseurl takes precedence over platform detection
         if baseurl_explicitly_set:
             return config
 

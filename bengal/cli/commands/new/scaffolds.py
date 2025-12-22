@@ -225,7 +225,7 @@ def partial_command(name: str) -> None:
 @click.argument("name", required=False)
 def theme_command(name: str) -> None:
     """
-    🎨 Create a new theme scaffold.
+    Create a new theme scaffold.
 
     Themes are self-contained template and asset packages.
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets

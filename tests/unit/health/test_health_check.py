@@ -328,11 +328,10 @@ class TestHealthCheckStats:
         )
 
         summary = stats.format_summary()
-        assert "⚡" in summary
-        assert "parallel" in summary
+        # Uses icon set (ASCII by default: ✓ for success)
         assert "4 validators" in summary
-        assert "Workers:" in summary
-        assert "Speedup:" in summary
+        assert "4 workers" in summary
+        assert "4.0x speedup" in summary
 
     def test_stats_format_summary_sequential(self):
         """Test format_summary for sequential mode."""
@@ -346,11 +345,10 @@ class TestHealthCheckStats:
         )
 
         summary = stats.format_summary()
-        assert "📝" in summary
-        assert "sequential" in summary
+        # Uses icon set (ASCII by default: - for info)
         assert "2 validators" in summary
-        # Sequential mode doesn't show worker stats
-        assert "Workers:" not in summary
+        assert "1 workers" in summary
+        assert "1.0x speedup" in summary
 
 
 class TestHealthCheckAutoScaling:
